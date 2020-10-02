@@ -79,20 +79,28 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.notBefore": "2020-06-16 20:19:30",
         },
         "002": {
-            "csr.domains.all": ["example.com",],
+            "csr.domains.all": [
+                "example.com",
+            ],
             "csr.domains.subject": "example.com",
             "csr.domains.san": [],
             "cert": False,
             "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
         },
         "003": {
-            "csr.domains.all": ["example.com",],
+            "csr.domains.all": [
+                "example.com",
+            ],
             "csr.domains.subject": None,
             "csr.domains.san": ["example.com"],
             "cert": True,
-            "cert.domains.all": ["example.com",],
+            "cert.domains.all": [
+                "example.com",
+            ],
             "cert.domains.subject": "example.com",
-            "cert.domains.san": ["example.com",],
+            "cert.domains.san": [
+                "example.com",
+            ],
             "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
             "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
             "cert.notBefore": "2020-06-16 22:06:46",
@@ -137,7 +145,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "d.example.com",
             ],
             "csr.domains.subject": "a.example.com",
-            "csr.domains.san": ["b.example.com", "c.example.com", "d.example.com",],
+            "csr.domains.san": [
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
             "cert": False,
             "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
         },
@@ -437,7 +449,8 @@ class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
             key_pem_filepath = self._filepath_testfile(set_data["file"])
             key_pem = self._filedata_testfile(key_pem_filepath)
             _computed_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=key_pem, key_pem_filepath=key_pem_filepath,
+                key_pem=key_pem,
+                key_pem_filepath=key_pem_filepath,
             )
             _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
             assert _computed_modulus_md5 == _expected_modulus_md5
@@ -515,10 +528,12 @@ class UnitTest_PrivateKeyCycling(AppTest):
     def test__single_certificate(self):
         dbAcmeAccount = self._makeOne_AcmeAccount("single_certificate")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id != dbPrivateKey_2.id
         assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
@@ -532,10 +547,12 @@ class UnitTest_PrivateKeyCycling(AppTest):
     def test__account_weekly(self):
         dbAcmeAccount = self._makeOne_AcmeAccount("account_weekly")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
         assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
@@ -545,10 +562,12 @@ class UnitTest_PrivateKeyCycling(AppTest):
     def test__account_daily(self):
         dbAcmeAccount = self._makeOne_AcmeAccount("account_daily")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
         assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
@@ -558,10 +577,12 @@ class UnitTest_PrivateKeyCycling(AppTest):
     def test__global_weekly(self):
         dbAcmeAccount = self._makeOne_AcmeAccount("global_weekly")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
         assert dbPrivateKey_1.acme_account_id__owner is None
@@ -571,10 +592,12 @@ class UnitTest_PrivateKeyCycling(AppTest):
     def test__global_daily(self):
         dbAcmeAccount = self._makeOne_AcmeAccount("global_daily")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
-            self.ctx, dbAcmeAccount=dbAcmeAccount,
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
         assert dbPrivateKey_1.acme_account_id__owner is None

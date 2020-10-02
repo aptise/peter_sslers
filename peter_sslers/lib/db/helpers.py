@@ -45,11 +45,13 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     """
     # grab the modulus
     dbServerCertificate.cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-        cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
+        cert_pem=dbServerCertificate.cert_pem,
+        cert_pem_filepath=_tmpfileCert.name,
     )
     # the rest...
     _cert_data = cert_utils.parse_cert(
-        cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
+        cert_pem=dbServerCertificate.cert_pem,
+        cert_pem_filepath=_tmpfileCert.name,
     )
     dbServerCertificate.timestamp_not_before = _cert_data["startdate"]
     dbServerCertificate.timestamp_not_after = _cert_data["enddate"]

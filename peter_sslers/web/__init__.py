@@ -88,8 +88,7 @@ def admin_url(request):
 
 
 def main(global_config, **settings):
-    """ This function returns a Pyramid WSGI application.
-    """
+    """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
     config.add_tween(".header_tween_factory")
     config.include("pyramid_mako")
@@ -136,7 +135,9 @@ def main(global_config, **settings):
     )
     config.add_request_method(
         lambda request: ApiContext(
-            timestamp=request.a_timestamp, dbSession=request.dbSession, request=request,
+            timestamp=request.a_timestamp,
+            dbSession=request.dbSession,
+            request=request,
         ),
         "api_context",
         reify=True,
@@ -175,7 +176,9 @@ def main(global_config, **settings):
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.utcnow(), dbSession=dbSession, request=None,
+            timestamp=datetime.datetime.utcnow(),
+            dbSession=dbSession,
+            request=None,
         )
 
         # this will do the heavy lifting

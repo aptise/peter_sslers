@@ -92,8 +92,10 @@ class View_Focus(Handler):
         items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
             self.request.api_context, dbCACertificate.id, limit=10, offset=0
         )
-        items_paged_alt = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
-            self.request.api_context, dbCACertificate.id, limit=10, offset=0
+        items_paged_alt = (
+            lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
+                self.request.api_context, dbCACertificate.id, limit=10, offset=0
+            )
         )
         if self.request.wants_json:
             return {
@@ -188,11 +190,13 @@ class View_Focus(Handler):
         )
         url_template = "%s/server-certificates-alt/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
-            self.request.api_context,
-            dbCACertificate.id,
-            limit=items_per_page,
-            offset=offset,
+        items_paged = (
+            lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
+                self.request.api_context,
+                dbCACertificate.id,
+                limit=items_per_page,
+                offset=offset,
+            )
         )
         return {
             "project": "peter_sslers",

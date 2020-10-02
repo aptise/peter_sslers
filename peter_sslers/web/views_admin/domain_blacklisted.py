@@ -55,7 +55,9 @@ class View_List(Handler):
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__DomainBlocklisted__paginated(
-            self.request.api_context, limit=items_per_page, offset=offset,
+            self.request.api_context,
+            limit=items_per_page,
+            offset=offset,
         )
 
         if self.request.wants_json:

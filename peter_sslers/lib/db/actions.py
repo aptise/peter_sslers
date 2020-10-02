@@ -445,7 +445,9 @@ def operations_update_recents__global(ctx):
         ctx.dbSession.query(
             sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
         )
-        .filter(model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,)
+        .filter(
+            model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
+        )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
@@ -661,8 +663,8 @@ def api_domains__certificate_if_needed(
     """
 
     # validate this first!
-    acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
-        processing_strategy
+    acme_order_processing_strategy_id = (
+        model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
     private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
         private_key_cycle__renewal
@@ -782,7 +784,9 @@ def api_domains__certificate_if_needed(
         else:
             try:
                 _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
-                    [_domain_name,]
+                    [
+                        _domain_name,
+                    ]
                 )
                 dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,

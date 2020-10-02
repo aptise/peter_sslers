@@ -292,7 +292,10 @@ class View_New(Handler):
                 return {"result": "error", "error": exc.as_querystring}
             return HTTPSeeOther(
                 "%s/acme-account/new?result=error&error=%s"
-                % (self.request.admin_url, exc.as_querystring,)
+                % (
+                    self.request.admin_url,
+                    exc.as_querystring,
+                )
             )
 
         except formhandling.FormInvalid as exc:
@@ -304,7 +307,8 @@ class View_New(Handler):
 class View_Focus(Handler):
     def _focus(self):
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-            self.request.api_context, self.request.matchdict["id"],
+            self.request.api_context,
+            self.request.matchdict["id"],
         )
         if not dbAcmeAccount:
             raise HTTPNotFound("the key was not found")
@@ -399,7 +403,8 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_authorizations|json", renderer="json",
+        route_name="admin:acme_account:focus:acme_authorizations|json",
+        renderer="json",
     )
     @view_config(
         route_name="admin:acme_account:focus:acme_authorizations_paginated|json",
@@ -670,7 +675,8 @@ class View_Focus_Manipulate(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_account:focus:acme_server:authenticate", renderer=None,
+        route_name="admin:acme_account:focus:acme_server:authenticate",
+        renderer=None,
     )
     @view_config(
         route_name="admin:acme_account:focus:acme_server:authenticate|json",
@@ -689,7 +695,10 @@ class View_Focus_Manipulate(View_Focus):
                 }
             url_error = (
                 "%s?result=error&error=%s&operation=acme-server--authenticate"
-                % (self._focus_url, error_message.replace(" ", "+"),)
+                % (
+                    self._focus_url,
+                    error_message.replace(" ", "+"),
+                )
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
@@ -863,9 +872,9 @@ class View_Focus_Manipulate(View_Focus):
                 return {
                     "error": error_message,
                 }
-            url_error = (
-                "%s?result=error&error=%s&operation=acme-server--deactivate-pending-authorizations"
-                % (self._focus_url, error_message.replace(" ", "+"),)
+            url_error = "%s?result=error&error=%s&operation=acme-server--deactivate-pending-authorizations" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
@@ -935,5 +944,8 @@ class View_Focus_Manipulate(View_Focus):
                 return {"result": "error", "form_errors": formStash.errors}
             return HTTPSeeOther(
                 "%s/acme-authorizations?status=active&result=error&error=%s&operation=acme-server--deactivate-pending-authorizations"
-                % (self._focus_url, errors.formstash_to_querystring(formStash),)
+                % (
+                    self._focus_url,
+                    errors.formstash_to_querystring(formStash),
+                )
             )

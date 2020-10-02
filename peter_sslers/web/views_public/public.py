@@ -39,7 +39,9 @@ class ViewPublic(Handler):
         )
         if not dbDomainBlocklisted:
             dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
-                self.request.api_context, self.request.active_domain_name, challenge,
+                self.request.api_context,
+                self.request.active_domain_name,
+                challenge,
             )
             if dbAcmeChallenge:
                 try:

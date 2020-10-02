@@ -30,8 +30,7 @@ def json_pagination(items_count, pager):
 
 
 class Handler(object):
-    """core response class
-    """
+    """core response class"""
 
     #: The active :class:`Pyramid.request.Request`
     request = None

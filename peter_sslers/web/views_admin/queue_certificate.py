@@ -105,11 +105,13 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:queue_certificates:failures|json", renderer="json")
     @view_config(
-        route_name="admin:queue_certificates:failures_paginated|json", renderer="json",
+        route_name="admin:queue_certificates:failures_paginated|json",
+        renderer="json",
     )
     @view_config(route_name="admin:queue_certificates:successes|json", renderer="json")
     @view_config(
-        route_name="admin:queue_certificates:successes_paginated|json", renderer="json",
+        route_name="admin:queue_certificates:successes_paginated|json",
+        renderer="json",
     )
     @view_config(
         route_name="admin:queue_certificates:unprocessed|json", renderer="json"
@@ -280,7 +282,9 @@ class View_New(Handler):
     def _new_structured__print(self):
         if self.request.wants_json:
             return {
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "form_fields": {
                     "queue_source": "what is the source of the queue item?",
                     "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
@@ -302,7 +306,11 @@ class View_New(Handler):
                     "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
                 },
                 "form_fields_related": [
-                    ["acme_order", "server_certificate", "unique_fqdn_set",],
+                    [
+                        "acme_order",
+                        "server_certificate",
+                        "unique_fqdn_set",
+                    ],
                 ],
                 "valid_options": {
                     "queue_source": (
@@ -348,7 +356,9 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash, require_contact=None,
+                self.request,
+                formStash,
+                require_contact=None,
             )
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
@@ -414,7 +424,9 @@ class View_New(Handler):
     def _new_freeform__print(self):
         if self.request.wants_json:
             return {
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "form_fields": {
                     "domain_names_http01": "comma separated list of domain names for http01 validation",
                     "account_key_option": "How is the AcmeAccount specified?",
@@ -466,11 +478,15 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request, formStash, http01_only=True,
+                self.request,
+                formStash,
+                http01_only=True,
             )
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash, require_contact=None,
+                self.request,
+                formStash,
+                require_contact=None,
             )
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(

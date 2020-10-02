@@ -129,7 +129,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 
 
 def get_authorization_challenges(
-    authorization_response, required_challenges=None,
+    authorization_response,
+    required_challenges=None,
 ):
     """
     :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
@@ -159,7 +160,8 @@ def get_authorization_challenges(
 
 
 def filter_specific_challenge(
-    acme_challenges_payload, acme_challenge_type=None,
+    acme_challenges_payload,
+    acme_challenge_type=None,
 ):
     """
     :param dict acme_challenges_payload: (required) A payload of acme-challenges
@@ -371,7 +373,11 @@ class AuthenticatedUser(object):
             return result
         except IndexError:  # retry bad nonces (they raise IndexError)
             self._next_nonce = None
-            return self._send_signed_request(url, payload=payload, depth=(depth + 1),)
+            return self._send_signed_request(
+                url,
+                payload=payload,
+                depth=(depth + 1),
+            )
 
     def _poll_until_not(self, _url, _pending_statuses, _log_message):
         """
@@ -387,7 +393,8 @@ class AuthenticatedUser(object):
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
-                _url, payload=None,
+                _url,
+                payload=None,
             )
         return _result
 
@@ -404,7 +411,8 @@ class AuthenticatedUser(object):
             _status_code,
             _acme_account_headers,
         ) = self._send_signed_request(
-            self._api_account_headers["Location"], payload=payload_contact,
+            self._api_account_headers["Location"],
+            payload=payload_contact,
         )
         self._api_account_object = acme_account_object
         log.debug(") update_contact | acme_account_object: %s" % acme_account_object)
@@ -514,12 +522,12 @@ class AuthenticatedUser(object):
 
         # hit the acme api for the registration
         try:
-            """ possible api values for newAccount payload are:
-                {"contact": None,
-                 "termsOfServiceAgreed": None,
-                 "onlyReturnExisting": None,
-                 "externalAccountBinding": None,
-                 }
+            """possible api values for newAccount payload are:
+            {"contact": None,
+             "termsOfServiceAgreed": None,
+             "onlyReturnExisting": None,
+             "externalAccountBinding": None,
+             }
             """
             payload_registration = {
                 "termsOfServiceAgreed": True,
@@ -610,7 +618,11 @@ class AuthenticatedUser(object):
         return (acmeOrderRfcObject, dbEventLogged)
 
     def acme_order_new(
-        self, ctx, domain_names=None, dbUniqueFQDNSet=None, transaction_commit=None,
+        self,
+        ctx,
+        domain_names=None,
+        dbUniqueFQDNSet=None,
+        transaction_commit=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -635,7 +647,8 @@ class AuthenticatedUser(object):
             _status_code,
             acme_order_headers,
         ) = self._send_signed_request(
-            self.acme_directory["newOrder"], payload=payload_order,
+            self.acme_directory["newOrder"],
+            payload=payload_order,
         )
         log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
         log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
@@ -655,21 +668,26 @@ class AuthenticatedUser(object):
         return (acmeOrderRfcObject, dbEventLogged)
 
     def _prepare_acme_challenge__http01(
-        self, ctx, dbAcmeAuthorization=None, dbAcmeChallenge=None,
+        self,
+        ctx,
+        dbAcmeAuthorization=None,
+        dbAcmeChallenge=None,
     ):
         """
         prepares an AcmeChallenge by registering - and perhaps testing, the url
         """
         # acme_challenge_response
         keyauthorization = create_challenge_keyauthorization(
-            dbAcmeChallenge.token, self.accountkey_thumbprint,
+            dbAcmeChallenge.token,
+            self.accountkey_thumbprint,
         )
         if dbAcmeChallenge.keyauthorization != keyauthorization:
             raise ValueError("This should never happen!")
 
         # update the db; this should be integrated with the above
         wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-            dbAcmeAuthorization.domain.domain_name, dbAcmeChallenge.token,
+            dbAcmeAuthorization.domain.domain_name,
+            dbAcmeChallenge.token,
         )
 
         # check that the file is in place
@@ -683,7 +701,10 @@ class AuthenticatedUser(object):
                     assert resp_data == keyauthorization
                 except (IOError, AssertionError):
                     self.acmeLogger.log_challenge_error(
-                        "v2", dbAcmeChallenge, "pretest-1", transaction_commit=True,
+                        "v2",
+                        dbAcmeChallenge,
+                        "pretest-1",
+                        transaction_commit=True,
                     )
                     raise errors.DomainVerificationError(
                         "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -692,7 +713,10 @@ class AuthenticatedUser(object):
                     )
                 except ssl.CertificateError as exc:
                     self.acmeLogger.log_challenge_error(
-                        "v2", dbAcmeChallenge, "pretest-2", transaction_commit=True,
+                        "v2",
+                        dbAcmeChallenge,
+                        "pretest-2",
+                        transaction_commit=True,
                     )
                     if str(exc).startswith("hostname") and (
                         "doesn't match" in str(exc)
@@ -832,7 +856,8 @@ class AuthenticatedUser(object):
                 _status_code,
                 _finalize_headers,
             ) = self._send_signed_request(
-                dbAcmeOrder.finalize_url, payload=payload_finalize,
+                dbAcmeOrder.finalize_url,
+                payload=payload_finalize,
             )
             log.debug(
                 ") acme_order_finalize | finalize_response: %s" % finalize_response
@@ -967,7 +992,10 @@ class AuthenticatedUser(object):
             authorization_response,
             _status_code,
             _authorization_headers,
-        ) = self._send_signed_request(authorization_url, payload=None,)
+        ) = self._send_signed_request(
+            authorization_url,
+            payload=None,
+        )
         log.debug(
             ") acme_authorization_process_url | authorization_response: %s"
             % authorization_response
@@ -988,7 +1016,9 @@ class AuthenticatedUser(object):
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+            "v2",
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            transaction_commit=True,
         )  # log this to the db
 
         _response_domain = authorization_response["identifier"]["value"]
@@ -996,8 +1026,8 @@ class AuthenticatedUser(object):
             raise ValueError("mismatch on a domain name")
 
         if not acme_challenge_type_id__preferred:
-            acme_challenge_type_id__preferred = domains_challenged.domain_to_challenge_type_id(
-                _response_domain
+            acme_challenge_type_id__preferred = (
+                domains_challenged.domain_to_challenge_type_id(_response_domain)
             )
 
         # once we inspect the url, we have the domain
@@ -1036,7 +1066,10 @@ class AuthenticatedUser(object):
         # we could parse the challenge
         # however, the call to `process_discovered_auth` should have updated the challenge object already
         acme_challenges = get_authorization_challenges(
-            authorization_response, required_challenges=["http-01",]
+            authorization_response,
+            required_challenges=[
+                "http-01",
+            ],
         )
         _acme_challenge_type = model_utils.AcmeChallengeType._mapping[
             acme_challenge_type_id__preferred
@@ -1141,7 +1174,9 @@ class AuthenticatedUser(object):
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+            "v2",
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            transaction_commit=True,
         )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
@@ -1195,8 +1230,12 @@ class AuthenticatedUser(object):
             authorization_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
-            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        dbAcmeEventLog_authorization_fetch = (
+            self.acmeLogger.log_authorization_deactivate(
+                "v2",
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
+            )
         )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
@@ -1232,7 +1271,9 @@ class AuthenticatedUser(object):
 
         # log the event
         dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
-            "v2", dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
+            "v2",
+            dbAcmeChallenge=dbAcmeChallenge,
+            transaction_commit=True,
         )  # log this to the db
 
         return (challenge_response, dbAcmeEventLog_challenge_fetch)
@@ -1266,7 +1307,9 @@ class AuthenticatedUser(object):
 
         # note that we are about to trigger the challenge:
         self.acmeLogger.log_challenge_trigger(
-            "v2", dbAcmeChallenge, transaction_commit=True,
+            "v2",
+            dbAcmeChallenge,
+            transaction_commit=True,
         )
         # trigger the challenge!
         # if we had a 'valid' challenge, the payload would be `None`
@@ -1277,7 +1320,10 @@ class AuthenticatedUser(object):
                 challenge_response,
                 _status_code,
                 _challenge_headers,
-            ) = self._send_signed_request(dbAcmeChallenge.challenge_url, payload={},)
+            ) = self._send_signed_request(
+                dbAcmeChallenge.challenge_url,
+                payload={},
+            )
             log.debug(
                 ") acme_challenge_trigger | challenge_response: %s" % challenge_response
             )
@@ -1358,7 +1404,9 @@ class AuthenticatedUser(object):
 
             # log this
             self.acmeLogger.log_challenge_pass(
-                "v2", dbAcmeChallenge, transaction_commit=True,
+                "v2",
+                dbAcmeChallenge,
+                transaction_commit=True,
             )
 
             # update the authorization
@@ -1371,7 +1419,10 @@ class AuthenticatedUser(object):
 
             # update the challenge
             acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=[acme_challenge_type,]
+                authorization_response,
+                required_challenges=[
+                    acme_challenge_type,
+                ],
             )
             _acme_challenge_selected = filter_specific_challenge(
                 acme_challenges, acme_challenge_type
@@ -1391,13 +1442,19 @@ class AuthenticatedUser(object):
         elif authorization_response["status"] != "valid":
 
             self.acmeLogger.log_challenge_error(
-                "v2", dbAcmeChallenge, "fail-2", transaction_commit=True,
+                "v2",
+                dbAcmeChallenge,
+                "fail-2",
+                transaction_commit=True,
             )
 
             # update the challenge
             # 1. find the challenge
             acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=[acme_challenge_type,],
+                authorization_response,
+                required_challenges=[
+                    acme_challenge_type,
+                ],
             )
             _acme_challenge_selected = filter_specific_challenge(
                 acme_challenges, acme_challenge_type

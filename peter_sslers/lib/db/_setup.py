@@ -85,7 +85,9 @@ def initialize_AcmeAccountProviders(dbSession):
         dbObject.server = item["server"]
         dbSession.add(dbObject)
         dbSession.flush(
-            objects=[dbObject,]
+            objects=[
+                dbObject,
+            ]
         )
 
     event_payload_dict = utils.new_event_payload_dict()
@@ -113,7 +115,9 @@ def initialize_AcmeAccountProviders(dbSession):
     dbObject.private_key_type_id = model_utils.PrivateKeyType.from_string("placeholder")
     dbSession.add(dbObject)
     dbSession.flush(
-        objects=[dbObject,]
+        objects=[
+            dbObject,
+        ]
     )
 
     return True
@@ -125,7 +129,9 @@ def initialize_DomainBlocklisted(dbSession):
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
     dbSession.add(dbDomainBlocklisted)
     dbSession.flush(
-        objects=[dbDomainBlocklisted,]
+        objects=[
+            dbDomainBlocklisted,
+        ]
     )
     return True
 

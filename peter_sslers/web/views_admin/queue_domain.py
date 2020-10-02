@@ -133,7 +133,9 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request, formStash, http01_only=True,
+                self.request,
+                formStash,
+                http01_only=True,
             )
 
             queue_results = lib_db.queues.queue_domains__add(
@@ -165,7 +167,9 @@ class View_Process(Handler):
         self._load_AcmeAccountProviders()
 
         self.QueueDomains_count = lib_db.get.get__QueueDomain__count(
-            self.request.api_context, show_all=False, unprocessed_only=True,
+            self.request.api_context,
+            show_all=False,
+            unprocessed_only=True,
         )
 
         if self.request.method == "POST":
@@ -225,7 +229,9 @@ class View_Process(Handler):
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "extra": {
                     "queue.count": self.QueueDomains_count,
                     "queue.items_100": queue_items,
@@ -261,7 +267,9 @@ class View_Process(Handler):
             ]
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash, require_contact=None,
+                self.request,
+                formStash,
+                require_contact=None,
             )
 
             dbAcmeOrder = lib_db.queues.queue_domains__process(

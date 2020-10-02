@@ -30,8 +30,10 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     # ok. so let's find out the fqdn...
-    dbLatestActiveCert = lib.db.get.get__ServerCertificate__by_UniqueFQDNSetId__latest_active(
-        ctx, serverCertificate.unique_fqdn_set_id
+    dbLatestActiveCert = (
+        lib.db.get.get__ServerCertificate__by_UniqueFQDNSetId__latest_active(
+            ctx, serverCertificate.unique_fqdn_set_id
+        )
     )
     requeue = None
     if not dbLatestActiveCert:

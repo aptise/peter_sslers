@@ -46,7 +46,9 @@ def get__AcmeEventLog__by_id(ctx, id_):
 def get__AcmeAccountProvider__default(ctx):
     dbAcmeAccountProvider_default = (
         ctx.dbSession.query(model_objects.AcmeAccountProvider)
-        .filter(model_objects.AcmeAccountProvider.is_default.op("IS")(True),)
+        .filter(
+            model_objects.AcmeAccountProvider.is_default.op("IS")(True),
+        )
         .first()
     )
     return dbAcmeAccountProvider_default
@@ -314,7 +316,12 @@ def get__AcmeAuthorization__by_AcmeAccountId__count(
 
 
 def get__AcmeAuthorization__by_AcmeAccountId__paginated(
-    ctx, acme_account_id, active_only=False, expired_only=False, limit=None, offset=0,
+    ctx,
+    acme_account_id,
+    active_only=False,
+    expired_only=False,
+    limit=None,
+    offset=0,
 ):
     query = _get__AcmeAuthorization__by_AcmeAccountId__core(
         ctx, acme_account_id, active_only=active_only, expired_only=expired_only
@@ -341,7 +348,10 @@ def get__AcmeAuthorization__by_DomainId__count(ctx, domain_id):
 
 
 def get__AcmeAuthorization__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0,
+    ctx,
+    domain_id,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeAuthorization)
@@ -438,7 +448,9 @@ def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
             sqlalchemy.func.lower(model_objects.Domain.domain_name)
             == sqlalchemy.func.lower(domain_name),
         )
-        .options(sqlalchemy.orm.contains_eager("domain"),)
+        .options(
+            sqlalchemy.orm.contains_eager("domain"),
+        )
         .first()
     )
     return active_request
@@ -592,7 +604,9 @@ def get__AcmeChallengePoll__count(ctx):
 
 
 def get__AcmeChallengePoll__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     query = ctx.dbSession.query(model_objects.AcmeChallengePoll)
     query = (
@@ -618,7 +632,9 @@ def get__AcmeChallengeUnknownPoll__count(ctx):
 
 
 def get__AcmeChallengeUnknownPoll__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     query = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll)
     query = (
@@ -663,7 +679,9 @@ def get__AcmeDnsServer__count(ctx):
 
 
 def get__AcmeDnsServer__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeDnsServer)
@@ -697,7 +715,9 @@ def get__AcmeDnsServerAccount__count(ctx):
 
 
 def get__AcmeDnsServerAccount__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
@@ -722,7 +742,9 @@ def get__AcmeDnsServerAccount__paginated(
 def get__AcmeDnsServerAccount__by_DomainId(ctx, domain_id):
     item = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
-        .filter(model_objects.AcmeDnsServerAccount.domain_id == domain_id,)
+        .filter(
+            model_objects.AcmeDnsServerAccount.domain_id == domain_id,
+        )
         .first()
     )
     return item
@@ -754,7 +776,10 @@ def get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(ctx, acme_dns_server_id
 
 
 def get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
-    ctx, acme_dns_server_id, limit=None, offset=0,
+    ctx,
+    acme_dns_server_id,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
@@ -781,7 +806,10 @@ def get__AcmeEventLogs__by_AcmeOrderId__count(ctx, acme_order_id):
 
 
 def get__AcmeEventLogs__by_AcmeOrderId__paginated(
-    ctx, acme_order_id, limit=None, offset=0,
+    ctx,
+    acme_order_id,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeEventLog)
@@ -1015,7 +1043,10 @@ def get__AcmeOrder__by_DomainId__count(ctx, domain_id):
 
 
 def get__AcmeOrder__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0,
+    ctx,
+    domain_id,
+    limit=None,
+    offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeOrder)
@@ -1554,7 +1585,9 @@ def get__Domains_challenged__count(ctx):
 
 
 def get__Domains_challenged__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     q = _get__Domains_challenged__core(ctx)
     q = q.order_by(sqlalchemy.func.lower(model_objects.Domain.domain_name).asc())
@@ -1589,7 +1622,9 @@ def get__DomainAutocert__count(ctx):
 
 
 def get__DomainAutocert__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     q = (
         ctx.dbSession.query(model_objects.DomainAutocert)
@@ -1641,7 +1676,9 @@ def get__DomainBlocklisted__count(ctx):
 
 
 def get__DomainBlocklisted__paginated(
-    ctx, limit=None, offset=0,
+    ctx,
+    limit=None,
+    offset=0,
 ):
     q = (
         ctx.dbSession.query(model_objects.DomainBlocklisted)
@@ -1995,9 +2032,22 @@ def get__OperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 
 
 def _get__QueueCertificate__core(
-    ctx, failures_only=None, successes_only=None, unprocessed_only=None,
+    ctx,
+    failures_only=None,
+    successes_only=None,
+    unprocessed_only=None,
 ):
-    if sum(bool(f) for f in (failures_only, successes_only, unprocessed_only,)) > 1:
+    if (
+        sum(
+            bool(f)
+            for f in (
+                failures_only,
+                successes_only,
+                unprocessed_only,
+            )
+        )
+        > 1
+    ):
         raise ValueError("only submit one strategy")
     q = ctx.dbSession.query(model_objects.QueueCertificate)
     if failures_only:
@@ -2028,7 +2078,10 @@ def _get__QueueCertificate__core(
 
 
 def get__QueueCertificate__count(
-    ctx, failures_only=None, successes_only=None, unprocessed_only=False,
+    ctx,
+    failures_only=None,
+    successes_only=None,
+    unprocessed_only=False,
 ):
     q = _get__QueueCertificate__core(
         ctx,

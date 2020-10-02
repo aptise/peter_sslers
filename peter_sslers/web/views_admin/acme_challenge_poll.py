@@ -35,10 +35,12 @@ class View_List(Handler):
         renderer="/admin/acme_challenge_polls.mako",
     )
     @view_config(
-        route_name="admin:acme_challenge_polls|json", renderer="json",
+        route_name="admin:acme_challenge_polls|json",
+        renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenge_polls_paginated|json", renderer="json",
+        route_name="admin:acme_challenge_polls_paginated|json",
+        renderer="json",
     )
     def list(self):
         items_count = lib_db.get.get__AcmeChallengePoll__count(self.request.api_context)

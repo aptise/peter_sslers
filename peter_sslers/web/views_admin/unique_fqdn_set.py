@@ -131,7 +131,9 @@ class View_Focus(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                     "form_fields": {},
                     "notes": [],
                     "valid_options": {},
@@ -142,7 +144,10 @@ class View_Focus(Handler):
             )
         try:
             operations_event = lib_db.actions.operations_update_recents__domains(
-                self.request.api_context, dbUniqueFQDNSets=[dbUniqueFQDNSet,],
+                self.request.api_context,
+                dbUniqueFQDNSets=[
+                    dbUniqueFQDNSet,
+                ],
             )
             if self.request.wants_json:
                 return {

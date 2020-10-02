@@ -87,7 +87,8 @@ class AcmeAccountUploadParser(object):
         if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__contact", message="`account__contact` is required.",
+                field="account__contact",
+                message="`account__contact` is required.",
             )
 
         getcreate_args = {}
@@ -172,7 +173,8 @@ class AcmeAccountUploadParser(object):
         if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__contact", message="`account__contact` is required.",
+                field="account__contact",
+                message="`account__contact` is required.",
             )
 
         getcreate_args = {}
@@ -267,7 +269,11 @@ class _PrivateKeySelection(object):
 
 
 def parse_AcmeAccountSelection(
-    request, formStash, account_key_option=None, allow_none=None, require_contact=None,
+    request,
+    formStash,
+    account_key_option=None,
+    allow_none=None,
+    require_contact=None,
 ):
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
@@ -317,7 +323,9 @@ def parse_AcmeAccountSelection(
             account_key_pem_md5 = None
             return acmeAccountSelection
         else:
-            formStash.fatal_form(message="Invalid `account_key_option`",)
+            formStash.fatal_form(
+                message="Invalid `account_key_option`",
+            )
         if not account_key_pem_md5:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
@@ -359,24 +367,24 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
         # update our object
         privateKeySelection.selection = "upload"
         privateKeySelection.upload_parsed = parser
-        privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-            "upload"
-        ]
+        privateKeySelection.private_key_strategy__requested = (
+            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["upload"]
+        )
 
         return privateKeySelection
 
     else:
         if private_key_option == "private_key_existing":
             privateKeySelection.selection = "existing"
-            privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                "existing"
-            ]
+            privateKeySelection.private_key_strategy__requested = (
+                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["existing"]
+            )
             private_key_pem_md5 = formStash.results["private_key_existing"]
         elif private_key_option == "private_key_reuse":
             privateKeySelection.selection = "reuse"
-            privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                "reuse"
-            ]
+            privateKeySelection.private_key_strategy__requested = (
+                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["reuse"]
+            )
             private_key_pem_md5 = formStash.results["private_key_reuse"]
         elif private_key_option in (
             "private_key_generate",
@@ -391,14 +399,16 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
             privateKeySelection.PrivateKey = dbPrivateKey
             if private_key_option == "private_key_generate":
                 privateKeySelection.selection = "generate"
-                privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                    "generate"
-                ]
+                privateKeySelection.private_key_strategy__requested = (
+                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
+                )
             elif private_key_option == "private_key_for_account_key":
                 privateKeySelection.selection = "private_key_for_account_key"
-                privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                    "private_key_for_account_key"
-                ]
+                privateKeySelection.private_key_strategy__requested = (
+                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+                        "private_key_for_account_key"
+                    ]
+                )
             return privateKeySelection
         else:
             # `formStash.fatal_form()` will raise `FormInvalid()`
@@ -448,7 +458,9 @@ def form_key_selection(request, formStash, require_contact=None):
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
 
     privateKeySelection = parse_PrivateKeySelection(
-        request, formStash, private_key_option=formStash.results["private_key_option"],
+        request,
+        formStash,
+        private_key_option=formStash.results["private_key_option"],
     )
 
     if privateKeySelection.selection == "upload":
@@ -499,7 +511,8 @@ def form_domains_challenge_typed(request, formStash, http01_only=False):
         if not domain_names_all:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="Error_Main", message="no domain names submitted",
+                field="Error_Main",
+                message="no domain names submitted",
             )
 
         # 3: ensure there is no overlap

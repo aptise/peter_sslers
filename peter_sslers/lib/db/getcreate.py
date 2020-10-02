@@ -246,14 +246,16 @@ def getcreate__AcmeAccount(
 
         # grab the modulus
         key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-            key_pem=key_pem, key_pem_filepath=_tmpfile.name,
+            key_pem=key_pem,
+            key_pem_filepath=_tmpfile.name,
         )
 
     finally:
         _tmpfile.close()
 
     dbOperationsEvent_AcmeAccount = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string(event_type),
+        ctx,
+        model_utils.OperationsEventType.from_string(event_type),
     )
     dbOperationsEvent_AcmeAccountKey = log__OperationsEvent(
         ctx,
@@ -373,7 +375,9 @@ def getcreate__AcmeAuthorizationUrl(
         dbOrder2Auth.is_present_on_new_order = is_via_new_order
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
-            objects=[dbOrder2Auth,]
+            objects=[
+                dbOrder2Auth,
+            ]
         )
         is_created__AcmeAuthorization2Order = True
 
@@ -435,7 +439,9 @@ def getcreate__AcmeAuthorization(
         dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(
-            objects=[dbAcmeAuthorization,]
+            objects=[
+                dbAcmeAuthorization,
+            ]
         )
         is_created__AcmeAuthorization = True
 
@@ -445,7 +451,9 @@ def getcreate__AcmeAuthorization(
         dbOrder2Auth.is_present_on_new_order = is_via_new_order
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
-            objects=[dbOrder2Auth,]
+            objects=[
+                dbOrder2Auth,
+            ]
         )
         is_created__AcmeAuthorization2Order = True
 
@@ -501,7 +509,9 @@ def process__AcmeAuthorization_payload(
         dbOrder2Auth.is_present_on_new_order = False
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
-            objects=[dbOrder2Auth,]
+            objects=[
+                dbOrder2Auth,
+            ]
         )
         is_created__AcmeAuthorization2Order = True
 
@@ -537,7 +547,10 @@ def process__AcmeAuthorization_payload(
 
 
 def getcreate__AcmeChallenges_via_payload(
-    ctx, authenticatedUser=None, dbAcmeAuthorization=None, authorization_payload=None,
+    ctx,
+    authenticatedUser=None,
+    dbAcmeAuthorization=None,
+    authorization_payload=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -552,7 +565,10 @@ def getcreate__AcmeChallenges_via_payload(
     """
     dbAcmeChallenges = []
     acme_challenges = lib.acme_v2.get_authorization_challenges(
-        authorization_payload, required_challenges=["http-01",],
+        authorization_payload,
+        required_challenges=[
+            "http-01",
+        ],
     )
     for acme_challenge in acme_challenges.values():
         if acme_challenge is None:
@@ -679,7 +695,8 @@ def getcreate__CACertificate__by_pem_text(
 
             # grab the modulus
             _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
+                cert_pem=cert_pem,
+                cert_pem_filepath=_tmpfile.name,
             )
 
             # bookkeeping
@@ -869,7 +886,8 @@ def getcreate__PrivateKey__by_pem_text(
 
             # grab the modulus
             key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name,
+                key_pem=key_pem,
+                key_pem_filepath=_tmpfile.name,
             )
         except Exception as exc:
             raise
@@ -1099,7 +1117,12 @@ def getcreate__ServerCertificate(
             "getcreate__ServerCertificate must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
         )
     if dbUniqueFQDNSet:
-        if any((dbAcmeOrder, dbCertificateRequest,)):
+        if any(
+            (
+                dbAcmeOrder,
+                dbCertificateRequest,
+            )
+        ):
             raise ValueError(
                 "getcreate__ServerCertificate must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )
@@ -1110,7 +1133,13 @@ def getcreate__ServerCertificate(
                 "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
             )
 
-    if not all((cert_pem, dbCACertificate, dbPrivateKey,)):
+    if not all(
+        (
+            cert_pem,
+            dbCACertificate,
+            dbPrivateKey,
+        )
+    ):
         raise ValueError(
             "getcreate__ServerCertificate must be provided with all of (cert_pem, dbCACertificate, dbPrivateKey)"
         )
@@ -1255,9 +1284,10 @@ def getcreate__UniqueFQDNSet__by_domains(
     }
     # we'll use this tuple in a bit...
     # getcreate__Domain__by_domainName returns a tuple of (domainObject, is_created)
-    (dbUniqueFQDNSet, is_created_fqdn,) = getcreate__UniqueFQDNSet__by_domainObjects(
-        ctx, domain_objects.values()
-    )
+    (
+        dbUniqueFQDNSet,
+        is_created_fqdn,
+    ) = getcreate__UniqueFQDNSet__by_domainObjects(ctx, domain_objects.values())
 
     return (dbUniqueFQDNSet, is_created_fqdn)
 

@@ -60,13 +60,17 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
     dbAcmeAccountProvider.server = url_to_server(directory)
     ctx.dbSession.add(dbAcmeAccountProvider)
     ctx.dbSession.flush(
-        objects=[dbAcmeAccountProvider,]
+        objects=[
+            dbAcmeAccountProvider,
+        ]
     )
     return dbAcmeAccountProvider
 
 
 def create__AcmeOrderless(
-    ctx, domains_challenged=None, dbAcmeAccount=None,
+    ctx,
+    domains_challenged=None,
+    dbAcmeAccount=None,
 ):
     """
     Create a new AcmeOrderless Tracker
@@ -396,7 +400,9 @@ def create__AcmeChallenge(
     _competing_challenges = None
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
         _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
-            ctx, dbDomain.id, acme_challenge_type_id=acme_challenge_type_id,
+            ctx,
+            dbDomain.id,
+            acme_challenge_type_id=acme_challenge_type_id,
         )
         if _active_challenges:
             if not is_via_sync:
@@ -640,7 +646,8 @@ def create__CertificateRequest(
         csr_pem_md5 = utils.md5_text(csr_pem)
         # grab the modulus
         csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
-            csr_pem=csr_pem, csr_pem_filepath=_tmpfile.name,
+            csr_pem=csr_pem,
+            csr_pem_filepath=_tmpfile.name,
         )
     finally:
         _tmpfile.close()
@@ -748,8 +755,8 @@ def create__CoverageAssuranceEvent(
             % coverage_assurance_event_status_id
         )
     if coverage_assurance_resolution_id is None:
-        coverage_assurance_resolution_id = model_utils.CoverageAssuranceResolution.from_string(
-            "unresolved"
+        coverage_assurance_resolution_id = (
+            model_utils.CoverageAssuranceResolution.from_string("unresolved")
         )
     else:
         if (
@@ -798,7 +805,8 @@ def create__CoverageAssuranceEvent(
 
 
 def create__DomainAutocert(
-    ctx, dbDomain=None,
+    ctx,
+    dbDomain=None,
 ):
     """
     Generates a new :class:`model.objects.DomainAutocert` for the datastore
@@ -902,7 +910,17 @@ def create__QueueCertificate(
     if not dbPrivateKey.is_active:
         raise ValueError("must supply active `dbPrivateKey`")
 
-    if sum(bool(i) for i in (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet,)) != 1:
+    if (
+        sum(
+            bool(i)
+            for i in (
+                dbAcmeOrder,
+                dbServerCertificate,
+                dbUniqueFQDNSet,
+            )
+        )
+        != 1
+    ):
         raise ValueError(
             "Provide one and only one of (`dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet`)"
         )
@@ -1010,7 +1028,12 @@ def create__ServerCertificate(
             "create__ServerCertificate must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
         )
     if dbUniqueFQDNSet:
-        if any((dbAcmeOrder, dbCertificateRequest,)):
+        if any(
+            (
+                dbAcmeOrder,
+                dbCertificateRequest,
+            )
+        ):
             raise ValueError(
                 "getcreate__ServerCertificate must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )

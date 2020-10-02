@@ -34,7 +34,8 @@ class View_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain_autocerts", renderer="/admin/domain_autocerts.mako",
+        route_name="admin:domain_autocerts",
+        renderer="/admin/domain_autocerts.mako",
     )
     @view_config(
         route_name="admin:domain_autocerts_paginated",
@@ -52,7 +53,9 @@ class View_List(Handler):
         items_count = lib_db.get.get__DomainAutocert__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__DomainAutocert__paginated(
-            self.request.api_context, limit=items_per_page, offset=offset,
+            self.request.api_context,
+            limit=items_per_page,
+            offset=offset,
         )
 
         if self.request.wants_json:

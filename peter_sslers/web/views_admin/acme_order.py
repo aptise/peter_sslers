@@ -33,8 +33,12 @@ from ...model import utils as model_utils
 
 
 class View_List(Handler):
-    @view_config(route_name="admin:acme_orders",)
-    @view_config(route_name="admin:acme_orders|json",)
+    @view_config(
+        route_name="admin:acme_orders",
+    )
+    @view_config(
+        route_name="admin:acme_orders|json",
+    )
     def list_redirect(self):
         url_all = (
             "%s/acme-orders/active"
@@ -129,7 +133,9 @@ class View_List(Handler):
             "sidenav_option": sidenav_option,
         }
 
-    @view_config(route_name="admin:acme_orders:active:acme_server:sync",)
+    @view_config(
+        route_name="admin:acme_orders:active:acme_server:sync",
+    )
     @view_config(
         route_name="admin:acme_orders:active:acme_server:sync|json", renderer="json"
     )
@@ -141,7 +147,9 @@ class View_List(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -149,14 +157,20 @@ class View_List(Handler):
             )
         # todo: bath this with limits and offsets?
         items_paged = lib_db.get.get__AcmeOrder__paginated(
-            self.request.api_context, active_only=True, limit=None, offset=0,
+            self.request.api_context,
+            active_only=True,
+            limit=None,
+            offset=0,
         )
         _order_ids_pass = []
         _order_ids_fail = []
         for dbAcmeOrder in items_paged:
             try:
-                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                    self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                dbAcmeOrder = (
+                    lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                        self.request.api_context,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
                 )
                 self.request.api_context.pyramid_transaction_commit()
                 _order_ids_pass.append(dbAcmeOrder.id)
@@ -191,7 +205,10 @@ class View_Focus(Handler):
         )
         if not dbAcmeOrder:
             raise HTTPNotFound("the order was not found")
-        self._focus_url = "%s/acme-order/%s" % (self.request.admin_url, dbAcmeOrder.id,)
+        self._focus_url = "%s/acme-order/%s" % (
+            self.request.admin_url,
+            dbAcmeOrder.id,
+        )
         return dbAcmeOrder
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -249,7 +266,9 @@ class View_Focus(Handler):
                         "private_key_source": dbAcmeOrder.private_key.private_key_source,
                         "private_key_type": dbAcmeOrder.private_key.private_key_type,
                     },
-                    "UniqueFQDNSet": {"id": dbAcmeOrder.unique_fqdn_set_id,},
+                    "UniqueFQDNSet": {
+                        "id": dbAcmeOrder.unique_fqdn_set_id,
+                    },
                     "AcmeAuthorizations": [],
                 },
             }
@@ -330,7 +349,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -342,7 +363,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
                 return {
@@ -353,7 +375,10 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -383,7 +408,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
@@ -395,7 +422,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
                 return {
@@ -407,7 +435,10 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+sync+authorizations"
                 % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -437,7 +468,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
@@ -449,7 +482,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
                 return {
@@ -461,7 +495,10 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+deactivate+authorizations"
                 % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -491,15 +528,20 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+download+certificate&message=HTTP+POST+required"
                 % self._focus_url
             )
         try:
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            dbAcmeOrder = (
+                lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
+                    self.request.api_context,
+                    dbAcmeOrder=dbAcmeOrder,
+                )
             )
             if self.request.wants_json:
                 return {
@@ -511,7 +553,10 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+download+certificate"
                 % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -535,7 +580,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+process&message=HTTP+POST+required"
@@ -547,7 +594,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Process is not allowed for this AcmeOrder"
                 )
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
                 return {
@@ -558,7 +606,10 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+process" % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -582,7 +633,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
@@ -594,7 +647,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Finalize is not allowed for this AcmeOrder"
                 )
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
                 return {
@@ -605,7 +659,10 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+finalize" % self._focus_url
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -629,7 +686,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=mark&message=HTTP+POST+required"
@@ -643,23 +702,28 @@ class View_Focus_Manipulate(View_Focus):
                 lib_db.actions_acme.updated_AcmeOrder_status(
                     self.request.api_context,
                     dbAcmeOrder,
-                    {"status": "invalid",},
+                    {
+                        "status": "invalid",
+                    },
                     transaction_commit=True,
                 )
 
             elif action == "deactivate":
                 lib_db.update.update_AcmeOrder_deactivate(
-                    self.request.api_context, dbAcmeOrder,
+                    self.request.api_context,
+                    dbAcmeOrder,
                 )
 
             elif action == "renew_auto":
                 event_status = lib_db.update.update_AcmeOrder_set_renew_auto(
-                    self.request.api_context, dbAcmeOrder,
+                    self.request.api_context,
+                    dbAcmeOrder,
                 )
 
             elif action == "renew_manual":
                 event_status = lib_db.update.update_AcmeOrder_set_renew_manual(
-                    self.request.api_context, dbAcmeOrder,
+                    self.request.api_context,
+                    dbAcmeOrder,
                 )
 
             else:
@@ -709,7 +773,8 @@ class View_Focus_Manipulate(View_Focus):
                 )
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
-                    self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                    self.request.api_context,
+                    dbAcmeOrder=dbAcmeOrder,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -723,7 +788,11 @@ class View_Focus_Manipulate(View_Focus):
                     }
                 return HTTPSeeOther(
                     "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
-                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring,)
+                    % (
+                        self.request.admin_url,
+                        dbAcmeOrderNew.id,
+                        exc.as_querystring,
+                    )
                 )
             if self.request.wants_json:
                 return {
@@ -734,7 +803,10 @@ class View_Focus_Manipulate(View_Focus):
                 "%s/acme-order/%s?result=success&operation=retry+order"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -836,13 +908,17 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
 
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrder_renew_custom, validate_get=False,
+                self.request,
+                schema=Form_AcmeOrder_renew_custom,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash, require_contact=None,
+                self.request,
+                formStash,
+                require_contact=None,
             )
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
@@ -879,12 +955,18 @@ class View_Focus_Manipulate(View_Focus):
                 "%s/acme-order/%s?result=success&operation=renew+custom"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             raise HTTPSeeOther(
                 "%s?result=error&error=%s&operation=renew+custom"
-                % (self._focus_url, exc.as_querystring,)
+                % (
+                    self._focus_url,
+                    exc.as_querystring,
+                )
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
@@ -929,7 +1011,9 @@ class View_Focus_Manipulate(View_Focus):
 
         return render_to_response(
             "/admin/acme_order-focus-renew-quick.mako",
-            {"AcmeOrder": dbAcmeOrder,},
+            {
+                "AcmeOrder": dbAcmeOrder,
+            },
             self.request,
         )
 
@@ -940,7 +1024,9 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.DisplayableError("This AcmeOrder can not use QuickRenew")
 
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrder_renew_quick, validate_get=False,
+                self.request,
+                schema=Form_AcmeOrder_renew_quick,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -974,7 +1060,10 @@ class View_Focus_Manipulate(View_Focus):
                 "%s/acme-order/%s?result=success&operation=renew+quick"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             url_failure = "%s?result=error&error=%s&operation=renew+quick" % (
@@ -1070,7 +1159,9 @@ class View_New(Handler):
         """
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrder_new_freeform, validate_get=False,
+                self.request,
+                schema=Form_AcmeOrder_new_freeform,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -1080,7 +1171,9 @@ class View_New(Handler):
             )
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash, require_contact=None,
+                self.request,
+                formStash,
+                require_contact=None,
             )
 
             processing_strategy = formStash.results["processing_strategy"]
@@ -1162,7 +1255,10 @@ class View_New(Handler):
                     return {"result": "error", "error": str(exc)}
                 formStash.fatal_field(field="Error_Main", message=str(exc))
 
-            except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            except (
+                errors.AcmeError,
+                errors.InvalidRequest,
+            ) as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
 

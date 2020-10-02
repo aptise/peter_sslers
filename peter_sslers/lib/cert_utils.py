@@ -83,7 +83,12 @@ def check_openssl_version(replace=False):
     global _openssl_behavior
     if (openssl_version is None) or replace:
         with psutil.Popen(
-            [openssl_path, "version",], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            [
+                openssl_path,
+                "version",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         ) as proc:
             version_text, err = proc.communicate()
         if err:
@@ -108,8 +113,7 @@ def check_openssl_version(replace=False):
 
 
 def new_pem_tempfile(pem_data):
-    """this is just a convenience wrapper to create a tempfile and seek(0)
-    """
+    """this is just a convenience wrapper to create a tempfile and seek(0)"""
     tmpfile_pem = tempfile.NamedTemporaryFile()
     if six.PY3:
         if isinstance(pem_data, str):
@@ -665,20 +669,20 @@ def _cert_normalize__pem(cert_pem):
 def cert_single_op__pem_filepath(pem_filepath, single_op):
     """handles a single pem operation to `openssl x509`
 
-        openssl x509 -noout -issuer -in cert.pem
-        openssl x509 -noout -issuer_hash -in cert.pem
+    openssl x509 -noout -issuer -in cert.pem
+    openssl x509 -noout -issuer_hash -in cert.pem
 
-        openssl x509 -noout -issuer_hash -in {CERT}
-        returns the data found in
-           X509v3 extensions:
-               X509v3 Authority Key Identifier:
-                   keyid:{VALUE}
+    openssl x509 -noout -issuer_hash -in {CERT}
+    returns the data found in
+       X509v3 extensions:
+           X509v3 Authority Key Identifier:
+               keyid:{VALUE}
 
-        openssl x509 -noout -subject_hash -in {CERT}
-        returns the data found in
-           X509v3 extensions:
-               X509v3 Subject Key Identifier:
-                   {VALUE}
+    openssl x509 -noout -subject_hash -in {CERT}
+    returns the data found in
+       X509v3 extensions:
+           X509v3 Subject Key Identifier:
+               {VALUE}
     """
     if single_op not in (
         "-issuer_hash",
@@ -705,7 +709,7 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
 
 def cert_ext__pem_filepath(pem_filepath, ext):
     """handles a single pem operation to `openssl x509`
-        /usr/local/bin/openssl x509  -noout -ext subjectAltName -in cert.pem
+    /usr/local/bin/openssl x509  -noout -ext subjectAltName -in cert.pem
     """
     if ext not in ("subjectAltName",):
         raise ValueError("invalid `ext`")
@@ -825,12 +829,12 @@ def convert_der_to_pem__rsakey(der_data=None):
 
 def convert_pem_to_der(pem_data=None):
     """
-        with psutil.Popen(
-            [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            csr_der, err = proc.communicate()
+    with psutil.Popen(
+        [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        csr_der, err = proc.communicate()
     """
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split("\n")]
@@ -1192,7 +1196,7 @@ def cert_and_chain_from_fullchain(fullchain_pem):
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
-    
+
     Portions of this are a reimplentation of certbot's code
     Certbot's code is Apache2 licensed
     https://raw.githubusercontent.com/certbot/certbot/master/LICENSE.txt
@@ -1257,7 +1261,14 @@ def account_key__parse(key_pem=None, key_pem_filepath=None):
     else:
         log.debug(".account_key__parse > openssl fallback")
         with psutil.Popen(
-            [openssl_path, "rsa", "-in", key_pem_filepath, "-noout", "-text",],
+            [
+                openssl_path,
+                "rsa",
+                "-in",
+                key_pem_filepath,
+                "-noout",
+                "-text",
+            ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

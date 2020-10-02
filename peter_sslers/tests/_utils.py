@@ -75,7 +75,12 @@ SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
 SSL_BIN_REDIS_SERVER = os.environ.get("SSL_BIN_REDIS_SERVER", None) or "redis-server"
 SSL_CONF_REDIS_SERVER = os.environ.get("SSL_CONF_REDIS_SERVER", None) or None
 if SSL_CONF_REDIS_SERVER is None:
-    SSL_CONF_REDIS_SERVER = "/".join(__file__.split("/")[:-1] + ["redis-server.conf",])
+    SSL_CONF_REDIS_SERVER = "/".join(
+        __file__.split("/")[:-1]
+        + [
+            "redis-server.conf",
+        ]
+    )
 
 PEBBLE_CONFIG = (
     "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json"
@@ -249,10 +254,18 @@ def under_redis(_function):
 
 TEST_FILES = {
     "AcmeDnsServer": {
-        "1": {"root_url": ACME_DNS_API,},
-        "2": {"root_url": "https://acme-dns.example.com",},
-        "3": {"root_url": "https://acme-dns-alt.example.com",},
-        "4": {"root_url": "https://acme-dns-alt-2.example.com",},
+        "1": {
+            "root_url": ACME_DNS_API,
+        },
+        "2": {
+            "root_url": "https://acme-dns.example.com",
+        },
+        "3": {
+            "root_url": "https://acme-dns-alt.example.com",
+        },
+        "4": {
+            "root_url": "https://acme-dns-alt-2.example.com",
+        },
     },
     "AcmeDnsServerAccount": {
         "1": {
@@ -513,8 +526,12 @@ TEST_FILES = {
                 "chain": "chain.pem",
                 "pkey": "privkey.pem",
                 "alternate_chains": {
-                    "1": {"chain": "chain.pem",},
-                    "2": {"chain": "chain.pem",},
+                    "1": {
+                        "chain": "chain.pem",
+                    },
+                    "2": {
+                        "chain": "chain.pem",
+                    },
                 },
             },
         },
@@ -579,7 +596,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
         app = main(global_config=None, **settings)
         self.testapp = TestApp(
-            app, extra_environ={"HTTP_HOST": "peter-sslers.example.com",}
+            app,
+            extra_environ={
+                "HTTP_HOST": "peter-sslers.example.com",
+            },
         )
         AppTestCore._DB_INTIALIZED = True
 
@@ -591,9 +611,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         self._turnoff_items()
 
     def _turnoff_items(self):
-        """when running multiple tests, ensure we turn off blocking items
-
-        """
+        """when running multiple tests, ensure we turn off blocking items"""
         _query = self.ctx.dbSession.query(model_objects.AcmeOrder).filter(
             model_objects.AcmeOrder.acme_status_order_id.in_(
                 model_utils.Acme_Status_Order.IDS_BLOCKING
@@ -760,7 +778,8 @@ class AppTest(AppTestCore):
             _dbUniqueFQDNSet,
             _is_created,
         ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-            self.ctx, _cert_domains_expected,
+            self.ctx,
+            _cert_domains_expected,
         )
         _cert_pem = self._filedata_testfile(_cert_filename)
 
@@ -947,7 +966,8 @@ class AppTest(AppTestCore):
                         _dbUniqueFQDNSet,
                         _is_created,
                     ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                        self.ctx, _cert_domains_expected,
+                        self.ctx,
+                        _cert_domains_expected,
                     )
 
                     cert_pem = self._filedata_testfile(_cert_filename)
@@ -1106,11 +1126,11 @@ class AppTest(AppTestCore):
                 _acme_order_processing_strategy_id = (
                     model_utils.AcmeOrder_ProcessingStrategy.create_order
                 )
-                _private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
-                    "single_certificate"
+                _private_key_cycle_id__renewal = (
+                    model_utils.PrivateKeyCycle.from_string("single_certificate")
                 )
-                _private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
-                    "specified"
+                _private_key_strategy_id__requested = (
+                    model_utils.PrivateKeyStrategy.from_string("specified")
                 )
                 _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
                 _dbAcmeEventLog = model_objects.AcmeEventLog()
@@ -1189,16 +1209,20 @@ class AppTest(AppTestCore):
                     dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http_01,
                     remote_ip_address="127.1.1.1",
                 )
-                _db__AcmeChallengeUnknownPoll = db.create.create__AcmeChallengeUnknownPoll(
-                    self.ctx,
-                    domain="unknown.example.com",
-                    challenge="bar.foo",
-                    remote_ip_address="127.1.1.2",
+                _db__AcmeChallengeUnknownPoll = (
+                    db.create.create__AcmeChallengeUnknownPoll(
+                        self.ctx,
+                        domain="unknown.example.com",
+                        challenge="bar.foo",
+                        remote_ip_address="127.1.1.2",
+                    )
                 )
 
                 # note: pre-populate AcmeOrderless
                 _domains_challenged = model_utils.DomainsChallenged.new_http01(
-                    ["acme-orderless.example.com",]
+                    [
+                        "acme-orderless.example.com",
+                    ]
                 )
                 dbAcmeOrderless = db.create.create__AcmeOrderless(
                     self.ctx,
@@ -1208,10 +1232,13 @@ class AppTest(AppTestCore):
 
                 # note: pre-populate AcmeDnsServer
                 (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
-                    self.ctx, root_url=ACME_DNS_API, is_global_default=True,
+                    self.ctx,
+                    root_url=ACME_DNS_API,
+                    is_global_default=True,
                 )
                 (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
-                    self.ctx, root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                    self.ctx,
+                    root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
                 )
 
                 (

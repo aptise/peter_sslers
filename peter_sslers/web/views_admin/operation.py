@@ -184,7 +184,9 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(
-            items_count, url_template=url_template, items_per_page=_items_per_page,
+            items_count,
+            url_template=url_template,
+            items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsEvent__paginated(
             self.request.api_context,
@@ -234,7 +236,9 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(
-            items_count, url_template=url_template, items_per_page=_items_per_page,
+            items_count,
+            url_template=url_template,
+            items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsEvent__paginated(
             self.request.api_context,
@@ -273,7 +277,9 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(
-            items_count, url_template=url_template, items_per_page=_items_per_page,
+            items_count,
+            url_template=url_template,
+            items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsObjectEvent__paginated(
             self.request.api_context, limit=_items_per_page, offset=offset

@@ -31,7 +31,9 @@ from ...model import utils as model_utils
 
 
 class View_List(Handler):
-    @view_config(route_name="admin:coverage_assurance_events",)
+    @view_config(
+        route_name="admin:coverage_assurance_events",
+    )
     def list_redirect(self):
         url_all = (
             "%s/coverage-assurance-events/all"
@@ -115,7 +117,8 @@ class View_List(Handler):
 class View_Focus(Handler):
     def _focus(self):
         dbCoverageAssuranceEvent = lib_db.get.get__CoverageAssuranceEvent__by_id(
-            self.request.api_context, self.request.matchdict["id"],
+            self.request.api_context,
+            self.request.matchdict["id"],
         )
         if not dbCoverageAssuranceEvent:
             raise HTTPNotFound("the item was not found")

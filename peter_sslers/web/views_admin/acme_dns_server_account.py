@@ -66,7 +66,8 @@ class View_List(Handler):
 class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_id(
-            self.request.api_context, self.request.matchdict["id"],
+            self.request.api_context,
+            self.request.matchdict["id"],
         )
         if not dbAcmeDnsServerAccount:
             raise HTTPNotFound("the acme-dns server account was not found")

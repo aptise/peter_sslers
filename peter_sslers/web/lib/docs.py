@@ -2,7 +2,9 @@
 
 
 json_docs_post_only = {
-    "instructions": ["HTTP POST required",],
+    "instructions": [
+        "HTTP POST required",
+    ],
     "form_fields": None,
 }
 
@@ -29,21 +31,27 @@ api_endpoints = {
         "about": """Enables domain(s) for management. Currently this proxies calls to `/admin/queue-domains`""",
         "POST": True,
         "GET": False,
-        "args": {"domain_names": "A comma (,) separated list of domain names",},
+        "args": {
+            "domain_names": "A comma (,) separated list of domain names",
+        },
     },
     "/api/domain/disable": {
         "endpoint": "/api/domain/disable",
         "about": """Disables domain(s) for management""",
         "POST": True,
         "GET": False,
-        "args": {"domain_names": "A comma (,) separated list of domain names",},
+        "args": {
+            "domain_names": "A comma (,) separated list of domain names",
+        },
     },
     "/api/domain/certificate-if-needed": {
         "endpoint": "/api/domain/certificate-if-needed",
         "about": """Initiates a new certificate if needed. full control of acme-order properties""",
         "POST": True,
         "GET": False,
-        "args": {"domain_name": "A single",},
+        "args": {
+            "domain_name": "A single",
+        },
     },
     "/api/domain/autocert.json": {
         "endpoint": "/api/domain/autocert.json",
@@ -52,7 +60,9 @@ api_endpoints = {
         "GET": False,
         "GET-SELF-DOCUMENTING": True,
         "GET-button": "/api/domain/autocert",  # set to html, not json
-        "args": {"domain_name": "A single",},
+        "args": {
+            "domain_name": "A single",
+        },
     },
     "/api/redis/prime.json": {
         "endpoint": "/api/redis/prime.json",

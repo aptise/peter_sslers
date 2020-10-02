@@ -47,16 +47,46 @@ LIMITS = {
         "timeframe": "1 hour",
     },  # "Failed Validation"
     "endpoints": {
-        "new-reg": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V1
-        "new-authz": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V1
-        "new-cert": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V1
-        "new-nonce": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V2
-        "new-account": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V2
-        "new-order": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V2
-        "revoke-cert": {"overall_requests": 20, "timeframe": "1 second",},  # ACME-V2
-        "/directory": {"overall_requests": 40, "timeframe": "1 second",},
-        "/acme": {"overall_requests": 40, "timeframe": "1 second",},
-        "/acme/*": {"overall_requests": 40, "timeframe": "1 second",},
+        "new-reg": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V1
+        "new-authz": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V1
+        "new-cert": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V1
+        "new-nonce": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V2
+        "new-account": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V2
+        "new-order": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V2
+        "revoke-cert": {
+            "overall_requests": 20,
+            "timeframe": "1 second",
+        },  # ACME-V2
+        "/directory": {
+            "overall_requests": 40,
+            "timeframe": "1 second",
+        },
+        "/acme": {
+            "overall_requests": 40,
+            "timeframe": "1 second",
+        },
+        "/acme/*": {
+            "overall_requests": 40,
+            "timeframe": "1 second",
+        },
     },  # "Overall Requests"; enforced by gateway/cdn/balancer
 }
 

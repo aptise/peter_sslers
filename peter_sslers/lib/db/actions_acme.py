@@ -45,7 +45,9 @@ TESTING_ENVIRONMENT = True
 
 
 def do__AcmeAccount_AcmeV2_register(
-    ctx, dbAcmeAccount, account_key_path=None,
+    ctx,
+    dbAcmeAccount,
+    account_key_path=None,
 ):
     """
     Registers an AcmeAccount against the LetsEncrypt ACME Directory
@@ -121,7 +123,9 @@ def do__AcmeAccount_AcmeV2_register(
 
 
 def do__AcmeAccount_AcmeV2_authenticate(
-    ctx, dbAcmeAccount, account_key_path=None,
+    ctx,
+    dbAcmeAccount,
+    account_key_path=None,
 ):
     """
     Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
@@ -180,7 +184,9 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
         # the authenticatedUser will have a `logger.AcmeLogger` object as the `.acmeLogger` attribtue
         # the `acmeLogger` may need to have the `AcmeOrder` registered
         authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
-            ctx, dbAcmeAccount, account_key_path=account_key_path,
+            ctx,
+            dbAcmeAccount,
+            account_key_path=account_key_path,
         )
         return (authenticatedUser, tmpfile_account)
     except:
@@ -210,8 +216,8 @@ def update_AcmeAuthorization_status(
     _edited = False
     status_text = status_text.lower()
     if dbAcmeAuthorization.acme_status_authorization != status_text:
-        dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(
-            status_text
+        dbAcmeAuthorization.acme_status_authorization_id = (
+            model_utils.Acme_Status_Authorization.from_string(status_text)
         )
         _edited = True
     if _edited:
@@ -245,8 +251,8 @@ def update_AcmeChallenge_status(
     _edited = False
     status_text = status_text.lower()
     if dbAcmeChallenge.acme_status_challenge != status_text:
-        dbAcmeChallenge.acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
-            status_text
+        dbAcmeChallenge.acme_status_challenge_id = (
+            model_utils.Acme_Status_Challenge.from_string(status_text)
         )
         _edited = True
     if _edited:
@@ -285,12 +291,12 @@ def updated_AcmeOrder_status(
     status_text = acme_order_object.get("status", "").lower()
     if dbAcmeOrder.acme_status_order != status_text:
         try:
-            dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-                status_text
+            dbAcmeOrder.acme_status_order_id = (
+                model_utils.Acme_Status_Order.from_string(status_text)
             )
         except KeyError:
-            dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-                "*406*"
+            dbAcmeOrder.acme_status_order_id = (
+                model_utils.Acme_Status_Order.from_string("*406*")
             )
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
@@ -547,7 +553,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
-                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             updated_AcmeOrder_status(
                 ctx,
@@ -565,7 +573,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                     "AcmeOrder failed, going to deactivate remaining authorizations"
                 )
                 do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
-                    ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser,
+                    ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                    authenticatedUser=authenticatedUser,
                 )
 
             raise errors.AcmeOrderFatal(
@@ -591,7 +601,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
 
 
 def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
-    ctx, dbAcmeAuthorization=None, authenticatedUser=None,
+    ctx,
+    dbAcmeAuthorization=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -629,7 +641,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 authorization_response,
                 dbAcmeEventLog_authorization_fetch,
             ) = authenticatedUser.acme_authorization_deactivate(
-                ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
             )
             _server_status = authorization_response["status"]
             if _server_status != "deactivated":
@@ -695,7 +709,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
 
 
 def do__AcmeV2_AcmeAuthorization__acme_server_sync(
-    ctx, dbAcmeAuthorization=None, authenticatedUser=None,
+    ctx,
+    dbAcmeAuthorization=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -732,7 +748,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 authorization_response,
                 dbAcmeEventLog_authorization_fetch,
             ) = authenticatedUser.acme_authorization_load(
-                ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
             )
 
             # trigger this now, so we do not attempt to load the chalenges
@@ -754,11 +772,13 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
             # and it's possible we have new challenges
             try:
-                dbAcmeChallenges = lib.db.getcreate.getcreate__AcmeChallenges_via_payload(
-                    ctx,
-                    authenticatedUser=authenticatedUser,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    authorization_payload=authorization_response,
+                dbAcmeChallenges = (
+                    lib.db.getcreate.getcreate__AcmeChallenges_via_payload(
+                        ctx,
+                        authenticatedUser=authenticatedUser,
+                        dbAcmeAuthorization=dbAcmeAuthorization,
+                        authorization_payload=authorization_response,
+                    )
                 )
             except errors.AcmeMissingChallenges as exc:
                 # maybe there are challenges in the payload?
@@ -787,7 +807,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_trigger(
-    ctx, dbAcmeChallenge=None, authenticatedUser=None,
+    ctx,
+    dbAcmeChallenge=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -923,7 +945,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_sync(
-    ctx, dbAcmeChallenge=None, authenticatedUser=None,
+    ctx,
+    dbAcmeChallenge=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -963,7 +987,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
                 challenge_response,
                 dbAcmeEventLog_challenge_fetch,
             ) = authenticatedUser.acme_challenge_load(
-                ctx, dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
+                ctx,
+                dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=True,
             )
 
             # this only logs
@@ -1030,7 +1056,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
 
 
 def do__AcmeV2_AcmeOrder__acme_server_sync(
-    ctx, dbAcmeOrder=None, authenticatedUser=None,
+    ctx,
+    dbAcmeOrder=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1061,7 +1089,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
                 acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
-                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             is_order_404 = False
 
@@ -1132,7 +1162,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
-                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             is_order_404 = False
 
@@ -1197,7 +1229,10 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
-    ctx, dbAcmeAccount=None, acme_authorization_ids=None, authenticatedUser=None,
+    ctx,
+    dbAcmeAccount=None,
+    acme_authorization_ids=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1278,7 +1313,9 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
 
 
 def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
-    ctx, dbAcmeOrder=None, authenticatedUser=None,
+    ctx,
+    dbAcmeOrder=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1308,7 +1345,9 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
-                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             is_order_404 = False
         except errors.AcmeServer404 as exc:
@@ -1365,7 +1404,9 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     acmeOrderRfcObject,
                     dbAcmeOrderEventLogged,
                 ) = authenticatedUser.acme_order_load(
-                    ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                    ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=True,
                 )
                 # always invoke this, as it handles some cleanup routines
                 return updated_AcmeOrder_status(
@@ -1390,7 +1431,9 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
 
 
 def _do__AcmeV2_AcmeOrder__finalize(
-    ctx, authenticatedUser=None, dbAcmeOrder=None,
+    ctx,
+    authenticatedUser=None,
+    dbAcmeOrder=None,
 ):
     """
     `_do__AcmeV2_AcmeOrder__finalize` is invoked to actually finalize the order.
@@ -1465,8 +1508,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
             except AcmeAccountNeedsPrivateKey as exc:
                 # look the `dbAcmeOrder.acme_account.private_key_cycle`
-                dbPrivateKey_new = lib.db.getcreate.getcreate__PrivateKey_for_AcmeAccount(
-                    ctx, dbAcmeAccount=dbAcmeOrder.acme_account,
+                dbPrivateKey_new = (
+                    lib.db.getcreate.getcreate__PrivateKey_for_AcmeAccount(
+                        ctx,
+                        dbAcmeAccount=dbAcmeOrder.acme_account,
+                    )
                 )
                 raise ReassignedPrivateKey("new PrivateKey")
 
@@ -1477,7 +1523,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
             # assign this over!
             dbAcmeOrder.private_key = dbPrivateKey_new
             ctx.dbSession.flush(
-                objects=[dbAcmeOrder, dbPrivateKey_new,]
+                objects=[
+                    dbAcmeOrder,
+                    dbPrivateKey_new,
+                ]
             )
             dbPrivateKey = dbPrivateKey_new
 
@@ -1485,11 +1534,13 @@ def _do__AcmeV2_AcmeOrder__finalize(
             pass
 
         # set the PrivateKeyStrategy
-        dbAcmeOrder.private_key_strategy_id__final = model_utils.PrivateKeyStrategy.from_string(
-            private_key_strategy__final
+        dbAcmeOrder.private_key_strategy_id__final = (
+            model_utils.PrivateKeyStrategy.from_string(private_key_strategy__final)
         )
         ctx.dbSession.flush(
-            objects=[dbAcmeOrder,]
+            objects=[
+                dbAcmeOrder,
+            ]
         )
 
         # we need to use tmpfiles on the disk for the Private Key signing
@@ -1677,8 +1728,8 @@ def _do__AcmeV2_AcmeOrder__new_core(
     :returns: A class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     # validate this first!
-    acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
-        processing_strategy
+    acme_order_processing_strategy_id = (
+        model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
     private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
         private_key_cycle__renewal
@@ -1874,8 +1925,8 @@ def _do__AcmeV2_AcmeOrder__new_core(
         if not dbAcmeOrder:
             # this is a new AcmeOrder
             # in the current application design, `authenticatedUser.acme_order_new` created the order on the acme server
-            acme_order_processing_status_id = model_utils.AcmeOrder_ProcessingStatus.from_string(
-                "created_acme"
+            acme_order_processing_status_id = (
+                model_utils.AcmeOrder_ProcessingStatus.from_string("created_acme")
             )
 
             # enroll the Acme Order into our database
@@ -1906,7 +1957,8 @@ def _do__AcmeV2_AcmeOrder__new_core(
             # use the same flow here as `do__AcmeV2_AcmeOrder__acme_server_sync`
             # except create a record that we submitted this
             dbAcmeOrderSubmission = lib.db.create.create__AcmeOrderSubmission(
-                ctx, dbAcmeOrder,
+                ctx,
+                dbAcmeOrder,
             )
 
             # register the AcmeOrder into the logging utility
@@ -1955,7 +2007,9 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 return dbAcmeOrder
 
             dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-                ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
+                ctx,
+                authenticatedUser=authenticatedUser,
+                dbAcmeOrder=dbAcmeOrder,
             )
             return dbAcmeOrder
 
@@ -2006,7 +2060,9 @@ def _do__AcmeV2_AcmeOrder__new_core(
 
 
 def do__AcmeV2_AcmeOrder__finalize(
-    ctx, dbAcmeOrder=None, authenticatedUser=None,
+    ctx,
+    dbAcmeOrder=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2033,7 +2089,9 @@ def do__AcmeV2_AcmeOrder__finalize(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
         dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-            ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
+            ctx,
+            authenticatedUser=authenticatedUser,
+            dbAcmeOrder=dbAcmeOrder,
         )
 
         return dbAcmeOrder
@@ -2048,7 +2106,9 @@ def do__AcmeV2_AcmeOrder__finalize(
 
 
 def do__AcmeV2_AcmeOrder__process(
-    ctx, dbAcmeOrder=None, authenticatedUser=None,
+    ctx,
+    dbAcmeOrder=None,
+    authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2146,7 +2206,9 @@ def do__AcmeV2_AcmeOrder__process(
                     raise errors.GarfieldMinusGarfield("unsure how this happened")
         elif dbAcmeOrder.acme_status_order == "ready":
             dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-                ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
+                ctx,
+                authenticatedUser=authenticatedUser,
+                dbAcmeOrder=dbAcmeOrder,
             )
         else:
             raise errors.GarfieldMinusGarfield("unsure how this happened")
@@ -2191,7 +2253,8 @@ def do__AcmeV2_AcmeOrder__new(
     :returns: A :class:`model.objects.AcmeOrder` object
     """
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
     )
     return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
@@ -2211,7 +2274,8 @@ def do__AcmeV2_AcmeOrder__new(
 
 
 def do__AcmeV2_AcmeOrder__download_certificate(
-    ctx, dbAcmeOrder=None,
+    ctx,
+    dbAcmeOrder=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2320,7 +2384,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 
 
 def do__AcmeV2_AcmeOrder__retry(
-    ctx, dbAcmeOrder=None,
+    ctx,
+    dbAcmeOrder=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2332,7 +2397,8 @@ def do__AcmeV2_AcmeOrder__retry(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
     )
     return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
@@ -2367,7 +2433,8 @@ def do__AcmeV2_AcmeOrder__renew_custom(
     if not dbPrivateKey:
         raise ValueError("Must submit `dbPrivateKey`")
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
     )
     # private_key_strategy__requested - pull off the original
     return _do__AcmeV2_AcmeOrder__new_core(
@@ -2383,7 +2450,9 @@ def do__AcmeV2_AcmeOrder__renew_custom(
 
 
 def do__AcmeV2_AcmeOrder__renew_quick(
-    ctx, processing_strategy=None, dbAcmeOrder=None,
+    ctx,
+    processing_strategy=None,
+    dbAcmeOrder=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2395,7 +2464,8 @@ def do__AcmeV2_AcmeOrder__renew_quick(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Quick"),
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Quick"),
     )
     # private_key_strategy__requested - pull off the original
     # private_key_cycle__renewal = pull off the original,

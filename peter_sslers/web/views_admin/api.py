@@ -109,7 +109,9 @@ class ViewAdminApi(Handler):
         )
         count_deactivated = operations_event.event_payload_json["count_deactivated"]
         rval = {
-            "ServerCertificate": {"expired": count_deactivated,},
+            "ServerCertificate": {
+                "expired": count_deactivated,
+            },
             "result": "success",
             "operations_event": operations_event.id,
         }
@@ -156,7 +158,9 @@ class ViewAdminApi_Domain(Handler):
 
     def _enable__print(self):
         return {
-            "instructions": ["HTTP POST required",],
+            "instructions": [
+                "HTTP POST required",
+            ],
             "form_fields": {
                 "domain_names": "[required] a comma separated list of fully qualified domain names."
             },
@@ -195,7 +199,9 @@ class ViewAdminApi_Domain(Handler):
 
     def _disable__print(self):
         return {
-            "instructions": ["HTTP POST required",],
+            "instructions": [
+                "HTTP POST required",
+            ],
             "form_fields": {
                 "domain_names": "[required] a comma separated list of fully qualified domain names."
             },
@@ -418,7 +424,9 @@ class ViewAdminApi_Domain(Handler):
         try:
             log.debug("attempting an autocert")
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_API_Domain_autocert, validate_get=False,
+                self.request,
+                schema=Form_API_Domain_autocert,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -431,7 +439,8 @@ class ViewAdminApi_Domain(Handler):
             # does the domain exist?
             # we should check to see if it does and has certs
             dbDomain = lib_db.get.get__Domain__by_name(
-                self.request.api_context, domain_name,
+                self.request.api_context,
+                domain_name,
             )
             if dbDomain:
                 log.debug("autocert - domain known")
@@ -449,8 +458,13 @@ class ViewAdminApi_Domain(Handler):
                     return rval
                 else:
                     # sync the database, just be sure
-                    operations_event = lib_db.actions.operations_update_recents__domains(
-                        self.request.api_context, dbDomains=[dbDomain,]
+                    operations_event = (
+                        lib_db.actions.operations_update_recents__domains(
+                            self.request.api_context,
+                            dbDomains=[
+                                dbDomain,
+                            ],
+                        )
                     )
                     # commit so we expire the traits
                     self.request.api_context.pyramid_transaction_commit()
@@ -466,7 +480,8 @@ class ViewAdminApi_Domain(Handler):
 
             # Step 1- is the domain_name blocklisted?
             dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
-                self.request.api_context, domain_name,
+                self.request.api_context,
+                domain_name,
             )
             if dbDomainBlocklisted:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -477,7 +492,8 @@ class ViewAdminApi_Domain(Handler):
 
             if dbDomain:
                 dbDomainAutocert = lib_db.get.get__DomainAutocert__by_blockingDomainId(
-                    self.request.api_context, dbDomain.id,
+                    self.request.api_context,
+                    dbDomain.id,
                 )
                 if dbDomainAutocert:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -513,7 +529,8 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context.pyramid_transaction_commit()
 
                 dbDomainAutocert = lib_db.create.create__DomainAutocert(
-                    self.request.api_context, dbDomain=dbDomain,
+                    self.request.api_context,
+                    dbDomain=dbDomain,
                 )
 
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
@@ -528,8 +545,13 @@ class ViewAdminApi_Domain(Handler):
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
-                    operations_event = lib_db.actions.operations_update_recents__domains(
-                        self.request.api_context, dbDomains=[dbDomain,]
+                    operations_event = (
+                        lib_db.actions.operations_update_recents__domains(
+                            self.request.api_context,
+                            dbDomains=[
+                                dbDomain,
+                            ],
+                        )
                     )
 
                     # commit this so the domain will reload
@@ -601,7 +623,8 @@ class ViewAdminApi_Domain(Handler):
                 else:
                     # this is a fail
                     lib_db.update.update_DomainAutocert_without_AcmeOrder(
-                        self.request.api_context, dbDomainAutocert,
+                        self.request.api_context,
+                        dbDomainAutocert,
                     )
 
 
@@ -872,7 +895,9 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return {
-                        "instructions": ["HTTP POST required",],
+                        "instructions": [
+                            "HTTP POST required",
+                        ],
                     }
             queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context

@@ -39,17 +39,20 @@ from ...model import objects as model_objects
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:acme_orderlesss", renderer="/admin/acme_orderlesss.mako",
+        route_name="admin:acme_orderlesss",
+        renderer="/admin/acme_orderlesss.mako",
     )
     @view_config(
         route_name="admin:acme_orderlesss_paginated",
         renderer="/admin/acme_orderlesss.mako",
     )
     @view_config(
-        route_name="admin:acme_orderlesss|json", renderer="json",
+        route_name="admin:acme_orderlesss|json",
+        renderer="json",
     )
     @view_config(
-        route_name="admin:acme_orderlesss_paginated|json", renderer="json",
+        route_name="admin:acme_orderlesss_paginated|json",
+        renderer="json",
     )
     def list(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
@@ -147,13 +150,17 @@ class View_New(Handler):
     def _new_AcmeOrderless__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrderless_new, validate_get=False,
+                self.request,
+                schema=Form_AcmeOrderless_new,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request, formStash, http01_only=True,
+                self.request,
+                formStash,
+                http01_only=True,
             )
 
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
@@ -282,7 +289,9 @@ class View_Focus(Handler):
             return resp
         return render_to_response(
             "/admin/acme_orderless-focus.mako",
-            {"AcmeOrderless": self._dbAcmeOrderless,},
+            {
+                "AcmeOrderless": self._dbAcmeOrderless,
+            },
             self.request,
         )
 
@@ -354,7 +363,8 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_orderless:focus:deactivate")
     @view_config(
-        route_name="admin:acme_orderless:focus:deactivate|json", renderer="json",
+        route_name="admin:acme_orderless:focus:deactivate|json",
+        renderer="json",
     )
     def deactivate(self):
         dbAcmeOrderless = self._focus()
@@ -423,7 +433,8 @@ class View_Focus_Manipulate(View_Focus):
             if _dbDomainBlocklisted:
                 # errors.AcmeDomainsBlocklisted
                 formStash.fatal_field(
-                    field="domain", message="This domain is blocklisted.",
+                    field="domain",
+                    message="This domain is blocklisted.",
                 )
 
             (
@@ -483,7 +494,8 @@ class View_Focus_Challenge(View_Focus):
         renderer="/admin/acme_orderless-focus-acme_challenge.mako",
     )
     @view_config(
-        route_name="admin:acme_orderless:focus:acme_challenge|json", renderer="json",
+        route_name="admin:acme_orderless:focus:acme_challenge|json",
+        renderer="json",
     )
     def focus(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:

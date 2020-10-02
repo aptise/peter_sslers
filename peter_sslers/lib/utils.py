@@ -115,7 +115,11 @@ class ApiContext(object):
     request = None
 
     def __init__(
-        self, request=None, dbOperationsEvent=None, dbSession=None, timestamp=None,
+        self,
+        request=None,
+        dbOperationsEvent=None,
+        dbSession=None,
+        timestamp=None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent

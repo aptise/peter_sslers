@@ -325,9 +325,10 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
 
     @reify
     def key_pem_modulus_search(self):
-        return (
-            "type=modulus&modulus=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s"
-            % (self.key_pem_modulus_md5, self.id, self.acme_account_id,)
+        return "type=modulus&modulus=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
+            self.key_pem_modulus_md5,
+            self.id,
+            self.acme_account_id,
         )
 
     @reify
@@ -519,7 +520,9 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     # the RFC does not explicitly tie an AcmeAuthorization to a single AcmeOrder
     # this is only used to easily grab an AcmeAccount
     acme_order_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=False,
+        sa.Integer,
+        sa.ForeignKey("acme_order.id", use_alter=True),
+        nullable=False,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -651,7 +654,10 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_dns_01_id": self.acme_challenge_dns_01.id
             if self.acme_challenge_dns_01
             else None,
-            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
+            "domain": {
+                "id": self.domain_id,
+                "domain_name": self.domain.domain_name,
+            }
             if self.domain_id
             else None,
             "url_acme_server_sync": "%s/acme-authorization/%s/acme-server/sync.json"
@@ -771,11 +777,15 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     # our challenge will either be from:
     # 1) an `AcmeOrder`->`AcmeAuthorization`
     acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True,
+        sa.Integer,
+        sa.ForeignKey("acme_authorization.id"),
+        nullable=True,
     )
     # 2) an `AcmeOrderless`
     acme_orderless_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True,
+        sa.Integer,
+        sa.ForeignKey("acme_orderless.id"),
+        nullable=True,
     )
 
     # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
@@ -901,7 +911,10 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
             "acme_status_challenge": self.acme_status_challenge,
-            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "domain": {
+                "id": self.domain_id,
+                "domain_name": self.domain.domain_name,
+            },
             "keyauthorization": self.keyauthorization,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
@@ -1410,10 +1423,14 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,
+        sa.Integer,
+        sa.ForeignKey("acme_order.id"),
+        nullable=True,
     )
     acme_order_id__renewal_of = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,
+        sa.Integer,
+        sa.ForeignKey("acme_order.id"),
+        nullable=True,
     )
     server_certificate_id__renewal_of = sa.Column(
         sa.Integer,
@@ -1853,7 +1870,9 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
     )  #  `model_utils.AcmeChallengeType`
     # this is just for logging and reconciliation
     acme_challenge_id__triggered = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True,
+        sa.Integer,
+        sa.ForeignKey("acme_challenge.id"),
+        nullable=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2478,7 +2497,10 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         payload = {
             "id": self.id,
-            "Domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "Domain": {
+                "id": self.domain_id,
+                "domain_name": self.domain.domain_name,
+            },
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
             "is_successful": self.is_successful,
@@ -2564,8 +2586,7 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
 
 
 class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
-    """Domains updates are noted here
-    """
+    """Domains updates are noted here"""
 
     __tablename__ = "operations_object_event"
     __table_args__ = (
@@ -2767,7 +2788,8 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeySource
     private_key_type_id = sa.Column(
-        sa.Integer, nullable=False,
+        sa.Integer,
+        nullable=False,
     )  # see .utils.PrivateKeyType
     acme_account_id__owner = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
@@ -3496,13 +3518,17 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         if self.acme_order:
             _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
             if _private_key_cycle__renewal != "account_key_default":
-                _private_key_strategy = model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
-                    _private_key_cycle__renewal
-                ]
+                _private_key_strategy = (
+                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                        _private_key_cycle__renewal
+                    ]
+                )
             else:
-                _private_key_strategy = model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
-                    self.acme_order.acme_account.private_key_cycle
-                ]
+                _private_key_strategy = (
+                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                        self.acme_order.acme_account.private_key_cycle
+                    ]
+                )
             return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
         else:
             return model_utils.PrivateKeyStrategy.from_string(
@@ -3514,7 +3540,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         """return a list of all the CaCertificate IDs that can be used as an intermediate"""
         _allowed_ids = list(
             set(
-                [self.ca_certificate_id__upchain,]
+                [
+                    self.ca_certificate_id__upchain,
+                ]
                 + self.certificate_upchain_alternate_ids
             )
         )

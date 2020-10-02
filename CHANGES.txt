@@ -42,6 +42,8 @@
 	Display/Faceting of AcmeOrder by active/pending status is improved
 	Order "mark invalid" button was not a form
 	Added route to sync all pending orders
+	upgraded black; 20.8b1
+	integrated pre-commit
 	
 	+ other fixes and improvements
 			

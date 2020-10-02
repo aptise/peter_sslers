@@ -60,7 +60,7 @@ def update_AcmeAccount_from_new_duplicate(
 ):
     """
     Invoke this to migrate the duplicate `AcmeAccount`'s information onto the original account
-    
+
     ONLY INVOKE THIS ON A NEWLY CREATED DUPLICATE
 
     Account Fields:
@@ -451,7 +451,8 @@ def update_Domain_enable(
 
 
 def update_DomainAutocert_without_AcmeOrder(
-    ctx, dbDomainAutocert,
+    ctx,
+    dbDomainAutocert,
 ):
     dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
     dbDomainAutocert.is_successful = False
@@ -459,7 +460,9 @@ def update_DomainAutocert_without_AcmeOrder(
 
 
 def update_DomainAutocert_with_AcmeOrder(
-    ctx, dbDomainAutocert, dbAcmeOrder=None,
+    ctx,
+    dbDomainAutocert,
+    dbAcmeOrder=None,
 ):
     if not dbAcmeOrder:
         raise errors.InvalidTransition("missing `AcmeOrder`")
@@ -501,7 +504,9 @@ def update_PrivateKey__set_compromised(ctx, dbPrivateKey, dbOperationsEvent):
     ctx.dbSession.flush(objects=[dbPrivateKey])
 
     lib.events.PrivateKey_compromised(
-        ctx, dbPrivateKey, dbOperationsEvent=dbOperationsEvent,
+        ctx,
+        dbPrivateKey,
+        dbOperationsEvent=dbOperationsEvent,
     )
 
     event_status = "PrivateKey__mark__compromised"
@@ -512,7 +517,8 @@ def update_PrivateKey__set_compromised(ctx, dbPrivateKey, dbOperationsEvent):
 
 
 def update_QueueCertificate__cancel(
-    ctx, dbQueueCertificate,
+    ctx,
+    dbQueueCertificate,
 ):
     if dbQueueCertificate.is_active is None:
         raise errors.InvalidTransition("Already cancelled")

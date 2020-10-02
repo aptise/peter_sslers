@@ -313,7 +313,8 @@ class View_New(Handler):
             try:
                 _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
                 _certificate_domain_names = cert_utils.parse_cert__domains(
-                    cert_pem=certificate_pem, cert_pem_filepath=_tmpfileCert.name,
+                    cert_pem=certificate_pem,
+                    cert_pem_filepath=_tmpfileCert.name,
                 )
                 if not _certificate_domain_names:
                     raise ValueError(
@@ -607,9 +608,11 @@ class View_Focus_via_CaCert(View_Focus):
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
-            response.headers["Content-Disposition"] = (
-                "attachment; filename= cert%s-chain%s.zip"
-                % (dbServerCertificate.id, id_cacert)
+            response.headers[
+                "Content-Disposition"
+            ] = "attachment; filename= cert%s-chain%s.zip" % (
+                dbServerCertificate.id,
+                id_cacert,
             )
             return response
 

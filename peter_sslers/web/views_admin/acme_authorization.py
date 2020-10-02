@@ -39,10 +39,12 @@ class View_List(Handler):
         renderer="/admin/acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:acme_authorizations|json", renderer="json",
+        route_name="admin:acme_authorizations|json",
+        renderer="json",
     )
     @view_config(
-        route_name="admin:acme_authorizations_paginated|json", renderer="json",
+        route_name="admin:acme_authorizations_paginated|json",
+        renderer="json",
     )
     def list(self):
         url_status = self.request.params.get("status")
@@ -114,7 +116,8 @@ class View_Focus(Handler):
         renderer="/admin/acme_authorization-focus.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus|json", renderer="json",
+        route_name="admin:acme_authorization:focus|json",
+        renderer="json",
     )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
@@ -233,7 +236,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -245,7 +250,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(
-                self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
+                self.request.api_context,
+                dbAcmeAuthorization=dbAcmeAuthorization,
             )
             if self.request.wants_json:
                 return {
@@ -290,7 +296,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
@@ -302,7 +310,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
-                self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
+                self.request.api_context,
+                dbAcmeAuthorization=dbAcmeAuthorization,
             )
             if self.request.wants_json:
                 return {

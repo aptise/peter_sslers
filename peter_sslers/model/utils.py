@@ -159,8 +159,7 @@ def utcnow__postgresql(element, compiler, **kw):
 
 
 class _mixin_mapping(object):
-    """handles a mapping of db codes/constants
-    """
+    """handles a mapping of db codes/constants"""
 
     _mapping = None
     _mapping_reverse = None

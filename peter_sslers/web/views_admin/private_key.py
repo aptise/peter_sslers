@@ -245,7 +245,13 @@ class View_Focus_Manipulate(View_Focus):
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url,
                 ],
                 "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["compromised", "active", "inactive",]},
+                "valid_options": {
+                    "action": [
+                        "compromised",
+                        "active",
+                        "inactive",
+                    ]
+                },
             }
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url

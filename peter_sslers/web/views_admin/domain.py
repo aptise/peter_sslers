@@ -97,7 +97,9 @@ class View_List(Handler):
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__Domains_challenged__paginated(
-                self.request.api_context, limit=items_per_page, offset=offset,
+                self.request.api_context,
+                limit=items_per_page,
+                offset=offset,
             )
         else:
             sidenav_option = "all"
@@ -228,12 +230,18 @@ class View_New(Handler):
                     """curl --form 'domain_name=example.com' %s/domain/new.json"""
                     % self.request.admin_url,
                 ],
-                "form_fields": {"domain_name": "domain name",},
+                "form_fields": {
+                    "domain_name": "domain name",
+                },
                 "notes": [],
                 "valid_options": {},
             }
         # quick setup, we need a bunch of options for dropdowns...
-        return render_to_response("/admin/domain-new.mako", {}, self.request,)
+        return render_to_response(
+            "/admin/domain-new.mako",
+            {},
+            self.request,
+        )
 
     def _new__submit(self):
         try:
@@ -310,7 +318,8 @@ class View_Focus(Handler):
     def focus(self):
         dbDomain = self._focus(eagerload_web=True)
         dbAcmeChallenges = lib_db.get.get__AcmeChallenges__by_DomainId__active(
-            self.request.api_context, dbDomain.id,
+            self.request.api_context,
+            dbDomain.id,
         )
         if self.request.wants_json:
             return {
@@ -394,7 +403,9 @@ class View_Focus(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                     "form_fields": {},
                     "notes": [],
                     "valid_options": {},
@@ -405,7 +416,10 @@ class View_Focus(Handler):
             )
         try:
             operations_event = lib_db.actions.operations_update_recents__domains(
-                self.request.api_context, dbDomains=[dbDomain,]
+                self.request.api_context,
+                dbDomains=[
+                    dbDomain,
+                ],
             )
             if self.request.wants_json:
                 return {
@@ -632,7 +646,10 @@ class View_Focus(Handler):
         url_template = "%s/queue-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__QueueCertificate__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset,
+            self.request.api_context,
+            dbDomain.id,
+            limit=items_per_page,
+            offset=offset,
         )
         return {
             "project": "peter_sslers",
@@ -777,7 +794,8 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         renderer="/admin/domain-focus-acme_dns_server_accounts.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_dns_server_accounts|json", renderer="json",
+        route_name="admin:domain:focus:acme_dns_server_accounts|json",
+        renderer="json",
     )
     def list(self):
         dbDomain = self._focus()
@@ -801,7 +819,8 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         renderer="/admin/domain-focus-acme_dns_server-new.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_dns_server:new|json", renderer="json",
+        route_name="admin:domain:focus:acme_dns_server:new|json",
+        renderer="json",
     )
     def new(self):
         self.dbDomain = dbDomain = self._focus()
@@ -833,7 +852,9 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
     def _new_print(self):
         if self.request.wants_json:
             return {
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "form_fields": {},
                 "valid_options": {
                     "acme_dns_server_id": [i.id for i in self.dbAcmeDnsServers]
@@ -880,8 +901,10 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             #    This applies to accounts on the same AcmeDnsServer or different AcmeDnsServers.
 
             # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
-            dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
-                self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
+            dbAcmeDnsServerAccount = (
+                lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+                    self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
+                )
             )
             if dbAcmeDnsServerAccount:
                 formStash.fatal_field(

@@ -37,7 +37,10 @@ def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts):
     for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts:
         _dbDomain = _dbAcmeDnsServerAccount.domain
         domain_matrix[_dbDomain.domain_name] = {
-            "Domain": {"id": _dbDomain.id, "domain_name": _dbDomain.domain_name,},
+            "Domain": {
+                "id": _dbDomain.id,
+                "domain_name": _dbDomain.domain_name,
+            },
             "AcmeDnsServerAccount": {
                 "id": _dbAcmeDnsServerAccount.id,
                 "subdomain": _dbAcmeDnsServerAccount.subdomain,
@@ -49,7 +52,8 @@ def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts):
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:acme_dns_servers", renderer="/admin/acme_dns_servers.mako",
+        route_name="admin:acme_dns_servers",
+        renderer="/admin/acme_dns_servers.mako",
     )
     @view_config(route_name="admin:acme_dns_servers|json", renderer="json")
     @view_config(
@@ -85,13 +89,19 @@ class View_New(Handler):
     def _new__print(self):
         if self.request.wants_json:
             return {
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "form_fields": {"root_url": "The root url of the api"},
                 "notes": [],
                 "valid_options": {},
             }
         # quick setup, we need a bunch of options for dropdowns...
-        return render_to_response("/admin/acme_dns_server-new.mako", {}, self.request,)
+        return render_to_response(
+            "/admin/acme_dns_server-new.mako",
+            {},
+            self.request,
+        )
 
     def _new__submit(self):
         try:
@@ -129,7 +139,8 @@ class View_New(Handler):
 class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
-            self.request.api_context, self.request.matchdict["id"],
+            self.request.api_context,
+            self.request.matchdict["id"],
         )
         if not dbAcmeDnsServer:
             raise HTTPNotFound("the acme-dns server was not found")
@@ -211,8 +222,10 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(
             self.request.api_context, dbAcmeDnsServer.id
         )
-        items_paged = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
-            self.request.api_context, dbAcmeDnsServer.id
+        items_paged = (
+            lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
+                self.request.api_context, dbAcmeDnsServer.id
+            )
         )
         if self.request.wants_json:
             return {
@@ -241,7 +254,9 @@ class View_Focus(Handler):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
             return {
-                "instructions": ["HTTP POST required",],
+                "instructions": [
+                    "HTTP POST required",
+                ],
                 "form_fields": {
                     "domain_names": "A comma separated list of domain names"
                 },
@@ -315,15 +330,17 @@ class View_Focus(Handler):
                         account = client.register_account(None)  # arg = allowlist ips
                     except Exception as exc:
                         raise ValueError("error registering an account with AcmeDns")
-                    _dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
-                        self.request.api_context,
-                        dbAcmeDnsServer=dbAcmeDnsServer,
-                        dbDomain=_dbDomain,
-                        username=account["username"],
-                        password=account["password"],
-                        fulldomain=account["fulldomain"],
-                        subdomain=account["subdomain"],
-                        allowfrom=account["allowfrom"],
+                    _dbAcmeDnsServerAccount = (
+                        lib_db.create.create__AcmeDnsServerAccount(
+                            self.request.api_context,
+                            dbAcmeDnsServer=dbAcmeDnsServer,
+                            dbDomain=_dbDomain,
+                            username=account["username"],
+                            password=account["password"],
+                            fulldomain=account["fulldomain"],
+                            subdomain=account["subdomain"],
+                            allowfrom=account["allowfrom"],
+                        )
                     )
                     _is_created__account = True
 
@@ -523,7 +540,10 @@ class View_Focus_Manipulate(View_Focus):
             }
         return render_to_response(
             "/admin/acme_dns_server-focus-edit.mako",
-            {"project": "peter_sslers", "AcmeDnsServer": dbAcmeDnsServer,},
+            {
+                "project": "peter_sslers",
+                "AcmeDnsServer": dbAcmeDnsServer,
+            },
             self.request,
         )
 

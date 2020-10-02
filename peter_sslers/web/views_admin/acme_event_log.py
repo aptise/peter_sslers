@@ -69,7 +69,8 @@ class View_Focus(Handler):
         renderer="/admin/acme_event_log-focus.mako",
     )
     @view_config(
-        route_name="admin:acme_event_log:focus|json", renderer="json",
+        route_name="admin:acme_event_log:focus|json",
+        renderer="json",
     )
     def focus(self):
         item = self._acme_event_log_focus()

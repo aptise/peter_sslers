@@ -28,17 +28,20 @@ from ...model import utils as model_utils
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:acme_challenges", renderer="/admin/acme_challenges.mako",
+        route_name="admin:acme_challenges",
+        renderer="/admin/acme_challenges.mako",
     )
     @view_config(
         route_name="admin:acme_challenges_paginated",
         renderer="/admin/acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:acme_challenges|json", renderer="json",
+        route_name="admin:acme_challenges|json",
+        renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenges_paginated|json", renderer="json",
+        route_name="admin:acme_challenges_paginated|json",
+        renderer="json",
     )
     def list(self):
         wants_active = True if self.request.params.get("status") == "active" else False
@@ -112,7 +115,8 @@ class View_List(Handler):
 class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
-            self.request.api_context, self.request.matchdict["id"],
+            self.request.api_context,
+            self.request.matchdict["id"],
         )
         if not dbAcmeChallenge:
             raise HTTPNotFound("the order was not found")
@@ -129,7 +133,8 @@ class View_Focus(Handler):
         renderer="/admin/acme_challenge-focus.mako",
     )
     @view_config(
-        route_name="admin:acme_challenge:focus|json", renderer="json",
+        route_name="admin:acme_challenge:focus|json",
+        renderer="json",
     )
     def focus(self):
         dbAcmeChallenge = self._focus(eagerload_web=True)
@@ -157,7 +162,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -169,7 +176,8 @@ class View_Focus_Manipulate(View_Focus):
                     "ACME Server Sync is not allowed for this AcmeChallenge"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(
-                self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
+                self.request.api_context,
+                dbAcmeChallenge=dbAcmeChallenge,
             )
             if self.request.wants_json:
                 return {
@@ -200,7 +208,8 @@ class View_Focus_Manipulate(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_challenge:focus:acme_server:trigger", renderer=None,
+        route_name="admin:acme_challenge:focus:acme_server:trigger",
+        renderer=None,
     )
     @view_config(
         route_name="admin:acme_challenge:focus:acme_server:trigger|json",
@@ -214,7 +223,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["HTTP POST required",],
+                    "instructions": [
+                        "HTTP POST required",
+                    ],
                 }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
@@ -232,7 +243,8 @@ class View_Focus_Manipulate(View_Focus):
                         "This installation is NOT configured to answer this challenge. You must submit the challenge token to trigger."
                     )
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
-                self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
+                self.request.api_context,
+                dbAcmeChallenge=dbAcmeChallenge,
             )
             if self.request.wants_json:
                 return {

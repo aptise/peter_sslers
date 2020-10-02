@@ -68,7 +68,8 @@ def _admin_views(config):
         "admin:acme_account:focus:edit|json", "/acme-account/{@id}/edit.json"
     )
     config.add_route_7(
-        "admin:acme_account:focus:config|json", "/acme-account/{@id}/config.json",
+        "admin:acme_account:focus:config|json",
+        "/acme-account/{@id}/config.json",
     )
     config.add_route_7(
         "admin:acme_account:focus:parse|json", "/acme-account/{@id}/parse.json"
@@ -96,14 +97,16 @@ def _admin_views(config):
     )
 
     config.add_route_7(
-        "admin:acme_account:focus:acme_orders", "/acme-account/{@id}/acme-orders",
+        "admin:acme_account:focus:acme_orders",
+        "/acme-account/{@id}/acme-orders",
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_orders_paginated",
         "/acme-account/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account:focus:private_keys", "/acme-account/{@id}/private-keys",
+        "admin:acme_account:focus:private_keys",
+        "/acme-account/{@id}/private-keys",
     )
     config.add_route_7(
         "admin:acme_account:focus:private_keys_paginated",
@@ -328,7 +331,8 @@ def _admin_views(config):
         "/acme-dns-server-accounts/{@page}.json",
     )
     config.add_route_7(
-        "admin:acme_dns_server_account:focus", "/acme-dns-server-account/{@id}",
+        "admin:acme_dns_server_account:focus",
+        "/acme-dns-server-account/{@id}",
     )
     config.add_route_7(
         "admin:acme_dns_server_account:focus|json",
@@ -451,17 +455,20 @@ def _admin_views(config):
         "admin:acme_order:focus:retry|json", "/acme-order/{@id}/retry.json"
     )
     config.add_route_7(
-        "admin:acme_order:focus:renew:custom", "/acme-order/{@id}/renew/custom",
+        "admin:acme_order:focus:renew:custom",
+        "/acme-order/{@id}/renew/custom",
     )
     config.add_route_7(
         "admin:acme_order:focus:renew:custom|json",
         "/acme-order/{@id}/renew/custom.json",
     )
     config.add_route_7(
-        "admin:acme_order:focus:renew:quick", "/acme-order/{@id}/renew/quick",
+        "admin:acme_order:focus:renew:quick",
+        "/acme-order/{@id}/renew/quick",
     )
     config.add_route_7(
-        "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
+        "admin:acme_order:focus:renew:quick|json",
+        "/acme-order/{@id}/renew/quick.json",
     )
     config.add_route_7("admin:acme_order:new:freeform", "/acme-order/new/freeform")
     config.add_route_7(
@@ -481,23 +488,28 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orderless:new|json", "/acme-orderless/new.json")
 
     config.add_route_7(
-        "admin:acme_orderless:focus", "/acme-orderless/{@id}",
+        "admin:acme_orderless:focus",
+        "/acme-orderless/{@id}",
     )
     config.add_route_7("admin:acme_orderless:focus|json", "/acme-orderless/{@id}.json")
     config.add_route_7(
-        "admin:acme_orderless:focus:add", "/acme-orderless/{@id}/add",
+        "admin:acme_orderless:focus:add",
+        "/acme-orderless/{@id}/add",
     )
     config.add_route_7(
-        "admin:acme_orderless:focus:add|json", "/acme-orderless/{@id}/add.json",
+        "admin:acme_orderless:focus:add|json",
+        "/acme-orderless/{@id}/add.json",
     )
     config.add_route_7(
-        "admin:acme_orderless:focus:update", "/acme-orderless/{@id}/update",
+        "admin:acme_orderless:focus:update",
+        "/acme-orderless/{@id}/update",
     )
     config.add_route_7(
         "admin:acme_orderless:focus:update|json", "/acme-orderless/{@id}/update.json"
     )
     config.add_route_7(
-        "admin:acme_orderless:focus:deactivate", "/acme-orderless/{@id}/deactivate",
+        "admin:acme_orderless:focus:deactivate",
+        "/acme-orderless/{@id}/deactivate",
     )
     config.add_route_7(
         "admin:acme_orderless:focus:deactivate|json",
@@ -964,14 +976,16 @@ def _admin_views(config):
     )
     # failures
     config.add_route_7(
-        "admin:queue_certificates:failures", "/queue-certificates/failures",
+        "admin:queue_certificates:failures",
+        "/queue-certificates/failures",
     )
     config.add_route_7(
         "admin:queue_certificates:failures_paginated",
         "/queue-certificates/failures/{@page}",
     )
     config.add_route_7(
-        "admin:queue_certificates:failures|json", "/queue-certificates/failures.json",
+        "admin:queue_certificates:failures|json",
+        "/queue-certificates/failures.json",
     )
     config.add_route_7(
         "admin:queue_certificates:failures_paginated|json",
@@ -979,14 +993,16 @@ def _admin_views(config):
     )
     # successes
     config.add_route_7(
-        "admin:queue_certificates:successes", "/queue-certificates/successes",
+        "admin:queue_certificates:successes",
+        "/queue-certificates/successes",
     )
     config.add_route_7(
         "admin:queue_certificates:successes_paginated",
         "/queue-certificates/successes/{@page}",
     )
     config.add_route_7(
-        "admin:queue_certificates:successes|json", "/queue-certificates/successes.json",
+        "admin:queue_certificates:successes|json",
+        "/queue-certificates/successes.json",
     )
     config.add_route_7(
         "admin:queue_certificates:successes_paginated|json",
@@ -994,7 +1010,8 @@ def _admin_views(config):
     )
     # unprocessed
     config.add_route_7(
-        "admin:queue_certificates:unprocessed", "/queue-certificates/unprocessed",
+        "admin:queue_certificates:unprocessed",
+        "/queue-certificates/unprocessed",
     )
     config.add_route_7(
         "admin:queue_certificates:unprocessed_paginated",
@@ -1070,7 +1087,8 @@ def _admin_views(config):
 
     config.add_route_7("admin:server_certificates:all", "/server-certificates/all")
     config.add_route_7(
-        "admin:server_certificates:all_paginated", "/server-certificates/all/{@page}",
+        "admin:server_certificates:all_paginated",
+        "/server-certificates/all/{@page}",
     )
     config.add_route_7(
         "admin:server_certificates:active", "/server-certificates/active"
@@ -1230,7 +1248,8 @@ def _admin_views(config):
         "/unique-fqdn-set/{id}/update-recents",
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:acme_orders", "/unique-fqdn-set/{@id}/acme-orders",
+        "admin:unique_fqdn_set:focus:acme_orders",
+        "/unique-fqdn-set/{@id}/acme-orders",
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:acme_orders_paginated",
