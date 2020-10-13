@@ -10,10 +10,10 @@ with open(os.path.join(here, "CHANGES.txt")) as f:
     CHANGES = f.read()
 
 requires = [
-    "formencode",
+    "formencode>=2.0.0",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic >=0.4.2, <0.5.0",
+    "pyramid_formencode_classic >=0.4.3, <0.5.0",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
