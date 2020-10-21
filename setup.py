@@ -68,6 +68,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite="peter_sslers.tests",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
     install_requires=requires,
     tests_require=tests_require,
     extras_require={
