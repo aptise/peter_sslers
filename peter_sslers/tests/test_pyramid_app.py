@@ -4779,7 +4779,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         )
         assert (
             res3.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=action--Already+processedError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+processed&operation=mark&action=cancel"
             % focus_id
         )
 
@@ -5199,7 +5199,7 @@ class FunctionalTests_QueueDomains(AppTest):
         assert res3.status_code == 303
         assert (
             res3.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=action--Already+cancelledError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+cancelled&operation=mark&action=cancel"
             % focus_id
         )
 

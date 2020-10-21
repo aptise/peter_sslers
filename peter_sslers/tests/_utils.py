@@ -1037,7 +1037,10 @@ class AppTest(AppTestCore):
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                db.queues.queue_domains__add(self.ctx, ["queue.example.com"])
+                db.queues.queue_domains__add(
+                    self.ctx,
+                    ["queue.example.com", "queue2.example.com", "queue3.example.com"],
+                )
                 # self.ctx.pyramid_transaction_commit()
 
                 # note: pre-populate QueueCertificate
