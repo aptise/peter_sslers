@@ -3,14 +3,17 @@ import sys
 
 from setuptools import setup, find_packages
 
-here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, "README.md")) as f:
-    README = f.read()
-with open(os.path.join(here, "CHANGES.txt")) as f:
-    CHANGES = f.read()
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+long_description = (
+    description
+) = "peter_sslers is an integrated SSL Certificate Manager and ACME Client"
+with open(os.path.join(HERE, "README.md")) as f:
+    long_description = f.read()
 
 requires = [
     "formencode>=2.0.0",
+    "psutil>=4.4.0",  # for Python2/3 compat
     "pyacmedns",  # not used by all, but it's small
     "pypages",
     "pyramid_formencode_classic >=0.4.3, <0.5.0",
@@ -19,36 +22,38 @@ requires = [
     "pyramid_tm",
     "pyramid",
     "python-dateutil",
-    "psutil>=4.4.0",  # for Python2/3 compat
-    "six ",
     "requests",
-    "six",
+    "six ",
     "SQLAlchemy<1.4.0",  # scalar_subquery API change
     "transaction",
     "waitress",
     "zope.sqlalchemy",
 ]
-
 tests_require = [
     "certbot",
     "cryptography",
-    "pycrypto",
     "josepy",
     "pre-commit",
-    "pyramid-debugtoolbar-ajax",
+    "pycrypto",
     "pyramid_debugtoolbar>=4.4",
-    "webtest",
+    "pyramid-debugtoolbar-ajax",
+    "pytest",
     "redis",
+    "webtest",
 ]
+testing_extras = tests_require + []
 
 
 setup(
     name="peter_sslers",
     version="0.4.1.dev0",
-    description="peter_sslers",
-    long_description=README + "\n\n" + CHANGES,
+    description=description,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
         "Framework :: Pyramid",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
@@ -57,13 +62,17 @@ setup(
     author="jonathan vanasco",
     author_email="jvanasco@2xlp.com",
     url="https://github.com/aptise/peter_sslers",
-    keywords="web wsgi bfg pylons pyramid letsencrypt",
+    keywords="web pyramid letsencrypt ssl",
+    license="MIT",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     test_suite="peter_sslers.tests",
     install_requires=requires,
     tests_require=tests_require,
+    extras_require={
+        "testing": testing_extras,
+    },
     entry_points="""\
       [paste.app_factory]
       main = peter_sslers.web:main
