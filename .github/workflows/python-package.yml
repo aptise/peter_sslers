@@ -40,11 +40,10 @@ jobs:
         go get -u github.com/letsencrypt/pebble/...
         cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...
     - name: Test with pytest
-      env:
-        SSL_RUN_REDIS_TESTS: 1
-        SSL_BIN_REDIS_SERVER: /usr/bin/redis-server
-        SSL_RUN_API_TESTS__PEBBLE: 1
       run: |
+        export SSL_RUN_REDIS_TESTS=1
+        export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
+        export SSL_RUN_API_TESTS__PEBBLE=1
         export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
