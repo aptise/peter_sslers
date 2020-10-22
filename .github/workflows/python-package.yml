@@ -43,6 +43,7 @@ jobs:
       env:
         SSL_RUN_REDIS_TESTS: 1
         SSL_BIN_REDIS_SERVER: /usr/bin/redis-server
+        SSL_RUN_API_TESTS__PEBBLE: 1
       run: |
         export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
