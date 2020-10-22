@@ -64,6 +64,7 @@ see the nginx test config file `testing.conf`
 RUN_NGINX_TESTS = bool(int(os.environ.get("SSL_RUN_NGINX_TESTS", 0)))
 # run tests to prime redis
 RUN_REDIS_TESTS = bool(int(os.environ.get("SSL_RUN_REDIS_TESTS", 0)))
+
 # run tests against LE API
 RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
 # does the LE validation work?  LE must be able to reach this
