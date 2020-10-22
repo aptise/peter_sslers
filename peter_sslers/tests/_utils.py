@@ -86,11 +86,19 @@ if SSL_CONF_REDIS_SERVER is None:
         ]
     )
 
+GOPATH = os.environ.get("GOPATH")
+
 PEBBLE_CONFIG = (
-    "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json"
-    % os.environ.get("GOPATH")
+    "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json" % GOPATH
 )
-PEBBLE_DIR = "%s/src/github.com/letsencrypt/pebble" % os.environ.get("GOPATH")
+PEBBLE_DIR = "%s/src/github.com/letsencrypt/pebble" % GOPATH
+
+if RUN_API_TESTS__PEBBLE:
+    if not GOPATH:
+        raise ValueError("GOPATH not defined in environment")
+    if not os.path.exists(PEBBLE_DIR):
+        raise ValueError("PEBBLE_DIR (%s) does not exist" % PEBBLE_DIR)
+
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
 PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
