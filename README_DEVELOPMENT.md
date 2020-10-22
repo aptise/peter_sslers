@@ -134,89 +134,35 @@ the payloads should contain:
 
 The testing suites require the following domains to point to localhost:
 
-	# run after editing: dscacheutil -flushcache
-	127.0.0.1 peter-sslers.example.com
-	127.0.0.1 always-fail.example.com
+{{SEE cat peter_sslers/tests/test_data/hosts.txt}}
 
-	127.0.0.1 test-AcmeOrder-multiple-domains-1.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-2.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-3.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-4.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-5.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-6.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-7.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-8.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-9.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-10.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-11.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-12.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-13.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-14.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-15.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-16.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-17.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-18.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-19.example.com
-	127.0.0.1 test-AcmeOrder-multiple-domains-20.example.com
-
-	127.0.0.1 test-AcmeOrder-cleanup-1.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-2.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-3.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-4.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-5.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-6.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-7.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-8.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-9.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-10.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-1.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-11.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-12.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-13.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-14.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-15.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-16.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-17.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-18.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-19.example.com
-	127.0.0.1 test-AcmeOrder-cleanup-20.example.com
-
-	127.0.0.1 test-AcmeOrder-nocleanup-1.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-2.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-3.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-4.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-5.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-6.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-7.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-8.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-9.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-10.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-11.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-12.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-13.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-14.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-15.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-16.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-17.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-18.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-19.example.com
-	127.0.0.1 test-AcmeOrder-nocleanup-20.example.com
-
-	127.0.0.1 test_domain_certificate_if_needed-1.example.com
-	127.0.0.1 test_domain_certificate_if_needed-2.example.com
-
-	127.0.0.1 test-domain-autocert-1.example.com
-	127.0.0.1 test-domain-autocert-2.example.com
-	127.0.0.1 test-domain-autocert-3.example.com
-	127.0.0.1 test-domain-autocert-4.example.com
-	127.0.0.1 test-domain-autocert-5.example.com
-
-	127.0.0.1 test_redis-1.example.com
-
+run after editing:
+	osx:
+		dscacheutil -flushcache
+	ubuntu:
+		systemd-resolve --flush-caches
 
 ## sample domains
 
 a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
+
+
+# CI Setup Benchmarks
+
+## Installing Go
+
+Go is already installed, however if we need to do a new version...
+
+* snap 15s
+
+	sudo snap install --classic go
+	
+* ubuntu packages 32s
+
+	sudo add-apt-repository ppa:longsleep/golang-backports
+	sudo apt update
+    sudo apt install golang-go
+
 
 
 

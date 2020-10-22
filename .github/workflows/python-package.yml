@@ -17,33 +17,33 @@ jobs:
       matrix:
         python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
 
-    # Service containers to run with `container-job`
-    services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          # Maps port 6379 on service container to the host
-          - 6379:6379
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Setup Hosts
+      run: |
+        sudo cat peter_sslers/tests/test_data/hosts.txt | sudo tee -a /etc/hosts
+    - name: Install core Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install --upgrade tox setuptools flake8 pytest
         pip list
-    - name: Test with pytest
+    - name: Install Redis
       run: |
+        sudo apt-get install redis
+    - name: Install Pebble
+      run: |
+        export GOPATH=$HOME/go
+        go get -u github.com/letsencrypt/pebble/...
+        cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...
+    - name: Test with pytest
+      env:
+        SSL_RUN_REDIS_TESTS: 1
+        SSL_BIN_REDIS_SERVER: /usr/bin/redis-server
+      run: |
+        export GOPATH=$HOME/go
+        export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}

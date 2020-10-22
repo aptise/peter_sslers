@@ -53,7 +53,8 @@ export SSL_CONF_REDIS_SERVER=/path/to
 
 NOTE: SSL_TEST_DOMAINS can be a comma-separated string
 
-if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
+If running LetsEncrypt tests: you must specify a domain, and make sure to proxy
+port80 of that domain to this app, so LetsEncrypt can access it.
 
 see the nginx test config file `testing.conf`
 
@@ -66,7 +67,9 @@ RUN_REDIS_TESTS = bool(int(os.environ.get("SSL_RUN_REDIS_TESTS", 0)))
 # run tests against LE API
 RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
 # does the LE validation work?  LE must be able to reach this
-LETSENCRYPT_API_VALIDATES = bool(int(os.environ.get("SSL_PEBBLE_API_VALIDATES", 0)))
+LETSENCRYPT_API_VALIDATES = bool(
+    int(os.environ.get("SSL_LETSENCRYPT_API_VALIDATES", 0))
+)
 
 SSL_TEST_DOMAINS = os.environ.get("SSL_TEST_DOMAINS", "example.com")
 SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
@@ -147,7 +150,7 @@ def under_pebble(_function):
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up pebble")
+                    raise ValueError("error spinning up `pebble`")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
@@ -168,7 +171,7 @@ def under_pebble_strict(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `pebble`")
+        log.info("++ spinning up `pebble[strict]`")
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -182,21 +185,21 @@ def under_pebble_strict(_function):
             ready = False
             _waits = 0
             while not ready:
-                log.info("waiting for `pebble` to be ready")
+                log.info("waiting for `pebble[strict]` to be ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Listening on: 0.0.0.0:14000" in line:
                         ready = True
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up pebble")
+                    raise ValueError("error spinning up `pebble[strict]``")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
-                log.info("xx terminating `pebble`")
+                log.info("xx terminating `pebble[strict]`")
                 proc.terminate()
         return res
 
@@ -210,7 +213,7 @@ def under_redis(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `pebble`")
+        log.info("++ spinning up `redis`")
         res = None  # scoping
         # /usr/local/Cellar/redis/3.0.7/bin/redis-server /Users/jvanasco/webserver/sites/CliquedInDeploy/trunk/config/environments/development/redis/redis-server--6379.conf
         with psutil.Popen(
@@ -232,7 +235,7 @@ def under_redis(_function):
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up redis")
+                    raise ValueError("error spinning up `redis`")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)

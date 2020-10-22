@@ -3,11 +3,15 @@ ACME-v2 RELEASE
 
 Hi!
 
-ACME-V2 support involved a large rewrite of the Client and the Certificate Manager's design. The central object changed from a `ServerCertificate` to the `AcmeOrder`.
+ACME-V2 support involved a large rewrite of the Client and the Certificate
+Manager's design. The central object changed from a `ServerCertificate` to the
+`AcmeOrder`.
 
-This project is still undergoing active development, and the design is not entirely finalized yet... but
+This project is still undergoing active development, and the design is not
+entirely finalized yet... but
 
-Most of the functionality is working (in production!) and everything is covered by extensive tests.
+Most of the functionality is working (in production!) and everything is covered
+by extensive tests.
 
 WE ARE ALMOST THERE!!!
 
@@ -891,9 +895,13 @@ You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it mus
 
 If running tests against the LetsEncrypt test API, there are some extra configurations to note:
 
-* `SSL_TEST_DOMAINS` should reflect one or more domains that point to the IP address the server runs on.  this will be used for verification challenges
+* `SSL_TEST_DOMAINS` should reflect one or more domains which point to the IP
+  address the server runs on.  This will be used for verification challenges.
+  LetsEncrypt must be able to communicate with this domain on Port80.
 * `SSL_TEST_PORT` lets you specify which port the test server should bind to
-* `/tools/nginx_conf/testing.conf` is an `Nginx` configuration file that can be used for testing.  it includes a flag check so you can just touch/remove a file to alter how `Nginx` proxies.
+* `/tools/nginx_conf/testing.conf` is an `Nginx` configuration file that can be
+  used for testing.  it includes a flag check so you can just touch/remove a file
+  to alter how `Nginx` proxies.
 
 
 ToDo
