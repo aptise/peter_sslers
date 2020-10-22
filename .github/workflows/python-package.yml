@@ -26,6 +26,8 @@ jobs:
     - name: Setup Hosts
       run: |
         sudo cat peter_sslers/tests/test_data/hosts.txt | sudo tee -a /etc/hosts
+        dig peter-sslers.example.com
+        dig always-fail.example.com
     - name: Install core Python dependencies
       run: |
         python -m pip install --upgrade pip
@@ -40,10 +42,6 @@ jobs:
         go get -u github.com/letsencrypt/pebble/...
         cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...
     - name: Test with pytest
-      ports:
-        - 80:80
-        - 5002:5002
-        - 7201:7201
       run: |
         export SSL_RUN_REDIS_TESTS=1
         export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
