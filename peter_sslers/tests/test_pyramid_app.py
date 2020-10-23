@@ -1340,7 +1340,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         _edit_url(alt_id, url_og + "123")
         _edit_url(alt_id, url_og)
 
-    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @routes_tested(("admin:acme_dns_server:focus:check",))
     def test_against_acme_dns__html(self):
         (focus_item, focus_id) = self._get_one()
@@ -1353,7 +1353,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert res.status_code == 303
         assert RE_AcmeDnsServer_checked.match(res.location)
 
-    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @routes_tested(("admin:acme_dns_server:focus:check|json",))
     def test_against_acme_dns__json(self):
         (focus_item, focus_id) = self._get_one()
@@ -1366,7 +1366,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert res.json["result"] == "success"
         assert res.json["health"] == True
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @under_pebble
     @routes_tested(
         (
@@ -1410,7 +1411,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         res2 = form.submit()
         assert RE_AcmeDnsServer_ensure_domains_results.match(res2.location)
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @under_pebble
     @routes_tested(
         (
@@ -1703,7 +1705,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             )
             assert "AcmeOrders" in res.json
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:acme_orders:active:acme_server:sync",))
     def test_active_acme_server_sync_html(self):
@@ -1720,7 +1722,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             "http://peter-sslers.example.com/.well-known/admin/acme-orders/active?result=success&operation=acme+server+sync&acme_order_ids.success="
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:acme_orders:active:acme_server:sync|json",))
     def test_active_acme_server_sync_json(self):
@@ -3163,7 +3165,7 @@ class FunctionalTests_Domain(AppTest):
         assert res.json["result"] == "success"
         assert "Domain" in res.json
 
-    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @routes_tested(
         (
             "admin:domain:new",
@@ -3233,7 +3235,7 @@ class FunctionalTests_Domain(AppTest):
             % focus_id
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @routes_tested(
         (
             "admin:domain:new|json",
@@ -3332,7 +3334,7 @@ class FunctionalTests_Domain(AppTest):
             == "Existing record for this AcmeDnsServer."
         )
 
-    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(("admin:domain:focus:nginx_cache_expire",))
     def test_nginx_html(self):
         (focus_item, focus_id) = self._get_one()
@@ -3343,7 +3345,7 @@ class FunctionalTests_Domain(AppTest):
         )
         assert RE_Domain_operation_nginx_expire.match(res.location)
 
-    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(("admin:domain:focus:nginx_cache_expire|json",))
     def test_nginx_json(self):
         (focus_item, focus_id) = self._get_one()
@@ -4385,7 +4387,7 @@ class FunctionalTests_ServerCertificate(AppTest):
         )
         assert "ServerCertificate" in res3.json
 
-    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(("admin:server_certificate:focus:nginx_cache_expire",))
     def test_nginx_html(self):
         (focus_item, focus_id) = self._get_one()
@@ -4396,7 +4398,7 @@ class FunctionalTests_ServerCertificate(AppTest):
         )
         assert RE_ServerCertificate_operation_nginx_expire.match(res.location)
 
-    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(("admin:server_certificate:focus:nginx_cache_expire|json",))
     def test_nginx_json(self):
         (focus_item, focus_id) = self._get_one()
@@ -5398,7 +5400,7 @@ class FunctionalTests_AlternateChains(AppTest):
 
 
 class FunctionalTests_AcmeServer(AppTest):
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:new")
     def test_AcmeAccount_new_html(self):
@@ -5424,7 +5426,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched
         obj_id = matched.groups()[0]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:new|json")
     def test_AcmeAccount_new_json(self):
@@ -5461,7 +5463,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:focus:acme_server:authenticate")
     def test_AcmeAccount_authenticate_html(self):
@@ -5491,7 +5493,7 @@ class FunctionalTests_AcmeServer(AppTest):
             % focus_id
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:focus:acme_server:authenticate|json")
     def test_AcmeAccount_authenticate_json(self):
@@ -5570,7 +5572,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         return acme_account_id
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -5633,7 +5635,7 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
         assert len(acme_authorization_ids_2) == 0
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -5739,7 +5741,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         return (obj_id, res2.location)
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6106,7 +6108,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched
         obj_id__3 = matched.groups()[0]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6201,7 +6203,7 @@ class FunctionalTests_AcmeServer(AppTest):
             % obj_id__4
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6226,7 +6228,7 @@ class FunctionalTests_AcmeServer(AppTest):
             in res.text
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6312,7 +6314,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         return obj_id
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6668,7 +6670,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeOrder" in res.json
         obj_id__3 = res.json["AcmeOrder"]["id"]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6787,7 +6789,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["operation"] == "mark"
         assert res.json["error"] == "Can not mark this `AcmeOrder` for renewal."
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6816,7 +6818,7 @@ class FunctionalTests_AcmeServer(AppTest):
             res.json["AcmeOrder"]["acme_order_processing_strategy"] == "process_single"
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -6869,7 +6871,7 @@ class FunctionalTests_AcmeServer(AppTest):
             == "certificate_downloaded"
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:acme_order:focus:acme_server:download_certificate",))
     def test_AcmeOrder_download_certificate_html(self):
@@ -6905,7 +6907,7 @@ class FunctionalTests_AcmeServer(AppTest):
         server_certificate_id__downloaded = int(server_certificate_ids[0])
         assert server_certificate_id__og == server_certificate_id__downloaded
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:acme_order:focus:acme_server:download_certificate|json",))
     def test_AcmeOrder_download_certificate_json(self):
@@ -6945,7 +6947,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # compare the certs
         assert server_certificate_id__og == server_certificate_id__downloaded
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7017,7 +7019,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # a) the AcmeAuthorization no longer has a trigger
         # b) AcmeChallenge can be reused by the AcmeServer
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7098,7 +7100,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # a) the AcmeAuthorization no longer has a trigger
         # b) AcmeChallenge can be reused by the AcmeServer
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7239,7 +7241,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7427,7 +7429,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
                 assert res_sync.json["AcmeChallenge"]["url_acme_server_trigger"] is None
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7481,7 +7483,7 @@ class FunctionalTests_AcmeServer(AppTest):
         acme_order_id = matched.groups()[0]
         assert acme_order_id
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7537,7 +7539,7 @@ class FunctionalTests_AcmeServer(AppTest):
         acme_order_id = matched.groups()[0]
         assert acme_order_id
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(
         (
@@ -7596,7 +7598,7 @@ class FunctionalTests_AcmeServer(AppTest):
             _domain = _domain.lower()
             assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:queue_domains:process|json",))
     def test_QueueDomains_process_json__process_single(self):
@@ -7654,7 +7656,7 @@ class FunctionalTests_AcmeServer(AppTest):
             _domain = _domain.lower()
             assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:api:queue_certificates:update",))
     def test_QueueCertificates_api_update_html(self):
@@ -7670,7 +7672,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         # TODO - populate the database so it will actually update the queue, retest
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:api:queue_certificates:update|json",))
     def test_QueueCertificates_api_update_json(self):
@@ -7685,7 +7687,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["results"] is True
         # TODO - populate the database so it will actually update the queue, retest
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:api:queue_certificates:process",))
     def test_QueueCertificates_api_process_html(self):
@@ -7699,7 +7701,7 @@ class FunctionalTests_AcmeServer(AppTest):
             """http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=success&operation=process&results="""
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:api:queue_certificates:process|json",))
     def test_QueueCertificates_api_process_json(self):
@@ -7713,7 +7715,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["result"] == "success"
         assert "queue_results" in res.json
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested(("admin:api:domain:autocert|json",))
     def test_Api_Domain_autocert_json(self):
@@ -7911,7 +7913,7 @@ class FunctionalTests_API(AppTest):
         )
         assert res.json["result"] == "success"
 
-    @unittest.skipUnless(RUN_REDIS_TESTS, "not running against redis")
+    @unittest.skipUnless(RUN_REDIS_TESTS, "Not Running Against: redis")
     @under_redis
     @routes_tested(
         (
@@ -7943,7 +7945,7 @@ class FunctionalTests_API(AppTest):
         )
         assert res.json["result"] == "success"
 
-    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(
         (
             "admin:api:nginx:cache_flush",
@@ -8082,7 +8084,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         return resp
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_multiple_domains(self):
         """
@@ -8114,7 +8116,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             == "certificate_downloaded"
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_cleanup(self):
         """
@@ -8183,7 +8185,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             == stats_og["count-AcmeAuthorization-pending"]
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_nocleanup(self):
         """
@@ -8266,7 +8268,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 "cleanup_pending_authorizations"
             ] = True
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     @routes_tested(("admin:api:domain:certificate-if-needed",))
     def test_domain_certificate_if_needed(self):
@@ -8401,8 +8403,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         assert res7.json["domain_results"][_domain_name]["acme_order.id"] is None
 
-    @unittest.skipUnless(RUN_REDIS_TESTS, "not running against redis")
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against pebble")
+    @unittest.skipUnless(RUN_REDIS_TESTS, "Not Running Against: redis")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @under_redis
     @routes_tested(
