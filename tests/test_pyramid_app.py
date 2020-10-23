@@ -26,6 +26,10 @@ from webtest.http import StopableWSGIServer
 import requests
 
 # local
+from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.model import objects as model_objects
+from peter_sslers.model import utils as model_utils
+
 from ._utils import FakeRequest
 from ._utils import TEST_FILES
 from ._utils import AppTest
@@ -33,10 +37,6 @@ from ._utils import AppTestWSGI
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
 from ._utils import under_redis
-
-from ..lib.db import get as lib_db_get
-from ..model import objects as model_objects
-from ..model import utils as model_utils
 
 # local, flags
 from .regex_library import *

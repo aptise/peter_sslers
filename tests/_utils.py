@@ -28,15 +28,15 @@ from webtest.http import StopableWSGIServer
 import sqlalchemy
 
 # local
-from ..web import main
-from ..web.models import get_engine
-from ..web.models import get_session_factory
-from ..model import objects as model_objects
-from ..model import utils as model_utils
-from ..model import meta as model_meta
-from ..lib import db
-from ..lib import errors
-from ..lib import utils
+from peter_sslers.web import main
+from peter_sslers.web.models import get_engine
+from peter_sslers.web.models import get_session_factory
+from peter_sslers.model import objects as model_objects
+from peter_sslers.model import utils as model_utils
+from peter_sslers.model import meta as model_meta
+from peter_sslers.lib import db
+from peter_sslers.lib import errors
+from peter_sslers.lib import utils
 
 
 # ==============================================================================

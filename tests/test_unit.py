@@ -19,16 +19,17 @@ import josepy
 import cryptography
 
 # local
+from peter_sslers.lib import cert_utils
+from peter_sslers.lib import utils
+from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import getcreate as lib_db_getcreate
+from peter_sslers.model import objects as model_objects
+from peter_sslers.model import utils as model_utils
+
 from ._utils import AppTestCore
 from ._utils import AppTest
 from ._utils import TEST_FILES
 from ._utils import _Mixin_filedata
-from ..lib import cert_utils
-from ..lib import utils
-from ..lib.db import get as lib_db_get
-from ..lib.db import getcreate as lib_db_getcreate
-from ..model import objects as model_objects
-from ..model import utils as model_utils
 
 
 # ==============================================================================
