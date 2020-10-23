@@ -37,6 +37,7 @@ jobs:
         # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
         sudo mkdir -p /var/lib/redis/peter_sslers_test
         sudo chown -R runner /var/lib/redis/peter_sslers_test
+        sudo chown -R runner /var/lib/redis
     - name: Install Pebble
       run: |
         export GOPATH=$HOME/go
