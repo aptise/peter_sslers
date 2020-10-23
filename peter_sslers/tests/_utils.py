@@ -78,13 +78,19 @@ SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
 # coordinate the port with `test.ini`
 SSL_BIN_REDIS_SERVER = os.environ.get("SSL_BIN_REDIS_SERVER", None) or "redis-server"
 SSL_CONF_REDIS_SERVER = os.environ.get("SSL_CONF_REDIS_SERVER", None) or None
-if SSL_CONF_REDIS_SERVER is None:
+if not SSL_CONF_REDIS_SERVER:
     SSL_CONF_REDIS_SERVER = "/".join(
         __file__.split("/")[:-1]
         + [
             "redis-server.conf",
         ]
     )
+
+if not os.path.exists(SSL_CONF_REDIS_SERVER):
+    raise ValueError(
+        "SSL_CONF_REDIS_SERVER (%s) does not exist" % SSL_CONF_REDIS_SERVER
+    )
+
 
 GOPATH = os.environ.get("GOPATH")
 
