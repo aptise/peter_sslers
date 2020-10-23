@@ -238,6 +238,10 @@ def under_redis(_function):
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
         # /usr/local/Cellar/redis/3.0.7/bin/redis-server /Users/jvanasco/webserver/sites/CliquedInDeploy/trunk/config/environments/development/redis/redis-server--6379.conf
+        import os
+
+        print(os.path.exists(SSL_BIN_REDIS_SERVER))
+        raise ValueError("`redis`: waiting")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
             stdin=subprocess.PIPE,
@@ -250,7 +254,6 @@ def under_redis(_function):
             _lines = 0
             while not ready:
                 log.info("`redis`: waiting for ready")
-                raise ValueError("`redis`: waiting")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Can't chdir to" in line:
                         raise ValueError(line)
