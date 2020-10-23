@@ -26,8 +26,6 @@ jobs:
     - name: Setup Hosts
       run: |
         sudo cat peter_sslers/tests/test_data/hosts.txt | sudo tee -a /etc/hosts
-        dig peter-sslers.example.com
-        dig always-fail.example.com
     - name: Install core Python dependencies
       run: |
         python -m pip install --upgrade pip

@@ -138,7 +138,8 @@ def under_pebble(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `pebble`")
+        log.info("`pebble`: spinning up")
+        log.info("`pebble`: PEBBLE_CONFIG :%s", PEBBLE_CONFIG)
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -152,21 +153,22 @@ def under_pebble(_function):
             ready = False
             _waits = 0
             while not ready:
-                log.info("waiting for `pebble` to be ready")
+                log.info("`pebble`: waiting for ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Listening on: 0.0.0.0:14000" in line:
+                        log.info("`pebble`: ready")
                         ready = True
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up `pebble`")
+                    raise ValueError("`pebble`: ERROR spinning up")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
-                log.info("xx terminating `pebble`")
+                log.info("`pebble`: finished. terminating")
                 proc.terminate()
         return res
 
@@ -180,7 +182,8 @@ def under_pebble_strict(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `pebble[strict]`")
+        log.info("`pebble[strict]`: spinning up")
+        log.info("`pebble[strict]`: PEBBLE_CONFIG :%s", PEBBLE_CONFIG)
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -194,21 +197,22 @@ def under_pebble_strict(_function):
             ready = False
             _waits = 0
             while not ready:
-                log.info("waiting for `pebble[strict]` to be ready")
+                log.info("`pebble[strict]`: waiting for ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Listening on: 0.0.0.0:14000" in line:
+                        log.info("`pebble[strict]`: ready")
                         ready = True
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up `pebble[strict]``")
+                    raise ValueError("`pebble[strict]`: ERROR spinning up")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
-                log.info("xx terminating `pebble[strict]`")
+                log.info("`pebble[strict]`: finished. terminating")
                 proc.terminate()
         return res
 
@@ -222,7 +226,9 @@ def under_redis(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `redis`")
+        log.info("`redis`: spinning up")
+        log.info("`redis`: SSL_BIN_REDIS_SERVER  :%s", SSL_BIN_REDIS_SERVER)
+        log.info("`redis`: SSL_CONF_REDIS_SERVER :%s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
         # /usr/local/Cellar/redis/3.0.7/bin/redis-server /Users/jvanasco/webserver/sites/CliquedInDeploy/trunk/config/environments/development/redis/redis-server--6379.conf
         with psutil.Popen(
@@ -235,23 +241,24 @@ def under_redis(_function):
             ready = False
             _waits = 0
             while not ready:
-                log.info("waiting for `redis` to be ready")
+                log.info("`redis`: waiting for ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Can't chdir to" in line:
                         raise ValueError(line)
                     if b"The server is now ready to accept connections on port" in line:
+                        log.info("`redis`: ready")
                         ready = True
                         break
                 _waits += 1
                 if _waits >= 5:
-                    raise ValueError("error spinning up `redis`")
+                    raise ValueError("`redis`: ERROR spinning up")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
-                log.info("xx terminating `redis`")
+                log.info("`redis`: finished. terminating")
                 proc.terminate()
         return res
 
