@@ -250,6 +250,7 @@ def under_redis(_function):
             _lines = 0
             while not ready:
                 log.info("`redis`: waiting for ready")
+                raise ValueError("`redis`: waiting")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Can't chdir to" in line:
                         raise ValueError(line)
