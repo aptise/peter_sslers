@@ -88,7 +88,7 @@ The testing suite can not reliably spin-up acme-dns, so it must run in it's own 
 
 use the test-config file:
 
-	sudo acme-dns -c ./peter_sslers/tests/test_data/acme-dns.config
+	sudo acme-dns -c ./tests/test_configuration/acme-dns.config
 
 
 ## ACME v1 Testing
@@ -134,7 +134,7 @@ the payloads should contain:
 
 The testing suites require the following domains to point to localhost:
 
-{{SEE cat peter_sslers/tests/test_data/hosts.txt}}
+{{SEE cat ./tests/test_configuration/hosts.txt}}
 
 run after editing:
 	osx:

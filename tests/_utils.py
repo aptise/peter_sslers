@@ -82,7 +82,7 @@ if not SSL_CONF_REDIS_SERVER:
     SSL_CONF_REDIS_SERVER = "/".join(
         __file__.split("/")[:-1]
         + [
-            "test_data",
+            "test_configuration",
             "redis-server.conf",
         ]
     )

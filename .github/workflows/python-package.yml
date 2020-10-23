@@ -26,7 +26,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Setup Hosts
       run: |
-        sudo cat peter_sslers/tests/test_data/hosts.txt | sudo tee -a /etc/hosts
+        sudo cat tests/test_configuration/hosts.txt | sudo tee -a /etc/hosts
     - name: Install core Python dependencies
       run: |
         python -m pip install --upgrade pip

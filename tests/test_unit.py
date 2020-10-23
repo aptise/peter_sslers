@@ -35,7 +35,7 @@ from ..model import utils as model_utils
 
 
 class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
-    """python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils"""
+    """python -m unittest tests.test_unit.UnitTest_CertUtils"""
 
     _account_sets = {
         "001": {
@@ -157,7 +157,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_cert__domains(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_cert__domains
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert__domains
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -175,7 +175,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_csr_domains(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_csr_domains
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_csr_domains
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -191,7 +191,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__validate_csr(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__validate_csr
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__validate_csr
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -202,7 +202,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__validate_key(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__validate_key
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__validate_key
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -213,7 +213,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__validate_cert(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__validate_cert
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__validate_cert
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -228,7 +228,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__make_csr(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__make_csr
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__make_csr
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -243,7 +243,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__modulus_md5_key(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__modulus_md5_key
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__modulus_md5_key
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -259,7 +259,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__modulus_md5_csr(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__modulus_md5_csr
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__modulus_md5_csr
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -275,7 +275,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__modulus_md5_cert(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__modulus_md5_cert
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__modulus_md5_cert
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -293,7 +293,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_cert__enddate(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_cert__enddate
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert__enddate
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -311,7 +311,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_cert__startdate(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_cert__startdate
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert__startdate
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -329,7 +329,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_key(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_key
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_key
 
         This is a debugging display function. The output is not guaranteed across installations.
         """
@@ -344,7 +344,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__parse_cert(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__parse_cert
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -359,7 +359,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__cert_and_chain_from_fullchain(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__cert_and_chain_from_fullchain
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__cert_and_chain_from_fullchain
         """
         for cert_set in sorted(self._cert_sets.keys()):
             if not self._cert_sets[cert_set]["cert"]:
@@ -377,7 +377,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__convert_lejson_to_pem(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__convert_lejson_to_pem
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__convert_lejson_to_pem
         """
         for account_set in sorted(self._account_sets.keys()):
             if not self._account_sets[account_set]["letsencrypt"]:
@@ -403,7 +403,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__account_key__parse(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__account_key__parse
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__account_key__parse
         """
         for account_set in sorted(self._account_sets.keys()):
             if not self._account_sets[account_set]["pem"]:
@@ -420,7 +420,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
     def test__account_key__sign(self):
         """
-        python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils.test__account_key__sign
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__account_key__sign
         """
         for account_set in sorted(self._account_sets.keys()):
             if not self._account_sets[account_set]["pem"]:
@@ -442,7 +442,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
 
 
 class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
-    """python -m unittest peter_sslers.tests.test_unit.UnitTest_OpenSSL"""
+    """python -m unittest tests.test_unit.UnitTest_OpenSSL"""
 
     def test_modulus_PrivateKey(self):
         for pkey_set_id, set_data in sorted(TEST_FILES["PrivateKey"].items()):
@@ -482,13 +482,13 @@ class _MixinNoCrypto(object):
 
 
 class UnitTest_CertUtils_fallback(_MixinNoCrypto, UnitTest_CertUtils):
-    """python -m unittest peter_sslers.tests.test_unit.UnitTest_CertUtils_fallback"""
+    """python -m unittest tests.test_unit.UnitTest_CertUtils_fallback"""
 
     pass
 
 
 class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_CertUtils):
-    """python -m unittest peter_sslers.tests.test_unit.UnitTest_OpenSSL_fallback"""
+    """python -m unittest tests.test_unit.UnitTest_OpenSSL_fallback"""
 
     pass
 
@@ -501,7 +501,7 @@ class UnitTest_PrivateKeyCycling(AppTest):
 
     It tests `getcreate__PrivateKey_for_AcmeAccount`, which is invoked during AcmeOrder processing
 
-    python -m unittest peter_sslers.tests.test_unit.UnitTest_PrivateKeyCycling
+    python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling
     """
 
     def _makeOne_AcmeAccount(self, private_key_cycle):
