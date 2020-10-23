@@ -251,7 +251,13 @@ def under_redis(_function):
                 for line in iter(proc.stdout.readline, b""):
                     if b"Can't chdir to" in line:
                         raise ValueError(line)
-                    if b"The server is now ready to accept connections on port" in line:
+                    # Redis 5.x
+                    if b"Ready to accept connections" in line:
+                        log.info("`redis`: ready")
+                        ready = True
+                        break
+                    # Redis2.x
+                    if b"The server is now ready to accept connections" in line:
                         log.info("`redis`: ready")
                         ready = True
                         break
