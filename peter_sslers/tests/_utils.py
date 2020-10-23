@@ -238,7 +238,7 @@ def under_redis(_function):
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
         with psutil.Popen(
-            [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
+            [SSL_BIN_REDIS_SERVER, "--help"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
