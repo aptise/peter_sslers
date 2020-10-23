@@ -7925,6 +7925,7 @@ class FunctionalTests_API(AppTest):
         """
         python -m unittest peter_sslers.tests.test_pyramid_app.FunctionalTests_API.test_redis
         """
+        raise ValueError("started - FunctionalTests_API.test_redis")
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents
         res = self.testapp.post(
@@ -7944,6 +7945,7 @@ class FunctionalTests_API(AppTest):
             "/.well-known/admin/api/redis/prime.json", {}, status=200
         )
         assert res.json["result"] == "success"
+        raise ValueError("completed - FunctionalTests_API.test_redis")
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     @routes_tested(
@@ -8417,6 +8419,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         """
         python -m unittest peter_sslers.tests.test_pyramid_app.IntegratedTests_AcmeServer.test_redis
         """
+        raise ValueError("started - IntegratedTests_AcmeServer.test_redis")
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we have a cert
@@ -8486,6 +8489,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self.testapp.app.registry.settings["app_settings"][
                 "redis.prime_style"
             ] = _existing_prime_style
+        raise ValueError("completed - IntegratedTests_AcmeServer.test_redis")
 
 
 class CoverageAssurance_AuditTests(AppTest):

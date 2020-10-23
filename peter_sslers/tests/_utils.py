@@ -146,7 +146,7 @@ def under_pebble(_function):
     @wraps(_function)
     def _wrapper(*args, **kwargs):
         log.info("`pebble`: spinning up")
-        log.info("`pebble`: PEBBLE_CONFIG :%s", PEBBLE_CONFIG)
+        log.info("`pebble`: PEBBLE_CONFIG : %s", PEBBLE_CONFIG)
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -190,7 +190,7 @@ def under_pebble_strict(_function):
     @wraps(_function)
     def _wrapper(*args, **kwargs):
         log.info("`pebble[strict]`: spinning up")
-        log.info("`pebble[strict]`: PEBBLE_CONFIG :%s", PEBBLE_CONFIG)
+        log.info("`pebble[strict]`: PEBBLE_CONFIG : %s", PEBBLE_CONFIG)
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -234,8 +234,8 @@ def under_redis(_function):
     @wraps(_function)
     def _wrapper(*args, **kwargs):
         log.info("`redis`: spinning up")
-        log.info("`redis`: SSL_BIN_REDIS_SERVER  :%s", SSL_BIN_REDIS_SERVER)
-        log.info("`redis`: SSL_CONF_REDIS_SERVER :%s", SSL_CONF_REDIS_SERVER)
+        log.info("`redis`: SSL_BIN_REDIS_SERVER  : %s", SSL_BIN_REDIS_SERVER)
+        log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
         # /usr/local/Cellar/redis/3.0.7/bin/redis-server /Users/jvanasco/webserver/sites/CliquedInDeploy/trunk/config/environments/development/redis/redis-server--6379.conf
         with psutil.Popen(
@@ -247,6 +247,7 @@ def under_redis(_function):
             # ensure the `pebble` server is running
             ready = False
             _waits = 0
+            _lines = 0
             while not ready:
                 log.info("`redis`: waiting for ready")
                 for line in iter(proc.stdout.readline, b""):
@@ -256,6 +257,9 @@ def under_redis(_function):
                         log.info("`redis`: ready")
                         ready = True
                         break
+                    _lines += 1
+                    if _lines > 2000:
+                        raise ValueError("`redis`: lines > 2000")
                 _waits += 1
                 if _waits >= 5:
                     raise ValueError("`redis`: ERROR spinning up")
