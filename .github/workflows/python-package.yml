@@ -34,8 +34,9 @@ jobs:
     - name: Install Redis
       run: |
         sudo apt-get install redis
+        # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
         sudo mkdir -p /var/lib/redis/peter_sslers_test
-        sudo chown runner /var/lib/redis/peter_sslers_test
+        sudo chown -R runner /var/lib/redis/peter_sslers_test
     - name: Install Pebble
       run: |
         export GOPATH=$HOME/go
