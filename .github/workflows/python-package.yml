@@ -57,17 +57,35 @@ jobs:
         echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list
         sudo apt-get update
         sudo apt-get -y install openresty
-        # install PeterSSlers
+        sudo systemctl stop openresty
+        #
+        # install PeterSSlers OpenResty Plugin
+        #
         sudo /usr/local/openresty/bin/opm get aptise/peter_sslers-lua-resty
-        # list some config info
+        # list some config info, in case we need to debug later
         sudo ls -alh /etc/openresty
         sudo ls -alh /usr/local/openresty/nginx
+        #        
+        # make our log dirs
+        sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
+        sudo chown -R runner /home/runner/work/peter_sslers/logs
+        #
+        # start our system
+        echo ">>>>"
+        sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
+        sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
+        #
+        # print our current services, in case we need to debug later
+        echo ">>>>"
+        ps aux
+        echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     - name: Test with tox/pytest
       # tox is used to run pytest
       run: |
-        export SSL_RUN_REDIS_TESTS=1
         export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
         export SSL_RUN_API_TESTS__PEBBLE=1
+        export SSL_RUN_NGINX_TESTS=1
+        export SSL_RUN_REDIS_TESTS=1
         export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
