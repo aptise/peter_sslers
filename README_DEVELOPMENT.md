@@ -119,15 +119,37 @@ please note the order:
 	result, error, operation, action
 	
 
-## check nginx routes
+## check nginx/openresty routes
 
-sudo curl https://peter:sslers@localhost/.peter_sslers/nginx/shared_cache/status -k 
-sudo curl https://peter:sslers@localhost/.peter_sslers/nginx/shared_cache/expire -k 
+First check two general-purpose routes
+
+	curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status -k 
+	curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/all -k 
 
 the payloads should contain:
 
 	"server": "peter_sslers:openresty"
+	"result": "success"
 
+Then check the expire route
+
+	curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire -k 
+
+it should error:
+
+	"server": "peter_sslers:openresty"
+	"result": "error"
+
+but change it to a domain...
+
+	curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/domain/example.com -k 
+
+and it should succeed:
+
+	"server": "peter_sslers:openresty"
+	"result": "success"
+	"expired": "domain"
+	"domain": "example.com"
 
 
 ### sample domains - testing suites
