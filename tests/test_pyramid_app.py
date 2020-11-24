@@ -7969,9 +7969,58 @@ class FunctionalTests_API(AppTest):
             "/.well-known/admin/api/nginx/cache-flush.json", status=200
         )
         assert res.json["result"] == "success"
+        assert "servers_status" in res.json
+        assert "errors" in res.json["servers_status"]
+        assert not res.json["servers_status"]["errors"]
+        for server in self.testapp.app.registry.settings["app_settings"][
+            "nginx.servers_pool"
+        ]:
+            assert server in res.json["servers_status"]["success"]
+            assert server in res.json["servers_status"]["servers"]
+            assert res.json["servers_status"]["servers"][server]["result"] == "success"
+            assert (
+                res.json["servers_status"]["servers"][server]["server"]
+                == "peter_sslers:openresty"
+            )
+            assert res.json["servers_status"]["servers"][server]["expired"] == "all"
 
         res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
         assert res.json["result"] == "success"
+        assert "servers_status" in res.json
+        assert "errors" in res.json["servers_status"]
+        assert not res.json["servers_status"]["errors"]
+        for server in self.testapp.app.registry.settings["app_settings"][
+            "nginx.servers_pool"
+        ]:
+            assert server in res.json["servers_status"]["success"]
+            assert server in res.json["servers_status"]["servers"]
+            assert res.json["servers_status"]["servers"][server]["result"] == "success"
+            assert (
+                res.json["servers_status"]["servers"][server]["server"]
+                == "peter_sslers:openresty"
+            )
+            # 'servers': {'https://127.0.0.1': {'config':
+            assert "config" in res.json["servers_status"]["servers"][server]
+            assert "expiries" in res.json["servers_status"]["servers"][server]["config"]
+            assert (
+                "ngx.shared.cert_cache"
+                in res.json["servers_status"]["servers"][server]["config"]["expiries"]
+            )
+            assert (
+                "resty.lrucache"
+                in res.json["servers_status"]["servers"][server]["config"]["expiries"]
+            )
+            assert "maxitems" in res.json["servers_status"]["servers"][server]["config"]
+            assert (
+                "resty.lrucache"
+                in res.json["servers_status"]["servers"][server]["config"]["maxitems"]
+            )
+
+            # 'servers': {'https://127.0.0.1': {'keys':
+            assert "keys" in res.json["servers_status"]["servers"][server]
+            assert "autocert" in res.json["servers_status"]["servers"][server]["keys"]
+            assert "invalid" in res.json["servers_status"]["servers"][server]["keys"]
+            assert "valid" in res.json["servers_status"]["servers"][server]["keys"]
 
     def test_post_required_html(self):
         res = self.testapp.get(
