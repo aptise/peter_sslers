@@ -9,6 +9,7 @@ log.setLevel(logging.INFO)
 # stdlib
 import datetime
 import os
+import packaging.version
 import pdb
 import subprocess
 import unittest
@@ -128,6 +129,11 @@ ACME_DNS_CONFIG = os.environ.get("SSL_ACME_DNS_CONFIG", "")
 if RUN_API_TESTS__ACME_DNS_API:
     if not any((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
         raise ValueError("Must invoke with env vars for acme-dns services")
+
+
+OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.1"
+OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
+
 
 # ==============================================================================
 

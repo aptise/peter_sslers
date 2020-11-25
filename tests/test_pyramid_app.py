@@ -4,6 +4,7 @@ from __future__ import print_function
 import datetime
 import json
 import os
+import packaging.version
 import pdb
 import pprint
 import re
@@ -46,6 +47,7 @@ from ._utils import RUN_API_TESTS__ACME_DNS_API
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
 from ._utils import SSL_TEST_PORT
+from ._utils import OPENRESTY_PLUGIN_MINIMUM
 
 
 # ==============================================================================
@@ -7982,6 +7984,10 @@ class FunctionalTests_API(AppTest):
                 res.json["servers_status"]["servers"][server]["server"]
                 == "peter_sslers:openresty"
             )
+            self.assertGreaterEqual(
+                res.json["servers_status"]["servers"][server]["server_version"],
+                OPENRESTY_PLUGIN_MINIMUM,
+            )
             assert res.json["servers_status"]["servers"][server]["expired"] == "all"
 
         res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
@@ -7999,6 +8005,11 @@ class FunctionalTests_API(AppTest):
                 res.json["servers_status"]["servers"][server]["server"]
                 == "peter_sslers:openresty"
             )
+            self.assertGreaterEqual(
+                res.json["servers_status"]["servers"][server]["server_version"],
+                OPENRESTY_PLUGIN_MINIMUM,
+            )
+
             # 'servers': {'https://127.0.0.1': {'config':
             assert "config" in res.json["servers_status"]["servers"][server]
             assert "expiries" in res.json["servers_status"]["servers"][server]["config"]

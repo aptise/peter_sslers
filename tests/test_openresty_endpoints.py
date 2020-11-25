@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 # stdlib
+import packaging.version
 import unittest
 
 # pypi
@@ -14,6 +15,7 @@ from ._utils import AppTest
 
 # local, flags
 from ._utils import RUN_NGINX_TESTS
+from ._utils import OPENRESTY_PLUGIN_MINIMUM
 
 
 # ==============================================================================
@@ -62,6 +64,8 @@ class FunctionalTests_Main(unittest.TestCase):
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
             self.assertEqual(as_json["server"], "peter_sslers:openresty")
+            server_version = packaging.version.parse(as_json["server_version"])
+            self.assertGreaterEqual(server_version, OPENRESTY_PLUGIN_MINIMUM)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     def test_nginx_expire_all(self):
@@ -78,6 +82,8 @@ class FunctionalTests_Main(unittest.TestCase):
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
             self.assertEqual(as_json["server"], "peter_sslers:openresty")
+            server_version = packaging.version.parse(as_json["server_version"])
+            self.assertGreaterEqual(server_version, OPENRESTY_PLUGIN_MINIMUM)
             self.assertEqual(as_json["expired"], "all")
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
@@ -96,5 +102,7 @@ class FunctionalTests_Main(unittest.TestCase):
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
             self.assertEqual(as_json["server"], "peter_sslers:openresty")
+            server_version = packaging.version.parse(as_json["server_version"])
+            self.assertGreaterEqual(server_version, OPENRESTY_PLUGIN_MINIMUM)
             self.assertEqual(as_json["expired"], "domain")
             self.assertEqual(as_json["domain"], domain)
