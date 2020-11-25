@@ -61,7 +61,7 @@ jobs:
         #
         # install PeterSSlers OpenResty Plugin
         #
-        sudo /usr/local/openresty/bin/opm get aptise/peter_sslers-lua-resty
+        sudo /usr/local/openresty/bin/opm get aptise/lua-resty-peter_sslers
         # list some config info, in case we need to debug later
         sudo ls -alh /etc/openresty
         sudo ls -alh /usr/local/openresty/nginx

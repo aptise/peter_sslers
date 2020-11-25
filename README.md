@@ -164,7 +164,7 @@ SSLX, I'm your only friend. SSLX, Your love will sing for you.
 
 Available via the opm package manager:
 
-	opm get peter_sslers-lua-resty
+	opm get lua-resty-peter_sslers
 
 The source and docs are available on a separate github repository https://github.com/aptise/peter_sslers-lua-resty
 
