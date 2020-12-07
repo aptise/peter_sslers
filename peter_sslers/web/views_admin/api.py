@@ -56,18 +56,16 @@ class ViewAdminApi(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name="admin:api:ca_certificate:letsencrypt_sync", renderer=None)
     @view_config(
-        route_name="admin:api:ca_certificate:letsencrypt_download", renderer=None
-    )
-    @view_config(
-        route_name="admin:api:ca_certificate:letsencrypt_download|json", renderer="json"
+        route_name="admin:api:ca_certificate:letsencrypt_sync|json", renderer="json"
     )
     def ca_certificate__download(self):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return docs.json_docs_post_only
             return HTTPSeeOther(
-                "%s/operations/ca-certificate-downloads?result=error&operation=ca-certificate-proble&error=HTTP+POST+required"
+                "%s/operations/ca-certificate-downloads?result=error&operation=ca_certificate-letsencrypt_sync&error=HTTP+POST+required"
                 % (self.request.registry.settings["app_settings"]["admin_prefix"],)
             )
 

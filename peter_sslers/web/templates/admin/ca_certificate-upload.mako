@@ -54,8 +54,16 @@
                     <li>ISRG Root X1</li>
                     <li>Let’s Encrypt Authority X1</li>
                     <li>Let’s Encrypt Authority X2</li>
+                    <li>Let’s Encrypt Authority X3</li>
+                    <li>Let’s Encrypt Authority X4</li>
                     <li>Let’s Encrypt Authority X1 (IdenTrust cross-signed)</li>
                     <li>Let’s Encrypt Authority X2 (IdenTrust cross-signed)</li>
+                    <li>Let’s Encrypt Authority X3 (IdenTrust cross-signed)</li>
+                    <li>Let’s Encrypt Authority X4 (IdenTrust cross-signed)</li>
+                    <li>Let’s Encrypt Authority E1</li>
+                    <li>Let’s Encrypt Authority E2</li>
+                    <li>Let’s Encrypt Authority R3</li>
+                    <li>Let’s Encrypt Authority R4</li>
                 </ul>
             </p>
             <p>

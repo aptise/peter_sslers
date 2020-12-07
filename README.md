@@ -305,7 +305,7 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db example_development.ini	
-	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/probe.json
+	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json
 	pserve --reload example_development.ini
 	
 Then you can visit `http://127.0.0.1:7201`
@@ -331,7 +331,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/probe.json
+	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json
 	pserve example_development.ini
 
 then in another terminal window:	
@@ -543,7 +543,7 @@ https://github.com/aptise/peter_sslers-lua-resty
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/probe.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json`
 `$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
 
 using `prequest` is recommended in most contexts, because it will not timeout. this will allow for long-running processes.
@@ -552,9 +552,9 @@ using `prequest` is recommended in most contexts, because it will not timeout. t
 ## Routes Designed for JSON Automation
 
 
-### `/.well-known/admin/api/ca-certificate/probe.json`
+### `/.well-known/admin/api/ca-certificate/letsencrypt-sync.json`
 
-Probes known URLs of LetsEncrypt keys and saves them with the correct role information.
+Syncs known URLs of LetsEncrypt keys and saves them with the correct role information.
 
 If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
 
@@ -936,7 +936,7 @@ after running the server, in another window...
 - $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
-There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.
+There is also a button under "operations" to sync LetsEncrypt's public website and update your certs with data.
 
 
 How to check if it's working?

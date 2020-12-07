@@ -37,6 +37,8 @@ try:
     from cryptography.hazmat.primitives import (
         serialization as cryptography_serialization,
     )
+
+    # from cryptography.hazmat.primitives.asymmetric import ec as crypto_ec
     import josepy
     import cryptography
 
@@ -48,6 +50,7 @@ except ImportError as exc:
     josepy = None
     cryptography_serialization = None
     cryptography = None
+    # crypto_ec = None
 
 # localapp
 from . import errors
@@ -55,7 +58,7 @@ from . import utils
 from .. import (
     lib,
 )  # only here to access `lib.letsencrypt_info` without a circular import
-
+from ..model.utils import KeyTechnology
 
 # ==============================================================================
 
@@ -73,6 +76,46 @@ openssl_version = None
 _RE_openssl_version = re.compile(r"OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
 _RE_rn = re.compile(r"\r\n")
 _openssl_behavior = None  # 'a' or 'b'
+
+
+# ==============================================================================
+
+
+# note the conditional whitespace before/after `CN`
+# this is because of differing openssl versions
+RE_openssl_x509_subject = re.compile(r"Subject:.*? CN ?= ?([^\s,;/]+)")
+RE_openssl_x509_san = re.compile(
+    r"X509v3 Subject Alternative Name: \n +([^\n]+)\n?", re.MULTILINE | re.DOTALL
+)
+
+#
+# https://github.com/certbot/certbot/blob/master/certbot/certbot/crypto_util.py#L482
+#
+# Finds one CERTIFICATE stricttextualmsg according to rfc7468#section-3.
+# Does not validate the base64text - use crypto.load_certificate.
+CERT_PEM_REGEX = re.compile(
+    b"""-----BEGIN CERTIFICATE-----\r?
+.+?\r?
+-----END CERTIFICATE-----\r?
+""",
+    re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
+)
+
+# depending on openssl version, the "Public key: " text might list the bits
+# it may or may not also have a dash in the phrase "Public Key"
+# it may or may not be prefaced with the public key type
+RE_openssl_x509_keytype_rsa = re.compile(
+    r"Subject Public Key Info:\n"
+    r"\s+Public Key Algorithm: rsaEncryption\n"
+    r"\s+(RSA )?Public(\ |\-)Key:",
+    re.MULTILINE,
+)
+RE_openssl_x509_keytype_ec = re.compile(
+    r"Subject Public Key Info:\n"
+    r"\s+Public Key Algorithm: id-ecPublicKey\n"
+    r"\s+(EC )?Public(\ |\-)Key:",
+    re.MULTILINE,
+)
 
 
 # ==============================================================================
@@ -121,6 +164,24 @@ def new_pem_tempfile(pem_data):
     tmpfile_pem.write(pem_data)
     tmpfile_pem.seek(0)
     return tmpfile_pem
+
+
+def _openssl_key_technology(key):
+    # `key` is an instance of:
+    # * `openssl_crypto.load_certificate.get_pubkey()`
+    # * `openssl_crypto.load_privatekey()`
+    # or similar
+    cert_type = key.type()
+    if cert_type == openssl_crypto.TYPE_RSA:
+        return "RSA"
+    elif cert_type == openssl_crypto.TYPE_EC:
+        return "EC"
+    elif cert_type == openssl_crypto.TYPE_DSA:
+        return "DSA"
+    return None
+
+
+# ==============================================================================
 
 
 def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None):
@@ -279,14 +340,6 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
     return csr_text
 
 
-# note the conditional whitespace before/after `CN`
-# this is because of differing openssl versions
-RE_openssl_x509_subject = re.compile(r"Subject:.*? CN ?= ?([^\s,;/]+)")
-RE_openssl_x509_san = re.compile(
-    r"X509v3 Subject Alternative Name: \n +([^\n]+)\n?", re.MULTILINE | re.DOTALL
-)
-
-
 def san_domains_from_text(input):
     san_domains = set([])
     _subject_alt_names = RE_openssl_x509_san.search(input)
@@ -404,6 +457,9 @@ def validate_key(key_pem=None, key_pem_filepath=None):
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
+
+    `certbot_crypto_util.valid_privkey` ONLY WORKS ON RSA KEYS
+    THIS FUNCTION IS BROKEN ON EC KEYS
     """
     log.info("validate_key >")
     if certbot_crypto_util:
@@ -542,8 +598,11 @@ def modulus_md5_key(key_pem=None, key_pem_filepath=None):
     log.info("modulus_md5_key >")
     if openssl_crypto:
         privkey = openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
-        modn = privkey.to_cryptography_key().public_key().public_numbers().n
-        data = "{:X}".format(modn)
+        if _openssl_key_technology(privkey) == "RSA":
+            modn = privkey.to_cryptography_key().public_key().public_numbers().n
+            data = "{:X}".format(modn)
+        else:
+            return None
     else:
         log.debug(".modulus_md5_key > openssl fallback")
         # original code was:
@@ -559,6 +618,8 @@ def modulus_md5_key(key_pem=None, key_pem_filepath=None):
             if six.PY3:
                 data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+            if not data:
+                return None
     if six.PY3:
         data = data.encode()
     data = hashlib.md5(data).hexdigest()
@@ -575,8 +636,12 @@ def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
         csr = openssl_crypto.load_certificate_request(
             openssl_crypto.FILETYPE_PEM, csr_pem
         )
-        modn = csr.get_pubkey().to_cryptography_key().public_numbers().n
-        data = "{:X}".format(modn)
+        _pubkey = csr.get_pubkey()
+        if _openssl_key_technology(_pubkey) == "RSA":
+            modn = _pubkey.to_cryptography_key().public_numbers().n
+            data = "{:X}".format(modn)
+        else:
+            return None
     else:
         log.debug(".modulus_md5_csr > openssl fallback")
         # original code was:
@@ -592,6 +657,8 @@ def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
             if six.PY3:
                 data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+            if not data:
+                return None
     if six.PY3:
         data = data.encode()
     data = hashlib.md5(data).hexdigest()
@@ -606,8 +673,12 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
     log.info("modulus_md5_cert >")
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
-        modn = cert.get_pubkey().to_cryptography_key().public_numbers().n
-        data = "{:X}".format(modn)
+        _pubkey = cert.get_pubkey()
+        if _openssl_key_technology(_pubkey) == "RSA":
+            modn = cert.get_pubkey().to_cryptography_key().public_numbers().n
+            data = "{:X}".format(modn)
+        else:
+            return None
     else:
         log.debug(".modulus_md5_cert > openssl fallback")
         # original code was:
@@ -623,6 +694,8 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
             if six.PY3:
                 data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+            if "Wrong Algorithm type" in data:
+                return None
     if six.PY3:
         data = data.encode()
     data = hashlib.md5(data).hexdigest()
@@ -727,7 +800,7 @@ def cert_ext__pem_filepath(pem_filepath, ext):
     return data
 
 
-def key_single_op__pem_filepath(pem_filepath, single_op):
+def key_single_op__pem_filepath(keytype="RSA", pem_filepath=None, single_op=None):
     """
     handles a single pem operation to `openssl rsa`
 
@@ -735,18 +808,39 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
         openssl rsa -noout -modulus -in {KEY}
         openssl rsa -noout -text -in {KEY}
 
+        openssl ec -noout -in {KEY}
+        openssl ec -noout -modulus -in {KEY}
+        openssl ec -noout -text -in {KEY}
+
     THIS SHOULD NOT BE USED BY INTERNAL CODE
+
+
+    This is a bit odd...
+
+    1. If "-check" is okay (or reading is okay), there may be no output on stdout
+       HOWEVER
+       the read message (success) may happen on stderr
+    2. If openssl can't read the file, it will raise an exception
+
+    earlier versions of openssl DO NOT HAVE `ec --check`
+    current versions do
+
     """
+    if keytype not in ("RSA", "EC"):
+        raise ValueError("keytype must be `RSA or EC`")
     if single_op not in ("-check", "-modulus", "-text"):
         raise ValueError("invalid `single_op`")
+
     with psutil.Popen(
-        [openssl_path, "rsa", "-noout", single_op, "-in", pem_filepath],
+        [openssl_path, keytype.lower(), "-noout", single_op, "-in", pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
         data, err = proc.communicate()
         if not data:
-            raise errors.OpenSslError_InvalidCertificate(err)
+            # this happens!
+            if err != "read EC key\nEC Key valid.\n":
+                raise errors.OpenSslError_InvalidCertificate(err)
         if six.PY3:
             data = data.decode("utf8")
         data = data.strip()
@@ -793,6 +887,36 @@ def parse_cert__startdate(cert_pem=None, cert_pem_filepath=None):
         date = dateutil_parser.parse(data_date)
         date = date.replace(tzinfo=None)
     return date
+
+
+def _cert_pubkey_technology__text(cert_text):
+    # `cert_text` is the output of of `openssl x509 -in MYCERT -noout -text`
+    if RE_openssl_x509_keytype_rsa.search(cert_text):
+        return "RSA"
+    elif RE_openssl_x509_keytype_ec.search(cert_text):
+        return "EC"
+    return None
+
+
+def parse_cert__key_technology(cert_pem=None, cert_pem_filepath=None):
+    log.info("parse_cert__key_technology >")
+    if openssl_crypto:
+        cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+        return _openssl_key_technology(cert.get_pubkey())
+    else:
+        log.debug(".parse_cert__key_technology > openssl fallback")
+        # `openssl x509 -in MYCERT -noout -text`
+        with psutil.Popen(
+            [openssl_path, "x509", "-in", cert_pem_filepath, "-noout", "-text"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            out, err = proc.communicate()
+            if proc.returncode != 0:
+                raise IOError("Error loading {0}: {1}".format(cert_pem_filepath, err))
+            if six.PY3:
+                out = out.decode("utf8")
+        return _cert_pubkey_technology__text(out)
 
 
 def convert_der_to_pem(der_data=None):
@@ -869,23 +993,43 @@ def parse_key(key_pem=None, key_pem_filepath=None):
     rval = {
         "check": None,
         "text": None,
-        "modulus": None,
+        "modulus_md5": None,
+        "key_technology": None,
     }
+    _key_technology = "RSA"  # try this first!
+
     if openssl_crypto and certbot_crypto_util:
+        # TODO: crypto version of `--text`
+
+        # this part ONLY works on RSA keys
+        # can't do this with certbot/pyopenssl yet
+        # see https://github.com/pyca/pyopenssl/issues/291
+        # certbot just wraps that
         try:
             rval["check"] = validate_key(key_pem=key_pem)
         except Exception as exc:
             rval["check"] = str(exc)
-        # TODO: crypto version of `--text`
-        try:
-            _crypto_privkey = openssl_crypto.load_privatekey(
-                openssl_crypto.FILETYPE_PEM, key_pem
-            )
-            modn = _crypto_privkey.to_cryptography_key().public_key().public_numbers().n
-            modn = "{:X}".format(modn)
-            rval["modulus"] = hashlib.md5(modn).hexdigest()
-        except Exception as exc:
-            rval["modulus"] = str(exc)
+
+        # first, the crypto big
+        _crypto_privkey = openssl_crypto.load_privatekey(
+            openssl_crypto.FILETYPE_PEM, key_pem
+        )
+        _cert_type = _crypto_privkey.type()
+        if _cert_type == openssl_crypto.TYPE_RSA:
+            rval["key_technology"] = _key_technology = "RSA"
+            try:
+                modn = (
+                    _crypto_privkey.to_cryptography_key()
+                    .public_key()
+                    .public_numbers()
+                    .n
+                )
+                modn = "{:X}".format(modn)
+                rval["modulus_md5"] = hashlib.md5(modn).hexdigest()
+            except Exception as exc:
+                rval["XX-modulus_md5"] = str(exc)
+        elif _cert_type == openssl_crypto.TYPE_EC:
+            rval["key_technology"] = _key_technology = "EC"
         return rval
 
     log.debug(".parse_key > openssl fallback")
@@ -894,9 +1038,31 @@ def parse_key(key_pem=None, key_pem_filepath=None):
         if not key_pem_filepath:
             tmpfile_pem = new_pem_tempfile(key_pem)
             key_pem_filepath = tmpfile_pem.name
-        rval["check"] = key_single_op__pem_filepath(key_pem_filepath, "-check")
-        rval["text"] = key_single_op__pem_filepath(key_pem_filepath, "-text")
-        rval["modulus"] = key_single_op__pem_filepath(key_pem_filepath, "-modulus")
+        try:
+            rval["check"] = key_single_op__pem_filepath(
+                _key_technology, key_pem_filepath, "-check"
+            )
+            rval["key_technology"] = _key_technology
+        except errors.OpenSslError_InvalidCertificate as exc:
+            _key_technology = "EC"
+            try:
+                rval["check"] = key_single_op__pem_filepath(
+                    _key_technology, key_pem_filepath, "-check"
+                )
+                rval["key_technology"] = _key_technology
+            except errors.OpenSslError_InvalidCertificate as exc:
+                rval["XX-check"] = str(exc)
+        rval["text"] = key_single_op__pem_filepath(
+            _key_technology, key_pem_filepath, "-text"
+        )
+        if _key_technology == "RSA":
+            _modulus = key_single_op__pem_filepath(
+                _key_technology, key_pem_filepath, "-modulus"
+            )
+            _modulus = _cleanup_openssl_modulus(_modulus)
+            if six.PY3:
+                _modulus = _modulus.encode()
+            rval["modulus_md5"] = hashlib.md5(_modulus).hexdigest()
         return rval
     except Exception as exc:
         raise
@@ -917,7 +1083,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         "enddate": None,
         "startdate": None,
         "SubjectAlternativeName": None,
+        "key_technology": None,
     }
+
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
         cert_cryptography = cert.to_cryptography()
@@ -939,7 +1107,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["subject"] = _subject
         rval["enddate"] = cert_cryptography.not_valid_after
         rval["startdate"] = cert_cryptography.not_valid_before
-
+        rval["key_technology"] = _openssl_key_technology(cert.get_pubkey())
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
@@ -983,6 +1151,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["enddate"] = parse_cert__enddate(
             cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
+        rval["key_technology"] = parse_cert__key_technology(
+            cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+        )
 
         if openssl_version is None:
             check_openssl_version()
@@ -1019,28 +1190,39 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             tmpfile_pem.close()
 
 
-def new_account_key(bits=2048):
-    return new_rsa_key(bits=bits)
+def new_account_key(key_technology_id=KeyTechnology.RSA, rsa_bits=2048):
+    if key_technology_id != KeyTechnology.RSA:
+        raise ValueError("invalid `key_technology_id`")
+    return new_key_rsa(bits=rsa_bits)
 
 
-def new_private_key(bits=4096):
-    return new_rsa_key(bits=bits)
+def new_private_key(key_technology_id=None, rsa_bits=None, ec_bits=None):
+    if key_technology_id == KeyTechnology.RSA:
+        return new_key_rsa(bits=rsa_bits)
+    elif key_technology_id == KeyTechnology.RSA:
+        return new_key_ec(bits=ec_bits)
+    else:
+        raise ValueError("invalid `key_technology_id`")
 
 
-def new_rsa_key(bits=4096):
+def new_key_ec(bits=384):
+    raise ValueError("No Coverage")
+
+
+def new_key_rsa(bits=4096):
     """
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
-    log.info("new_rsa_key >")
-    log.debug(".new_rsa_key > bits = %s", bits)
+    log.info("new_key_rsa >")
+    log.debug(".new_key_rsa > bits = %s", bits)
     if certbot_crypto_util:
         key_pem = certbot_crypto_util.make_key(bits)
         if six.PY3:
             key_pem = key_pem.decode("utf8")
         key_pem = cleanup_pem_text(key_pem)
     else:
-        log.debug(".new_rsa_key > openssl fallback")
+        log.debug(".new_key_rsa > openssl fallback")
         # openssl genrsa 4096 > domain.key
         bits = str(bits)
         with psutil.Popen(
@@ -1169,20 +1351,6 @@ def convert_lejson_to_pem(pkey_jsons):
     finally:
         for t in tmpfiles:
             t.close()
-
-
-#
-# https://github.com/certbot/certbot/blob/master/certbot/certbot/crypto_util.py#L482
-#
-# Finds one CERTIFICATE stricttextualmsg according to rfc7468#section-3.
-# Does not validate the base64text - use crypto.load_certificate.
-CERT_PEM_REGEX = re.compile(
-    b"""-----BEGIN CERTIFICATE-----\r?
-.+?\r?
------END CERTIFICATE-----\r?
-""",
-    re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
-)
 
 
 def cert_and_chain_from_fullchain(fullchain_pem):

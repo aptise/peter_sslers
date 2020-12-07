@@ -342,7 +342,7 @@ TEST_FILES = {
                 "type": "upload",
                 "private_key_cycling": "single_certificate",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "acme_account_1.key",
+                "account_key_file_pem": "key_technology-rsa/acme_account_1.key",
             },
         },
     },
@@ -351,7 +351,7 @@ TEST_FILES = {
             "acme-order/new/freeform#1": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
@@ -365,7 +365,7 @@ TEST_FILES = {
             "acme-order/new/freeform#2": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
@@ -380,31 +380,31 @@ TEST_FILES = {
     },
     "AcmeAccount": {
         "1": {
-            "key": "acme_account_1.key",
+            "key": "key_technology-rsa/acme_account_1.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.a@example.com",
         },
         "2": {
-            "key": "acme_account_2.key",
+            "key": "key_technology-rsa/acme_account_2.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.b@example.com",
         },
         "3": {
-            "key": "acme_account_3.key",
+            "key": "key_technology-rsa/acme_account_3.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.c@example.com",
         },
         "4": {
-            "key": "acme_account_4.key",
+            "key": "key_technology-rsa/acme_account_4.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.d@example.com",
         },
         "5": {
-            "key": "acme_account_5.key",
+            "key": "key_technology-rsa/acme_account_5.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.e@example.com",
@@ -423,27 +423,27 @@ TEST_FILES = {
             "le_x4_cross_signed",
         ),
         "cert": {
-            "isrgrootx1": "isrgrootx1.pem.txt",
-            "le_x1_auth": "letsencryptauthorityx1.pem.txt",
-            "le_x2_auth": "letsencryptauthorityx2.pem.txt",
-            "le_x3_auth": "letsencryptauthorityx3.pem.txt",
-            "le_x4_auth": "letsencryptauthorityx4.pem.txt",
-            "le_x1_cross_signed": "lets-encrypt-x1-cross-signed.pem.txt",
-            "le_x2_cross_signed": "lets-encrypt-x2-cross-signed.pem.txt",
-            "le_x3_cross_signed": "lets-encrypt-x3-cross-signed.pem.txt",
-            "le_x4_cross_signed": "lets-encrypt-x4-cross-signed.pem.txt",
+            "isrgrootx1": "letsencrypt-certs/isrgrootx1.pem",
+            "le_x1_auth": "letsencrypt-certs/letsencryptauthorityx1.pem",
+            "le_x2_auth": "letsencrypt-certs/letsencryptauthorityx2.pem",
+            "le_x3_auth": "letsencrypt-certs/letsencryptauthorityx3.pem",
+            "le_x4_auth": "letsencrypt-certs/letsencryptauthorityx4.pem",
+            "le_x1_cross_signed": "letsencrypt-certs/lets-encrypt-x1-cross-signed.pem",
+            "le_x2_cross_signed": "letsencrypt-certs/lets-encrypt-x2-cross-signed.pem",
+            "le_x3_cross_signed": "letsencrypt-certs/lets-encrypt-x3-cross-signed.pem",
+            "le_x4_cross_signed": "letsencrypt-certs/lets-encrypt-x4-cross-signed.pem",
         },
     },
     "CertificateRequests": {
         "1": {
             "domains": "foo.example.com, bar.example.com",
-            "account_key": "account_1.key",
-            "private_key": "private_1.key",
+            "account_key": "key_technology-rsa/account_1.key",
+            "private_key": "key_technology-rsa/private_1.key",
         },
         "acme_test": {
             "domains": SSL_TEST_DOMAINS,
-            "account_key": "account_2.key",
-            "private_key": "private_2.key",
+            "account_key": "key_technology-rsa/account_2.key",
+            "private_key": "key_technology-rsa/private_2.key",
         },
     },
     "Domains": {
@@ -462,27 +462,27 @@ TEST_FILES = {
     },
     "PrivateKey": {
         "1": {
-            "file": "private_1.key",
+            "file": "key_technology-rsa/private_1.key",
             "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
             "key_pem_modulus_md5": "fc1a6c569cba199eb5341c0c423fb768",
         },
         "2": {
-            "file": "private_2.key",
+            "file": "key_technology-rsa/private_2.key",
             "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
             "key_pem_modulus_md5": "397282f3cd67d33b2b018b61fdd3f4aa",
         },
         "3": {
-            "file": "private_3.key",
+            "file": "key_technology-rsa/private_3.key",
             "key_pem_md5": "399236401eb91c168762da425669ad06",
             "key_pem_modulus_md5": "112d2db5daba540f8ff26fcaaa052707",
         },
         "4": {
-            "file": "private_4.key",
+            "file": "key_technology-rsa/private_4.key",
             "key_pem_md5": "6867998790e09f18432a702251bb0e11",
             "key_pem_modulus_md5": "687f3a3659cd423c48c50ed78a75eba0",
         },
         "5": {
-            "file": "private_5.key",
+            "file": "key_technology-rsa/private_5.key",
             "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
             "key_pem_modulus_md5": "1eee27c04e912ff24614911abd2f0f8b",
         },
@@ -492,33 +492,33 @@ TEST_FILES = {
         "SelfSigned": {
             "1": {
                 "domain": "selfsigned-1.example.com",
-                "cert": "selfsigned_1-server.crt",
-                "csr": "selfsigned_1-server.csr",
-                "pkey": "selfsigned_1-server.key",
+                "cert": "key_technology-rsa/selfsigned_1-server.crt",
+                "csr": "key_technology-rsa/selfsigned_1-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_1-server.key",
             },
             "2": {
-                "domain": "selfsigned-2.example.com",
-                "cert": "selfsigned_2-server.crt",
-                "csr": "selfsigned_2-server.csr",
-                "pkey": "selfsigned_2-server.key",
+                "domain": "key_technology-rsa/selfsigned-2.example.com",
+                "cert": "key_technology-rsa/selfsigned_2-server.crt",
+                "csr": "key_technology-rsa/selfsigned_2-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_2-server.key",
             },
             "3": {
                 "domain": "selfsigned-3.example.com",
-                "cert": "selfsigned_3-server.crt",
-                "csr": "selfsigned_3-server.csr",
-                "pkey": "selfsigned_3-server.key",
+                "cert": "key_technology-rsa/selfsigned_3-server.crt",
+                "csr": "key_technology-rsa/selfsigned_3-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_3-server.key",
             },
             "4": {
                 "domain": "selfsigned-4.example.com",
-                "cert": "selfsigned_4-server.crt",
-                "csr": "selfsigned_4-server.csr",
-                "pkey": "selfsigned_4-server.key",
+                "cert": "key_technology-rsa/selfsigned_4-server.crt",
+                "csr": "key_technology-rsa/selfsigned_4-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_4-server.key",
             },
             "5": {
                 "domain": "selfsigned-5.example.com",
-                "cert": "selfsigned_5-server.crt",
-                "csr": "selfsigned_5-server.csr",
-                "pkey": "selfsigned_5-server.key",
+                "cert": "key_technology-rsa/selfsigned_5-server.crt",
+                "csr": "key_technology-rsa/selfsigned_5-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_5-server.key",
             },
         },
         "Pebble": {
@@ -572,6 +572,47 @@ TEST_FILES = {
                 },
             },
         },
+    },
+}
+
+
+CA_CERT_SETS = {
+    "letsencrypt-certs/isrgrootx1.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "9454972e3730ac131def33e045ab19df",
+    },
+    "letsencrypt-certs/isrg-root-x2.pem": {"key_technology": "EC", "modulus_md5": None},
+}
+
+
+CSR_SETS = {
+    "key_technology-ec/ec384-1.csr": {
+        "key_private": {
+            "file": "key_technology-ec/ec384-1-key.pem",
+            "key_technology": "EC",
+            "modulus_md5": None,
+        },
+        "modulus_md5": "e69f1df0d5a5c7c63e81a83c4f5411a7",
+    },
+    "key_technology-rsa/selfsigned_1-server.csr": {
+        "key_private": {
+            "file": "key_technology-rsa/selfsigned_1-server.csr",
+            "key_technology": "RSA",
+            "modulus_md5": "e0d99ec6424d5182755315d56398f658",
+        },
+        "modulus_md5": "e0d99ec6424d5182755315d56398f658",
+    },
+}
+
+
+KEY_SETS = {
+    "key_technology-rsa/acme_account_1.key": {
+        "key_technology": "RSA",
+        "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
+    },
+    "key_technology-ec/ec384-1-key.pem": {
+        "key_technology": "EC",
+        "modulus_md5": None,
     },
 }
 
@@ -849,7 +890,7 @@ class AppTest(AppTestCore):
                     AccountKey:
                         account_1.key
                     CACertificates:
-                        isrgrootx1.pem.txt
+                        isrgrootx1.pem
                         selfsigned_1-server.crt
                     PrivateKey
                         selfsigned_1-server.key

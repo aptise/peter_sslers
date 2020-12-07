@@ -55,32 +55,16 @@
                         <td>${CACertificate.le_authority_name or ''}</td>
                     </tr>
                     <tr>
-                        <th>is_ca_certificate</th>
+                        <th>is_trusted_root</th>
                         <td>
-                            % if CACertificate.is_ca_certificate:
+                            % if CACertificate.is_trusted_root:
                                 <label class="label label-success">Y</label>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>is_authority_certificate</th>
-                        <td>
-                            % if CACertificate.is_authority_certificate:
-                                <label class="label label-success">Y</label>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_cross_signed_authority_certificate</th>
-                        <td>
-                            % if CACertificate.is_cross_signed_authority_certificate:
-                                <label class="label label-success">Y</label>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>id_cross_signed_of</th>
-                        <td>${CACertificate.id_cross_signed_of or ''}</td>
+                        <th>id_cross_signed_by</th>
+                        <td>${CACertificate.id_cross_signed_by or ''}</td>
                     </tr>
                     <tr>
                         <th>timestamp_not_before</th>

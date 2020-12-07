@@ -239,10 +239,6 @@
                                         </li>
                                     % endfor
                                 </ul>
-                                <p>
-                                    ${ServerCertificate.certificate_upchain_alternates}
-                                </p>
-
                             % endif
                         </td>
                     </tr>

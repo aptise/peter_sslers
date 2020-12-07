@@ -10,8 +10,8 @@ json_docs_post_only = {
 
 
 api_endpoints = {
-    "/api/ca-certificate/letsencrypt-download.json": {
-        "endpoint": "/api/ca-certificate/letsencrypt-download.json",
+    "/api/ca-certificate/letsencrypt-sync.json": {
+        "endpoint": "/api/ca-certificate/letsencrypt-sync.json",
         "about": """download from the LetsEncrypt website""",
         "POST": True,
         "GET": False,

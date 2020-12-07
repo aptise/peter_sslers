@@ -46,40 +46,37 @@ def ca_certificate_download(ctx):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string(
-            "CaCertificate__letsencrypt_download"
-        ),
+        model_utils.OperationsEventType.from_string("CaCertificate__letsencrypt_sync"),
     )
 
     certs = letsencrypt_info.download_letsencrypt_certificates()
     certs_discovered = []
     certs_modified = []
-    for c in certs:
+
+    for cert_id, cert_data in certs.items():
         _is_created = False
-        dbCACertificate = lib.db.get.get__CACertificate__by_pem_text(ctx, c["cert_pem"])
+        dbCACertificate = lib.db.get.get__CACertificate__by_pem_text(
+            ctx, cert_data["cert_pem"]
+        )
         if not dbCACertificate:
             (
                 dbCACertificate,
                 _is_created,
             ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
-                ctx, c["cert_pem"], ca_chain_name=c["name"]
+                ctx, cert_data["cert_pem"], ca_chain_name=cert_data["name"]
             )
             if _is_created:
                 certs_discovered.append(dbCACertificate)
-        if "is_ca_certificate" in c:
-            if dbCACertificate.is_ca_certificate != c["is_ca_certificate"]:
-                dbCACertificate.is_ca_certificate = c["is_ca_certificate"]
+        if "is_trusted_root" in cert_data:
+            if dbCACertificate.is_trusted_root != cert_data["is_trusted_root"]:
+                dbCACertificate.is_trusted_root = cert_data["is_trusted_root"]
                 if dbCACertificate not in certs_discovered:
                     certs_modified.append(dbCACertificate)
         else:
-            attrs = (
-                "le_authority_name",
-                "is_authority_certificate",
-                "is_cross_signed_authority_certificate",
-            )
+            attrs = ("le_authority_name",)
             for _k in attrs:
                 if getattr(dbCACertificate, _k) is None:
-                    setattr(dbCACertificate, _k, c[_k])
+                    setattr(dbCACertificate, _k, cert_data[_k])
                     if dbCACertificate not in certs_discovered:
                         certs_modified.append(dbCACertificate)
 
@@ -899,19 +896,14 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
         cert_pem_text = bundle_data[cert_pem]
         cert_name = None
         le_authority_name = None
-        is_authority_certificate = None
-        is_cross_signed_authority_certificate = None
-        for c in letsencrypt_info.CA_CERTS_DATA:
-            if cert_base == c["formfield_base"]:
-                cert_name = c["name"]
-                if "le_authority_name" in c:
-                    le_authority_name = c["le_authority_name"]
-                if "is_authority_certificate" in c:
-                    is_authority_certificate = c["is_authority_certificate"]
-                if "is_cross_signed_authority_certificate" in c:
-                    is_cross_signed_authority_certificate = c[
-                        "is_cross_signed_authority_certificate"
-                    ]
+        is_trusted_root = None
+        for c in list(letsencrypt_info.CA_CERTS_DATA.keys()):
+            if cert_base == CA_CERTS_DATA[c]["formfield_base"]:
+                cert_name = CA_CERTS_DATA[c]["name"]
+                if "le_authority_name" in CA_CERTS_DATA[c]:
+                    le_authority_name = CA_CERTS_DATA[c]["le_authority_name"]
+                if "is_trusted_root" in CA_CERTS_DATA[c]:
+                    is_trusted_root = CA_CERTS_DATA[c]["is_trusted_root"]
                 break
 
         (
@@ -922,20 +914,13 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
             cert_pem_text,
             ca_chain_name=cert_name,
             le_authority_name=None,
-            is_authority_certificate=None,
-            is_cross_signed_authority_certificate=None,
+            is_trusted_root=is_trusted_root,
         )
         if not is_created:
             if dbCACertificate.name in ("unknown", "manual upload") and cert_name:
                 dbCACertificate.name = cert_name
             if dbCACertificate.le_authority_name is None:
                 dbCACertificate.le_authority_name = le_authority_name
-            if dbCACertificate.is_authority_certificate is None:
-                dbCACertificate.is_authority_certificate = is_authority_certificate
-            if dbCACertificate.le_authority_name is None:
-                dbCACertificate.is_cross_signed_authority_certificate = (
-                    is_cross_signed_authority_certificate
-                )
 
         results[cert_pem] = (dbCACertificate, is_created)
 

@@ -28,6 +28,9 @@ from peter_sslers.model import utils as model_utils
 
 from ._utils import AppTestCore
 from ._utils import AppTest
+from ._utils import CA_CERT_SETS
+from ._utils import CSR_SETS
+from ._utils import KEY_SETS
 from ._utils import TEST_FILES
 from ._utils import _Mixin_filedata
 
@@ -246,7 +249,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__modulus_md5_key
         """
-
         for cert_set in sorted(self._cert_sets.keys()):
             key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
             key_pem_filepath = self._filepath_testfile(key_filename)
@@ -257,6 +259,14 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             self.assertEqual(
                 modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
             )
+
+        for key_filename in sorted(KEY_SETS.keys()):
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            modulus_md5 = cert_utils.modulus_md5_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(modulus_md5, KEY_SETS[key_filename]["modulus_md5"])
 
     def test__modulus_md5_csr(self):
         """
@@ -273,6 +283,19 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             self.assertEqual(
                 modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
             )
+
+        # csr sets
+        for csr_filename in sorted(CSR_SETS.keys()):
+            csr_pem_filepath = self._filepath_testfile(csr_filename)
+            csr_pem = self._filedata_testfile(csr_filename)
+            modulus_md5 = cert_utils.modulus_md5_csr(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            if modulus_md5 is None:
+                # TODO: no way of testing this in Pure-python right now
+                if self.__class__ == UnitTest_CertUtils:
+                    continue
+            self.assertEqual(modulus_md5, CSR_SETS[csr_filename]["modulus_md5"])
 
     def test__modulus_md5_cert(self):
         """
@@ -291,6 +314,15 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             self.assertEqual(
                 modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
             )
+
+        # ca certs
+        for cert_filename in sorted(CA_CERT_SETS.keys()):
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            modulus_md5 = cert_utils.modulus_md5_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(modulus_md5, CA_CERT_SETS[cert_filename]["modulus_md5"])
 
     def test__parse_cert__enddate(self):
         """
@@ -343,11 +375,24 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
 
+        # this will test against EC+RSA
+        for key_filename in sorted(KEY_SETS.keys()):
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            rval = cert_utils.parse_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(
+                rval["key_technology"], KEY_SETS[key_filename]["key_technology"]
+            )
+            self.assertEqual(rval["modulus_md5"], KEY_SETS[key_filename]["modulus_md5"])
+
     def test__parse_cert(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert
         """
 
+        # normal certs
         for cert_set in sorted(self._cert_sets.keys()):
             if not self._cert_sets[cert_set]["cert"]:
                 continue
@@ -356,6 +401,17 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             cert_pem = self._filedata_testfile(cert_filename)
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+
+        # ca certs
+        for cert_filename in sorted(CA_CERT_SETS.keys()):
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            rval = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                rval["key_technology"], CA_CERT_SETS[cert_filename]["key_technology"]
             )
 
     def test__cert_and_chain_from_fullchain(self):
@@ -458,6 +514,16 @@ class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
             _computed_md5 = utils.md5_text(self._filedata_testfile(key_pem_filepath))
             _expected_md5 = set_data["key_pem_md5"]
             assert _computed_md5 == _expected_md5
+
+        # this will test against EC+RSA
+        for key_filename in sorted(KEY_SETS.keys()):
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            _computed_modulus_md5 = cert_utils.modulus_md5_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            _expected_modulus_md5 = KEY_SETS[key_filename]["modulus_md5"]
+            assert _computed_modulus_md5 == _expected_modulus_md5
 
 
 class _MixinNoCrypto(object):

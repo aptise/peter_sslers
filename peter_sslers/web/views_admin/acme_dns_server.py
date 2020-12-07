@@ -9,14 +9,11 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
-try:
-    import pyacmedns
-except ImportError:
-    pyacmedns = None
 import requests
 import sqlalchemy
 
 # localapp
+from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...model import utils as model_utils
 from ..lib import formhandling
@@ -273,7 +270,7 @@ class View_Focus(Handler):
     def _ensure_domains__submit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         try:
-            if pyacmedns is None:
+            if lib_acmedns.pyacmedns is None:
                 raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -307,7 +304,7 @@ class View_Focus(Handler):
                 )
 
             # initialize a client
-            client = pyacmedns.Client(dbAcmeDnsServer.root_url)
+            client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
 
             dbAcmeDnsServerAccounts = []
             for _domain_name in domain_names:
