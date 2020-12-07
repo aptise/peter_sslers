@@ -238,7 +238,7 @@ class View_New(Handler):
             parser.require_new(require_contact=True)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
-            key_pem = cert_utils.new_account_key()  # bits=2048)
+            key_pem = cert_utils.new_account_key()  # rsa_bits=None
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccount__create"
             key_create_args[

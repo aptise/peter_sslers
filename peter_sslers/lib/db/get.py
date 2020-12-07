@@ -1779,7 +1779,7 @@ def get__OperationsEvent__certificate_download__count(ctx):
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string(
-                "CaCertificate__letsencrypt_download"
+                "CaCertificate__letsencrypt_sync"
             )
         )
         .count()
@@ -1794,7 +1794,7 @@ def get__OperationsEvent__certificate_download__paginated(ctx, limit=None, offse
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string(
-                "CaCertificate__letsencrypt_download"
+                "CaCertificate__letsencrypt_sync"
             )
         )
         .limit(limit)
@@ -2301,7 +2301,8 @@ def get__ServerCertificate__paginated(
             q = q.filter(model_objects.ServerCertificate.is_active.is_(True))
         elif is_active is False:
             q = q.filter(model_objects.ServerCertificate.is_active.is_(False))
-        q = q.order_by(model_objects.ServerCertificate.timestamp_not_after.asc())
+        # q = q.order_by(model_objects.ServerCertificate.timestamp_not_after.asc())
+        q = q.order_by(model_objects.ServerCertificate.id.desc())
     else:
         if expiring_days:
             _until = ctx.timestamp + datetime.timedelta(days=expiring_days)

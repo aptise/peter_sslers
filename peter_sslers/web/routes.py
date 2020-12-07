@@ -549,12 +549,12 @@ def _admin_views(config):
     )
     # -
     config.add_route_7(
-        "admin:api:ca_certificate:letsencrypt_download",
-        "/api/ca-certificate/letsencrypt-download",
+        "admin:api:ca_certificate:letsencrypt_sync",
+        "/api/ca-certificate/letsencrypt-sync",
     )
     config.add_route_7(
-        "admin:api:ca_certificate:letsencrypt_download|json",
-        "/api/ca-certificate/letsencrypt-download.json",
+        "admin:api:ca_certificate:letsencrypt_sync|json",
+        "/api/ca-certificate/letsencrypt-sync.json",
     )
     config.add_route_7("admin:api:nginx:cache_flush", "/api/nginx/cache-flush")
     config.add_route_7(

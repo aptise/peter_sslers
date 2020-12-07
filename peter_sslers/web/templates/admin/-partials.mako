@@ -1393,6 +1393,7 @@
                                      >
                                          AcmeAccount-${AcmeAccount_GlobalDefault.id}
                                      </a><br/>
+                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_account_provider.server}</code><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>

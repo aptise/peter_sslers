@@ -284,9 +284,13 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -336,6 +340,12 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
 
 # ==============================================================================
@@ -1194,6 +1204,19 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
             "allowfrom": json.loads(self.allowfrom),
         }
 
+    @property
+    def pyacmedns_dict(self):
+        """
+        :returns: a dict of items required for a pyacmedns client
+        """
+        return {
+            "username": self.username,
+            "password": self.password,
+            "fulldomain": self.fulldomain,
+            "subdomain": self.subdomain,
+            "allowfrom": json.loads(self.allowfrom) if self.allowfrom else [],
+        }
+
 
 # ==============================================================================
 
@@ -1977,23 +2000,23 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 
 class CACertificate(Base, _Mixin_Timestamps_Pretty):
     """
-    These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
-    These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a ServerCertificate and are needed to create a
+    "fullchain" certificate for most deployments.
     """
 
     __tablename__ = "ca_certificate"
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.Unicode(255), nullable=False)
-    le_authority_name = sa.Column(sa.Unicode(255), nullable=True)
-    is_ca_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_authority_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_cross_signed_authority_certificate = sa.Column(
-        sa.Boolean, nullable=True, default=None
-    )
-    id_cross_signed_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
-    )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    is_trusted_root = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_letsencrypt_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
@@ -2002,9 +2025,19 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
     cert_subject = sa.Column(sa.Text, nullable=True)
     cert_issuer = sa.Column(sa.Text, nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
+
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
+    id_signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
+    )
+    id_cross_signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
+    )
+
+    le_authority_name = sa.Column(sa.Unicode(255), nullable=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2048,6 +2081,12 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
+
+    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -2079,7 +2118,10 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.CertificateRequestSource
     csr_pem = sa.Column(sa.Text, nullable=False)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -2152,6 +2194,12 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
     @property
     def server_certificate_id__latest(self):
@@ -2771,9 +2819,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "private_key"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
     key_pem = sa.Column(sa.Text, nullable=False)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_compromised = sa.Column(sa.Boolean, nullable=True, default=None)
@@ -2892,6 +2943,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         except:
             # it's possible to have no lines if this is the placeholder key
             return "..."
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
     @reify
     def private_key_source(self):
@@ -3238,9 +3295,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
     timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
     is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_subject = sa.Column(sa.Text, nullable=True)
     cert_issuer = sa.Column(sa.Text, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
@@ -3483,6 +3543,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     @property
     def domains_as_list(self):
         return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
     @property
     def renewals_managed_by(self):

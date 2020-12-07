@@ -80,9 +80,9 @@
                     </a>
                 </li>
                 <li>
-                    <form action="${admin_prefix}/api/ca-certificate/letsencrypt-download"
+                    <form action="${admin_prefix}/api/ca-certificate/letsencrypt-sync"
                           method="POST"
-                          id="form-ca_certificate-letsencrypt_download"
+                          id="form-ca_certificate-letsencrypt_sync"
                     >
                         <button class="btn btn-primary">
                             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

@@ -226,7 +226,7 @@ class _OperationsUnified(_mixin_mapping):
         2015: "ApiDomains__certificate_if_needed__certificate_exists",
         2016: "ApiDomains__certificate_if_needed__certificate_new_success",
         2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
-        200: "CaCertificate__letsencrypt_download",
+        200: "CaCertificate__letsencrypt_sync",
         210: "CaCertificate__insert",
         220: "CaCertificate__upload_bundle",
         610: "CertificateRequest__insert",
@@ -798,6 +798,22 @@ class DomainsChallenged(dict):
                     if _domain_name == domain_name:
                         return AcmeChallengeType.from_string(_acme_challenge_type)
         raise ValueError("domain is not challenged")
+
+
+class KeyTechnology(_mixin_mapping):
+    """
+    What kind of Certificate/Key is this?
+    """
+
+    RSA = 1
+    EC = 2  # ECDSA
+    # DSA = 3
+
+    _mapping = {
+        1: "RSA",
+        2: "EC",
+        # 3: "DSA",
+    }
 
 
 class PrivateKeyCycle(_mixin_mapping):

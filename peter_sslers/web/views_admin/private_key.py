@@ -379,7 +379,6 @@ class View_New(Handler):
             try:
                 dbPrivateKey = lib_db.create.create__PrivateKey(
                     self.request.api_context,
-                    # bits=4096,
                     private_key_source_id=model_utils.PrivateKeySource.from_string(
                         "generated"
                     ),

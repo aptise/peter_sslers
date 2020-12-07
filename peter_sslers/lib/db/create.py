@@ -827,11 +827,12 @@ def create__DomainAutocert(
 
 def create__PrivateKey(
     ctx,
-    # bits=None,
     acme_account_id__owner=None,
     private_key_source_id=None,
     private_key_type_id=None,
     private_key_id__replaces=None,
+    key_technology_id=None,
+    # bits_rsa=None,
 ):
     """
     Generates a new :class:`model.objects.PrivateKey` for the datastore
@@ -840,12 +841,13 @@ def create__PrivateKey(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
-    # :param int bits: (required) how many bits for the PrivateKey
     :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
+    :param int key_technology_id: (required) see `modul.utils.KeyTechnology`
+    # :param int bits_rsa: (required) how many bits for the RSA PrivateKey, see `key_technology_id`
     """
-    key_pem = cert_utils.new_private_key()
+    key_pem = cert_utils.new_private_key(key_technology_id=key_technology_id)
     dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
         ctx,
         key_pem,

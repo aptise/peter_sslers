@@ -113,6 +113,10 @@ def initialize_AcmeAccountProviders(dbSession):
         "placeholder"
     )
     dbObject.private_key_type_id = model_utils.PrivateKeyType.from_string("placeholder")
+    # SYSTEM_DEFAULT
+    dbObject.key_technology_id = model_utils.KeyTechnology.from_string(
+        "RSA"
+    )  # default to RSA
     dbSession.add(dbObject)
     dbSession.flush(
         objects=[

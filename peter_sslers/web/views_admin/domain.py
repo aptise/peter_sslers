@@ -21,6 +21,7 @@ from ..lib.forms import Form_Domain_search
 from ..lib.forms import Form_Domain_AcmeDnsServer_new
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
+from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -924,9 +925,11 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
             # wonderful! now we need to "register" against acme-dns
             try:
-                import pyacmedns
+                if lib_acmedns.pyacmedns is None:
+                    raise formhandling.FormInvalid("`pyacmedns` is not installed")
 
-                client = pyacmedns.Client(dbAcmeDnsServer.root_url)
+                # initialize a client
+                client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
                 account = client.register_account(None)  # arg = allowlist ips
             except Exception as exc:
                 raise ValueError("error registering an account with AcmeDns")

@@ -244,6 +244,12 @@ def getcreate__AcmeAccount(
         # validate
         cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
 
+        # grab the technology
+        key_technology = cert_utils.modulus_md5_key(
+            key_pem=key_pem,
+            key_pem_filepath=_tmpfile.name,
+        )
+
         # grab the modulus
         key_pem_modulus_md5 = cert_utils.modulus_md5_key(
             key_pem=key_pem,
@@ -669,8 +675,8 @@ def getcreate__CACertificate__by_pem_text(
     cert_pem,
     ca_chain_name=None,
     le_authority_name=None,
-    is_authority_certificate=None,
-    is_cross_signed_authority_certificate=None,
+    is_trusted_root=None,
+    key_technology_id=None,
 ):
     """
     Gets or Creates CACertificates
@@ -679,8 +685,9 @@ def getcreate__CACertificate__by_pem_text(
     :param cert_pem: (required)
     :param ca_chain_name:
     :param le_authority_name:
-    :param is_authority_certificate:
-    :param is_cross_signed_authority_certificate:
+    :param is_trusted_root:
+    :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
+
     """
     is_created = False
     dbCACertificate = get__CACertificate__by_pem_text(ctx, cert_pem)
@@ -708,14 +715,10 @@ def getcreate__CACertificate__by_pem_text(
 
             dbCACertificate = model_objects.CACertificate()
             dbCACertificate.name = ca_chain_name or "unknown"
-
+            dbCACertificate.key_technology_id = key_technology_id
             dbCACertificate.le_authority_name = le_authority_name
-            dbCACertificate.is_ca_certificate = True
-            dbCACertificate.is_authority_certificate = is_authority_certificate
-            dbCACertificate.is_cross_signed_authority_certificate = (
-                is_cross_signed_authority_certificate
-            )
-            dbCACertificate.id_cross_signed_of = None
+            dbCACertificate.is_trusted_root = is_trusted_root
+            dbCACertificate.id_cross_signed_by = None
             dbCACertificate.timestamp_created = ctx.timestamp
             dbCACertificate.cert_pem = cert_pem
             dbCACertificate.cert_pem_md5 = cert_pem_md5
@@ -728,6 +731,9 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.timestamp_not_after = _cert_data["enddate"]
             dbCACertificate.cert_subject = _cert_data["subject"]
             dbCACertificate.cert_issuer = _cert_data["issuer"]
+            dbCACertificate.key_technology_id = model_utils.KeyTechnology.from_string(
+                _cert_data["key_type"]
+            )
             dbCACertificate.operations_event_id__created = dbOperationsEvent.id
 
             ctx.dbSession.add(dbCACertificate)
@@ -953,7 +959,6 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            # bits=4096,
             acme_account_id__owner=acme_account_id__owner,
             private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
             private_key_type_id=model_utils.PrivateKeyType.from_string(
@@ -971,7 +976,6 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 acme_account_id__owner=acme_account_id__owner,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
@@ -987,7 +991,6 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
@@ -1006,7 +1009,6 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 acme_account_id__owner=acme_account_id__owner,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
@@ -1022,7 +1024,6 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),

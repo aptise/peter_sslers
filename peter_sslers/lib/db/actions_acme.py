@@ -54,11 +54,13 @@ def do__AcmeAccount_AcmeV2_register(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccount`
+    :param account_key_path: (optional) If there is a tempfile for the
+        `dbAcmeAccount`
 
     !!! WARNING !!!
 
-    If `account_key_path` is not provided, the ACME library will be unable to perform any operations after authentication.
+    If `account_key_path` is not provided, the ACME library will be unable to
+    perform any operations after authentication.
     """
     _tmpfile = None
     try:
@@ -73,7 +75,8 @@ def do__AcmeAccount_AcmeV2_register(
 
         acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-        # create account, update contact details (if any), and set the global key identifier
+        # create account, update contact details (if any), and set
+        # the global key identifier
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         authenticatedUser = acme_v2.AuthenticatedUser(
@@ -132,11 +135,13 @@ def do__AcmeAccount_AcmeV2_authenticate(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccount`
+    :param account_key_path: (optional) If there is a tempfile for the
+        `dbAcmeAccount`
 
     !!! WARNING !!!
 
-    If `account_key_path` is not provided, the ACME library will be unable to perform any operations after authentication.
+    If `account_key_path` is not provided, the ACME library will be unable to
+    perform any operations after authentication.
     """
     _tmpfile = None
     try:
@@ -148,7 +153,8 @@ def do__AcmeAccount_AcmeV2_authenticate(
 
         acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-        # create account, update contact details (if any), and set the global key identifier
+        # create account, update contact details (if any), and set
+        # the global key identifier
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         authenticatedUser = acme_v2.AuthenticatedUser(
@@ -181,7 +187,8 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
         account_key_path = tmpfile_account.name
 
         # register the account / ensure that it is registered
-        # the authenticatedUser will have a `logger.AcmeLogger` object as the `.acmeLogger` attribtue
+        # the authenticatedUser will have a `logger.AcmeLogger` object as the
+        # `.acmeLogger` attribtue
         # the `acmeLogger` may need to have the `AcmeOrder` registered
         authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
             ctx,
@@ -205,11 +212,14 @@ def update_AcmeAuthorization_status(
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object
+    :param dbAcmeAuthorization: (required) A
+        :class:`model.objects.AcmeAuthorization` object
     :param status_text: (required) The status_text for the order
     :param timestamp: (required) `datetime.datetime`.
-    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a direct ACME Server sync?
+    :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
+    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
+        direct ACME Server sync?
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
@@ -240,11 +250,14 @@ def update_AcmeChallenge_status(
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object
+    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge`
+        object
     :param status_text: (required) The status_text for the order
     :param timestamp: (required) `datetime.datetime`.
-    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a direct ACME Server sync?
+    :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
+    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
+        direct ACME Server sync?
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
@@ -278,12 +291,16 @@ def updated_AcmeOrder_status(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
-    :param acme_order_object: (required) An RFC compliant dict; must at least have `status`
-    :param acme_order_processing_status_id: (optional) If provided, update the `acme_order_processing_status_id` of the order
-    :param is_processing_False: (optional) if True, set `is_processing` to false.,
+    :param acme_order_object: (required) An RFC compliant dict; must at least
+        have `status`
+    :param acme_order_processing_status_id: (optional) If provided, update the
+        `acme_order_processing_status_id` of the order
+    :param is_processing_False: (optional) if True, set `is_processing` to False.
     :param timestamp: (required) `datetime.datetime`.
-    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a direct ACME Server sync?
+    :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
+    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
+        direct ACME Server sync?
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
@@ -344,11 +361,15 @@ def updated_AcmeOrder_ProcessingStatus(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
-    :param acme_status_order: (optional) If provided, update the `acme_status_order_id` of the order
-    :param acme_order_processing_status_id: (required) If provided, update the `acme_order_processing_status_id` of the order
+    :param acme_status_order: (optional) If provided, update the
+        `acme_status_order_id` of the order
+    :param acme_order_processing_status_id: (required) If provided, update the
+        `acme_order_processing_status_id` of the order
     :param timestamp: (required) `datetime.datetime`.
-    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a direct ACME Server sync?
+    :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
+    :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
+        direct ACME Server sync?
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
@@ -379,7 +400,8 @@ def _audit_AcmeChallenge_against_server_response(
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object
+    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge`
+        object
     :param challenge_response: (required) The payload from the acme server
     """
     # the AcmeChallenge payload has the following info:
@@ -419,10 +441,13 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object
-    :param authorization_response: (required) A dict that is the response from the AcmeServer
+    :param dbAcmeAuthorization: (required) A
+        :class:`model.objects.AcmeAuthorization` object
+    :param authorization_response: (required) A dict that is the response from
+        the AcmeServer
     :param timestamp: (required) `datetime.datetime`.
-    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+    :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
@@ -447,10 +472,12 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
 
 def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     """
-    This factory dynamically generates functions for handling an order's Authorization(s)
+    This factory dynamically generates functions for handling an order's
+    Authorization(s)
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
+    :param authenticatedUser: (required) A
+        :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     """
 
@@ -461,10 +488,15 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
         transaction_commit=None,
     ):
         """
-        :param authorization_url: (required) The URL of the ACME Directory's Authorization Object.
-        :param authorization_response: (required) The JSON object corresponding to the ACME Directory's Authorization Object.
-        :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object for the authorization_url if it already exists
-        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+        :param authorization_url: (required) The URL of the ACME Directory's
+            Authorization Object.
+        :param authorization_response: (required) The JSON object corresponding
+            to the ACME Directory's Authorization Object.
+        :param dbAcmeAuthorization: (required) A
+            :class:`model.objects.AcmeAuthorization` object for the
+            authorization_url if it already exists
+        :param transaction_commit: (required) Boolean. Must indicate that we will
+        commit this.
 
         the getcreate will do the following:
             create/update the Authorization object
@@ -521,7 +553,8 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     Consolidated AcmeOrder routine for processing multiple Authorizations
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
+    :param authenticatedUser: (required) A
+        :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acmeRfcOrder: (required) a :class:`lib.acme_v2.AcmeOrderRFC` instance
     """
@@ -861,6 +894,12 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
+            authenticatedUser.prepare_acme_challenge(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeChallenge=dbAcmeChallenge,
+            )
+
             challenge_response = authenticatedUser.acme_challenge_trigger(
                 ctx,
                 dbAcmeChallenge=dbAcmeChallenge,
@@ -1466,7 +1505,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         # NOTE: deferred-generate ; single_certificate
                         dbPrivateKey_new = lib.db.create.create__PrivateKey(
                             ctx,
-                            # bits=4096,
                             acme_account_id__owner=dbAcmeOrder.acme_account.id,
                             private_key_source_id=model_utils.PrivateKeySource.from_string(
                                 "generated"
@@ -1635,8 +1673,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 _ca_chain_pem,
                 ca_chain_name="ACME Server Response",
                 le_authority_name=None,
-                is_authority_certificate=None,
-                is_cross_signed_authority_certificate=None,
             )
             if is_created__CACertificate:
                 ctx.pyramid_transaction_commit()
@@ -2330,8 +2366,6 @@ def do__AcmeV2_AcmeOrder__download_certificate(
                 _ca_chain_pem,
                 ca_chain_name="ACME Server Response",
                 le_authority_name=None,
-                is_authority_certificate=None,
-                is_cross_signed_authority_certificate=None,
             )
             if is_created__CACertificate:
                 ctx.pyramid_transaction_commit()
