@@ -34,23 +34,26 @@ try:
 
     # from Crypto.Util import crypto_util_asn1
     from OpenSSL import crypto as openssl_crypto
+    import cryptography
+    from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import (
         serialization as cryptography_serialization,
     )
-
-    # from cryptography.hazmat.primitives.asymmetric import ec as crypto_ec
+    from cryptography.hazmat.primitives.asymmetric import ec as crypto_ec
+    from cryptography.hazmat.primitives.asymmetric import rsa as crypto_rsa
     import josepy
-    import cryptography
 
 except ImportError as exc:
     acme_crypto_util = None
     certbot_crypto_util = None
     # crypto_util_asn1 = None
     openssl_crypto = None
-    josepy = None
-    cryptography_serialization = None
     cryptography = None
-    # crypto_ec = None
+    default_backend = None
+    cryptography_serialization = None
+    crypto_ec = None
+    crypto_rsa = None
+    josepy = None
 
 # localapp
 from . import errors
@@ -453,34 +456,60 @@ def cleanup_pem_text(pem_text):
 
 def validate_key(key_pem=None, key_pem_filepath=None):
     """
-    raises an error if invalid
+    raises an Exception if invalid
+    returns the key_technology if valid
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
 
-    `certbot_crypto_util.valid_privkey` ONLY WORKS ON RSA KEYS
-    THIS FUNCTION IS BROKEN ON EC KEYS
+    This may have issues on older openssl systems
     """
     log.info("validate_key >")
     if certbot_crypto_util:
-        data = certbot_crypto_util.valid_privkey(key_pem)
-        if not data:
-            raise errors.OpenSslError_InvalidKey()
-        return True
 
-    log.debug(".validate_key > openssl fallback")
-    # openssl rsa -in {KEY} -check
-    with psutil.Popen(
-        [openssl_path, "rsa", "-in", key_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidKey(err)
-        if six.PY3:
-            data = data.decode("utf8")
-    return True
+        log.debug(".validate_key > crypto")
+        try:
+            # rsa
+            # try:
+            #   data = certbot_crypto_util.valid_privkey(key_pem)
+            # except errors.OpenSslError_InvalidKey as exc:
+            #   return None
+            data = cryptography_serialization.load_pem_private_key(
+                key_pem.encode(), None, default_backend()
+            )
+            if isinstance(data, crypto_rsa.RSAPrivateKey):
+                return "RSA"
+            elif isinstance(data, crypto_ec.EllipticCurvePrivateKey):
+                return "EC"
+        except Exception as exc:
+            raise errors.OpenSslError_InvalidKey(exc)
+    else:
+
+        def _check_fallback(_technology):
+            log.debug(".validate_key > openssl fallback", _technology)
+            # openssl rsa -in {KEY} -check
+
+            try:
+                with psutil.Popen(
+                    [openssl_path, _technology, "-in", key_pem_filepath],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as proc:
+                    data, err = proc.communicate()
+                    if not data:
+                        raise errors.OpenSslError_InvalidKey(err)
+                    if six.PY3:
+                        data = data.decode("utf8")
+                    return data
+            except errors.OpenSslError_InvalidKey as exc:
+                return None
+
+        if _check_fallback("rsa"):
+            return "RSA"
+        elif _check_fallback("ec"):
+            return "EC"
+
+    raise errors.OpenSslError_InvalidKey()
 
 
 def validate_csr(csr_pem=None, csr_pem_filepath=None):
@@ -1198,9 +1227,11 @@ def new_account_key(key_technology_id=KeyTechnology.RSA, rsa_bits=2048):
 
 def new_private_key(key_technology_id=None, rsa_bits=None, ec_bits=None):
     if key_technology_id == KeyTechnology.RSA:
-        return new_key_rsa(bits=rsa_bits)
-    elif key_technology_id == KeyTechnology.RSA:
-        return new_key_ec(bits=ec_bits)
+        kwargs = {"bits": rsa_bits} if rsa_bits else {}
+        return new_key_rsa(**kwargs)
+    elif key_technology_id == KeyTechnology.EC:
+        kwargs = {"bits": ec_bits} if ec_bits else {}
+        return new_key_ec(**kwargs)
     else:
         raise ValueError("invalid `key_technology_id`")
 
@@ -1238,7 +1269,7 @@ def new_key_rsa(bits=4096):
             key_pem = data
             key_pem = cleanup_pem_text(key_pem)
             # this will raise an error
-            validate_key(key_pem=key_pem)
+            key_technology = validate_key(key_pem=key_pem)
     return key_pem
 
 
@@ -1305,7 +1336,7 @@ def convert_lejson_to_pem(pkey_jsons):
         as_pem = cleanup_pem_text(as_pem)
 
         # note: we don't need to provide key_pem_filepath before we won't rely on openssl
-        validate_key(key_pem=as_pem)
+        key_technology = validate_key(key_pem=as_pem)
         return as_pem
 
     log.debug(".convert_lejson_to_pem > openssl fallback")
@@ -1343,7 +1374,7 @@ def convert_lejson_to_pem(pkey_jsons):
         tmpfiles.append(tmpfile_pem)
 
         # validate it
-        validate_key(key_pem=as_pem, key_pem_filepath=tmpfile_pem.name)
+        key_technology = validate_key(key_pem=as_pem, key_pem_filepath=tmpfile_pem.name)
         return as_pem
 
     except Exception as exc:

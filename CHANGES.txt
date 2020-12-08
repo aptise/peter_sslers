@@ -60,12 +60,12 @@
 	AUDIT:
 		ca_certificate_download
 			
-			
 	Added:
-		acme_account_key.key_technology_id
-		ca_certificate.key_technology_id
-		certificate_request.key_technology_id
-		private_key.key_technology_id		
+		acme_account_key.key_technology_id (required)
+		ca_certificate.key_technology_id (required)
+		certificate_request.key_technology_id (optional)
+		private_key.key_technology_id (required)
+		server_certificate.key_technology_id (required)
 
 	Made Optional:
 		acme_account_key.modulus_md5
