@@ -241,13 +241,9 @@ def getcreate__AcmeAccount(
     try:
         _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-        # validate
-        cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
-
-        # grab the technology
-        key_technology = cert_utils.modulus_md5_key(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name,
+        # validate + grab the technology
+        key_technology = cert_utils.validate_key(
+            key_pem=key_pem, key_pem_filepath=_tmpfile.name
         )
 
         # grab the modulus
@@ -288,6 +284,9 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.key_pem = key_pem
     dbAcmeAccountKey.key_pem_md5 = key_pem_md5
     dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+    dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
+        key_technology
+    )
     dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
     ctx.dbSession.add(dbAcmeAccountKey)
@@ -732,7 +731,7 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.cert_subject = _cert_data["subject"]
             dbCACertificate.cert_issuer = _cert_data["issuer"]
             dbCACertificate.key_technology_id = model_utils.KeyTechnology.from_string(
-                _cert_data["key_type"]
+                _cert_data["key_technology"]
             )
             dbCACertificate.operations_event_id__created = dbOperationsEvent.id
 
@@ -887,8 +886,10 @@ def getcreate__PrivateKey__by_pem_text(
         try:
             _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-            # validate
-            cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
+            # validate + grab the technology
+            key_technology = cert_utils.validate_key(
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name
+            )
 
             # grab the modulus
             key_pem_modulus_md5 = cert_utils.modulus_md5_key(
@@ -912,6 +913,9 @@ def getcreate__PrivateKey__by_pem_text(
 
         dbPrivateKey = model_objects.PrivateKey()
         dbPrivateKey.timestamp_created = ctx.timestamp
+        dbPrivateKey.key_technology_id = model_utils.KeyTechnology.from_string(
+            key_technology
+        )
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5

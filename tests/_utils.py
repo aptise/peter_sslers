@@ -497,7 +497,7 @@ TEST_FILES = {
                 "pkey": "key_technology-rsa/selfsigned_1-server.key",
             },
             "2": {
-                "domain": "key_technology-rsa/selfsigned-2.example.com",
+                "domain": "selfsigned-2.example.com",
                 "cert": "key_technology-rsa/selfsigned_2-server.crt",
                 "csr": "key_technology-rsa/selfsigned_2-server.csr",
                 "pkey": "key_technology-rsa/selfsigned_2-server.key",
@@ -946,8 +946,6 @@ class AppTest(AppTestCore):
                     ca_cert_pem,
                     ca_chain_name="ISRG Root",
                     le_authority_name="ISRG ROOT",
-                    is_authority_certificate=True,
-                    is_cross_signed_authority_certificate=False,
                 )
                 # print(_ca_cert_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()

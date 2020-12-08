@@ -213,7 +213,17 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
             key_pem_filepath = self._filepath_testfile(key_filename)
             key_pem = self._filedata_testfile(key_filename)
-            cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=key_pem_filepath)
+            key_technology = cert_utils.validate_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+
+        for key_filename in sorted(KEY_SETS.keys()):
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            key_technology = cert_utils.validate_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(key_technology, KEY_SETS[key_filename]["key_technology"])
 
     def test__validate_cert(self):
         """
@@ -576,7 +586,9 @@ class UnitTest_PrivateKeyCycling(AppTest):
         create a new AcmeAccount with a given private_key_cycle
         """
         contact = "%s@example.com" % private_key_cycle
-        _key_filename = "AcmeAccountKey-cycle-%s.pem" % private_key_cycle
+        _key_filename = (
+            "key_technology-rsa/AcmeAccountKey-cycle-%s.pem" % private_key_cycle
+        )
         key_pem = self._filedata_testfile(_key_filename)
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,

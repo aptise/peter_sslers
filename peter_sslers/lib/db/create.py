@@ -681,6 +681,7 @@ def create__CertificateRequest(
     )
     dbCertificateRequest.operations_event_id__created = dbOperationsEvent.id
     dbCertificateRequest.private_key_id = dbPrivateKey.id
+    dbCertificateRequest.key_technology_id = dbPrivateKey.key_technology_id
     dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
     ctx.dbSession.add(dbCertificateRequest)
@@ -831,7 +832,7 @@ def create__PrivateKey(
     private_key_source_id=None,
     private_key_type_id=None,
     private_key_id__replaces=None,
-    key_technology_id=None,
+    key_technology_id=model_utils.KeyTechnology.from_string("RSA"),
     # bits_rsa=None,
 ):
     """
@@ -1111,6 +1112,7 @@ def create__ServerCertificate(
         dbServerCertificate.is_active = is_active
         dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
         dbServerCertificate.private_key_id = dbPrivateKey.id
+        dbServerCertificate.key_technology_id = dbPrivateKey.key_technology_id
         dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
         if dbUniqueFQDNSet.count_domains == 1:
             dbServerCertificate.is_single_domain_cert = True
