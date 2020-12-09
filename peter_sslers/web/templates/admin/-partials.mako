@@ -939,6 +939,7 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>private_key_type</th>
+                <th>key_technology</th>
                 <th>source</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -963,11 +964,8 @@
                         </span>
                     % endif
                 </td>
-                <td>
-                    <span class="label label-default">
-                        ${key.private_key_type}
-                    </span>
-                </td>
+                <td><span class="label label-default">${key.private_key_type}</span></td>
+                <td><span class="label label-default">${key.key_technology}</span></td>
                 <td><span class="label label-default">${key.private_key_source}</span></td>
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                 <td><code>${key.key_pem_md5}</code></td>

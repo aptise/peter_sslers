@@ -32,7 +32,6 @@
 
     <div class="row">
         <div class="col-sm-12">
-            ${admin_partials.handle_querystring_result()}
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
@@ -165,6 +164,14 @@
                         <td><span class="badge">${PrivateKey.count_server_certificates or ''}</span></td>
                     </tr>
                     <tr>
+                        <th>key_technology</th>
+                        <td>
+                            <span class="label label-default">
+                                ${PrivateKey.key_technology}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>key_pem_md5</th>
                         <td><code>${PrivateKey.key_pem_md5}</code></td>
                     </tr>
@@ -182,7 +189,6 @@
                             % endif
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
                         <th>key_pem</th>
                         <td>
@@ -195,6 +201,7 @@
                             % endif
                         </td>
                     </tr>
+                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
                         <th>AcmeAccount Owner</th>
                         <td>

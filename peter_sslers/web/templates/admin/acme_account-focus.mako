@@ -184,6 +184,10 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th>key_technology</th>
+                                    <td><span class="label label-default">${AcmeAccount.acme_account_key.key_technology}</span></td>
+                                </tr>
+                                <tr>
                                     <th>key_pem_md5</th>
                                     <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                                 </tr>
@@ -216,6 +220,18 @@
                         <th>PrivateKey cycle</th>
                         <td>
                             <code>${AcmeAccount.private_key_cycle}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>                        
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKey Technology</th>
+                        <td>
+                            <code>${AcmeAccount.private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >

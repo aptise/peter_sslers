@@ -782,7 +782,7 @@ class View_Focus_Manipulate(View_Focus):
                 #    )
 
                 elif action == "unrevoke":
-                    raise errors.InvalidTransition("invalid option, unrevoke")
+                    raise errors.InvalidTransition("Invalid option: `unrevoke`")
                     """
                     event_status = lib_db.update.update_ServerCertificate__unset_revoked(
                         self.request.api_context, dbServerCertificate
@@ -792,7 +792,7 @@ class View_Focus_Manipulate(View_Focus):
                     """
 
                 else:
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

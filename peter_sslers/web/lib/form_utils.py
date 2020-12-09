@@ -49,6 +49,7 @@ class AcmeAccountUploadParser(object):
     le_pkey_jsons = None
     le_reg_jsons = None
     private_key_cycle_id = None
+    private_key_technology_id = None
     upload_type = None  # pem OR letsencrypt
 
     def __init__(self, formStash):
@@ -83,6 +84,19 @@ class AcmeAccountUploadParser(object):
             private_key_cycle
         )
 
+        private_key_technology = formStash.results.get(
+            "account__private_key_technology", None
+        )
+        if private_key_technology is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="account__private_key_technology",
+                message="No PrivateKey technology submitted.",
+            )
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+
         contact = formStash.results.get("account__contact", None)
         if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -99,6 +113,9 @@ class AcmeAccountUploadParser(object):
         self.private_key_cycle_id = getcreate_args[
             "private_key_cycle_id"
         ] = private_key_cycle_id
+        self.private_key_technology_id = getcreate_args[
+            "private_key_technology_id"
+        ] = private_key_technology_id
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(self, require_contact=None):
@@ -165,6 +182,19 @@ class AcmeAccountUploadParser(object):
             private_key_cycle
         )
 
+        private_key_technology = formStash.results.get(
+            "account__private_key_technology", None
+        )
+        if private_key_technology is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="account__private_key_technology",
+                message="No PrivateKey technology submitted.",
+            )
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+
         # require `contact` when uploading a PEM file
         if formStash.results["account_key_file_pem"] is not None:
             require_contact = True
@@ -182,6 +212,9 @@ class AcmeAccountUploadParser(object):
         self.private_key_cycle_id = getcreate_args[
             "private_key_cycle_id"
         ] = private_key_cycle_id
+        self.private_key_technology_id = getcreate_args[
+            "private_key_technology_id"
+        ] = private_key_technology_id
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_account_provider_id is None:
@@ -292,7 +325,7 @@ def parse_AcmeAccountSelection(
         # this will handle form validation and raise errors.
         parser = AcmeAccountUploadParser(formStash)
 
-        # this will have `contact` and `private_key_cycle`
+        # this will have: `contact`, `private_key_cycle`, `private_key_technology`
         parser.require_upload(require_contact=require_contact)
 
         # update our object

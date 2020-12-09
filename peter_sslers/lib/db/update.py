@@ -195,20 +195,41 @@ def update_AcmeAccount__set_global_default(ctx, dbAcmeAccount):
 
 def update_AcmeAccount__private_key_cycle(ctx, dbAcmeAccount, private_key_cycle):
     if dbAcmeAccount.private_key_cycle == private_key_cycle:
-        raise errors.InvalidTransition("Already updated")
+        raise errors.InvalidTransition("Already updated: `private_key_cycle`")
     try:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle
         )
     except KeyError:
-        raise errors.InvalidTransition("invalid option")
+        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
     if (
         private_key_cycle_id
         not in model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
     ):
-        raise errors.InvalidTransition("invalid option")
+        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
     dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
-    event_status = "AcmeAccount__edit__primary_key_cycle"
+    event_status = "AcmeAccount__edit__private_key_cycle"
+    return event_status
+
+
+def update_AcmeAccount__private_key_technology(
+    ctx, dbAcmeAccount, private_key_technology
+):
+    if dbAcmeAccount.private_key_technology == private_key_technology:
+        raise errors.InvalidTransition("Already updated: `private_key_technology`")
+    try:
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+    except KeyError:
+        raise errors.InvalidTransition("Invalid option: `private_key_technology`")
+    if (
+        private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
+    ):
+        raise errors.InvalidTransition("Invalid option: `private_key_technology`")
+    dbAcmeAccount.private_key_technology_id = private_key_technology_id
+    event_status = "AcmeAccount__edit__private_key_technology"
     return event_status
 
 

@@ -142,6 +142,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     private_key_cycle_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
+    private_key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -243,6 +246,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     @reify
     def private_key_cycle(self):
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+
+    @reify
+    def private_key_technology(self):
+        return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
     @property
     def as_json(self):

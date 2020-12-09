@@ -63,6 +63,7 @@ from .. import (
 )  # only here to access `lib.letsencrypt_info` without a circular import
 from ..model.utils import KeyTechnology
 
+
 # ==============================================================================
 
 
@@ -120,6 +121,11 @@ RE_openssl_x509_keytype_ec = re.compile(
     re.MULTILINE,
 )
 
+
+# see https://community.letsencrypt.org/t/issuing-for-common-rsa-key-sizes-only/133839
+# see https://letsencrypt.org/docs/integration-guide/
+ALLOWED_BITS_RSA = [2048, 3072, 4096]
+ALLOWED_BITS_ECDSA = [256, 384]
 
 # ==============================================================================
 
@@ -488,7 +494,6 @@ def validate_key(key_pem=None, key_pem_filepath=None):
         def _check_fallback(_technology):
             log.debug(".validate_key > openssl fallback", _technology)
             # openssl rsa -in {KEY} -check
-
             try:
                 with psutil.Popen(
                     [openssl_path, _technology, "-in", key_pem_filepath],
@@ -1035,6 +1040,7 @@ def parse_key(key_pem=None, key_pem_filepath=None):
         # see https://github.com/pyca/pyopenssl/issues/291
         # certbot just wraps that
         try:
+            # note: we don't need to provide key_pem_filepath because we already rely on openssl
             rval["check"] = validate_key(key_pem=key_pem)
         except Exception as exc:
             rval["check"] = str(exc)
@@ -1220,6 +1226,10 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
 
 
 def new_account_key(key_technology_id=KeyTechnology.RSA, rsa_bits=2048):
+    if rsa_bits not in ALLOWED_BITS_RSA:
+        raise ValueError(
+            "LetsEncrypt only supports RSA keys with bits: %s" % ALLOWED_BITS_RSA
+        )
     if key_technology_id != KeyTechnology.RSA:
         raise ValueError("invalid `key_technology_id`")
     return new_key_rsa(bits=rsa_bits)
@@ -1237,7 +1247,65 @@ def new_private_key(key_technology_id=None, rsa_bits=None, ec_bits=None):
 
 
 def new_key_ec(bits=384):
-    raise ValueError("No Coverage")
+    log.info("new_key_ec >")
+    log.debug(".new_key_ec > bits = %s", bits)
+    if bits not in ALLOWED_BITS_ECDSA:
+        raise ValueError(
+            "LetsEncrypt only supports ECDSA keys with bits: %s; not %s"
+            % (ALLOWED_BITS_ECDSA, bits)
+        )
+
+    if openssl_crypto:
+        # see https://github.com/pyca/pyopenssl/issues/291
+        if 256 == bits:
+            key = crypto_ec.generate_private_key(
+                crypto_ec.SECP256R1(), default_backend()
+            )
+        elif 384 == bits:
+            key = crypto_ec.generate_private_key(
+                crypto_ec.SECP384R1(), default_backend()
+            )
+        key_pem = key.private_bytes(
+            encoding=cryptography_serialization.Encoding.PEM,
+            format=cryptography_serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=cryptography_serialization.NoEncryption(),
+        )
+        # load it: openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
+    else:
+        log.debug(".new_key_ec > openssl fallback")
+        # openssl ecparam -list_curves
+        curve = None
+        if 256 == bits:
+            curve = "secp256k1"
+        elif 384 == bits:
+            curve = "secp384r1"
+        # openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+        # -noout will suppress printing the EC Param (see https://security.stackexchange.com/questions/29778/why-does-openssl-writes-ec-parameters-when-generating-private-key)
+        bits = str(bits)
+        with psutil.Popen(
+            [openssl_path, "ecparam", "-name", curve, "-genkey", "-noout"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidKey(err)
+            if six.PY3:
+                data = data.decode("utf8")
+            key_pem = data
+            key_pem = cleanup_pem_text(key_pem)
+
+            try:
+                # we need a tmpfile to validate it
+                tmpfile_pem = new_pem_tempfile(key_pem)
+                # this will raise an error on fails
+                key_technology = validate_key(
+                    key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
+                )
+            finally:
+                tmpfile_pem.close()
+
+    return key_pem
 
 
 def new_key_rsa(bits=4096):
@@ -1247,6 +1315,11 @@ def new_key_rsa(bits=4096):
     """
     log.info("new_key_rsa >")
     log.debug(".new_key_rsa > bits = %s", bits)
+    if bits not in ALLOWED_BITS_RSA:
+        raise ValueError(
+            "LetsEncrypt only supports RSA keys with bits: %s; not %s"
+            % (ALLOWED_BITS_RSA, bits)
+        )
     if certbot_crypto_util:
         key_pem = certbot_crypto_util.make_key(bits)
         if six.PY3:
@@ -1268,8 +1341,16 @@ def new_key_rsa(bits=4096):
                 data = data.decode("utf8")
             key_pem = data
             key_pem = cleanup_pem_text(key_pem)
-            # this will raise an error
-            key_technology = validate_key(key_pem=key_pem)
+
+            try:
+                # we need a tmpfile to validate it
+                tmpfile_pem = new_pem_tempfile(key_pem)
+                # this will raise an error on fails
+                key_technology = validate_key(
+                    key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
+                )
+            finally:
+                tmpfile_pem.close()
     return key_pem
 
 
@@ -1335,7 +1416,7 @@ def convert_lejson_to_pem(pkey_jsons):
             as_pem = as_pem.decode()
         as_pem = cleanup_pem_text(as_pem)
 
-        # note: we don't need to provide key_pem_filepath before we won't rely on openssl
+        # note: we don't need to provide key_pem_filepath because we already rely on openssl
         key_technology = validate_key(key_pem=as_pem)
         return as_pem
 

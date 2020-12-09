@@ -70,7 +70,10 @@ def upload_fileset(server_url_root, fset):
 
 
 def upload_account(server_url_root, fset):
-    """actually uploads an account fileset"""
+    """
+    actually uploads an account fileset
+    hardcoded to RSA private key preference
+    """
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
     url = "%s/acme-account/upload.json" % server_url_root
@@ -87,6 +90,8 @@ def upload_account(server_url_root, fset):
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
                 "--form",
                 "account__private_key_cycle=single_certificate",
+                "--form",
+                "account__private_key_technology=rsa",
                 url,
             ],
             stdin=subprocess.PIPE,
