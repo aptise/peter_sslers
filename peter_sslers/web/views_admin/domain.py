@@ -763,7 +763,7 @@ class View_Focus_Manipulate(View_Focus):
 
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="action", message="invalid option.")
+                formStash.fatal_field(field="action", message="Invalid option.")
 
             self.request.api_context.dbSession.flush(
                 objects=[dbOperationsEvent, dbDomain]

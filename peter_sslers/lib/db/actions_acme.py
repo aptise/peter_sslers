@@ -1512,6 +1512,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                             private_key_type_id=model_utils.PrivateKeyType.from_string(
                                 "single_certificate"  # this COULD be "standard", but safer to lock down for now
                             ),
+                            key_technology_id=dbAcmeOrder.acme_account.private_key_technology_id,
                         )
                         raise ReassignedPrivateKey("new `generated`")
                     elif (

@@ -150,6 +150,12 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
         not_empty=True,
     )
 
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=True,
+    )
+
     # these are via Form_AcmeAccount_new__file
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_meta = FieldStorageUploadConverter(
@@ -193,6 +199,12 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
         not_empty=True,
     )
 
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=True,
+    )
+
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=True, if_missing=None)
@@ -201,6 +213,12 @@ class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     # this is the `private_key_cycle` of the AcmeAccount
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+        not_empty=True,
+    )
+
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
         not_empty=True,
     )
 
@@ -216,6 +234,12 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
     # this is the `private_key_cycle` of the AcmeAccount
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+        not_empty=True,
+    )
+
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
         not_empty=True,
     )
 

@@ -196,8 +196,9 @@ class _OperationsUnified(_mixin_mapping):
         133: "AcmeAccount__mark__default",
         134: "AcmeAccount__mark__notdefault",
         135: "AcmeAccount__edit",
-        136: "AcmeAccount__edit__primary_key_cycle",
+        136: "AcmeAccount__edit__private_key_cycle",
         137: "AcmeAccount__edit_AcmeAccountKey",
+        138: "AcmeAccount__edit__private_key_technology",
         150: "AcmeAccountKey__insert",
         151: "AcmeAccountKey__create",
         152: "AcmeAccountKey__mark__inactive",
@@ -814,6 +815,25 @@ class KeyTechnology(_mixin_mapping):
         2: "EC",
         # 3: "DSA",
     }
+
+    _options_AcmeAccount_private_key_technology_id = (
+        1,
+        2,
+    )
+    _DEFAULT_AcmeAccount = "RSA"
+    _DEFAULT_GlobalKey = "RSA"
+
+
+KeyTechnology._options_AcmeAccount_private_key_technology = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_AcmeAccount_private_key_technology_id
+]
+KeyTechnology._DEFAULT_AcmeAccount_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_AcmeAccount
+)
+KeyTechnology._DEFAULT_GlobalKey_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_GlobalKey
+)
 
 
 class PrivateKeyCycle(_mixin_mapping):

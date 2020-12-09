@@ -61,6 +61,7 @@ def getcreate__AcmeAccount(
     account_url=None,
     event_type="AcmeAccount__insert",
     private_key_cycle_id=None,
+    private_key_technology_id=None,
 ):
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
@@ -86,6 +87,7 @@ def getcreate__AcmeAccount(
     :param terms_of_service: (optional)
     :param account_url: (optional)
     :param private_key_cycle_id: (required) id corresponding to a :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology_id: (required) id corresponding to a :class:`model.utils.KeyTechnology`
     """
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError(
@@ -106,12 +108,24 @@ def getcreate__AcmeAccount(
     else:
         raise ValueError("invalid `event_type`")
 
+    # KeyCycle
     if private_key_cycle_id is None:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount
         )
     if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
         raise ValueError("invalid `private_key_cycle_id`")
+
+    # KeyTechnology
+    if private_key_technology_id is None:
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount
+        )
+    if (
+        private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
+    ):
+        raise ValueError("invalid `private_key_technology_id`")
 
     # scoping
     _letsencrypt_data = None
@@ -273,6 +287,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.account_url = account_url
     dbAcmeAccount.acme_account_provider_id = acme_account_provider_id
     dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
+    dbAcmeAccount.private_key_technology_id = private_key_technology_id
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
@@ -958,6 +973,7 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
     """
     private_key_cycle = dbAcmeAccount.private_key_cycle
+    private_key_technology = dbAcmeAccount.private_key_technology
     acme_account_id__owner = dbAcmeAccount.id
     if private_key_cycle == "single_certificate":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
@@ -968,6 +984,7 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
             private_key_type_id=model_utils.PrivateKeyType.from_string(
                 "single_certificate"
             ),
+            key_technology_id=dbAcmeAccount.private_key_technology_id,
         )
         return dbPrivateKey_new
 
@@ -986,6 +1003,7 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "account_daily"
                 ),
+                key_technology_id=dbAcmeAccount.private_key_technology_id,
             )
         return dbPrivateKey_new
 
@@ -1001,6 +1019,7 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "global_daily"
                 ),
+                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
 
@@ -1019,6 +1038,7 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "account_weekly"
                 ),
+                key_technology_id=dbAcmeAccount.private_key_technology_id,
             )
         return dbPrivateKey_new
 
@@ -1034,16 +1054,17 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "global_weekly"
                 ),
+                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_key_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_key_default | INVALID
-        raise ValueError("invalid option `account_key_default`")
+        raise ValueError("Invalid option: `account_key_default`")
 
     else:
         # NOTE: AcmeAccountNeedsPrivateKey | INVALID
-        raise ValueError("invalid option")
+        raise ValueError("Invalid option for `private_key_cycle`")
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

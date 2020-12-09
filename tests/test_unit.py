@@ -507,6 +507,36 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             signature = cert_utils._b64(signature)
             self.assertEqual(signature, expected)
 
+    def test__private_key__new(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__private_key__new
+        """
+        _combinations = (
+            (model_utils.KeyTechnology.RSA, 2048, None),
+            (model_utils.KeyTechnology.RSA, 3072, None),
+            (model_utils.KeyTechnology.RSA, 4096, None),
+            (model_utils.KeyTechnology.EC, None, 256),
+            (model_utils.KeyTechnology.EC, None, 384),
+        )
+        for _combo in _combinations:
+            key_pem = cert_utils.new_private_key(
+                _combo[0], rsa_bits=_combo[1], ec_bits=_combo[2]
+            )
+            if _combo[0] == model_utils.KeyTechnology.RSA:
+                # crypto: -----BEGIN PRIVATE KEY-----
+                # openssl fallback: -----BEGIN RSA PRIVATE KEY-----
+                self.assertIn(
+                    key_pem.split("\n")[0],
+                    (
+                        "-----BEGIN RSA PRIVATE KEY-----",
+                        "-----BEGIN PRIVATE KEY-----",
+                    ),
+                )
+            elif _combo[0] == model_utils.KeyTechnology.RSA:
+                self.assertEqual(
+                    "-----BEGIN EC PRIVATE KEY-----", key_pem.split("\n")[0]
+                )
+
 
 class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
     """python -m unittest tests.test_unit.UnitTest_OpenSSL"""
@@ -570,26 +600,30 @@ class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_CertUtils):
     pass
 
 
-class UnitTest_PrivateKeyCycling(AppTest):
-    """
-    uses `AppTest` so we have access to a `self.ctx`
-
-    These tests ensure that PrivateKey cycling for an AcmeAccount works
-
-    It tests `getcreate__PrivateKey_for_AcmeAccount`, which is invoked during AcmeOrder processing
-
-    python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling
-    """
-
-    def _makeOne_AcmeAccount(self, private_key_cycle):
+class _MixIn_AcmeAccount(object):
+    def _makeOne_AcmeAccount(
+        self,
+        private_key_cycle=None,
+        private_key_technology=None,
+        existing_account_key=None,
+    ):
         """
         create a new AcmeAccount with a given private_key_cycle
         """
         contact = "%s@example.com" % private_key_cycle
-        _key_filename = (
-            "key_technology-rsa/AcmeAccountKey-cycle-%s.pem" % private_key_cycle
-        )
-        key_pem = self._filedata_testfile(_key_filename)
+        _kwargs = {}
+        if private_key_technology is not None:
+            _kwargs[
+                "private_key_technology_id"
+            ] = model_utils.KeyTechnology.from_string(private_key_technology)
+        if not existing_account_key:
+            key_pem = cert_utils.new_account_key()
+        else:
+            _key_filename = (
+                "key_technology-rsa/AcmeAccountKey-cycle-%s.pem" % private_key_cycle
+            )
+            key_pem = self._filedata_testfile(_key_filename)
+
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
             key_pem=key_pem,
@@ -601,11 +635,33 @@ class UnitTest_PrivateKeyCycling(AppTest):
             private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
             ),
+            **_kwargs
         )
         return dbAcmeAccount
 
+
+class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
+    """
+    uses `AppTest` so we have access to a `self.ctx`
+
+    These tests ensure that PrivateKey cycling for an AcmeAccount works
+
+    It tests `getcreate__PrivateKey_for_AcmeAccount`, which is invoked during AcmeOrder processing
+
+    python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling
+    """
+
     def test__single_certificate(self):
-        dbAcmeAccount = self._makeOne_AcmeAccount("single_certificate")
+        """
+        auto-generate a new key for an account
+        """
+        dbAcmeAccount = self._makeOne_AcmeAccount(
+            private_key_cycle="single_certificate", existing_account_key=True
+        )
+        self.assertEqual(
+            dbAcmeAccount.private_key_technology,
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount,
+        )
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
@@ -614,17 +670,23 @@ class UnitTest_PrivateKeyCycling(AppTest):
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
         )
-        assert dbPrivateKey_1.id != dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
-        assert dbPrivateKey_1.private_key_source == "generated"
-        assert dbPrivateKey_1.private_key_type == "single_certificate"
+        self.assertNotEqual(dbPrivateKey_1.id, dbPrivateKey_2.id)
+        self.assertEqual(
+            dbAcmeAccount.private_key_technology, dbPrivateKey_1.key_technology
+        )
+        self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
+        self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
+        self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
+        self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
 
-        assert dbPrivateKey_2.acme_account_id__owner == dbAcmeAccount.id
-        assert dbPrivateKey_2.private_key_source == "generated"
-        assert dbPrivateKey_2.private_key_type == "single_certificate"
-
-    def test__account_weekly(self):
-        dbAcmeAccount = self._makeOne_AcmeAccount("account_weekly")
+    def test__account_weekly(self, existing_account_key=True):
+        """
+        this will not auto-generate a new key, because it is weekly
+        """
+        dbAcmeAccount = self._makeOne_AcmeAccount(private_key_cycle="account_weekly")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
@@ -638,8 +700,11 @@ class UnitTest_PrivateKeyCycling(AppTest):
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "account_weekly"
 
-    def test__account_daily(self):
-        dbAcmeAccount = self._makeOne_AcmeAccount("account_daily")
+    def test__account_daily(self, existing_account_key=True):
+        """
+        this will not auto-generate a new key, because it is daily
+        """
+        dbAcmeAccount = self._makeOne_AcmeAccount(private_key_cycle="account_daily")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
@@ -653,8 +718,11 @@ class UnitTest_PrivateKeyCycling(AppTest):
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "account_daily"
 
-    def test__global_weekly(self):
-        dbAcmeAccount = self._makeOne_AcmeAccount("global_weekly")
+    def test__global_weekly(self, existing_account_key=True):
+        """
+        this will not auto-generate a new key, because it is weekly
+        """
+        dbAcmeAccount = self._makeOne_AcmeAccount(private_key_cycle="global_weekly")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
@@ -668,8 +736,11 @@ class UnitTest_PrivateKeyCycling(AppTest):
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "global_weekly"
 
-    def test__global_daily(self):
-        dbAcmeAccount = self._makeOne_AcmeAccount("global_daily")
+    def test__global_daily(self, existing_account_key=True):
+        """
+        this will not auto-generate a new key, because it is daily
+        """
+        dbAcmeAccount = self._makeOne_AcmeAccount(private_key_cycle="global_daily")
         dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
             self.ctx,
             dbAcmeAccount=dbAcmeAccount,
@@ -682,3 +753,69 @@ class UnitTest_PrivateKeyCycling(AppTest):
         assert dbPrivateKey_1.acme_account_id__owner is None
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "global_daily"
+
+
+class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
+    """
+    uses `AppTest` so we have access to a `self.ctx`
+
+    These tests ensure that PrivateKey cycling for an AcmeAccount works
+
+    It tests `getcreate__PrivateKey_for_AcmeAccount`, which is invoked during AcmeOrder processing
+
+    python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology
+    """
+
+    def _test__single_certificate(self, private_key_technology=None):
+        """
+        auto-generate a new key for an account
+        """
+        private_key_technology_expected = (
+            private_key_technology or model_utils.KeyTechnology._DEFAULT_AcmeAccount
+        )
+        dbAcmeAccount = self._makeOne_AcmeAccount(
+            private_key_cycle="single_certificate",
+            private_key_technology=private_key_technology,
+            existing_account_key=False,
+        )
+        self.assertEqual(
+            dbAcmeAccount.private_key_technology,
+            private_key_technology_expected,
+        )
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
+        )
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx,
+            dbAcmeAccount=dbAcmeAccount,
+        )
+        self.assertNotEqual(dbPrivateKey_1.id, dbPrivateKey_2.id)
+        self.assertEqual(
+            dbAcmeAccount.private_key_technology, dbPrivateKey_1.key_technology
+        )
+        self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
+        self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
+        self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
+        self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
+
+    def test__key_technology__none(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology.test__key_technology__none
+        """
+        self._test__single_certificate(
+            private_key_technology=None,
+        )
+
+    def test__key_technology__rsa(self):
+        self._test__single_certificate(
+            private_key_technology="RSA",
+        )
+
+    def test__key_technology__ec(self):
+        self._test__single_certificate(
+            private_key_technology="EC",
+        )

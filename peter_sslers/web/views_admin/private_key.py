@@ -309,7 +309,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
 
                 else:
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

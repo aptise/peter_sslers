@@ -33,6 +33,10 @@
 
     <div class="row">
         <div class="col-sm-12">
+
+            <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                  method="POST"
+                  >
             <table class="table">
                 <thead>
                     <tr>
@@ -81,29 +85,47 @@
                     <tr>
                         <th>PrivateKey cycle</th>
                         <td>
-                            <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                  method="POST"
-                                  >
+                            <%
+                                _selected = AcmeAccount.private_key_cycle
+                            %>
+                            <select class="form-control" name="account__private_key_cycle">
+                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
+                                    <%
+                                        _selected = ' selected' if _option_text == _selected else ''
+                                    %>
+                                    <option value="${_option_text}" ${_selected}>${_option_text}</option>
+                                % endfor
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKey Technology</th>
+                        <td>
                                 <%
-                                    _selected = AcmeAccount.private_key_cycle
+                                    _selected = AcmeAccount.private_key_technology
                                 %>
-                                <select class="form-control" name="account__private_key_cycle">
-                                    % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
+                                <select class="form-control" name="account__private_key_technology">
+                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
                                         <%
                                             _selected = ' selected' if _option_text == _selected else ''
                                         %>
                                         <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                     % endfor
                                 </select>
-                                <button class="btn btn-primary" type="submit" name="submit" value="submit">
-                                    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                                    Edit
-                                </button>
-                            </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <td>
+                            <button class="btn btn-primary" type="submit" name="submit" value="submit">
+                                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                                Edit
+                            </button>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            </form>
         </div>
     </div>
 </%block>
