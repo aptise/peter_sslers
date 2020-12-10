@@ -4,6 +4,9 @@ from __future__ import print_function
 import os
 import os.path
 import pdb
+import tempfile
+import test
+import test.test_httplib
 import unittest
 from io import open  # overwrite `open` in Python2
 
@@ -11,6 +14,9 @@ from io import open  # overwrite `open` in Python2
 # pypi
 from acme import crypto_util as acme_crypto_util
 from certbot import crypto_util as certbot_crypto_util
+import six
+from six.moves import http_client
+from six.moves.urllib.response import addinfourl
 
 # from Crypto.Util import asn1 as crypto_util_asn1
 from OpenSSL import crypto as openssl_crypto
@@ -19,6 +25,7 @@ import josepy
 import cryptography
 
 # local
+from peter_sslers.lib import acme_v2
 from peter_sslers.lib import cert_utils
 from peter_sslers.lib import utils
 from peter_sslers.lib.db import get as lib_db_get
@@ -33,6 +40,73 @@ from ._utils import CSR_SETS
 from ._utils import KEY_SETS
 from ._utils import TEST_FILES
 from ._utils import _Mixin_filedata
+
+
+# ==============================================================================
+
+
+class _MixinNoCrypto(object):
+    def setUp(self):
+        # print("_MixinNoCrypto.setUp")
+        cert_utils.acme_crypto_util = None
+        cert_utils.openssl_crypto = None
+        cert_utils.certbot_crypto_util = None
+        # cert_utils.crypto_util_asn1 = None
+        cert_utils.josepy = None
+        cert_utils.cryptography_serialization = None
+        cryptography = None
+
+    def tearDown(self):
+        # print("_MixinNoCrypto.tearDown")
+        cert_utils.acme_crypto_util = acme_crypto_util
+        cert_utils.openssl_crypto = openssl_crypto
+        cert_utils.certbot_crypto_util = certbot_crypto_util
+        # cert_utils.crypto_util_asn1 = crypto_util_asn1
+        cert_utils.josepy = josepy
+        cert_utils.cryptography_serialization = cryptography_serialization
+        cert_utils.cryptography = cryptography
+
+
+class _MixIn_AcmeAccount(object):
+    def _makeOne_AcmeAccount(
+        self,
+        private_key_cycle=None,
+        private_key_technology=None,
+        existing_account_key=None,
+        contact=None,
+    ):
+        """
+        create a new AcmeAccount with a given private_key_cycle
+        """
+        if contact is None:
+            contact = "%s@example.com" % private_key_cycle
+        _kwargs = {}
+        if private_key_technology is not None:
+            _kwargs[
+                "private_key_technology_id"
+            ] = model_utils.KeyTechnology.from_string(private_key_technology)
+        if not existing_account_key:
+            key_pem = cert_utils.new_account_key()
+        else:
+            _key_filename = (
+                "key_technology-rsa/AcmeAccountKey-cycle-%s.pem" % private_key_cycle
+            )
+            key_pem = self._filedata_testfile(_key_filename)
+
+        (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
+            self.ctx,
+            key_pem=key_pem,
+            acme_account_provider_id=1,  # pebble
+            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
+                "imported"
+            ),
+            contact=contact,
+            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle
+            ),
+            **_kwargs
+        )
+        return dbAcmeAccount
 
 
 # ==============================================================================
@@ -392,6 +466,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             rval = cert_utils.parse_key(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
+            print(key_filename)
             self.assertEqual(
                 rval["key_technology"], KEY_SETS[key_filename]["key_technology"]
             )
@@ -566,28 +641,6 @@ class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
             assert _computed_modulus_md5 == _expected_modulus_md5
 
 
-class _MixinNoCrypto(object):
-    def setUp(self):
-        # print("_MixinNoCrypto.setUp")
-        cert_utils.acme_crypto_util = None
-        cert_utils.openssl_crypto = None
-        cert_utils.certbot_crypto_util = None
-        # cert_utils.crypto_util_asn1 = None
-        cert_utils.josepy = None
-        cert_utils.cryptography_serialization = None
-        cryptography = None
-
-    def tearDown(self):
-        # print("_MixinNoCrypto.tearDown")
-        cert_utils.acme_crypto_util = acme_crypto_util
-        cert_utils.openssl_crypto = openssl_crypto
-        cert_utils.certbot_crypto_util = certbot_crypto_util
-        # cert_utils.crypto_util_asn1 = crypto_util_asn1
-        cert_utils.josepy = josepy
-        cert_utils.cryptography_serialization = cryptography_serialization
-        cert_utils.cryptography = cryptography
-
-
 class UnitTest_CertUtils_fallback(_MixinNoCrypto, UnitTest_CertUtils):
     """python -m unittest tests.test_unit.UnitTest_CertUtils_fallback"""
 
@@ -598,46 +651,6 @@ class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_CertUtils):
     """python -m unittest tests.test_unit.UnitTest_OpenSSL_fallback"""
 
     pass
-
-
-class _MixIn_AcmeAccount(object):
-    def _makeOne_AcmeAccount(
-        self,
-        private_key_cycle=None,
-        private_key_technology=None,
-        existing_account_key=None,
-    ):
-        """
-        create a new AcmeAccount with a given private_key_cycle
-        """
-        contact = "%s@example.com" % private_key_cycle
-        _kwargs = {}
-        if private_key_technology is not None:
-            _kwargs[
-                "private_key_technology_id"
-            ] = model_utils.KeyTechnology.from_string(private_key_technology)
-        if not existing_account_key:
-            key_pem = cert_utils.new_account_key()
-        else:
-            _key_filename = (
-                "key_technology-rsa/AcmeAccountKey-cycle-%s.pem" % private_key_cycle
-            )
-            key_pem = self._filedata_testfile(_key_filename)
-
-        (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
-            self.ctx,
-            key_pem=key_pem,
-            acme_account_provider_id=1,  # pebble
-            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                "imported"
-            ),
-            contact=contact,
-            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
-                private_key_cycle
-            ),
-            **_kwargs
-        )
-        return dbAcmeAccount
 
 
 class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
@@ -777,6 +790,11 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
             private_key_cycle="single_certificate",
             private_key_technology=private_key_technology,
             existing_account_key=False,
+            contact="single_certificate-%s-%s@example.com"
+            % (
+                private_key_technology,
+                self.__class__.__name__,
+            ),
         )
         self.assertEqual(
             dbAcmeAccount.private_key_technology,
@@ -819,3 +837,61 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
         self._test__single_certificate(
             private_key_technology="EC",
         )
+
+
+class _MockedFP(object):
+    """
+    used to mock some objects for tests
+    this does nothing but avoid errors!
+    """
+
+    def read(self):
+        return ""
+
+    def readline(self):
+        return ""
+
+    def close(self):
+        pass
+
+
+class UnitTest_ACME_v2(unittest.TestCase):
+    """
+    python2 -m unittest tests.test_unit.UnitTest_ACME_v2
+    python3 -m unittest tests.test_unit.UnitTest_ACME_v2
+    """
+
+    def test__parse_headers(self):
+        # python 2 and 3 implement the http headers differently
+        _message_template = b"HTTP/1.1 200 OK\r\n%s\r\n"
+        _link_1 = b"""Link: <https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index"\r\n"""
+        _link_2 = b"""Link: <https://acme-staging-v02.api.letsencrypt.org/acme/cert/12345/1>;rel="alternate"\r\n"""
+        body_1 = _message_template % _link_1
+        body_2 = _message_template % (b"%s%s" % (_link_1, _link_2))
+
+        message_1 = http_client.HTTPResponse(test.test_httplib.FakeSocket(body_1))
+        message_1.begin()
+
+        message_2 = http_client.HTTPResponse(test.test_httplib.FakeSocket(body_2))
+        message_2.begin()
+
+        # In an ideal world, that would be all, but we need some more massaging
+        # of the data objects
+        # Python2:
+        #   message_1.getheaders() = LIST
+        #   message_1.msg = httplib.HTTPMessage
+        #   message_1.msg.headers = LIST
+        # Python3:
+        #   message_1.getheaders() = LIST
+        #   message_1.msg = http.client.HTTPMessage
+        #   message_1.msg.headers = DOES NOT EXIST
+
+        fp = _MockedFP()
+        message_1 = addinfourl(fp, message_1.msg, "")
+        message_2 = addinfourl(fp, message_2.msg, "")
+
+        message_1_alts = acme_v2.get_header_links(message_1.headers, "alternate")
+        assert len(message_1_alts) == 0
+
+        message_2_alts = acme_v2.get_header_links(message_2.headers, "alternate")
+        assert len(message_2_alts) == 1

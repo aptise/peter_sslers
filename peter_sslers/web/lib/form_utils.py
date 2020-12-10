@@ -56,11 +56,12 @@ class AcmeAccountUploadParser(object):
         self.formStash = formStash
         self.getcreate_args = {}
 
-    def require_new(self, require_contact=None):
+    def require_new(self, require_contact=None, require_technology=True):
         """
         routine for creating a NEW AcmeAccount (peter_sslers generates the credentials)
 
         :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+        :param require_technology: ``True`` if required; ``False`` if not; ``None`` for conditional logic
         """
         formStash = self.formStash
 
@@ -84,18 +85,20 @@ class AcmeAccountUploadParser(object):
             private_key_cycle
         )
 
+        private_key_technology_id = None
         private_key_technology = formStash.results.get(
             "account__private_key_technology", None
         )
-        if private_key_technology is None:
+        if private_key_technology:
+            private_key_technology_id = model_utils.KeyTechnology.from_string(
+                private_key_technology
+            )
+        if not private_key_technology_id and require_technology:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__private_key_technology",
                 message="No PrivateKey technology submitted.",
             )
-        private_key_technology_id = model_utils.KeyTechnology.from_string(
-            private_key_technology
-        )
 
         contact = formStash.results.get("account__contact", None)
         if not contact and require_contact:
@@ -118,11 +121,12 @@ class AcmeAccountUploadParser(object):
         ] = private_key_technology_id
         self.getcreate_args = decode_args(getcreate_args)
 
-    def require_upload(self, require_contact=None):
+    def require_upload(self, require_contact=None, require_technology=None):
         """
         routine for uploading an exiting AcmeAccount+AcmeAccountKey
 
         :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+        :param require_technology: ``True`` if required; ``False`` if not; ``None`` for conditional logic
         """
         formStash = self.formStash
 
@@ -182,18 +186,20 @@ class AcmeAccountUploadParser(object):
             private_key_cycle
         )
 
+        private_key_technology_id = None
         private_key_technology = formStash.results.get(
             "account__private_key_technology", None
         )
-        if private_key_technology is None:
+        if private_key_technology is not None:
+            private_key_technology_id = model_utils.KeyTechnology.from_string(
+                private_key_technology
+            )
+        if not private_key_technology_id and require_technology:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__private_key_technology",
                 message="No PrivateKey technology submitted.",
             )
-        private_key_technology_id = model_utils.KeyTechnology.from_string(
-            private_key_technology
-        )
 
         # require `contact` when uploading a PEM file
         if formStash.results["account_key_file_pem"] is not None:

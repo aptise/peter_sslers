@@ -300,7 +300,14 @@ def _admin_views(config):
         "admin:acme_dns_server:focus:ensure_domains_results|json",
         "/acme-dns-server/{@id}/ensure-domains-results.json",
     )
-
+    config.add_route_7(
+        "admin:acme_dns_server:focus:import_domain",
+        "/acme-dns-server/{@id}/import-domain",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:import_domain|json",
+        "/acme-dns-server/{@id}/import-domain.json",
+    )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
         "/acme-dns-server/{@id}/acme-dns-server-accounts",

@@ -127,6 +127,13 @@
                 Ensure Domains
             </a>
 
+            <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/import-domain"
+               class="btn btn-info"
+            >
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                Import Domain
+            </a>
+
         </div>
     </div>
 </%block>

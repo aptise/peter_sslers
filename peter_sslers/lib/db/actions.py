@@ -898,12 +898,16 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
         le_authority_name = None
         is_trusted_root = None
         for c in list(letsencrypt_info.CA_CERTS_DATA.keys()):
-            if cert_base == CA_CERTS_DATA[c]["formfield_base"]:
-                cert_name = CA_CERTS_DATA[c]["name"]
-                if "le_authority_name" in CA_CERTS_DATA[c]:
-                    le_authority_name = CA_CERTS_DATA[c]["le_authority_name"]
-                if "is_trusted_root" in CA_CERTS_DATA[c]:
-                    is_trusted_root = CA_CERTS_DATA[c]["is_trusted_root"]
+            if cert_base == letsencrypt_info.CA_CERTS_DATA[c]["formfield_base"]:
+                cert_name = letsencrypt_info.CA_CERTS_DATA[c]["name"]
+                if "le_authority_name" in letsencrypt_info.CA_CERTS_DATA[c]:
+                    le_authority_name = letsencrypt_info.CA_CERTS_DATA[c][
+                        "le_authority_name"
+                    ]
+                if "is_trusted_root" in letsencrypt_info.CA_CERTS_DATA[c]:
+                    is_trusted_root = letsencrypt_info.CA_CERTS_DATA[c][
+                        "is_trusted_root"
+                    ]
                 break
 
         (

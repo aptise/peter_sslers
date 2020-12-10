@@ -543,8 +543,25 @@ class FunctionalTests_AcmeAccount(AppTest):
         res3 = self.testapp.post(
             "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
         )
-        assert res3.json["result"] == "success"
-        assert "AcmeAccount" in res3.json
+        assert res3.json["result"] == "error"
+        assert "form_errors" in res3.json
+        assert isinstance(res3.json["form_errors"], dict)
+        assert len(res3.json["form_errors"]) == 2
+        assert (
+            res3.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res3.json["form_errors"]["account__private_key_technology"]
+            == "Missing value"
+        )
+
+        form["account__private_key_technology"] = "RSA"
+        res4 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
+        )
+        assert res4.json["result"] == "success"
+        assert "AcmeAccount" in res4.json
 
     def test_post_required_json(self):
         (focus_item, focus_id) = self._get_one()
@@ -7895,13 +7912,13 @@ class FunctionalTests_API(AppTest):
 
     @routes_tested(
         (
-            "admin:api:ca_certificate:letsencrypt_download",
-            "admin:api:ca_certificate:letsencrypt_download|json",
+            "admin:api:ca_certificate:letsencrypt_sync",
+            "admin:api:ca_certificate:letsencrypt_sync|json",
         )
     )
-    def test_ca_download(self):
+    def test_letsencrypt_sync(self):
         res = self.testapp.post(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-download", {}, status=303
+            "/.well-known/admin/api/ca-certificate/letsencrypt-sync", {}, status=303
         )
         assert (
             "/admin/operations/ca-certificate-downloads?result=success&event.id="
@@ -7909,7 +7926,7 @@ class FunctionalTests_API(AppTest):
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-download.json",
+            "/.well-known/admin/api/ca-certificate/letsencrypt-sync.json",
             {},
             status=200,
         )
@@ -8035,7 +8052,7 @@ class FunctionalTests_API(AppTest):
 
     def test_post_required_html(self):
         res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-download", status=303
+            "/.well-known/admin/api/ca-certificate/letsencrypt-sync", status=303
         )
         assert (
             res.location
@@ -8062,9 +8079,9 @@ class FunctionalTests_API(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
-        # !!!: test `POST required` `api/ca-certificate/letsencrypt-download.json`
+        # !!!: test `POST required` `api/ca-certificate/letsencrypt-sync.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-download.json",
+            "/.well-known/admin/api/ca-certificate/letsencrypt-sync.json",
             status=200,
         )
         assert "instructions" in res.json

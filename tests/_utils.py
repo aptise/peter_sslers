@@ -59,6 +59,16 @@ port80 of that domain to this app, so LetsEncrypt can access it.
 
 see the nginx test config file `testing.conf`
 
+
+IMPORTANT
+
+cert_utils also has some environ vars:
+
+    openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
+    openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
+
+    export SSL_BIN_OPENSSL="/usr/local/bin/openssl"
+    export SSL_CONF_OPENSSL="/usr/local/ssl/openssl.cnf"
 """
 
 # run tests that expire nginx caches
@@ -133,6 +143,10 @@ if RUN_API_TESTS__ACME_DNS_API:
 
 OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.1"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
+
+
+# override to "test_local.ini" if needed
+TEST_INI = os.environ.get("SSL_TEST_INI", "test.ini")
 
 
 # ==============================================================================
@@ -649,7 +663,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
     def setUp(self):
         self._settings = settings = get_appsettings(
-            "test.ini", name="main"
+            TEST_INI, name="main"
         )  # this can cause an unclosed resource
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite

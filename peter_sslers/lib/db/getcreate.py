@@ -241,7 +241,7 @@ def getcreate__AcmeAccount(
             raise errors.ConflictingObject(
                 (
                     dbAcmeAccount,
-                    "The submitted AcmeAccountProvider and contact ino is already associated with another AcmeAccountKey.",
+                    "The submitted AcmeAccountProvider and contact info is already associated with another AcmeAccountKey.",
                 )
             )
     elif dbAcmeAccountKey:
