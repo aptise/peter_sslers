@@ -74,8 +74,14 @@
 		private_key.key_pem_modulus_md5
 		server_certificate.cert_pem_modulus_md5
 
+	added "import-domain" to acme-dns-server
 	
 	+ other fixes and improvements
+	
+	TODO:
+		debugtoolbar error on duplicate acmeaccount registration
+		list how many loops/process are needed on an acme order
+		shortcut to creating an order from a domain
 			
 
 0.4.0

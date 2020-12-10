@@ -151,9 +151,11 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
     )
 
     # this is the `private_key_technology` of the AcmeAccount
+    # this is not required on Upload, only New
     account__private_key_technology = OneOf(
         model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
 
     # these are via Form_AcmeAccount_new__file
@@ -238,9 +240,11 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
     )
 
     # this is the `private_key_technology` of the AcmeAccount
+    # this is not required on Upload, only New
     account__private_key_technology = OneOf(
         model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
 
     # if this isn't provided...
@@ -288,6 +292,16 @@ class Form_AcmeDnsServer_edit(_Form_Schema_Base):
 
 class Form_AcmeDnsServer_ensure_domains(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
+
+
+class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True)
+    # acme-dns fields:
+    username = UnicodeString(not_empty=True)
+    password = UnicodeString(not_empty=True)
+    fulldomain = UnicodeString(not_empty=True)
+    subdomain = UnicodeString(not_empty=True)
+    allowfrom = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):

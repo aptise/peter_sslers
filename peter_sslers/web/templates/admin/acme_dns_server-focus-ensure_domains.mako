@@ -31,16 +31,29 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-        
             <h3>Ensure Domains</h3>
-        
             <p>
-                Use this form if you plan on provisioning a certificate with `DNS-01` authentication against this `acme-dns` server.
+                Use this form if you plan on provisioning a certificate with `DNS-01`
+                authentication against this `acme-dns` server.
             </p>
-            
-            <p>If a domain is unknown to this `acme-dns` server, it will be enrolled. If a domain is known to this `acme-dns` server, it will be reused.</p>
-            
-            <p>After submission, you will receive a payload of the `acme-dns` entries the domains root dns should delegate `_acme-challenge` records onto.</p>
+            <p>
+                If a domain is unknown to be associated with this `acme-dns` server,
+                it will be enrolled. If a domain is known to be associated with this
+                `acme-dns` server, it will be not be enrolled.
+            </p>
+            <p>
+                <em>
+                    Note: acme-dns server registrations are not unique. if this
+                    application does not know about an existing acme-dns registration
+                    for a given domain, this tool will create a new registration
+                    for that existing domain. if you wish to use existing acme-dns
+                    credentials, use the "import-domain" tool.
+                </em>
+            </p>
+            <p>
+                After submission, you will receive a payload of the `acme-dns` entries
+                the domains root dns should delegate `_acme-challenge` records onto.
+            </p>
             
 
             <form

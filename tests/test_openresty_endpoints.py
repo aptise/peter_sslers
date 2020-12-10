@@ -16,6 +16,7 @@ from ._utils import AppTest
 # local, flags
 from ._utils import RUN_NGINX_TESTS
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
+from ._utils import TEST_INI
 
 
 # ==============================================================================
@@ -45,7 +46,7 @@ class FunctionalTests_Main(unittest.TestCase):
     _app_settings = None
 
     def setUp(self):
-        self._settings = settings = get_appsettings("test.ini", name="main")
+        self._settings = settings = get_appsettings(TEST_INI, name="main")
         self._app_settings = app_settings = ApplicationSettings()
         app_settings.from_settings_dict(settings)
 

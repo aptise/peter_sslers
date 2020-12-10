@@ -17,6 +17,7 @@ import binascii
 import json
 import re
 import hashlib
+import os
 import pdb
 import subprocess
 import sys
@@ -66,14 +67,8 @@ from ..model.utils import KeyTechnology
 
 # ==============================================================================
 
-
-openssl_path = "openssl"
-openssl_path_conf = "/etc/ssl/openssl.cnf"
-
-# TODO - toggle this via env vars
-openssl_path = "/usr/local/bin/openssl"
-openssl_path_conf = "/usr/local/ssl/openssl.cnf"
-
+openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
+openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
 
 ACME_VERSION = "v2"
 openssl_version = None
@@ -873,7 +868,7 @@ def key_single_op__pem_filepath(keytype="RSA", pem_filepath=None, single_op=None
         data, err = proc.communicate()
         if not data:
             # this happens!
-            if err != "read EC key\nEC Key valid.\n":
+            if err != b"read EC key\nEC Key valid.\n":
                 raise errors.OpenSslError_InvalidCertificate(err)
         if six.PY3:
             data = data.decode("utf8")

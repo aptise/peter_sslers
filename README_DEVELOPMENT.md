@@ -186,5 +186,14 @@ Go is already installed, however if we need to do a new version...
     sudo apt install golang-go
 
 
+# useful queries
+
+## grab acme-dns info
+
+	select d.id, d.domain_name, a.username, a.password, a.fulldomain, a.subdomain 
+	from acme_dns_server_account a 
+	join domain d on a.domain_id = d.id
+	;
+
 
 

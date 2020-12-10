@@ -257,11 +257,39 @@ def get_header_links(response_headers, relation_type):
 
     :param headers: response headers
     :param relation_type: the relation type sought
+
+    The response object may have multiple links:
+
+        Link: <https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index"
+        Link: <https://acme-staging-v02.api.letsencrypt.org/acme/cert/12345/1>;rel="alternate"
+
+    In Python 3.x , the <httplib.HTTPMessage> class has a `.get_all()` method:
+
+        (Pdb) response_headers.get_all("Link")
+        ['<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index"',
+         '<https://acme-staging-v02.api.letsencrypt.org/acme/cert/12345/1>;rel="alternate"'
+         ]
+
+    But in Python 2.x, we only have `get`:
+
+        (Pdb) response_headers.get("Link")
+        '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index",
+         <https://acme-staging-v02.api.letsencrypt.org/acme/cert/fa536ddfe679c4bcbdf48271f36975729229/1>;rel="alternate"'
+
+
+    Coverage for this is provided by:
+
+        tests_unit.UnitTest_ACME_v2.test__parse_headers
     """
     if not "Link" in response_headers:
         return []
-    links = [parse_header_links(h) for h in response_headers.get_all("Link")]
-    links = [l[0] for l in links if l]
+    if hasattr(response_headers, "get_all"):
+        links = [parse_header_links(h) for h in response_headers.get_all("Link")]
+        links = [l[0] for l in links if l]
+    else:
+        # '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index", <https://acme-staging-v02.api.letsencrypt.org/acme/cert/123/1>;rel="alternate"'
+
+        links = parse_header_links(response_headers.get("Link"))
     return [
         l["url"]
         for l in links

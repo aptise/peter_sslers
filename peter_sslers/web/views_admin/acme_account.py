@@ -93,7 +93,6 @@ class View_New(Handler):
                     "account_key_file_le_reg": "Group B",
                     "account__contact": "the contact's email address for the ACME Server",
                     "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
-                    "account__private_key_technology": "what is the key technology preference for this account?",
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
@@ -102,7 +101,6 @@ class View_New(Handler):
                         for i in self.dbAcmeAccountProviders
                     },
                     "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-                    "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -121,7 +119,7 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             parser = AcmeAccountUploadParser(formStash)
-            parser.require_upload(require_contact=None)
+            parser.require_upload(require_contact=None, require_technology=False)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
