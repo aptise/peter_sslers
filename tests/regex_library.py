@@ -90,6 +90,13 @@ RE_AcmeDnsServer_checked = re.compile(
 RE_AcmeDnsServer_ensure_domains_results = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)/ensure-domains-results\?acme-dns-server-accounts=[\d,]+$"""
 )
+RE_AcmeDnsServer_import_domain_success = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server-account/(\d+)\?result=success&operation=import$"""
+)
+RE_AcmeDnsServer_import_domain_existing = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server-account/(\d+)\?result=existing&operation=import$"""
+)
+
 
 # note: AcmeOrder
 

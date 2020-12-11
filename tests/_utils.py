@@ -471,6 +471,26 @@ TEST_FILES = {
             "1": {
                 "ensure-domains.html": "ensure1-html.example.com, ensure2-html.example.com, ensure1.example.com",
                 "ensure-domains.json": "ensure1-json.example.com, ensure2-json.example.com, ensure1.example.com",
+                "import-domain.html": {
+                    "payload": {
+                        "domain_name": "import1-html.example.com",
+                        "username": "xxusernamexx",
+                        "password": "xxpasswordxx",
+                        "fulldomain": "html.fqdn.acmedns.example.com",
+                        "subdomain": "html.fqdn",
+                        "allowfrom": "[]",
+                    }
+                },
+                "import-domain.json": {
+                    "payload": {
+                        "domain_name": "import1-json.example.com",
+                        "username": "xxusernameyy",
+                        "password": "xxpasswordyy",
+                        "fulldomain": "json.fqdn.acmedns.example.com",
+                        "subdomain": "json.fqdn",
+                        "allowfrom": "[]",
+                    }
+                },
             },
         },
     },

@@ -1393,9 +1393,13 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "admin:acme_dns_server:new",
             "admin:acme_dns_server:focus:ensure_domains",
             "admin:acme_dns_server:focus:ensure_domains_results",
+            "admin:acme_dns_server:focus:import_domain",
         )
     )
     def test_new_html(self):
+        """
+        python -munittest tests.test_pyramid_app.FunctionalTests_AcmeDnsServer.test_new_html
+        """
         res = self.testapp.get("/.well-known/admin/acme-dns-server/new", status=200)
         form = res.form
         form["root_url"] = TEST_FILES["AcmeDnsServer"]["3"]["root_url"]
@@ -1430,6 +1434,36 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         res2 = form.submit()
         assert RE_AcmeDnsServer_ensure_domains_results.match(res2.location)
 
+        # import_domain
+        # use ._get_one() so the real server is used
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/%s/import-domain" % focus_id,
+            status=200,
+        )
+        assert "form-acme_dns_server-import_domain" in res.forms
+        form = res.forms["form-acme_dns_server-import_domain"]
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_name -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Please enter a value</span></div></div>"""
+            in res2.text
+        )
+        _intended_payload = TEST_FILES["Domains"]["AcmeDnsServer"]["1"][
+            "import-domain.html"
+        ]["payload"]
+        _fields = [i[0] for i in form.submit_fields()]
+        for k in _intended_payload.keys():
+            assert k in _fields
+            form[k] = _intended_payload[k]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert RE_AcmeDnsServer_import_domain_success.match(res2.location)
+
+        # submit this again, and we should go to existing!
+        res3 = form.submit()
+        assert res3.status_code == 303
+        assert RE_AcmeDnsServer_import_domain_existing.match(res3.location)
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
     @under_pebble
@@ -1438,6 +1472,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "admin:acme_dns_server:new|json",
             "admin:acme_dns_server:focus:ensure_domains|json",
             "admin:acme_dns_server:focus:ensure_domains_results|json",
+            "admin:acme_dns_server:focus:import_domain|json",
         )
     )
     def test_new_json(self):
@@ -1496,6 +1531,53 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-dns-server/%s/ensure-domains-results.json?acme-dns-server-accounts=%s"
             % (focus_id, ",".join(_account_ids))
+        )
+
+        # import-domain
+        # use ._get_one() so the real server is used
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            status=200,
+        )
+        _intended_payload = TEST_FILES["Domains"]["AcmeDnsServer"]["1"][
+            "import-domain.json"
+        ]["payload"]
+        for k in _intended_payload.keys():
+            assert k in res.json["form_fields"]
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            status=200,
+        )
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            _intended_payload,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "result_matrix" in res.json
+        assert _intended_payload["domain_name"] in res.json["result_matrix"]
+        assert (
+            res.json["result_matrix"][_intended_payload["domain_name"]]["result"]
+            == "success"
+        )
+
+        # submit this again, and we should go to existing!
+        res = self.testapp.post(
+            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            _intended_payload,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "result_matrix" in res.json
+        assert _intended_payload["domain_name"] in res.json["result_matrix"]
+        assert (
+            res.json["result_matrix"][_intended_payload["domain_name"]]["result"]
+            == "existing"
         )
 
     def test_post_required_json(self):
@@ -5466,8 +5548,23 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__private_key_cycle": "single_certificate",
         }
         res3 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
-        assert res3.json["result"] == "success"
-        assert "AcmeAccount" in res3.json
+        assert res3.json["result"] == "error"
+        assert "form_errors" in res3.json
+        assert isinstance(res3.json["form_errors"], dict)
+        assert len(res3.json["form_errors"]) == 2
+        assert (
+            res3.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res3.json["form_errors"]["account__private_key_technology"]
+            == "Missing value"
+        )
+
+        form["account__private_key_technology"] = "RSA"
+        res4 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        assert res4.json["result"] == "success"
+        assert "AcmeAccount" in res4.json
         return True
 
     def _get_one_AcmeAccount(self):
@@ -8056,7 +8153,7 @@ class FunctionalTests_API(AppTest):
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/ca-certificate-downloads?result=error&operation=ca-certificate-proble&error=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/admin/operations/ca-certificate-downloads?result=error&operation=ca_certificate-letsencrypt_sync&error=HTTP+POST+required"
         )
 
     def test_post_required_json(self):

@@ -188,6 +188,16 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>New Certificate</th>
+                        <td>
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                AcmeDnsServers - New</a>
+                        </td>
+                    </tr>
                 </tbody>
                 <thead>
                     <tr>
