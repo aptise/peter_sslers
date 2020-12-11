@@ -516,9 +516,12 @@ class View_Focus(Handler):
                         _dbAcmeDnsServerAccount,
                     ]
                 )
+                result_matrix[_dbDomain.domain_name]["result"] = (
+                    "success" if _is_created__account else "existing"
+                )
                 return {"result": "success", "result_matrix": result_matrix}
 
-            url_success = "%s/acme-dns-server-account/%s?result=%s" % (
+            url_success = "%s/acme-dns-server-account/%s?result=%s&operation=import" % (
                 self.request.admin_url,
                 _dbAcmeDnsServerAccount.id,
                 "success" if _is_created__account else "existing",
