@@ -1055,6 +1055,8 @@ def parse_key(key_pem=None, key_pem_filepath=None):
                     .n
                 )
                 modn = "{:X}".format(modn)
+                if six.PY3:
+                    modn = modn.encode()
                 rval["modulus_md5"] = hashlib.md5(modn).hexdigest()
             except Exception as exc:
                 rval["XX-modulus_md5"] = str(exc)
@@ -1266,6 +1268,9 @@ def new_key_ec(bits=384):
             encryption_algorithm=cryptography_serialization.NoEncryption(),
         )
         # load it: openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
+        if six.PY3:
+            key_pem = key_pem.decode("utf8")
+        key_pem = cleanup_pem_text(key_pem)
     else:
         log.debug(".new_key_ec > openssl fallback")
         # openssl ecparam -list_curves

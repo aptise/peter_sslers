@@ -466,7 +466,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             rval = cert_utils.parse_key(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
-            print(key_filename)
             self.assertEqual(
                 rval["key_technology"], KEY_SETS[key_filename]["key_technology"]
             )
