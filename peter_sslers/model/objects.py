@@ -2016,7 +2016,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "certificate_ca"
     id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.Unicode(255), nullable=False)
+    display_name = sa.Column(sa.Unicode(255), nullable=False)
 
     is_trusted_root = sa.Column(sa.Boolean, nullable=True, default=None)
     key_technology_id = sa.Column(
@@ -2042,7 +2042,6 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
 
-    display_name = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

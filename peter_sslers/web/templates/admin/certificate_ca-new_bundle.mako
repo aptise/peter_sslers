@@ -32,8 +32,8 @@
                 ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__CertificateCAChain_bundle_file(
-                    CA_LE_INTERMEDIATES_CROSSED=CA_LE_INTERMEDIATES_CROSSED,
                     CA_LE_INTERMEDIATES=CA_LE_INTERMEDIATES,
+                    CA_LE_INTERMEDIATES_CROSSED=CA_LE_INTERMEDIATES_CROSSED,
                 )}
                 <hr/>
 

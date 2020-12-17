@@ -299,7 +299,7 @@ class View_New(Handler):
                 dbCertificateCA,
                 cacert_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
-                self.request.api_context, ca_chain_pem, ca_chain_name="manual upload"
+                self.request.api_context, ca_chain_pem, display_name="manual upload"
             )
 
             certificate_pem = formhandling.slurp_file_field(

@@ -1672,8 +1672,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
                 ctx,
                 _ca_chain_pem,
-                ca_chain_name="ACME Server Response",
-                display_name=None,
+                display_name="ACME Server Response",
             )
             if is_created__CertificateCA:
                 ctx.pyramid_transaction_commit()
@@ -2365,8 +2364,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
                 ctx,
                 _ca_chain_pem,
-                ca_chain_name="ACME Server Response",
-                display_name=None,
+                display_name="ACME Server Response",
             )
             if is_created__CertificateCA:
                 ctx.pyramid_transaction_commit()

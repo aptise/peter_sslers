@@ -36,7 +36,7 @@ from peter_sslers.model import utils as model_utils
 
 from ._utils import AppTestCore
 from ._utils import AppTest
-from ._utils import CA_CERT_SETS
+from ._utils import CERT_CA_SETS
 from ._utils import CSR_SETS
 from ._utils import KEY_SETS
 from ._utils import TEST_FILES
@@ -401,13 +401,13 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             )
 
         # ca certs
-        for cert_filename in sorted(CA_CERT_SETS.keys()):
+        for cert_filename in sorted(CERT_CA_SETS.keys()):
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
             modulus_md5 = cert_utils.modulus_md5_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
-            self.assertEqual(modulus_md5, CA_CERT_SETS[cert_filename]["modulus_md5"])
+            self.assertEqual(modulus_md5, CERT_CA_SETS[cert_filename]["modulus_md5"])
 
     def test__parse_cert__enddate(self):
         """
@@ -489,14 +489,14 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             )
 
         # ca certs
-        for cert_filename in sorted(CA_CERT_SETS.keys()):
+        for cert_filename in sorted(CERT_CA_SETS.keys()):
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(
-                rval["key_technology"], CA_CERT_SETS[cert_filename]["key_technology"]
+                rval["key_technology"], CERT_CA_SETS[cert_filename]["key_technology"]
             )
 
     def test__cert_and_chain_from_fullchain(self):
@@ -903,8 +903,8 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
     """
 
     def test_formatting(self):
-        self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_VERSION"))
-        self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_DATA"))
+        self.assertTrue(hasattr(letsencrypt_info, "CERT_CAS_VERSION"))
+        self.assertTrue(hasattr(letsencrypt_info, "CERT_CAS_DATA"))
         self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES_CROSSED"))
         self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES"))
 
@@ -913,11 +913,11 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             "url_pem": [],
             "display_name": [],
         }
-        for (cert_id, cert_payload) in letsencrypt_info.CA_CERTS_DATA.items():
+        for (cert_id, cert_payload) in letsencrypt_info.CERT_CAS_DATA.items():
 
             # Make sure every cert has it's chain present
             _signed_by = cert_payload.get("signed_by")
-            self.assertIn(_signed_by, letsencrypt_info.CA_CERTS_DATA)
+            self.assertIn(_signed_by, letsencrypt_info.CERT_CAS_DATA)
 
             if cert_payload.get("is_self_signed"):
                 self.assertEqual(cert_id, _signed_by)
@@ -929,11 +929,11 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             self.assertFalse(_alternates and _alternate_of)
             if _alternates:
                 for _alternate in _alternates:
-                    self.assertIn(_alternate, letsencrypt_info.CA_CERTS_DATA)
-                    _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate]
+                    self.assertIn(_alternate, letsencrypt_info.CERT_CAS_DATA)
+                    _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate]
                     self.assertEqual(cert_id, _alternate_payload["alternate_of"])
             if _alternate_of:
-                _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate_of]
+                _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate_of]
                 self.assertIn("alternates", _alternate_payload)
 
             # these

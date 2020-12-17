@@ -58,7 +58,7 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 CertificateCA-${cert.id}</a></td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
-                            <td>${cert.name or ''}</td>
+                            <td>${cert.display_name or ''}</td>
                             <td><timestamp>${cert.timestamp_created}</timestamp></td>
                             <td><code>${cert.cert_pem_md5}</code></td>
                         </tr>

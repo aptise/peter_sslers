@@ -413,17 +413,23 @@ class Form_CertificateCA_Upload__file(_Form_Schema_Base):
 
 class Form_CertificateCA_UploadBundle__file(_Form_Schema_Base):
     isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    isrgrootx2_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    isrgrootx2_cross_file = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    trustidrootx3_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    le_ocsp_root_x1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
-for xi in letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED:
+for le_serial in letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED:
     Form_CertificateCA_UploadBundle__file.add_field(
-        "le_%s_cross_file" % xi,
+        "le_%s_cross_file" % le_serial,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )
 
-for xi in letsencrypt_info.CA_LE_INTERMEDIATES:
+for le_serial in letsencrypt_info.CA_LE_INTERMEDIATES:
     Form_CertificateCA_UploadBundle__file.add_field(
-        "le_int_%s_file" % xi,
+        "le_int_%s_file" % le_serial,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )
 

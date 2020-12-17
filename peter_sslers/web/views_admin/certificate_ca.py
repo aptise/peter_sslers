@@ -242,7 +242,7 @@ class View_New(Handler):
                 dbCertificateCA,
                 cacert_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
-                self.request.api_context, ca_chain_pem, ca_chain_name=chain_file_name
+                self.request.api_context, ca_chain_pem, display_name=chain_file_name
             )
 
             if self.request.wants_json:
@@ -290,7 +290,7 @@ class View_New(Handler):
                 _instructions.append(
                     """--form 'le_int_%s_file=@letsencryptauthority%s'""" % (xi, xi)
                 )
-                _form_fields["le_int_%_file" % xi] = "optional"
+                _form_fields["le_int_%s_file" % xi] = "optional"
             # and the post
             _instructions.append(
                 """%s/certificate-ca/upload-bundle.json""" % self.request.admin_url
