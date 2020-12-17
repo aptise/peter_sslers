@@ -63,7 +63,7 @@ def certificate_ca_download(ctx):
                 dbCertificateCA,
                 _is_created,
             ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
-                ctx, cert_data["cert_pem"], ca_chain_name=cert_data["name"]
+                ctx, cert_data["cert_pem"], ca_chain_name=cert_data["display_name"]
             )
             if _is_created:
                 certs_discovered.append(dbCertificateCA)

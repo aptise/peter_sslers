@@ -1,8 +1,11 @@
+# stdlib
+import os
+
+# local
 from . import acme_v2
 from . import cert_utils
 from ..model import objects as model_objects
 from ..model import utils as model_utils
-
 
 # ------------------------------------------------------------------------------
 
@@ -58,6 +61,15 @@ class ApplicationSettings(dict):
             self["admin_prefix"] = "/.well-known/admin"
 
         # update the module data based on settings
+        # but first check for conflicts
+        _openssl_env = os.environ.get(
+            cert_utils._envvar_SSL_BIN_OPENSSL, None
+        ) or os.environ.get(cert_utils._envvar_SSL_CONF_OPENSSL, None)
+        _openssl_ini = settings.get("openssl_path", None) or settings.get(
+            "openssl_path_conf", None
+        )
+        if _openssl_env and _openssl_ini:
+            raise ValueError("OpenSSL values specified in .ini and environment")
         _changed_openssl = False
         if "openssl_path" in settings:
             cert_utils.openssl_path = self["openssl_path"] = settings["openssl_path"]

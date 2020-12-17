@@ -67,8 +67,15 @@ from ..model.utils import KeyTechnology
 
 # ==============================================================================
 
-openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
-openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
+
+# set these as vars, so other packages can programatticaly test the env for conflicts
+_envvar_SSL_BIN_OPENSSL = "SSL_BIN_OPENSSL"
+_envvar_SSL_CONF_OPENSSL = "SSL_CONF_OPENSSL"
+
+openssl_path = os.environ.get(_envvar_SSL_BIN_OPENSSL, None) or "openssl"
+openssl_path_conf = (
+    os.environ.get(_envvar_SSL_CONF_OPENSSL, None) or "/etc/ssl/openssl.cnf"
+)
 
 ACME_VERSION = "v2"
 openssl_version = None

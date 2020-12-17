@@ -2503,36 +2503,44 @@ class FunctionalTests_CertificateCA(AppTest):
         form["isrgrootx1_file"] = Upload(
             self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
         )
-        form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x1_auth"])
+        form["le_int_x1_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x1"])
         )
-        form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x2_auth"])
+        form["le_int_x2_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x2"])
         )
-        form["le_x3_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x3_auth"])
+        form["le_int_x3_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x3"])
         )
-        form["le_x4_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x4_auth"])
+        form["le_int_x4_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x4"])
         )
-        form["le_x1_cross_signed_file"] = Upload(
+        form["le_int_x1_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x1_cross"
+                ]
             )
         )
-        form["le_x2_cross_signed_file"] = Upload(
+        form["le_int_x2_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x2_cross"
+                ]
             )
         )
-        form["le_x3_cross_signed_file"] = Upload(
+        form["le_int_x3_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x3_cross"
+                ]
             )
         )
-        form["le_x4_cross_signed_file"] = Upload(
+        form["le_int_x4_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x4_cross"
+                ]
             )
         )
         res2 = form.submit()
@@ -2585,30 +2593,38 @@ class FunctionalTests_CertificateCA(AppTest):
         form["isrgrootx1_file"] = Upload(
             self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
         )
-        form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x1_auth"])
+        form["le_int_x1_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x1"])
         )
-        form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x2_auth"])
+        form["le_int_x2_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x2"])
         )
-        form["le_x1_cross_signed_file"] = Upload(
+        form["le_int_x1_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x1_cross"
+                ]
             )
         )
-        form["le_x2_cross_signed_file"] = Upload(
+        form["le_int_x2_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x2_cross"
+                ]
             )
         )
-        form["le_x3_cross_signed_file"] = Upload(
+        form["le_int_x3_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x3_cross"
+                ]
             )
         )
-        form["le_x4_cross_signed_file"] = Upload(
+        form["le_int_x4_cross_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"][
+                    "letsencrypt_intermediate_x4_cross"
+                ]
             )
         )
         res2 = self.testapp.post(
@@ -2617,7 +2633,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         # this is going to be too messy to check all the vars
-        # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_x2_auth_pem': {u'id': 3, u'created': False}, u'le_x4_cross_signed_pem': {u'id': 6, u'created': False}, u'le_x2_cross_signed_pem': {u'id': 7, u'created': False}, u'le_x3_cross_signed_pem': {u'id': 8, u'created': False}, u'result': u'success', u'le_x1_cross_signed_pem': {u'id': 4, u'created': False}, u'le_x1_auth_pem': {u'id': 1, u'created': False}}
+        # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_int_x2_pem': {u'id': 3, u'created': False}, u'letsencrypt_intermediate_x4_cross_pem': {u'id': 6, u'created': False}, u'letsencrypt_intermediate_x2_cross_pem': {u'id': 7, u'created': False}, u'letsencrypt_intermediate_x3_cross_pem': {u'id': 8, u'created': False}, u'result': u'success', u'letsencrypt_intermediate_x1_cross_pem': {u'id': 4, u'created': False}, u'le_int_x1_pem': {u'id': 1, u'created': False}}
 
 
 class FunctionalTests_CertificateRequest(AppTest):

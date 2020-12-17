@@ -280,17 +280,17 @@ class View_New(Handler):
         if self.request.wants_json:
             _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'"]
             _form_fields = {"isrgrootx1_file": "optional"}
-            for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
+            for xi in letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED:
                 _instructions.append(
-                    """--form 'le_%s_cross_signed_file=@lets-encrypt-%s-cross-signed.pem'"""
+                    """--form 'le_%s_cross_file=@lets-encrypt-%s-cross-signed.pem'"""
                     % (xi, xi)
                 )
-                _form_fields["le_%s_cross_signed_file" % xi] = "optional"
-            for xi in letsencrypt_info.CA_AUTH_X:
+                _form_fields["le_%s_cross_file" % xi] = "optional"
+            for xi in letsencrypt_info.CA_LE_INTERMEDIATES:
                 _instructions.append(
-                    """--form 'le_%s_auth_file=@letsencryptauthority%s'""" % (xi, xi)
+                    """--form 'le_int_%s_file=@letsencryptauthority%s'""" % (xi, xi)
                 )
-                _form_fields["le_%s_auth_file" % xi] = "optional"
+                _form_fields["le_int_%_file" % xi] = "optional"
             # and the post
             _instructions.append(
                 """%s/certificate-ca/upload-bundle.json""" % self.request.admin_url
@@ -303,8 +303,8 @@ class View_New(Handler):
         return render_to_response(
             "/admin/certificate_ca-new_bundle.mako",
             {
-                "CA_CROSS_SIGNED_X": letsencrypt_info.CA_CROSS_SIGNED_X,
-                "CA_AUTH_X": letsencrypt_info.CA_AUTH_X,
+                "CA_LE_INTERMEDIATES_CROSSED": letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED,
+                "CA_LE_INTERMEDIATES": letsencrypt_info.CA_LE_INTERMEDIATES,
             },
             self.request,
         )
@@ -334,23 +334,23 @@ class View_New(Handler):
                             "isrgrootx1_pem"
                         ].decode("utf8")
 
-            for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
+            for xi in letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED:
                 _bd_key = "le_%s_cross_signed_pem" % xi
                 bundle_data[_bd_key] = None
-                if formStash.results["le_%s_cross_signed_file" % xi] is not None:
+                if formStash.results["le_%s_cross_file" % xi] is not None:
                     bundle_data[_bd_key] = formhandling.slurp_file_field(
-                        formStash, "le_%s_cross_signed_file" % xi
+                        formStash, "le_%s_cross_file" % xi
                     )
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
 
-            for xi in letsencrypt_info.CA_AUTH_X:
-                _bd_key = "le_%s_auth_pem" % xi
+            for xi in letsencrypt_info.CA_LE_INTERMEDIATES:
+                _bd_key = "le_int_%s_pem" % xi
                 bundle_data[_bd_key] = None
-                if formStash.results["le_%s_auth_file" % xi] is not None:
+                if formStash.results["le_int_%s_file" % xi] is not None:
                     bundle_data[_bd_key] = formhandling.slurp_file_field(
-                        formStash, "le_%s_auth_file" % xi
+                        formStash, "le_int_%s_file" % xi
                     )
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):

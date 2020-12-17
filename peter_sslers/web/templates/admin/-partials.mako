@@ -1555,7 +1555,7 @@
 </%def>
 
 
-<%def name="formgroup__CertificateCAChain_bundle_file(CA_CROSS_SIGNED_X=None, CA_AUTH_X=None)">
+<%def name="formgroup__CertificateCAChain_bundle_file(CA_LE_INTERMEDIATES_CROSSED=None, CA_LE_INTERMEDIATES=None)">
     <div class="form-group clearfix">
         <label for="f1-isrgrootx1_file">ISRG Root X1</label>
         <input class="form-control" type="file" id="f1-isrgrootx1_file" name="isrgrootx1_file" />
@@ -1565,10 +1565,28 @@
     </div>
     <hr/>
 
-    % for xi in CA_AUTH_X:
+    <div class="form-group clearfix">
+        <label for="f1-isrgrootx2_file">ISRG Root X2</label>
+        <input class="form-control" type="file" id="f1-isrgrootx2_file" name="isrgrootx2_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-isrgrootx2_cross_file">ISRG Root X2 (Cross-signed by ISRG Root X1)</label>
+        <input class="form-control" type="file" id="f1-isrgrootx2_cross_file" name="isrgrootx2_cross_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    % for xi in CA_LE_INTERMEDIATES:
         <div class="form-group clearfix">
-            <label for="f1-le_${xi}_auth_file">Let’s Encrypt Authority ${xi}</label>
-            <input class="form-control" type="file" id="f1-le_${xi}_auth_file" name="le_${xi}_auth_file" />
+            <label for="f1-le_int_${xi}_file">Let’s Encrypt Authority ${xi}</label>
+            <input class="form-control" type="file" id="f1-le_int_${xi}_file" name="le_int_${xi}_file" />
             <p class="help-block">
                 As linked to from https://letsencrypt.org/certificates/
             </p>
@@ -1576,10 +1594,10 @@
         <hr/>
     % endfor
 
-    % for xi in CA_CROSS_SIGNED_X:
+    % for xi in CA_LE_INTERMEDIATES_CROSSED:
         <div class="form-group clearfix">
-            <label for="f1-le_${xi}_cross_signed_file">Let’s Encrypt Authority ${xi} (IdenTrust cross-signed)</label>
-            <input class="form-control" type="file" id="f1-le_${xi}_cross_signed_file" name="le_${xi}_cross_signed_file" />
+            <label for="f1-le_${xi}_cross_file">Let’s Encrypt Authority ${xi} (Cross-signed by IdenTrust)</label>
+            <input class="form-control" type="file" id="f1-le_${xi}_cross_file" name="le_${xi}_cross_file" />
             <p class="help-block">
                 As linked to from https://letsencrypt.org/certificates/
             </p>
