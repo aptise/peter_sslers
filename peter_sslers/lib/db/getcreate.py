@@ -687,7 +687,6 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
 def getcreate__CertificateCA__by_pem_text(
     ctx,
     cert_pem,
-    ca_chain_name=None,
     display_name=None,
     is_trusted_root=None,
     key_technology_id=None,
@@ -697,7 +696,6 @@ def getcreate__CertificateCA__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
-    :param ca_chain_name:
     :param display_name: a name to display this as
     :param is_trusted_root:
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
@@ -728,9 +726,8 @@ def getcreate__CertificateCA__by_pem_text(
             )
 
             dbCertificateCA = model_objects.CertificateCA()
-            dbCertificateCA.name = ca_chain_name or "unknown"
+            dbCertificateCA.display_name = display_name or "unknown"
             dbCertificateCA.key_technology_id = key_technology_id
-            dbCertificateCA.display_name = display_name
             dbCertificateCA.is_trusted_root = is_trusted_root
             dbCertificateCA.id_cross_signed_by = None
             dbCertificateCA.timestamp_created = ctx.timestamp

@@ -47,12 +47,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>name</th>
-                        <td>${CertificateCA.name}</td>
-                    </tr>
-                    <tr>
                         <th>display_name</th>
-                        <td>${CertificateCA.display_name or ''}</td>
+                        <td>${CertificateCA.display_name or ""}</td>
                     </tr>
                     <tr>
                         <th>is_trusted_root</th>

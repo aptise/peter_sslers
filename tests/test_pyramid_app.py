@@ -27,6 +27,7 @@ from webtest.http import StopableWSGIServer
 import requests
 
 # local
+from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -2479,8 +2480,9 @@ class FunctionalTests_CertificateCA(AppTest):
         )
     )
     def test_upload_html(self):
-        """This should enter in item #3, but the CertificateCAs.order is 1; the other cert is a self-signed"""
-        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][1]
+        """This should enter in item #8, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1`"""
+        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][0]
+        self.assertEqual(_ca_cert_id, "trustid_root_x3")
         _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
@@ -2491,6 +2493,9 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res2.status_code == 303
 
         matched = RE_CertificateCA_uploaded.match(res2.location)
+        # focus_items = self.ctx.dbSession.query(model_objects.CertificateCA).all()
+        # pdb.set_trace()
+
         assert matched
         obj_id = matched.groups()[0]
         res3 = self.testapp.get(res2.location, status=200)
@@ -2500,49 +2505,15 @@ class FunctionalTests_CertificateCA(AppTest):
             "/.well-known/admin/certificate-ca/upload-bundle", status=200
         )
         form = res.form
-        form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
-        )
-        form["le_int_x1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x1"])
-        )
-        form["le_int_x2_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x2"])
-        )
-        form["le_int_x3_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x3"])
-        )
-        form["le_int_x4_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x4"])
-        )
-        form["le_int_x1_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x1_cross"
-                ]
+        _fields = [i[0] for i in form.submit_fields()]
+        for _cert_id in letsencrypt_info.CA_LE_BUNDLE_SUPPORTED:
+            _field_base = letsencrypt_info.CERT_CAS_DATA[_cert_id]["formfield_base"]
+            _field = "%s_file" % _field_base
+            self.assertIn(_field, _fields)
+            form[_field] = Upload(
+                self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"][_cert_id])
             )
-        )
-        form["le_int_x2_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x2_cross"
-                ]
-            )
-        )
-        form["le_int_x3_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x3_cross"
-                ]
-            )
-        )
-        form["le_int_x4_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x4_cross"
-                ]
-            )
-        )
+
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
@@ -2563,7 +2534,9 @@ class FunctionalTests_CertificateCA(AppTest):
         )
     )
     def test_upload_json(self):
-        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][1]
+        """This should enter in item #9, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1` and the trustid from `test_upload_html`"""
+        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][2]
+        self.assertEqual(_ca_cert_id, "isrg_root_x2")
         _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
@@ -2590,43 +2563,14 @@ class FunctionalTests_CertificateCA(AppTest):
         )
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         form = {}
-        form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
-        )
-        form["le_int_x1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x1"])
-        )
-        form["le_int_x2_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_int_x2"])
-        )
-        form["le_int_x1_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x1_cross"
-                ]
+
+        for _cert_id in letsencrypt_info.CA_LE_BUNDLE_SUPPORTED:
+            _field_base = letsencrypt_info.CERT_CAS_DATA[_cert_id]["formfield_base"]
+            _field = "%s_file" % _field_base
+            form[_field] = Upload(
+                self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"][_cert_id])
             )
-        )
-        form["le_int_x2_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x2_cross"
-                ]
-            )
-        )
-        form["le_int_x3_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x3_cross"
-                ]
-            )
-        )
-        form["le_int_x4_cross_file"] = Upload(
-            self._filepath_testfile(
-                TEST_FILES["CertificateCAs"]["cert"][
-                    "letsencrypt_intermediate_x4_cross"
-                ]
-            )
-        )
+
         res2 = self.testapp.post(
             "/.well-known/admin/certificate-ca/upload-bundle.json", form
         )

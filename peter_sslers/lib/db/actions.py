@@ -63,7 +63,7 @@ def certificate_ca_download(ctx):
                 dbCertificateCA,
                 _is_created,
             ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
-                ctx, cert_data["cert_pem"], ca_chain_name=cert_data["display_name"]
+                ctx, cert_data["cert_pem"], display_name=cert_data["display_name"]
             )
             if _is_created:
                 certs_discovered.append(dbCertificateCA)
@@ -897,13 +897,11 @@ def upload__CertificateCABundle__by_pem_text(ctx, bundle_data):
         cert_name = None
         display_name = None
         is_trusted_root = None
-        for c in list(letsencrypt_info.CA_CERTS_DATA.keys()):
-            if cert_base == letsencrypt_info.CA_CERTS_DATA[c]["formfield_base"]:
-                cert_name = letsencrypt_info.CA_CERTS_DATA[c]["name"]
-                if "display_name" in letsencrypt_info.CA_CERTS_DATA[c]:
-                    display_name = letsencrypt_info.CA_CERTS_DATA[c]["display_name"]
-                if "is_trusted_root" in letsencrypt_info.CA_CERTS_DATA[c]:
-                    is_trusted_root = letsencrypt_info.CA_CERTS_DATA[c][
+        for c in list(letsencrypt_info.CERT_CAS_DATA.keys()):
+            if cert_base == letsencrypt_info.CERT_CAS_DATA[c]["formfield_base"]:
+                display_name = letsencrypt_info.CERT_CAS_DATA[c]["display_name"]
+                if "is_trusted_root" in letsencrypt_info.CERT_CAS_DATA[c]:
+                    is_trusted_root = letsencrypt_info.CERT_CAS_DATA[c][
                         "is_trusted_root"
                     ]
                 break
@@ -914,15 +912,13 @@ def upload__CertificateCABundle__by_pem_text(ctx, bundle_data):
         ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
             ctx,
             cert_pem_text,
-            ca_chain_name=cert_name,
-            display_name=None,
+            display_name=display_name,
             is_trusted_root=is_trusted_root,
         )
         if not is_created:
-            if dbCertificateCA.name in ("unknown", "manual upload") and cert_name:
-                dbCertificateCA.name = cert_name
-            if dbCertificateCA.display_name is None:
-                dbCertificateCA.display_name = display_name
+            if display_name:
+                if dbCertificateCA.display_name in ("unknown", "manual upload", None):
+                    dbCertificateCA.display_name = display_name
 
         results[cert_pem] = (dbCertificateCA, is_created)
 

@@ -102,7 +102,7 @@ LIMITS = {
 # * tests.test_unit.UnitTest_LetsEncrypt_Data
 
 
-CA_CERTS_VERSION = 2  # update when the information below changes
+CERT_CAS_VERSION = 2  # update when the information below changes
 """
 format details:
 
@@ -114,16 +114,17 @@ the payload can have one of these two values, which reference another key:
 
     
 """
-CA_CERTS_DATA = {
+CERT_CAS_DATA = {
     "trustid_root_x3": {
         "display_name": "DST Root CA X3",
         "url_pem": "https://letsencrypt.org/certs/trustid-x3-root.pem",
         "is_trusted_root": True,
         "is_self_signed": True,
         "signed_by": "trustid_root_x3",
-        "formfield_base": "trustid_x3_root",
+        "formfield_base": "trustidx3root",
         "is_active": True,
         "key_technology": "RSA",
+        "is_bundle_supported": True,
     },
     "isrg_root_x1": {
         "display_name": "ISRG Root X1",
@@ -134,6 +135,7 @@ CA_CERTS_DATA = {
         "formfield_base": "isrgrootx1",
         "is_active": True,
         "key_technology": "RSA",
+        "is_bundle_supported": True,
     },
     "isrg_root_x2": {
         # x2 is self-signed by default, but is available as cross-signed by isrgrootx1
@@ -146,6 +148,7 @@ CA_CERTS_DATA = {
         "is_active": True,
         "key_technology": "EC",  # ECDSA
         "alternates": ["isrg_root_x2_cross"],
+        "is_bundle_supported": True,
     },
     "isrg_root_x2_cross": {
         # x2 this is cross signed by x1 to act as an intermediate!
@@ -157,6 +160,16 @@ CA_CERTS_DATA = {
         "key_technology": "RSA",
         "signed_by": "isrg_root_x1",
         "alternate_of": "isrg_root_x2",
+        "is_bundle_supported": True,
+    },
+    "letsencrypt_ocsp_root_x1": {
+        "display_name": "Let's Encrypt OSCP Root X1",
+        "url_pem": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem    ",
+        "formfield_base": "le_ocsp_root_x1",
+        "is_active": True,
+        "key_technology": "RSA",
+        "signed_by": "isrg_root_x1",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x1": {
         "display_name": "Let's Encrypt Authority X1",
@@ -167,6 +180,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_x1_cross"],
         "letsencrypt_serial": "x1",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x1_cross": {
         "display_name": "Let's Encrypt Authority X1 (IdenTrust cross-signed)",
@@ -177,6 +191,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_x1",
         "letsencrypt_serial": "x1",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x2": {
         "display_name": "Let's Encrypt Authority X2",
@@ -187,6 +202,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_x2_cross"],
         "letsencrypt_serial": "x2",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x2_cross": {
         "display_name": "Let's Encrypt Authority X2 (IdenTrust cross-signed)",
@@ -197,6 +213,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_x2",
         "letsencrypt_serial": "x2",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x3": {
         "display_name": "Let's Encrypt Authority X3",
@@ -207,6 +224,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_x3_cross"],
         "letsencrypt_serial": "x3",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x3_cross": {
         "display_name": "Let's Encrypt Authority X3 (IdenTrust cross-signed)",
@@ -217,6 +235,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_x3",
         "letsencrypt_serial": "x3",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x4": {
         "display_name": "Let's Encrypt Authority X4",
@@ -227,6 +246,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_x4_cross"],
         "letsencrypt_serial": "x4",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_x4_cross": {
         "display_name": "Let's Encrypt Authority X4 (IdenTrust cross-signed)",
@@ -237,6 +257,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_x4",
         "letsencrypt_serial": "x4",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_r3": {
         "display_name": "Let's Encrypt R3",
@@ -247,6 +268,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_r3_cross"],
         "letsencrypt_serial": "r3",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_r3_cross": {
         "display_name": "Let's Encrypt R3 (IdenTrust cross-signed)",
@@ -257,6 +279,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_r3",
         "letsencrypt_serial": "r3",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_r4": {
         "display_name": "Let's Encrypt R4",
@@ -267,6 +290,7 @@ CA_CERTS_DATA = {
         "signed_by": "isrg_root_x1",
         "alternates": ["letsencrypt_intermediate_r4_cross"],
         "letsencrypt_serial": "r4",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_r4_cross": {
         "display_name": "Let's Encrypt R4 (IdenTrust cross-signed)",
@@ -277,6 +301,7 @@ CA_CERTS_DATA = {
         "signed_by": "trustid_root_x3",
         "alternate_of": "letsencrypt_intermediate_r4",
         "letsencrypt_serial": "r4",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_e1": {
         "display_name": "Let's Encrypt E1",
@@ -286,6 +311,7 @@ CA_CERTS_DATA = {
         "key_technology": "EC",  # ECDSA
         "signed_by": "isrg_root_x2",
         "letsencrypt_serial": "e1",
+        "is_bundle_supported": True,
     },
     "letsencrypt_intermediate_e2": {
         "display_name": "Let's Encrypt E2",
@@ -295,14 +321,7 @@ CA_CERTS_DATA = {
         "key_technology": "EC",  # ECDSA
         "signed_by": "isrg_root_x2",
         "letsencrypt_serial": "e2",
-    },
-    "letsencrypt_ocsp_root_x1": {
-        "display_name": "Let's Encrypt OSCP Root X1",
-        "url_pem": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem    ",
-        "formfield_base": "le_ocsp_root_x1",
-        "is_active": True,
-        "key_technology": "EC",  # ECDSA
-        "signed_by": "isrg_root_x1",
+        "is_bundle_supported": True,
     },
     "staging_letsencrypt_root_x1": {
         "display_name": "Fake LE Root X1",
@@ -313,6 +332,7 @@ CA_CERTS_DATA = {
         "is_active": True,
         "key_technology": "RSA",
         "signed_by": "staging_letsencrypt_root_x1",
+        "is_bundle_supported": False,
     },
     "staging_letsencrypt_intermediate_x1": {
         "display_name": "Fake LE Intermediate X1",
@@ -321,6 +341,7 @@ CA_CERTS_DATA = {
         "is_active": True,
         "key_technology": "RSA",
         "signed_by": "staging_letsencrypt_root_x1",
+        "is_bundle_supported": False,
     },
 }
 
@@ -328,11 +349,17 @@ CA_CERTS_DATA = {
 # e.g.: ("x1", "x2", "x3", "x4", "r3", "r4", "e1", "e2")
 CA_LE_INTERMEDIATES = []
 CA_LE_INTERMEDIATES_CROSSED = []
-for _id, _payload in CA_CERTS_DATA.items():
+CA_LE_BUNDLE_SUPPORTED = []
+for _cert_id, _payload in CERT_CAS_DATA.items():
+    if _payload.get("is_bundle_supported", None):
+        CA_LE_BUNDLE_SUPPORTED.append(_cert_id)
     _serial = _payload.get("letsencrypt_serial")
-    if not _payload.get("is_trusted_root"):
-        CA_LE_INTERMEDIATES.append(_serial)
-    if _payload.get("alternate_of"):
+    if not _serial:
+        continue
+    if not _payload.get("alternate_of"):
+        if not _payload.get("is_trusted_root"):
+            CA_LE_INTERMEDIATES.append(_serial)
+    else:
         CA_LE_INTERMEDIATES_CROSSED.append(_serial)
 
 
@@ -345,7 +372,7 @@ def download_letsencrypt_certificates():
     - usually one uses `.text`, which is `.content` that is decoded
     - there was some concern that triggered this utf8 decode at some point...
     """
-    certs = copy.deepcopy(CA_CERTS_DATA)
+    certs = copy.deepcopy(CERT_CAS_DATA)
     for c in list(certs.keys()):
         resp = requests.get(certs[c]["url_pem"])
         if resp.status_code != 200:

@@ -39,6 +39,7 @@ from peter_sslers.model import meta as model_meta
 import peter_sslers.lib
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
+from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
 
 
@@ -432,6 +433,7 @@ TEST_FILES = {
             "isrg_root_x1",
             "isrg_root_x2",
             "isrg_root_x2_cross",
+            "letsencrypt_ocsp_root_x1",
             "letsencrypt_intermediate_e1",
             "letsencrypt_intermediate_e2",
             "letsencrypt_intermediate_r3",
@@ -450,7 +452,7 @@ TEST_FILES = {
             "isrg_root_x1": "letsencrypt-certs/isrgrootx1.pem",
             "isrg_root_x2": "letsencrypt-certs/isrg-root-x2.pem",
             "isrg_root_x2_cross": "letsencrypt-certs/isrg-root-x2-cross-signed.pem",
-            "letsencrypt_ocsp_root_x1": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem",
+            "letsencrypt_ocsp_root_x1": "letsencrypt-certs/isrg-root-ocsp-x1.pem",
             "letsencrypt_intermediate_x1": "letsencrypt-certs/letsencryptauthorityx1.pem",
             "letsencrypt_intermediate_x2": "letsencrypt-certs/letsencryptauthorityx2.pem",
             "letsencrypt_intermediate_x3": "letsencrypt-certs/letsencryptauthorityx3.pem",
@@ -629,7 +631,7 @@ TEST_FILES = {
 }
 
 
-CA_CERT_SETS = {
+CERT_CA_SETS = {
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
         "modulus_md5": "9454972e3730ac131def33e045ab19df",
@@ -881,7 +883,7 @@ class AppTest(AppTestCore):
         )
         _chain_pem = self._filedata_testfile(_chain_filename)
         (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-            self.ctx, _chain_pem, ca_chain_name=_chain_filename
+            self.ctx, _chain_pem, display_name=_chain_filename
         )
 
         dbCertificateCAs_alt = None
@@ -905,7 +907,7 @@ class AppTest(AppTestCore):
                     _dbChainAlternate,
                     _is_created,
                 ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-                    self.ctx, _chain_pem, ca_chain_name=_chain_filename
+                    self.ctx, _chain_pem, display_name=_chain_filename
                 )
                 dbCertificateCAs_alt.append(_dbChainAlternate)
 
@@ -1001,6 +1003,9 @@ class AppTest(AppTestCore):
                 #
                 _ca_cert_id = "isrg_root_x1"
                 _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
+                _display_name = letsencrypt_info.CERT_CAS_DATA[_ca_cert_id][
+                    "display_name"
+                ]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
                 (
                     _ca_cert_1,
@@ -1008,8 +1013,7 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
-                    ca_chain_name="ISRG Root X1",
-                    display_name="ISRG ROOT X1",
+                    display_name=_display_name,
                 )
                 # print(_ca_cert_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
@@ -1091,7 +1095,7 @@ class AppTest(AppTestCore):
                         _dbCertificateCA_SelfSigned,
                         _is_created,
                     ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-                        self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
+                        self.ctx, ca_cert_pem, display_name=_ca_cert_filename
                     )
                     # print(_dbCertificateCA_SelfSigned, _is_created)
                     # self.ctx.pyramid_transaction_commit()

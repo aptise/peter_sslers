@@ -1555,7 +1555,7 @@
 </%def>
 
 
-<%def name="formgroup__CertificateCAChain_bundle_file(CA_LE_INTERMEDIATES_CROSSED=None, CA_LE_INTERMEDIATES=None)">
+<%def name="formgroup__CertificateCAChain_bundle_file(CA_LE_INTERMEDIATES=None, CA_LE_INTERMEDIATES_CROSSED=None)">
     <div class="form-group clearfix">
         <label for="f1-isrgrootx1_file">ISRG Root X1</label>
         <input class="form-control" type="file" id="f1-isrgrootx1_file" name="isrgrootx1_file" />
@@ -1583,10 +1583,28 @@
     </div>
     <hr/>
 
-    % for xi in CA_LE_INTERMEDIATES:
+    <div class="form-group clearfix">
+        <label for="f1-le_ocsp_root_x1_file">LetsEncrypt OCSP Root X1</label>
+        <input class="form-control" type="file" id="f1-le_ocsp_root_x1_file" name="le_ocsp_root_x1_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-trustidx3root_file">IdenTrust/TrustID DST Root X3</label>
+        <input class="form-control" type="file" id="f1-trustidx3root_file" name="trustidx3root_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    % for le_serial in CA_LE_INTERMEDIATES:
         <div class="form-group clearfix">
-            <label for="f1-le_int_${xi}_file">Let’s Encrypt Authority ${xi}</label>
-            <input class="form-control" type="file" id="f1-le_int_${xi}_file" name="le_int_${xi}_file" />
+            <label for="f1-le_int_${le_serial}_file">Let’s Encrypt Authority ${le_serial}</label>
+            <input class="form-control" type="file" id="f1-le_int_${le_serial}_file" name="le_int_${le_serial}_file" />
             <p class="help-block">
                 As linked to from https://letsencrypt.org/certificates/
             </p>
@@ -1594,10 +1612,10 @@
         <hr/>
     % endfor
 
-    % for xi in CA_LE_INTERMEDIATES_CROSSED:
+    % for le_serial in CA_LE_INTERMEDIATES_CROSSED:
         <div class="form-group clearfix">
-            <label for="f1-le_${xi}_cross_file">Let’s Encrypt Authority ${xi} (Cross-signed by IdenTrust)</label>
-            <input class="form-control" type="file" id="f1-le_${xi}_cross_file" name="le_${xi}_cross_file" />
+            <label for="f1-le_int_${le_serial}_cross_file">Let’s Encrypt Authority ${le_serial} (Cross-signed by IdenTrust)</label>
+            <input class="form-control" type="file" id="f1-le_int_${le_serial}_cross_file" name="le_int_${le_serial}_cross_file" />
             <p class="help-block">
                 As linked to from https://letsencrypt.org/certificates/
             </p>
