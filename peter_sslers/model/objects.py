@@ -2095,9 +2095,10 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         return {
             "id": self.id,
-            "name": self.name,
+            "display_name": self.display_name,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_pem": self.cert_pem,
+            "key_technology": self.key_technology,
             "timestamp_created": self.timestamp_created_isoformat,
         }
 
@@ -2228,11 +2229,12 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "certificate_request_source": self.certificate_request_source,
+            "certificate_signed_id__latest": self.certificate_signed_id__latest,
             "csr_pem": self.csr_pem,
             "csr_pem_md5": self.csr_pem_md5,
             "domains": self.domains_as_list,
+            "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
-            "certificate_signed_id__latest": self.certificate_signed_id__latest,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -2607,6 +2609,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self):
         return {
+            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
+            if self.acme_order
+            else None,
+            "domains_as_list": self.domains_as_list,
             "id": self.id,
             "is_active": True if self.is_active else False,
             "is_deactivated": True if self.is_deactivated else False,
@@ -2617,18 +2623,15 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
-            "cert_pem": self.cert_pem,
-            "cert_pem_md5": self.cert_pem_md5,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "certificate_ca_id__upchain": self.certificate_ca_id__upchain,
             "certificate_ca_id__upchain_alternates": self.certificate_upchain_alternate_ids,
+            "cert_pem": self.cert_pem,
+            "cert_pem_md5": self.cert_pem_md5,
+            "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
             # "acme_account_id": self.acme_account_id,
-            "domains_as_list": self.domains_as_list,
             "renewals_managed_by": self.renewals_managed_by,
-            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
-            if self.acme_order
-            else None,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
 
@@ -3395,6 +3398,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
             "is_compromised": True if self.is_compromised else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
+            "key_technology": self.key_technology,
             "timestamp_created": self.timestamp_created_isoformat,
             "private_key_source": self.private_key_source,
             "private_key_type": self.private_key_type,
