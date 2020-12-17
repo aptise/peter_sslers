@@ -905,27 +905,48 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
     def test_formatting(self):
         self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_VERSION"))
         self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_DATA"))
-        self.assertTrue(hasattr(letsencrypt_info, "CA_CROSS_SIGNED_X"))
-        self.assertTrue(hasattr(letsencrypt_info, "CA_AUTH_X"))
+        self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES_CROSSED"))
+        self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES"))
 
-        formfields_base = []
+        seen = {
+            "formfield_base": [],
+            "url_pem": [],
+            "display_name": [],
+        }
         for (cert_id, cert_payload) in letsencrypt_info.CA_CERTS_DATA.items():
+
+            # Make sure every cert has it's chain present
+            _signed_by = cert_payload.get("signed_by")
+            self.assertIn(_signed_by, letsencrypt_info.CA_CERTS_DATA)
+
             if cert_payload.get("is_self_signed"):
-                self.assertEqual(cert_id, cert_payload.get("signed_by"))
+                self.assertEqual(cert_id, _signed_by)
 
             # Make sure every ALTERNATE has a corresponding reference
+            # and vice-versa
             _alternates = cert_payload.get("alternates")
+            _alternate_of = cert_payload.get("alternate_of")
+            self.assertFalse(_alternates and _alternate_of)
             if _alternates:
                 for _alternate in _alternates:
                     self.assertIn(_alternate, letsencrypt_info.CA_CERTS_DATA)
                     _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate]
                     self.assertEqual(cert_id, _alternate_payload["alternate_of"])
-            # and vice-versa
-            _alternate_of = cert_payload.get("alternate_of")
             if _alternate_of:
                 _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate_of]
                 self.assertIn("alternates", _alternate_payload)
 
+            # these
+            _url_pem = cert_payload.get("url_pem")
+            self.assertNotIn(_url_pem, seen["url_pem"])
+            seen["url_pem"].append(_url_pem)
+
+            # our formfields should be unique
             _formfield_base = cert_payload.get("formfield_base")
-            self.assertNotIn(_formfield_base, formfields_base)
-            formfields_base.append(_formfield_base)
+            self.assertNotIn(_formfield_base, seen["formfield_base"])
+            seen["formfield_base"].append(_formfield_base)
+
+            # our display_name should be unique
+            _display_name = cert_payload.get("display_name")
+            self.assertNotIn(_formfield_base, seen["display_name"])
+            seen["display_name"].append(_display_name)

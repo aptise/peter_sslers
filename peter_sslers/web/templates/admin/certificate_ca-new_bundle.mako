@@ -32,8 +32,8 @@
                 ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__CertificateCAChain_bundle_file(
-                    CA_CROSS_SIGNED_X=CA_CROSS_SIGNED_X,
-                    CA_AUTH_X=CA_AUTH_X,
+                    CA_LE_INTERMEDIATES_CROSSED=CA_LE_INTERMEDIATES_CROSSED,
+                    CA_LE_INTERMEDIATES=CA_LE_INTERMEDIATES,
                 )}
                 <hr/>
 
@@ -57,11 +57,11 @@
 <p>
 <code>curl \<br/>
 &nbsp;--form 'isrgrootx1_file=@isrgrootx1.pem'\<br/>
-% for xi in CA_CROSS_SIGNED_X:
-    &nbsp;--form 'le_${xi}_cross_signed_file=@lets-encrypt-${xi}-cross-signed.pem'\<br/>
+% for xi in CA_LE_INTERMEDIATES_CROSSED:
+    &nbsp;--form 'le_${xi}_cross_file=@lets-encrypt-${xi}-cross-signed.pem'\<br/>
 % endfor
-% for xi in CA_AUTH_X:
-    &nbsp;--form 'le_${xi}_auth_file=@letsencryptauthority${xi}.pem'\<br/>
+% for xi in CA_LE_INTERMEDIATES:
+    &nbsp;--form 'le_int_${xi}_file=@letsencryptauthority${xi}.pem'\<br/>
 % endfor
 &nbsp;${request.admin_url}/certificate-ca/upload-bundle.json
 </code>

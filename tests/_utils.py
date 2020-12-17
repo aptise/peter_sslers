@@ -13,6 +13,7 @@ import packaging.version
 import pdb
 import subprocess
 import unittest
+import traceback
 import time
 from io import open  # overwrite `open` in Python2
 from functools import wraps
@@ -35,6 +36,7 @@ from peter_sslers.web.models import get_session_factory
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from peter_sslers.model import meta as model_meta
+import peter_sslers.lib
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import utils
@@ -426,26 +428,43 @@ TEST_FILES = {
     },
     "CertificateCAs": {
         "order": (
-            "isrgrootx1",
-            "le_x1_auth",
-            "le_x2_auth",
-            "le_x3_auth",
-            "le_x4_auth",
-            "le_x1_cross_signed",
-            "le_x2_cross_signed",
-            "le_x3_cross_signed",
-            "le_x4_cross_signed",
+            "trustid_root_x3",
+            "isrg_root_x1",
+            "isrg_root_x2",
+            "isrg_root_x2_cross",
+            "letsencrypt_intermediate_e1",
+            "letsencrypt_intermediate_e2",
+            "letsencrypt_intermediate_r3",
+            "letsencrypt_intermediate_r4",
+            "letsencrypt_intermediate_x1",
+            "letsencrypt_intermediate_x2",
+            "letsencrypt_intermediate_x3",
+            "letsencrypt_intermediate_x4",
+            "letsencrypt_intermediate_x1_cross",
+            "letsencrypt_intermediate_x2_cross",
+            "letsencrypt_intermediate_x3_cross",
+            "letsencrypt_intermediate_x4_cross",
         ),
         "cert": {
-            "isrgrootx1": "letsencrypt-certs/isrgrootx1.pem",
-            "le_x1_auth": "letsencrypt-certs/letsencryptauthorityx1.pem",
-            "le_x2_auth": "letsencrypt-certs/letsencryptauthorityx2.pem",
-            "le_x3_auth": "letsencrypt-certs/letsencryptauthorityx3.pem",
-            "le_x4_auth": "letsencrypt-certs/letsencryptauthorityx4.pem",
-            "le_x1_cross_signed": "letsencrypt-certs/lets-encrypt-x1-cross-signed.pem",
-            "le_x2_cross_signed": "letsencrypt-certs/lets-encrypt-x2-cross-signed.pem",
-            "le_x3_cross_signed": "letsencrypt-certs/lets-encrypt-x3-cross-signed.pem",
-            "le_x4_cross_signed": "letsencrypt-certs/lets-encrypt-x4-cross-signed.pem",
+            "trustid_root_x3": "letsencrypt-certs/trustid-x3-root.pem",
+            "isrg_root_x1": "letsencrypt-certs/isrgrootx1.pem",
+            "isrg_root_x2": "letsencrypt-certs/isrg-root-x2.pem",
+            "isrg_root_x2_cross": "letsencrypt-certs/isrg-root-x2-cross-signed.pem",
+            "letsencrypt_ocsp_root_x1": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem",
+            "letsencrypt_intermediate_x1": "letsencrypt-certs/letsencryptauthorityx1.pem",
+            "letsencrypt_intermediate_x2": "letsencrypt-certs/letsencryptauthorityx2.pem",
+            "letsencrypt_intermediate_x3": "letsencrypt-certs/letsencryptauthorityx3.pem",
+            "letsencrypt_intermediate_x4": "letsencrypt-certs/letsencryptauthorityx4.pem",
+            "letsencrypt_intermediate_r3": "letsencrypt-certs/lets-encrypt-r3.pem",
+            "letsencrypt_intermediate_r4": "letsencrypt-certs/lets-encrypt-r4.pem",
+            "letsencrypt_intermediate_e1": "letsencrypt-certs/lets-encrypt-e1.pem",
+            "letsencrypt_intermediate_e2": "letsencrypt-certs/lets-encrypt-e2.pem",
+            "letsencrypt_intermediate_x1_cross": "letsencrypt-certs/lets-encrypt-x1-cross-signed.pem",
+            "letsencrypt_intermediate_x2_cross": "letsencrypt-certs/lets-encrypt-x2-cross-signed.pem",
+            "letsencrypt_intermediate_x3_cross": "letsencrypt-certs/lets-encrypt-x3-cross-signed.pem",
+            "letsencrypt_intermediate_x4_cross": "letsencrypt-certs/lets-encrypt-x4-cross-signed.pem",
+            "letsencrypt_intermediate_r3_cross": "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem",
+            "letsencrypt_intermediate_r4_cross": "letsencrypt-certs/lets-encrypt-r4-cross-signed.pem",
         },
     },
     "CertificateRequests": {
@@ -664,12 +683,23 @@ class FakeAuthenticatedUser(object):
 class _Mixin_filedata(object):
 
     _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
+    _data_root_letsencrypt = os.path.join(
+        os.path.dirname(os.path.realpath(peter_sslers.lib.__file__)),
+        "letsencrypt-certs",
+    )
 
     def _filepath_testfile(self, filename):
+        if filename.startswith("letsencrypt-certs/"):
+            filename = filename[18:]
+            return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
     def _filedata_testfile(self, filename):
-        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
+        _data_root = self._data_root
+        if filename.startswith("letsencrypt-certs/"):
+            filename = filename[18:]
+            _data_root = self._data_root_letsencrypt
+        with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
             data = f.read()
         return data
 
@@ -969,7 +999,7 @@ class AppTest(AppTestCore):
                 # note: pre-populate CertificateCA
                 # this should create `/certificate-ca/1`
                 #
-                _ca_cert_id = "isrgrootx1"
+                _ca_cert_id = "isrg_root_x1"
                 _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
                 (
@@ -978,8 +1008,8 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
-                    ca_chain_name="ISRG Root",
-                    display_name="ISRG ROOT",
+                    ca_chain_name="ISRG Root X1",
+                    display_name="ISRG ROOT X1",
                 )
                 # print(_ca_cert_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
@@ -1381,6 +1411,7 @@ class AppTest(AppTestCore):
                 print("EXCEPTION IN SETUP")
                 print("")
                 print(exc)
+                traceback.print_exc()
 
                 print("")
                 print("")
