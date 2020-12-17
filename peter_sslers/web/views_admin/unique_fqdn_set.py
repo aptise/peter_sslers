@@ -104,12 +104,12 @@ class View_Focus(Handler):
         weekly_certs = (
             self.request.api_context.dbSession.query(
                 model_utils.year_week(
-                    model_objects.ServerCertificate.timestamp_not_before
+                    model_objects.CertificateSigned.timestamp_not_before
                 ).label("week_num"),
-                sqlalchemy.func.count(model_objects.ServerCertificate.id),
+                sqlalchemy.func.count(model_objects.CertificateSigned.id),
             )
             .filter(
-                model_objects.ServerCertificate.unique_fqdn_set_id == dbUniqueFQDNSet.id
+                model_objects.CertificateSigned.unique_fqdn_set_id == dbUniqueFQDNSet.id
             )
             .group_by("week_num")
             .order_by(sqlalchemy.asc("week_num"))
@@ -226,21 +226,21 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:server_certificates",
-        renderer="/admin/unique_fqdn_set-focus-server_certificates.mako",
+        route_name="admin:unique_fqdn_set:focus:certificate_signeds",
+        renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:server_certificates_paginated",
-        renderer="/admin/unique_fqdn_set-focus-server_certificates.mako",
+        route_name="admin:unique_fqdn_set:focus:certificate_signeds_paginated",
+        renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
-    def related__ServerCertificates(self):
+    def related__CertificateSigneds(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__count(
+        items_count = lib_db.get.get__CertificateSigned__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        url_template = "%s/server-certificates/{0}" % self._focus_url
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__CertificateSigned__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
             limit=items_per_page,
@@ -249,8 +249,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 

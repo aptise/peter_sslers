@@ -115,12 +115,12 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeOrder-${QueueCertificate.acme_order_id__source}</a>
                         % endif
-                        % if QueueCertificate.server_certificate_id__source:
+                        % if QueueCertificate.certificate_signed_id__source:
                             <a class="label label-info"
-                                href="${admin_prefix}/server-certificate/${QueueCertificate.server_certificate_id__source}"
+                                href="${admin_prefix}/certificate-signed/${QueueCertificate.certificate_signed_id__source}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${QueueCertificate.server_certificate_id__source}</a>
+                                CertificateSigned-${QueueCertificate.certificate_signed_id__source}</a>
                         % endif
                         % if QueueCertificate.unique_fqdn_set_id__source:
                             <a class="label label-info"
@@ -162,12 +162,12 @@
                                 <p>The AcmeOrder status is: <code>${QueueCertificate.acme_order__generated.acme_status_order}</code>
                                 
                         % endif
-                        % if QueueCertificate.server_certificate_id__generated:
+                        % if QueueCertificate.certificate_signed_id__generated:
                             <a class="label label-info"
-                                href="${admin_prefix}/server-certificate/${QueueCertificate.server_certificate_id__generated}"
+                                href="${admin_prefix}/certificate-signed/${QueueCertificate.certificate_signed_id__generated}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${QueueCertificate.server_certificate_id__generated}</a>
+                                CertificateSigned-${QueueCertificate.certificate_signed_id__generated}</a>
                         % endif
                         % if QueueCertificate.certificate_request_id__generated:
                             <a class="label label-info"

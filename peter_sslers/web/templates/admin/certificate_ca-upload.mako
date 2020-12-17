@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
+        <li><a href="${admin_prefix}/certificate-cas">CA Certificates</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
@@ -25,14 +25,14 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/ca-certificate/upload"
+                action="${admin_prefix}/certificate-ca/upload"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__CACertificateChain_file(show_text=show_text)}
+                ${admin_partials.formgroup__CertificateCAChain_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -40,11 +40,11 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_CACertificate()}
+            ${admin_partials.info_CertificateCA()}
 
             <h3>This form is JSON capable</h3>
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/ca-certificate/upload.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/certificate-ca/upload.json</code>
             </p>
 
             <h3>Do you have a "bundle"?</h3>
@@ -69,7 +69,7 @@
             <p>
                 You can upload a bundle of certificates on this form: <br/>
                 <a  class="btn btn-primary"
-                    href="${admin_prefix}/ca-certificate/upload-bundle"
+                    href="${admin_prefix}/certificate-ca/upload-bundle"
                 >Upload CaCert Bundle</a>
 
             </p>

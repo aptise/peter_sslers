@@ -166,8 +166,8 @@
                         <td><span class="badge">${AcmeAccount.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_server_certificates</th>
-                        <td><span class="badge">${AcmeAccount.count_server_certificates or ''}</span></td>
+                        <th>count_certificate_signeds</th>
+                        <td><span class="badge">${AcmeAccount.count_certificate_signeds or ''}</span></td>
                     </tr>
                     <tr>
                         <th>AcmeAccountKey</th>
@@ -274,11 +274,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ServerCertificate(s)</th>
+                        <th>CertificateSigned(s)</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(AcmeAccount.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if AcmeAccount.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account/%s/server-certificates" % (admin_prefix, AcmeAccount.id))}
+                            ${admin_partials.table_CertificateSigneds(AcmeAccount.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % if AcmeAccount.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/certificate-signeds" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>

@@ -73,10 +73,10 @@ class ViewAdminMain(Handler):
         results = {
             "AcmeAccount": {"count": 0, "items": [], "next": False},
             "Domain": {"count": 0, "items": [], "next": False},
-            "CACertificate": {"count": 0, "items": [], "next": False},
+            "CertificateCA": {"count": 0, "items": [], "next": False},
             "CertificateRequest": {"count": 0, "items": [], "next": False},
             "PrivateKey": {"count": 0, "items": [], "next": False},
-            "ServerCertificate": {"count": 0, "items": [], "next": False},
+            "CertificateSigned": {"count": 0, "items": [], "next": False},
         }
 
         # lightweight pagination
@@ -128,16 +128,16 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # CACertificate
-            if show_only["CACertificate"]:
+            # CertificateCA
+            if show_only["CertificateCA"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CACertificate
+                    model_objects.CertificateCA
                 ).filter(
-                    model_objects.CACertificate.cert_pem_modulus_md5 == search_modulus
+                    model_objects.CertificateCA.cert_pem_modulus_md5 == search_modulus
                 )
-                results["CACertificate"]["count"] = _base.count()
-                if results["CACertificate"]["count"]:
-                    results["CACertificate"]["items"] = (
+                results["CertificateCA"]["count"] = _base.count()
+                if results["CertificateCA"]["count"]:
+                    results["CertificateCA"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -166,17 +166,17 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # ServerCertificate
-            if show_only["ServerCertificate"]:
+            # CertificateSigned
+            if show_only["CertificateSigned"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.ServerCertificate
+                    model_objects.CertificateSigned
                 ).filter(
-                    model_objects.ServerCertificate.cert_pem_modulus_md5
+                    model_objects.CertificateSigned.cert_pem_modulus_md5
                     == search_modulus
                 )
-                results["ServerCertificate"]["count"] = _base.count()
-                if results["ServerCertificate"]["count"]:
-                    results["ServerCertificate"]["items"] = (
+                results["CertificateSigned"]["count"] = _base.count()
+                if results["CertificateSigned"]["count"]:
+                    results["CertificateSigned"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -197,35 +197,35 @@ class ViewAdminMain(Handler):
 
             search_text = cert_subject or cert_issuer
 
-            # CACertificate
-            if show_only["CACertificate"]:
+            # CertificateCA
+            if show_only["CertificateCA"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CACertificate
+                    model_objects.CertificateCA
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.CACertificate.cert_subject == search_text,
-                        model_objects.CACertificate.cert_issuer == search_text,
+                        model_objects.CertificateCA.cert_subject == search_text,
+                        model_objects.CertificateCA.cert_issuer == search_text,
                     )
                 )
-                results["CACertificate"]["count"] = _base.count()
-                if results["CACertificate"]["count"]:
-                    results["CACertificate"]["items"] = (
+                results["CertificateCA"]["count"] = _base.count()
+                if results["CertificateCA"]["count"]:
+                    results["CertificateCA"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # ServerCertificate
-            if show_only["ServerCertificate"]:
+            # CertificateSigned
+            if show_only["CertificateSigned"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.ServerCertificate
+                    model_objects.CertificateSigned
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.ServerCertificate.cert_subject == search_text,
-                        model_objects.ServerCertificate.cert_issuer == search_text,
+                        model_objects.CertificateSigned.cert_subject == search_text,
+                        model_objects.CertificateSigned.cert_issuer == search_text,
                     )
                 )
-                results["ServerCertificate"]["count"] = _base.count()
-                if results["ServerCertificate"]["count"]:
-                    results["ServerCertificate"]["items"] = (
+                results["CertificateSigned"]["count"] = _base.count()
+                if results["CertificateSigned"]["count"]:
+                    results["CertificateSigned"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 

@@ -6,8 +6,8 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
-        <li class="active">Focus [${CACertificate.id}]</li>
+        <li><a href="${admin_prefix}/certificate-cas">CA Certificates</a></li>
+        <li class="active">Focus [${CertificateCA.id}]</li>
     </ol>
 </%block>
 
@@ -19,7 +19,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/ca-certificate/${CACertificate.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-ca/${CertificateCA.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -42,57 +42,57 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${CACertificate.id}
+                                ${CertificateCA.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>name</th>
-                        <td>${CACertificate.name}</td>
+                        <td>${CertificateCA.name}</td>
                     </tr>
                     <tr>
-                        <th>le_authority_name</th>
-                        <td>${CACertificate.le_authority_name or ''}</td>
+                        <th>display_name</th>
+                        <td>${CertificateCA.display_name or ''}</td>
                     </tr>
                     <tr>
                         <th>is_trusted_root</th>
                         <td>
-                            % if CACertificate.is_trusted_root:
+                            % if CertificateCA.is_trusted_root:
                                 <label class="label label-success">Y</label>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>id_cross_signed_by</th>
-                        <td>${CACertificate.id_cross_signed_by or ''}</td>
+                        <td>${CertificateCA.id_cross_signed_by or ''}</td>
                     </tr>
                     <tr>
                         <th>timestamp_not_before</th>
-                        <td><timestamp>${CACertificate.timestamp_not_before or ''}</timestamp></td>
+                        <td><timestamp>${CertificateCA.timestamp_not_before or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_not_after</th>
-                        <td><timestamp>${CACertificate.timestamp_not_after or ''}</timestamp></td>
+                        <td><timestamp>${CertificateCA.timestamp_not_after or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${CACertificate.timestamp_created or ''}</timestamp></td>
+                        <td><timestamp>${CertificateCA.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>count_active_certificates</th>
-                        <td><span class="badge">${CACertificate.count_active_certificates or ''}</span></td>
+                        <td><span class="badge">${CertificateCA.count_active_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>cert_pem_md5</th>
-                        <td><code>${CACertificate.cert_pem_md5}</code></td>
+                        <td><code>${CertificateCA.cert_pem_md5}</code></td>
                     </tr>
                     <tr>
                         <th>cert_pem_modulus_md5</th>
                         <td>
-                            <code>${CACertificate.cert_pem_modulus_md5}</code>
+                            <code>${CertificateCA.cert_pem_modulus_md5}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CACertificate.cert_pem_modulus_search}"
+                                href="${admin_prefix}/search?${CertificateCA.cert_pem_modulus_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
@@ -100,31 +100,31 @@
                     </tr>
                     ## <tr>
                     ##    <th>cert_pem</th>
-                    ##    <td><code>${CACertificate.cert_pem}</code></td>
+                    ##    <td><code>${CertificateCA.cert_pem}</code></td>
                     ## </tr>
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${CACertificate.id}/chain.pem.txt">chain.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${CACertificate.id}/chain.pem">chain.pem</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.pem.txt">chain.pem.txt</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.pem">chain.pem</a>
 
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${CACertificate.id}/chain.cer">chain.cer (der)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${CACertificate.id}/chain.crt">chain.crt (der)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${CACertificate.id}/chain.der">chain.der (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.cer">chain.cer (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.crt">chain.crt (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.der">chain.der (der)</a>
 
                         </td>
                     </tr>
                     <tr>
                         <th>cert_subject</th>
-                        <td><samp>${CACertificate.cert_subject}</samp>
+                        <td><samp>${CertificateCA.cert_subject}</samp>
                             </td>
                     </tr>
                     <tr>
                         <th>cert_issuer</th>
-                        <td><samp>${CACertificate.cert_issuer}</samp>
+                        <td><samp>${CertificateCA.cert_issuer}</samp>
                             </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(CACertificate)}
+                    ${admin_partials.table_tr_OperationsEventCreated(CertificateCA)}
                 </tbody>
                 <thead>
                     <tr>
@@ -140,26 +140,26 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>ServerCertificates</th>
+                        <th>CertificateSigneds</th>
                         <td>
-                            % if ServerCertificates:
-                                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/ca-certificate/%s/server-certificates" % (admin_prefix, CACertificate.id))}
+                            % if CertificateSigneds:
+                                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-signeds" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known ServerCertificates.
+                                No known CertificateSigneds.
                             % endif
                         </td>
                     </tr>
                 </tbody>
                 <tbody>
                     <tr>
-                        <th>ServerCertificates - Alt</th>
+                        <th>CertificateSigneds - Alt</th>
                         <td>
-                            % if ServerCertificates_Alt:
-                                ${admin_partials.table_ServerCertificates(ServerCertificates_Alt, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/ca-certificate/%s/server-certificates-alt" % (admin_prefix, CACertificate.id))}
+                            % if CertificateSigneds_Alt:
+                                ${admin_partials.table_CertificateSigneds(CertificateSigneds_Alt, show_domains=True)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-signeds-alt" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known ServerCertificates.
+                                No known CertificateSigneds.
                             % endif
                         </td>
                     </tr>

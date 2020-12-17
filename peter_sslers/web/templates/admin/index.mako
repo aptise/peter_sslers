@@ -46,11 +46,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
-                <li><a href="${admin_prefix}/server-certificates"
-                       title="ServerCertificates"
+                <li><a href="${admin_prefix}/certificate-signeds"
+                       title="CertificateSigneds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    server-certificates</a></li>
+                    certificate-signeds</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="UniqueFQDNs"
                     >
@@ -148,11 +148,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-dns Server Accounts</a></li>
-                <li><a href="${admin_prefix}/ca-certificates"
-                       title="CACertificates"
+                <li><a href="${admin_prefix}/certificate-cas"
+                       title="CertificateCAs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates</a></li>
+                    certificate-cas</a></li>
             </ul>
 
 
@@ -184,7 +184,7 @@
                                                 )}
         </div>
         <div class="col-sm-4">
-            <h3>New ServerCertificates</h3>
+            <h3>New CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-order/new/freeform"
@@ -204,7 +204,7 @@
                 % endif
             </ul>
 
-            <h3>Existing ServerCertificates</h3>
+            <h3>Existing CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-account/upload"
@@ -213,14 +213,14 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: AcmeAccount</a></li>
                 <li>
-                    <a  href="${admin_prefix}/ca-certificate/upload"
+                    <a  href="${admin_prefix}/certificate-ca/upload"
                         title="CA Certificate - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: CA Certificate</a></li>
                 <li>
-                    <a  href="${admin_prefix}/server-certificate/upload"
-                        title="ServerCertificate - Upload"
+                    <a  href="${admin_prefix}/certificate-signed/upload"
+                        title="CertificateSigned - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Certificate (Existing)</a></li>

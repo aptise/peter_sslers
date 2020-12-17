@@ -424,7 +424,7 @@ TEST_FILES = {
             "contact": "contact.e@example.com",
         },
     },
-    "CACertificates": {
+    "CertificateCAs": {
         "order": (
             "isrgrootx1",
             "le_x1_auth",
@@ -522,7 +522,7 @@ TEST_FILES = {
         },
     },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
-    "ServerCertificates": {
+    "CertificateSigneds": {
         "SelfSigned": {
             "1": {
                 "domain": "selfsigned-1.example.com",
@@ -556,7 +556,7 @@ TEST_FILES = {
             },
         },
         "Pebble": {
-            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
             "1": {
                 "domain": "a.example.com",
                 "cert": "cert1.pem",
@@ -589,7 +589,7 @@ TEST_FILES = {
             },
         },
         "AlternateChains": {
-            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
             "1": {
                 # reseved for `FunctionalTests_AlternateChains`
                 "domain": "example.com",
@@ -826,7 +826,7 @@ class AppTest(AppTestCore):
     _ctx = None
     _DB_SETUP_RECORDS = False
 
-    def _setUp_ServerCertificates_FormatA(self, payload_section, payload_key):
+    def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
         filename_template = None
         if payload_section == "AlternateChains":
             filename_template = "alternate_chains/%s/%%s" % payload_key
@@ -836,7 +836,7 @@ class AppTest(AppTestCore):
             raise ValueError("invalid payload_section")
         _pkey_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["pkey"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["pkey"]
         )
         _pkey_pem = self._filedata_testfile(_pkey_filename)
         (_dbPrivateKey, _is_created,) = db.getcreate.getcreate__PrivateKey__by_pem_text(
@@ -847,25 +847,25 @@ class AppTest(AppTestCore):
         )
         _chain_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["chain"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["chain"]
         )
         _chain_pem = self._filedata_testfile(_chain_filename)
-        (_dbChain, _is_created,) = db.getcreate.getcreate__CACertificate__by_pem_text(
+        (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
             self.ctx, _chain_pem, ca_chain_name=_chain_filename
         )
 
-        dbCACertificates_alt = None
+        dbCertificateCAs_alt = None
         if (
             "alternate_chains"
-            in TEST_FILES["ServerCertificates"][payload_section][payload_key]
+            in TEST_FILES["CertificateSigneds"][payload_section][payload_key]
         ):
-            dbCACertificates_alt = []
-            for _chain_index in TEST_FILES["ServerCertificates"][payload_section][
+            dbCertificateCAs_alt = []
+            for _chain_index in TEST_FILES["CertificateSigneds"][payload_section][
                 payload_key
             ]["alternate_chains"]:
                 _chain_subpath = "alternate_chains/%s/%s" % (
                     payload_key,
-                    TEST_FILES["ServerCertificates"][payload_section][payload_key][
+                    TEST_FILES["CertificateSigneds"][payload_section][payload_key][
                         "alternate_chains"
                     ][_chain_index]["chain"],
                 )
@@ -874,17 +874,17 @@ class AppTest(AppTestCore):
                 (
                     _dbChainAlternate,
                     _is_created,
-                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx, _chain_pem, ca_chain_name=_chain_filename
                 )
-                dbCACertificates_alt.append(_dbChainAlternate)
+                dbCertificateCAs_alt.append(_dbChainAlternate)
 
         _cert_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["cert"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["cert"]
         )
         _cert_domains_expected = [
-            TEST_FILES["ServerCertificates"][payload_section][payload_key]["domain"],
+            TEST_FILES["CertificateSigneds"][payload_section][payload_key]["domain"],
         ]
         (
             _dbUniqueFQDNSet,
@@ -896,14 +896,14 @@ class AppTest(AppTestCore):
         _cert_pem = self._filedata_testfile(_cert_filename)
 
         (
-            _dbServerCertificate,
+            _dbCertificateSigned,
             _is_created,
-        ) = db.getcreate.getcreate__ServerCertificate(
+        ) = db.getcreate.getcreate__CertificateSigned(
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
-            dbCACertificate=_dbChain,
-            dbCACertificates_alt=dbCACertificates_alt,
+            dbCertificateCA=_dbChain,
+            dbCertificateCAs_alt=dbCertificateCAs_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
             dbPrivateKey=_dbPrivateKey,
         )
@@ -923,7 +923,7 @@ class AppTest(AppTestCore):
 
                     AccountKey:
                         account_1.key
-                    CACertificates:
+                    CertificateCAs:
                         isrgrootx1.pem
                         selfsigned_1-server.crt
                     PrivateKey
@@ -966,20 +966,20 @@ class AppTest(AppTestCore):
                             )
                         self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate CACertificate
-                # this should create `/ca-certificate/1`
+                # note: pre-populate CertificateCA
+                # this should create `/certificate-ca/1`
                 #
                 _ca_cert_id = "isrgrootx1"
-                _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+                _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
                 (
                     _ca_cert_1,
                     _is_created,
-                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
                     ca_chain_name="ISRG Root",
-                    le_authority_name="ISRG ROOT",
+                    display_name="ISRG ROOT",
                 )
                 # print(_ca_cert_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
@@ -1017,20 +1017,20 @@ class AppTest(AppTestCore):
                             self.ctx, _dbPrivateKey_alt, _dbOperationsEvent
                         )
 
-                # note: pre-populate ServerCertificate 1-5
-                # this should create `/server-certificate/1`
+                # note: pre-populate CertificateSigned 1-5
+                # this should create `/certificate-signed/1`
                 #
-                _dbServerCertificate_1 = None
-                _dbServerCertificate_2 = None
-                _dbServerCertificate_3 = None
-                _dbServerCertificate_4 = None
-                _dbServerCertificate_5 = None
+                _dbCertificateSigned_1 = None
+                _dbCertificateSigned_2 = None
+                _dbCertificateSigned_3 = None
+                _dbCertificateSigned_4 = None
+                _dbCertificateSigned_5 = None
                 _dbPrivateKey_1 = None
                 _dbUniqueFQDNSet_1 = None
-                for _id in TEST_FILES["ServerCertificates"]["SelfSigned"].keys():
+                for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
                     # note: pre-populate PrivateKey
                     # this should create `/private-key/1`
-                    _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _pkey_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["pkey"]
                     pkey_pem = self._filedata_testfile(_pkey_filename)
@@ -1050,27 +1050,27 @@ class AppTest(AppTestCore):
                     # print(_dbPrivateKey, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
-                    # note: pre-populate CACertificate - self-signed
-                    # this should create `/ca-certificate/2`
+                    # note: pre-populate CertificateCA - self-signed
+                    # this should create `/certificate-ca/2`
                     #
-                    _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _ca_cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
                     ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
                     (
-                        _dbCACertificate_SelfSigned,
+                        _dbCertificateCA_SelfSigned,
                         _is_created,
-                    ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                    ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                         self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
                     )
-                    # print(_dbCACertificate_SelfSigned, _is_created)
+                    # print(_dbCertificateCA_SelfSigned, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
-                    _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
                     _cert_domains_expected = [
-                        TEST_FILES["ServerCertificates"]["SelfSigned"][_id]["domain"],
+                        TEST_FILES["CertificateSigneds"]["SelfSigned"][_id]["domain"],
                     ]
                     (
                         _dbUniqueFQDNSet,
@@ -1082,45 +1082,45 @@ class AppTest(AppTestCore):
 
                     cert_pem = self._filedata_testfile(_cert_filename)
                     (
-                        _dbServerCertificate,
+                        _dbCertificateSigned,
                         _is_created,
-                    ) = db.getcreate.getcreate__ServerCertificate(
+                    ) = db.getcreate.getcreate__CertificateSigned(
                         self.ctx,
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
-                        dbCACertificate=_dbCACertificate_SelfSigned,
+                        dbCertificateCA=_dbCertificateCA_SelfSigned,
                         dbUniqueFQDNSet=_dbUniqueFQDNSet,
                         dbPrivateKey=_dbPrivateKey,
                     )
-                    # print(_dbServerCertificate_1, _is_created)
+                    # print(_dbCertificateSigned_1, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
                     if _id == "1":
-                        _dbServerCertificate_1 = _dbServerCertificate
+                        _dbCertificateSigned_1 = _dbCertificateSigned
                         _dbPrivateKey_1 = _dbPrivateKey
                         _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
                     elif _id == "2":
-                        _dbServerCertificate_2 = _dbServerCertificate
+                        _dbCertificateSigned_2 = _dbCertificateSigned
                     elif _id == "3":
-                        _dbServerCertificate_3 = _dbServerCertificate
+                        _dbCertificateSigned_3 = _dbCertificateSigned
                     elif _id == "4":
-                        _dbServerCertificate_4 = _dbServerCertificate
+                        _dbCertificateSigned_4 = _dbCertificateSigned
                     elif _id == "5":
-                        _dbServerCertificate_5 = _dbServerCertificate
+                        _dbCertificateSigned_5 = _dbCertificateSigned
 
                 # note: pre-populate Domain
                 # ensure we have domains?
                 domains = db.get.get__Domain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert (
-                    TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
+                    TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
                         "domain"
                     ].lower()
                     in domain_names
                 )
 
                 # note: pre-populate CertificateRequest
-                _csr_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
+                _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
                     "csr"
                 ]
                 csr_pem = self._filedata_testfile(_csr_filename)
@@ -1133,13 +1133,13 @@ class AppTest(AppTestCore):
                     certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
                     dbPrivateKey=_dbPrivateKey_1,
                     domain_names=[
-                        TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
+                        TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"]["domain"],
                     ],  # make it an iterable
                 )
 
-                # note: pre-populate ServerCertificate 6-10, via "Pebble"
-                for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
-                    self._setUp_ServerCertificates_FormatA("Pebble", _id)
+                # note: pre-populate CertificateSigned 6-10, via "Pebble"
+                for _id in TEST_FILES["CertificateSigneds"]["Pebble"].keys():
+                    self._setUp_CertificateSigneds_FormatA("Pebble", _id)
 
                 # self.ctx.pyramid_transaction_commit()
 
@@ -1168,7 +1168,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_1,
+                    dbCertificateSigned=_dbCertificateSigned_1,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1181,7 +1181,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_2,
+                    dbCertificateSigned=_dbCertificateSigned_2,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1191,7 +1191,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_3,
+                    dbCertificateSigned=_dbCertificateSigned_3,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1201,7 +1201,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_4,
+                    dbCertificateSigned=_dbCertificateSigned_4,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"

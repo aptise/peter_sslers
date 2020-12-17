@@ -57,15 +57,15 @@
                                     </a>
                                     <input type="hidden" name="queue_source" value="AcmeOrder"/>
                                     <input type="hidden" name="acme_order" value="${AcmeOrder.id}"/>
-                                % elif ServerCertificate:
+                                % elif CertificateSigned:
                                     <a 
-                                        href="${admin_prefix}/server-certificate/${ServerCertificate.id}"
+                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}"
                                         class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ServerCertificate-${ServerCertificate.id}
+                                        CertificateSigned-${CertificateSigned.id}
                                     </a>
-                                    <input type="hidden" name="queue_source" value="ServerCertificate"/>
-                                    <input type="hidden" name="server_certificate" value="${ServerCertificate.id}"/>
+                                    <input type="hidden" name="queue_source" value="CertificateSigned"/>
+                                    <input type="hidden" name="certificate_signed" value="${CertificateSigned.id}"/>
                                 % elif UniqueFQDNSet:
                                     <a 
                                         href="${admin_prefix}/acme-order/${UniqueFQDNSet.id}"
@@ -86,8 +86,8 @@
                                     unique_fqdn_set = None
                                     if AcmeOrder:
                                         unique_fqdn_set = AcmeOrder.unique_fqdn_set
-                                    elif ServerCertificate:
-                                        unique_fqdn_set = ServerCertificate.unique_fqdn_set
+                                    elif CertificateSigned:
+                                        unique_fqdn_set = CertificateSigned.unique_fqdn_set
                                     elif UniqueFQDNSet:
                                         unique_fqdn_set = UniqueFQDNSet
                                 %>

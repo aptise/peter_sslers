@@ -85,14 +85,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ServerCertificate</th>
+                        <th>CertificateSigned</th>
                         <td>
-                            % if CoverageAssuranceEvent.server_certificate_id:
+                            % if CoverageAssuranceEvent.certificate_signed_id:
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/server-certificate/${CoverageAssuranceEvent.server_certificate_id}"
+                                    href="${admin_prefix}/certificate-signed/${CoverageAssuranceEvent.certificate_signed_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ServerCertificate-${CoverageAssuranceEvent.server_certificate_id}</a>
+                                    CertificateSigned-${CoverageAssuranceEvent.certificate_signed_id}</a>
                             % endif
                         </td>
                     </tr>

@@ -103,9 +103,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['ServerCertificate']:
-                    <h4>ServerCertificates</h4>
-                    % if results['ServerCertificate']['count']:
+                % if show_only['CertificateSigned']:
+                    <h4>CertificateSigneds</h4>
+                    % if results['CertificateSigned']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -117,14 +117,14 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['ServerCertificate']['items']:
+                            % for cert in results['CertificateSigned']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/server-certificate/${cert.id}"
+                                            href="${admin_prefix}/certificate-signed/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ServerCertificate-${cert.id}</a>
+                                            CertificateSigned-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
@@ -134,8 +134,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['ServerCertificate']['next']:
-                            <a href="${results['ServerCertificate']['next']}">More</a>
+                        % if results['CertificateSigned']['next']:
+                            <a href="${results['CertificateSigned']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>
@@ -143,9 +143,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['CACertificate']:
+                % if show_only['CertificateCA']:
                     <h4>CA Certificates</h4>
-                    % if results['CACertificate']['count']:
+                    % if results['CertificateCA']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -156,14 +156,14 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['CACertificate']['items']:
+                            % for cert in results['CertificateCA']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/ca-certificate/${cert.id}"
+                                            href="${admin_prefix}/certificate-ca/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            CACertificate-${cert.id}</a>
+                                            CertificateCA-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
@@ -172,8 +172,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['CACertificate']['next']:
-                            <a href="${results['CACertificate']['next']}">More</a>
+                        % if results['CertificateCA']['next']:
+                            <a href="${results['CertificateCA']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

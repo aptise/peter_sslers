@@ -15,8 +15,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib.forms import Form_CACertificate_Upload__file
-from ..lib.forms import Form_CACertificate_UploadBundle__file
+from ..lib.forms import Form_CertificateCA_Upload__file
+from ..lib.forms import Form_CertificateCA_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
@@ -29,98 +29,98 @@ from ...lib import letsencrypt_info
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:ca_certificates", renderer="/admin/ca_certificates.mako"
+        route_name="admin:certificate_cas", renderer="/admin/certificate_cas.mako"
     )
     @view_config(
-        route_name="admin:ca_certificates_paginated",
-        renderer="/admin/ca_certificates.mako",
+        route_name="admin:certificate_cas_paginated",
+        renderer="/admin/certificate_cas.mako",
     )
-    @view_config(route_name="admin:ca_certificates|json", renderer="json")
-    @view_config(route_name="admin:ca_certificates_paginated|json", renderer="json")
+    @view_config(route_name="admin:certificate_cas|json", renderer="json")
+    @view_config(route_name="admin:certificate_cas_paginated|json", renderer="json")
     def list(self):
-        items_count = lib_db.get.get__CACertificate__count(self.request.api_context)
+        items_count = lib_db.get.get__CertificateCA__count(self.request.api_context)
         url_template = (
-            "%s/ca-certificates/{0}"
+            "%s/certificate-cas/{0}"
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CACertificate__paginated(
+        items_paged = lib_db.get.get__CertificateCA__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if self.request.wants_json:
             _certs = {c.id: c.as_json for c in items_paged}
             return {
-                "CACertificates": _certs,
+                "CertificateCAs": _certs,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "CACertificates_count": items_count,
-            "CACertificates": items_paged,
+            "CertificateCAs_count": items_count,
+            "CertificateCAs": items_paged,
             "pager": pager,
         }
 
 
 class View_Focus(Handler):
     def _focus(self):
-        dbCACertificate = lib_db.get.get__CACertificate__by_id(
+        dbCertificateCA = lib_db.get.get__CertificateCA__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
-        if not dbCACertificate:
+        if not dbCertificateCA:
             raise HTTPNotFound("the cert was not found")
-        self.focus_item = dbCACertificate
-        self.focus_url = "%s/ca-certificate/%s" % (
+        self.focus_item = dbCertificateCA
+        self.focus_url = "%s/certificate-ca/%s" % (
             self.request.registry.settings["app_settings"]["admin_prefix"],
             self.focus_item.id,
         )
-        return dbCACertificate
+        return dbCertificateCA
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:ca_certificate:focus",
-        renderer="/admin/ca_certificate-focus.mako",
+        route_name="admin:certificate_ca:focus",
+        renderer="/admin/certificate_ca-focus.mako",
     )
-    @view_config(route_name="admin:ca_certificate:focus|json", renderer="json")
+    @view_config(route_name="admin:certificate_ca:focus|json", renderer="json")
     def focus(self):
-        dbCACertificate = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__count(
-            self.request.api_context, dbCACertificate.id
+        dbCertificateCA = self._focus()
+        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__count(
+            self.request.api_context, dbCertificateCA.id
         )
-        items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
-            self.request.api_context, dbCACertificate.id, limit=10, offset=0
+        items_paged = lib_db.get.get__CertificateSigned__by_CertificateCAId__paginated(
+            self.request.api_context, dbCertificateCA.id, limit=10, offset=0
         )
         items_paged_alt = (
-            lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
-                self.request.api_context, dbCACertificate.id, limit=10, offset=0
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__paginated(
+                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
             )
         )
         if self.request.wants_json:
             return {
-                "CACertificate": dbCACertificate.as_json,
+                "CertificateCA": dbCertificateCA.as_json,
             }
         return {
             "project": "peter_sslers",
-            "CACertificate": dbCACertificate,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
-            "ServerCertificates_Alt": items_paged_alt,
+            "CertificateCA": dbCertificateCA,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
+            "CertificateSigneds_Alt": items_paged_alt,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:ca_certificate:focus:raw", renderer="string")
+    @view_config(route_name="admin:certificate_ca:focus:raw", renderer="string")
     def focus_raw(self):
-        dbCACertificate = self._focus()
+        dbCertificateCA = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
-            return dbCACertificate.cert_pem
+            return dbCertificateCA.cert_pem
         elif self.request.matchdict["format"] == "pem.txt":
-            return dbCACertificate.cert_pem
+            return dbCertificateCA.cert_pem
         elif self.request.matchdict["format"] in ("cer", "crt", "der"):
-            as_der = cert_utils.convert_pem_to_der(pem_data=dbCACertificate.cert_pem)
+            as_der = cert_utils.convert_pem_to_der(pem_data=dbCertificateCA.cert_pem)
             response = Response()
             if self.request.matchdict["format"] in ("crt", "der"):
                 response.content_type = "application/x-x509-ca-cert"
@@ -132,84 +132,84 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:ca_certificate:focus:parse|json", renderer="json")
+    @view_config(route_name="admin:certificate_ca:focus:parse|json", renderer="json")
     def focus_parse_json(self):
-        dbCACertificate = self._focus()
+        dbCertificateCA = self._focus()
         return {
-            "CACertificate": {
-                "id": dbCACertificate.id,
-                "parsed": cert_utils.parse_cert(cert_pem=dbCACertificate.cert_pem),
+            "CertificateCA": {
+                "id": dbCertificateCA.id,
+                "parsed": cert_utils.parse_cert(cert_pem=dbCertificateCA.cert_pem),
             }
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:ca_certificate:focus:server_certificates",
-        renderer="/admin/ca_certificate-focus-server_certificates.mako",
+        route_name="admin:certificate_ca:focus:certificate_signeds",
+        renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:ca_certificate:focus:server_certificates_paginated",
-        renderer="/admin/ca_certificate-focus-server_certificates.mako",
+        route_name="admin:certificate_ca:focus:certificate_signeds_paginated",
+        renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
-    def related__ServerCertificates(self):
-        dbCACertificate = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__count(
-            self.request.api_context, dbCACertificate.id
+    def related__CertificateSigneds(self):
+        dbCertificateCA = self._focus()
+        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__count(
+            self.request.api_context, dbCertificateCA.id
         )
-        url_template = "%s/server-certificates/{0}" % self.focus_url
+        url_template = "%s/certificate-signeds/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
+        items_paged = lib_db.get.get__CertificateSigned__by_CertificateCAId__paginated(
             self.request.api_context,
-            dbCACertificate.id,
+            dbCertificateCA.id,
             limit=items_per_page,
             offset=offset,
         )
         return {
             "project": "peter_sslers",
-            "CACertificate": dbCACertificate,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateCA": dbCertificateCA,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:ca_certificate:focus:server_certificates_alt",
-        renderer="/admin/ca_certificate-focus-server_certificates_alt.mako",
+        route_name="admin:certificate_ca:focus:certificate_signeds_alt",
+        renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
     @view_config(
-        route_name="admin:ca_certificate:focus:server_certificates_alt_paginated",
-        renderer="/admin/ca_certificate-focus-server_certificates_alt.mako",
+        route_name="admin:certificate_ca:focus:certificate_signeds_alt_paginated",
+        renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
-    def related__ServerCertificatesAlt(self):
-        dbCACertificate = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__count(
-            self.request.api_context, dbCACertificate.id
+    def related__CertificateSignedsAlt(self):
+        dbCertificateCA = self._focus()
+        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__count(
+            self.request.api_context, dbCertificateCA.id
         )
-        url_template = "%s/server-certificates-alt/{0}" % self.focus_url
+        url_template = "%s/certificate-signeds-alt/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
-            lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__paginated(
                 self.request.api_context,
-                dbCACertificate.id,
+                dbCertificateCA.id,
                 limit=items_per_page,
                 offset=offset,
             )
         )
         return {
             "project": "peter_sslers",
-            "CACertificate": dbCACertificate,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateCA": dbCertificateCA,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 
 
 class View_New(Handler):
-    @view_config(route_name="admin:ca_certificate:upload")
-    @view_config(route_name="admin:ca_certificate:upload|json", renderer="json")
+    @view_config(route_name="admin:certificate_ca:upload")
+    @view_config(route_name="admin:certificate_ca:upload|json", renderer="json")
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -218,16 +218,16 @@ class View_New(Handler):
     def _upload__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/ca-certificate/upload.json"""
+                "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/certificate-ca/upload.json"""
                 % self.request.admin_url,
                 "form_fields": {"chain_file": "required"},
             }
-        return render_to_response("/admin/ca_certificate-upload.mako", {}, self.request)
+        return render_to_response("/admin/certificate_ca-upload.mako", {}, self.request)
 
     def _upload__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_CACertificate_Upload__file, validate_get=False
+                self.request, schema=Form_CertificateCA_Upload__file, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -239,25 +239,25 @@ class View_New(Handler):
 
             chain_file_name = formStash.results["chain_file_name"] or "manual upload"
             (
-                dbCACertificate,
+                dbCertificateCA,
                 cacert_is_created,
-            ) = lib_db.getcreate.getcreate__CACertificate__by_pem_text(
+            ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
                 self.request.api_context, ca_chain_pem, ca_chain_name=chain_file_name
             )
 
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "CACertificate": {
+                    "CertificateCA": {
                         "created": cacert_is_created,
-                        "id": dbCACertificate.id,
+                        "id": dbCertificateCA.id,
                     },
                 }
             return HTTPSeeOther(
-                "%s/ca-certificate/%s?result=success&is_created=%s"
+                "%s/certificate-ca/%s?result=success&is_created=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
-                    dbCACertificate.id,
+                    dbCertificateCA.id,
                     (1 if cacert_is_created else 0),
                 )
             )
@@ -269,8 +269,8 @@ class View_New(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:ca_certificate:upload_bundle")
-    @view_config(route_name="admin:ca_certificate:upload_bundle|json", renderer="json")
+    @view_config(route_name="admin:certificate_ca:upload_bundle")
+    @view_config(route_name="admin:certificate_ca:upload_bundle|json", renderer="json")
     def upload_bundle(self):
         if self.request.method == "POST":
             return self._upload_bundle__submit()
@@ -293,7 +293,7 @@ class View_New(Handler):
                 _form_fields["le_%s_auth_file" % xi] = "optional"
             # and the post
             _instructions.append(
-                """%s/ca-certificate/upload-bundle.json""" % self.request.admin_url
+                """%s/certificate-ca/upload-bundle.json""" % self.request.admin_url
             )
 
             return {
@@ -301,7 +301,7 @@ class View_New(Handler):
                 "form_fields": _form_fields,
             }
         return render_to_response(
-            "/admin/ca_certificate-new_bundle.mako",
+            "/admin/certificate_ca-new_bundle.mako",
             {
                 "CA_CROSS_SIGNED_X": letsencrypt_info.CA_CROSS_SIGNED_X,
                 "CA_AUTH_X": letsencrypt_info.CA_AUTH_X,
@@ -313,7 +313,7 @@ class View_New(Handler):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_CACertificate_UploadBundle__file,
+                schema=Form_CertificateCA_UploadBundle__file,
                 validate_get=False,
             )
             if not result:
@@ -358,7 +358,7 @@ class View_New(Handler):
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
-            dbResults = lib_db.actions.upload__CACertificateBundle__by_pem_text(
+            dbResults = lib_db.actions.upload__CertificateCABundle__by_pem_text(
                 self.request.api_context, bundle_data
             )
 
@@ -371,7 +371,7 @@ class View_New(Handler):
                     }
                 return rval
             return HTTPSeeOther(
-                "%s/ca-certificates?uploaded=1"
+                "%s/certificate-cas?uploaded=1"
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
 

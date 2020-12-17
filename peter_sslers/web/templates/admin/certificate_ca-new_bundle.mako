@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
+        <li><a href="${admin_prefix}/certificate-cas">CA Certificates</a></li>
         <li class="active">New Bundle</li>
     </ol>
 </%block>
@@ -24,14 +24,14 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/ca-certificate/upload-bundle"
+                action="${admin_prefix}/certificate-ca/upload-bundle"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__CACertificateChain_bundle_file(
+                ${admin_partials.formgroup__CertificateCAChain_bundle_file(
                     CA_CROSS_SIGNED_X=CA_CROSS_SIGNED_X,
                     CA_AUTH_X=CA_AUTH_X,
                 )}
@@ -42,7 +42,7 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_CACertificate()}
+            ${admin_partials.info_CertificateCA()}
 
             <h3>You only need this form if you are uploading OLD certificates</h3>
             <p>This form can import your old bundled certificates.</p>
@@ -51,7 +51,7 @@
 
             <h3>This form is JSON capable</h3>
             <p>
-                <code>curl ${request.admin_url}/ca-certificate/upload.json</code>
+                <code>curl ${request.admin_url}/certificate-ca/upload.json</code>
             </p>
 
 <p>
@@ -63,7 +63,7 @@
 % for xi in CA_AUTH_X:
     &nbsp;--form 'le_${xi}_auth_file=@letsencryptauthority${xi}.pem'\<br/>
 % endfor
-&nbsp;${request.admin_url}/ca-certificate/upload-bundle.json
+&nbsp;${request.admin_url}/certificate-ca/upload-bundle.json
 </code>
 </p>
 

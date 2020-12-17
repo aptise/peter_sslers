@@ -213,22 +213,22 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>ServerCertificates Recent</th>
+                        <th>CertificateSigneds Recent</th>
                         <td>
                             <table class="table">
                                 <tr>
                                     <th>latest_single</th>
                                     <td>
-                                        % if Domain.server_certificate_id__latest_single:
-                                            ${admin_partials.table_ServerCertificates([Domain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
+                                        % if Domain.certificate_signed_id__latest_single:
+                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_single,], show_domains=True, show_expiring_days=True)}
                                         % endif
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>latest_multi</th>
                                     <td>
-                                        % if Domain.server_certificate_id__latest_multi:
-                                            ${admin_partials.table_ServerCertificates([Domain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
+                                        % if Domain.certificate_signed_id__latest_multi:
+                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_multi,], show_domains=True, show_expiring_days=True)}
                                         % endif
                                     </td>
                                 </tr>
@@ -253,11 +253,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ServerCertificates</th>
+                        <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if Domain.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/server-certificates" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % if Domain.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>

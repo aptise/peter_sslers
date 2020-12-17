@@ -48,13 +48,13 @@
 	DNS-01 challenge via acme-dns supported
 	integration of parse_header_links corrected
 	changed letsencrypt certs dataset from list to dict
-	removed `CACertificate.is_authority_certificate`
-	removed `CACertificate.is_ca_certificate`	
-	added `CACertificate.is_trusted_root`
+	removed `CertificateCA.is_authority_certificate`
+	removed `CertificateCA.is_ca_certificate`	
+	added `CertificateCA.is_trusted_root`
 	renamed `id_cross_signed_of` to `id_cross_signed_by`
 	renamed "letsencrypt-download" to "letsencrypt-sync"
 	UPDATE:
-		getcreate__CACertificate__by_pem_text
+		getcreate__CertificateCA__by_pem_text
 			+is_trusted_root
 	
 	AUDIT:
@@ -76,12 +76,22 @@
 
 	added "import-domain" to acme-dns-server
 	
+	renamed `ca_certificate` to `certificate_ca`
+	renamed `CertificateCA` to `CertificateCA`
+
+	renamed `server_certificate` to `certificate_signed`
+	renamed `ServerCertificate` to `CertificateSigned`
+	
+	
 	+ other fixes and improvements
 	
 	TODO:
 		debugtoolbar error on duplicate acmeaccount registration
 		list how many loops/process are needed on an acme order
 		shortcut to creating an order from a domain
+		if openssl set in ini+env:
+			log this
+			adopt the env options
 			
 
 0.4.0

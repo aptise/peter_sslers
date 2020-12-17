@@ -406,23 +406,23 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_CACertificate_Upload__file(_Form_Schema_Base):
+class Form_CertificateCA_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)
 
 
-class Form_CACertificate_UploadBundle__file(_Form_Schema_Base):
+class Form_CertificateCA_UploadBundle__file(_Form_Schema_Base):
     isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
 for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
-    Form_CACertificate_UploadBundle__file.add_field(
+    Form_CertificateCA_UploadBundle__file.add_field(
         "le_%s_cross_signed_file" % xi,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )
 
 for xi in letsencrypt_info.CA_AUTH_X:
-    Form_CACertificate_UploadBundle__file.add_field(
+    Form_CertificateCA_UploadBundle__file.add_field(
         "le_%s_auth_file" % xi,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )
@@ -506,13 +506,13 @@ class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
     queue_source = OneOf(
         (
             "AcmeOrder",
-            "ServerCertificate",
+            "CertificateSigned",
             "UniqueFQDNSet",
         ),
         not_empty=True,
     )
     acme_order = Int(not_empty=False, if_missing=None)
-    server_certificate = Int(not_empty=False, if_missing=None)
+    certificate_signed = Int(not_empty=False, if_missing=None)
     unique_fqdn_set = Int(not_empty=False, if_missing=None)
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
@@ -523,7 +523,7 @@ class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
 
     chained_validators = [
         OnlyOneOf(
-            ("acme_order", "server_certificate", "unique_fqdn_set"), not_empty=True
+            ("acme_order", "certificate_signed", "unique_fqdn_set"), not_empty=True
         )
     ]
 
@@ -557,7 +557,7 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_ServerCertificate_mark(_Form_Schema_Base):
+class Form_CertificateSigned_mark(_Form_Schema_Base):
     action = OneOf(
         (
             "active",

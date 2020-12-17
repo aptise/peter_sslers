@@ -9,14 +9,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/server-certificates">ServerCertificates</a></li>
-        <li class="active">Focus [${ServerCertificate.id}]</li>
+        <li><a href="${admin_prefix}/certificate-signeds">CertificateSigneds</a></li>
+        <li class="active">Focus [${CertificateSigned.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>ServerCertificate - Focus</h2>
+    <h2>CertificateSigned - Focus</h2>
     ${admin_partials.handle_querystring_result()}
 
     <%
@@ -51,7 +51,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/server-certificate/${ServerCertificate.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-signed/${CertificateSigned.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -73,19 +73,19 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${ServerCertificate.id}
+                                ${CertificateSigned.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>is_active</th>
                         <td>
-                            <span class="label label-${'success' if ServerCertificate.is_active else 'warning'}">
-                                ${'Active' if ServerCertificate.is_active else 'inactive'}
+                            <span class="label label-${'success' if CertificateSigned.is_active else 'warning'}">
+                                ${'Active' if CertificateSigned.is_active else 'inactive'}
                             </span>
                             &nbsp;
-                            % if ServerCertificate.is_active:
-                                <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                            % if CertificateSigned.is_active:
+                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-warning" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -93,7 +93,7 @@
                                     </button>
                                 </form>
                                 &nbsp;
-                                <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="revoked"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -102,16 +102,16 @@
                                 </form>
                             % else:
                                 ## show a reason
-                                % if ServerCertificate.is_revoked:
+                                % if CertificateSigned.is_revoked:
                                     Reason: <code>revoked</code>
-                                % elif ServerCertificate.is_deactivated:
+                                % elif CertificateSigned.is_deactivated:
                                     Reason: <code>deactivated</code>
                                 % endif
-                                % if not ServerCertificate.is_deactivated:
+                                % if not CertificateSigned.is_deactivated:
                                     &nbsp;
                                     Actions:
-                                    ## % if ServerCertificate.is_revoked:
-                                    ##     <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    ## % if CertificateSigned.is_revoked:
+                                    ##     <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
                                     ##         <input type="hidden" name="action" value="unrevoke"/>
                                     ##         <button class="btn btn-xs btn-warning" type="submit">
                                     ##             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -119,15 +119,15 @@
                                     ##         </button>
                                     ##     </form>
                                     ## % endif
-                                    % if not ServerCertificate.is_revoked:
-                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    % if not CertificateSigned.is_revoked:
+                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="active"/>
                                             <button class="btn btn-xs btn-success" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                                 activate
                                             </button>
                                         </form>
-                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="revoked"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -142,35 +142,35 @@
                     <tr>
                         <th>Renewals Managed by</th>
                         <td>
-                            % if ServerCertificate.renewals_managed_by == "AcmeOrder":
+                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
                                 <code>AcmeOrder</code>
-                            % elif ServerCertificate.renewals_managed_by == "ServerCertificate":
-                                <code>ServerCertificate</code>
+                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
+                                <code>CertificateSigned</code>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>Renewal Strategy</th>
                         <td>
-                            % if ServerCertificate.renewals_managed_by == "AcmeOrder":
-                                % if ServerCertificate.acme_order.is_auto_renew:
+                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
+                                % if CertificateSigned.acme_order.is_auto_renew:
                                     <span class="label label-success">auto-renew enabled</span>
                                 % else:
                                     <span class="label label-danger">auto-renew disabled</span>
                                 % endif
-                                <a class="label label-info" href="${admin_prefix}/acme-order/${ServerCertificate.acme_order.id}">
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${CertificateSigned.acme_order.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${ServerCertificate.acme_order.id}
+                                    AcmeOrder-${CertificateSigned.acme_order.id}
                                 </a>
-                            % elif ServerCertificate.renewals_managed_by == "ServerCertificate":
-                                <p>Imported ServerCertificates do not support auto-renew. Queue a renewal AcmeOrder below.</p>
+                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
+                                <p>Imported CertificateSigneds do not support auto-renew. Queue a renewal AcmeOrder below.</p>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>is_compromised_private_key</th>
                         <td>
-                            % if ServerCertificate.is_compromised_private_key is not None:
+                            % if CertificateSigned.is_compromised_private_key is not None:
                                 <span class="label label-danger">
                                     COMPROMISED PRIVATE KEY
                                 </span>
@@ -180,9 +180,9 @@
                     <tr>
                         <th>is_revoked_upstream</th>
                         <td>
-                            % if ServerCertificate.timestamp_revoked_upstream is not None:
+                            % if CertificateSigned.timestamp_revoked_upstream is not None:
                                 <span class="label label-danger">
-                                    revoked upstream @ ${ServerCertificate.timestamp_revoked_upstream_isoformat}
+                                    revoked upstream @ ${CertificateSigned.timestamp_revoked_upstream_isoformat}
                                 </span>
                             % endif
                         </td>
@@ -190,11 +190,11 @@
                     <tr>
                         <th>is_single_domain_cert</th>
                         <td>
-                            % if ServerCertificate.is_single_domain_cert is True:
+                            % if CertificateSigned.is_single_domain_cert is True:
                                 <span class="label label-default">
                                     single domain certificate
                                 </span>
-                            % elif ServerCertificate.is_single_domain_cert is False:
+                            % elif CertificateSigned.is_single_domain_cert is False:
                                 <span class="label label-default">
                                     multiple domain certificate
                                 </span>
@@ -203,38 +203,38 @@
                     </tr>
                     <tr>
                         <th>timestamp_not_before</th>
-                        <td><timestamp>${ServerCertificate.timestamp_not_before}</timestamp></td>
+                        <td><timestamp>${CertificateSigned.timestamp_not_before}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_not_after</th>
-                        <td><timestamp>${ServerCertificate.timestamp_not_after}</timestamp></td>
+                        <td><timestamp>${CertificateSigned.timestamp_not_after}</timestamp></td>
                     </tr>
                     <tr>
                         <th>expires in days</th>
                         <td>
-                            <span class="label label-${ServerCertificate.expiring_days_label}">
-                                ${ServerCertificate.expiring_days} days
+                            <span class="label label-${CertificateSigned.expiring_days_label}">
+                                ${CertificateSigned.expiring_days} days
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>CA Certificate</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${ServerCertificate.ca_certificate_id__upchain}">
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateSigned.certificate_ca_id__upchain}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CACertificate-${ServerCertificate.ca_certificate_id__upchain}</a>
+                                CertificateCA-${CertificateSigned.certificate_ca_id__upchain}</a>
                             <br/>
-                            <em>The ServerCertificate is signed by this CACertificate.</em>
+                            <em>The CertificateSigned is signed by this CertificateCA.</em>
 
-                            % if ServerCertificate.certificate_upchain_alternates:
+                            % if CertificateSigned.certificate_upchain_alternates:
                                 <hr/>
                                 <em>Alternate Signing Chains are available:</em>
                                 <ul>
-                                    % for _alt in ServerCertificate.certificate_upchain_alternates:
+                                    % for _alt in CertificateSigned.certificate_upchain_alternates:
                                         <li>
-                                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${_alt.ca_certificate_id}">
+                                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${_alt.certificate_ca_id}">
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                CACertificate-${_alt.ca_certificate_id}</a>
+                                                CertificateCA-${_alt.certificate_ca_id}</a>
                                         </li>
                                     % endfor
                                 </ul>
@@ -244,58 +244,58 @@
                     <tr>
                         <th>PrivateKey</th>
                         <td>
-                            % if not ServerCertificate.private_key.is_compromised:
-                                <a class="label label-info" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id}">
+                            % if not CertificateSigned.private_key.is_compromised:
+                                <a class="label label-info" href="${admin_prefix}/private-key/${CertificateSigned.private_key_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    PrivateKey-${ServerCertificate.private_key_id}</a>
+                                    PrivateKey-${CertificateSigned.private_key_id}</a>
                             % else:
-                                <a class="label label-danger" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id}">
+                                <a class="label label-danger" href="${admin_prefix}/private-key/${CertificateSigned.private_key_id}">
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    PrivateKey-${ServerCertificate.private_key_id}</a>
+                                    PrivateKey-${CertificateSigned.private_key_id}</a>
                             % endif
                             <br/>
-                            <em>The ServerCertificate is signed by this PrivateKey.</em>
+                            <em>The CertificateSigned is signed by this PrivateKey.</em>
                         </td>
                     </tr>
                     <tr>
                         <th>AcmeAccount</th>
                         <td>
-                            % if ServerCertificate.acme_order and ServerCertificate.acme_order.acme_account_id:
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${ServerCertificate.acme_order.acme_account_id}">
+                            % if CertificateSigned.acme_order and CertificateSigned.acme_order.acme_account_id:
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${CertificateSigned.acme_order.acme_account_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${ServerCertificate.acme_order.acme_account_id}</a>
+                                    AcmeAccount-${CertificateSigned.acme_order.acme_account_id}</a>
                                 <br/>
-                                <em>The ServerCertificate belongs to this AcmeAccount.</em>
+                                <em>The CertificateSigned belongs to this AcmeAccount.</em>
                             % else:
-                                <em>The ServerCertificate is not associated with an AcmeAccount.</em>
+                                <em>The CertificateSigned is not associated with an AcmeAccount.</em>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>AcmeOrder</th>
                         <td>
-                            % if ServerCertificate.acme_order:
-                                <a class="label label-info" href="${admin_prefix}/acme-order/${ServerCertificate.acme_order.id}">
+                            % if CertificateSigned.acme_order:
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${CertificateSigned.acme_order.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${ServerCertificate.acme_order.id}</a>
+                                    AcmeOrder-${CertificateSigned.acme_order.id}</a>
                                 <br/>
-                                <em>The ServerCertificate belongs to this AcmeOrder.</em>
+                                <em>The CertificateSigned belongs to this AcmeOrder.</em>
                             % else:
-                                <em>The ServerCertificate is not associated with an AcmeOrder.</em>
+                                <em>The CertificateSigned is not associated with an AcmeOrder.</em>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>CertificateRequest</th>
                         <td>
-                            % if ServerCertificate.certificate_request_id:
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${ServerCertificate.certificate_request_id}">
+                            % if CertificateSigned.certificate_request_id:
+                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateSigned.certificate_request_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateRequest-${ServerCertificate.certificate_request_id}</a>
+                                    CertificateRequest-${CertificateSigned.certificate_request_id}</a>
                                 <br/>
-                                <em>The ServerCertificate is the result of this CertificateSigningRequest.</em>
+                                <em>The CertificateSigned is the result of this CertificateSigningRequest.</em>
                             % else:
-                                <em>The ServerCertificate is not associated with a CertificateSigningRequest.</em>
+                                <em>The CertificateSigned is not associated with a CertificateSigningRequest.</em>
                             % endif
                         </td>
                     </tr>
@@ -303,19 +303,19 @@
                         <th>UniqueFQDNSet</th>
                         <td>
                             <a  class="label label-info"
-                                href="${admin_prefix}/unique-fqdn-set/${ServerCertificate.unique_fqdn_set_id}"
+                                href="${admin_prefix}/unique-fqdn-set/${CertificateSigned.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${ServerCertificate.unique_fqdn_set_id}
+                                UniqueFQDNSet-${CertificateSigned.unique_fqdn_set_id}
                             </a>
                             <br/>
-                            <em>The ServerCertificate covers the domains in this UniqueFQDNSet.</em>
+                            <em>The CertificateSigned covers the domains in this UniqueFQDNSet.</em>
                             <br/>
                             <%
-                                latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate
-                                latest_active_certificate = ServerCertificate.unique_fqdn_set.latest_active_certificate
-                                latest_certificate_same = True if latest_certificate and latest_certificate.id == ServerCertificate.id else False
-                                latest_active_certificate_same = True if latest_active_certificate and latest_active_certificate.id == ServerCertificate.id else False
+                                latest_certificate = CertificateSigned.unique_fqdn_set.latest_certificate
+                                latest_active_certificate = CertificateSigned.unique_fqdn_set.latest_active_certificate
+                                latest_certificate_same = True if latest_certificate and latest_certificate.id == CertificateSigned.id else False
+                                latest_active_certificate_same = True if latest_active_certificate and latest_active_certificate.id == CertificateSigned.id else False
                             %>
                             <table class="table table-striped table-condensed">
                                 <thead>
@@ -335,10 +335,10 @@
                                                     <span class="label label-default">${latest_certificate.id}</span>
                                                 % else:
                                                     <a  class="label label-info"
-                                                        href="${admin_prefix}/server-certificate/${latest_certificate.id}"
+                                                        href="${admin_prefix}/certificate-signed/${latest_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                        ServerCertificate-${latest_certificate.id}
+                                                        CertificateSigned-${latest_certificate.id}
                                                     </a>
                                                 % endif
                                             </td>
@@ -362,10 +362,10 @@
                                                     <span class="label label-default">${latest_active_certificate.id}</span>
                                                 % else:
                                                     <a  class="label label-info"
-                                                        href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
+                                                        href="${admin_prefix}/certificate-signed/${latest_active_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                        ServerCertificate-${latest_active_certificate.id}
+                                                        CertificateSigned-${latest_active_certificate.id}
                                                     </a>
                                                 % endif
                                             </td>
@@ -385,18 +385,18 @@
                             </table>
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(ServerCertificate)}
+                    ${admin_partials.table_tr_OperationsEventCreated(CertificateSigned)}
                     <tr>
                         <th>cert_pem_md5</th>
-                        <td><code>${ServerCertificate.cert_pem_md5}</code></td>
+                        <td><code>${CertificateSigned.cert_pem_md5}</code></td>
                     </tr>
                     <tr>
                         <th>cert_pem_modulus_md5</th>
                         <td>
-                            <code>${ServerCertificate.cert_pem_modulus_md5}</code>
+                            <code>${CertificateSigned.cert_pem_modulus_md5}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${ServerCertificate.cert_pem_modulus_search}"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_pem_modulus_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
@@ -405,14 +405,14 @@
                     <tr>
                         <th>cert_pem</th>
                         <td>
-                            ## <textarea class="form-control">${ServerCertificate.key_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.pem">
+                            ## <textarea class="form-control">${CertificateSigned.key_pem}</textarea>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.pem.txt">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem.txt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.crt">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.crt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.crt (der)</a>
                         </td>
@@ -420,16 +420,16 @@
                     <tr>
                         <th>json payload</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/config.json">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 config.json</a><br/>
                             <em>designed for downstream http config</em>
                             <hr>
 
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in ServerCertificate.iter_certificate_upchain:
+                                % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${_certificate_upchain.id}/config.json">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${_certificate_upchain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             CaCert-${_certificate_upchain.id}
                                             config.json</a>
@@ -442,16 +442,16 @@
                     <tr>
                         <th>zip payload</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/config.zip">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 config.zip</a><br/>
                             <em>designed for downstream http config</em>
                             <hr>
 
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in ServerCertificate.iter_certificate_upchain:
+                                % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${_certificate_upchain.id}/config.zip">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${_certificate_upchain.id}/config.zip">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             CaCert-${_certificate_upchain.id}
                                             config.zip</a>
@@ -467,12 +467,12 @@
                             <td>
                                 <span class="btn-group">
                                     <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/server-certificate/${ServerCertificate.id}/nginx-cache-expire"
+                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire"
                                     >
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                         nginx-cache-expire</a>
                                     <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/server-certificate/${ServerCertificate.id}/nginx-cache-expire.json"
+                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire.json"
                                         target="_blank"
                                     >
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -487,8 +487,8 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=ServerCertificate&server_certificate=${ServerCertificate.id}"
-                                title="Queue a ServerCertificate"
+                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=${CertificateSigned.id}"
+                                title="Queue a CertificateSigned"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                 Queue a Renewal
@@ -512,89 +512,89 @@
                                     <tr>
                                         <th>privatekey</th>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.key">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.key">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.key (der)</a>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th>chain (upstream)
-                                            <span class="label label-default">CaCert-${ServerCertificate.ca_certificate_id__upchain}</span>
+                                            <span class="label label-default">CaCert-${CertificateSigned.certificate_ca_id__upchain}</span>
                                         </th>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.cer">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.cer">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.cer (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.crt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.crt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.crt (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.der">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.der">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.der (der)</a>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th>fullchain (cert+upstream chain)
-                                            <span class="label label-default">CaCert-${ServerCertificate.ca_certificate_id__upchain}</span>
+                                            <span class="label label-default">CaCert-${CertificateSigned.certificate_ca_id__upchain}</span>
                                         </th>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/fullchain.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/fullchain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 fullchain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/fullchain.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/fullchain.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 fullchain.pem</a>
                                         </td>
                                     </tr>
 
-                                    % if ServerCertificate.certificate_upchain_alternates:
+                                    % if CertificateSigned.certificate_upchain_alternates:
                                         <tr>
                                             <th colspan="2">Alternate Chains</th>
                                         </tr>
-                                        % for toAltChain in ServerCertificate.certificate_upchain_alternates:
+                                        % for toAltChain in CertificateSigned.certificate_upchain_alternates:
                                             <tr>
                                                 <th>chain (upstream)
-                                                    <span class="label label-default">CaCert-${toAltChain.ca_certificate_id}</span>
+                                                    <span class="label label-default">CaCert-${toAltChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.cer">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.cer">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.cer (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.crt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.crt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.crt (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.der">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.der">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.der (der)</a>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>fullchain (cert+upstream chain)
-                                                    <span class="label label-default">CaCert-${toAltChain.ca_certificate_id}</span>
+                                                    <span class="label label-default">CaCert-${toAltChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/fullchain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/fullchain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/fullchain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/fullchain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>
                                                 </td>
@@ -612,12 +612,12 @@
                         <td>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${ServerCertificate.cert_subject_search}"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_subject_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
                             <br/>
-                            <samp>${ServerCertificate.cert_subject}</samp>
+                            <samp>${CertificateSigned.cert_subject}</samp>
                         </td>
                     </tr>
                     <tr>
@@ -625,13 +625,13 @@
                         <td>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${ServerCertificate.cert_issuer_search}"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_issuer_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
                             <br/>
 
-                            <samp>${ServerCertificate.cert_issuer}</samp>
+                            <samp>${CertificateSigned.cert_issuer}</samp>
                         </td>
                     </tr>
                     <tr>
@@ -646,7 +646,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    % for to_d in ServerCertificate.unique_fqdn_set.to_domains:
+                                    % for to_d in CertificateSigned.unique_fqdn_set.to_domains:
                                         <tr>
                                             <td>
                                                 <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
@@ -657,12 +657,12 @@
                                                 <code>${to_d.domain.domain_name}</code>
                                             </td>
                                             <td>
-                                                % if ServerCertificate.id in (to_d.domain.server_certificate_id__latest_single, to_d.domain.server_certificate_id__latest_multi):
+                                                % if CertificateSigned.id in (to_d.domain.certificate_signed_id__latest_single, to_d.domain.certificate_signed_id__latest_multi):
                                                     <span class="label label-default">
-                                                        % if ServerCertificate.id == to_d.domain.server_certificate_id__latest_single:
+                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_single:
                                                             single
                                                         % endif
-                                                        % if ServerCertificate.id == to_d.domain.server_certificate_id__latest_multi:
+                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_multi:
                                                             multi
                                                         % endif
                                                     </span>
@@ -691,9 +691,9 @@
                     <tr>
                         <th>QueueCertificates</th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(ServerCertificate.queue_certificates__5, perspective="ServerCertificate")}
-                            % if ServerCertificate.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/server-certificate/%s/queue-certificates" % (admin_prefix, ServerCertificate.id))}
+                            ${admin_partials.table_QueueCertificates(CertificateSigned.queue_certificates__5, perspective="CertificateSigned")}
+                            % if CertificateSigned.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/certificate-signed/%s/queue-certificates" % (admin_prefix, CertificateSigned.id))}
                             % endif
                         </td>
                     </tr>

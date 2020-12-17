@@ -16,7 +16,7 @@
     <p>Most QueueCertificates can be created from a link on an exisiting object&apos;s "Focus" page to the <code>/new/structured</code> form.
         <ul>
             <li>AcmeOrder</li>
-            <li>ServerCertificate</li>
+            <li>CertificateSigned</li>
             <li>UniqueFQDNSet</li>
         </ul>
     </p>

@@ -133,19 +133,19 @@ class ViewAdminOperations(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:operations:ca_certificate_downloads",
-        renderer="/admin/operations-ca_certificate_downloads.mako",
+        route_name="admin:operations:certificate_ca_downloads",
+        renderer="/admin/operations-certificate_ca_downloads.mako",
     )
     @view_config(
-        route_name="admin:operations:ca_certificate_downloads_paginated",
-        renderer="/admin/operations-ca_certificate_downloads.mako",
+        route_name="admin:operations:certificate_ca_downloads_paginated",
+        renderer="/admin/operations-certificate_ca_downloads.mako",
     )
-    def ca_certificate_downloads(self):
+    def certificate_ca_downloads(self):
         items_count = lib_db.get.get__OperationsEvent__certificate_download__count(
             self.request.api_context
         )
         url_template = (
-            "%s/operations/ca-certificate-downloads/{0}"
+            "%s/operations/certificate-ca-downloads/{0}"
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)

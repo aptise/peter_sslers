@@ -155,10 +155,10 @@ RE_AcmeOrderless = re.compile(
 )
 
 
-# note: CACertificate
+# note: CertificateCA
 
-RE_CACertificate_uploaded = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
+RE_CertificateCA_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca/(\d+)\?result=success&is_created=1$"""
 )
 
 RE_CoverageAssuranceEvent_mark = re.compile(
@@ -198,12 +198,12 @@ RE_QueueDomain_process_success = re.compile(
 )
 
 
-# note: ServerCertificate
+# note: CertificateSigned
 
-RE_ServerCertificate_main = re.compile(
-    r"""href="/\.well-known/admin/server-certificate/(\d+)"""
+RE_CertificateSigned_main = re.compile(
+    r"""href="/\.well-known/admin/certificate-signed/(\d+)"""
 )
 
-RE_ServerCertificate_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/server-certificate/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+RE_CertificateSigned_operation_nginx_expire = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
 )
