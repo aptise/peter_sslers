@@ -73,20 +73,20 @@
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
                 <li class="active">
-                    <a  href="${admin_prefix}/operations/ca-certificate-downloads"
+                    <a  href="${admin_prefix}/operations/certificate-ca-downloads"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                         Certificate Downloads Log
                     </a>
                 </li>
                 <li>
-                    <form action="${admin_prefix}/api/ca-certificate/letsencrypt-sync"
+                    <form action="${admin_prefix}/api/certificate-ca/letsencrypt-sync"
                           method="POST"
-                          id="form-ca_certificate-letsencrypt_sync"
+                          id="form-certificate_ca-letsencrypt_sync"
                     >
                         <button class="btn btn-primary">
                             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                            Download LetsEcnrypt CA-Certificates
+                            Download LetsEcnrypt certificate-cas
                         </button>
                     </form>
                 </li>

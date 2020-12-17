@@ -553,7 +553,7 @@ def create__CertificateRequest(
     csr_pem=None,
     certificate_request_source_id=None,
     dbPrivateKey=None,
-    dbServerCertificate__issued=None,
+    dbCertificateSigned__issued=None,
     domain_names=None,
 ):
     """
@@ -566,7 +566,7 @@ def create__CertificateRequest(
     :param certificate_request_source_id: (required) What is the source of this? Valid options are in :class:`model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
 
-    :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
+    :param dbCertificateSigned__issued: (optional) a `model_objects.CertificateSigned`
     :param domain_names: (required) A list of domain names
     """
     if (
@@ -722,7 +722,7 @@ def create__CoverageAssuranceEvent(
     coverage_assurance_event_status_id=None,
     coverage_assurance_resolution_id=None,
     dbPrivateKey=None,
-    dbServerCertificate=None,
+    dbCertificateSigned=None,
     dbQueueCertificate=None,
     dbCoverageAssuranceEvent_parent=None,
 ):
@@ -735,7 +735,7 @@ def create__CoverageAssuranceEvent(
     :param coverage_assurance_resolution_id: (optional) :class:`model.utils.CoverageAssuranceResolution`; defaults to 'unresolved'
 
     :param dbPrivateKey: (optional) a `model_objects.PrivateKey`
-    :param dbServerCertificate: (optional) a `model_objects.ServerCertificate`
+    :param dbCertificateSigned: (optional) a `model_objects.CertificateSigned`
     :param dbQueueCertificate: (optional) a `model_objects.QueueCertificate`
     :param dbCoverageAssuranceEvent_parent: (optional) a `model_objects.CoverageAssuranceEvent`
     """
@@ -769,9 +769,9 @@ def create__CoverageAssuranceEvent(
                 % coverage_assurance_resolution_id
             )
 
-    if not any((dbPrivateKey, dbServerCertificate, dbQueueCertificate)):
+    if not any((dbPrivateKey, dbCertificateSigned, dbQueueCertificate)):
         raise ValueError(
-            "must submit at least one of (dbPrivateKey, dbServerCertificate, dbQueueCertificate)"
+            "must submit at least one of (dbPrivateKey, dbCertificateSigned, dbQueueCertificate)"
         )
 
     dbCoverageAssuranceEvent = model_objects.CoverageAssuranceEvent()
@@ -787,8 +787,8 @@ def create__CoverageAssuranceEvent(
     )
     if dbPrivateKey:
         dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
-    if dbServerCertificate:
-        dbCoverageAssuranceEvent.server_certificate_id = dbServerCertificate.id
+    if dbCertificateSigned:
+        dbCoverageAssuranceEvent.certificate_signed_id = dbCertificateSigned.id
     if dbQueueCertificate:
         dbCoverageAssuranceEvent.queue_certificate_id = dbQueueCertificate.id
     if dbCoverageAssuranceEvent_parent:
@@ -870,7 +870,7 @@ def create__QueueCertificate(
     private_key_cycle_id__renewal=None,
     private_key_strategy_id__requested=None,
     dbAcmeOrder=None,
-    dbServerCertificate=None,
+    dbCertificateSigned=None,
     dbUniqueFQDNSet=None,
 ):
     """
@@ -885,10 +885,10 @@ def create__QueueCertificate(
     :param private_key_strategy_id__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
 
     :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbServerCertificate: (optional) A :class:`model.objects.ServerCertificate` object
+    :param dbCertificateSigned: (optional) A :class:`model.objects.CertificateSigned` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
 
-    one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) must be supplied
+    one and only one of (dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet) must be supplied
 
     :returns :class:`model.objects.QueueCertificate`
 
@@ -918,22 +918,22 @@ def create__QueueCertificate(
             bool(i)
             for i in (
                 dbAcmeOrder,
-                dbServerCertificate,
+                dbCertificateSigned,
                 dbUniqueFQDNSet,
             )
         )
         != 1
     ):
         raise ValueError(
-            "Provide one and only one of (`dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet`)"
+            "Provide one and only one of (`dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet`)"
         )
 
     # what are we renewing?
     unique_fqdn_set_id = None
     if dbAcmeOrder:
         unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
-    elif dbServerCertificate:
-        unique_fqdn_set_id = dbServerCertificate.unique_fqdn_set_id
+    elif dbCertificateSigned:
+        unique_fqdn_set_id = dbCertificateSigned.unique_fqdn_set_id
     elif dbUniqueFQDNSet:
         unique_fqdn_set_id = dbUniqueFQDNSet.id
 
@@ -959,8 +959,8 @@ def create__QueueCertificate(
 
     # the source elements
     dbQueueCertificate.acme_order_id__source = dbAcmeOrder.id if dbAcmeOrder else None
-    dbQueueCertificate.server_certificate_id__source = (
-        dbServerCertificate.id if dbServerCertificate else None
+    dbQueueCertificate.certificate_signed_id__source = (
+        dbCertificateSigned.id if dbCertificateSigned else None
     )
     dbQueueCertificate.unique_fqdn_set_id__source = (
         dbUniqueFQDNSet.id if dbUniqueFQDNSet else None
@@ -988,28 +988,28 @@ def create__QueueCertificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def create__ServerCertificate(
+def create__CertificateSigned(
     ctx,
     cert_pem=None,
     cert_domains_expected=None,
     is_active=None,
     dbAcmeOrder=None,
-    dbCACertificate=None,
-    dbCACertificates_alt=None,
+    dbCertificateCA=None,
+    dbCertificateCAs_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
 ):
     """
-    Create a new ServerCertificate
+    Create a new CertificateSigned
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required) The certificate in PEM encoding
     :param cert_domains_expected: (required) a list of domains in the cert we expect to see
     :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
 
-    :param dbCACertificate: (required) The :class:`model.objects.CACertificate` that signed this certificate
-    :param dbCACertificates_alt: (optional) Iterable. Alternate :class:`model.objects.CACertificate`s that signed this certificate
+    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate
+    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
 
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
@@ -1024,11 +1024,11 @@ def create__ServerCertificate(
     """
     if not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
-            "create__ServerCertificate must be provided with `dbPrivateKey` or `dbAcmeOrder`"
+            "create__CertificateSigned must be provided with `dbPrivateKey` or `dbAcmeOrder`"
         )
     if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
         raise ValueError(
-            "create__ServerCertificate must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+            "create__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
         )
     if dbUniqueFQDNSet:
         if any(
@@ -1038,10 +1038,10 @@ def create__ServerCertificate(
             )
         ):
             raise ValueError(
-                "getcreate__ServerCertificate must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )
-    if not dbCACertificate:
-        raise ValueError("must submit `dbCACertificate`")
+    if not dbCertificateCA:
+        raise ValueError("must submit `dbCertificateCA`")
 
     dbAcmeAccount = None
     if dbAcmeOrder:
@@ -1050,14 +1050,14 @@ def create__ServerCertificate(
         if dbCertificateRequest:
             if dbCertificateRequest != dbAcmeOrder.certificate_request:
                 raise ValueError(
-                    "create__ServerCertificate was with `dbCertificateRequest` and a conflicting `dbAcmeOrder`"
+                    "create__CertificateSigned was with `dbCertificateRequest` and a conflicting `dbAcmeOrder`"
                 )
         else:
             dbCertificateRequest = dbAcmeOrder.certificate_request
         if dbPrivateKey:
             if dbPrivateKey != dbAcmeOrder.private_key:
                 raise ValueError(
-                    "create__ServerCertificate was with `dbPrivateKey` and a conflicting `dbAcmeOrder`"
+                    "create__CertificateSigned was with `dbPrivateKey` and a conflicting `dbAcmeOrder`"
                 )
         else:
             dbPrivateKey = dbAcmeOrder.certificate_request.private_key
@@ -1075,7 +1075,7 @@ def create__ServerCertificate(
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("ServerCertificate__insert")
+        ctx, model_utils.OperationsEventType.from_string("CertificateSigned__insert")
     )
 
     _tmpfileCert = None
@@ -1101,54 +1101,54 @@ def create__ServerCertificate(
             log.error(cert_domains_expected)
             log.error(cert_domains)
             raise ValueError(
-                "ServerCertificate Domains do not match the expected ones! this should never happen!"
+                "CertificateSigned Domains do not match the expected ones! this should never happen!"
             )
 
         # ok, now pull the dates off the cert
-        dbServerCertificate = model_objects.ServerCertificate()
-        dbServerCertificate.timestamp_created = ctx.timestamp
-        dbServerCertificate.cert_pem = cert_pem
-        dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
-        dbServerCertificate.is_active = is_active
-        dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
-        dbServerCertificate.private_key_id = dbPrivateKey.id
-        dbServerCertificate.key_technology_id = dbPrivateKey.key_technology_id
-        dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
+        dbCertificateSigned = model_objects.CertificateSigned()
+        dbCertificateSigned.timestamp_created = ctx.timestamp
+        dbCertificateSigned.cert_pem = cert_pem
+        dbCertificateSigned.cert_pem_md5 = utils.md5_text(cert_pem)
+        dbCertificateSigned.is_active = is_active
+        dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
+        dbCertificateSigned.private_key_id = dbPrivateKey.id
+        dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
+        dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
         if dbUniqueFQDNSet.count_domains == 1:
-            dbServerCertificate.is_single_domain_cert = True
+            dbCertificateSigned.is_single_domain_cert = True
         elif dbUniqueFQDNSet.count_domains >= 1:
-            dbServerCertificate.is_single_domain_cert = False
+            dbCertificateSigned.is_single_domain_cert = False
 
         """
         The following are set by `_certificate_parse_to_record`
-            :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
-            :attr:`model.utils.ServerCertificate.timestamp_not_before`
-            :attr:`model.utils.ServerCertificate.timestamp_not_after`
-            :attr:`model.utils.ServerCertificate.cert_subject`
-            :attr:`model.utils.ServerCertificate.cert_issuer`
+            :attr:`model.utils.CertificateSigned.cert_pem_modulus_md5`
+            :attr:`model.utils.CertificateSigned.timestamp_not_before`
+            :attr:`model.utils.CertificateSigned.timestamp_not_after`
+            :attr:`model.utils.CertificateSigned.cert_subject`
+            :attr:`model.utils.CertificateSigned.cert_issuer`
         """
-        _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
+        _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
         if dbCertificateRequest:
-            dbServerCertificate.certificate_request_id = dbCertificateRequest.id
-        dbServerCertificate.ca_certificate_id__upchain = dbCACertificate.id
+            dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
+        dbCertificateSigned.certificate_ca_id__upchain = dbCertificateCA.id
 
-        ctx.dbSession.add(dbServerCertificate)
-        ctx.dbSession.flush(objects=[dbServerCertificate])
+        ctx.dbSession.add(dbCertificateSigned)
+        ctx.dbSession.flush(objects=[dbCertificateSigned])
 
         # increment account/private key counts
-        dbPrivateKey.count_server_certificates += 1
+        dbPrivateKey.count_certificate_signeds += 1
         if not dbPrivateKey.timestamp_last_certificate_issue or (
             dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
         ):
             dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
         if dbAcmeAccount:
-            dbAcmeAccount.count_server_certificates += 1
+            dbAcmeAccount.count_certificate_signeds += 1
             if not dbAcmeAccount.timestamp_last_certificate_issue or (
                 dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
             ):
                 dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
 
-        event_payload_dict["server_certificate.id"] = dbServerCertificate.id
+        event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -1156,17 +1156,17 @@ def create__ServerCertificate(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "ServerCertificate__insert"
+                "CertificateSigned__insert"
             ),
-            dbServerCertificate=dbServerCertificate,
+            dbCertificateSigned=dbCertificateSigned,
         )
 
         # final, just to be safe
         ctx.dbSession.flush()
 
         if dbAcmeOrder:
-            # dbServerCertificate.acme_order_id__generated_by = dbAcmeOrder.id
-            dbAcmeOrder.server_certificate = dbServerCertificate  # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
+            # dbCertificateSigned.acme_order_id__generated_by = dbAcmeOrder.id
+            dbAcmeOrder.certificate_signed = dbCertificateSigned  # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
             dbAcmeOrder.acme_order_processing_status_id = (
                 model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
             )  # note that we've completed this!
@@ -1174,19 +1174,19 @@ def create__ServerCertificate(
             # final, just to be safe
             ctx.dbSession.flush()
 
-        if dbCACertificates_alt:
-            for _dbCACertificate in dbCACertificates_alt:
-                dbServerCertificateAlternateChain = (
-                    model_objects.ServerCertificateAlternateChain()
+        if dbCertificateCAs_alt:
+            for _dbCertificateCA in dbCertificateCAs_alt:
+                dbCertificateSignedAlternateChain = (
+                    model_objects.CertificateSignedAlternateChain()
                 )
-                dbServerCertificateAlternateChain.server_certificate_id = (
-                    dbServerCertificate.id
+                dbCertificateSignedAlternateChain.certificate_signed_id = (
+                    dbCertificateSigned.id
                 )
-                dbServerCertificateAlternateChain.ca_certificate_id = (
-                    _dbCACertificate.id
+                dbCertificateSignedAlternateChain.certificate_ca_id = (
+                    _dbCertificateCA.id
                 )
-                ctx.dbSession.add(dbServerCertificateAlternateChain)
-                ctx.dbSession.flush(objects=[dbServerCertificateAlternateChain])
+                ctx.dbSession.add(dbCertificateSignedAlternateChain)
+                ctx.dbSession.flush(objects=[dbCertificateSignedAlternateChain])
 
     except Exception as exc:
         raise
@@ -1194,7 +1194,7 @@ def create__ServerCertificate(
         if _tmpfileCert:
             _tmpfileCert.close()
 
-    return dbServerCertificate
+    return dbCertificateSigned
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1202,7 +1202,7 @@ def create__ServerCertificate(
 
 __all__ = (
     "create__CertificateRequest",
-    "create__ServerCertificate",
+    "create__CertificateSigned",
     "create__PrivateKey",
     "create__QueueCertificate",
 )

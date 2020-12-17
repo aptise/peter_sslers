@@ -16,7 +16,7 @@ def year_week__default(element, compiler, **kw):
     # return compiler.visit_function(element)
     """
     ## select extract(week from timestamp_event) from table_a;
-    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_not_before)
+    week_num = sqlalchemy.sql.expression.extract('WEEK', CertificateSigned.timestamp_not_before)
     """
     args = list(element.clauses)
     return "concat(extract(year from %s), '.', extract(week from %s)) " % (
@@ -29,7 +29,7 @@ def year_week__default(element, compiler, **kw):
 def year_week__postgresql(element, compiler, **kw):
     """
     # select to_char(timestamp_event, 'YYYY.WW')  from table_a;
-    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_not_before, 'YYYY.WW')
+    week_num = sqlalchemy.func.to_char(CertificateSigned.timestamp_not_before, 'YYYY.WW')
     """
     args = list(element.clauses)
     return "to_char(%s, 'YYYY.WW')" % (compiler.process(args[0]),)
@@ -38,7 +38,7 @@ def year_week__postgresql(element, compiler, **kw):
 @compiles(year_week, "sqlite")
 def year_week__sqlite(element, compiler, **kw):
     """
-    # strftime('%Y.%W', cast(ServerCertificate.timestamp_not_before) as text)
+    # strftime('%Y.%W', cast(CertificateSigned.timestamp_not_before) as text)
     week_num = sqlalchemy.func.strftime('%Y.%W',
                                         sqlalchemy.cast(TABLE.COLUMN,
                                                         sqlalchemy.Unicode
@@ -64,7 +64,7 @@ def year_day__default(element, compiler, **kw):
     """
     ## select extract(doy from timestamp_event) from table_a;
     ## 94
-    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_not_before)
+    week_num = sqlalchemy.sql.expression.extract('WEEK', CertificateSigned.timestamp_not_before)
     ## select concat(extract(year from current_timestamp), '.', extract(doy from current_timestamp))
     """
     args = list(element.clauses)
@@ -78,7 +78,7 @@ def year_day__default(element, compiler, **kw):
 def year_day__postgresql(element, compiler, **kw):
     """
     # select to_char(timestamp_event, 'YYYY.DDD')  from table_a;
-    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_not_before, 'YYYY.WW')
+    week_num = sqlalchemy.func.to_char(CertificateSigned.timestamp_not_before, 'YYYY.WW')
     # select to_char(current_timestamp, 'YYYY.DDD');
     # 2020.094
     """
@@ -89,7 +89,7 @@ def year_day__postgresql(element, compiler, **kw):
 @compiles(year_day, "sqlite")
 def year_day__sqlite(element, compiler, **kw):
     """
-    # strftime('%Y.%j', cast(ServerCertificate.timestamp_not_before) as text)
+    # strftime('%Y.%j', cast(CertificateSigned.timestamp_not_before) as text)
     # 2020.094
     year_day = sqlalchemy.func.strftime('%Y.%j',
                                         sqlalchemy.cast(TABLE.COLUMN,
@@ -269,18 +269,18 @@ class _OperationsUnified(_mixin_mapping):
         940: "QueueCertificate__process",
         941: "QueueCertificate__process__success",
         942: "QueueCertificate__process__fail",
-        710: "ServerCertificate__insert",
-        720: "ServerCertificate__mark",
-        721: "ServerCertificate__mark__active",
-        722: "ServerCertificate__mark__inactive",
-        723: "ServerCertificate__mark__revoked",
-        724: "ServerCertificate__mark__compromised",  # the PrivateKey has been compromised
-        726: "ServerCertificate__mark__unrevoked",
-        727: "ServerCertificate__mark__renew_auto",
-        728: "ServerCertificate__mark__renew_manual",
-        740: "ServerCertificate__revoke",
-        751: "ServerCertificate__deactivate_expired",
-        752: "ServerCertificate__deactivate_duplicate",
+        710: "CertificateSigned__insert",
+        720: "CertificateSigned__mark",
+        721: "CertificateSigned__mark__active",
+        722: "CertificateSigned__mark__inactive",
+        723: "CertificateSigned__mark__revoked",
+        724: "CertificateSigned__mark__compromised",  # the PrivateKey has been compromised
+        726: "CertificateSigned__mark__unrevoked",
+        727: "CertificateSigned__mark__renew_auto",
+        728: "CertificateSigned__mark__renew_manual",
+        740: "CertificateSigned__revoke",
+        751: "CertificateSigned__deactivate_expired",
+        752: "CertificateSigned__deactivate_duplicate",
         510: "UniqueFQDNSet__insert",
         1002: "operations__update_recents__global",
         1003: "operations__update_recents__domains",
@@ -711,8 +711,8 @@ class CoverageAssuranceEventType(_mixin_mapping):
     _mapping = {
         1: "PrivateKey_compromised_mark",  # we mark it as compromised
         2: "PrivateKey_compromised_acme",  # the ACME server is confirmed to have it as compromised
-        3: "ServerCertificate_revoked_mark",  # we mark it as revoked
-        4: "ServerCertificate_revoked_acme",  # ACME confirms it as revoked
+        3: "CertificateSigned_revoked_mark",  # we mark it as revoked
+        4: "CertificateSigned_revoked_acme",  # ACME confirms it as revoked
         5: "AccountKey_revoked_mark",  # we mark it as revoked
         6: "AccountKey_revoked_acme",  # ACME confirms it as revoked
         7: "QueueCertificate_no_account_key",  # the Queue item has no key, and the fallback global is unavailable
@@ -739,7 +739,7 @@ class CoverageAssuranceResolution(_mixin_mapping):
         1: "unresolved",
         2: "abandoned",
         3: "PrivateKey_replaced",
-        4: "ServerCertificate_replaced",
+        4: "CertificateSigned_replaced",
     }
 
 

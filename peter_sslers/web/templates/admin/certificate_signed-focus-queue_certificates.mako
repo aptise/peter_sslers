@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
-        <li><a href="${admin_prefix}/acme-account/${AcmeAccount.id}">Focus [${AcmeAccount.id}]</a></li>
-        <li class="active">ServerCertificates</li>
+        <li><a href="${admin_prefix}/certificate-signed">Server Certificates</a></li>
+        <li><a href="${admin_prefix}/certificate-signed/${CertificateSigned.id}">Focus [${CertificateSigned.id}]</a></li>
+        <li class="active">Queue Certificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccount - Focus | ServerCertificates</h2>
+    <h2>CertificateSigned Focus - Queue Certificates</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if ServerCertificates:
+            % if QueueCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_QueueCertificates(QueueCertificates, perspective='CertificateSigned')}
             % else:
-                No known ServerCertificates.
+                No known QueueCertificates.
             % endif
         </div>
     </div>

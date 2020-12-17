@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/server-certificate">Server Certificates</a></li>
-        <li><a href="${admin_prefix}/server-certificate/${ServerCertificate.id}">Focus [${ServerCertificate.id}]</a></li>
-        <li class="active">Queue Certificates</li>
+        <li><a href="${admin_prefix}/unique-fqdn-sets">Unique FQDN Sets</a></li>
+        <li><a href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}">Focus [${UniqueFQDNSet.id}]</a></li>
+        <li class="active">CertificateSigneds</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>ServerCertificate Focus - Queue Certificates</h2>
+    <h2>Unique FQDN Set Focus - CertificateSigneds</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if QueueCertificates:
+            % if CertificateSigneds:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_QueueCertificates(QueueCertificates, perspective='ServerCertificate')}
+                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=False, show_expiring_days=True)}
             % else:
-                No known QueueCertificates.
+                No known CertificateSigneds.
             % endif
         </div>
     </div>

@@ -35,7 +35,7 @@ from .logger import _log_object_event
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def ca_certificate_download(ctx):
+def certificate_ca_download(ctx):
     """
     Downloads from the LetsEncrypt Certificate Authority
 
@@ -55,30 +55,30 @@ def ca_certificate_download(ctx):
 
     for cert_id, cert_data in certs.items():
         _is_created = False
-        dbCACertificate = lib.db.get.get__CACertificate__by_pem_text(
+        dbCertificateCA = lib.db.get.get__CertificateCA__by_pem_text(
             ctx, cert_data["cert_pem"]
         )
-        if not dbCACertificate:
+        if not dbCertificateCA:
             (
-                dbCACertificate,
+                dbCertificateCA,
                 _is_created,
-            ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+            ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
                 ctx, cert_data["cert_pem"], ca_chain_name=cert_data["name"]
             )
             if _is_created:
-                certs_discovered.append(dbCACertificate)
+                certs_discovered.append(dbCertificateCA)
         if "is_trusted_root" in cert_data:
-            if dbCACertificate.is_trusted_root != cert_data["is_trusted_root"]:
-                dbCACertificate.is_trusted_root = cert_data["is_trusted_root"]
-                if dbCACertificate not in certs_discovered:
-                    certs_modified.append(dbCACertificate)
+            if dbCertificateCA.is_trusted_root != cert_data["is_trusted_root"]:
+                dbCertificateCA.is_trusted_root = cert_data["is_trusted_root"]
+                if dbCertificateCA not in certs_discovered:
+                    certs_modified.append(dbCertificateCA)
         else:
-            attrs = ("le_authority_name",)
+            attrs = ("display_name",)
             for _k in attrs:
-                if getattr(dbCACertificate, _k) is None:
-                    setattr(dbCACertificate, _k, cert_data[_k])
-                    if dbCACertificate not in certs_discovered:
-                        certs_modified.append(dbCACertificate)
+                if getattr(dbCertificateCA, _k) is None:
+                    setattr(dbCertificateCA, _k, cert_data[_k])
+                    if dbCertificateCA not in certs_discovered:
+                        certs_modified.append(dbCertificateCA)
 
     # bookkeeping update
     event_payload_dict["is_certificates_discovered"] = (
@@ -109,7 +109,7 @@ def operations_deactivate_expired(ctx):
     operationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
-            "ServerCertificate__deactivate_expired"
+            "CertificateSigned__deactivate_expired"
         ),
         event_payload_dict,
     )
@@ -121,10 +121,10 @@ def operations_deactivate_expired(ctx):
 
     # deactivate expired certificates
     expired_certs = (
-        ctx.dbSession.query(model_objects.ServerCertificate)
+        ctx.dbSession.query(model_objects.CertificateSigned)
         .filter(
-            model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.timestamp_not_after < ctx.timestamp,
+            model_objects.CertificateSigned.is_active.is_(True),
+            model_objects.CertificateSigned.timestamp_not_after < ctx.timestamp,
         )
         .all()
     )
@@ -136,7 +136,7 @@ def operations_deactivate_expired(ctx):
     # update the event
     if len(expired_certs):
         event_payload_dict["count_deactivated"] = len(expired_certs)
-        event_payload_dict["server_certificate.ids"] = [c.id for c in expired_certs]
+        event_payload_dict["certificate_signed.ids"] = [c.id for c in expired_certs]
         operationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[operationsEvent])
 
@@ -175,18 +175,18 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
     )
 
     _q_ids__latest_single = (
-        ctx.dbSession.query(model_objects.Domain.server_certificate_id__latest_single)
+        ctx.dbSession.query(model_objects.Domain.certificate_signed_id__latest_single)
         .distinct()
         .filter(
-            model_objects.Domain.server_certificate_id__latest_single != None  # noqa
+            model_objects.Domain.certificate_signed_id__latest_single != None  # noqa
         )
         .subquery()
     )
     _q_ids__latest_multi = (
-        ctx.dbSession.query(model_objects.Domain.server_certificate_id__latest_multi)
+        ctx.dbSession.query(model_objects.Domain.certificate_signed_id__latest_multi)
         .distinct()
         .filter(
-            model_objects.Domain.server_certificate_id__latest_single != None  # noqa
+            model_objects.Domain.certificate_signed_id__latest_single != None  # noqa
         )
         .subquery()
     )
@@ -200,11 +200,11 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
             ),
         )
         .join(
-            model_objects.ServerCertificate,
+            model_objects.CertificateSigned,
             model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id
-            == model_objects.ServerCertificate.unique_fqdn_set_id,
+            == model_objects.CertificateSigned.unique_fqdn_set_id,
         )
-        .filter(model_objects.ServerCertificate.is_active.is_(True))
+        .filter(model_objects.CertificateSigned.is_active.is_(True))
         .group_by(model_objects.UniqueFQDNSet2Domain.domain_id)
     )
     q_inner = q_inner.subquery()
@@ -216,19 +216,19 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
         _turned_off = []
         for _domain_id in domain_ids_with_multiple_active_certs:
             domain_certs = (
-                ctx.dbSession.query(model_objects.ServerCertificate)
+                ctx.dbSession.query(model_objects.CertificateSigned)
                 .join(
                     model_objects.UniqueFQDNSet2Domain,
-                    model_objects.ServerCertificate.unique_fqdn_set_id
+                    model_objects.CertificateSigned.unique_fqdn_set_id
                     == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
                 )
                 .filter(
-                    model_objects.ServerCertificate.is_active.is_(True),
+                    model_objects.CertificateSigned.is_active.is_(True),
                     model_objects.UniqueFQDNSet2Domain.domain_id == _domain_id,
-                    model_objects.ServerCertificate.id.notin_(_q_ids__latest_single),
-                    model_objects.ServerCertificate.id.notin_(_q_ids__latest_multi),
+                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_single),
+                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_multi),
                 )
-                .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+                .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
                 .all()
             )
             if len(domain_certs) > 1:
@@ -272,55 +272,55 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
 
     #
     # Step1:
-    # Update the cached `server_certificate_id__latest_single` data for each Domain
+    # Update the cached `certificate_signed_id__latest_single` data for each Domain
     _q_sub = (
-        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        ctx.dbSession.query(model_objects.CertificateSigned.id)
         .join(
             model_objects.UniqueFQDNSet2Domain,
-            model_objects.ServerCertificate.unique_fqdn_set_id
+            model_objects.CertificateSigned.unique_fqdn_set_id
             == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.is_single_domain_cert.is_(True),
+            model_objects.CertificateSigned.is_active.is_(True),
+            model_objects.CertificateSigned.is_single_domain_cert.is_(True),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
             model_objects.Domain.id.in_(domain_ids),
         )
-        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
-        .values(server_certificate_id__latest_single=_q_sub)
+        .values(certificate_signed_id__latest_single=_q_sub)
         .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
     #
     # Step2:
-    # Update the cached `server_certificate_id__latest_multi` data for each Domain
+    # Update the cached `certificate_signed_id__latest_multi` data for each Domain
     _q_sub = (
-        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        ctx.dbSession.query(model_objects.CertificateSigned.id)
         .join(
             model_objects.UniqueFQDNSet2Domain,
-            model_objects.ServerCertificate.unique_fqdn_set_id
+            model_objects.CertificateSigned.unique_fqdn_set_id
             == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.is_single_domain_cert.is_(False),
+            model_objects.CertificateSigned.is_active.is_(True),
+            model_objects.CertificateSigned.is_single_domain_cert.is_(False),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
             model_objects.Domain.id.in_(domain_ids),
         )
-        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
-        .values(server_certificate_id__latest_multi=_q_sub)
+        .values(certificate_signed_id__latest_multi=_q_sub)
         .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
@@ -347,88 +347,88 @@ def operations_update_recents__global(ctx):
     """
     #
     # Step1:
-    # Update the cached `server_certificate_id__latest_single` data for each Domain
+    # Update the cached `certificate_signed_id__latest_single` data for each Domain
     # _t_domain = model_objects.Domain.__table__.alias('domain')
     _q_sub = (
-        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        ctx.dbSession.query(model_objects.CertificateSigned.id)
         .join(
             model_objects.UniqueFQDNSet2Domain,
-            model_objects.ServerCertificate.unique_fqdn_set_id
+            model_objects.CertificateSigned.unique_fqdn_set_id
             == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.is_single_domain_cert.is_(True),
+            model_objects.CertificateSigned.is_active.is_(True),
+            model_objects.CertificateSigned.is_single_domain_cert.is_(True),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
-            server_certificate_id__latest_single=_q_sub
+            certificate_signed_id__latest_single=_q_sub
         )
     )
 
     #
     # Step2:
-    # Update the cached `server_certificate_id__latest_multi` data for each Domain
+    # Update the cached `certificate_signed_id__latest_multi` data for each Domain
     # _t_domain = model_objects.Domain.__table__.alias('domain')
     _q_sub = (
-        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        ctx.dbSession.query(model_objects.CertificateSigned.id)
         .join(
             model_objects.UniqueFQDNSet2Domain,
-            model_objects.ServerCertificate.unique_fqdn_set_id
+            model_objects.CertificateSigned.unique_fqdn_set_id
             == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.is_single_domain_cert.is_(False),
+            model_objects.CertificateSigned.is_active.is_(True),
+            model_objects.CertificateSigned.is_single_domain_cert.is_(False),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
-            server_certificate_id__latest_multi=_q_sub
+            certificate_signed_id__latest_multi=_q_sub
         )
     )
 
     #
     # Step3:
     # update the count of active cert for each CA Certificate
-    ServerCertificate1 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
-    ServerCertificate2 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
+    CertificateSigned1 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
+    CertificateSigned2 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
     _q_sub = (
         ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
         .outerjoin(
-            ServerCertificate1,
-            model_objects.Domain.server_certificate_id__latest_single
-            == ServerCertificate1.id,
+            CertificateSigned1,
+            model_objects.Domain.certificate_signed_id__latest_single
+            == CertificateSigned1.id,
         )
         .outerjoin(
-            ServerCertificate2,
-            model_objects.Domain.server_certificate_id__latest_multi
-            == ServerCertificate2.id,
+            CertificateSigned2,
+            model_objects.Domain.certificate_signed_id__latest_multi
+            == CertificateSigned2.id,
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.CACertificate.id
-                == ServerCertificate1.ca_certificate_id__upchain,
-                model_objects.CACertificate.id
-                == ServerCertificate2.ca_certificate_id__upchain,
+                model_objects.CertificateCA.id
+                == CertificateSigned1.certificate_ca_id__upchain,
+                model_objects.CertificateCA.id
+                == CertificateSigned2.certificate_ca_id__upchain,
             )
         )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.CACertificate.__table__.update().values(
+        model_objects.CertificateCA.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
@@ -451,13 +451,13 @@ def operations_update_recents__global(ctx):
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
-    # 4.b - PrivateKey.count_server_certificates
+    # 4.b - PrivateKey.count_certificate_signeds
     _q_sub = (
         ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.ServerCertificate.private_key_id),
+            sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
         )
         .filter(
-            model_objects.ServerCertificate.private_key_id
+            model_objects.CertificateSigned.private_key_id
             == model_objects.PrivateKey.id,
         )
         .subquery()
@@ -465,7 +465,7 @@ def operations_update_recents__global(ctx):
     )
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
-            count_server_certificates=_q_sub
+            count_certificate_signeds=_q_sub
         )
     )
 
@@ -486,21 +486,21 @@ def operations_update_recents__global(ctx):
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
-    # 5.b - AcmeAccount.count_server_certificates
+    # 5.b - AcmeAccount.count_certificate_signeds
     _q_sub = (
         ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.server_certificate_id),
+            sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
         )
         .filter(
             model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
+            model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
         )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
-            count_server_certificates=_q_sub
+            count_certificate_signeds=_q_sub
         )
     )
 
@@ -511,16 +511,16 @@ def operations_update_recents__global(ctx):
     WHERE certificate_request.acme_account_id = acme_account.id);
 
     UPDATE acme_account SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_created) FROM server_certificate
-    WHERE server_certificate.acme_account_id = acme_account.id);
+    SELECT MAX(timestamp_created) FROM certificate_signed
+    WHERE certificate_signed.acme_account_id = acme_account.id);
 
     UPDATE private_key SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_created) FROM certificate_request
     WHERE certificate_request.private_key_id = private_key.id);
 
     UPDATE private_key SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_created) FROM server_certificate
-    WHERE server_certificate.private_key_id = private_key.id);
+    SELECT MAX(timestamp_created) FROM certificate_signed
+    WHERE certificate_signed.private_key_id = private_key.id);
     """
 
     # bookkeeping, doing this will mark the session as changed!
@@ -698,8 +698,8 @@ def api_domains__certificate_if_needed(
         _result = {
             "domain.status": None,
             "domain.id": None,
-            "server_certificate.id": None,
-            "server_certificate.status": None,
+            "certificate_signed.id": None,
+            "certificate_signed.status": None,
             "acme_order.id": None,
         }
         _dbQueueDomain = None
@@ -766,18 +766,18 @@ def api_domains__certificate_if_needed(
 
         # go for the certificate
         _logger_args = {"event_status_id": None}
-        _dbServerCertificate = lib.db.get.get__ServerCertificate__by_DomainId__latest(
+        _dbCertificateSigned = lib.db.get.get__CertificateSigned__by_DomainId__latest(
             ctx, _dbDomain.id
         )
-        if _dbServerCertificate:
-            _result["server_certificate.status"] = "exists"
-            _result["server_certificate.id"] = _dbServerCertificate.id
+        if _dbCertificateSigned:
+            _result["certificate_signed.status"] = "exists"
+            _result["certificate_signed.id"] = _dbCertificateSigned.id
             _logger_args[
                 "event_status_id"
             ] = model_utils.OperationsObjectEventStatus.from_string(
                 "ApiDomains__certificate_if_needed__certificate_exists"
             )
-            _logger_args["dbServerCertificate"] = _dbServerCertificate
+            _logger_args["dbCertificateSigned"] = _dbCertificateSigned
         else:
             try:
                 _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
@@ -798,18 +798,18 @@ def api_domains__certificate_if_needed(
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
                 _result["acme_order.id"] = dbAcmeOrder.id
-                if dbAcmeOrder.server_certificate_id:
-                    _result["server_certificate.status"] = "new"
-                    _result["server_certificate.id"] = dbAcmeOrder.server_certificate_id
+                if dbAcmeOrder.certificate_signed_id:
+                    _result["certificate_signed.status"] = "new"
+                    _result["certificate_signed.id"] = dbAcmeOrder.certificate_signed_id
                     _logger_args[
                         "event_status_id"
                     ] = model_utils.OperationsObjectEventStatus.from_string(
                         "ApiDomains__certificate_if_needed__certificate_new_success"
                     )
-                    _logger_args["dbServerCertificate"] = dbAcmeOrder.server_certificate
+                    _logger_args["dbCertificateSigned"] = dbAcmeOrder.certificate_signed
                 else:
-                    _result["error"] = "AcmeOrder did not generate a ServerCertificate"
-                    _result["server_certificate.status"] = "fail"
+                    _result["error"] = "AcmeOrder did not generate a CertificateSigned"
+                    _result["certificate_signed.status"] = "fail"
                     _logger_args[
                         "event_status_id"
                     ] = model_utils.OperationsObjectEventStatus.from_string(
@@ -828,7 +828,7 @@ def api_domains__certificate_if_needed(
 
                 if isinstance(exc, errors.AcmeError):
                     _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
-                    _result["server_certificate.status"] = "fail"
+                    _result["certificate_signed.status"] = "fail"
                     _logger_args[
                         "event_status_id"
                     ] = model_utils.OperationsObjectEventStatus.from_string(
@@ -844,7 +844,7 @@ def api_domains__certificate_if_needed(
         ctx.pyramid_transaction_commit()
 
         # remove from queue if it exists
-        if _result["server_certificate.status"] in ("new", "exists"):
+        if _result["certificate_signed.status"] in ("new", "exists"):
             _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
                 ctx, _domain_name
             )
@@ -874,9 +874,9 @@ def api_domains__certificate_if_needed(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
+def upload__CertificateCABundle__by_pem_text(ctx, bundle_data):
     """
-    Uploads a bundle of CACertificates
+    Uploads a bundle of CertificateCAs
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param bundle_data: (required) a compliant payload
@@ -895,15 +895,13 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
         cert_base = cert_pem[:-4]
         cert_pem_text = bundle_data[cert_pem]
         cert_name = None
-        le_authority_name = None
+        display_name = None
         is_trusted_root = None
         for c in list(letsencrypt_info.CA_CERTS_DATA.keys()):
             if cert_base == letsencrypt_info.CA_CERTS_DATA[c]["formfield_base"]:
                 cert_name = letsencrypt_info.CA_CERTS_DATA[c]["name"]
-                if "le_authority_name" in letsencrypt_info.CA_CERTS_DATA[c]:
-                    le_authority_name = letsencrypt_info.CA_CERTS_DATA[c][
-                        "le_authority_name"
-                    ]
+                if "display_name" in letsencrypt_info.CA_CERTS_DATA[c]:
+                    display_name = letsencrypt_info.CA_CERTS_DATA[c]["display_name"]
                 if "is_trusted_root" in letsencrypt_info.CA_CERTS_DATA[c]:
                     is_trusted_root = letsencrypt_info.CA_CERTS_DATA[c][
                         "is_trusted_root"
@@ -911,22 +909,22 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
                 break
 
         (
-            dbCACertificate,
+            dbCertificateCA,
             is_created,
-        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+        ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
             ctx,
             cert_pem_text,
             ca_chain_name=cert_name,
-            le_authority_name=None,
+            display_name=None,
             is_trusted_root=is_trusted_root,
         )
         if not is_created:
-            if dbCACertificate.name in ("unknown", "manual upload") and cert_name:
-                dbCACertificate.name = cert_name
-            if dbCACertificate.le_authority_name is None:
-                dbCACertificate.le_authority_name = le_authority_name
+            if dbCertificateCA.name in ("unknown", "manual upload") and cert_name:
+                dbCertificateCA.name = cert_name
+            if dbCertificateCA.display_name is None:
+                dbCertificateCA.display_name = display_name
 
-        results[cert_pem] = (dbCACertificate, is_created)
+        results[cert_pem] = (dbCertificateCA, is_created)
 
     ids_created = [i[0].id for i in results.values() if i[1]]
     ids_updated = [i[0].id for i in results.values() if not i[1]]

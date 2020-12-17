@@ -391,10 +391,10 @@ def update_CoverageAssuranceEvent__set_resolution(
     elif resolution == "abandoned":
         pass
     elif resolution == "PrivateKey_replaced":
-        if dbCoverageAssuranceEvent.server_certificate_id:
+        if dbCoverageAssuranceEvent.certificate_signed_id:
             raise errors.InvalidTransition("incompatible `resolution`")
-    elif resolution == "ServerCertificate_replaced":
-        if not dbCoverageAssuranceEvent.server_certificate_id:
+    elif resolution == "CertificateSigned_replaced":
+        if not dbCoverageAssuranceEvent.certificate_signed_id:
             raise errors.InvalidTransition("incompatible `resolution`")
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
@@ -588,115 +588,115 @@ def update_QueuedDomain_dequeue(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_ServerCertificate__mark_compromised(
-    ctx, dbServerCertificate, via_PrivateKey_compromised=None
+def update_CertificateSigned__mark_compromised(
+    ctx, dbCertificateSigned, via_PrivateKey_compromised=None
 ):
     # the PrivateKey has been compromised
-    dbServerCertificate.is_compromised_private_key = True
-    dbServerCertificate.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
-    if dbServerCertificate.is_active:
-        dbServerCertificate.is_active = False
-    event_status = "ServerCertificate__mark__compromised"
+    dbCertificateSigned.is_compromised_private_key = True
+    dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
+    if dbCertificateSigned.is_active:
+        dbCertificateSigned.is_active = False
+    event_status = "CertificateSigned__mark__compromised"
     return event_status
 
 
-def update_ServerCertificate__set_active(ctx, dbServerCertificate):
+def update_CertificateSigned__set_active(ctx, dbCertificateSigned):
 
-    if dbServerCertificate.is_active:
+    if dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already active.")
 
-    if dbServerCertificate.is_revoked:
+    if dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition(
             "Certificate is revoked; `active` status can not be changed."
         )
 
-    if dbServerCertificate.is_compromised_private_key:
+    if dbCertificateSigned.is_compromised_private_key:
         raise errors.InvalidTransition(
             "Certificate has a compromised PrivateKey; `active` status can not be changed."
         )
 
-    if dbServerCertificate.is_deactivated:
+    if dbCertificateSigned.is_deactivated:
         raise errors.InvalidTransition(
             "Certificate was deactivated; `active` status can not be changed."
         )
 
     # now make it active!
-    dbServerCertificate.is_active = True
+    dbCertificateSigned.is_active = True
 
     # cleanup options
-    event_status = "ServerCertificate__mark__active"
+    event_status = "CertificateSigned__mark__active"
     return event_status
 
 
-def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
+def update_CertificateSigned__unset_active(ctx, dbCertificateSigned):
 
-    if not dbServerCertificate.is_active:
+    if not dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already inactive.")
 
     # inactivate it
-    dbServerCertificate.is_active = False
+    dbCertificateSigned.is_active = False
 
-    event_status = "ServerCertificate__mark__inactive"
+    event_status = "CertificateSigned__mark__inactive"
     return event_status
 
 
 """
-as of .40, ServerCertificates do not auto-renew. Instead, AcmeOrders do.
+as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
 
-def update_ServerCertificate__set_renew_auto(ctx, dbServerCertificate):
-    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
         raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if dbServerCertificate.is_auto_renew:
+    if dbCertificateSigned.is_auto_renew:
         raise errors.InvalidTransition("Already active.")
     # activate!
-    dbServerCertificate.is_auto_renew = True
-    event_status = "ServerCertificate__mark__renew_auto"
+    dbCertificateSigned.is_auto_renew = True
+    event_status = "CertificateSigned__mark__renew_auto"
     return event_status
 
 
-def update_ServerCertificate__set_renew_manual(ctx, dbServerCertificate):
-    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
         raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if not dbServerCertificate.is_auto_renew:
+    if not dbCertificateSigned.is_auto_renew:
         raise errors.InvalidTransition("Already inactive.")
     # deactivate!
-    dbServerCertificate.is_auto_renew = False
-    event_status = "ServerCertificate__mark__renew_manual"
+    dbCertificateSigned.is_auto_renew = False
+    event_status = "CertificateSigned__mark__renew_manual"
     return event_status
 """
 
 
-def update_ServerCertificate__set_revoked(ctx, dbServerCertificate):
+def update_CertificateSigned__set_revoked(ctx, dbCertificateSigned):
 
-    if dbServerCertificate.is_revoked:
+    if dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition("Certificate is already revoked")
 
     # mark revoked
-    dbServerCertificate.is_revoked = True
+    dbCertificateSigned.is_revoked = True
 
     # inactivate it
-    dbServerCertificate.is_active = False
+    dbCertificateSigned.is_active = False
 
     # deactivate it, permanently
-    dbServerCertificate.is_deactivated = True
+    dbCertificateSigned.is_deactivated = True
 
     # cleanup options
-    event_status = "ServerCertificate__mark__revoked"
+    event_status = "CertificateSigned__mark__revoked"
     return event_status
 
 
-def update_ServerCertificate__unset_revoked(ctx, dbServerCertificate):
+def update_CertificateSigned__unset_revoked(ctx, dbCertificateSigned):
     """
     this is currently not supported
     """
 
-    if not dbServerCertificate.is_revoked:
+    if not dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition("Certificate is not revoked")
 
     # unset the revoke
-    dbServerCertificate.is_revoked = False
+    dbCertificateSigned.is_revoked = False
 
     # lead is_active and is_deactivated as-is
     # cleanup options
-    event_status = "ServerCertificate__mark__unrevoked"
+    event_status = "CertificateSigned__mark__unrevoked"
     return event_status

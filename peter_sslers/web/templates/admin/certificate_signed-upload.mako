@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/server-certificates">ServerCertificates</a></li>
+        <li><a href="${admin_prefix}/certificate-signeds">CertificateSigneds</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
@@ -27,7 +27,7 @@
 
             <%! show_text = False %>
             <form
-                action="${admin_prefix}/server-certificate/upload"
+                action="${admin_prefix}/certificate-signed/upload"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -40,7 +40,7 @@
                 ${admin_partials.formgroup__Certificate_file(show_text=show_text)}
                 <hr/>
 
-                ${admin_partials.formgroup__CACertificateChain_file(show_text=show_text)}
+                ${admin_partials.formgroup__CertificateCAChain_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -58,18 +58,18 @@
 
             <p>running locally from a directory that includes letencrypt issued files, you could do the following:</p>
 
-            <p><code>curl --form "private_key_file_pem=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" ${request.admin_url}/server-certificate/upload</code></p>
+            <p><code>curl --form "private_key_file_pem=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" ${request.admin_url}/certificate-signed/upload</code></p>
 
             <p>But instead of that, post to <code>upload.json</code>, which will give you a json parcel in return</p>
 
-            <p><code>curl --form "private_key_file_pem=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" ${request.admin_url}/server-certificate/upload.json</code></p>
+            <p><code>curl --form "private_key_file_pem=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" ${request.admin_url}/certificate-signed/upload.json</code></p>
 
             <p>The JSON response will have a <code>result</code> attribute that is "success" or "error"; if there is an error, you will see the info in <code>form_errors</code></p>
 
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>valid form</th>
-                    <td><code>{"private_key": {"id": 2, "created": false}, "ca_certificate": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "${admin_prefix}/server-certificate/2", "id": 2, "created": false}}</code></td>
+                    <td><code>{"private_key": {"id": 2, "created": false}, "certificate_ca": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "${admin_prefix}/certificate-signed/2", "id": 2, "created": false}}</code></td>
                 </tr>
                 <tr>
                     <th>valid form</th>

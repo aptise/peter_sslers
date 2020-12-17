@@ -42,7 +42,7 @@ EDIT:
 	- include an offset of the last domain added, so there isn't a race condition
 	- before creating an acme-order, run a HTTP test on all the domains(!) to ensure it works
 
-* ServerCertificate
+* CertificateSigned
 	* TESTS
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
@@ -95,7 +95,7 @@ EDIT:
 * cert_utils
 	figure out how to emulate openssl's `--text` with crypto in `parse_key`
 
-* search expiring soon | note: isn't this the `/server-certificates/expiring` view?
+* search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging
 * associate all objects to one another when imported; only some objects are currently associated

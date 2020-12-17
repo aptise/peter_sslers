@@ -8,24 +8,24 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
         <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}]</a></li>
-        <li class="active">ServerCertificates</li>
+        <li class="active">CertificateSigneds</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Domain Focus - ServerCertificates</h2>
+    <h2>Domain Focus - CertificateSigneds</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if ServerCertificates:
+            % if CertificateSigneds:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True, show_expiring_days=True)}
             % else:
-                No known ServerCertificates.
+                No known CertificateSigneds.
             % endif
         </div>
     </div>

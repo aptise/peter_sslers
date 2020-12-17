@@ -27,6 +27,7 @@ import cryptography
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import cert_utils
+from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import getcreate as lib_db_getcreate
@@ -894,3 +895,37 @@ class UnitTest_ACME_v2(unittest.TestCase):
 
         message_2_alts = acme_v2.get_header_links(message_2.headers, "alternate")
         assert len(message_2_alts) == 1
+
+
+class UnitTest_LetsEncrypt_Data(unittest.TestCase):
+    """
+    python -m unittest tests.test_unit.UnitTest_LetsEncrypt_Data
+    """
+
+    def test_formatting(self):
+        self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_VERSION"))
+        self.assertTrue(hasattr(letsencrypt_info, "CA_CERTS_DATA"))
+        self.assertTrue(hasattr(letsencrypt_info, "CA_CROSS_SIGNED_X"))
+        self.assertTrue(hasattr(letsencrypt_info, "CA_AUTH_X"))
+
+        formfields_base = []
+        for (cert_id, cert_payload) in letsencrypt_info.CA_CERTS_DATA.items():
+            if cert_payload.get("is_self_signed"):
+                self.assertEqual(cert_id, cert_payload.get("signed_by"))
+
+            # Make sure every ALTERNATE has a corresponding reference
+            _alternates = cert_payload.get("alternates")
+            if _alternates:
+                for _alternate in _alternates:
+                    self.assertIn(_alternate, letsencrypt_info.CA_CERTS_DATA)
+                    _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate]
+                    self.assertEqual(cert_id, _alternate_payload["alternate_of"])
+            # and vice-versa
+            _alternate_of = cert_payload.get("alternate_of")
+            if _alternate_of:
+                _alternate_payload = letsencrypt_info.CA_CERTS_DATA[_alternate_of]
+                self.assertIn("alternates", _alternate_payload)
+
+            _formfield_base = cert_payload.get("formfield_base")
+            self.assertNotIn(_formfield_base, formfields_base)
+            formfields_base.append(_formfield_base)

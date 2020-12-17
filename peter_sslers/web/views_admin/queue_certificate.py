@@ -212,7 +212,7 @@ class View_New(Handler):
         """
         queue_source = self.request.params.get("queue_source")
         acme_order_id = self.request.params.get("acme_order")
-        server_certificate_id = self.request.params.get("server_certificate")
+        certificate_signed_id = self.request.params.get("certificate_signed")
         unique_fqdn_set_id = self.request.params.get("unique_fqdn_set")
 
         queue_data = {
@@ -220,7 +220,7 @@ class View_New(Handler):
             "AcmeAccount_reuse": None,
             "AcmeOrder": None,
             "PrivateKey_reuse": None,
-            "ServerCertificate": None,
+            "CertificateSigned": None,
             "UniqueFQDNSet": None,
         }
         if (queue_source == "AcmeOrder") and acme_order_id:
@@ -237,15 +237,15 @@ class View_New(Handler):
             if dbAcmeOrder.private_key.is_active:
                 queue_data["PrivateKey_reuse"] = dbAcmeOrder.private_key
 
-        elif (queue_source == "ServerCertificate") and server_certificate_id:
-            dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
-                self.request.api_context, server_certificate_id
+        elif (queue_source == "CertificateSigned") and certificate_signed_id:
+            dbCertificateSigned = lib_db.get.get__CertificateSigned__by_id(
+                self.request.api_context, certificate_signed_id
             )
-            if not dbServerCertificate:
-                raise errors.InvalidRequest("invalid server-certificate")
-            queue_data["ServerCertificate"] = dbServerCertificate
-            if dbServerCertificate.private_key.is_active:
-                queue_data["PrivateKey_reuse"] = dbServerCertificate.private_key
+            if not dbCertificateSigned:
+                raise errors.InvalidRequest("invalid certificate-signed")
+            queue_data["CertificateSigned"] = dbCertificateSigned
+            if dbCertificateSigned.private_key.is_active:
+                queue_data["PrivateKey_reuse"] = dbCertificateSigned.private_key
 
         elif (queue_source == "UniqueFQDNSet") and unique_fqdn_set_id:
             dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
@@ -288,7 +288,7 @@ class View_New(Handler):
                 "form_fields": {
                     "queue_source": "what is the source of the queue item?",
                     "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
-                    "server_certificate": "If queue_source is `AcmeOrder`, the corresponding id",
+                    "certificate_signed": "If queue_source is `AcmeOrder`, the corresponding id",
                     "unique_fqdn_set": "If queue_source is `AcmeOrder`, the corresponding id",
                     "account_key_option": "How is the AcmeAccount specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
@@ -308,14 +308,14 @@ class View_New(Handler):
                 "form_fields_related": [
                     [
                         "acme_order",
-                        "server_certificate",
+                        "certificate_signed",
                         "unique_fqdn_set",
                     ],
                 ],
                 "valid_options": {
                     "queue_source": (
                         "AcmeOrder",
-                        "ServerCertificate",
+                        "CertificateSigned",
                         "UniqueFQDNSet",
                     ),
                     "acme_account_provider_id": {
@@ -339,7 +339,7 @@ class View_New(Handler):
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
                 "AcmeAccount_reuse": self.queue_data["AcmeAccount_reuse"],
                 "PrivateKey_reuse": self.queue_data["PrivateKey_reuse"],
-                "ServerCertificate": self.queue_data["ServerCertificate"],
+                "CertificateSigned": self.queue_data["CertificateSigned"],
                 "UniqueFQDNSet": self.queue_data["UniqueFQDNSet"],
             },
             self.request,
@@ -374,9 +374,9 @@ class View_New(Handler):
             _queue_source = self.queue_data["queue_source"]
             if _queue_source == "AcmeOrder":
                 kwargs_create["dbAcmeOrder"] = self.queue_data["AcmeOrder"]
-            elif _queue_source == "ServerCertificate":
-                kwargs_create["dbServerCertificate"] = self.queue_data[
-                    "ServerCertificate"
+            elif _queue_source == "CertificateSigned":
+                kwargs_create["dbCertificateSigned"] = self.queue_data[
+                    "CertificateSigned"
                 ]
             elif _queue_source == "UniqueFQDNSet":
                 kwargs_create["dbUniqueFQDNSet"] = self.queue_data["UniqueFQDNSet"]

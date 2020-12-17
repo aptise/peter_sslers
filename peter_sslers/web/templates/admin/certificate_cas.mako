@@ -14,7 +14,7 @@
 <%block name="page_header_col">
     <h2>CA Certificates</h2>
     <p>
-        CACertificates can be initialized and updated by probing the LetsEncrypt service;
+        CertificateCAs can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
     
     </p>
@@ -23,13 +23,13 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a  href="${admin_prefix}/ca-certificate/upload"
+        <a  href="${admin_prefix}/certificate-ca/upload"
             title="CA Certificate - Upload"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: CA Certificate</a>
-        <a href="${admin_prefix}/ca-certificates.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-cas.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -40,7 +40,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CACertificates:
+            % if CertificateCAs:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -52,11 +52,11 @@
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
-                    % for cert in CACertificates:
+                    % for cert in CertificateCAs:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/ca-certificate/${cert.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/certificate-ca/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CACertificate-${cert.id}</a></td>
+                                CertificateCA-${cert.id}</a></td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
                             <td>${cert.name or ''}</td>
                             <td><timestamp>${cert.timestamp_created}</timestamp></td>

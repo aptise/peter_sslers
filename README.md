@@ -4,7 +4,7 @@ ACME-v2 RELEASE
 Hi!
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate
-Manager's design. The central object changed from a `ServerCertificate` to the
+Manager's design. The central object changed from a `CertificateSigned` to the
 `AcmeOrder`.
 
 This project is still undergoing active development, and the design is not
@@ -181,7 +181,7 @@ The "/tools" directory contains scripts useful for certificate operations. Curre
 
 ## Intuitive Hierarchy of Related Objects
 
-* With a migration to ACME-2, this project shifted the "core" object from a ServerCertificate to the AcmeOrder.
+* With a migration to ACME-2, this project shifted the "core" object from a CertificateSigned to the AcmeOrder.
 * An ACME-Order's primary relations are an AcmeAccount (who owns the order?) and a UniqueFQDNSet (what domains are in the order?)
 * A PrivateKey is considered a secondary item. One can be specified for an AcmeOrder, but the AcmeAccount can specify it's own strategy
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified
@@ -305,7 +305,7 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db example_development.ini	
-	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json
+	prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json
 	pserve --reload example_development.ini
 	
 Then you can visit `http://127.0.0.1:7201`
@@ -331,7 +331,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json
+	prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json
 	pserve example_development.ini
 
 then in another terminal window:	
@@ -543,7 +543,7 @@ https://github.com/aptise/peter_sslers-lua-resty
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate/letsencrypt-sync.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json`
 `$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
 
 using `prequest` is recommended in most contexts, because it will not timeout. this will allow for long-running processes.
@@ -552,7 +552,7 @@ using `prequest` is recommended in most contexts, because it will not timeout. t
 ## Routes Designed for JSON Automation
 
 
-### `/.well-known/admin/api/ca-certificate/letsencrypt-sync.json`
+### `/.well-known/admin/api/certificate-ca/letsencrypt-sync.json`
 
 Syncs known URLs of LetsEncrypt keys and saves them with the correct role information.
 
@@ -577,13 +577,13 @@ several routes have support for JSON requests via a `.json` suffix.
 
 these are usually documented on the html version
 
-### `/.well-known/admin/server-certificate/upload.json`
+### `/.well-known/admin/certificate-signed/upload.json`
 
 This can be used used to directly import certs issued by LetsEncrypt
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
 	
 Note that the url is not `/upload` like the html form but `/upload.json`
 
@@ -604,14 +604,14 @@ There is even an `invoke` script to automate these imports:
 	invoke import-certbot-cert-plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
-### `/.well-known/admin/ca-certificate/upload.json`
+### `/.well-known/admin/certificate-ca/upload.json`
 
 Upload a new LetsEncrypt certificate.
 
 `uplaod_bundle` is preferred as it provides better tracking.
 
 
-### `/.well-known/admin/ca-certificate/upload-bundle.json`
+### `/.well-known/admin/certificate-ca/upload-bundle.json`
 
 Upload a new LetsEncrypt certificate with a known role.
 
@@ -625,8 +625,8 @@ will return a JSON document:
     {"domain": {"id": "1",
                 "domain_name": "a",
                 },
-     "server_certificate__latest_single": null,
-     "server_certificate__latest_multi": {"id": "1",
+     "certificate_signed__latest_single": null,
+     "certificate_signed__latest_multi": {"id": "1",
                                   "private_key": {"id": "1",
                                                   "pem": "a",
                                                   },
@@ -674,19 +674,19 @@ notice that the numeric ids are returned as strings. this is by design.
 
 Need to get the cert data directly? NO SWEAT. Peter transforms this for you on the server, and sends it to you with the appropriate headers.
 
-* /.well-known/admin/server-certificate/{ID}/cert.crt
-* /.well-known/admin/server-certificate/{ID}/cert.pem
-* /.well-known/admin/server-certificate/{ID}/cert.pem.txt
-* /.well-known/admin/server-certificate/{ID}/chain.cer
-* /.well-known/admin/server-certificate/{ID}/chain.crt
-* /.well-known/admin/server-certificate/{ID}/chain.der
-* /.well-known/admin/server-certificate/{ID}/chain.pem
-* /.well-known/admin/server-certificate/{ID}/chain.pem.txt
-* /.well-known/admin/server-certificate/{ID}/fullchain.pem
-* /.well-known/admin/server-certificate/{ID}/fullchain.pem.txt
-* /.well-known/admin/server-certificate/{ID}/privkey.key
-* /.well-known/admin/server-certificate/{ID}/privkey.pem
-* /.well-known/admin/server-certificate/{ID}/privkey.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/cert.crt
+* /.well-known/admin/certificate-signed/{ID}/cert.pem
+* /.well-known/admin/certificate-signed/{ID}/cert.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/chain.cer
+* /.well-known/admin/certificate-signed/{ID}/chain.crt
+* /.well-known/admin/certificate-signed/{ID}/chain.der
+* /.well-known/admin/certificate-signed/{ID}/chain.pem
+* /.well-known/admin/certificate-signed/{ID}/chain.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/fullchain.pem
+* /.well-known/admin/certificate-signed/{ID}/fullchain.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/privkey.key
+* /.well-known/admin/certificate-signed/{ID}/privkey.pem
+* /.well-known/admin/certificate-signed/{ID}/privkey.pem.txt
 
 
 # Workflow Concepts
@@ -705,7 +705,7 @@ If a domain is "active", then it is actively managed and should be included in c
 
 Set to `True` by default.  If `True`, this certificate will be auto-renewed by the renewal queue.  If `False`, renewals must be manual.
 
-### ServerCertificate
+### CertificateSigned
 
 #### `is_active`
 
@@ -828,10 +828,10 @@ currently only `redis.prime_style = 1` and `redis.prime_style = 2` are supported
 
 This prime style will store data into `Redis` in the following format:
 
-* `d:{DOMAIN_NAME}` a 3 element hash for ServerCertificate (c), PrivateKey (p), CACertificate (i). note it has a leading colon.
-* `c{ID}` the ServerCertificate in PEM format; (c)ert
+* `d:{DOMAIN_NAME}` a 3 element hash for CertificateSigned (c), PrivateKey (p), CertificateCA (i). note it has a leading colon.
+* `c{ID}` the CertificateSigned in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
-* `i{ID}` the CACertificate in PEM format; (i)ntermediate cert
+* `i{ID}` the CertificateCA in PEM format; (i)ntermediate cert
 
 The `Redis` datastore might look something like this:
 
@@ -855,7 +855,7 @@ to assemble the data for `foo.example.com`:
 
 This prime style will store data into `Redis` in the following format:
 
-* `{DOMAIN_NAME}` a 2 element hash for FullChain [ServerCertificate+CACertificate] (f), PrivateKey (p)
+* `{DOMAIN_NAME}` a 2 element hash for FullChain [CertificateSigned+CertificateCA] (f), PrivateKey (p)
 
 The `Redis` datastore might look something like this:
 
@@ -1033,8 +1033,8 @@ But... This project uses bootstrap, so it looks fine on browsers!
 ![CSR: Check Verification Status](https://raw.github.com/aptise/peter_sslers/master/docs/images/04-view_status.png)
 ![CSR: New FULL](https://raw.github.com/aptise/peter_sslers/master/docs/images/09-new_csr.png)
 ![Operations Log](https://raw.github.com/aptise/peter_sslers/master/docs/images/05-operations_log.png)
-![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/master/docs/images/06-ca_certificates.png)
-![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/master/docs/images/07-ca_certificates_focus.png)
+![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/master/docs/images/06-certificate_cas.png)
+![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/master/docs/images/07-certificate_cas_focus.png)
 ![Upload Existing Certificates](https://raw.github.com/aptise/peter_sslers/master/docs/images/10-upload_cert.png)
 ![List Certificates](https://raw.github.com/aptise/peter_sslers/master/docs/images/11-certificates_list.png)
 ![List Domains](https://raw.github.com/aptise/peter_sslers/master/docs/images/12-domains_list.png)

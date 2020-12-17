@@ -249,7 +249,7 @@ def queue_domains__process(
         # do commit, just because we may have created a private key
         ctx.pyramid_transaction_commit()
 
-        dbServerCertificate = None
+        dbCertificateSigned = None
         try:
             domain_names = [d.domain_name for d in domainObjects]
 
@@ -365,16 +365,16 @@ def queue_certificates__update(ctx):
         _core_query = (
             ctx.dbSession.query(model_objects.AcmeOrder)
             .join(
-                model_objects.ServerCertificate,
-                model_objects.AcmeOrder.server_certificate_id
-                == model_objects.ServerCertificate.id,
+                model_objects.CertificateSigned,
+                model_objects.AcmeOrder.certificate_signed_id
+                == model_objects.CertificateSigned.id,
             )
             .filter(
                 model_objects.AcmeOrder.id.notin_(_subquery_already_queued),
-                model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
+                model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
                 model_objects.AcmeOrder.is_auto_renew.op("IS")(True),
                 model_objects.AcmeOrder.is_renewed.op("IS NOT")(True),
-                model_objects.ServerCertificate.timestamp_not_after <= _until,
+                model_objects.CertificateSigned.timestamp_not_after <= _until,
             )
         )
         results = _core_query.all()
@@ -390,7 +390,7 @@ def queue_certificates__update(ctx):
                 private_key_strategy_id__requested=FOO,
             )
             renewals.append(dbQueueCertificate)
-        event_payload_dict["server_certificate-queued.ids"] = ",".join(
+        event_payload_dict["certificate_signed-queued.ids"] = ",".join(
             [str(c.id) for c in results]
         )
 

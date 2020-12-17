@@ -160,8 +160,8 @@
                         <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_server_certificates</th>
-                        <td><span class="badge">${PrivateKey.count_server_certificates or ''}</span></td>
+                        <th>count_certificate_signeds</th>
+                        <td><span class="badge">${PrivateKey.count_certificate_signeds or ''}</span></td>
                     </tr>
                     <tr>
                         <th>key_technology</th>
@@ -228,11 +228,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>ServerCertificates</th>
+                        <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(PrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if PrivateKey.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/server-certificates" % (admin_prefix, PrivateKey.id))}
+                            ${admin_partials.table_CertificateSigneds(PrivateKey.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % if PrivateKey.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/private-key/%s/certificate-signeds" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>

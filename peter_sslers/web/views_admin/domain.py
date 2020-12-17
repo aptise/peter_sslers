@@ -376,13 +376,13 @@ class View_Focus(Handler):
         weekly_certs = (
             self.request.api_context.dbSession.query(
                 model_utils.year_week(
-                    model_objects.ServerCertificate.timestamp_not_before
+                    model_objects.CertificateSigned.timestamp_not_before
                 ).label("week_num"),
-                sqlalchemy.func.count(model_objects.ServerCertificate.id),
+                sqlalchemy.func.count(model_objects.CertificateSigned.id),
             )
             .join(
                 model_objects.UniqueFQDNSet2Domain,
-                model_objects.ServerCertificate.unique_fqdn_set_id
+                model_objects.CertificateSigned.unique_fqdn_set_id
                 == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
             .filter(model_objects.UniqueFQDNSet2Domain.domain_id == dbDomain.id)
@@ -604,28 +604,28 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain:focus:server_certificates",
-        renderer="/admin/domain-focus-server_certificates.mako",
+        route_name="admin:domain:focus:certificate_signeds",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:server_certificates_paginated",
-        renderer="/admin/domain-focus-server_certificates.mako",
+        route_name="admin:domain:focus:certificate_signeds_paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
     )
-    def related__ServerCertificates(self):
+    def related__CertificateSigneds(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_DomainId__count(
+        items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        url_template = "%s/server-certificates/{0}" % self._focus_url
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
+        items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 

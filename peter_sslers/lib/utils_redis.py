@@ -120,15 +120,15 @@ def prime_redis_domain(request, dbDomain):
     try:
         if prime_style == "1":
             try:
-                dbServerCertificate = redis_prime_logic__style_1_Domain(
+                dbCertificateSigned = redis_prime_logic__style_1_Domain(
                     redis_client, dbDomain, redis_timeouts
                 )
                 redis_prime_logic__style_1_PrivateKey(
-                    redis_client, dbServerCertificate.private_key, redis_timeouts
+                    redis_client, dbCertificateSigned.private_key, redis_timeouts
                 )
-                redis_prime_logic__style_1_CACertificate(
+                redis_prime_logic__style_1_CertificateCA(
                     redis_client,
-                    dbServerCertificate.certificate_upchain,
+                    dbCertificateSigned.certificate_upchain,
                     redis_timeouts,
                 )
             except Exception as exc:
@@ -159,11 +159,11 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     r['c1'] = CERT.PEM  # (c)ert
     r['c2'] = CERT.PEM
     """
-    dbServerCertificate = None
-    if dbDomain.server_certificate_id__latest_multi:
-        dbServerCertificate = dbDomain.server_certificate__latest_multi
-    elif dbDomain.server_certificate_id__latest_single:
-        dbServerCertificate = dbDomain.server_certificate__latest_single
+    dbCertificateSigned = None
+    if dbDomain.certificate_signed_id__latest_multi:
+        dbCertificateSigned = dbDomain.certificate_signed__latest_multi
+    elif dbDomain.certificate_signed_id__latest_single:
+        dbCertificateSigned = dbDomain.certificate_signed__latest_single
     else:
         raise ValueError(
             "this domain does not have a certificate: `%s`" % dbDomain.domain_name
@@ -172,20 +172,20 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     # first do the domain
     key_redis = "d:%s" % dbDomain.domain_name
     value_redis = {
-        "c": "%s" % dbServerCertificate.id,
-        "p": "%s" % dbServerCertificate.private_key_id,
-        "i": "%s" % dbServerCertificate.ca_certificate_id__upchain,
+        "c": "%s" % dbCertificateSigned.id,
+        "p": "%s" % dbCertificateSigned.private_key_id,
+        "i": "%s" % dbCertificateSigned.certificate_ca_id__upchain,
     }
     redis_client.hmset(key_redis, value_redis)
 
     # then do the cert
-    key_redis = "c%s" % dbServerCertificate.id
+    key_redis = "c%s" % dbCertificateSigned.id
     # only send over the wire if it doesn't exist
     if not redis_client.exists(key_redis):
-        value_redis = dbServerCertificate.cert_pem
+        value_redis = dbCertificateSigned.cert_pem
         redis_client.set(key_redis, value_redis, redis_timeouts["cert"])
 
-    return dbServerCertificate
+    return dbCertificateSigned
 
 
 def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts):
@@ -201,18 +201,18 @@ def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_time
     return True
 
 
-def redis_prime_logic__style_1_CACertificate(
-    redis_client, dbCACertificate, redis_timeouts
+def redis_prime_logic__style_1_CertificateCA(
+    redis_client, dbCertificateCA, redis_timeouts
 ):
     """
     :param redis_client:
-    :param dbCACertificate: A :class:`model.objects.CACertificate`
+    :param dbCertificateCA: A :class:`model.objects.CertificateCA`
     :param redis_timeouts:
 
     r['i99'] = CACERT.PEM  # (i)ntermediate cert
     """
-    key_redis = "i%s" % dbCACertificate.id
-    redis_client.set(key_redis, dbCACertificate.cert_pem, redis_timeouts["cacert"])
+    key_redis = "i%s" % dbCertificateCA.id
+    redis_client.set(key_redis, dbCertificateCA.cert_pem, redis_timeouts["cacert"])
     return True
 
 
@@ -224,19 +224,19 @@ def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
     :param dbDomain: A :class:`model.objects.Domain`
     :param redis_timeouts:
     """
-    dbServerCertificate = None
-    if dbDomain.server_certificate_id__latest_multi:
-        dbServerCertificate = dbDomain.server_certificate__latest_multi
-    elif dbDomain.server_certificate_id__latest_single:
-        dbServerCertificate = dbDomain.server_certificate__latest_single
+    dbCertificateSigned = None
+    if dbDomain.certificate_signed_id__latest_multi:
+        dbCertificateSigned = dbDomain.certificate_signed__latest_multi
+    elif dbDomain.certificate_signed_id__latest_single:
+        dbCertificateSigned = dbDomain.certificate_signed__latest_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
 
     # the domain will hold the fullchain and private key
     key_redis = "%s" % dbDomain.domain_name
     value_redis = {
-        "f": "%s" % dbServerCertificate.cert_fullchain_pem,
-        "p": "%s" % dbServerCertificate.private_key.key_pem,
+        "f": "%s" % dbCertificateSigned.cert_fullchain_pem,
+        "p": "%s" % dbCertificateSigned.private_key.key_pem,
     }
     redis_client.hmset(key_redis, value_redis)
-    return dbServerCertificate
+    return dbCertificateSigned

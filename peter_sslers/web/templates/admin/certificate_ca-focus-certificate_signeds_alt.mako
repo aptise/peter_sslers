@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
-        <li><a href="${admin_prefix}/ca-certificate/${CACertificate.id}">Focus [${CACertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/certificate-cas">CA Certificates</a></li>
+        <li><a href="${admin_prefix}/certificate-ca/${CertificateCA.id}">Focus [${CertificateCA.id}]</a></li>
         <li class="active">CA Certificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CA Certificate - Focus - ServerCertificates</h2>
+    <h2>CA Certificate - Focus - CertificateSigneds = Alt</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if ServerCertificates:
+            % if CertificateSigneds:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True)}
+                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True)}
             % else:
-                No known ServerCertificates.
+                No known CertificateSigneds.
             % endif
         </div>
     </div>

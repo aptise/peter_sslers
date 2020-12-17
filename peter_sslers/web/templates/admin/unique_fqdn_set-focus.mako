@@ -121,10 +121,10 @@
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=${UniqueFQDNSet.id}"
-                                title="Queue a ServerCertificate"
+                                title="Queue a CertificateSigned"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                Queue a ServerCertificate
+                                Queue a CertificateSigned
                             </a>
 
                         </td>
@@ -145,7 +145,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Latest ServerCertificates</th>
+                        <th>Latest CertificateSigneds</th>
                         <td>
                             <%
                                 latest_certificate = UniqueFQDNSet.latest_certificate
@@ -165,10 +165,10 @@
                                         % if latest_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/server-certificate/${latest_certificate.id}"
+                                                    href="${admin_prefix}/certificate-signed/${latest_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    ServerCertificate-${latest_certificate.id}
+                                                    CertificateSigned-${latest_certificate.id}
                                                 </a>
                                             </td>
                                             <td>
@@ -183,10 +183,10 @@
                                         % if latest_active_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
+                                                    href="${admin_prefix}/certificate-signed/${latest_active_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    ServerCertificate-${latest_active_certificate.id}
+                                                    CertificateSigned-${latest_active_certificate.id}
                                                 </a>
                                             </td>
                                             <td>
@@ -201,11 +201,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ServerCertificates</th>
+                        <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
-                            % if UniqueFQDNSet.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/server-certificates" % (admin_prefix, UniqueFQDNSet.id))}
+                            ${admin_partials.table_CertificateSigneds(UniqueFQDNSet.certificate_signeds__5, show_domains=False, show_expiring_days=True)}
+                            % if UniqueFQDNSet.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-signeds" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

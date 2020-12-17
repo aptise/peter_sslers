@@ -267,8 +267,8 @@ class FunctionalTests_AcmeAccount(AppTest):
             "admin:acme_account:focus:acme_orders_paginated",
             "admin:acme_account:focus:private_keys",
             "admin:acme_account:focus:private_keys_paginated",
-            "admin:acme_account:focus:server_certificates",
-            "admin:acme_account:focus:server_certificates_paginated",
+            "admin:acme_account:focus:certificate_signeds",
+            "admin:acme_account:focus:certificate_signeds_paginated",
             "admin:acme_account:focus:queue_certificates",
             "admin:acme_account:focus:queue_certificates_paginated",
         )
@@ -308,11 +308,11 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/server-certificates" % focus_id,
+            "/.well-known/admin/acme-account/%s/certificate-signeds" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/server-certificates/1" % focus_id,
+            "/.well-known/admin/acme-account/%s/certificate-signeds/1" % focus_id,
             status=200,
         )
 
@@ -2393,226 +2393,226 @@ class FunctionalTests_AcmeAccountProvider(AppTest):
         assert "AcmeAccountProviders" in res.json
 
 
-class FunctionalTests_CACertificate(AppTest):
+class FunctionalTests_CertificateCA(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CACertificate
+    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA
     """
 
     @routes_tested(
         (
-            "admin:ca_certificates",
-            "admin:ca_certificates_paginated",
+            "admin:certificate_cas",
+            "admin:certificate_cas_paginated",
         )
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/ca-certificates", status=200)
+        res = self.testapp.get("/.well-known/admin/certificate-cas", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/ca-certificates/1", status=200)
+        res = self.testapp.get("/.well-known/admin/certificate-cas/1", status=200)
 
     @routes_tested(
         (
-            "admin:ca_certificates|json",
-            "admin:ca_certificates_paginated|json",
+            "admin:certificate_cas|json",
+            "admin:certificate_cas_paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
-        res = self.testapp.get("/.well-known/admin/ca-certificates.json", status=200)
-        assert "CACertificates" in res.json
+        res = self.testapp.get("/.well-known/admin/certificate-cas.json", status=200)
+        assert "CertificateCAs" in res.json
 
         # JSON paginated
-        res = self.testapp.get("/.well-known/admin/ca-certificates/1.json", status=200)
-        assert "CACertificates" in res.json
+        res = self.testapp.get("/.well-known/admin/certificate-cas/1.json", status=200)
+        assert "CertificateCAs" in res.json
 
     @routes_tested(
         (
-            "admin:ca_certificate:focus",
-            "admin:ca_certificate:focus:raw",
-            "admin:ca_certificate:focus:server_certificates",
-            "admin:ca_certificate:focus:server_certificates_paginated",
+            "admin:certificate_ca:focus",
+            "admin:certificate_ca:focus:raw",
+            "admin:certificate_ca:focus:certificate_signeds",
+            "admin:certificate_ca:focus:certificate_signeds_paginated",
         )
     )
     def test_focus_html(self):
-        res = self.testapp.get("/.well-known/admin/ca-certificate/1", status=200)
+        res = self.testapp.get("/.well-known/admin/certificate-ca/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/chain.cer", status=200
+            "/.well-known/admin/certificate-ca/1/chain.cer", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/chain.crt", status=200
+            "/.well-known/admin/certificate-ca/1/chain.crt", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/chain.der", status=200
+            "/.well-known/admin/certificate-ca/1/chain.der", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/chain.pem", status=200
+            "/.well-known/admin/certificate-ca/1/chain.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/chain.pem.txt", status=200
+            "/.well-known/admin/certificate-ca/1/chain.pem.txt", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/server-certificates", status=200
+            "/.well-known/admin/certificate-ca/1/certificate-signeds", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/server-certificates/1", status=200
+            "/.well-known/admin/certificate-ca/1/certificate-signeds/1", status=200
         )
 
     @routes_tested(
         (
-            "admin:ca_certificate:focus|json",
-            "admin:ca_certificate:focus:parse|json",
+            "admin:certificate_ca:focus|json",
+            "admin:certificate_ca:focus:parse|json",
         )
     )
     def test_focus_json(self):
-        res = self.testapp.get("/.well-known/admin/ca-certificate/1.json", status=200)
+        res = self.testapp.get("/.well-known/admin/certificate-ca/1.json", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/1/parse.json", status=200
+            "/.well-known/admin/certificate-ca/1/parse.json", status=200
         )
-        assert "CACertificate" in res.json
-        assert "id" in res.json["CACertificate"]
-        assert "parsed" in res.json["CACertificate"]
+        assert "CertificateCA" in res.json
+        assert "id" in res.json["CertificateCA"]
+        assert "parsed" in res.json["CertificateCA"]
 
     @routes_tested(
         (
-            "admin:ca_certificate:upload",
-            "admin:ca_certificate:upload_bundle",
+            "admin:certificate_ca:upload",
+            "admin:certificate_ca:upload_bundle",
         )
     )
     def test_upload_html(self):
-        """This should enter in item #3, but the CACertificates.order is 1; the other cert is a self-signed"""
-        _ca_cert_id = TEST_FILES["CACertificates"]["order"][1]
-        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        """This should enter in item #3, but the CertificateCAs.order is 1; the other cert is a self-signed"""
+        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][1]
+        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
-        res = self.testapp.get("/.well-known/admin/ca-certificate/upload", status=200)
+        res = self.testapp.get("/.well-known/admin/certificate-ca/upload", status=200)
         form = res.form
         form["chain_file"] = Upload(_ca_cert_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
 
-        matched = RE_CACertificate_uploaded.match(res2.location)
+        matched = RE_CertificateCA_uploaded.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
         res3 = self.testapp.get(res2.location, status=200)
 
         # try a bundle
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/upload-bundle", status=200
+            "/.well-known/admin/certificate-ca/upload-bundle", status=200
         )
         form = res.form
         form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
         )
         form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x1_auth"])
         )
         form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x2_auth"])
         )
         form["le_x3_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x3_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x3_auth"])
         )
         form["le_x4_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x4_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x4_auth"])
         )
         form["le_x1_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x1_cross_signed"]
             )
         )
         form["le_x2_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x2_cross_signed"]
             )
         )
         form["le_x3_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x3_cross_signed"]
             )
         )
         form["le_x4_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x4_cross_signed"]
             )
         )
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/ca-certificates?uploaded=1"""
+            == """http://peter-sslers.example.com/.well-known/admin/certificate-cas?uploaded=1"""
         )
         res3 = self.testapp.get(res2.location, status=200)
 
         """This should enter in item #4"""
-        _ca_cert_id = TEST_FILES["CACertificates"]["order"][2]
-        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][2]
+        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
     @routes_tested(
         (
-            "admin:ca_certificate:upload|json",
-            "admin:ca_certificate:upload_bundle|json",
+            "admin:certificate_ca:upload|json",
+            "admin:certificate_ca:upload_bundle|json",
         )
     )
     def test_upload_json(self):
-        _ca_cert_id = TEST_FILES["CACertificates"]["order"][1]
-        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][1]
+        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/upload.json", status=200
+            "/.well-known/admin/certificate-ca/upload.json", status=200
         )
         _data = {"chain_file": Upload(_ca_cert_filepath)}
-        res2 = self.testapp.post("/.well-known/admin/ca-certificate/upload.json", _data)
+        res2 = self.testapp.post("/.well-known/admin/certificate-ca/upload.json", _data)
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
 
         # we may not have created this
-        assert res2.json["CACertificate"]["created"] in (True, False)
+        assert res2.json["CertificateCA"]["created"] in (True, False)
         assert (
-            res2.json["CACertificate"]["id"] > 2
+            res2.json["CertificateCA"]["id"] > 2
         )  # the database was set up with 2 items
-        obj_id = res2.json["CACertificate"]["id"]
+        obj_id = res2.json["CertificateCA"]["id"]
 
         res3 = self.testapp.get(
-            "/.well-known/admin/ca-certificate/%s" % obj_id, status=200
+            "/.well-known/admin/certificate-ca/%s" % obj_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/ca-certificate/upload-bundle.json", status=200
+            "/.well-known/admin/certificate-ca/upload-bundle.json", status=200
         )
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         form = {}
         form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["isrgrootx1"])
         )
         form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x1_auth"])
         )
         form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
+            self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"]["le_x2_auth"])
         )
         form["le_x1_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x1_cross_signed"]
             )
         )
         form["le_x2_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x2_cross_signed"]
             )
         )
         form["le_x3_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x3_cross_signed"]
             )
         )
         form["le_x4_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CertificateCAs"]["cert"]["le_x4_cross_signed"]
             )
         )
         res2 = self.testapp.post(
-            "/.well-known/admin/ca-certificate/upload-bundle.json", form
+            "/.well-known/admin/certificate-ca/upload-bundle.json", form
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
@@ -3048,8 +3048,8 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:certificate_requests_paginated",
             "admin:domain:focus:domain_autocerts",
             "admin:domain:focus:domain_autocerts_paginated",
-            "admin:domain:focus:server_certificates",
-            "admin:domain:focus:server_certificates_paginated",
+            "admin:domain:focus:certificate_signeds",
+            "admin:domain:focus:certificate_signeds_paginated",
             "admin:domain:focus:queue_certificates",
             "admin:domain:focus:queue_certificates_paginated",
             "admin:domain:focus:unique_fqdn_sets",
@@ -3106,10 +3106,10 @@ class FunctionalTests_Domain(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/server-certificates" % focus_id, status=200
+            "/.well-known/admin/domain/%s/certificate-signeds" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/server-certificates/1" % focus_id, status=200
+            "/.well-known/admin/domain/%s/certificate-signeds/1" % focus_id, status=200
         )
 
         res = self.testapp.get(
@@ -3672,8 +3672,8 @@ class FunctionalTests_Operations(AppTest):
     @routes_tested(
         (
             "admin:operations",
-            "admin:operations:ca_certificate_downloads",
-            "admin:operations:ca_certificate_downloads_paginated",
+            "admin:operations:certificate_ca_downloads",
+            "admin:operations:certificate_ca_downloads_paginated",
             "admin:operations:log",
             "admin:operations:log_paginated",
             "admin:operations:log:focus",
@@ -3709,10 +3709,10 @@ class FunctionalTests_Operations(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/operations/ca-certificate-downloads", status=200
+            "/.well-known/admin/operations/certificate-ca-downloads", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/operations/ca-certificate-downloads/1", status=200
+            "/.well-known/admin/operations/certificate-ca-downloads/1", status=200
         )
 
         res = self.testapp.get("/.well-known/admin/operations/log", status=200)
@@ -3812,8 +3812,8 @@ class FunctionalTests_PrivateKey(AppTest):
             "admin:private_key:focus",
             "admin:private_key:focus:certificate_requests",
             "admin:private_key:focus:certificate_requests_paginated",
-            "admin:private_key:focus:server_certificates",
-            "admin:private_key:focus:server_certificates_paginated",
+            "admin:private_key:focus:certificate_signeds",
+            "admin:private_key:focus:certificate_signeds_paginated",
             "admin:private_key:focus:queue_certificates",
             "admin:private_key:focus:queue_certificates_paginated",
         )
@@ -3833,11 +3833,11 @@ class FunctionalTests_PrivateKey(AppTest):
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/server-certificates" % focus_id,
+            "/.well-known/admin/private-key/%s/certificate-signeds" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/server-certificates/1" % focus_id,
+            "/.well-known/admin/private-key/%s/certificate-signeds/1" % focus_id,
             status=200,
         )
         res = self.testapp.get(
@@ -4063,18 +4063,18 @@ class FunctionalTests_PrivateKey(AppTest):
         assert "HTTP POST required" in res.json["instructions"]
 
 
-class FunctionalTests_ServerCertificate(AppTest):
+class FunctionalTests_CertificateSigned(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_ServerCertificate
+    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateSigned
     """
 
     def _get_one(self):
         # grab a certificate
         # iterate backwards
         focus_item = (
-            self.ctx.dbSession.query(model_objects.ServerCertificate)
-            .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
-            .order_by(model_objects.ServerCertificate.id.desc())
+            self.ctx.dbSession.query(model_objects.CertificateSigned)
+            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
         assert focus_item is not None
@@ -4082,23 +4082,23 @@ class FunctionalTests_ServerCertificate(AppTest):
 
     @routes_tested(
         (
-            "admin:server_certificates",
-            "admin:server_certificates:all",
-            "admin:server_certificates:all_paginated",
-            "admin:server_certificates:active",
-            "admin:server_certificates:active_paginated",
-            "admin:server_certificates:expiring",
-            "admin:server_certificates:expiring_paginated",
-            "admin:server_certificates:inactive",
-            "admin:server_certificates:inactive_paginated",
+            "admin:certificate_signeds",
+            "admin:certificate_signeds:all",
+            "admin:certificate_signeds:all_paginated",
+            "admin:certificate_signeds:active",
+            "admin:certificate_signeds:active_paginated",
+            "admin:certificate_signeds:expiring",
+            "admin:certificate_signeds:expiring_paginated",
+            "admin:certificate_signeds:inactive",
+            "admin:certificate_signeds:inactive_paginated",
         )
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/server-certificates", status=303)
+        res = self.testapp.get("/.well-known/admin/certificate-signeds", status=303)
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active"""
+            == """http://peter-sslers.example.com/.well-known/admin/certificate-signeds/active"""
         )
 
         for _type in (
@@ -4108,33 +4108,33 @@ class FunctionalTests_ServerCertificate(AppTest):
             "inactive",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/server-certificates/%s" % _type, status=200
+                "/.well-known/admin/certificate-signeds/%s" % _type, status=200
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificates/%s/1" % _type, status=200
+                "/.well-known/admin/certificate-signeds/%s/1" % _type, status=200
             )
 
     @routes_tested(
         (
-            "admin:server_certificates|json",
-            "admin:server_certificates:all|json",
-            "admin:server_certificates:all_paginated|json",
-            "admin:server_certificates:active|json",
-            "admin:server_certificates:active_paginated|json",
-            "admin:server_certificates:expiring|json",
-            "admin:server_certificates:expiring_paginated|json",
-            "admin:server_certificates:inactive|json",
-            "admin:server_certificates:inactive_paginated|json",
+            "admin:certificate_signeds|json",
+            "admin:certificate_signeds:all|json",
+            "admin:certificate_signeds:all_paginated|json",
+            "admin:certificate_signeds:active|json",
+            "admin:certificate_signeds:active_paginated|json",
+            "admin:certificate_signeds:expiring|json",
+            "admin:certificate_signeds:expiring_paginated|json",
+            "admin:certificate_signeds:inactive|json",
+            "admin:certificate_signeds:inactive_paginated|json",
         )
     )
     def test_list_json(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/server-certificates.json", status=303
+            "/.well-known/admin/certificate-signeds.json", status=303
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active.json"""
+            == """http://peter-sslers.example.com/.well-known/admin/certificate-signeds/active.json"""
         )
 
         for _type in (
@@ -4144,20 +4144,20 @@ class FunctionalTests_ServerCertificate(AppTest):
             "inactive",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/server-certificates/%s.json" % _type, status=200
+                "/.well-known/admin/certificate-signeds/%s.json" % _type, status=200
             )
-            assert "ServerCertificates" in res.json
+            assert "CertificateSigneds" in res.json
 
             res = self.testapp.get(
-                "/.well-known/admin/server-certificates/%s/1.json" % _type, status=200
+                "/.well-known/admin/certificate-signeds/%s/1.json" % _type, status=200
             )
-            assert "ServerCertificates" in res.json
+            assert "CertificateSigneds" in res.json
 
     @routes_tested(
         (
-            "admin:server_certificate:focus",
-            "admin:server_certificate:focus:queue_certificates",
-            "admin:server_certificate:focus:queue_certificates_paginated",
+            "admin:certificate_signed:focus",
+            "admin:certificate_signed:focus:queue_certificates",
+            "admin:certificate_signed:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -4172,30 +4172,30 @@ class FunctionalTests_ServerCertificate(AppTest):
             )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/queue-certificates" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/queue-certificates" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/queue-certificates/1" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
     @routes_tested(
         (
-            "admin:server_certificate:focus:chain:raw",
-            "admin:server_certificate:focus:fullchain:raw",
-            "admin:server_certificate:focus:privatekey:raw",
-            "admin:server_certificate:focus:cert:raw",
-            "admin:server_certificate:focus:config|zip",
+            "admin:certificate_signed:focus:chain:raw",
+            "admin:certificate_signed:focus:fullchain:raw",
+            "admin:certificate_signed:focus:privatekey:raw",
+            "admin:certificate_signed:focus:cert:raw",
+            "admin:certificate_signed:focus:config|zip",
         )
     )
     def test_focus_raw(self):
         """
-        python -munittest tests.test_pyramid_app.FunctionalTests_ServerCertificate.test_focus_raw
+        python -munittest tests.test_pyramid_app.FunctionalTests_CertificateSigned.test_focus_raw
         """
         try:
             (focus_item, focus_id) = self._get_one()
@@ -4208,56 +4208,56 @@ class FunctionalTests_ServerCertificate(AppTest):
             )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/chain.cer" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/chain.cer" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/chain.crt" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/chain.crt" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/chain.der" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/chain.der" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/chain.pem" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/chain.pem" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/chain.pem.txt" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/chain.pem.txt" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/fullchain.pem" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/fullchain.pem" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/fullchain.pem.txt" % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/privkey.key" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/privkey.pem" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/privkey.pem.txt" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/fullchain.pem.txt" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/cert.crt" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/cert.pem" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/cert.pem.txt" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/privkey.key" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/config.zip" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/privkey.pem" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/privkey.pem.txt" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/cert.crt" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/cert.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/cert.pem.txt" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/config.zip" % focus_id,
             status=200,
         )
         assert res.headers["Content-Type"] == "application/zip"
@@ -4286,9 +4286,9 @@ class FunctionalTests_ServerCertificate(AppTest):
 
     @routes_tested(
         (
-            "admin:server_certificate:focus|json",
-            "admin:server_certificate:focus:config|json",
-            "admin:server_certificate:focus:parse|json",
+            "admin:certificate_signed:focus|json",
+            "admin:certificate_signed:focus:config|json",
+            "admin:certificate_signed:focus:parse|json",
         )
     )
     def test_focus_json(self):
@@ -4303,25 +4303,25 @@ class FunctionalTests_ServerCertificate(AppTest):
             )
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s.json" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s.json" % focus_id, status=200
         )
-        assert "ServerCertificate" in res.json
-        assert res.json["ServerCertificate"]["id"] == focus_id
+        assert "CertificateSigned" in res.json
+        assert res.json["CertificateSigned"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/config.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/config.json" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/parse.json" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/parse.json" % focus_id, status=200
         )
 
-    @routes_tested(("admin:server_certificate:focus:mark",))
+    @routes_tested(("admin:certificate_signed:focus:mark",))
     def test_manipulate_html(self):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/mark" % focus_id
+            "/.well-known/admin/certificate-signed/%s/mark" % focus_id
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
@@ -4335,26 +4335,26 @@ class FunctionalTests_ServerCertificate(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/server-certificate/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+            == "http://peter-sslers.example.com/.well-known/admin/certificate-signed/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
             % focus_id
         )
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=inactive")
 
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -4362,13 +4362,13 @@ class FunctionalTests_ServerCertificate(AppTest):
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
             {"action": "revoked"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=revoked")
 
-    @routes_tested(("admin:server_certificate:focus:mark|json",))
+    @routes_tested(("admin:certificate_signed:focus:mark|json",))
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -4381,7 +4381,7 @@ class FunctionalTests_ServerCertificate(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -4393,119 +4393,119 @@ class FunctionalTests_ServerCertificate(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 200
-        assert "ServerCertificate" in res.json
-        assert res.json["ServerCertificate"]["id"] == focus_id
-        assert res.json["ServerCertificate"]["is_active"] is False
+        assert "CertificateSigned" in res.json
+        assert res.json["CertificateSigned"]["id"] == focus_id
+        assert res.json["CertificateSigned"]["is_active"] is False
 
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
-        assert "ServerCertificate" in res.json
-        assert res.json["ServerCertificate"]["id"] == focus_id
-        assert res.json["ServerCertificate"]["is_active"] is True
+        assert "CertificateSigned" in res.json
+        assert res.json["CertificateSigned"]["id"] == focus_id
+        assert res.json["CertificateSigned"]["is_active"] is True
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
             {"action": "revoked"},
         )
         assert res.status_code == 200
-        assert "ServerCertificate" in res.json
-        assert res.json["ServerCertificate"]["id"] == focus_id
-        assert res.json["ServerCertificate"]["is_active"] is False
-        assert res.json["ServerCertificate"]["is_revoked"] is True
-        assert res.json["ServerCertificate"]["is_deactivated"] is True
+        assert "CertificateSigned" in res.json
+        assert res.json["CertificateSigned"]["id"] == focus_id
+        assert res.json["CertificateSigned"]["is_active"] is False
+        assert res.json["CertificateSigned"]["is_revoked"] is True
+        assert res.json["CertificateSigned"]["is_deactivated"] is True
 
-    @routes_tested(("admin:server_certificate:upload",))
+    @routes_tested(("admin:certificate_signed:upload",))
     def test_upload_html(self):
         #
         # upload a new cert
         #
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/upload", status=200
+            "/.well-known/admin/certificate-signed/upload", status=200
         )
         _SelfSigned_id = "1"
         form = res.form
         form["certificate_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
         form["chain_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
         form["private_key_file_pem"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["pkey"]
             )
         )
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/server-certificate/"""
+            """http://peter-sslers.example.com/.well-known/admin/certificate-signed/"""
         )
 
-    @routes_tested(("admin:server_certificate:upload|json",))
+    @routes_tested(("admin:certificate_signed:upload|json",))
     def test_upload_json(self):
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/upload.json", status=200
+            "/.well-known/admin/certificate-signed/upload.json", status=200
         )
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         _SelfSigned_id = "2"
         form = {}
         form["certificate_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
         form["chain_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
         form["private_key_file_pem"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
+                TEST_FILES["CertificateSigneds"]["SelfSigned"][_SelfSigned_id]["pkey"]
             )
         )
         res2 = self.testapp.post(
-            "/.well-known/admin/server-certificate/upload.json", form
+            "/.well-known/admin/certificate-signed/upload.json", form
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
-        assert res2.json["ServerCertificate"]["created"] in (True, False)
-        certificate_id = res2.json["ServerCertificate"]["id"]
+        assert res2.json["CertificateSigned"]["created"] in (True, False)
+        certificate_id = res2.json["CertificateSigned"]["id"]
         res3 = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s.json" % certificate_id, status=200
+            "/.well-known/admin/certificate-signed/%s.json" % certificate_id, status=200
         )
-        assert "ServerCertificate" in res3.json
+        assert "CertificateSigned" in res3.json
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
-    @routes_tested(("admin:server_certificate:focus:nginx_cache_expire",))
+    @routes_tested(("admin:certificate_signed:focus:nginx_cache_expire",))
     def test_nginx_html(self):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/nginx-cache-expire" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire" % focus_id,
             status=303,
         )
-        assert RE_ServerCertificate_operation_nginx_expire.match(res.location)
+        assert RE_CertificateSigned_operation_nginx_expire.match(res.location)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
-    @routes_tested(("admin:server_certificate:focus:nginx_cache_expire|json",))
+    @routes_tested(("admin:certificate_signed:focus:nginx_cache_expire|json",))
     def test_nginx_json(self):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/nginx-cache-expire.json"
+            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire.json"
             % focus_id,
             status=200,
         )
@@ -4514,9 +4514,9 @@ class FunctionalTests_ServerCertificate(AppTest):
     def test_post_required_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        # !!!: test `POST required` `server-certificate/%s/mark.json`
+        # !!!: test `POST required` `certificate-signed/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
             status=200,
         )
         assert "form_fields" in res.json
@@ -4574,8 +4574,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "admin:unique_fqdn_set:focus:acme_orders_paginated",
             "admin:unique_fqdn_set:focus:certificate_requests",
             "admin:unique_fqdn_set:focus:certificate_requests_paginated",
-            "admin:unique_fqdn_set:focus:server_certificates",
-            "admin:unique_fqdn_set:focus:server_certificates_paginated",
+            "admin:unique_fqdn_set:focus:certificate_signeds",
+            "admin:unique_fqdn_set:focus:certificate_signeds_paginated",
             "admin:unique_fqdn_set:focus:queue_certificates",
             "admin:unique_fqdn_set:focus:queue_certificates_paginated",
         )
@@ -4606,11 +4606,11 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/server-certificates" % focus_id,
+            "/.well-known/admin/unique-fqdn-set/%s/certificate-signeds" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/server-certificates/1" % focus_id,
+            "/.well-known/admin/unique-fqdn-set/%s/certificate-signeds/1" % focus_id,
             status=200,
         )
 
@@ -4926,14 +4926,14 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert dbAcmeOrder
         return dbAcmeOrder
 
-    def _get_queueable_ServerCertificate(self):
-        dbServerCertificate = (
-            self.ctx.dbSession.query(model_objects.ServerCertificate)
-            .order_by(model_objects.ServerCertificate.id.asc())
+    def _get_queueable_CertificateSigned(self):
+        dbCertificateSigned = (
+            self.ctx.dbSession.query(model_objects.CertificateSigned)
+            .order_by(model_objects.CertificateSigned.id.asc())
             .first()
         )
-        assert dbServerCertificate
-        return dbServerCertificate
+        assert dbCertificateSigned
+        return dbCertificateSigned
 
     def _get_queueable_UniqueFQDNSet(self):
         dbUniqueFQDNSet = (
@@ -4972,11 +4972,11 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert matched
         queue_id_1 = matched.groups()[0]
 
-        # try with a ServerCertificate
-        dbServerCertificate = self._get_queueable_ServerCertificate()
+        # try with a CertificateSigned
+        dbCertificateSigned = self._get_queueable_CertificateSigned()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured?queue_source=ServerCertificate&server_certificate=%s"
-            % dbServerCertificate.id,
+            "/.well-known/admin/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=%s"
+            % dbCertificateSigned.id,
             status=200,
         )
         form = res.form
@@ -5032,19 +5032,19 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert "QueueCertificate" in res.json
         queue_id_1 = res.json["QueueCertificate"]
 
-        # try with a ServerCertificate
-        dbServerCertificate = self._get_queueable_ServerCertificate()
+        # try with a CertificateSigned
+        dbCertificateSigned = self._get_queueable_CertificateSigned()
         res_instructions = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=ServerCertificate&server_certificate=%s"
-            % dbServerCertificate.id,
+            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=CertificateSigned&certificate_signed=%s"
+            % dbCertificateSigned.id,
             status=200,
         )
         account_key_global_default = res_instructions.json["valid_options"][
             "AcmeAccount_GlobalDefault"
         ]["AcmeAccountKey"]["key_pem_md5"]
         form = {
-            "queue_source": "ServerCertificate",
-            "server_certificate": dbServerCertificate.id,
+            "queue_source": "CertificateSigned",
+            "certificate_signed": dbCertificateSigned.id,
             "account_key_option": "account_key_global_default",
             "account_key_global_default": account_key_global_default,
             "account__private_key_cycle": "single_certificate",
@@ -5361,15 +5361,15 @@ class FunctionalTests_AlternateChains(AppTest):
 
     def setUp(self):
         AppTest.setUp(self)
-        self._setUp_ServerCertificates_FormatA("AlternateChains", "1")
+        self._setUp_CertificateSigneds_FormatA("AlternateChains", "1")
 
     def _get_one(self):
         # grab an item
         # iterate backwards because we just added the AlternateChains
         focus_item = (
-            self.ctx.dbSession.query(model_objects.ServerCertificate)
-            .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
-            .order_by(model_objects.ServerCertificate.id.desc())
+            self.ctx.dbSession.query(model_objects.CertificateSigned)
+            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
         assert focus_item is not None
@@ -5378,100 +5378,100 @@ class FunctionalTests_AlternateChains(AppTest):
 
     @routes_tested(
         (
-            "admin:ca_certificate:focus:server_certificates_alt",
-            "admin:ca_certificate:focus:server_certificates_alt_paginated",
+            "admin:certificate_ca:focus:certificate_signeds_alt",
+            "admin:certificate_ca:focus:certificate_signeds_alt_paginated",
         )
     )
-    def test_CACertificate_view(self):
-        focus_ServerCertificate = self._get_one()
-        for _to_ca_cert_alt in focus_ServerCertificate.certificate_upchain_alternates:
-            ca_cert_alt_id = _to_ca_cert_alt.ca_certificate_id
+    def test_CertificateCA_view(self):
+        focus_CertificateSigned = self._get_one()
+        for _to_ca_cert_alt in focus_CertificateSigned.certificate_upchain_alternates:
+            ca_cert_alt_id = _to_ca_cert_alt.certificate_ca_id
             res = self.testapp.get(
-                "/.well-known/admin/ca-certificate/%s" % ca_cert_alt_id, status=200
+                "/.well-known/admin/certificate-ca/%s" % ca_cert_alt_id, status=200
             )
             res = self.testapp.get(
-                "/.well-known/admin/ca-certificate/%s/server-certificates-alt"
+                "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt"
                 % ca_cert_alt_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/ca-certificate/%s/server-certificates-alt/1"
+                "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt/1"
                 % ca_cert_alt_id,
                 status=200,
             )
 
     @routes_tested(
         (
-            "admin:server_certificate:focus:via_ca_cert:config|json",
-            "admin:server_certificate:focus:via_ca_cert:config|zip",
-            "admin:server_certificate:focus:via_ca_cert:chain:raw",
-            "admin:server_certificate:focus:via_ca_cert:fullchain:raw",
+            "admin:certificate_signed:focus:via_ca_cert:config|json",
+            "admin:certificate_signed:focus:via_ca_cert:config|zip",
+            "admin:certificate_signed:focus:via_ca_cert:chain:raw",
+            "admin:certificate_signed:focus:via_ca_cert:fullchain:raw",
         )
     )
-    def test_ServerCertificate_view(self):
-        focus_ServerCertificate = self._get_one()
+    def test_CertificateSigned_view(self):
+        focus_CertificateSigned = self._get_one()
 
-        server_certificate_id = focus_ServerCertificate.id
+        certificate_signed_id = focus_CertificateSigned.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        upchain_ids = [i.id for i in focus_ServerCertificate.iter_certificate_upchain]
+        upchain_ids = [i.id for i in focus_CertificateSigned.iter_certificate_upchain]
 
         res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s" % server_certificate_id,
+            "/.well-known/admin/certificate-signed/%s" % certificate_signed_id,
             status=200,
         )
 
         for ca_cert_id in upchain_ids:
-            focus_ids = (server_certificate_id, ca_cert_id)
+            focus_ids = (certificate_signed_id, ca_cert_id)
 
             # chain
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.cer"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.crt"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.der"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/fullchain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/fullchain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/config.json"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/config.zip"
+                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/config.zip"
                 % focus_ids,
                 status=200,
             )
@@ -5486,7 +5486,7 @@ class FunctionalTests_AlternateChains(AppTest):
                 z = zipfile.ZipFile(BytesIO(res.body))
             assert len(z.infolist()) == 4
             expectations = [
-                file_template % server_certificate_id
+                file_template % certificate_signed_id
                 for file_template in (
                     "cert%s.pem",
                     "chain%s.pem",
@@ -6999,11 +6999,11 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         dbAcmeOrder = lib_db_get.get__AcmeOrder__by_id(self.ctx, obj_id)
         assert dbAcmeOrder is not None
-        assert dbAcmeOrder.server_certificate_id is not None
+        assert dbAcmeOrder.certificate_signed_id is not None
 
-        # stash the `server_certificate_id` and delete it from the backend
-        server_certificate_id__og = dbAcmeOrder.server_certificate_id
-        dbAcmeOrder.server_certificate_id = None
+        # stash the `certificate_signed_id` and delete it from the backend
+        certificate_signed_id__og = dbAcmeOrder.certificate_signed_id
+        dbAcmeOrder.certificate_signed_id = None
         self.ctx.pyramid_transaction_commit()
 
         # grab the order
@@ -7017,11 +7017,11 @@ class FunctionalTests_AcmeServer(AppTest):
         # grab the order again!
         res3 = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
         assert "acme_order-download_certificate" not in res3.forms
-        server_certificate_ids = RE_ServerCertificate_main.findall(res3.text)
-        assert server_certificate_ids
-        assert len(server_certificate_ids) >= 1
-        server_certificate_id__downloaded = int(server_certificate_ids[0])
-        assert server_certificate_id__og == server_certificate_id__downloaded
+        certificate_signed_ids = RE_CertificateSigned_main.findall(res3.text)
+        assert certificate_signed_ids
+        assert len(certificate_signed_ids) >= 1
+        certificate_signed_id__downloaded = int(certificate_signed_ids[0])
+        assert certificate_signed_id__og == certificate_signed_id__downloaded
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -7033,11 +7033,11 @@ class FunctionalTests_AcmeServer(AppTest):
         obj_id = self._prep_AcmeOrder_json(processing_strategy="process_single")
         dbAcmeOrder = lib_db_get.get__AcmeOrder__by_id(self.ctx, obj_id)
         assert dbAcmeOrder is not None
-        assert dbAcmeOrder.server_certificate_id is not None
+        assert dbAcmeOrder.certificate_signed_id is not None
 
-        # stash the `server_certificate_id` and delete it from the backend
-        server_certificate_id__og = dbAcmeOrder.server_certificate_id
-        dbAcmeOrder.server_certificate_id = None
+        # stash the `certificate_signed_id` and delete it from the backend
+        certificate_signed_id__og = dbAcmeOrder.certificate_signed_id
+        dbAcmeOrder.certificate_signed_id = None
         self.ctx.pyramid_transaction_commit()
 
         # grab the order
@@ -7045,23 +7045,23 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res2.json
-        assert res2.json["AcmeOrder"]["server_certificate_id"] is None
-        url_acme_server_certificate_download = res2.json["AcmeOrder"][
-            "url_acme_server_certificate_download"
+        assert res2.json["AcmeOrder"]["certificate_signed_id"] is None
+        url_acme_certificate_signed_download = res2.json["AcmeOrder"][
+            "url_acme_certificate_signed_download"
         ]
-        assert url_acme_server_certificate_download is not None
+        assert url_acme_certificate_signed_download is not None
 
         # trigger a download
-        res3 = self.testapp.post(url_acme_server_certificate_download, {}, status=200)
-        assert res3.json["AcmeOrder"]["url_acme_server_certificate_download"] is None
-        assert res3.json["AcmeOrder"]["server_certificate_id"] is not None
-        server_certificate_id__downloaded = res3.json["AcmeOrder"][
-            "server_certificate_id"
+        res3 = self.testapp.post(url_acme_certificate_signed_download, {}, status=200)
+        assert res3.json["AcmeOrder"]["url_acme_certificate_signed_download"] is None
+        assert res3.json["AcmeOrder"]["certificate_signed_id"] is not None
+        certificate_signed_id__downloaded = res3.json["AcmeOrder"][
+            "certificate_signed_id"
         ]
-        assert server_certificate_id__downloaded is not None
+        assert certificate_signed_id__downloaded is not None
 
         # compare the certs
-        assert server_certificate_id__og == server_certificate_id__downloaded
+        assert certificate_signed_id__og == certificate_signed_id__downloaded
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -7846,8 +7846,8 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
         assert res.json["domain"] is None
-        assert res.json["server_certificate__latest_single"] is None
-        assert res.json["server_certificate__latest_multi"] is None
+        assert res.json["certificate_signed__latest_single"] is None
+        assert res.json["certificate_signed__latest_multi"] is None
 
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
@@ -7857,9 +7857,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert res.json["result"] == "success"
         assert "domain" in res.json
-        assert "server_certificate__latest_multi" in res.json
-        assert "server_certificate__latest_single" in res.json
-        assert res.json["server_certificate__latest_single"] is not None
+        assert "certificate_signed__latest_multi" in res.json
+        assert "certificate_signed__latest_single" in res.json
+        assert res.json["certificate_signed__latest_single"] is not None
         assert "AcmeOrder" in res.json
 
         # Test 2 -- autocert that same domain
@@ -7870,9 +7870,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert res.json["result"] == "success"
         assert "domain" in res.json
-        assert "server_certificate__latest_multi" in res.json
-        assert "server_certificate__latest_single" in res.json
-        assert res.json["server_certificate__latest_single"] is not None
+        assert "certificate_signed__latest_multi" in res.json
+        assert "certificate_signed__latest_single" in res.json
+        assert res.json["certificate_signed__latest_single"] is not None
         assert "AcmeOrder" not in res.json
 
         # Test 3 -- blocklist a domain, then try to autocert
@@ -7902,8 +7902,8 @@ class FunctionalTests_AcmeServer(AppTest):
             == "This domain_name has been blocklisted"
         )
         assert res.json["domain"] is None
-        assert res.json["server_certificate__latest_single"] is None
-        assert res.json["server_certificate__latest_multi"] is None
+        assert res.json["certificate_signed__latest_single"] is None
+        assert res.json["certificate_signed__latest_multi"] is None
 
         # Test 4 -- autocert an inactive domain
         # 4.1 add the domain
@@ -7943,8 +7943,8 @@ class FunctionalTests_AcmeServer(AppTest):
             == "This domain_name has been disabled"
         )
         assert res.json["domain"] is None
-        assert res.json["server_certificate__latest_single"] is None
-        assert res.json["server_certificate__latest_multi"] is None
+        assert res.json["certificate_signed__latest_single"] is None
+        assert res.json["certificate_signed__latest_multi"] is None
 
 
 class FunctionalTests_API(AppTest):
@@ -8009,21 +8009,21 @@ class FunctionalTests_API(AppTest):
 
     @routes_tested(
         (
-            "admin:api:ca_certificate:letsencrypt_sync",
-            "admin:api:ca_certificate:letsencrypt_sync|json",
+            "admin:api:certificate_ca:letsencrypt_sync",
+            "admin:api:certificate_ca:letsencrypt_sync|json",
         )
     )
     def test_letsencrypt_sync(self):
         res = self.testapp.post(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-sync", {}, status=303
+            "/.well-known/admin/api/certificate-ca/letsencrypt-sync", {}, status=303
         )
         assert (
-            "/admin/operations/ca-certificate-downloads?result=success&event.id="
+            "/admin/operations/certificate-ca-downloads?result=success&event.id="
             in res.location
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-sync.json",
+            "/.well-known/admin/api/certificate-ca/letsencrypt-sync.json",
             {},
             status=200,
         )
@@ -8149,11 +8149,11 @@ class FunctionalTests_API(AppTest):
 
     def test_post_required_html(self):
         res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-sync", status=303
+            "/.well-known/admin/api/certificate-ca/letsencrypt-sync", status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/ca-certificate-downloads?result=error&operation=ca_certificate-letsencrypt_sync&error=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/admin/operations/certificate-ca-downloads?result=error&operation=certificate_ca-letsencrypt_sync&error=HTTP+POST+required"
         )
 
     def test_post_required_json(self):
@@ -8176,9 +8176,9 @@ class FunctionalTests_API(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
-        # !!!: test `POST required` `api/ca-certificate/letsencrypt-sync.json`
+        # !!!: test `POST required` `api/certificate-ca/letsencrypt-sync.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate/letsencrypt-sync.json",
+            "/.well-known/admin/api/certificate-ca/letsencrypt-sync.json",
             status=200,
         )
         assert "instructions" in res.json
@@ -8485,7 +8485,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert _domain_name in res3.json["domain_results"]
         try:
             assert (
-                res3.json["domain_results"][_domain_name]["server_certificate.status"]
+                res3.json["domain_results"][_domain_name]["certificate_signed.status"]
                 == "new"
             )
             assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
@@ -8519,7 +8519,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res5.status_code == 200
         assert res5.json["result"] == "success"
         assert (
-            res5.json["domain_results"][_domain_name]["server_certificate.status"]
+            res5.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "fail"
         )
         assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
@@ -8540,7 +8540,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert "domain_results" in res6.json
         assert _domain_name in res6.json["domain_results"]
         assert (
-            res6.json["domain_results"][_domain_name]["server_certificate.status"]
+            res6.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "exists"
         )
         assert (
@@ -8568,7 +8568,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert "domain_results" in res7.json
         assert _domain_name in res7.json["domain_results"]
         assert (
-            res7.json["domain_results"][_domain_name]["server_certificate.status"]
+            res7.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "exists"
         )
         assert (
@@ -8622,7 +8622,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert "domain_results" in res.json
         assert _domain_name in res.json["domain_results"]
         assert (
-            res.json["domain_results"][_domain_name]["server_certificate.status"]
+            res.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "new"
         )
         assert res.json["domain_results"][_domain_name]["domain.status"] == "new"

@@ -432,15 +432,15 @@
                         <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
                     </tr>
                     <tr>
-                        <th>ServerCertificate</th>
+                        <th>CertificateSigned</th>
                         <td>
-                            % if AcmeOrder.server_certificate_id:
+                            % if AcmeOrder.certificate_signed_id:
                                 <a
                                     class="label label-info"
-                                    href="${admin_prefix}/server-certificate/${AcmeOrder.server_certificate_id}"
+                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ServerCertificate-${AcmeOrder.server_certificate_id}
+                                    CertificateSigned-${AcmeOrder.certificate_signed_id}
                                 </a>
                             % endif
                         </td>
