@@ -156,6 +156,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
             "cert.notAfter": "2025-06-16 20:19:30",  # "Jun 16 20:19:30 2025 GMT",
             "cert.notBefore": "2020-06-16 20:19:30",
+            "cert.fingerprints": {
+                "sha1": "F6:3C:5C:66:B5:25:51:EE:DA:DF:7C:E4:43:01:D6:46:68:0B:8F:5D",
+                "sha256": "02:7E:69:B3:5F:0D:8F:2D:2A:3D:06:D4:72:08:F0:C4:FD:31:B6:9A:42:9D:FC:36:BE:8D:D0:D5:B7:3D:8D:C4",
+                "md5": "21:C6:0F:E6:39:DF:16:CA:5B:F1:5D:82:07:F0:7A:42",
+            },
         },
         "002": {
             "csr.domains.all": [
@@ -183,6 +188,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
             "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
             "cert.notBefore": "2020-06-16 22:06:46",
+            "cert.fingerprints": {
+                "sha1": "E8:50:3E:AC:0F:4F:96:85:84:1F:96:1A:D9:66:77:4D:66:52:1C:5E",
+                "sha256": "CC:8D:06:6A:7C:59:D6:7A:4D:AE:E0:2A:C6:7B:AA:C5:DA:02:96:30:37:58:CC:82:4A:F6:24:3D:5A:8C:78:F6",
+                "md5": "45:5A:11:B0:57:29:B3:BD:E1:1A:86:D5:A9:4C:40:D7",
+            },
         },
         "004": {
             "csr.domains.all": [
@@ -215,6 +225,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
             "cert.notAfter": "2025-06-16 22:07:02",  # "Jun 16 22:07:02 2025 GMT",
             "cert.notBefore": "2020-06-16 22:07:02",
+            "cert.fingerprints": {
+                "sha1": "A8:88:02:00:45:24:52:AD:F1:92:84:7C:DE:C1:33:06:17:20:4D:14",
+                "sha256": "39:06:F1:74:72:B9:E1:80:C6:52:61:35:B0:BB:F4:CA:2C:61:87:D2:DC:90:67:80:9F:C0:23:B5:EA:27:62:57",
+                "md5": "36:D3:A4:29:48:CF:7C:78:D5:06:60:C9:F4:66:18:B3",
+            },
         },
         "005": {
             "csr.domains.all": [
@@ -250,6 +265,48 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             )
             self.assertEqual(
                 cert_domains, self._cert_sets[cert_set]["cert.domains.all"]
+            )
+
+    def test__fingerprint_cert(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__fingerprint_cert
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+
+            # defaults to sha1
+            _fingerprint = cert_utils.fingerprint_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                _fingerprint, self._cert_sets[cert_set]["cert.fingerprints"]["sha1"]
+            )
+
+            # test the supported
+            for _alg in ("sha1", "sha256", "md5"):
+                _fingerprint = cert_utils.fingerprint_cert(
+                    cert_pem=cert_pem,
+                    cert_pem_filepath=cert_pem_filepath,
+                    algorithm=_alg,
+                )
+                self.assertEqual(
+                    _fingerprint, self._cert_sets[cert_set]["cert.fingerprints"][_alg]
+                )
+
+            # test unsupported
+            with self.assertRaises(ValueError) as cm:
+                _fingerprint = cert_utils.fingerprint_cert(
+                    cert_pem=cert_pem,
+                    cert_pem_filepath=cert_pem_filepath,
+                    algorithm="fake",
+                )
+            self.assertTrue(
+                cm.exception.args[0].startswith("algorithm `fake` not in `('")
             )
 
     def test__parse_csr_domains(self):

@@ -599,6 +599,82 @@ def validate_cert(cert_pem=None, cert_pem_filepath=None):
     return True
 
 
+def fingerprint_cert(cert_pem=None, cert_pem_filepath=None, algorithm="sha1"):
+    """
+    Derives the certificate fingerprint
+
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+
+    Every openssl version tested so-far defaults to sha1
+
+        openssl x509 -noout -fingerprint -inform pem -in isrgrootx1.pem
+        SHA1 Fingerprint=CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8
+
+        openssl x509 -noout -fingerprint -sha1 -inform pem -in isrgrootx1.pem
+        SHA1 Fingerprint=CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8
+
+        openssl x509 -noout -fingerprint -md5 -inform pem -in isrgrootx1.pem
+        MD5 Fingerprint=0C:D2:F9:E0:DA:17:73:E9:ED:86:4D:A5:E3:70:E7:4E
+
+        openssl x509 -noout -fingerprint -sha256 -inform pem -in isrgrootx1.pem
+        SHA256 Fingerprint=96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6
+    """
+    log.info("fingerprint_cert >")
+    _accepted_algorithms = ("sha1", "sha256", "md5")
+    if algorithm not in _accepted_algorithms:
+        raise ValueError(
+            "algorithm `%s` not in `%s`" % (algorithm, _accepted_algorithms)
+        )
+    if openssl_crypto:
+        try:
+            data = openssl_crypto.load_certificate(
+                openssl_crypto.FILETYPE_PEM, cert_pem
+            )
+        except Exception as exc:
+            raise errors.OpenSslError_InvalidCertificate(exc)
+        if not data:
+            raise errors.OpenSslError_InvalidCertificate()
+        return data.digest(algorithm)
+
+    log.debug(".fingerprint_cert > openssl fallback")
+    _tmpfile_cert = None
+    if not cert_pem_filepath:
+        _tmpfile_cert = new_pem_tempfile(cert_pem)
+        cert_pem_filepath = _tmpfile_cert.name
+    try:
+        # openssl x509 -noout -fingerprint -{algorithm} -inform pem -in {CERTIFICATE}
+
+        with psutil.Popen(
+            [
+                openssl_path,
+                "x509",
+                "-noout",
+                "-fingerprint",
+                "-%s" % algorithm,
+                "-inform",
+                "pem",
+                "-in",
+                cert_pem_filepath,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode("utf8")
+
+            # the output will look something like this:
+            # 'SHA1 Fingerprint=F6:3C:5C:66:B5:25:51:EE:DA:DF:7C:E4:43:01:D6:46:68:0B:8F:5D\n'
+            data = data.strip().split("=")[1]
+    finally:
+        if _tmpfile_cert:
+            _tmpfile_cert.close()
+    return data
+
+
 def _cleanup_openssl_md5(data):
     """
     some versions of openssl handle the md5 as:
