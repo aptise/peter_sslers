@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 # stdlib
+import datetime
 import os
 import sys
 
@@ -11,6 +12,7 @@ from pyramid.scripts.common import parse_vars
 
 # local
 from ...lib.db import _setup
+from ...lib.utils import ApiContext
 from ...model.meta import Base
 from ..models import get_engine, get_session_factory, get_tm_session
 
@@ -43,8 +45,15 @@ def main(argv=sys.argv):
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
 
+        ctx = ApiContext(
+            timestamp=datetime.datetime.utcnow(),
+            dbSession=dbSession,
+            request=None,
+        )
+
         # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
-        _setup.initialize_AcmeAccountProviders(dbSession)
-        _setup.initialize_DomainBlocklisted(dbSession)
+        _setup.initialize_AcmeAccountProviders(ctx)
+        _setup.initialize_DomainBlocklisted(ctx)
+        _setup.initialize_CaCertificates(ctx)
 
     transaction.commit()

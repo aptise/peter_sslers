@@ -1,5 +1,6 @@
 # stdlib
 import copy
+import os
 
 # pypi
 import requests
@@ -164,7 +165,7 @@ CERT_CAS_DATA = {
     },
     "letsencrypt_ocsp_root_x1": {
         "display_name": "Let's Encrypt OSCP Root X1",
-        "url_pem": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem    ",
+        "url_pem": "https://letsencrypt.org/certs/isrg-root-ocsp-x1.pem",
         "formfield_base": "le_ocsp_root_x1",
         "is_active": True,
         "key_technology": "RSA",
@@ -363,6 +364,19 @@ for _cert_id, _payload in CERT_CAS_DATA.items():
         CA_LE_INTERMEDIATES_CROSSED.append(_serial)
 
 
+# LOAD THE CERTS INTO THE SYSTEM
+_dir_here = os.path.abspath(os.path.dirname(__file__))
+_dir_certs = os.path.join(_dir_here, "letsencrypt-certs")
+for cert_id, cert_data in CERT_CAS_DATA.items():
+    _filename = cert_data["url_pem"].split("/")[-1]
+    _filepath = os.path.join(_dir_certs, _filename)
+    with open(_filepath, "r") as _fp:
+        cert_pem_text = _fp.read()
+        # cert_pem_text = cert_pem_text.decode("utf8")
+        cert_pem_text = cert_utils.cleanup_pem_text(cert_pem_text)
+        cert_data["cert_pem"] = cert_pem_text
+
+
 def download_letsencrypt_certificates():
     """
     download the known LetsEncrypt certificates
@@ -372,6 +386,7 @@ def download_letsencrypt_certificates():
     - usually one uses `.text`, which is `.content` that is decoded
     - there was some concern that triggered this utf8 decode at some point...
     """
+    # ???: raise Exception if the cert_pem changes?
     certs = copy.deepcopy(CERT_CAS_DATA)
     for c in list(certs.keys()):
         resp = requests.get(certs[c]["url_pem"])
