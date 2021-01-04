@@ -6,9 +6,12 @@ import datetime
 
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...lib import letsencrypt_info
 from ...lib import utils
+from .logger import log__OperationsEvent
 from . import create as db_create
 from . import get as db_get
+from . import getcreate as db_getcreate
 from . import update as db_update
 
 # ==============================================================================
@@ -68,7 +71,7 @@ acme_account_providers = {
 }
 
 
-def initialize_AcmeAccountProviders(dbSession):
+def initialize_AcmeAccountProviders(ctx):
 
     timestamp_now = datetime.datetime.utcnow()
 
@@ -83,22 +86,19 @@ def initialize_AcmeAccountProviders(dbSession):
         dbObject.is_enabled = item["is_enabled"]
         dbObject.protocol = item["protocol"]
         dbObject.server = item["server"]
-        dbSession.add(dbObject)
-        dbSession.flush(
+        ctx.dbSession.add(dbObject)
+        ctx.dbSession.flush(
             objects=[
                 dbObject,
             ]
         )
 
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = model_objects.OperationsEvent()
-    dbOperationsEvent.operations_event_type_id = (
-        _event_type_id
-    ) = model_utils.OperationsEventType.from_string("_DatabaseInitialization")
-    dbOperationsEvent.timestamp_event = timestamp_now
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    dbSession.add(dbOperationsEvent)
-    dbSession.flush(objects=[dbOperationsEvent])
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("_DatabaseInitialization"),
+        event_payload_dict,
+    )
 
     dbObject = model_objects.PrivateKey()
     dbObject.id = 0
@@ -117,8 +117,8 @@ def initialize_AcmeAccountProviders(dbSession):
     dbObject.key_technology_id = model_utils.KeyTechnology.from_string(
         "RSA"
     )  # default to RSA
-    dbSession.add(dbObject)
-    dbSession.flush(
+    ctx.dbSession.add(dbObject)
+    ctx.dbSession.flush(
         objects=[
             dbObject,
         ]
@@ -127,12 +127,66 @@ def initialize_AcmeAccountProviders(dbSession):
     return True
 
 
-def initialize_DomainBlocklisted(dbSession):
+def initialize_CaCertificates(ctx):
+
+    # create a bookkeeping object
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("_DatabaseInitialization"),
+        event_payload_dict,
+    )
+
+    certs = letsencrypt_info.CERT_CAS_DATA
+    certs_discovered = []
+    certs_modified = []
+    for cert_id, cert_data in letsencrypt_info.CERT_CAS_DATA.items():
+        _is_created = False
+        dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
+            ctx, cert_data["cert_pem"]
+        )
+        if not dbCertificateCA:
+            (
+                dbCertificateCA,
+                _is_created,
+            ) = db_getcreate.getcreate__CertificateCA__by_pem_text(
+                ctx, cert_data["cert_pem"], display_name=cert_data["display_name"]
+            )
+            if _is_created:
+                certs_discovered.append(dbCertificateCA)
+        if "is_trusted_root" in cert_data:
+            if dbCertificateCA.is_trusted_root != cert_data["is_trusted_root"]:
+                dbCertificateCA.is_trusted_root = cert_data["is_trusted_root"]
+                if dbCertificateCA not in certs_discovered:
+                    certs_modified.append(dbCertificateCA)
+        else:
+            attrs = ("display_name",)
+            for _k in attrs:
+                if getattr(dbCertificateCA, _k) is None:
+                    setattr(dbCertificateCA, _k, cert_data[_k])
+                    if dbCertificateCA not in certs_discovered:
+                        certs_modified.append(dbCertificateCA)
+
+    # bookkeeping update
+    event_payload_dict["is_certificates_discovered"] = (
+        True if certs_discovered else False
+    )
+    event_payload_dict["is_certificates_updated"] = True if certs_modified else False
+    event_payload_dict["ids_discovered"] = [c.id for c in certs_discovered]
+    event_payload_dict["ids_modified"] = [c.id for c in certs_modified]
+
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    return True
+
+
+def initialize_DomainBlocklisted(ctx):
 
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
-    dbSession.add(dbDomainBlocklisted)
-    dbSession.flush(
+    ctx.dbSession.add(dbDomainBlocklisted)
+    ctx.dbSession.flush(
         objects=[
             dbDomainBlocklisted,
         ]
