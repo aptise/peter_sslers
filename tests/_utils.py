@@ -733,8 +733,9 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
             dbSession = self._session_factory()
             # this would have been invoked by `initialize_database`
-            db._setup.initialize_AcmeAccountProviders(dbSession)
-            db._setup.initialize_DomainBlocklisted(dbSession)
+            db._setup.initialize_AcmeAccountProviders(ctx)
+            db._setup.initialize_CaCertificates(ctx)
+            db._setup.initialize_DomainBlocklisted(ctx)
             dbSession.commit()
             dbSession.close()
 

@@ -53,7 +53,7 @@ def main(argv=sys.argv):
 
         # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
         _setup.initialize_AcmeAccountProviders(ctx)
-        _setup.initialize_DomainBlocklisted(ctx)
         _setup.initialize_CaCertificates(ctx)
+        _setup.initialize_DomainBlocklisted(ctx)
 
     transaction.commit()
