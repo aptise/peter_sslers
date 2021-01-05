@@ -718,9 +718,11 @@ def _format_crypto_components(_in, fieldset=None):
     """
     _out = []
     for _in_set in _in:
+        if six.PY3:
+            _in_set = [i.decode() if isinstance(i, bytes) else i for i in _in_set]
         _out.append("=".join(_in_set))
     _out = "\n".join(_out)
-    _out = _out if not six.PY3 else [i.decode() for i in _out]
+    _out = _out.decode() if (six.PY3 and isinstance(_out, bytes)) else _out
     return _out
 
 
@@ -762,7 +764,7 @@ def _format_openssl_components(_in, fieldset=None):
             _cset = _cset.split("=")
             _cset = tuple(i.strip() for i in _cset)
             _out.append(_cset)
-        return _format_crypto_components(_out)
+        return _format_crypto_components(_out, fieldset=fieldset)
     else:
         raise ValueError("invalid fieldset")
 
