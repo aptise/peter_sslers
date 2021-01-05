@@ -79,6 +79,10 @@
                         <td><span class="badge">${CertificateCA.count_active_certificates or ''}</span></td>
                     </tr>
                     <tr>
+                        <th>fingerprint_sha1</th>
+                        <td><code>${CertificateCA.fingerprint_sha1}</code></td>
+                    </tr>
+                    <tr>
                         <th>cert_pem_md5</th>
                         <td><code>${CertificateCA.cert_pem_md5}</code></td>
                     </tr>

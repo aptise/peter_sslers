@@ -2031,6 +2031,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     cert_subject = sa.Column(sa.Text, nullable=False)
     cert_issuer = sa.Column(sa.Text, nullable=False)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -2098,8 +2099,13 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             "display_name": self.display_name,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_pem": self.cert_pem,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "fingerprint_sha1": self.fingerprint_sha1,
             "key_technology": self.key_technology,
             "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
         }
 
 
@@ -2266,6 +2272,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_subject = sa.Column(sa.Text, nullable=False)
     cert_issuer = sa.Column(sa.Text, nullable=False)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_deactivated = sa.Column(
         sa.Boolean, nullable=True, default=None
@@ -2627,6 +2634,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             "certificate_ca_id__upchain_alternates": self.certificate_upchain_alternate_ids,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "fingerprint_sha1": self.fingerprint_sha1,
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
             # "acme_account_id": self.acme_account_id,
