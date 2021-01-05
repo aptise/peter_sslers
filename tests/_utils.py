@@ -754,6 +754,12 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             model_meta.Base.metadata.create_all(engine)
 
             dbSession = self._session_factory()
+            ctx = utils.ApiContext(
+                timestamp=datetime.datetime.utcnow(),
+                dbSession=dbSession,
+                request=None,
+            )
+
             # this would have been invoked by `initialize_database`
             db._setup.initialize_AcmeAccountProviders(ctx)
             db._setup.initialize_CaCertificates(ctx)
