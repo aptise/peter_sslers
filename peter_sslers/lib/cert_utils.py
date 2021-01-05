@@ -721,8 +721,8 @@ def _format_crypto_components(_in, fieldset=None):
         if six.PY3:
             _in_set = [i.decode() if isinstance(i, bytes) else i for i in _in_set]
         _out.append("=".join(_in_set))
-    _out = "\n".join(_out)
-    _out = _out.decode() if (six.PY3 and isinstance(_out, bytes)) else _out
+    _out = "\n".join(_out).strip()
+    # _out = _out.decode() if (six.PY3 and isinstance(_out, bytes)) else _out
     return _out
 
 
@@ -1020,6 +1020,8 @@ def key_single_op__pem_filepath(keytype="RSA", pem_filepath=None, single_op=None
             # this happens!
             if err != b"read EC key\nEC Key valid.\n":
                 raise errors.OpenSslError_InvalidCertificate(err)
+            elif err.startswith(b"unknown option -check"):
+                raise errors.OpenSslError(err)
         if six.PY3:
             data = data.decode("utf8")
         data = data.strip()
