@@ -39,7 +39,6 @@ from .get import get__PrivateKey_CurrentWeek_AcmeAccount
 from .get import get__PrivateKey_CurrentWeek_Global
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
-from .helpers import _certificate_parse_to_record
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeDnsServer__set_global_default
 from .validate import validate_domain_names
@@ -742,6 +741,7 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
             dbCertificateCA.cert_subject = _cert_data["subject"]
             dbCertificateCA.cert_issuer = _cert_data["issuer"]
+            dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
             dbCertificateCA.key_technology_id = model_utils.KeyTechnology.from_string(
                 _cert_data["key_technology"]
             )

@@ -702,6 +702,71 @@ def _cleanup_openssl_modulus(data):
     return data
 
 
+def _format_crypto_components(_in, fieldset=None):
+    """
+    :param fieldset: is unused. would be "issuer" or "subject"
+
+    `get_components()` is somewhat structured
+    the following are valid:
+    * [('CN', 'Pebble Intermediate CA 601ea1')]
+    * [('C', 'US'), ('O', 'Internet Security Research Group'), ('CN', 'ISRG Root X2')]
+    * [('C', 'US'), ('O', 'Internet Security Research Group'), ('CN', 'ISRG Root X1')]
+    * [('O', 'Digital Signature Trust Co.'), ('CN', 'DST Root CA X3')]
+    cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+    _issuer = cert.get_issuer().get_components()
+    _subject = cert.get_subject().get_components()
+    """
+    _out = []
+    for _in_set in _in:
+        _out.append("=".join(_in_set))
+    _out = "\n".join(_out)
+    _out = _out if not six.PY3 else [i.decode() for i in _out]
+    return _out
+
+
+def _format_openssl_components(_in, fieldset=None):
+    """
+    different openssl versions give different responses. FUN.
+
+    To make things easier, just format this into the crypto compatible payload,
+    then invoke the crypto formattter
+
+    openssl = [0, 9, 8]
+    subject= /C=US/O=Internet Security Research Group/CN=ISRG Root X2
+
+    openssl = [1, 1, 1]
+    issuer=C = US, O = Internet Security Research Group, CN = ISRG Root X2
+    """
+    # print(openssl_version, _in)
+    if fieldset in ("issuer", "subject"):
+        if fieldset == "issuer":
+            if _in.startswith("issuer= "):
+                _in = _in[8:]
+            elif _in.startswith("issuer="):
+                _in = _in[7:]
+        elif fieldset == "subject":
+            if _in.startswith("subject= "):
+                _in = _in[9:]
+            elif _in.startswith("subject="):
+                _in = _in[8:]
+        if "/" in _in:
+            _in = [i.strip() for i in _in.split("/")]
+        elif "," in _in:
+            _in = [i.strip() for i in _in.split(",")]
+        if not isinstance(_in, list):
+            _in = [
+                _in,
+            ]
+        _out = []
+        for _cset in _in:
+            _cset = _cset.split("=")
+            _cset = tuple(i.strip() for i in _cset)
+            _out.append(_cset)
+        return _format_crypto_components(_out)
+    else:
+        raise ValueError("invalid fieldset")
+
+
 def modulus_md5_key(key_pem=None, key_pem_filepath=None):
     """
     This routine will use crypto/certbot if available.
@@ -1199,30 +1264,20 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         "startdate": None,
         "SubjectAlternativeName": None,
         "key_technology": None,
+        "fingerprint_sha1": None,
     }
 
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
         cert_cryptography = cert.to_cryptography()
-
-        # ??? normalize this to have a leading '/' ?
-        _issuer = cert.get_issuer().get_components()[0]
-        _issuer = _issuer if not six.PY3 else [i.decode() for i in _issuer]
-        _issuer = " = ".join(_issuer)
-        if _issuer[0] == "/":
-            _issuer = _issuer[1:]
-        rval["issuer"] = _issuer
-
-        # ??? normalize this to have a leading '/' ?
-        _subject = cert.get_subject().get_components()[0]
-        _subject = _subject if not six.PY3 else [i.decode() for i in _subject]
-        _subject = " = ".join(_subject)
-        if _subject == "/":
-            _subject = _subject[1:]
-        rval["subject"] = _subject
+        _issuer = cert.get_issuer().get_components()
+        _subject = cert.get_subject().get_components()
+        rval["issuer"] = _format_crypto_components(_issuer, fieldset="issuer")
+        rval["subject"] = _format_crypto_components(_subject, fieldset="subject")
         rval["enddate"] = cert_cryptography.not_valid_after
         rval["startdate"] = cert_cryptography.not_valid_before
         rval["key_technology"] = _openssl_key_technology(cert.get_pubkey())
+        rval["fingerprint_sha1"] = cert.digest("sha1")
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
@@ -1243,23 +1298,10 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             tmpfile_pem = new_pem_tempfile(cert_pem)
             cert_pem_filepath = tmpfile_pem.name
 
-        # different openssl versions give different responses. FUN.
         _issuer = cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
-        if _issuer.startswith("issuer= /"):
-            _issuer = _issuer[9:]
-        elif _issuer.startswith("issuer="):
-            _issuer = _issuer[7:]
-        _issuer = " = ".join([i.strip() for i in _issuer.split("=")])
-        rval["issuer"] = _issuer
-
         _subject = cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
-        if _subject.startswith("subject= /"):
-            _subject = _subject[10:]
-        elif _issuer.startswith("subject="):
-            _subject = _subject[8:]
-        _subject = " = ".join([i.strip() for i in _issuer.split("=")])
-        rval["subject"] = _subject
-
+        rval["issuer"] = _format_openssl_components(_issuer, fieldset="issuer")
+        rval["subject"] = _format_openssl_components(_subject, fieldset="subject")
         rval["startdate"] = parse_cert__startdate(
             cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
@@ -1268,6 +1310,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         )
         rval["key_technology"] = parse_cert__key_technology(
             cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+        )
+        rval["fingerprint_sha1"] = fingerprint_cert(
+            cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath, algorithm="sha1"
         )
 
         if openssl_version is None:

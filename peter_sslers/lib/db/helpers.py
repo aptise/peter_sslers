@@ -23,6 +23,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
         :attr:`model.utils.CertificateSigned.timestamp_not_after`
         :attr:`model.utils.CertificateSigned.cert_subject`
         :attr:`model.utils.CertificateSigned.cert_issuer`
+        :attr:`model.utils.CertificateSigned.fingerprint_sha1`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -57,6 +58,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
     dbCertificateSigned.timestamp_not_after = _cert_data["enddate"]
     dbCertificateSigned.cert_subject = _cert_data["subject"]
     dbCertificateSigned.cert_issuer = _cert_data["issuer"]
+    dbCertificateSigned.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
     return dbCertificateSigned
 
 

@@ -137,6 +137,9 @@ CERT_CAS_DATA = {
         "is_active": True,
         "key_technology": "RSA",
         "is_bundle_supported": True,
+        "cert.fingerprints": {
+            "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
+        },
     },
     "isrg_root_x2": {
         # x2 is self-signed by default, but is available as cross-signed by isrgrootx1
@@ -150,6 +153,9 @@ CERT_CAS_DATA = {
         "key_technology": "EC",  # ECDSA
         "alternates": ["isrg_root_x2_cross"],
         "is_bundle_supported": True,
+        "cert.fingerprints": {
+            "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
+        },
     },
     "isrg_root_x2_cross": {
         # x2 this is cross signed by x1 to act as an intermediate!

@@ -1126,6 +1126,7 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.timestamp_not_after`
             :attr:`model.utils.CertificateSigned.cert_subject`
             :attr:`model.utils.CertificateSigned.cert_issuer`
+            :attr:`model.utils.CertificateSigned.fingerprint_sha1`
         """
         _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
         if dbCertificateRequest:

@@ -387,6 +387,10 @@
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(CertificateSigned)}
                     <tr>
+                        <th>fingerprint_sha1</th>
+                        <td><code>${CertificateSigned.fingerprint_sha1}</code></td>
+                    </tr>
+                    <tr>
                         <th>cert_pem_md5</th>
                         <td><code>${CertificateSigned.cert_pem_md5}</code></td>
                     </tr>

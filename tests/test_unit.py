@@ -4,6 +4,7 @@ from __future__ import print_function
 import os
 import os.path
 import pdb
+import pprint
 import tempfile
 import test
 import test.test_httplib
@@ -544,6 +545,10 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
+            self.assertEqual(
+                rval["fingerprint_sha1"],
+                self._cert_sets[cert_set]["cert.fingerprints"]["sha1"],
+            )
 
         # ca certs
         for cert_filename in sorted(CERT_CA_SETS.keys()):
@@ -552,8 +557,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
+            for field in ("key_technology", "issuer", "subject"):
+                self.assertEqual(rval[field], CERT_CA_SETS[cert_filename][field])
             self.assertEqual(
-                rval["key_technology"], CERT_CA_SETS[cert_filename]["key_technology"]
+                rval["fingerprint_sha1"],
+                CERT_CA_SETS[cert_filename]["cert.fingerprints"]["sha1"],
             )
 
     def test__cert_and_chain_from_fullchain(self):
