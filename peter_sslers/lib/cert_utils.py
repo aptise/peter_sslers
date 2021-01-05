@@ -635,7 +635,10 @@ def fingerprint_cert(cert_pem=None, cert_pem_filepath=None, algorithm="sha1"):
             raise errors.OpenSslError_InvalidCertificate(exc)
         if not data:
             raise errors.OpenSslError_InvalidCertificate()
-        return data.digest(algorithm)
+        fingerprint = data.digest(algorithm)
+        if six.PY3:
+            fingerprint = fingerprint.decode()
+        return fingerprint
 
     log.debug(".fingerprint_cert > openssl fallback")
     _tmpfile_cert = None
@@ -1281,7 +1284,8 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["enddate"] = cert_cryptography.not_valid_after
         rval["startdate"] = cert_cryptography.not_valid_before
         rval["key_technology"] = _openssl_key_technology(cert.get_pubkey())
-        rval["fingerprint_sha1"] = cert.digest("sha1")
+        fingerprint = cert.digest("sha1")
+        rval["fingerprint_sha1"] = fingerprint.decode() if six.PY3 else fingerprint
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
