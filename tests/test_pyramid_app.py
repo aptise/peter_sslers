@@ -2493,6 +2493,10 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res2.status_code == 303
 
         matched = RE_CertificateCA_uploaded.match(res2.location)
+
+        # this querystring ends: ?result=success&is_created=0'
+        _is_created = bool(int(res2.location[-1]))
+
         # focus_items = self.ctx.dbSession.query(model_objects.CertificateCA).all()
         # pdb.set_trace()
 
