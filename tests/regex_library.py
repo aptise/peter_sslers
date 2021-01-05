@@ -158,7 +158,7 @@ RE_AcmeOrderless = re.compile(
 # note: CertificateCA
 
 RE_CertificateCA_uploaded = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca/(\d+)\?result=success&is_created=1$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca/(\d+)\?result=success&is_created=\d$"""
 )
 
 RE_CoverageAssuranceEvent_mark = re.compile(
