@@ -2490,6 +2490,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         return "danger"
 
     def custom_config_payload(self, ca_cert_id=None, id_only=False):
+        # if there is no `ca_cert_id` specified, use the default
+        if not ca_cert_id:
+            ca_cert_id = self.certificate_ca_id__preferred
+
         # invoke this to trigger a invalid error
         dbCaCertificate = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
 
