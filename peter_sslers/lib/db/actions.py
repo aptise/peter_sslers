@@ -404,6 +404,10 @@ def operations_update_recents__global(ctx):
     # update the count of active cert for each CA Certificate
     CertificateSigned1 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
     CertificateSigned2 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
+
+    CertificateChain1 = sqlalchemy.orm.aliased(model_objects.CertificateSignedChain)
+    CertificateChain2 = sqlalchemy.orm.aliased(model_objects.CertificateSignedChain)
+
     _q_sub = (
         ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
         .outerjoin(
@@ -416,12 +420,18 @@ def operations_update_recents__global(ctx):
             model_objects.Domain.certificate_signed_id__latest_multi
             == CertificateSigned2.id,
         )
+        .outerjoin(
+            CertificateChain1,
+            CertificateSigned1.id == CertificateChain1.certificate_signed_id,
+        )
+        .outerjoin(
+            CertificateChain2,
+            CertificateSigned2.id == CertificateChain2.certificate_signed_id,
+        )
         .filter(
             sqlalchemy.or_(
-                model_objects.CertificateCA.id
-                == CertificateSigned1.certificate_ca_id__upchain,
-                model_objects.CertificateCA.id
-                == CertificateSigned2.certificate_ca_id__upchain,
+                model_objects.CertificateCA.id == CertificateChain1.certificate_ca_id,
+                model_objects.CertificateCA.id == CertificateChain2.certificate_ca_id,
             )
         )
         .subquery()

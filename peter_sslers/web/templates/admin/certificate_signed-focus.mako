@@ -218,24 +218,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CA Certificate</th>
+                        <th>CA Certificates</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateSigned.certificate_ca_id__upchain}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateCA-${CertificateSigned.certificate_ca_id__upchain}</a>
-                            <br/>
-                            <em>The CertificateSigned is signed by this CertificateCA.</em>
-
-                            % if CertificateSigned.certificate_upchain_alternates:
-                                <hr/>
-                                <em>Alternate Signing Chains are available:</em>
+                            % if CertificateSigned.certificates_upchain:
+                                <em>Available Signing Chains:</em>
                                 <ul>
-                                    % for _alt in CertificateSigned.certificate_upchain_alternates:
-                                        <li>
-                                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${_alt.certificate_ca_id}">
-                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                CertificateCA-${_alt.certificate_ca_id}</a>
-                                        </li>
+                                    % for _chain in CertificateSigned.certificates_upchain:
+                                        <li>${_chain.certificate_ca.button_view(request)|n}</li>
                                     % endfor
                                 </ul>
                             % endif
@@ -424,12 +413,21 @@
                     <tr>
                         <th>json payload</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
-                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                config.json</a><br/>
-                            <em>designed for downstream http config</em>
-                            <hr>
+                            <em>designed for http server config</em>
+                            <hr/>
 
+                            % if CertificateSigned.certificate_ca__preferred:
+                                <em>default chain</em><br/>
+                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view(request)|n}
+                                </p>
+
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
+                                    <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                    config.json</a><br/>
+                                <hr/>
+                            % endif
+
+                            <em>all chains</em><br/>
                             <ul class="list list-unstyled">
                                 % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
@@ -446,12 +444,21 @@
                     <tr>
                         <th>zip payload</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip">
-                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                config.zip</a><br/>
-                            <em>designed for downstream http config</em>
-                            <hr>
+                            <em>designed for http server config</em>
+                            <hr/>
 
+                            % if CertificateSigned.certificate_ca__preferred:
+                                <em>default chain</em><br/>
+                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view(request)|n}
+                                </p>
+
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip">
+                                    <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                    config.zip</a><br/>
+                            % endif
+                            <hr/>
+
+                            <em>all chains</em><br/>
                             <ul class="list list-unstyled">
                                 % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
@@ -527,78 +534,42 @@
                                                 privkey.key (der)</a>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <th>chain (upstream)
-                                            <span class="label label-default">CaCert-${CertificateSigned.certificate_ca_id__upchain}</span>
-                                        </th>
-                                        <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.pem.txt">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                chain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.pem">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                chain.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.cer">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                chain.cer (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.crt">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                chain.crt (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/chain.der">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                chain.der (der)</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>fullchain (cert+upstream chain)
-                                            <span class="label label-default">CaCert-${CertificateSigned.certificate_ca_id__upchain}</span>
-                                        </th>
-                                        <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/fullchain.pem.txt">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                fullchain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/fullchain.pem">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                fullchain.pem</a>
-                                        </td>
-                                    </tr>
-
-                                    % if CertificateSigned.certificate_upchain_alternates:
+                                    % if CertificateSigned.certificates_upchain:
                                         <tr>
-                                            <th colspan="2">Alternate Chains</th>
+                                            <th colspan="2">Certificate Chains</th>
                                         </tr>
-                                        % for toAltChain in CertificateSigned.certificate_upchain_alternates:
+                                        % for toChain in CertificateSigned.certificates_upchain:
                                             <tr>
                                                 <th>chain (upstream)
-                                                    <span class="label label-default">CaCert-${toAltChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CaCert-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.cer">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.cer">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.cer (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.crt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.crt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.crt (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/chain.der">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.der">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.der (der)</a>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>fullchain (cert+upstream chain)
-                                                    <span class="label label-default">CaCert-${toAltChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CaCert-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/fullchain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/fullchain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toAltChain.certificate_ca_id}/fullchain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/fullchain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>
                                                 </td>

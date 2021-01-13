@@ -2378,9 +2378,12 @@ def get__CertificateSigned__by_AcmeAccountId__paginated(
 def get__CertificateSigned__by_CertificateCAId__count(ctx, ca_cert_id):
     counted = (
         ctx.dbSession.query(model_objects.CertificateSigned)
-        .filter(
-            model_objects.CertificateSigned.certificate_ca_id__upchain == ca_cert_id
+        .join(
+            model_objects.CertificateSignedChain,
+            model_objects.CertificateSigned.id
+            == model_objects.CertificateSignedChain.certificate_signed_id,
         )
+        .filter(model_objects.CertificateSignedChain.certificate_ca_id == ca_cert_id)
         .count()
     )
     return counted
@@ -2391,9 +2394,12 @@ def get__CertificateSigned__by_CertificateCAId__paginated(
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateSigned)
-        .filter(
-            model_objects.CertificateSigned.certificate_ca_id__upchain == ca_cert_id
+        .join(
+            model_objects.CertificateSignedChain,
+            model_objects.CertificateSigned.id
+            == model_objects.CertificateSignedChain.certificate_signed_id,
         )
+        .filter(model_objects.CertificateSignedChain.certificate_ca_id == ca_cert_id)
         .order_by(model_objects.CertificateSigned.id.desc())
         .limit(limit)
         .offset(offset)
@@ -2406,14 +2412,11 @@ def get__CertificateSigned__by_CertificateCAId__alt__count(ctx, ca_cert_id):
     counted = (
         ctx.dbSession.query(model_objects.CertificateSigned)
         .join(
-            model_objects.CertificateSignedAlternateChain,
+            model_objects.CertificateSignedChain,
             model_objects.CertificateSigned.id
-            == model_objects.CertificateSignedAlternateChain.certificate_signed_id,
+            == model_objects.CertificateSignedChain.certificate_signed_id,
         )
-        .filter(
-            model_objects.CertificateSignedAlternateChain.certificate_ca_id
-            == ca_cert_id
-        )
+        .filter(model_objects.CertificateSignedChain.certificate_ca_id == ca_cert_id)
         .count()
     )
     return counted
@@ -2425,15 +2428,12 @@ def get__CertificateSigned__by_CertificateCAId__alt__paginated(
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateSigned)
         .join(
-            model_objects.CertificateSignedAlternateChain,
+            model_objects.CertificateSignedChain,
             model_objects.CertificateSigned.id
-            == model_objects.CertificateSignedAlternateChain.certificate_signed_id,
+            == model_objects.CertificateSignedChain.certificate_signed_id,
         )
-        .filter(
-            model_objects.CertificateSignedAlternateChain.certificate_ca_id
-            == ca_cert_id
-        )
-        .order_by(model_objects.CertificateSignedAlternateChain.id.desc())
+        .filter(model_objects.CertificateSignedChain.certificate_ca_id == ca_cert_id)
+        .order_by(model_objects.CertificateSignedChain.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
