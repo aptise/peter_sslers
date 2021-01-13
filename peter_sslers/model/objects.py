@@ -2442,7 +2442,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def cert_chain_pem(self):
-        return self.certificate_upchain.cert_pem
+        return self.certificate_ca__preferred.cert_pem
 
     @property
     def cert_fullchain_pem(self):
