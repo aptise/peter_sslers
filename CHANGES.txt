@@ -91,6 +91,14 @@
 	
 	AUDIT:
 		ca_certificate_download
+		
+	CertificateSignedAlternateChain -> CertificateSignedChain 
+	xx CertificateSigned.certificate_ca_id__upchain
+	xx CertificateSigned.certificate_upchain
+	>> certificate_upchain_alternates -> certificates_upchain
+
+
+
 
 	+ other fixes and improvements
 	

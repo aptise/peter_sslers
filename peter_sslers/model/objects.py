@@ -2048,8 +2048,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     certificate_signed_alternates = sa_orm_relationship(
-        "CertificateSignedAlternateChain",
-        primaryjoin="CertificateCA.id==CertificateSignedAlternateChain.certificate_ca_id",
+        "CertificateSignedChain",
+        primaryjoin="CertificateCA.id==CertificateSignedChain.certificate_ca_id",
         uselist=True,
     )
     operations_event__created = sa_orm_relationship(
@@ -2086,11 +2086,37 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             % (self.cert_issuer, self.id)
         )
 
+    @reify
+    def fingerprint_sha1_preview(self):
+        return "%s&hellip;" % (self.fingerprint_sha1 or "")[:8]
+
     @property
     def key_technology(self):
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
+
+    def button_view(self, request):
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """CertificateCA-%(id)s</a>"""
+            """<code>%(sha1_preview)s</code>"""
+            """|"""
+            """<code>%(cert_issuer)s</code>"""
+            """|"""
+            """<code>%(cert_subject)s</code>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "id": self.id,
+                "sha1_preview": self.fingerprint_sha1_preview,
+                "cert_issuer": self.cert_issuer,
+                "cert_subject": self.cert_subject,
+            }
+        )
+        return button
 
     @property
     def as_json(self):
@@ -2295,11 +2321,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
 
-    # this is the LetsEncrypt key
-    certificate_ca_id__upchain = sa.Column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
-    )
-
     # this is the private key
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
@@ -2342,14 +2363,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         back_populates="certificate_signeds",
         uselist=False,
     )
-    certificate_upchain = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="CertificateSigned.certificate_ca_id__upchain==CertificateCA.id",
-        uselist=False,
-    )
-    certificate_upchain_alternates = sa_orm_relationship(
-        "CertificateSignedAlternateChain",
-        primaryjoin="CertificateSigned.id==CertificateSignedAlternateChain.certificate_signed_id",
+
+    certificates_upchain = sa_orm_relationship(
+        "CertificateSignedChain",
+        primaryjoin="CertificateSigned.id==CertificateSignedChain.certificate_signed_id",
         uselist=True,
     )
     coverage_assurance_events = sa_orm_relationship(
@@ -2432,11 +2449,24 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         return "\n".join((self.cert_pem, self.cert_chain_pem))
 
     @property
-    def certificate_upchain_alternate_ids(self):
-        certificate_upchain_alternate_ids = [
-            i.certificate_ca_id for i in self.certificate_upchain_alternates
-        ]
-        return certificate_upchain_alternate_ids
+    def certificate_upchain_ids(self):
+        _ids = [i.certificate_ca_id for i in self.certificates_upchain]
+        return _ids
+
+    @property
+    def certificate_ca_id__preferred(self):
+        _preferred_item = self.certificate_ca__preferred
+        if not _preferred_item:
+            return None
+        return _preferred_item.id
+
+    @property
+    def certificate_ca__preferred(self):
+        return (
+            self.certificates_upchain[0].certificate_ca
+            if self.certificates_upchain
+            else None
+        )
 
     @property
     def expiring_days(self):
@@ -2573,28 +2603,15 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     @reify
     def valid_certificate_upchain_ids(self):
-        """return a list of all the CaCertificate IDs that can be used as an intermediate"""
-        _allowed_ids = list(
-            set(
-                [
-                    self.certificate_ca_id__upchain,
-                ]
-                + self.certificate_upchain_alternate_ids
-            )
-        )
-        return _allowed_ids
+        """
+        return a list of all the CaCertificate IDs that can be used as an intermediate
+        DEPRECATION CANDIDATE
+        """
+        return self.certificate_upchain_ids
 
     def valid_certificate_upchain(self, ca_cert_id=None):
         """return a single CaCertificate, or the default"""
-        if ca_cert_id is None:
-            ca_cert_id = self.certificate_ca_id__upchain
-        if ca_cert_id not in self.valid_certificate_upchain_ids:
-            raise ValueError(
-                "selected CertificateCA did not sign this CertificateSigned"
-            )
-        if ca_cert_id == self.certificate_ca_id__upchain:
-            return self.certificate_upchain
-        for _to_upchain in self.certificate_upchain_alternates:
+        for _to_upchain in self.certificates_upchain:
             if _to_upchain.certificate_ca_id == ca_cert_id:
                 return _to_upchain.certificate_ca
         raise ValueError("No CaCertificate available (?!?!)")
@@ -2609,9 +2626,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def iter_certificate_upchain(self):
-        yield self.certificate_upchain
-        for dbCertificateSignedAlternateChain in self.certificate_upchain_alternates:
-            yield dbCertificateSignedAlternateChain.certificate_ca
+        for dbCertificateSignedChain in self.certificates_upchain:
+            yield dbCertificateSignedChain.certificate_ca
 
     @property
     def as_json(self):
@@ -2630,8 +2646,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
-            "certificate_ca_id__upchain": self.certificate_ca_id__upchain,
-            "certificate_ca_id__upchain_alternates": self.certificate_upchain_alternate_ids,
+            "certificate_ca_id__preferred": self.certificate_ca_id__preferred,
+            "certificate_ca_ids__upchain": self.certificate_upchain_ids,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_subject": self.cert_subject,
@@ -2648,7 +2664,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CertificateSignedAlternateChain(Base):
+class CertificateSignedChain(Base):
     """
     It is possible for alternate chains to be provided for a CertificateSigned
     """
@@ -2666,12 +2682,12 @@ class CertificateSignedAlternateChain(Base):
 
     certificate_ca = sa_orm_relationship(
         "CertificateCA",
-        primaryjoin="CertificateSignedAlternateChain.certificate_ca_id==CertificateCA.id",
+        primaryjoin="CertificateSignedChain.certificate_ca_id==CertificateCA.id",
         uselist=False,
     )
     certificate_signed = sa_orm_relationship(
         "CertificateSigned",
-        primaryjoin="CertificateSignedAlternateChain.certificate_signed_id==CertificateSigned.id",
+        primaryjoin="CertificateSignedChain.certificate_signed_id==CertificateSigned.id",
         uselist=False,
     )
 

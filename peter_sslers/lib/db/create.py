@@ -1131,10 +1131,14 @@ def create__CertificateSigned(
         _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
         if dbCertificateRequest:
             dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
-        dbCertificateSigned.certificate_ca_id__upchain = dbCertificateCA.id
-
         ctx.dbSession.add(dbCertificateSigned)
         ctx.dbSession.flush(objects=[dbCertificateSigned])
+
+        dbCertificateSignedChain = model_objects.CertificateSignedChain()
+        dbCertificateSignedChain.certificate_ca_id = dbCertificateCA.id
+        dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+        ctx.dbSession.add(dbCertificateSignedChain)
+        ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
         # increment account/private key counts
         dbPrivateKey.count_certificate_signeds += 1
@@ -1177,17 +1181,11 @@ def create__CertificateSigned(
 
         if dbCertificateCAs_alt:
             for _dbCertificateCA in dbCertificateCAs_alt:
-                dbCertificateSignedAlternateChain = (
-                    model_objects.CertificateSignedAlternateChain()
-                )
-                dbCertificateSignedAlternateChain.certificate_signed_id = (
-                    dbCertificateSigned.id
-                )
-                dbCertificateSignedAlternateChain.certificate_ca_id = (
-                    _dbCertificateCA.id
-                )
-                ctx.dbSession.add(dbCertificateSignedAlternateChain)
-                ctx.dbSession.flush(objects=[dbCertificateSignedAlternateChain])
+                dbCertificateSignedChain = model_objects.CertificateSignedChain()
+                dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+                dbCertificateSignedChain.certificate_ca_id = _dbCertificateCA.id
+                ctx.dbSession.add(dbCertificateSignedChain)
+                ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
     except Exception as exc:
         raise

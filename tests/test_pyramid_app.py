@@ -5337,7 +5337,7 @@ class FunctionalTests_AlternateChains(AppTest):
             .first()
         )
         assert focus_item is not None
-        assert focus_item.certificate_upchain_alternates
+        assert focus_item.certificates_upchain
         return focus_item
 
     @routes_tested(
@@ -5348,8 +5348,8 @@ class FunctionalTests_AlternateChains(AppTest):
     )
     def test_CertificateCA_view(self):
         focus_CertificateSigned = self._get_one()
-        for _to_ca_cert_alt in focus_CertificateSigned.certificate_upchain_alternates:
-            ca_cert_alt_id = _to_ca_cert_alt.certificate_ca_id
+        for _to_ca_cert in focus_CertificateSigned.certificates_upchain:
+            ca_cert_alt_id = _to_ca_cert.certificate_ca_id
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s" % ca_cert_alt_id, status=200
             )

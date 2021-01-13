@@ -1227,31 +1227,22 @@ def getcreate__CertificateSigned(
                 ctx.dbSession.flush(objects=[dbCertificateSigned, dbPrivateKey])
 
         # ensure we have all the Alternate Chains connected to this ServerCerticiate
+        _upchains_existing = dbCertificateSigned.certificate_upchain_ids
+        _upchains_needed = []
+        # check the primary
+        if dbCertificateCA.id not in _upchains_existing:
+            _upchains_needed.append(dbCertificateCA.id)
         if dbCertificateCAs_alt:
-            _alts_existing = dbCertificateSigned.certificate_upchain_alternate_ids
-            _alts_needed = []
-            # check the primary
-            if dbCertificateCA.id != dbCertificateSigned.certificate_ca_id__upchain:
-                if dbCertificateCA.id not in _alts_existing:
-                    _alts_needed.append(dbCertificateCA.id)
             # check the alts
             for _dbCertificateCA_alt in dbCertificateCAs_alt:
-                if (
-                    _dbCertificateCA_alt.id
-                    != dbCertificateSigned.certificate_ca_id__upchain
-                ):
-                    if _dbCertificateCA_alt.id not in _alts_existing:
-                        _alts_needed.append(_dbCertificateCA_alt.id)
-            for _alt_needed in _alts_needed:
-                dbCertificateSignedAlternateChain = (
-                    model_objects.CertificateSignedAlternateChain()
-                )
-                dbCertificateSignedAlternateChain.certificate_signed_id = (
-                    dbCertificateSigned.id
-                )
-                dbCertificateSignedAlternateChain.certificate_ca_id = _alt_needed
-                ctx.dbSession.add(dbCertificateSignedAlternateChain)
-                ctx.dbSession.flush(objects=[dbCertificateSignedAlternateChain])
+                if _dbCertificateCA_alt.id not in _upchains_existing:
+                    _upchains_needed.append(_dbCertificateCA_alt.id)
+        for _up_needed in _upchains_needed:
+            dbCertificateSignedChain = model_objects.CertificateSignedChain()
+            dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+            dbCertificateSignedChain.certificate_ca_id = _up_needed
+            ctx.dbSession.add(dbCertificateSignedChain)
+            ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
     elif not dbCertificateSigned:
         dbCertificateSigned = create__CertificateSigned(

@@ -80,7 +80,10 @@
                     </tr>
                     <tr>
                         <th>fingerprint_sha1</th>
-                        <td><code>${CertificateCA.fingerprint_sha1}</code></td>
+                        <td>
+                            <code>${CertificateCA.fingerprint_sha1_preview|n}</code><br/>
+                            <code>${CertificateCA.fingerprint_sha1}</code>
+                        </td>
                     </tr>
                     <tr>
                         <th>cert_pem_md5</th>

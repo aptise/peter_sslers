@@ -38,7 +38,7 @@ from ...model import utils as model_utils
 
 def archive_zipfile(dbCertificateSigned, ca_cert_id=None):
     if ca_cert_id is None:
-        ca_cert_id = dbCertificateSigned.certificate_ca_id__upchain
+        ca_cert_id = dbCertificateSigned.certificate_ca_id__preferred
 
     now = time.localtime(time.time())[:6]
     tmpfile = tempfile.SpooledTemporaryFile()

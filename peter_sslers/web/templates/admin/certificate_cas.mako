@@ -47,8 +47,11 @@
                         <tr>
                             <th>id</th>
                             <th>count active certificates (signed)</th>
+                            <th>issuer</th>
+                            <th>subject</th>
                             <th>name</th>
                             <th>timestamp_created</th>
+                            <th>fingerprint_sha1</th>
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
@@ -56,10 +59,14 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/certificate-ca/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateCA-${cert.id}</a></td>
+                                CertificateCA-${cert.id}</a>
+                            </td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
+                            <td><code>${cert.cert_issuer}</code></td>
+                            <td><code>${cert.cert_subject}</code></td>
                             <td>${cert.display_name or ''}</td>
                             <td><timestamp>${cert.timestamp_created}</timestamp></td>
+                            <td><code>${cert.fingerprint_sha1_preview|n}</code></td>
                             <td><code>${cert.cert_pem_md5}</code></td>
                         </tr>
                     % endfor
