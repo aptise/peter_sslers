@@ -79,6 +79,10 @@ def upload_account(server_url_root, fset):
     url = "%s/acme-account/upload.json" % server_url_root
 
     try:
+        with open(fset["private_key.json"]) as fp:
+            _contents = fp.read()
+            if '"kty": "RSA"' not in _contents:
+                raise ValueError("This Certbot AccountKey is not supported for import")
         with psutil.Popen(
             [
                 "curl",
@@ -91,7 +95,7 @@ def upload_account(server_url_root, fset):
                 "--form",
                 "account__private_key_cycle=single_certificate",
                 "--form",
-                "account__private_key_technology=rsa",
+                "account__private_key_technology=RSA",
                 url,
             ],
             stdin=subprocess.PIPE,
@@ -288,6 +292,9 @@ def import_certbot_certs_live(live_path, server_url_root):
     filesets = []
 
     for d in dirs:
+        if d == "README":
+            # recent versions of Certbot place a README file
+            continue
         dpath = os.path.join(live_path, d)
         if not os.path.isdir(dpath):
             raise ValueError("`%s` is not a directory" % dpath)
