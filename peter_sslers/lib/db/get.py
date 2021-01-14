@@ -1779,7 +1779,7 @@ def get__OperationsEvent__certificate_download__count(ctx):
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string(
-                "CertificateCa__letsencrypt_sync"
+                "CertificateCA__letsencrypt_sync"
             )
         )
         .count()
@@ -1794,7 +1794,7 @@ def get__OperationsEvent__certificate_download__paginated(ctx, limit=None, offse
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string(
-                "CertificateCa__letsencrypt_sync"
+                "CertificateCA__letsencrypt_sync"
             )
         )
         .limit(limit)
