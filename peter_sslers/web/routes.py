@@ -590,7 +590,7 @@ def _admin_views(config):
         "/api/queue-certificates/update.json",
     )
 
-    # !!!: CA Certificates (Certificate Authority)
+    # !!!: CertificateCAs (Certificate Authority)
     config.add_route_7("admin:certificate_cas", "/certificate-cas")
     config.add_route_7("admin:certificate_cas_paginated", "/certificate-cas/{@page}")
     config.add_route_7("admin:certificate_cas|json", "/certificate-cas.json")

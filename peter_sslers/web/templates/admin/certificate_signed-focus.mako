@@ -218,7 +218,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CA Certificates</th>
+                        <th>CertificateCAs</th>
                         <td>
                             % if CertificateSigned.certificates_upchain:
                                 <em>Available Signing Chains:</em>

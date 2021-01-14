@@ -29,9 +29,9 @@ EDIT:
 		change "PrivateKeyCycle - renewals"
 		??xx?? add "is_via_emergency"
 
-* CA Certificates / AcmeOrders
+* CertificateCAs / AcmeOrders
 ** if the fullchain has more than one certificate, track it as an intermediary
-** should CA Certificates just be normal certificates with a flag?
+** should CertificateCAs just be normal certificates with a flag?
 
 * integrate ALEMEBIC and migrate the database_migrations file to it
 

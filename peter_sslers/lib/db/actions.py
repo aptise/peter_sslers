@@ -401,7 +401,7 @@ def operations_update_recents__global(ctx):
 
     #
     # Step3:
-    # update the count of active cert for each CA Certificate
+    # update the count of active cert for each CertificateCA
     CertificateSigned1 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
     CertificateSigned2 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
 

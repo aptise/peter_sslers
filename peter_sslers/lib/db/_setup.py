@@ -127,7 +127,7 @@ def initialize_AcmeAccountProviders(ctx):
     return True
 
 
-def initialize_CertificateCas(ctx):
+def initialize_CertificateCAs(ctx):
 
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()

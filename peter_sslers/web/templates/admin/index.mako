@@ -214,10 +214,10 @@
                     Upload: AcmeAccount</a></li>
                 <li>
                     <a  href="${admin_prefix}/certificate-ca/upload"
-                        title="CA Certificate - Upload"
+                        title="CertificateCA - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: CA Certificate</a></li>
+                    Upload: CertificateCA</a></li>
                 <li>
                     <a  href="${admin_prefix}/certificate-signed/upload"
                         title="CertificateSigned - Upload"
