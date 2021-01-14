@@ -1191,20 +1191,20 @@ def _admin_views(config):
     )
     # via ca-cert routes
     config.add_route_7(
-        "admin:certificate_signed:focus:via_ca_cert:config|json",
-        "/certificate-signed/{@id}/via-ca-cert/{id_cacert}/config.json",
+        "admin:certificate_signed:focus:via_cert_ca:config|json",
+        "/certificate-signed/{@id}/via-cert-ca/{id_certca}/config.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_ca_cert:config|zip",
-        "/certificate-signed/{@id}/via-ca-cert/{id_cacert}/config.zip",
+        "admin:certificate_signed:focus:via_cert_ca:config|zip",
+        "/certificate-signed/{@id}/via-cert-ca/{id_certca}/config.zip",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_ca_cert:chain:raw",
-        "/certificate-signed/{@id}/via-ca-cert/{id_cacert}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+        "admin:certificate_signed:focus:via_cert_ca:chain:raw",
+        "/certificate-signed/{@id}/via-cert-ca/{id_certca}/chain.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_ca_cert:fullchain:raw",
-        "/certificate-signed/{@id}/via-ca-cert/{id_cacert}/fullchain.{format:(pem|pem.txt)}",
+        "admin:certificate_signed:focus:via_cert_ca:fullchain:raw",
+        "/certificate-signed/{@id}/via-cert-ca/{id_certca}/fullchain.{format:(pem|pem.txt)}",
     )
     # end via ca-cert
 

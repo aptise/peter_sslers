@@ -41,7 +41,7 @@ class ApplicationSettings(dict):
             "queue_domains_min_per_cert",
             "redis.prime_style",
             "redis.url",
-            "redis.timeout.cacert"
+            "redis.timeout.certca"
             "redis.timeout.cert"
             "redis.timeout.pkey"
             "redis.timeout.domain"

@@ -46,7 +46,7 @@ def certificate_ca_download(ctx):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("CaCertificate__letsencrypt_sync"),
+        model_utils.OperationsEventType.from_string("CertificateCa__letsencrypt_sync"),
     )
 
     certs = letsencrypt_info.download_letsencrypt_certificates()
@@ -895,7 +895,7 @@ def upload__CertificateCABundle__by_pem_text(ctx, bundle_data):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("CaCertificate__upload_bundle"),
+        model_utils.OperationsEventType.from_string("CertificateCa__upload_bundle"),
         event_payload_dict,
     )
     results = {}

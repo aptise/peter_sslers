@@ -240,7 +240,7 @@ class View_New(Handler):
             chain_file_name = formStash.results["chain_file_name"] or "manual upload"
             (
                 dbCertificateCA,
-                cacert_is_created,
+                certca_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
                 self.request.api_context, ca_chain_pem, display_name=chain_file_name
             )
@@ -249,7 +249,7 @@ class View_New(Handler):
                 return {
                     "result": "success",
                     "CertificateCA": {
-                        "created": cacert_is_created,
+                        "created": certca_is_created,
                         "id": dbCertificateCA.id,
                     },
                 }
@@ -258,7 +258,7 @@ class View_New(Handler):
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbCertificateCA.id,
-                    (1 if cacert_is_created else 0),
+                    (1 if certca_is_created else 0),
                 )
             )
 

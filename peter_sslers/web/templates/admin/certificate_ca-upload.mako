@@ -75,7 +75,7 @@
                 You can upload a bundle of certificates on this form: <br/>
                 <a  class="btn btn-primary"
                     href="${admin_prefix}/certificate-ca/upload-bundle"
-                >Upload CaCert Bundle</a>
+                >Upload CertificateCA Bundle</a>
 
             </p>
         </div>

@@ -762,7 +762,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
             # this would have been invoked by `initialize_database`
             db._setup.initialize_AcmeAccountProviders(ctx)
-            db._setup.initialize_CaCertificates(ctx)
+            db._setup.initialize_CertificateCAs(ctx)
             db._setup.initialize_DomainBlocklisted(ctx)
             dbSession.commit()
             dbSession.close()
@@ -1030,21 +1030,21 @@ class AppTest(AppTestCore):
                 # note: pre-populate CertificateCA
                 # this should create `/certificate-ca/1`
                 #
-                _ca_cert_id = "isrg_root_x1"
-                _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
-                _display_name = letsencrypt_info.CERT_CAS_DATA[_ca_cert_id][
+                _cert_ca_id = "isrg_root_x1"
+                _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+                _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
                     "display_name"
                 ]
-                ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
                 (
-                    _ca_cert_1,
+                    _cert_ca_1,
                     _is_created,
                 ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx,
-                    ca_cert_pem,
+                    cert_ca_pem,
                     display_name=_display_name,
                 )
-                # print(_ca_cert_1, _is_created)
+                # print(_cert_ca_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
                 # we need a few PrivateKeys, because we'll turn them off
@@ -1116,15 +1116,15 @@ class AppTest(AppTestCore):
                     # note: pre-populate CertificateCA - self-signed
                     # this should create `/certificate-ca/2`
                     #
-                    _ca_cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
+                    _cert_ca_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
-                    ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                    cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
                     (
                         _dbCertificateCA_SelfSigned,
                         _is_created,
                     ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-                        self.ctx, ca_cert_pem, display_name=_ca_cert_filename
+                        self.ctx, cert_ca_pem, display_name=_cert_ca_filename
                     )
                     # print(_dbCertificateCA_SelfSigned, _is_created)
                     # self.ctx.pyramid_transaction_commit()

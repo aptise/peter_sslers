@@ -36,9 +36,9 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-def archive_zipfile(dbCertificateSigned, ca_cert_id=None):
-    if ca_cert_id is None:
-        ca_cert_id = dbCertificateSigned.certificate_ca_id__preferred
+def archive_zipfile(dbCertificateSigned, cert_ca_id=None):
+    if cert_ca_id is None:
+        cert_ca_id = dbCertificateSigned.certificate_ca_id__preferred
 
     now = time.localtime(time.time())[:6]
     tmpfile = tempfile.SpooledTemporaryFile()
@@ -54,14 +54,14 @@ def archive_zipfile(dbCertificateSigned, ca_cert_id=None):
         info.date_time = now
         info.compress_type = zipfile.ZIP_DEFLATED
         archive.writestr(
-            info, dbCertificateSigned.valid_cert_chain_pem(ca_cert_id=ca_cert_id)
+            info, dbCertificateSigned.valid_cert_chain_pem(cert_ca_id=cert_ca_id)
         )
         # `fullchain1.pem`
         info = zipfile.ZipInfo("fullchain%s.pem" % dbCertificateSigned.id)
         info.date_time = now
         info.compress_type = zipfile.ZIP_DEFLATED
         archive.writestr(
-            info, dbCertificateSigned.valid_cert_fullchain_pem(ca_cert_id=ca_cert_id)
+            info, dbCertificateSigned.valid_cert_fullchain_pem(cert_ca_id=cert_ca_id)
         )
         # `privkey1.pem`
         info = zipfile.ZipInfo("privkey%s.pem" % dbCertificateSigned.id)
@@ -297,7 +297,7 @@ class View_New(Handler):
                     ca_chain_pem = ca_chain_pem.decode("utf8")
             (
                 dbCertificateCA,
-                cacert_is_created,
+                certca_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
                 self.request.api_context, ca_chain_pem, display_name="manual upload"
             )
@@ -359,7 +359,7 @@ class View_New(Handler):
                         ),
                     },
                     "CertificateCA": {
-                        "created": cacert_is_created,
+                        "created": certca_is_created,
                         "id": dbCertificateCA.id,
                     },
                     "PrivateKey": {"created": pkey_is_created, "id": dbPrivateKey.id},
@@ -572,39 +572,39 @@ class View_Focus(Handler):
         }
 
 
-class View_Focus_via_CaCert(View_Focus):
-    def _focus_via_CaCert(self):
+class View_Focus_via_CertificateCA(View_Focus):
+    def _focus_via_CertificateCA(self):
         dbCertificateSigned = self._focus()
-        id_cacert = int(self.request.matchdict["id_cacert"])
-        if id_cacert not in dbCertificateSigned.valid_certificate_upchain_ids:
-            raise HTTPNotFound("invalid CaCertificate")
-        return (dbCertificateSigned, id_cacert)
+        id_certca = int(self.request.matchdict["id_certca"])
+        if id_certca not in dbCertificateSigned.valid_certificate_upchain_ids:
+            raise HTTPNotFound("invalid CertificateCA")
+        return (dbCertificateSigned, id_certca)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_ca_cert:config|json",
+        route_name="admin:certificate_signed:focus:via_cert_ca:config|json",
         renderer="json",
     )
     def config_json(self):
-        (dbCertificateSigned, id_cacert) = self._focus_via_CaCert()
+        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
         if self.request.params.get("idonly", None):
             rval = dbCertificateSigned.custom_config_payload(
-                ca_cert_id=id_cacert, id_only=True
+                cert_ca_id=id_certca, id_only=True
             )
         else:
             rval = dbCertificateSigned.custom_config_payload(
-                ca_cert_id=id_cacert, id_only=False
+                cert_ca_id=id_certca, id_only=False
             )
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate_signed:focus:via_ca_cert:config|zip")
+    @view_config(route_name="admin:certificate_signed:focus:via_cert_ca:config|zip")
     def config_zip(self):
-        (dbCertificateSigned, id_cacert) = self._focus_via_CaCert()
+        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
         try:
-            tmpfile = archive_zipfile(dbCertificateSigned, ca_cert_id=id_cacert)
+            tmpfile = archive_zipfile(dbCertificateSigned, cert_ca_id=id_certca)
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
@@ -612,7 +612,7 @@ class View_Focus_via_CaCert(View_Focus):
                 "Content-Disposition"
             ] = "attachment; filename= cert%s-chain%s.zip" % (
                 dbCertificateSigned.id,
-                id_cacert,
+                id_certca,
             )
             return response
 
@@ -624,12 +624,12 @@ class View_Focus_via_CaCert(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_ca_cert:chain:raw",
+        route_name="admin:certificate_signed:focus:via_cert_ca:chain:raw",
         renderer="string",
     )
     def chain(self):
-        (dbCertificateSigned, id_cacert) = self._focus_via_CaCert()
-        cert_chain_pem = dbCertificateSigned.valid_cert_chain_pem(id_cacert)
+        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
+        cert_chain_pem = dbCertificateSigned.valid_cert_chain_pem(id_certca)
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return cert_chain_pem
@@ -649,12 +649,12 @@ class View_Focus_via_CaCert(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_ca_cert:fullchain:raw",
+        route_name="admin:certificate_signed:focus:via_cert_ca:fullchain:raw",
         renderer="string",
     )
     def fullchain(self):
-        (dbCertificateSigned, id_cacert) = self._focus_via_CaCert()
-        cert_fullchain_pem = dbCertificateSigned.valid_cert_fullchain_pem(id_cacert)
+        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
+        cert_fullchain_pem = dbCertificateSigned.valid_cert_fullchain_pem(id_certca)
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return cert_fullchain_pem

@@ -482,7 +482,7 @@ These are documented at-length on the in-app settings page.
 
 * `redis.url` - URL of `Redis` (includes port)
 * `redis.prime_style` - MUST be "1" or "2"; see `Redis` Prime section below.
-* `redis.timeout.cacert` - INT seconds (default None)
+* `redis.timeout.certca` - INT seconds (default None)
 * `redis.timeout.cert` - INT seconds (default None)
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)

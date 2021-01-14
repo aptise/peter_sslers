@@ -89,7 +89,7 @@ def redis_timeouts_from_registry(request):
     """
     :param request: The current Pyramid `request` object
     """
-    timeouts = {"cacert": None, "cert": None, "pkey": None, "domain": None}
+    timeouts = {"certca": None, "cert": None, "pkey": None, "domain": None}
     for _t in timeouts.keys():
         key_ini = "redis.timeout.%s" % _t
         val = request.registry.settings["app_settings"].get(key_ini)
@@ -209,10 +209,10 @@ def redis_prime_logic__style_1_CertificateCA(
     :param dbCertificateCA: A :class:`model.objects.CertificateCA`
     :param redis_timeouts:
 
-    r['i99'] = CACERT.PEM  # (i)ntermediate cert
+    r['i99'] = CERTCA.PEM  # (i)ntermediate cert
     """
     key_redis = "i%s" % dbCertificateCA.id
-    redis_client.set(key_redis, dbCertificateCA.cert_pem, redis_timeouts["cacert"])
+    redis_client.set(key_redis, dbCertificateCA.cert_pem, redis_timeouts["certca"])
     return True
 
 

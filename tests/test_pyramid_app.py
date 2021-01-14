@@ -2481,14 +2481,14 @@ class FunctionalTests_CertificateCA(AppTest):
     )
     def test_upload_html(self):
         """This should enter in item #8, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1`"""
-        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][0]
-        self.assertEqual(_ca_cert_id, "trustid_root_x3")
-        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
-        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][0]
+        self.assertEqual(_cert_ca_id, "trustid_root_x3")
+        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+        _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get("/.well-known/admin/certificate-ca/upload", status=200)
         form = res.form
-        form["chain_file"] = Upload(_ca_cert_filepath)
+        form["chain_file"] = Upload(_cert_ca_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
 
@@ -2527,9 +2527,9 @@ class FunctionalTests_CertificateCA(AppTest):
         res3 = self.testapp.get(res2.location, status=200)
 
         """This should enter in item #4"""
-        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][2]
-        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
-        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
+        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+        _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
     @routes_tested(
         (
@@ -2539,15 +2539,15 @@ class FunctionalTests_CertificateCA(AppTest):
     )
     def test_upload_json(self):
         """This should enter in item #9, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1` and the trustid from `test_upload_html`"""
-        _ca_cert_id = TEST_FILES["CertificateCAs"]["order"][2]
-        self.assertEqual(_ca_cert_id, "isrg_root_x2")
-        _ca_cert_filename = TEST_FILES["CertificateCAs"]["cert"][_ca_cert_id]
-        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
+        self.assertEqual(_cert_ca_id, "isrg_root_x2")
+        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+        _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/upload.json", status=200
         )
-        _data = {"chain_file": Upload(_ca_cert_filepath)}
+        _data = {"chain_file": Upload(_cert_ca_filepath)}
         res2 = self.testapp.post("/.well-known/admin/certificate-ca/upload.json", _data)
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
@@ -5349,27 +5349,27 @@ class FunctionalTests_AlternateChains(AppTest):
     def test_CertificateCA_view(self):
         focus_CertificateSigned = self._get_one()
         for _to_ca_cert in focus_CertificateSigned.certificates_upchain:
-            ca_cert_alt_id = _to_ca_cert.certificate_ca_id
+            cert_ca_alt_id = _to_ca_cert.certificate_ca_id
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/%s" % ca_cert_alt_id, status=200
+                "/.well-known/admin/certificate-ca/%s" % cert_ca_alt_id, status=200
             )
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt"
-                % ca_cert_alt_id,
+                % cert_ca_alt_id,
                 status=200,
             )
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt/1"
-                % ca_cert_alt_id,
+                % cert_ca_alt_id,
                 status=200,
             )
 
     @routes_tested(
         (
-            "admin:certificate_signed:focus:via_ca_cert:config|json",
-            "admin:certificate_signed:focus:via_ca_cert:config|zip",
-            "admin:certificate_signed:focus:via_ca_cert:chain:raw",
-            "admin:certificate_signed:focus:via_ca_cert:fullchain:raw",
+            "admin:certificate_signed:focus:via_cert_ca:config|json",
+            "admin:certificate_signed:focus:via_cert_ca:config|zip",
+            "admin:certificate_signed:focus:via_cert_ca:chain:raw",
+            "admin:certificate_signed:focus:via_cert_ca:fullchain:raw",
         )
     )
     def test_CertificateSigned_view(self):
@@ -5385,57 +5385,57 @@ class FunctionalTests_AlternateChains(AppTest):
             status=200,
         )
 
-        for ca_cert_id in upchain_ids:
-            focus_ids = (certificate_signed_id, ca_cert_id)
+        for cert_ca_id in upchain_ids:
+            focus_ids = (certificate_signed_id, cert_ca_id)
 
             # chain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.cer"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.crt"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.der"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/chain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/fullchain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/fullchain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/config.json"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-ca-cert/%s/config.zip"
+                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/config.zip"
                 % focus_ids,
                 status=200,
             )
