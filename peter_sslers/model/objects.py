@@ -2495,7 +2495,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             ca_cert_id = self.certificate_ca_id__preferred
 
         # invoke this to trigger a invalid error
-        dbCaCertificate = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+        dbCertificateCA = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
 
         # the ids are strings so that the fullchain id can be split by a client without further processing
 
@@ -2608,17 +2608,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     @reify
     def valid_certificate_upchain_ids(self):
         """
-        return a list of all the CaCertificate IDs that can be used as an intermediate
+        return a list of all the CertificateCA IDs that can be used as an intermediate
         DEPRECATION CANDIDATE
         """
         return self.certificate_upchain_ids
 
     def valid_certificate_upchain(self, ca_cert_id=None):
-        """return a single CaCertificate, or the default"""
+        """return a single CertificateCA, or the default"""
         for _to_upchain in self.certificates_upchain:
             if _to_upchain.certificate_ca_id == ca_cert_id:
                 return _to_upchain.certificate_ca
-        raise ValueError("No CaCertificate available (?!?!)")
+        raise ValueError("No CertificateCA available (?!?!)")
 
     def valid_cert_chain_pem(self, ca_cert_id=None):
         certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)

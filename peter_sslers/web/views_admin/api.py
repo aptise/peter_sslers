@@ -642,7 +642,7 @@ class ViewAdminApi_Redis(Handler):
         redis_client = utils_redis.redis_connection_from_registry(self.request)
         redis_timeouts = utils_redis.redis_timeouts_from_registry(self.request)
 
-        total_primed = {"cacert": 0, "cert": 0, "pkey": 0, "domain": 0}
+        total_primed = {"certca": 0, "cert": 0, "pkey": 0, "domain": 0}
 
         dbEvent = None
         if prime_style == "1":
@@ -681,7 +681,7 @@ class ViewAdminApi_Redis(Handler):
                     # no certs
                     break
                 for dbCertificateCA in active_certs:
-                    total_primed["cacert"] += 1
+                    total_primed["certca"] += 1
                     is_primed = utils_redis.redis_prime_logic__style_1_CertificateCA(
                         redis_client, dbCertificateCA, redis_timeouts
                     )

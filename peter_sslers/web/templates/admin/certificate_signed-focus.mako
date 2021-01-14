@@ -431,9 +431,9 @@
                             <ul class="list list-unstyled">
                                 % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${_certificate_upchain.id}/config.json">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CaCert-${_certificate_upchain.id}
+                                            CertificateCA-${_certificate_upchain.id}
                                             config.json</a>
                                     </li>
                                 % endfor
@@ -462,9 +462,9 @@
                             <ul class="list list-unstyled">
                                 % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${_certificate_upchain.id}/config.zip">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.zip">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CaCert-${_certificate_upchain.id}
+                                            CertificateCA-${_certificate_upchain.id}
                                             config.zip</a>
                                     </li>
                                 % endfor
@@ -541,35 +541,35 @@
                                         % for toChain in CertificateSigned.certificates_upchain:
                                             <tr>
                                                 <th>chain (upstream)
-                                                    <span class="label label-default">CaCert-${toChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.cer">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.cer">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.cer (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.crt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.crt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.crt (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/chain.der">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.der">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.der (der)</a>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>fullchain (cert+upstream chain)
-                                                    <span class="label label-default">CaCert-${toChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/fullchain.pem.txt">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem.txt">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-ca-cert/${toChain.certificate_ca_id}/fullchain.pem">
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem">
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>
                                                 </td>
