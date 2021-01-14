@@ -721,7 +721,7 @@ def getcreate__CertificateCA__by_pem_text(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string("CertificateCa__insert"),
+                model_utils.OperationsEventType.from_string("CertificateCA__insert"),
             )
 
             dbCertificateCA = model_objects.CertificateCA()
@@ -759,7 +759,7 @@ def getcreate__CertificateCA__by_pem_text(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "CertificateCa__insert"
+                    "CertificateCA__insert"
                 ),
                 dbCertificateCA=dbCertificateCA,
             )
