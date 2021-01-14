@@ -425,7 +425,7 @@ There are several ways to download each file. Different file suffix will change 
 
 Peter shows you buttons for available formats on each page.
 
-### CA Certificate
+### CertificateCA
 
     could be `cert` or `chain`
 

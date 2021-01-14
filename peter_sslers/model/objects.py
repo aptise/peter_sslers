@@ -2098,7 +2098,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     def button_view(self, request):
         button = (
-            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s">"""
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
+            """data-sha1-preview="%(sha1_preview)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """CertificateCA-%(id)s</a>"""
             """<code>%(sha1_preview)s</code>"""
@@ -2278,7 +2279,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
 class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     """
     A signed Server Certificate.
-    To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
+    To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
 
     The domains will be stored in:
     * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
@@ -2489,13 +2490,13 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
                 return "success"
         return "danger"
 
-    def custom_config_payload(self, ca_cert_id=None, id_only=False):
-        # if there is no `ca_cert_id` specified, use the default
-        if not ca_cert_id:
-            ca_cert_id = self.certificate_ca_id__preferred
+    def custom_config_payload(self, cert_ca_id=None, id_only=False):
+        # if there is no `cert_ca_id` specified, use the default
+        if not cert_ca_id:
+            cert_ca_id = self.certificate_ca_id__preferred
 
         # invoke this to trigger a invalid error
-        dbCertificateCA = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+        dbCertificateCA = self.valid_certificate_upchain(cert_ca_id=cert_ca_id)
 
         # the ids are strings so that the fullchain id can be split by a client without further processing
 
@@ -2504,8 +2505,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
                 "id": str(self.id),
                 "private_key": {"id": str(self.private_key.id)},
                 "certificate": {"id": str(self.id)},
-                "chain": {"id": str(ca_cert_id)},
-                "fullchain": {"id": "%s,%s" % (self.id, ca_cert_id)},
+                "chain": {"id": str(cert_ca_id)},
+                "fullchain": {"id": "%s,%s" % (self.id, cert_ca_id)},
             }
 
         return {
@@ -2516,22 +2517,22 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             },
             "certificate": {"id": str(self.id), "pem": self.cert_pem},
             "chain": {
-                "id": str(ca_cert_id),
-                "pem": self.valid_cert_chain_pem(ca_cert_id=ca_cert_id),
+                "id": str(cert_ca_id),
+                "pem": self.valid_cert_chain_pem(cert_ca_id=cert_ca_id),
             },
             "fullchain": {
-                "id": "%s,%s" % (self.id, ca_cert_id),
-                "pem": self.valid_cert_fullchain_pem(ca_cert_id=ca_cert_id),
+                "id": "%s,%s" % (self.id, cert_ca_id),
+                "pem": self.valid_cert_fullchain_pem(cert_ca_id=cert_ca_id),
             },
         }
 
     @property
     def config_payload(self):
-        return self.custom_config_payload(ca_cert_id=None, id_only=False)
+        return self.custom_config_payload(cert_ca_id=None, id_only=False)
 
     @property
     def config_payload_idonly(self):
-        return self.custom_config_payload(ca_cert_id=None, id_only=True)
+        return self.custom_config_payload(cert_ca_id=None, id_only=True)
 
     @property
     def is_can_renew_letsencrypt(self):
@@ -2613,19 +2614,19 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         """
         return self.certificate_upchain_ids
 
-    def valid_certificate_upchain(self, ca_cert_id=None):
+    def valid_certificate_upchain(self, cert_ca_id=None):
         """return a single CertificateCA, or the default"""
         for _to_upchain in self.certificates_upchain:
-            if _to_upchain.certificate_ca_id == ca_cert_id:
+            if _to_upchain.certificate_ca_id == cert_ca_id:
                 return _to_upchain.certificate_ca
         raise ValueError("No CertificateCA available (?!?!)")
 
-    def valid_cert_chain_pem(self, ca_cert_id=None):
-        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+    def valid_cert_chain_pem(self, cert_ca_id=None):
+        certificate_upchain = self.valid_certificate_upchain(cert_ca_id=cert_ca_id)
         return certificate_upchain.cert_pem
 
-    def valid_cert_fullchain_pem(self, ca_cert_id=None):
-        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+    def valid_cert_fullchain_pem(self, cert_ca_id=None):
+        certificate_upchain = self.valid_certificate_upchain(cert_ca_id=cert_ca_id)
         return "\n".join((self.cert_pem, certificate_upchain.cert_pem))
 
     @property

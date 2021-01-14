@@ -144,7 +144,7 @@
                 % endif
 
                 % if show_only['CertificateCA']:
-                    <h4>CA Certificates</h4>
+                    <h4>CertificateCAs</h4>
                     % if results['CertificateCA']['count']:
                         <table class="table table-condensed">
                             <thead>

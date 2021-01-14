@@ -1323,7 +1323,7 @@
 
 
 <%def name="info_CertificateCA()">
-    <h3>What are CA Certificates?</h3>
+    <h3>What are CertificateCAs?</h3>
     <p>
         These are the trusted(?) certs that CertificateAuthorities use to sign your certs.  They are used for building fullchains.
         Often these are called 'chain.pem'.
@@ -1934,7 +1934,7 @@
             <a  href="${admin_prefix}/operations/certificate-ca-downloads"
             >
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CA Certificate Downloads</a></li>
+            Operations Log: CertificateCA Downloads</a></li>
         <li class="${'active' if active =='/operations/object-log' else ''}">
             <a  href="${admin_prefix}/operations/object-log"
             >

@@ -6,13 +6,13 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">CA Certificates</li>
+        <li class="active">CertificateCAs</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CA Certificates</h2>
+    <h2>CertificateCAs</h2>
     <p>
         CertificateCAs can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
@@ -24,11 +24,11 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  href="${admin_prefix}/certificate-ca/upload"
-            title="CA Certificate - Upload"
+            title="CertificateCA - Upload"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-        Upload: CA Certificate</a>
+        Upload: CertificateCA</a>
         <a href="${admin_prefix}/certificate-cas.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
