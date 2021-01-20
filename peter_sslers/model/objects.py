@@ -2139,6 +2139,33 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a CertificateSigned and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "certificate_ca_preference"
+    id = sa.Column(sa.Integer, primary_key=True)
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCAPreference.certificate_ca_id==CertificateCA.id",
+        uselist=False,
+    )
+
+
+# ==============================================================================
+
+
 class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.

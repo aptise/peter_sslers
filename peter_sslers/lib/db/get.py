@@ -1109,11 +1109,45 @@ def get__CertificateCA__paginated(ctx, limit=None, offset=0, active_only=False):
     return items_paged
 
 
+def get__CertificateCAPreference__paginated(ctx, limit=None, offset=0):
+    q = ctx.dbSession.query(model_objects.CertificateCAPreference)
+    q = (
+        q.order_by(model_objects.CertificateCAPreference.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    q = q.options(sqlalchemy.orm.joinedload("certificate_ca"))
+    items_paged = q.all()
+    return items_paged
+
+
 def get__CertificateCA__by_id(ctx, cert_id):
     dbCertificateCA = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(model_objects.CertificateCA.id == cert_id)
         .first()
+    )
+    return dbCertificateCA
+
+
+def get__CertificateCAs__by_fingerprint_sha1_substring(ctx, fingerprint_sha1_substring):
+    dbCertificateCAs = (
+        ctx.dbSession.query(model_objects.CertificateCA)
+        .filter(
+            model_objects.CertificateCA.fingerprint_sha1.startswith(
+                fingerprint_sha1_substring
+            )
+        )
+        .all()
+    )
+    return dbCertificateCAs
+
+
+def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
+    dbCertificateCA = (
+        ctx.dbSession.query(model_objects.CertificateCA)
+        .filter(model_objects.CertificateCA.fingerprint_sha1 == fingerprint_sha1)
+        .one()
     )
     return dbCertificateCA
 

@@ -548,6 +548,27 @@ def create__AcmeDnsServerAccount(
     return dbAcmeDnsServerAccount
 
 
+def create__CertificateCAPreference(
+    ctx,
+    slot_id=None,
+    dbCertificateCA=None,
+):
+    """
+    Create a new CertificateCAPreference entry
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param slot_id: (required) The id, if any
+    :param dbCertificateCA: (optional) a `model_objects.CertificateCA` object
+    """
+    dbCertificateCAPreference = model_objects.CertificateCAPreference()
+    if slot_id:
+        dbCertificateCAPreference.id = slot_id
+    dbCertificateCAPreference.certificate_ca_id = dbCertificateCA.id
+    ctx.dbSession.add(dbCertificateCAPreference)
+    ctx.dbSession.flush(objects=[dbCertificateCAPreference])
+    return dbCertificateCAPreference
+
+
 def create__CertificateRequest(
     ctx,
     csr_pem=None,
