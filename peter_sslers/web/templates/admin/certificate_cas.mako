@@ -29,6 +29,12 @@
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: CertificateCA</a>
+        <a  href="${admin_prefix}/certificate-cas/preferred"
+            title="CertificateCAs - Preferred"
+            class="btn btn-xs btn-info"
+        >
+        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+        List: Preferred</a>
         <a href="${admin_prefix}/certificate-cas.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json

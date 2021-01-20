@@ -597,6 +597,25 @@ def _admin_views(config):
     config.add_route_7(
         "admin:certificate_cas_paginated|json", "/certificate-cas/{@page}.json"
     )
+    config.add_route_7("admin:certificate_cas:preferred", "/certificate-cas/preferred")
+    config.add_route_7(
+        "admin:certificate_cas:preferred|json", "/certificate-cas/preferred.json"
+    )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:add", "/certificate-cas/preferred/add"
+    )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:add|json",
+        "/certificate-cas/preferred/add.json",
+    )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:delete", "/certificate-cas/preferred/delete"
+    )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:delete|json",
+        "/certificate-cas/preferred/delete.json",
+    )
+
     config.add_route_7("admin:certificate_ca:focus", "/certificate-ca/{@id}")
     config.add_route_7("admin:certificate_ca:focus|json", "/certificate-ca/{@id}.json")
     config.add_route_7(

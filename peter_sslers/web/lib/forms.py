@@ -406,6 +406,10 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
     )
 
 
+class Form_CertificateCAPreference__add(_Form_Schema_Base):
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+
+
 class Form_CertificateCA_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)

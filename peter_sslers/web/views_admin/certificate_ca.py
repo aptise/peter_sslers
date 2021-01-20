@@ -15,6 +15,7 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.forms import Form_CertificateCAPreference__add
 from ..lib.forms import Form_CertificateCA_Upload__file
 from ..lib.forms import Form_CertificateCA_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
@@ -61,6 +62,113 @@ class View_List(Handler):
             "CertificateCAs": items_paged,
             "pager": pager,
         }
+
+
+class View_Preferred(Handler):
+    def _preferred__print(self):
+        items_paged = lib_db.get.get__CertificateCAPreference__paginated(
+            self.request.api_context
+        )
+        if self.request.wants_json:
+            _certs_ordered = {
+                c.certificate_ca.id: c.certificate_ca.as_json for c in items_paged
+            }
+            return {
+                "PreferenceOrder": [c.id for c in items_paged],
+                "CertificateCAs": _certs_ordered,
+            }
+        params = {
+            "project": "peter_sslers",
+            "CertificateCAPreferences": items_paged,
+        }
+        return render_to_response(
+            "/admin/certificate_cas-preferred.mako", params, self.request
+        )
+
+    @view_config(route_name="admin:certificate_cas:preferred")
+    @view_config(route_name="admin:certificate_cas:preferred|json", renderer="json")
+    def preferred(self):
+        return self._preferred__print()
+
+    @view_config(route_name="admin:certificate_cas:preferred:add")
+    @view_config(route_name="admin:certificate_cas:preferred:add|json", renderer="json")
+    def add(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_CertificateCAPreference__add,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            dbCertificateCAPreferences = (
+                lib_db.get.get__CertificateCAPreference__paginated(
+                    self.request.api_context
+                )
+            )
+            if len(dbCertificateCAPreferences) > 10:
+                raise ValueError("too many items in the preference queue")
+
+            fingerprint_sha1 = formStash.results["fingerprint_sha1"]
+            if len(fingerprint_sha1) == 8:
+                matching_certs = (
+                    lib_db.get.get__CertificateCAs__by_fingerprint_sha1_substring(
+                        self.request.api_context,
+                        fingerprint_sha1_substring=fingerprint_sha1,
+                    )
+                )
+                if not len(matching_certs):
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="fingerprint_sha1",
+                        message="No matching CertificateCAs.",
+                    )
+                elif len(matching_certs) > 1:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="fingerprint_sha1",
+                        message="Too many matching CertificateCAs.",
+                    )
+                dbCertificateCA = matching_certs[0]
+            else:
+                dbCertificateCA = lib_db.get.get__CertificateCA__by_fingerprint_sha1(
+                    self.request.api_context, fingerprint_sha1=fingerprint_sha1
+                )
+                if not dbCertificateCA:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="fingerprint_sha1",
+                        message="No matching CertificateCA.",
+                    )
+
+            for dbPref in dbCertificateCAPreferences:
+                if dbPref.certificate_ca_id == dbCertificateCA.id:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="fingerprint_sha1",
+                        message="CertificateCA already in the list",
+                    )
+
+            # okay , add a new preference
+            dbPreference = lib_db.create.create__CertificateCAPreference(
+                self.request.api_context,
+                dbCertificateCA=dbCertificateCA,
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                }
+            return HTTPSeeOther(
+                "%s/certificate-cas/preferred?result=success"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._preferred__print)
 
 
 class View_Focus(Handler):
