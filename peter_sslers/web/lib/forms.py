@@ -410,6 +410,17 @@ class Form_CertificateCAPreference__add(_Form_Schema_Base):
     fingerprint_sha1 = UnicodeString(not_empty=True)
 
 
+class Form_CertificateCAPreference__delete(_Form_Schema_Base):
+    slot = Int(not_empty=True)
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+
+
+class Form_CertificateCAPreference__prioritize(_Form_Schema_Base):
+    slot = Int(not_empty=True)
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+    priority = OneOf(("increase", "decrease"), not_empty=True)
+
+
 class Form_CertificateCA_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)

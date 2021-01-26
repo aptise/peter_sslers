@@ -16,6 +16,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib.forms import Form_CertificateCAPreference__add
+from ..lib.forms import Form_CertificateCAPreference__delete
+from ..lib.forms import Form_CertificateCAPreference__prioritize
 from ..lib.forms import Form_CertificateCA_Upload__file
 from ..lib.forms import Form_CertificateCA_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
@@ -65,17 +67,56 @@ class View_List(Handler):
 
 
 class View_Preferred(Handler):
+    def _load_CertificateCAPreferences(self):
+        """
+        loads `self.dbCertificateCAPreferences`
+        """
+        self.dbCertificateCAPreferences = (
+            lib_db.get.get__CertificateCAPreference__paginated(self.request.api_context)
+        )
+
+    def _get_active_selection(self, formStash):
+        """
+        Queries the loaded preferences for a Fingerprint+Slot matching the
+        the corresponding record indicated in the submitted ``formStash``.
+
+        :param formStash: a formstash with at least the following result fields:
+            * fingerprint_sha1
+            * slot
+        :returns: a two element tuple:
+            0: the slot id
+            1: instance of `model_utilsCertificateCAPreferences`
+        """
+        cert_fingerprint = formStash.results["fingerprint_sha1"]
+        cert_slot = formStash.results["slot"]
+
+        dbPreference = None
+        for _dbPref in self.dbCertificateCAPreferences:
+            if _dbPref.certificate_ca.fingerprint_sha1 == cert_fingerprint:
+                dbPreference = _dbPref
+                break
+
+        if not dbPreference or (dbPreference.id != cert_slot):
+            # `formStash.fatal_form()` will raise `FormInvalid()`
+            formStash.fatal_form("Can not operate on bad or stale data.")
+
+        return (cert_slot, dbPreference)
+
     def _preferred__print(self):
+        """
+        shared printing function
+        """
         items_paged = lib_db.get.get__CertificateCAPreference__paginated(
             self.request.api_context
         )
         if self.request.wants_json:
-            _certs_ordered = {
+            _certs_ordering = {c.id: c.certificate_ca_id for c in items_paged}
+            _certs_data = {
                 c.certificate_ca.id: c.certificate_ca.as_json for c in items_paged
             }
             return {
-                "PreferenceOrder": [c.id for c in items_paged],
-                "CertificateCAs": _certs_ordered,
+                "PreferenceOrder": _certs_ordering,
+                "CertificateCAs": _certs_data,
             }
         params = {
             "project": "peter_sslers",
@@ -88,6 +129,7 @@ class View_Preferred(Handler):
     @view_config(route_name="admin:certificate_cas:preferred")
     @view_config(route_name="admin:certificate_cas:preferred|json", renderer="json")
     def preferred(self):
+        # just invoke the shared printing function
         return self._preferred__print()
 
     @view_config(route_name="admin:certificate_cas:preferred:add")
@@ -102,12 +144,11 @@ class View_Preferred(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            dbCertificateCAPreferences = (
-                lib_db.get.get__CertificateCAPreference__paginated(
-                    self.request.api_context
-                )
-            )
-            if len(dbCertificateCAPreferences) > 10:
+            # shared loader for `self.dbCertificateCAPreferences`
+            self._load_CertificateCAPreferences()
+
+            # quick validation
+            if len(self.dbCertificateCAPreferences) > 10:
                 raise ValueError("too many items in the preference queue")
 
             fingerprint_sha1 = formStash.results["fingerprint_sha1"]
@@ -142,7 +183,7 @@ class View_Preferred(Handler):
                         message="No matching CertificateCA.",
                     )
 
-            for dbPref in dbCertificateCAPreferences:
+            for dbPref in self.dbCertificateCAPreferences:
                 if dbPref.certificate_ca_id == dbCertificateCA.id:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
@@ -159,9 +200,150 @@ class View_Preferred(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
+                    "operation": "add",
                 }
             return HTTPSeeOther(
-                "%s/certificate-cas/preferred?result=success"
+                "%s/certificate-cas/preferred?result=success&operation=add"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._preferred__print)
+
+    @view_config(route_name="admin:certificate_cas:preferred:delete")
+    @view_config(
+        route_name="admin:certificate_cas:preferred:delete|json", renderer="json"
+    )
+    def delete(self):
+        try:
+            data_formencode_form = "delete"
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_CertificateCAPreference__delete,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # shared loader for `self.dbCertificateCAPreferences`
+            self._load_CertificateCAPreferences()
+            (slot_id, dbPreference_active) = self._get_active_selection(formStash)
+
+            # okay, now iterate over the list...
+            _removed = False
+            for dbPref in self.dbCertificateCAPreferences:
+                if dbPref == dbPreference_active:
+                    self.request.api_context.dbSession.delete(dbPref)
+                    self.request.api_context.dbSession.flush()
+                    _removed = True
+                else:
+                    if _removed:
+                        dbPref.id = dbPref.id - 1
+                        self.request.api_context.dbSession.flush(objects=[dbPref])
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "delete",
+                }
+            return HTTPSeeOther(
+                "%s/certificate-cas/preferred?result=success&operation=delete"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._preferred__print)
+
+    @view_config(route_name="admin:certificate_cas:preferred:prioritize")
+    @view_config(
+        route_name="admin:certificate_cas:preferred:prioritize|json", renderer="json"
+    )
+    def prioritize(self):
+        try:
+            data_formencode_form = None
+            if self.request.params.get("priority") == "increase":
+                data_formencode_form = "prioritize-increase"
+            elif self.request.params.get("priority") == "decrease":
+                data_formencode_form = "prioritize-decrease"
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_CertificateCAPreference__prioritize,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # shared loader for `self.dbCertificateCAPreferences`
+            self._load_CertificateCAPreferences()
+            (slot_id, dbPreference_active) = self._get_active_selection(formStash)
+
+            # "increase" or "decrease"
+            action = formStash.results["priority"]
+            dbPref_other = None
+            if action == "increase":
+                if slot_id <= 1:
+                    formStash.fatal_form("This item can not be increased in priority.")
+                target_slot_id = slot_id - 1
+                if target_slot_id == dbPreference_active.id:
+                    formStash.fatal_form("Error: Source in target slot")
+                # okay, now iterate over the list...
+                for idx, _dbPref in enumerate(self.dbCertificateCAPreferences):
+                    if _dbPref.id == target_slot_id:
+                        dbPref_other = _dbPref
+                        break
+                if not dbPref_other:
+                    raise ValueError("Illegal Operation.")
+
+                # set the other to a placeholder
+                dbPref_other.id = 999
+                self.request.api_context.dbSession.flush(objects=[dbPref_other])
+
+                # set the new
+                dbPreference_active.id = target_slot_id
+                self.request.api_context.dbSession.flush(objects=[dbPreference_active])
+
+                # and update the other
+                dbPref_other.id = dbPreference_active.id + 1
+                self.request.api_context.dbSession.flush(objects=[dbPref_other])
+
+            elif action == "decrease":
+                if slot_id == len(self.dbCertificateCAPreferences):
+                    formStash.fatal_form("This item can not be decreased in priority.")
+                target_slot_id = slot_id + 1
+                if target_slot_id == dbPreference_active.id:
+                    formStash.fatal_form("Error: Source in target slot")
+
+                # okay, now iterate over the list...
+                for idx, _dbPref in enumerate(self.dbCertificateCAPreferences):
+                    if _dbPref.id == target_slot_id:
+                        dbPref_other = _dbPref
+                        break
+                if not dbPref_other:
+                    raise ValueError("Illegal Operation.")
+
+                # set the old to a placeholder
+                dbPref_other.id = 999
+                self.request.api_context.dbSession.flush(objects=[dbPref_other])
+
+                # set the new
+                dbPreference_active.id = target_slot_id
+                self.request.api_context.dbSession.flush(objects=[dbPreference_active])
+
+                # and update the other
+                dbPref_other.id = dbPreference_active.id - 1
+                self.request.api_context.dbSession.flush(objects=[dbPref_other])
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "prioritize",
+                }
+            return HTTPSeeOther(
+                "%s/certificate-cas/preferred?result=success&operation=prioritize"
                 % (self.request.registry.settings["app_settings"]["admin_prefix"],)
             )
 
