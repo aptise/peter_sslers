@@ -15,7 +15,7 @@
 
 		Added:
 			acme_account_key.key_technology_id (required)
-			ca_certificate.key_technology_id (required)
+			certificate_ca.key_technology_id (required)
 			certificate_request.key_technology_id (optional)
 			private_key.key_technology_id (required)
 			server_certificate.key_technology_id (required)
@@ -23,7 +23,7 @@
 
 		Made Optional:
 			acme_account_key.modulus_md5
-			ca_certificate.cert_pem_modulus_md5
+			certificate_ca.cert_pem_modulus_md5
 			certificate_request.csr_pem_modulus_md5
 			private_key.key_pem_modulus_md5
 			server_certificate.cert_pem_modulus_md5
@@ -90,7 +90,7 @@
 			+is_trusted_root
 	
 	AUDIT:
-		ca_certificate_download
+		certificate_ca_download
 		
 	CertificateSignedAlternateChain -> CertificateSignedChain 
 	xx CertificateSigned.certificate_ca_id__upchain

@@ -615,6 +615,14 @@ def _admin_views(config):
         "admin:certificate_cas:preferred:delete|json",
         "/certificate-cas/preferred/delete.json",
     )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:prioritize",
+        "/certificate-cas/preferred/prioritize",
+    )
+    config.add_route_7(
+        "admin:certificate_cas:preferred:prioritize|json",
+        "/certificate-cas/preferred/prioritize.json",
+    )
 
     config.add_route_7("admin:certificate_ca:focus", "/certificate-ca/{@id}")
     config.add_route_7("admin:certificate_ca:focus|json", "/certificate-ca/{@id}.json")
