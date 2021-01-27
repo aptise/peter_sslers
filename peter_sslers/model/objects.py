@@ -7,6 +7,7 @@ from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
 from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm.session import Session as sa_Session
 
 # localapp
 from .meta import Base
@@ -2517,13 +2518,30 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         if not self.certificates_upchain:
             return None
         try:
-            # SQLAlchemy Runtime API
-            dbSession = sa_inspect(self).session
+            """
+            There are two ways of getting an object's session in SQLAlchemy
+
+            1. Legacy Classmethod
+
+                dbSession = sqlalchemy.orm.session.Session.object_session(self)
+
+            2. Modern Runtime API
+
+                dbSession = sa_inspect(self).session
+
+            The Legacy Method is faster and not deprecated.
+            The Modern Method is preferable in situations where you may do other
+            things with the object's runtime information.
+
+            In this situation, we will opt for the legacy system
+            """
+            dbSession = sa_Session.object_session(self)
+
             # stashed in peter_sslers/web/models/__init__.py
-            request = dbSession.pyramid_request
+            request = dbSession.info["request"]
 
             # only search for a preference if they exist
-            if request.dbCertificateCAPreferences:
+            if request and request.dbCertificateCAPreferences:
                 # loop CertificateSignedChain
                 lookup_upchain = {
                     _csc.certificate_ca_id: _csc.certificate_ca
