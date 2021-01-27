@@ -557,8 +557,8 @@ def create__CertificateCAPreference(
     Create a new CertificateCAPreference entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param slot_id: (required) The id, if any
-    :param dbCertificateCA: (optional) a `model_objects.CertificateCA` object
+    :param slot_id: (optional) The id, if any. defaults to db managing the id
+    :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
     """
     dbCertificateCAPreference = model_objects.CertificateCAPreference()
     if slot_id:

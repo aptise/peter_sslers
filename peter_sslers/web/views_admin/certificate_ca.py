@@ -24,6 +24,7 @@ from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import letsencrypt_info
 
 
@@ -67,14 +68,6 @@ class View_List(Handler):
 
 
 class View_Preferred(Handler):
-    def _load_CertificateCAPreferences(self):
-        """
-        loads `self.dbCertificateCAPreferences`
-        """
-        self.dbCertificateCAPreferences = (
-            lib_db.get.get__CertificateCAPreference__paginated(self.request.api_context)
-        )
-
     def _get_active_selection(self, formStash):
         """
         Queries the loaded preferences for a Fingerprint+Slot matching the
@@ -91,7 +84,7 @@ class View_Preferred(Handler):
         cert_slot = formStash.results["slot"]
 
         dbPreference = None
-        for _dbPref in self.dbCertificateCAPreferences:
+        for _dbPref in self.request.dbCertificateCAPreferences:
             if _dbPref.certificate_ca.fingerprint_sha1 == cert_fingerprint:
                 dbPreference = _dbPref
                 break
@@ -100,7 +93,7 @@ class View_Preferred(Handler):
             # `formStash.fatal_form()` will raise `FormInvalid()`
             formStash.fatal_form("Can not operate on bad or stale data.")
 
-        return (cert_slot, dbPreference)
+        return dbPreference
 
     def _preferred__print(self):
         """
@@ -144,11 +137,8 @@ class View_Preferred(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # shared loader for `self.dbCertificateCAPreferences`
-            self._load_CertificateCAPreferences()
-
             # quick validation
-            if len(self.dbCertificateCAPreferences) > 10:
+            if len(self.request.dbCertificateCAPreferences) > 10:
                 raise ValueError("too many items in the preference queue")
 
             fingerprint_sha1 = formStash.results["fingerprint_sha1"]
@@ -183,7 +173,7 @@ class View_Preferred(Handler):
                         message="No matching CertificateCA.",
                     )
 
-            for dbPref in self.dbCertificateCAPreferences:
+            for dbPref in self.request.dbCertificateCAPreferences:
                 if dbPref.certificate_ca_id == dbCertificateCA.id:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
@@ -227,13 +217,11 @@ class View_Preferred(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # shared loader for `self.dbCertificateCAPreferences`
-            self._load_CertificateCAPreferences()
-            (slot_id, dbPreference_active) = self._get_active_selection(formStash)
+            dbPreference_active = self._get_active_selection(formStash)
 
             # okay, now iterate over the list...
             _removed = False
-            for dbPref in self.dbCertificateCAPreferences:
+            for dbPref in self.request.dbCertificateCAPreferences:
                 if dbPref == dbPreference_active:
                     self.request.api_context.dbSession.delete(dbPref)
                     self.request.api_context.dbSession.flush()
@@ -264,11 +252,6 @@ class View_Preferred(Handler):
     )
     def prioritize(self):
         try:
-            data_formencode_form = None
-            if self.request.params.get("priority") == "increase":
-                data_formencode_form = "prioritize-increase"
-            elif self.request.params.get("priority") == "decrease":
-                data_formencode_form = "prioritize-decrease"
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_CertificateCAPreference__prioritize,
@@ -277,65 +260,19 @@ class View_Preferred(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # shared loader for `self.dbCertificateCAPreferences`
-            self._load_CertificateCAPreferences()
-            (slot_id, dbPreference_active) = self._get_active_selection(formStash)
+            dbPreference_active = self._get_active_selection(formStash)
 
-            # "increase" or "decrease"
-            action = formStash.results["priority"]
-            dbPref_other = None
-            if action == "increase":
-                if slot_id <= 1:
-                    formStash.fatal_form("This item can not be increased in priority.")
-                target_slot_id = slot_id - 1
-                if target_slot_id == dbPreference_active.id:
-                    formStash.fatal_form("Error: Source in target slot")
-                # okay, now iterate over the list...
-                for idx, _dbPref in enumerate(self.dbCertificateCAPreferences):
-                    if _dbPref.id == target_slot_id:
-                        dbPref_other = _dbPref
-                        break
-                if not dbPref_other:
-                    raise ValueError("Illegal Operation.")
+            try:
+                lib_db.update.update_CertificateCAPreference_reprioritize(
+                    self.request.api_context,
+                    dbPreference_active,
+                    self.request.dbCertificateCAPreferences,
+                    priority=formStash.results["priority"],
+                )
 
-                # set the other to a placeholder
-                dbPref_other.id = 999
-                self.request.api_context.dbSession.flush(objects=[dbPref_other])
-
-                # set the new
-                dbPreference_active.id = target_slot_id
-                self.request.api_context.dbSession.flush(objects=[dbPreference_active])
-
-                # and update the other
-                dbPref_other.id = dbPreference_active.id + 1
-                self.request.api_context.dbSession.flush(objects=[dbPref_other])
-
-            elif action == "decrease":
-                if slot_id == len(self.dbCertificateCAPreferences):
-                    formStash.fatal_form("This item can not be decreased in priority.")
-                target_slot_id = slot_id + 1
-                if target_slot_id == dbPreference_active.id:
-                    formStash.fatal_form("Error: Source in target slot")
-
-                # okay, now iterate over the list...
-                for idx, _dbPref in enumerate(self.dbCertificateCAPreferences):
-                    if _dbPref.id == target_slot_id:
-                        dbPref_other = _dbPref
-                        break
-                if not dbPref_other:
-                    raise ValueError("Illegal Operation.")
-
-                # set the old to a placeholder
-                dbPref_other.id = 999
-                self.request.api_context.dbSession.flush(objects=[dbPref_other])
-
-                # set the new
-                dbPreference_active.id = target_slot_id
-                self.request.api_context.dbSession.flush(objects=[dbPreference_active])
-
-                # and update the other
-                dbPref_other.id = dbPreference_active.id - 1
-                self.request.api_context.dbSession.flush(objects=[dbPref_other])
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(exc.args[0])
 
             if self.request.wants_json:
                 return {

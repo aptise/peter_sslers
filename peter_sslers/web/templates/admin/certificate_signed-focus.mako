@@ -452,7 +452,12 @@
                                 The default chain is ${CertificateSigned.certificate_ca__preferred.button_view(request)|n}
                                 </p>
 
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip">
+                                <a
+                                    class="btn btn-xs btn-info"
+                                    href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip"
+                                    data-certificate_ca-id="${CertificateSigned.certificate_ca__preferred.id}"
+                                    data-certificate_ca-fingerprint_sha1="${CertificateSigned.certificate_ca__preferred.fingerprint_sha1}"
+                                >
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     config.zip</a><br/>
                             % endif
@@ -462,7 +467,12 @@
                             <ul class="list list-unstyled">
                                 % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.zip">
+                                        <a
+                                            class="btn btn-xs btn-info"
+                                            href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.zip"
+                                            data-certificate_ca-id="${_certificate_upchain.id}"
+                                            data-certificate_ca-fingerprint_sha1="${_certificate_upchain.fingerprint_sha1}"
+                                        >
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             CertificateCA-${_certificate_upchain.id}
                                             config.zip</a>
@@ -544,19 +554,43 @@
                                                     <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem.txt">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem.txt"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.pem"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.cer">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.cer"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.cer (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.crt">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.crt"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.crt (der)</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.der">
+                                                    <a
+                                                        class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/chain.der"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.der (der)</a>
                                                 </td>
@@ -566,18 +600,26 @@
                                                     <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
                                                 </th>
                                                 <td>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem.txt">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem.txt"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
-                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem">
+                                                    <a
+                                                        class="btn btn-xs btn-info"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${toChain.certificate_ca_id}/fullchain.pem"
+                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
+                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                    >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>
                                                 </td>
                                             </tr>
-
                                         % endfor
                                     % endif
-
                                 </tbody>
                             </table>
                         </td>

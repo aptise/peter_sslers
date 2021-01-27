@@ -382,6 +382,78 @@ def update_AcmeOrderless_deactivate(ctx, dbAcmeOrderless):
     return True
 
 
+def update_CertificateCAPreference_reprioritize(
+    ctx, dbPreference_active, dbCertificateCAPreferences, priority=None
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbPreference_active: (required) A single instance of
+        :class:`model.objects.CertificateCAPreference` which is being moved
+        within the Preference list
+    :param dbCertificateCAPreferences: (required) The full listing of
+        :class:`model.objects.CertificateCAPreference` objects
+    :param priority: string. required. must be "increase" or "decrease"
+    """
+    dbPref_other = None
+    if priority == "increase":
+        if dbPreference_active.id <= 1:
+            raise errors.InvalidTransition(
+                "This item can not be increased in priority."
+            )
+        target_slot_id = dbPreference_active.id - 1
+        # okay, now iterate over the list...
+        for _dbPref in dbCertificateCAPreferences:
+            if _dbPref.id == target_slot_id:
+                dbPref_other = _dbPref
+                break
+        if not dbPref_other:
+            raise errors.InvalidTransition("Illegal Operation.")
+
+        # set the other to a placeholder
+        dbPref_other.id = 999
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+        # set the new
+        dbPreference_active.id = target_slot_id
+        ctx.dbSession.flush(objects=[dbPreference_active])
+
+        # and update the other
+        dbPref_other.id = dbPreference_active.id + 1
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+    elif priority == "decrease":
+        if dbPreference_active.id == len(dbCertificateCAPreferences):
+            raise errors.InvalidTransition(
+                "This item can not be decreased in priority."
+            )
+        target_slot_id = dbPreference_active.id + 1
+        # okay, now iterate over the list...
+        for _dbPref in dbCertificateCAPreferences:
+            if _dbPref.id == target_slot_id:
+                dbPref_other = _dbPref
+                break
+        if not dbPref_other:
+            raise errors.InvalidTransition("Illegal Operation.")
+
+        # set the old to a placeholder
+        dbPref_other.id = 999
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+        # set the new
+        dbPreference_active.id = target_slot_id
+        ctx.dbSession.flush(objects=[dbPreference_active])
+
+        # and update the other
+        dbPref_other.id = dbPreference_active.id - 1
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+    else:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("Invalid priority.")
+
+    return True
+
+
 def update_CoverageAssuranceEvent__set_resolution(
     ctx, dbCoverageAssuranceEvent, resolution
 ):
