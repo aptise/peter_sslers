@@ -56,7 +56,9 @@ def get_tm_session(request, session_factory, transaction_manager):
               dbsession = get_tm_session(request, session_factory, transaction.manager)
 
     """
-    dbSession = session_factory()
+    # cache our request into dbSession.info
+    # https://docs.sqlalchemy.org/en/13/orm/session_api.html?highlight=session%20info#sqlalchemy.orm.session.sessionmaker.params.info
+    dbSession = session_factory(info={"request": request})
     zope.sqlalchemy.register(
         dbSession, transaction_manager=transaction_manager, keep_session=True
     )
@@ -67,9 +69,6 @@ def get_tm_session(request, session_factory, transaction_manager):
             dbSession.close()
 
         request.add_finished_callback(_cleanup)
-
-        # cache our request onto the dbsession
-        dbSession.pyramid_request = request
 
     return dbSession
 
