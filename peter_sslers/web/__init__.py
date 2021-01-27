@@ -87,6 +87,16 @@ def admin_url(request):
     return request.api_host + request.registry.settings["app_settings"]["admin_prefix"]
 
 
+def load_CertificateCAPreferences(request):
+    """
+    loads `model.objects.CertificateCAPreferences` onto the request
+    """
+    dbCertificateCAPreferences = get.get__CertificateCAPreference__paginated(
+        request.api_context
+    )
+    return dbCertificateCAPreferences
+
+
 def main(global_config, **settings):
     """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
@@ -149,6 +159,9 @@ def main(global_config, **settings):
     )
     config.add_request_method(api_host, "api_host", reify=True)
     config.add_request_method(admin_url, "admin_url", reify=True)
+    config.add_request_method(
+        load_CertificateCAPreferences, "dbCertificateCAPreferences", reify=True
+    )
 
     # don't scan 'everything', only what is enabled
     # config.scan()

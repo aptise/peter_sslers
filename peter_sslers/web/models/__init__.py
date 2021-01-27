@@ -67,6 +67,10 @@ def get_tm_session(request, session_factory, transaction_manager):
             dbSession.close()
 
         request.add_finished_callback(_cleanup)
+
+        # cache our request onto the dbsession
+        dbSession.pyramid_request = request
+
     return dbSession
 
 

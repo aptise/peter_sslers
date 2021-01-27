@@ -1,5 +1,6 @@
 # stdlib
 import copy
+import datetime
 import os
 
 # pypi
@@ -112,8 +113,10 @@ the KEY in the dictionary is a unique string
 the payload can have one of these two values, which reference another key:
     "alternates": ["isrg_root_x2_cross"],
     "alternate_of": "isrg_root_x2",
-
     
+Special Values
+    ".enddate": the args to datetime.datetime()
+
 """
 CERT_CAS_DATA = {
     "trustid_root_x3": {
@@ -126,6 +129,10 @@ CERT_CAS_DATA = {
         "is_active": True,
         "key_technology": "RSA",
         "is_bundle_supported": True,
+        "cert.fingerprints": {
+            "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
+        },
+        ".enddate": (2021, 9, 30, 14, 1, 15),
     },
     "isrg_root_x1": {
         "display_name": "ISRG Root X1",
@@ -140,6 +147,7 @@ CERT_CAS_DATA = {
         "cert.fingerprints": {
             "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
         },
+        ".enddate": (2035, 6, 4, 11, 4, 38),
     },
     "isrg_root_x2": {
         # x2 is self-signed by default, but is available as cross-signed by isrgrootx1
@@ -156,6 +164,7 @@ CERT_CAS_DATA = {
         "cert.fingerprints": {
             "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
         },
+        ".enddate": (2040, 9, 17, 16, 0),
     },
     "isrg_root_x2_cross": {
         # x2 this is cross signed by x1 to act as an intermediate!
@@ -351,6 +360,15 @@ CERT_CAS_DATA = {
         "is_bundle_supported": False,
     },
 }
+
+
+# what are our default root preferences?
+DEFAULT_CA_PREFERENCES = [
+    "trustid_root_x3",
+    "isrg_root_x2",
+    "isrg_root_x1",
+]
+
 
 # these should be a listing of serials
 # e.g.: ("x1", "x2", "x3", "x4", "r3", "r4", "e1", "e2")

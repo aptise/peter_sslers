@@ -632,6 +632,15 @@ TEST_FILES = {
 
 
 CERT_CA_SETS = {
+    "letsencrypt-certs/trustid-x3-root.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
+        "cert.fingerprints": {
+            "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
+        },
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "subject": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+    },
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
         "modulus_md5": "9454972e3730ac131def33e045ab19df",

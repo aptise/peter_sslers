@@ -283,6 +283,15 @@ AcmeOrders and Queues can also specify
 Using the weekly or daily options will allow you to constantly cycle new keys into your installation, while minimizing the total number of keys the system needs to operate.
 
 
+## Certificate Pinning and Alternate Chains
+
+PeterSSLers will track/enroll EVERY Certificate Chain presented by the upstream ACME Server.  There is no facility to disable this functionality, and there are no plans to disable this functionality.
+
+The Default Certificate Chains can only be pinned globally.  The "Certificate CA" Administration Panel has an option to set a hierarchy of upstream CA Certificates.  When a default chain is needed, Peter will iterate the list of preferred upstream CAs and return the first signing chain that matches. If no match is found, a random upstream will be used.
+
+This only affects the "default" endpoints, which are used as shortcuts for Nginx and other system integrations.  Every signing chain is always available for a given Certificate. Certificates also list the possible signing chains by their system identifier AND sha1 fingerprint. 
+
+
 # Installation
 
 This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone messed up. That someone was me. Sorry.

@@ -1,9 +1,9 @@
 from __future__ import print_function
 
-
+# stdlib
 import datetime
 
-
+# local
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...lib import letsencrypt_info
@@ -13,6 +13,7 @@ from . import create as db_create
 from . import get as db_get
 from . import getcreate as db_getcreate
 from . import update as db_update
+
 
 # ==============================================================================
 
@@ -140,6 +141,7 @@ def initialize_CertificateCAs(ctx):
     certs = letsencrypt_info.CERT_CAS_DATA
     certs_discovered = []
     certs_modified = []
+    certs_lookup = {}  # stash the ones we create for a moment
     for cert_id, cert_data in letsencrypt_info.CERT_CAS_DATA.items():
         _is_created = False
         dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
@@ -166,6 +168,7 @@ def initialize_CertificateCAs(ctx):
                     setattr(dbCertificateCA, _k, cert_data[_k])
                     if dbCertificateCA not in certs_discovered:
                         certs_modified.append(dbCertificateCA)
+        certs_lookup[cert_id] = dbCertificateCA
 
     # bookkeeping update
     event_payload_dict["is_certificates_discovered"] = (
@@ -177,6 +180,25 @@ def initialize_CertificateCAs(ctx):
 
     dbOperationsEvent.set_event_payload(event_payload_dict)
     ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    # now install the default preference chain
+    _now = datetime.datetime.utcnow()
+    _buffer = datetime.timedelta(90)
+    date_cutoff = _now + _buffer
+
+    slot_id = 1
+    for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
+        cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
+        cert_enddate = datetime.datetime(*cert_payload[".enddate"])
+        if cert_enddate < date_cutoff:
+            continue
+        if cert_id not in certs_lookup:
+            raise ValueError("Certificate `%s` is unknown" % cert_id)
+        dbCertificateCA = certs_lookup[cert_id]
+        dbPref = db_create.create__CertificateCAPreference(
+            ctx, slot_id=slot_id, dbCertificateCA=dbCertificateCA
+        )
+        slot_id += 1  # increment the slot
 
     return True
 

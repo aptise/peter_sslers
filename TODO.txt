@@ -1,6 +1,11 @@
 Not Finished Yet
 ===============
 
+[ ] Trigger invalid "no row for one" when adding a CA Preference
+[ ] Endpoint Docs for the CA Preference
+[ ] Tests, new route tests needed; e.g. CA Preference
+
+
 Almost done:
 ------------
 

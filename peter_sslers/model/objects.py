@@ -3,9 +3,10 @@ import datetime
 import json
 
 # pypi
+from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
-from pyramid.decorator import reify
+from sqlalchemy import inspect as sa_inspect
 
 # localapp
 from .meta import Base
@@ -2470,33 +2471,79 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def cert_chain_pem(self):
+        if not self.certificate_ca__preferred:
+            return None
         return self.certificate_ca__preferred.cert_pem
 
     @property
     def cert_fullchain_pem(self):
+        if not self.certificate_ca__preferred:
+            return None
         return "\n".join((self.cert_pem, self.cert_chain_pem))
 
     @property
+    def iter_certificate_upchain(self):
+        for dbCertificateSignedChain in self.certificates_upchain:
+            yield dbCertificateSignedChain.certificate_ca
+
+    @reify
+    def certificate_cas__upchain(self):
+        # this loops `ORM:certificates_upchain`
+        # this is NOT in order of preference
+        _ids = {
+            i.certificate_ca_id: i.certificate_ca.fingerprint_sha1
+            for i in self.certificates_upchain
+        }
+        return _ids
+
+    @reify
     def certificate_upchain_ids(self):
+        # this loops `ORM:certificates_upchain`
+        # this is NOT in order of preference
         _ids = [i.certificate_ca_id for i in self.certificates_upchain]
         return _ids
 
-    @property
+    @reify
     def certificate_ca_id__preferred(self):
-        _preferred_item = self.certificate_ca__preferred
-        if not _preferred_item:
+        # this invokes `certificate_ca__preferred`
+        # which then loops `ORM:certificates_upchain`
+        if not self.certificate_ca__preferred:
             return None
-        return _preferred_item.id
+        return self.certificate_ca__preferred.id
 
-    @property
+    @reify
     def certificate_ca__preferred(self):
-        return (
-            self.certificates_upchain[0].certificate_ca
-            if self.certificates_upchain
-            else None
-        )
+        # this loops `ORM:certificates_upchain`
+        if not self.certificates_upchain:
+            return None
+        try:
+            # SQLAlchemy Runtime API
+            dbSession = sa_inspect(self).session
+            # stashed in peter_sslers/web/models/__init__.py
+            request = dbSession.pyramid_request
 
-    @property
+            # only search for a preference if they exist
+            if request.dbCertificateCAPreferences:
+                # loop CertificateSignedChain
+                lookup_upchain = {
+                    _csc.certificate_ca_id: _csc.certificate_ca
+                    for _csc in self.certificates_upchain
+                }
+
+                # lookup CertificateCAPreference, return the first match
+                for _pref in request.dbCertificateCAPreferences:
+                    _pref_id = _pref.certificate_ca_id
+                    if _pref_id in lookup_upchain:
+                        return lookup_upchain[_pref_id]
+
+            # we have None! so just return the first one we have
+            return self.certificates_upchain[0].certificate_ca
+
+        except Exception as exc:
+            pass
+        return None
+
+    @reify
     def expiring_days(self):
         if self._expiring_days is None:
             self._expiring_days = (
@@ -2506,7 +2553,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     _expiring_days = None
 
-    @property
+    @reify
     def expiring_days_label(self):
         if self.is_active:
             if self.expiring_days <= 0:
@@ -2657,11 +2704,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         return "\n".join((self.cert_pem, certificate_upchain.cert_pem))
 
     @property
-    def iter_certificate_upchain(self):
-        for dbCertificateSignedChain in self.certificates_upchain:
-            yield dbCertificateSignedChain.certificate_ca
-
-    @property
     def as_json(self):
         return {
             "acme_order.is_auto_renew": self.acme_order.is_auto_renew
@@ -2680,6 +2722,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "certificate_ca_id__preferred": self.certificate_ca_id__preferred,
             "certificate_ca_ids__upchain": self.certificate_upchain_ids,
+            "certificate_cas__upchain": self.certificate_cas__upchain,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_subject": self.cert_subject,
@@ -2701,7 +2744,7 @@ class CertificateSignedChain(Base):
     It is possible for alternate chains to be provided for a CertificateSigned
     """
 
-    __tablename__ = "certificate_signed_alternate_chain"
+    __tablename__ = "certificate_signed_chain"
     id = sa.Column(sa.Integer, primary_key=True)
     certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
