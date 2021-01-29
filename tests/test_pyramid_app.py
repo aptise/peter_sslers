@@ -25,6 +25,7 @@ else:
 from webtest import Upload
 from webtest.http import StopableWSGIServer
 import requests
+import sqlalchemy
 
 # local
 from peter_sslers.lib import letsencrypt_info
@@ -2582,6 +2583,525 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res2.json["result"] == "success"
         # this is going to be too messy to check all the vars
         # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_int_x2_pem': {u'id': 3, u'created': False}, u'letsencrypt_intermediate_x4_cross_pem': {u'id': 6, u'created': False}, u'letsencrypt_intermediate_x2_cross_pem': {u'id': 7, u'created': False}, u'letsencrypt_intermediate_x3_cross_pem': {u'id': 8, u'created': False}, u'result': u'success', u'letsencrypt_intermediate_x1_cross_pem': {u'id': 4, u'created': False}, u'le_int_x1_pem': {u'id': 1, u'created': False}}
+
+    def _expected_preferences(self):
+        """this is shared by html and json"""
+        # when we initialize the application, the setup routine inserts some
+        # default CertificateCA preferences
+        expected_preferences_initial = (
+            ("1", "DA:C9:02"),  # trustid_root_x3
+            ("2", "BD:B1:B9"),  # isrg_root_x2
+            ("3", "CA:BD:2A"),  # isrg_root_x1
+        )
+        # calculate the expected matrix after an alteration
+        # in this alteration, we swap the first and second items
+        expected_preferences_altered = [i[1] for i in expected_preferences_initial]
+        expected_preferences_altered.insert(0, expected_preferences_altered.pop(1))
+        expected_preferences_altered = [
+            (str(idx + 1), i) for (idx, i) in enumerate(expected_preferences_altered)
+        ]
+
+        return (expected_preferences_initial, expected_preferences_altered)
+
+    def _load__CertificateCAPreferences(self):
+        _dbCertificateCAPreferences = (
+            self.ctx.dbSession.query(model_objects.CertificateCAPreference)
+            .options(sqlalchemy.orm.joinedload("certificate_ca"))
+            .all()
+        )
+        return _dbCertificateCAPreferences
+
+    def _load__CertificateCA_unused(self):
+        dbCertificateCA_unused = (
+            self.ctx.dbSession.query(model_objects.CertificateCA)
+            .outerjoin(
+                model_objects.CertificateCAPreference,
+                model_objects.CertificateCA.id
+                == model_objects.CertificateCAPreference.certificate_ca_id,
+            )
+            .filter(model_objects.CertificateCAPreference.id.op("IS")(None))
+            .all()
+        )
+        return dbCertificateCA_unused
+
+    @routes_tested(
+        (
+            "admin:certificate_cas:preferred",
+            "admin:certificate_cas:preferred:add",
+            "admin:certificate_cas:preferred:delete",
+            "admin:certificate_cas:preferred:prioritize",
+        )
+    )
+    def test_manipulate_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_manipulate_html
+        """
+
+        (
+            expected_preferences_initial,
+            expected_preferences_altered,
+        ) = self._expected_preferences()
+
+        def _ensure_compliance_form(_res, _expected_preferences):
+            """
+            ensures the forms are present, expected and compliant
+            """
+            # load our database backed info
+            _dbCertificateCAPreferences = self._load__CertificateCAPreferences()
+            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+
+            _res_forms = _res.forms
+
+            for _idx, (_slot_id, _fingerpint_sha1_substr) in enumerate(
+                _expected_preferences
+            ):
+                # delete
+                assert "form-preferred-delete-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-delete-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                # prioritize_increase
+                assert "form-preferred-prioritize_increase-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-prioritize_increase-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                # prioritize_decrease
+                assert "form-preferred-prioritize_decrease-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-prioritize_decrease-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                assert _dbCertificateCAPreferences[_idx].id == int(_slot_id)
+                assert _dbCertificateCAPreferences[
+                    _idx
+                ].certificate_ca.fingerprint_sha1.startswith(_fingerpint_sha1_substr)
+
+        # !!!: start the test
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred", status=200
+        )
+        _ensure_compliance_form(res, expected_preferences_initial)
+
+        # some failures are expected
+        res_forms = res.forms
+        # first item can not increase in priority
+        _form = res_forms["form-preferred-prioritize_increase-1"]
+        res2 = _form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be increased in priority.</span></div></div>"""
+            in res2.text
+        )
+        # last item can not decrease in priority
+        _form = res_forms["form-preferred-prioritize_decrease-3"]
+        res3 = _form.submit()
+        assert res3.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be decreased in priority.</span></div></div>"""
+            in res3.text
+        )
+
+        # some things should work in an expected manner!
+        # first, increase slot 2 to slot 1
+        # submit the form
+        _form = res_forms["form-preferred-prioritize_increase-2"]
+        res4 = _form.submit()
+        assert res4.status_code == 303
+        assert (
+            res4.location
+            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=prioritize"
+        )
+        res5 = self.testapp.get(res4.location, status=200)
+        _ensure_compliance_form(res5, expected_preferences_altered)
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res5b = _form.submit()
+        assert res5b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res5b.text
+        )
+
+        # now, undo the above by decreasing slot 1 to slot 2
+        _form = res5.forms["form-preferred-prioritize_decrease-1"]
+        res6 = _form.submit()
+        assert res6.status_code == 303
+        assert (
+            res6.location
+            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=prioritize"
+        )
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res6b = _form.submit()
+        assert res6b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res6b.text
+        )
+
+        # woohoo, now grab a new certificateCA to insert
+        dbCertificateCA_unused = self._load__CertificateCA_unused()
+        assert len(dbCertificateCA_unused) >= 1
+        dbCertificateCA_add = dbCertificateCA_unused[0]
+
+        # start from scratch
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred", status=200
+        )
+        forms = res.forms
+        assert "form-preferred-add" in res.forms
+
+        # add
+        form_add = res.forms["form-preferred-add"]
+        assert "fingerprint_sha1" in dict(form_add.submit_fields())
+        form_add["fingerprint_sha1"] = dbCertificateCA_add.fingerprint_sha1
+        res2 = form_add.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=add"
+        )
+
+        # ensure compliance
+        expected_preferences_added = list(expected_preferences_initial[:])
+        expected_preferences_added.append(
+            (
+                str(len(expected_preferences_added) + 1),
+                str(dbCertificateCA_add.fingerprint_sha1),
+            )
+        )
+        res3 = self.testapp.get(res2.location)
+        _ensure_compliance_form(res3, expected_preferences_added)
+
+        # delete
+        form_del = res3.forms["form-preferred-delete-4"]
+        _submit_fields = dict(form_del.submit_fields())
+        assert "fingerprint_sha1" in _submit_fields
+        assert (
+            _submit_fields["fingerprint_sha1"] == dbCertificateCA_add.fingerprint_sha1
+        )
+        res4 = form_del.submit()
+        assert res4.status_code == 303
+        assert (
+            res4.location
+            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=delete"
+        )
+
+        # delete again, we should fail!
+        res4b = form_del.submit()
+        assert res4b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res4b.text
+        )
+
+        # and lets make sure we're at the base option
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred", status=200
+        )
+        _ensure_compliance_form(res, expected_preferences_initial)
+
+        # TODO: test adding more than 10 items
+
+    @routes_tested(
+        (
+            "admin:certificate_cas:preferred|json",
+            "admin:certificate_cas:preferred:add|json",
+            "admin:certificate_cas:preferred:delete|json",
+            "admin:certificate_cas:preferred:prioritize|json",
+        )
+    )
+    def test_manipulate_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_manipulate_json
+        """
+        (
+            expected_preferences_initial,
+            expected_preferences_altered,
+        ) = self._expected_preferences()
+
+        # for json tests, we need to map the substring fingerprints in the test to
+        # full size fingerprints for certain operations
+        _dbCertificateCA_all = self.ctx.dbSession.query(
+            model_objects.CertificateCA
+        ).all()
+        fingerprints_mapping = {
+            i.fingerprint_sha1[:8]: i.fingerprint_sha1 for i in _dbCertificateCA_all
+        }
+
+        def _ensure_compliance_payload(_res, _expected_preferences):
+            """
+            ensures the forms are present, expected and compliant
+            """
+            # load our database backed info
+            _dbCertificateCAPreferences = self._load__CertificateCAPreferences()
+            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+
+            # check our payload
+            assert "CertificateCAs" in res.json
+            assert "PreferenceOrder" in res.json
+            for _idx, _slot_id in enumerate(
+                sorted(res.json["PreferenceOrder"].keys(), key=lambda x: int(x))
+            ):
+                _cert_ca_id = res.json["PreferenceOrder"][_slot_id]
+                assert _cert_ca_id in res.json["CertificateCAs"]
+                _fingerpint_sha1 = res.json["CertificateCAs"][_cert_ca_id][
+                    "fingerprint_sha1"
+                ]
+
+                assert _dbCertificateCAPreferences[_idx].id == int(_slot_id)
+                assert (
+                    _dbCertificateCAPreferences[_idx].certificate_ca.fingerprint_sha1
+                    == _fingerpint_sha1
+                )
+
+                # _expected_preferences = ((slot_id, fingerprint_sha1_substring), ...)
+                assert _fingerpint_sha1.startswith(_expected_preferences[_idx][1])
+
+        # !!!: start the test
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred.json", status=200
+        )
+        _ensure_compliance_payload(res, expected_preferences_initial)
+
+        # ensure GET/POST core functionality
+
+        # GET/POST prioritize
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", status=200
+        )
+        assert "form_fields" in res.json
+        _expected_fields = ("slot", "fingerprint_sha1", "priority")
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json"
+        )
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # GET/POST add
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred/add.json", status=200
+        )
+        assert "form_fields" in res.json
+        _expected_fields = ("fingerprint_sha1",)
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post("/.well-known/admin/certificate-cas/preferred/add.json")
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # GET/POST delete
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred/delete.json", status=200
+        )
+        assert "form_fields" in res.json
+        _expected_fields = ("fingerprint_sha1", "slot")
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/delete.json"
+        )
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # some failures are expected
+
+        # first item can not increase in priority
+        # but we MUST use full fingerprints in this context
+        _payload = {
+            "slot": "1",
+            "fingerprint_sha1": expected_preferences_initial[0][1],
+            "priority": "increase",
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+        # trigger the expected error
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. This item can not be increased in priority."
+        )
+
+        # last item can not decrease in priority
+        # but we MUST use full fingerprints in this context
+        _payload = {
+            "slot": "3",
+            "fingerprint_sha1": expected_preferences_initial[2][1],
+            "priority": "decrease",
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+        # trigger the expected error
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. This item can not be decreased in priority."
+        )
+
+        # some things should work in an expected manner!
+        # first, increase slot 2 to slot 1
+        # submit the form
+        _payload = {
+            "slot": "2",
+            "fingerprint_sha1": expected_preferences_initial[1][1],
+            "priority": "increase",
+        }
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "prioritize"
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # now, undo the above by decreasing slot 1 to slot 2
+        _payload = {
+            "slot": "1",
+            "fingerprint_sha1": expected_preferences_initial[1][1],
+            "priority": "decrease",
+        }
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ]
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "prioritize"
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # woohoo, now grab a new certificateCA to insert
+        dbCertificateCA_unused = self._load__CertificateCA_unused()
+        assert len(dbCertificateCA_unused) >= 1
+        dbCertificateCA_add = dbCertificateCA_unused[0]
+
+        # add
+        _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/add.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "add"
+
+        # ensure compliance
+        expected_preferences_added = list(expected_preferences_initial[:])
+        expected_preferences_added.append(
+            (
+                str(len(expected_preferences_added) + 1),
+                str(dbCertificateCA_add.fingerprint_sha1),
+            )
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred.json", status=200
+        )
+        _ensure_compliance_payload(res, expected_preferences_added)
+
+        # delete
+        _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/delete.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "delete"
+
+        # delete again, we should fail!
+        res = self.testapp.post(
+            "/.well-known/admin/certificate-cas/preferred/delete.json", _payload
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # and lets make sure we're at the base option
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-cas/preferred.json", status=200
+        )
+        _ensure_compliance_payload(res, expected_preferences_initial)
+
+        # TODO: test adding more than 10 items
 
 
 class FunctionalTests_CertificateRequest(AppTest):
