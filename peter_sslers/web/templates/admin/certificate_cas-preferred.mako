@@ -38,7 +38,12 @@
             <ul class="list-styled">
                 % for idx, dbPreference in enumerate(CertificateCAPreferences):
                     <li>
-                        <form action="${admin_prefix}/certificate-cas/preferred/delete" method="POST" style="display:inline-block;">
+                        <form
+                            action="${admin_prefix}/certificate-cas/preferred/delete"
+                            method="POST"
+                            style="display:inline-block;"
+                            id="form-preferred-delete-${dbPreference.id}"
+                        >
                             <input type="hidden" name="slot" value="${dbPreference.id}" data-formencode-ignore="1"/>
                             <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <button class="btn btn-xs btn-danger" type="submit">
@@ -46,7 +51,12 @@
                                 Delete
                             </button>
                         </form>
-                        <form action="${admin_prefix}/certificate-cas/preferred/prioritize" method="POST" style="display:inline-block;">
+                        <form
+                            action="${admin_prefix}/certificate-cas/preferred/prioritize"
+                            method="POST"
+                            style="display:inline-block;"
+                            id="form-preferred-prioritize_increase-${dbPreference.id}"
+                        >
                             <input type="hidden" name="slot" value="${dbPreference.id}" data-formencode-ignore="1"/>
                             <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="increase" data-formencode-ignore="1"/>
@@ -55,7 +65,12 @@
                                 Move Up
                             </button>
                         </form>
-                        <form action="${admin_prefix}/certificate-cas/preferred/prioritize" method="POST" style="display:inline-block;">
+                        <form
+                            action="${admin_prefix}/certificate-cas/preferred/prioritize"
+                            method="POST"
+                            style="display:inline-block;"
+                            id="form-preferred-prioritize_decrease-${dbPreference.id}"
+                        >
                             <input type="hidden" name="slot" value="${dbPreference.id}" data-formencode-ignore="1"/>
                             <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="decrease" data-formencode-ignore="1"/>
@@ -74,7 +89,11 @@
             <p>Add a CertificateCA to the preference list by entering the fingerprint_sha1.</p>
             <p>You may enter the initial few characters of the fingerprint_sha1.</p>
             <p>Items will be added to the end of the list.</p>
-            <form action="${admin_prefix}/certificate-cas/preferred/add" method="POST">
+            <form
+                action="${admin_prefix}/certificate-cas/preferred/add"
+                method="POST"
+                id="form-preferred-add"
+            >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
                 <input type="text" name="fingerprint_sha1"/>

@@ -103,7 +103,9 @@ class View_Preferred(Handler):
             self.request.api_context
         )
         if self.request.wants_json:
-            _certs_ordering = {c.id: c.certificate_ca_id for c in items_paged}
+            # json.dumps will make the keys strings, so cast the ordering value
+            # to a string as well
+            _certs_ordering = {c.id: str(c.certificate_ca_id) for c in items_paged}
             _certs_data = {
                 c.certificate_ca.id: c.certificate_ca.as_json for c in items_paged
             }
@@ -129,6 +131,18 @@ class View_Preferred(Handler):
     @view_config(route_name="admin:certificate_cas:preferred:add|json", renderer="json")
     def add(self):
         try:
+            if self.request.wants_json:
+                if self.request.method != "POST":
+                    return {
+                        "instructions": [
+                            """HTTP POST required""",
+                            """curl --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/add.json"""
+                            % self.request.admin_url,
+                        ],
+                        "form_fields": {
+                            "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+                        },
+                    }
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_CertificateCAPreference__add,
@@ -208,6 +222,19 @@ class View_Preferred(Handler):
     )
     def delete(self):
         try:
+            if self.request.wants_json:
+                if self.request.method != "POST":
+                    return {
+                        "instructions": [
+                            """HTTP POST required""",
+                            """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/delete.json"""
+                            % self.request.admin_url,
+                        ],
+                        "form_fields": {
+                            "slot": "the slot of the current record",
+                            "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+                        },
+                    }
             data_formencode_form = "delete"
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -251,6 +278,26 @@ class View_Preferred(Handler):
         route_name="admin:certificate_cas:preferred:prioritize|json", renderer="json"
     )
     def prioritize(self):
+        if self.request.wants_json:
+            if self.request.method != "POST":
+                return {
+                    "instructions": [
+                        """HTTP POST required""",
+                        """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/prioritize.json"""
+                        % self.request.admin_url,
+                    ],
+                    "form_fields": {
+                        "slot": "the slot of the current record",
+                        "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+                        "priority": "the new priority for the current record",
+                    },
+                    "valid_options": {
+                        "priority": [
+                            "increase",
+                            "decrease",
+                        ]
+                    },
+                }
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
