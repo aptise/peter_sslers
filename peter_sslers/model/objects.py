@@ -2760,6 +2760,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 class CertificateSignedChain(Base):
     """
     It is possible for alternate chains to be provided for a CertificateSigned
+
+    ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
+    presented the CertificateCA as the primary/default chain (``True``), or if
+    the upstream server provided the CertificateCA as an upstream chain.
     """
 
     __tablename__ = "certificate_signed_chain"
@@ -2770,6 +2774,7 @@ class CertificateSignedChain(Base):
     certificate_signed_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=False
     )
+    is_upstream_default = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
