@@ -1241,6 +1241,10 @@ def getcreate__CertificateSigned(
             dbCertificateSignedChain = model_objects.CertificateSignedChain()
             dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
             dbCertificateSignedChain.certificate_ca_id = _up_needed
+            if _up_needed == dbCertificateCA.id:
+                dbCertificateSignedChain.is_upstream_default = True
+            else:
+                dbCertificateSignedChain.is_upstream_default = None
             ctx.dbSession.add(dbCertificateSignedChain)
             ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 

@@ -1029,7 +1029,7 @@ def create__CertificateSigned(
     :param cert_domains_expected: (required) a list of domains in the cert we expect to see
     :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
 
-    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate
+    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate.
     :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
 
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
@@ -1158,6 +1158,7 @@ def create__CertificateSigned(
         dbCertificateSignedChain = model_objects.CertificateSignedChain()
         dbCertificateSignedChain.certificate_ca_id = dbCertificateCA.id
         dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+        dbCertificateSignedChain.is_upstream_default = True
         ctx.dbSession.add(dbCertificateSignedChain)
         ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
@@ -1205,6 +1206,7 @@ def create__CertificateSigned(
                 dbCertificateSignedChain = model_objects.CertificateSignedChain()
                 dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
                 dbCertificateSignedChain.certificate_ca_id = _dbCertificateCA.id
+                dbCertificateSignedChain.is_upstream_default = False
                 ctx.dbSession.add(dbCertificateSignedChain)
                 ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
