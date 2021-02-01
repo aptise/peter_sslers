@@ -22,7 +22,7 @@
 			`CertificateCA.is_trusted_root`
 
 		Made Optional:
-			acme_account_key.modulus_md5
+			acme_account_key.key_pem_modulus_md5
 			certificate_ca.cert_pem_modulus_md5
 			certificate_request.csr_pem_modulus_md5
 			private_key.key_pem_modulus_md5

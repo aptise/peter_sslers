@@ -124,6 +124,9 @@ def initialize_AcmeAccountProviders(ctx):
             dbObject,
         ]
     )
+    import pdb
+
+    pdb.set_trace()
 
     return True
 
