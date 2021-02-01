@@ -224,7 +224,7 @@
                                 <em>Available Signing Chains:</em>
                                 <ul>
                                     % for _chain in CertificateSigned.certificates_upchain:
-                                        <li>${_chain.certificate_ca.button_view(request)|n}</li>
+                                        <li>${_chain.certificate_ca.button_view|n}</li>
                                     % endfor
                                 </ul>
                             % endif
@@ -418,7 +418,7 @@
 
                             % if CertificateSigned.certificate_ca__preferred:
                                 <em>default chain</em><br/>
-                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view(request)|n}
+                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view|n}
                                 </p>
 
                                 <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
@@ -449,7 +449,7 @@
 
                             % if CertificateSigned.certificate_ca__preferred:
                                 <em>default chain</em><br/>
-                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view(request)|n}
+                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view|n}
                                 </p>
 
                                 <a

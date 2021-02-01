@@ -142,9 +142,7 @@ class View_Focus(Handler):
 
         if self.request.wants_json:
             return {
-                "AcmeAuthorization": dbAcmeAuthorization._as_json(
-                    admin_url=self.request.admin_url
-                ),
+                "AcmeAuthorization": dbAcmeAuthorization.as_json,
                 "AcmeOrder2AcmeChallengeTypeSpecifics": [
                     i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics
                 ]
