@@ -29,6 +29,33 @@ Coding Style:
         properties/functions
 """
 
+"""
+IMPORTANT
+
+Under Pyramid, the `request` is stashed into the db session
+
+    # stashed in peter_sslers/web/models/__init__.py
+    request = dbSession.info["request"]
+
+
+    There are two ways of getting an object's session in SQLAlchemy
+
+    1. Legacy Classmethod
+
+        dbSession = sqlalchemy.orm.session.Session.object_session(self)
+
+    2. Modern Runtime API
+
+        dbSession = sa_inspect(self).session
+
+    The Legacy Method is faster and not deprecated.
+    The Modern Method is preferable in situations where you may do other
+    things with the object's runtime information.
+
+    In this project, we will opt for the legacy system
+
+
+"""
 
 # ==============================================================================
 
@@ -663,7 +690,12 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             return False
         return True
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "acme_status_authorization": self.acme_status_authorization,
@@ -688,10 +720,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             if self.is_can_acme_server_deactivate
             else None,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 # ==============================================================================
@@ -925,7 +953,12 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
                 return True
         return False
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
@@ -948,10 +981,6 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             else None,
             # "acme_event_log_id": self.acme_event_log_id,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 # ==============================================================================
@@ -1739,7 +1768,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 return True
         return False
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "AcmeAccount": {
@@ -1798,10 +1832,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "private_key_strategy__final": self.private_key_strategy__final,
             "acme_authorization_ids": self.acme_authorization_ids,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 class AcmeOrderSubmission(Base):
@@ -2098,7 +2128,14 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
-    def button_view(self, request):
+    @property
+    def button_view(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
         button = (
             """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
             """data-sha1-preview="%(sha1_preview)s">"""
@@ -2518,26 +2555,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         if not self.certificates_upchain:
             return None
         try:
-            """
-            There are two ways of getting an object's session in SQLAlchemy
-
-            1. Legacy Classmethod
-
-                dbSession = sqlalchemy.orm.session.Session.object_session(self)
-
-            2. Modern Runtime API
-
-                dbSession = sa_inspect(self).session
-
-            The Legacy Method is faster and not deprecated.
-            The Modern Method is preferable in situations where you may do other
-            things with the object's runtime information.
-
-            In this situation, we will opt for the legacy system
-            """
             dbSession = sa_Session.object_session(self)
-
-            # stashed in peter_sslers/web/models/__init__.py
             request = dbSession.info["request"]
 
             # only search for a preference if they exist

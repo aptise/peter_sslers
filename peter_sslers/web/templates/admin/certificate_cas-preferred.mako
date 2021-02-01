@@ -80,7 +80,7 @@
                             </button>
                         </form>
                         <span class="label label-default">${dbPreference.id}</span>
-                        ${dbPreference.certificate_ca.button_view(request)|n}
+                        ${dbPreference.certificate_ca.button_view|n}
                     </li>
                 % endfor
             </ul>

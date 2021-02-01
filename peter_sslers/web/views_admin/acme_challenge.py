@@ -140,9 +140,7 @@ class View_Focus(Handler):
         dbAcmeChallenge = self._focus(eagerload_web=True)
         if self.request.wants_json:
             return {
-                "AcmeChallenge": dbAcmeChallenge._as_json(
-                    admin_url=self.request.admin_url
-                )
+                "AcmeChallenge": dbAcmeChallenge.as_json,
             }
         return {"project": "peter_sslers", "AcmeChallenge": dbAcmeChallenge}
 
