@@ -186,6 +186,8 @@
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                 </a>
+                            % else:
+                                <code>key is placeholder</code>
                             % endif
                         </td>
                     </tr>
