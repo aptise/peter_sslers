@@ -56,7 +56,7 @@ class ViewAdminMain(Handler):
     def search(self):
         search_type = self.request.params.get("type")
         search_type_valid = (
-            True if search_type in ("modulus", "cert_subject", "cert_issuer") else False
+            True if search_type in ("spki", "cert_subject", "cert_issuer") else False
         )
         if search_type_valid:
             return self._search__submit(search_type)
@@ -100,11 +100,11 @@ class ViewAdminMain(Handler):
             "%s.id" % source_type: source_id,
         }
 
-        if search_type == "modulus":
-            search_modulus = self.request.params.get("modulus", None)
-            q_query_args["modulus"] = search_modulus
+        if search_type == "spki":
+            search_spki = self.request.params.get("spki", None)
+            q_query_args["spki"] = search_spki
 
-            if not all((search_modulus, source_type, source_id)):
+            if not all((search_spki, source_type, source_id)):
                 raise ValueError("invalid search")
 
             # AcmeAccount
@@ -116,10 +116,7 @@ class ViewAdminMain(Handler):
                         model_objects.AcmeAccount.id
                         == model_objects.AcmeAccountKey.acme_account_id,
                     )
-                    .filter(
-                        model_objects.AcmeAccountKey.key_pem_modulus_md5
-                        == search_modulus
-                    )
+                    .filter(model_objects.AcmeAccountKey.spki_sha256 == search_spki)
                     .options(sqlalchemy.orm.contains_eager("acme_account_key"))
                 )
                 results["AcmeAccount"]["count"] = _base.count()
@@ -132,9 +129,7 @@ class ViewAdminMain(Handler):
             if show_only["CertificateCA"]:
                 _base = self.request.api_context.dbSession.query(
                     model_objects.CertificateCA
-                ).filter(
-                    model_objects.CertificateCA.cert_pem_modulus_md5 == search_modulus
-                )
+                ).filter(model_objects.CertificateCA.spki_sha256 == search_spki)
                 results["CertificateCA"]["count"] = _base.count()
                 if results["CertificateCA"]["count"]:
                     results["CertificateCA"]["items"] = (
@@ -145,10 +140,7 @@ class ViewAdminMain(Handler):
             if show_only["CertificateRequest"]:
                 _base = self.request.api_context.dbSession.query(
                     model_objects.CertificateRequest
-                ).filter(
-                    model_objects.CertificateRequest.csr_pem_modulus_md5
-                    == search_modulus
-                )
+                ).filter(model_objects.CertificateRequest.spki_sha256 == search_spki)
                 results["CertificateRequest"]["count"] = _base.count()
                 if results["CertificateRequest"]["count"]:
                     results["CertificateRequest"]["items"] = (
@@ -159,7 +151,7 @@ class ViewAdminMain(Handler):
             if show_only["PrivateKey"]:
                 _base = self.request.api_context.dbSession.query(
                     model_objects.PrivateKey
-                ).filter(model_objects.PrivateKey.key_pem_modulus_md5 == search_modulus)
+                ).filter(model_objects.PrivateKey.spki_sha256 == search_spki)
                 results["PrivateKey"]["count"] = _base.count()
                 if results["PrivateKey"]["count"]:
                     results["PrivateKey"]["items"] = (
@@ -170,10 +162,7 @@ class ViewAdminMain(Handler):
             if show_only["CertificateSigned"]:
                 _base = self.request.api_context.dbSession.query(
                     model_objects.CertificateSigned
-                ).filter(
-                    model_objects.CertificateSigned.cert_pem_modulus_md5
-                    == search_modulus
-                )
+                ).filter(model_objects.CertificateSigned.spki_sha256 == search_spki)
                 results["CertificateSigned"]["count"] = _base.count()
                 if results["CertificateSigned"]["count"]:
                     results["CertificateSigned"]["items"] = (

@@ -18,12 +18,12 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
     :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
 
     sets the following object attributes:
-        :attr:`model.utils.CertificateSigned.cert_pem_modulus_md5`
         :attr:`model.utils.CertificateSigned.timestamp_not_before`
         :attr:`model.utils.CertificateSigned.timestamp_not_after`
         :attr:`model.utils.CertificateSigned.cert_subject`
         :attr:`model.utils.CertificateSigned.cert_issuer`
         :attr:`model.utils.CertificateSigned.fingerprint_sha1`
+        :attr:`model.utils.CertificateSigned.spki_sha256`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -44,12 +44,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
     datetime_expires = datetime_expires.replace(tzinfo=None)
     dbCertificateSigned.timestamp_not_after = datetime_expires
     """
-    # grab the modulus
-    dbCertificateSigned.cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-        cert_pem=dbCertificateSigned.cert_pem,
-        cert_pem_filepath=_tmpfileCert.name,
-    )
-    # the rest...
+    # everything is in here
     _cert_data = cert_utils.parse_cert(
         cert_pem=dbCertificateSigned.cert_pem,
         cert_pem_filepath=_tmpfileCert.name,
@@ -59,6 +54,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
     dbCertificateSigned.cert_subject = _cert_data["subject"]
     dbCertificateSigned.cert_issuer = _cert_data["issuer"]
     dbCertificateSigned.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
+    dbCertificateSigned.spki_sha256 = _cert_data["spki_sha256"]
     return dbCertificateSigned
 
 

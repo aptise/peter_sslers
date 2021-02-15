@@ -1,11 +1,20 @@
 0.4.1-dev
     unreleased
+
     Changes:
-		The following now accepts a dict-like object ``utils.DomainsChallenged`` in a `domains_challeged` kwarg, instead of `domains`
-			`do__AcmeV2_AcmeOrder__new()`
-			`api_domains__certificate_if_needed()`
-		added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
-    Model changes
+	* The following now accepts a dict-like object ``utils.DomainsChallenged``
+	  in a `domains_challeged` kwarg, instead of `domains`
+		`do__AcmeV2_AcmeOrder__new()`
+		`api_domains__certificate_if_needed()`
+	* Added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+	* Migrated LetsEncrypt Certificates from test data to library
+	* Tracking the Modulus was removed, in favor of a SHA256 of the SPKI.
+	  This does essentially the same thing, but works on EC keys too!
+
+	New Functionality:
+	* Added "import-domain" to acme-dns-server
+		
+    Model Changes:
 		Support for specifying the AcmeChallenge on orders:
 			new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
 			new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
@@ -21,14 +30,21 @@
 			server_certificate.key_technology_id (required)
 			`CertificateCA.is_trusted_root`
 
-		Made Optional:
+		Removed:
 			acme_account_key.key_pem_modulus_md5
 			certificate_ca.cert_pem_modulus_md5
 			certificate_request.csr_pem_modulus_md5
 			private_key.key_pem_modulus_md5
 			server_certificate.cert_pem_modulus_md5
 
-		renamed
+		Added:
+			acme_account_key.spki_sha256
+			certificate_ca.spki_sha256
+			certificate_request.spki_sha256
+			certificate_signed.spki_sha256
+			private_key.spki_sha256
+
+		Renamed
 			`ca_certificate` to `certificate_ca`
 			`CertificateCA` to `CertificateCA`
 			`server_certificate` to `certificate_signed`
@@ -36,54 +52,62 @@
 			`id_cross_signed_of` to `id_cross_signed_by`
 			"letsencrypt-download" to "letsencrypt-sync"
 		
-		removed:
+		Renamed
+			CertificateSignedAlternateChain -> CertificateSignedChain 
+			certificate_upchain_alternates -> certificates_upchain
+
+		Removed
+			CertificateSigned.certificate_ca_id__upchain
+			CertificateSigned.certificate_upchain
+
+		Removed:
 			`CertificateCA.is_authority_certificate`
 			`CertificateCA.is_ca_certificate`	
 
-
-	Functionality:
-		added "import-domain" to acme-dns-server
-	    Migrated letsencrypt certificates from test data to library
-    
-    
     Bugfixes:
-	    Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
-		There were several undocumented differences between the Pebble and Boulder servers.
-	        This library was developed against the Pebble ACME test server from LetsEncrypt.
-			Boulder is the ACME production server from LetsEncrypt.
+	* Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
+	* There were several undocumented differences between the Pebble and Boulder servers.
+		This library was developed against the Pebble ACME test server from LetsEncrypt.
+		Boulder is the ACME production server from LetsEncrypt.
+
     Improvements:
-    	/admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be submitted if the server can not answer the challenge
-			This will never be needed for http-01;
-			it is only needed for:
-				* dns-01 for a domain without an acme-dns account
-				* tls-alpn-01
-		Removed "Trigger" action from Authorization
-			A Challenge should be triggered, as an order may want a specific challenge type
-			Removals:
-				lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
-				web.views_admin.acme_authorization.acme_server_trigger
-				route_name="admin:acme_authorization:focus:acme_server:trigger"
-				route_name="admin:acme_authorization:focus:acme_server:trigger|json"
-				"/acme-authorization/{@id}/acme-server/trigger"
-				"/acme-authorization/{@id}/acme-server/trigger.json"
-		Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
-			This is because Boulder may reuse identical orders:
-				1. duplicate pending
-				2. transitioning "invalid" back to "valid"
-			This is likely handled by the AcmeEvents log and may be removed in the future
-		Added a 'deduplication' routine to AcmeAccounts.
-			It is possible we try to register a new account with information already known to the acme server. In this situation, the "new" account key we submitted should be merged onto the existing acme account.
-	Display/Faceting of AcmeOrder by active/pending status is improved
-	Order "mark invalid" button was not a form
-	Added route to sync all pending orders
-	upgraded black; 20.8b1
-	integrated pre-commit
-	requires pyramid_formencode_classic>=0.4.3
-	DNS-01 challenge via acme-dns supported
-	integration of parse_header_links corrected
-	changed letsencrypt certs dataset from list to dict
-	if openssl set in ini+env:
+    * /admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be
+      submitted if the server can not answer the challenge
+	  This will never be needed for http-01;
+	  it is only needed for:
+		  * dns-01 for a domain without an acme-dns account
+		  * tls-alpn-01
+	* Removed "Trigger" action from Authorization
+	  A Challenge should be triggered, as an order may want a specific challenge type
+	  Removals:
+		  lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
+		  web.views_admin.acme_authorization.acme_server_trigger
+		  route_name="admin:acme_authorization:focus:acme_server:trigger"
+		  route_name="admin:acme_authorization:focus:acme_server:trigger|json"
+		  "/acme-authorization/{@id}/acme-server/trigger"
+		  "/acme-authorization/{@id}/acme-server/trigger.json"
+	* Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
+	  This is because Boulder may reuse identical orders:
+		  1. duplicate pending
+		  2. transitioning "invalid" back to "valid"
+	  This is likely handled by the AcmeEvents log and may be removed in the future
+	* Added a 'deduplication' routine to AcmeAccounts.
+	  It is possible we try to register a new account with information already
+	  known to the acme server. In this situation, the "new" account key we
+	  submitted should be merged onto the existing acme account.
+	* Display/Faceting of AcmeOrder by active/pending status is improved
+	* Order "mark invalid" button was not a form
+	* Added route to sync all pending orders
+	* upgraded black; 20.8b1
+	* integrated pre-commit
+	* requires pyramid_formencode_classic>=0.4.3
+	* DNS-01 challenge via acme-dns supported
+	* integration of parse_header_links corrected
+	* changed letsencrypt certs dataset from list to dict
+	* if openssl set in ini+env:
 		raise an exception
+
+	+ other fixes and improvements
 
 	UPDATE:
 		getcreate__CertificateCA__by_pem_text
@@ -91,31 +115,6 @@
 	
 	AUDIT:
 		certificate_ca_download
-		
-	CertificateSignedAlternateChain -> CertificateSignedChain 
-	xx CertificateSigned.certificate_ca_id__upchain
-	xx CertificateSigned.certificate_upchain
-	>> certificate_upchain_alternates -> certificates_upchain
-
-
-	FINISH
-		migrate to SPKI
-		[x] parse_key
-		[x] parse_key - tests
-		[x] parse_key - populate objects
-		[x] parse_cert
-		[x] parse_cert - tests
-		[x] parse_cert - populate objects
-		[x] parse_csr
-		[x] parse_csr - tests
-		[ ] parse_csr - populate objects
-		[ ] remove modulus_md5
-
-
-
-
-
-	+ other fixes and improvements
 	
 	TODO:
 		debugtoolbar error on duplicate acmeaccount registration

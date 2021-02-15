@@ -629,7 +629,6 @@ def create__CertificateRequest(
     # scoping
     csr_domain_names = None
     csr_pem_md5 = None
-    csr_pem_modulus_md5 = None
     csr__spki_sha256 = None
 
     event_payload_dict = utils.new_event_payload_dict()
@@ -667,12 +666,6 @@ def create__CertificateRequest(
         # calculate the md5
         csr_pem_md5 = utils.md5_text(csr_pem)
 
-        # grab the modulus
-        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
-            csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name,
-        )
-
         # grab and check the spki
         csr__spki_sha256 = cert_utils.parse_csr__spki_sha256(
             csr_pem=csr_pem,
@@ -708,9 +701,6 @@ def create__CertificateRequest(
     dbCertificateRequest.certificate_request_source_id = certificate_request_source_id
     dbCertificateRequest.csr_pem = csr_pem
     dbCertificateRequest.csr_pem_md5 = csr_pem_md5  # computed in initial block
-    dbCertificateRequest.csr_pem_modulus_md5 = (
-        csr_pem_modulus_md5  # computed in initial block
-    )
     dbCertificateRequest.operations_event_id__created = dbOperationsEvent.id
     dbCertificateRequest.private_key_id = dbPrivateKey.id
     dbCertificateRequest.key_technology_id = dbPrivateKey.key_technology_id
@@ -865,15 +855,6 @@ def create__CertificateSigned(
                 "CertificateSigned Domains do not match the expected ones! this should never happen!"
             )
 
-        # grab and check the spki
-        cert__spki_sha256 = cert_utils.parse_cert__spki_sha256(
-            cert_pem=cert_pem,
-            cert_pem_filepath=_tmpfileCert.name,
-        )
-        if dbPrivateKey:
-            if cert__spki_sha256 != dbPrivateKey.spki_sha256:
-                raise ValueError("Computed mismatch on SPKI")
-
         # ok, now pull the dates off the cert
         dbCertificateSigned = model_objects.CertificateSigned()
         dbCertificateSigned.timestamp_created = ctx.timestamp
@@ -883,7 +864,6 @@ def create__CertificateSigned(
         dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
         dbCertificateSigned.private_key_id = dbPrivateKey.id
         dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
-        dbCertificateSigned.spki_sha256 = cert__spki_sha256
         dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
         if dbUniqueFQDNSet.count_domains == 1:
             dbCertificateSigned.is_single_domain_cert = True
@@ -892,14 +872,17 @@ def create__CertificateSigned(
 
         """
         The following are set by `_certificate_parse_to_record`
-            :attr:`model.utils.CertificateSigned.cert_pem_modulus_md5`
             :attr:`model.utils.CertificateSigned.timestamp_not_before`
             :attr:`model.utils.CertificateSigned.timestamp_not_after`
             :attr:`model.utils.CertificateSigned.cert_subject`
             :attr:`model.utils.CertificateSigned.cert_issuer`
             :attr:`model.utils.CertificateSigned.fingerprint_sha1`
+            :attr:`model.utils.CertificateSigned.spki_sha256`
         """
         _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
+        if dbPrivateKey:
+            if dbCertificateSigned.spki_sha256 != dbPrivateKey.spki_sha256:
+                raise ValueError("Computed mismatch on SPKI")
         if dbCertificateRequest:
             dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
         ctx.dbSession.add(dbCertificateSigned)
