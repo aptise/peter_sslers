@@ -630,6 +630,7 @@ def create__CertificateRequest(
     csr_domain_names = None
     csr_pem_md5 = None
     csr_pem_modulus_md5 = None
+    csr__spki_sha256 = None
 
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
@@ -665,11 +666,21 @@ def create__CertificateRequest(
 
         # calculate the md5
         csr_pem_md5 = utils.md5_text(csr_pem)
+
         # grab the modulus
         csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
             csr_pem=csr_pem,
             csr_pem_filepath=_tmpfile.name,
         )
+
+        # grab and check the spki
+        csr__spki_sha256 = cert_utils.parse_csr__spki_sha256(
+            csr_pem=csr_pem,
+            csr_pem_filepath=_tmpfile.name,
+        )
+        if csr__spki_sha256 != dbPrivateKey.spki_sha256:
+            raise ValueError("Computed mismatch on SPKI")
+
     finally:
         _tmpfile.close()
 
@@ -704,6 +715,7 @@ def create__CertificateRequest(
     dbCertificateRequest.private_key_id = dbPrivateKey.id
     dbCertificateRequest.key_technology_id = dbPrivateKey.key_technology_id
     dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    dbCertificateRequest.spki_sha256 = csr__spki_sha256
 
     ctx.dbSession.add(dbCertificateRequest)
     ctx.dbSession.flush(objects=[dbCertificateRequest])
@@ -732,6 +744,229 @@ def create__CertificateRequest(
     ctx.dbSession.flush(objects=[dbPrivateKey])
 
     return dbCertificateRequest
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__CertificateSigned(
+    ctx,
+    cert_pem=None,
+    cert_domains_expected=None,
+    is_active=None,
+    dbAcmeOrder=None,
+    dbCertificateCA=None,
+    dbCertificateCAs_alt=None,
+    dbCertificateRequest=None,
+    dbPrivateKey=None,
+    dbUniqueFQDNSet=None,
+):
+    """
+    Create a new CertificateSigned
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param cert_pem: (required) The certificate in PEM encoding
+    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
+
+    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate.
+    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
+
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
+        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
+
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
+        if provivded, do not submit `dbAcmeOrder`
+
+    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
+
+    :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
+        required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
+    """
+    if not any((dbAcmeOrder, dbPrivateKey)):
+        raise ValueError(
+            "create__CertificateSigned must be provided with `dbPrivateKey` or `dbAcmeOrder`"
+        )
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        raise ValueError(
+            "create__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+        )
+    if dbUniqueFQDNSet:
+        if any(
+            (
+                dbAcmeOrder,
+                dbCertificateRequest,
+            )
+        ):
+            raise ValueError(
+                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+            )
+    if not dbCertificateCA:
+        raise ValueError("must submit `dbCertificateCA`")
+
+    dbAcmeAccount = None
+    if dbAcmeOrder:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        dbUniqueFQDNSet = dbAcmeOrder.unique_fqdn_set
+        if dbCertificateRequest:
+            if dbCertificateRequest != dbAcmeOrder.certificate_request:
+                raise ValueError(
+                    "create__CertificateSigned was with `dbCertificateRequest` and a conflicting `dbAcmeOrder`"
+                )
+        else:
+            dbCertificateRequest = dbAcmeOrder.certificate_request
+        if dbPrivateKey:
+            if dbPrivateKey != dbAcmeOrder.private_key:
+                raise ValueError(
+                    "create__CertificateSigned was with `dbPrivateKey` and a conflicting `dbAcmeOrder`"
+                )
+        else:
+            dbPrivateKey = dbAcmeOrder.certificate_request.private_key
+
+    if dbCertificateRequest:
+        if dbUniqueFQDNSet:
+            if dbUniqueFQDNSet.id != dbCertificateRequest.unique_fqdn_set_id:
+                raise ValueError("could not compute the correct UniqueFQDNSet")
+        else:
+            dbUniqueFQDNSet = dbCertificateRequest.unique_fqdn_set
+
+    if not dbUniqueFQDNSet:
+        raise ValueError("a `UniqueFQDNSet` should have been computed by now")
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("CertificateSigned__insert")
+    )
+
+    _tmpfileCert = None
+    try:
+
+        # cleanup the cert_pem
+        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+        _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
+
+        # validate
+        cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name)
+
+        # validate the domains!
+        # let's make sure have the right domains in the cert!!
+        # this only happens on development during tests when we use a single cert
+        # for all requests...
+        # so we don't need to handle this or save it
+        cert_domains = cert_utils.parse_cert__domains(
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
+        )
+        if set(cert_domains_expected) != set(cert_domains):
+            log.error("set(cert_domains_expected) != set(cert_domains)")
+            log.error(cert_domains_expected)
+            log.error(cert_domains)
+            raise ValueError(
+                "CertificateSigned Domains do not match the expected ones! this should never happen!"
+            )
+
+        # grab and check the spki
+        cert__spki_sha256 = cert_utils.parse_cert__spki_sha256(
+            cert_pem=cert_pem,
+            cert_pem_filepath=_tmpfileCert.name,
+        )
+        if dbPrivateKey:
+            if cert__spki_sha256 != dbPrivateKey.spki_sha256:
+                raise ValueError("Computed mismatch on SPKI")
+
+        # ok, now pull the dates off the cert
+        dbCertificateSigned = model_objects.CertificateSigned()
+        dbCertificateSigned.timestamp_created = ctx.timestamp
+        dbCertificateSigned.cert_pem = cert_pem
+        dbCertificateSigned.cert_pem_md5 = utils.md5_text(cert_pem)
+        dbCertificateSigned.is_active = is_active
+        dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
+        dbCertificateSigned.private_key_id = dbPrivateKey.id
+        dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
+        dbCertificateSigned.spki_sha256 = cert__spki_sha256
+        dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
+        if dbUniqueFQDNSet.count_domains == 1:
+            dbCertificateSigned.is_single_domain_cert = True
+        elif dbUniqueFQDNSet.count_domains >= 1:
+            dbCertificateSigned.is_single_domain_cert = False
+
+        """
+        The following are set by `_certificate_parse_to_record`
+            :attr:`model.utils.CertificateSigned.cert_pem_modulus_md5`
+            :attr:`model.utils.CertificateSigned.timestamp_not_before`
+            :attr:`model.utils.CertificateSigned.timestamp_not_after`
+            :attr:`model.utils.CertificateSigned.cert_subject`
+            :attr:`model.utils.CertificateSigned.cert_issuer`
+            :attr:`model.utils.CertificateSigned.fingerprint_sha1`
+        """
+        _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
+        if dbCertificateRequest:
+            dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
+        ctx.dbSession.add(dbCertificateSigned)
+        ctx.dbSession.flush(objects=[dbCertificateSigned])
+
+        dbCertificateSignedChain = model_objects.CertificateSignedChain()
+        dbCertificateSignedChain.certificate_ca_id = dbCertificateCA.id
+        dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+        dbCertificateSignedChain.is_upstream_default = True
+        ctx.dbSession.add(dbCertificateSignedChain)
+        ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+
+        # increment account/private key counts
+        dbPrivateKey.count_certificate_signeds += 1
+        if not dbPrivateKey.timestamp_last_certificate_issue or (
+            dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
+        ):
+            dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
+        if dbAcmeAccount:
+            dbAcmeAccount.count_certificate_signeds += 1
+            if not dbAcmeAccount.timestamp_last_certificate_issue or (
+                dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
+            ):
+                dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
+
+        event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "CertificateSigned__insert"
+            ),
+            dbCertificateSigned=dbCertificateSigned,
+        )
+
+        # final, just to be safe
+        ctx.dbSession.flush()
+
+        if dbAcmeOrder:
+            # dbCertificateSigned.acme_order_id__generated_by = dbAcmeOrder.id
+            dbAcmeOrder.certificate_signed = dbCertificateSigned  # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
+            dbAcmeOrder.acme_order_processing_status_id = (
+                model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
+            )  # note that we've completed this!
+
+            # final, just to be safe
+            ctx.dbSession.flush()
+
+        if dbCertificateCAs_alt:
+            for _dbCertificateCA in dbCertificateCAs_alt:
+                dbCertificateSignedChain = model_objects.CertificateSignedChain()
+                dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+                dbCertificateSignedChain.certificate_ca_id = _dbCertificateCA.id
+                dbCertificateSignedChain.is_upstream_default = False
+                ctx.dbSession.add(dbCertificateSignedChain)
+                ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+
+    except Exception as exc:
+        raise
+    finally:
+        if _tmpfileCert:
+            _tmpfileCert.close()
+
+    return dbCertificateSigned
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1004,219 +1239,6 @@ def create__QueueCertificate(
     )
 
     return dbQueueCertificate
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def create__CertificateSigned(
-    ctx,
-    cert_pem=None,
-    cert_domains_expected=None,
-    is_active=None,
-    dbAcmeOrder=None,
-    dbCertificateCA=None,
-    dbCertificateCAs_alt=None,
-    dbCertificateRequest=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
-):
-    """
-    Create a new CertificateSigned
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param cert_pem: (required) The certificate in PEM encoding
-    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
-
-    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate.
-    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
-
-    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
-        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
-
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
-        if provivded, do not submit `dbAcmeOrder`
-
-    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
-
-    :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
-        required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
-    """
-    if not any((dbAcmeOrder, dbPrivateKey)):
-        raise ValueError(
-            "create__CertificateSigned must be provided with `dbPrivateKey` or `dbAcmeOrder`"
-        )
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
-        raise ValueError(
-            "create__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
-        )
-    if dbUniqueFQDNSet:
-        if any(
-            (
-                dbAcmeOrder,
-                dbCertificateRequest,
-            )
-        ):
-            raise ValueError(
-                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
-            )
-    if not dbCertificateCA:
-        raise ValueError("must submit `dbCertificateCA`")
-
-    dbAcmeAccount = None
-    if dbAcmeOrder:
-        dbAcmeAccount = dbAcmeOrder.acme_account
-        dbUniqueFQDNSet = dbAcmeOrder.unique_fqdn_set
-        if dbCertificateRequest:
-            if dbCertificateRequest != dbAcmeOrder.certificate_request:
-                raise ValueError(
-                    "create__CertificateSigned was with `dbCertificateRequest` and a conflicting `dbAcmeOrder`"
-                )
-        else:
-            dbCertificateRequest = dbAcmeOrder.certificate_request
-        if dbPrivateKey:
-            if dbPrivateKey != dbAcmeOrder.private_key:
-                raise ValueError(
-                    "create__CertificateSigned was with `dbPrivateKey` and a conflicting `dbAcmeOrder`"
-                )
-        else:
-            dbPrivateKey = dbAcmeOrder.certificate_request.private_key
-
-    if dbCertificateRequest:
-        if dbUniqueFQDNSet:
-            if dbUniqueFQDNSet.id != dbCertificateRequest.unique_fqdn_set_id:
-                raise ValueError("could not compute the correct UniqueFQDNSet")
-        else:
-            dbUniqueFQDNSet = dbCertificateRequest.unique_fqdn_set
-
-    if not dbUniqueFQDNSet:
-        raise ValueError("a `UniqueFQDNSet` should have been computed by now")
-
-    # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("CertificateSigned__insert")
-    )
-
-    _tmpfileCert = None
-    try:
-
-        # cleanup the cert_pem
-        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-        _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
-
-        # validate
-        cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name)
-
-        # validate the domains!
-        # let's make sure have the right domains in the cert!!
-        # this only happens on development during tests when we use a single cert
-        # for all requests...
-        # so we don't need to handle this or save it
-        cert_domains = cert_utils.parse_cert__domains(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
-        )
-        if set(cert_domains_expected) != set(cert_domains):
-            log.error("set(cert_domains_expected) != set(cert_domains)")
-            log.error(cert_domains_expected)
-            log.error(cert_domains)
-            raise ValueError(
-                "CertificateSigned Domains do not match the expected ones! this should never happen!"
-            )
-
-        # ok, now pull the dates off the cert
-        dbCertificateSigned = model_objects.CertificateSigned()
-        dbCertificateSigned.timestamp_created = ctx.timestamp
-        dbCertificateSigned.cert_pem = cert_pem
-        dbCertificateSigned.cert_pem_md5 = utils.md5_text(cert_pem)
-        dbCertificateSigned.is_active = is_active
-        dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
-        dbCertificateSigned.private_key_id = dbPrivateKey.id
-        dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
-        dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
-        if dbUniqueFQDNSet.count_domains == 1:
-            dbCertificateSigned.is_single_domain_cert = True
-        elif dbUniqueFQDNSet.count_domains >= 1:
-            dbCertificateSigned.is_single_domain_cert = False
-
-        """
-        The following are set by `_certificate_parse_to_record`
-            :attr:`model.utils.CertificateSigned.cert_pem_modulus_md5`
-            :attr:`model.utils.CertificateSigned.timestamp_not_before`
-            :attr:`model.utils.CertificateSigned.timestamp_not_after`
-            :attr:`model.utils.CertificateSigned.cert_subject`
-            :attr:`model.utils.CertificateSigned.cert_issuer`
-            :attr:`model.utils.CertificateSigned.fingerprint_sha1`
-        """
-        _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
-        if dbCertificateRequest:
-            dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
-        ctx.dbSession.add(dbCertificateSigned)
-        ctx.dbSession.flush(objects=[dbCertificateSigned])
-
-        dbCertificateSignedChain = model_objects.CertificateSignedChain()
-        dbCertificateSignedChain.certificate_ca_id = dbCertificateCA.id
-        dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-        dbCertificateSignedChain.is_upstream_default = True
-        ctx.dbSession.add(dbCertificateSignedChain)
-        ctx.dbSession.flush(objects=[dbCertificateSignedChain])
-
-        # increment account/private key counts
-        dbPrivateKey.count_certificate_signeds += 1
-        if not dbPrivateKey.timestamp_last_certificate_issue or (
-            dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
-        ):
-            dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
-        if dbAcmeAccount:
-            dbAcmeAccount.count_certificate_signeds += 1
-            if not dbAcmeAccount.timestamp_last_certificate_issue or (
-                dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
-            ):
-                dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
-
-        event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-        _log_object_event(
-            ctx,
-            dbOperationsEvent=dbOperationsEvent,
-            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "CertificateSigned__insert"
-            ),
-            dbCertificateSigned=dbCertificateSigned,
-        )
-
-        # final, just to be safe
-        ctx.dbSession.flush()
-
-        if dbAcmeOrder:
-            # dbCertificateSigned.acme_order_id__generated_by = dbAcmeOrder.id
-            dbAcmeOrder.certificate_signed = dbCertificateSigned  # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
-            dbAcmeOrder.acme_order_processing_status_id = (
-                model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
-            )  # note that we've completed this!
-
-            # final, just to be safe
-            ctx.dbSession.flush()
-
-        if dbCertificateCAs_alt:
-            for _dbCertificateCA in dbCertificateCAs_alt:
-                dbCertificateSignedChain = model_objects.CertificateSignedChain()
-                dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-                dbCertificateSignedChain.certificate_ca_id = _dbCertificateCA.id
-                dbCertificateSignedChain.is_upstream_default = False
-                ctx.dbSession.add(dbCertificateSignedChain)
-                ctx.dbSession.flush(objects=[dbCertificateSignedChain])
-
-    except Exception as exc:
-        raise
-    finally:
-        if _tmpfileCert:
-            _tmpfileCert.close()
-
-    return dbCertificateSigned
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -251,6 +251,10 @@ def getcreate__AcmeAccount(
             )
         )
 
+    # scoping
+    key_technology = None
+    key_pem_modulus_md5 = None
+    acckey__spki_sha256 = None
     try:
         _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
@@ -261,6 +265,12 @@ def getcreate__AcmeAccount(
 
         # grab the modulus
         key_pem_modulus_md5 = cert_utils.modulus_md5_key(
+            key_pem=key_pem,
+            key_pem_filepath=_tmpfile.name,
+        )
+
+        # grab the spki
+        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name,
         )
@@ -301,6 +311,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
         key_technology
     )
+    dbAcmeAccountKey.spki_sha256 = acckey__spki_sha256
     dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
     ctx.dbSession.add(dbAcmeAccountKey)
@@ -745,6 +756,7 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.key_technology_id = model_utils.KeyTechnology.from_string(
                 _cert_data["key_technology"]
             )
+            dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
             dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
 
             ctx.dbSession.add(dbCertificateCA)
@@ -903,11 +915,15 @@ def getcreate__PrivateKey__by_pem_text(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name
             )
 
-            # grab the modulus
             key_pem_modulus_md5 = cert_utils.modulus_md5_key(
                 key_pem=key_pem,
                 key_pem_filepath=_tmpfile.name,
             )
+
+            pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name
+            )
+
         except Exception as exc:
             raise
         finally:
@@ -931,6 +947,7 @@ def getcreate__PrivateKey__by_pem_text(
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
+        dbPrivateKey.spki_sha256 = pkey__spki_sha256
         dbPrivateKey.operations_event_id__created = dbOperationsEvent.id
         dbPrivateKey.acme_account_id__owner = acme_account_id__owner
         dbPrivateKey.private_key_source_id = private_key_source_id
