@@ -102,12 +102,12 @@
 		migrate to SPKI
 		[x] parse_key
 		[x] parse_key - tests
-		[ ] parse_key - populate objects
-		[ ] parse_cert
-		[ ] parse_cert - tests
-		[ ] parse_cert - populate objects
-		[ ] parse_csr
-		[ ] parse_csr - tests
+		[x] parse_key - populate objects
+		[x] parse_cert
+		[x] parse_cert - tests
+		[x] parse_cert - populate objects
+		[x] parse_csr
+		[x] parse_csr - tests
 		[ ] parse_csr - populate objects
 		[ ] remove modulus_md5
 

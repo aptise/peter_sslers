@@ -60,27 +60,16 @@ class ApplicationSettings(dict):
         if admin_prefix is None:
             self["admin_prefix"] = "/.well-known/admin"
 
-        # update the module data based on settings
-        # but first check for conflicts
-        _openssl_env = os.environ.get(
-            cert_utils._envvar_SSL_BIN_OPENSSL, None
-        ) or os.environ.get(cert_utils._envvar_SSL_CONF_OPENSSL, None)
-        _openssl_ini = settings.get("openssl_path", None) or settings.get(
-            "openssl_path_conf", None
-        )
-        if _openssl_env and _openssl_ini:
-            raise ValueError("OpenSSL values specified in .ini and environment")
-        _changed_openssl = False
+        # openssl updates:
+        # * openssl_path_conf
+        # * openssl_path
+        # this will validate the INI/ENV for conflicts
+        cert_utils.update_from_appsettings(settings)
+        # just copy these over to set
         if "openssl_path" in settings:
-            cert_utils.openssl_path = self["openssl_path"] = settings["openssl_path"]
-            _changed_openssl = True
+            openssl_path = settings["openssl_path"]
         if "openssl_path_conf" in settings:
-            cert_utils.openssl_path_conf = self["openssl_path_conf"] = settings[
-                "openssl_path_conf"
-            ]
-            _changed_openssl = True
-        if _changed_openssl:
-            cert_utils.check_openssl_version(replace=True)
+            openssl_path_conf = self["openssl_path_conf"]
 
         # should we cleanup challenges
         self["cleanup_pending_authorizations"] = set_bool_setting(

@@ -108,6 +108,7 @@ def initialize_AcmeAccountProviders(ctx):
     dbObject.key_pem = _placeholder_text
     dbObject.key_pem_md5 = utils.md5_text(_placeholder_text)
     dbObject.key_pem_modulus_md5 = _placeholder_text
+    dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
     dbObject.private_key_source_id = model_utils.PrivateKeySource.from_string(
@@ -124,10 +125,6 @@ def initialize_AcmeAccountProviders(ctx):
             dbObject,
         ]
     )
-    import pdb
-
-    pdb.set_trace()
-
     return True
 
 

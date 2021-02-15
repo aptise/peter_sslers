@@ -37,6 +37,7 @@ from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from peter_sslers.model import meta as model_meta
 import peter_sslers.lib
+from peter_sslers.lib import cert_utils
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import letsencrypt_info
@@ -151,6 +152,9 @@ OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERS
 # override to "test_local.ini" if needed
 TEST_INI = os.environ.get("SSL_TEST_INI", "test.ini")
 
+# This is some fancy footwork to update our settings
+_appsettings = get_appsettings(TEST_INI, name="main")
+cert_utils.update_from_appsettings(_appsettings)
 
 # ==============================================================================
 
@@ -635,6 +639,7 @@ CERT_CA_SETS = {
     "letsencrypt-certs/trustid-x3-root.pem": {
         "key_technology": "RSA",
         "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
+        "spki_sha256": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
         "cert.fingerprints": {
             "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
         },
@@ -644,6 +649,7 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
         "modulus_md5": "9454972e3730ac131def33e045ab19df",
+        "spki_sha256": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
             "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
         },
@@ -653,6 +659,7 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
         "modulus_md5": None,
+        "spki_sha256": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
             "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
         },
@@ -661,6 +668,7 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem": {
         "key_technology": "RSA",
+        "spki_sha256": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
         "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
         "cert.fingerprints": {
             "sha1": "48:50:4E:97:4C:0D:AC:5B:5C:D4:76:C8:20:22:74:B2:4C:8C:71:72",

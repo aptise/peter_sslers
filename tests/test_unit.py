@@ -127,6 +127,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
     }
     _cert_sets = {
         "001": {
+            "csr": True,
+            "csr.subject": "",
             "csr.domains.all": [
                 "a.example.com",
                 "b.example.com",
@@ -166,6 +168,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             },
         },
         "002": {
+            "csr": True,
+            "csr.subject": "CN=example.com",
             "csr.domains.all": [
                 "example.com",
             ],
@@ -177,6 +181,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "spki_sha256": "wf9xRu6GFHmumXYXy5lEJJBflEHG2eZpqabMUgRFxmM=",
         },
         "003": {
+            "csr": True,
+            "csr.subject": "",
             "csr.domains.all": [
                 "example.com",
             ],
@@ -202,13 +208,15 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             },
         },
         "004": {
+            "csr": True,
+            "csr.subject": "",
             "csr.domains.all": [
                 "a.example.com",
                 "b.example.com",
                 "c.example.com",
                 "d.example.com",
             ],
-            "csr.domains.subject": None,
+            "csr.domains.subject": "",
             "csr.domains.san": [
                 "a.example.com",
                 "b.example.com",
@@ -241,6 +249,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             },
         },
         "005": {
+            "csr": True,
+            "csr.subject": "CN=a.example.com",
             "csr.domains.all": [
                 "a.example.com",
                 "b.example.com",
@@ -258,6 +268,24 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "key_technology": "RSA",
             "spki_sha256": "vtmS2tVwpJhOpHvhyS8JGDmIi8NILZIG+JHEqCOa0qs=",
         },
+    }
+    _csr_sets_alt = {
+        "001": {
+            "directory": "key_technology-ec",
+            "file.key": "ec384-1-key.pem",
+            "file.csr": "ec384-1.csr",
+            "csr": True,
+            "csr.subject": "CN=ec384-1.example.com",
+            "csr.domains.all": [
+                "ec384-1.example.com",
+            ],
+            "csr.domains.subject": "ec384-1.example.com",
+            "csr.domains.san": [],
+            "cert": False,
+            "pubkey_modulus_md5": "None",
+            "key_technology": "EC",
+            "spki_sha256": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
+        }
     }
 
     def test__parse_cert__domains(self):
@@ -513,18 +541,208 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 str(cert_startdate), self._cert_sets[cert_set]["cert.notBefore"]
             )
 
+    def test__parse_cert(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert
+
+        This UnitTest tests the following functions:
+
+            * cert_utils.parse_cert
+            * cert_utils.parse_cert__spki_sha256
+            * cert_utils.parse_cert__key_technology
+
+        These are run on Signed and CA Certificates
+            self._cert_sets
+            CERT_CA_SETS
+        """
+
+        # normal certs
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+
+            # `cert_utils.parse_cert`
+            rval = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                rval["fingerprint_sha1"],
+                self._cert_sets[cert_set]["cert.fingerprints"]["sha1"],
+            )
+            self.assertEqual(
+                rval["spki_sha256"], self._cert_sets[cert_set]["spki_sha256"]
+            )
+
+            # `cert_utils.parse_cert__spki_sha256`
+            spki_sha256 = cert_utils.parse_cert__spki_sha256(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+
+            # `cert_utils.parse_cert__key_technology`
+            key_technology = cert_utils.parse_cert__key_technology(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                key_technology, self._cert_sets[cert_set]["key_technology"]
+            )
+
+        # ca certs
+        for cert_filename in sorted(CERT_CA_SETS.keys()):
+
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+
+            # `cert_utils.parse_cert`
+            rval = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            for field in ("key_technology", "issuer", "subject"):
+                self.assertEqual(rval[field], CERT_CA_SETS[cert_filename][field])
+            self.assertEqual(
+                rval["fingerprint_sha1"],
+                CERT_CA_SETS[cert_filename]["cert.fingerprints"]["sha1"],
+            )
+
+            # `cert_utils.parse_cert__spki_sha256`
+            spki_sha256 = cert_utils.parse_cert__spki_sha256(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(spki_sha256, CERT_CA_SETS[cert_filename]["spki_sha256"])
+
+            # `cert_utils.parse_cert__key_technology`
+            key_technology = cert_utils.parse_cert__key_technology(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                key_technology, CERT_CA_SETS[cert_filename]["key_technology"]
+            )
+
+    def test__parse_csr(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_csr
+
+        This UnitTest tests the following functions:
+
+            * cert_utils.parse_csr
+            * cert_utils.parse_csr__spki_sha256
+            * cert_utils.parse_csr__key_technology
+
+        These are run on Signed and CA Certificates
+            self._cert_sets
+            CERT_CA_SETS
+        """
+
+        # normal certs
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["csr"]:
+                raise ValueError("missing csr!")
+            csr_filename = "unit_tests/cert_%s/csr.pem" % cert_set
+            csr_pem_filepath = self._filepath_testfile(csr_filename)
+            csr_pem = self._filedata_testfile(csr_filename)
+
+            # `cert_utils.parse_csr`
+            rval = cert_utils.parse_csr(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(
+                rval["key_technology"],
+                self._cert_sets[cert_set]["key_technology"],
+            )
+            self.assertEqual(
+                rval["spki_sha256"], self._cert_sets[cert_set]["spki_sha256"]
+            )
+            self.assertEqual(
+                rval["subject"],
+                self._cert_sets[cert_set]["csr.subject"],
+            )
+            self.assertEqual(
+                rval["SubjectAlternativeName"],
+                self._cert_sets[cert_set]["csr.domains.san"],
+            )
+
+            # `cert_utils.parse_csr__spki_sha256`
+            spki_sha256 = cert_utils.parse_csr__spki_sha256(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+
+            # `cert_utils.parse_csr__key_technology`
+            key_technology = cert_utils.parse_csr__key_technology(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(
+                key_technology, self._cert_sets[cert_set]["key_technology"]
+            )
+
+        # extended csr
+        for csr_set in sorted(self._csr_sets_alt.keys()):
+            if not self._csr_sets_alt[csr_set]["csr"]:
+                raise ValueError("missing csr!")
+            csr_filename = "%s/%s" % (
+                self._csr_sets_alt[csr_set]["directory"],
+                self._csr_sets_alt[csr_set]["file.csr"],
+            )
+            csr_pem_filepath = self._filepath_testfile(csr_filename)
+            csr_pem = self._filedata_testfile(csr_filename)
+
+            # `cert_utils.parse_csr`
+            rval = cert_utils.parse_csr(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(
+                rval["key_technology"],
+                self._csr_sets_alt[csr_set]["key_technology"],
+            )
+            self.assertEqual(
+                rval["spki_sha256"], self._csr_sets_alt[csr_set]["spki_sha256"]
+            )
+            self.assertEqual(
+                rval["subject"],
+                self._csr_sets_alt[csr_set]["csr.subject"],
+            )
+            self.assertEqual(
+                rval["SubjectAlternativeName"],
+                self._csr_sets_alt[csr_set]["csr.domains.san"],
+            )
+
+            # `cert_utils.parse_csr__spki_sha256`
+            spki_sha256 = cert_utils.parse_csr__spki_sha256(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(spki_sha256, self._csr_sets_alt[csr_set]["spki_sha256"])
+
+            # `cert_utils.parse_csr__key_technology`
+            key_technology = cert_utils.parse_csr__key_technology(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(
+                key_technology, self._csr_sets_alt[csr_set]["key_technology"]
+            )
+
     def test__parse_key(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_key
         python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test__parse_key
 
         This is a debugging display function. The output is not guaranteed across installations.
+
+        This UnitTest tests the following functions:
+
+            * cert_utils.parse_key
+            * cert_utils.parse_key__spki_sha256
+            * cert_utils.parse_key__technology
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
             key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
             key_pem_filepath = self._filepath_testfile(key_filename)
             key_pem = self._filedata_testfile(key_filename)
+
+            # `cert_utils.parse_key`
             rval = cert_utils.parse_key(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
@@ -538,10 +756,26 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 rval["spki_sha256"], self._cert_sets[cert_set]["spki_sha256"]
             )
 
+            # `cert_utils.parse_key__spki_sha256`
+            spki_sha256 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+
+            # `cert_utils.parse_key__technology`
+            key_technology = cert_utils.parse_key__technology(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(
+                key_technology, self._cert_sets[cert_set]["key_technology"]
+            )
+
         # this will test against EC+RSA
         for key_filename in sorted(KEY_SETS.keys()):
             key_pem_filepath = self._filepath_testfile(key_filename)
             key_pem = self._filedata_testfile(key_filename)
+
+            # `cert_utils.parse_key`
             rval = cert_utils.parse_key(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
@@ -551,39 +785,17 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             self.assertEqual(rval["modulus_md5"], KEY_SETS[key_filename]["modulus_md5"])
             self.assertEqual(rval["spki_sha256"], KEY_SETS[key_filename]["spki_sha256"])
 
-    def test__parse_cert(self):
-        """
-        python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert
-        """
+            # `cert_utils.parse_key__spki_sha256`
+            spki_sha256 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(spki_sha256, KEY_SETS[key_filename]["spki_sha256"])
 
-        # normal certs
-        for cert_set in sorted(self._cert_sets.keys()):
-            if not self._cert_sets[cert_set]["cert"]:
-                continue
-            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
-            cert_pem_filepath = self._filepath_testfile(cert_filename)
-            cert_pem = self._filedata_testfile(cert_filename)
-            rval = cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            # `cert_utils.parse_key__technology`
+            key_technology = cert_utils.parse_key__technology(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
-            self.assertEqual(
-                rval["fingerprint_sha1"],
-                self._cert_sets[cert_set]["cert.fingerprints"]["sha1"],
-            )
-
-        # ca certs
-        for cert_filename in sorted(CERT_CA_SETS.keys()):
-            cert_pem_filepath = self._filepath_testfile(cert_filename)
-            cert_pem = self._filedata_testfile(cert_filename)
-            rval = cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
-            )
-            for field in ("key_technology", "issuer", "subject"):
-                self.assertEqual(rval[field], CERT_CA_SETS[cert_filename][field])
-            self.assertEqual(
-                rval["fingerprint_sha1"],
-                CERT_CA_SETS[cert_filename]["cert.fingerprints"]["sha1"],
-            )
+            self.assertEqual(key_technology, KEY_SETS[key_filename]["key_technology"])
 
     def test__cert_and_chain_from_fullchain(self):
         """
