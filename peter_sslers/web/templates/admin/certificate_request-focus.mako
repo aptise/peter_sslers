@@ -94,13 +94,13 @@
                         <td><code>${CertificateRequest.csr_pem_md5 or ''}</code></td>
                     </tr>
                     <tr>
-                        <th>csr_pem_modulus_md5</th>
+                        <th>spki_sha256</th>
                         <td>
-                            % if CertificateRequest.csr_pem_modulus_md5:
-                                <code>${CertificateRequest.csr_pem_modulus_md5}</code>
+                            % if CertificateRequest.spki_sha256:
+                                <code>${CertificateRequest.spki_sha256}</code>
                                 <a
                                     class="btn btn-xs btn-info"
-                                    href="${admin_prefix}/search?${CertificateRequest.csr_pem_modulus_search}"
+                                    href="${admin_prefix}/search?${CertificateRequest.csr_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                 </a>

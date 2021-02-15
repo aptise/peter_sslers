@@ -34,7 +34,7 @@
                             <thead>
                                 <tr>
                                     <th>id</th>
-                                    <th>key_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <th>timestamp last CSR</th>
                                     <th>timestamp last issue</th>
                                 </tr>
@@ -49,7 +49,7 @@
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             AcmeAccount-${acme_account.id}</a>
                                     </td>
-                                    <td><code>${acme_account.acme_account_key.key_pem_modulus_md5}</code></td>
+                                    <td><code>${acme_account.acme_account_key.spki_sha256}</code></td>
                                     <td><timestamp>${acme_account.timestamp_last_certificate_request}</timestamp></td>
                                     <td><timestamp>${acme_account.timestamp_last_certificate_issue}</timestamp></td>
                                 </tr>
@@ -72,7 +72,7 @@
                             <thead>
                                 <tr>
                                     <th>id</th>
-                                    <th>key_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <th>timestamp last CSR</th>
                                     <th>timestamp last issue</th>
                                 </tr>
@@ -87,7 +87,7 @@
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             PrivateKey-${key.id}</a>
                                     </td>
-                                    <td><code>${key.key_pem_modulus_md5}</code></td>
+                                    <td><code>${key.spki_sha256}</code></td>
                                     <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
                                     <td><timestamp>${key.timestamp_last_certificate_issue}</timestamp></td>
                                 </tr>
@@ -110,7 +110,7 @@
                             <thead>
                                 <tr>
                                     <th>id</th>
-                                    <th>cert_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <th>active?</th>
                                     <th>timestamp signed</th>
                                     <th>timestamp expires</th>
@@ -126,7 +126,7 @@
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             CertificateSigned-${cert.id}</a>
                                     </td>
-                                    <td><code>${cert.cert_pem_modulus_md5}</code></td>
+                                    <td><code>${cert.spki_sha256}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
                                     <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                                     <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
@@ -150,7 +150,7 @@
                             <thead>
                                 <tr>
                                     <th>id</th>
-                                    <th>cert_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <th>timestamp signed</th>
                                     <th>timestamp expires</th>
                                 </tr>
@@ -165,7 +165,7 @@
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             CertificateCA-${cert.id}</a>
                                     </td>
-                                    <td><code>${cert.cert_pem_modulus_md5}</code></td>
+                                    <td><code>${cert.spki_sha256}</code></td>
                                     <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                                     <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                                 </tr>

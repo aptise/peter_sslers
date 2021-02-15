@@ -261,10 +261,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @reify
-    def key_pem_modulus_search(self):
+    def key_spki_search(self):
         if not self.acme_account_key:
             return "type=error&error=missing-acme-account-key"
-        return self.acme_account_key.key_pem_modulus_search
+        return self.acme_account_key.key_spki_search
 
     @reify
     def key_pem_sample(self):
@@ -326,7 +326,6 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
 
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
 
     operations_event_id__created = sa.Column(
@@ -365,9 +364,9 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         )
 
     @reify
-    def key_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
-            self.key_pem_modulus_md5,
+    def key_spki_search(self):
+        return "type=spki&spki=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
+            self.spki_sha256,
             self.id,
             self.acme_account_id,
         )
@@ -2058,7 +2057,6 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
-    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
     fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
 
@@ -2102,9 +2100,9 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def cert_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=certificate_ca&certificate_ca.id=%s" % (
-            self.cert_pem_modulus_md5,
+    def cert_spki_search(self):
+        return "type=spki&spki=%s&source=certificate_ca&certificate_ca.id=%s" % (
+            self.spki_sha256,
             self.id,
         )
 
@@ -2227,7 +2225,6 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.CertificateRequestSource
     csr_pem = sa.Column(sa.Text, nullable=False)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
 
     key_technology_id = sa.Column(
@@ -2290,10 +2287,10 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         return None
 
     @reify
-    def csr_pem_modulus_search(self):
+    def csr_spki_search(self):
         return (
-            "type=modulus&modulus=%s&source=certificate_request&certificate_request.id=%s"
-            % (self.csr_pem_modulus_md5, self.id)
+            "type=spki&spki=%s&source=certificate_request&certificate_request.id=%s"
+            % (self.spki_sha256, self.id)
         )
 
     @property
@@ -2369,7 +2366,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
     fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
 
@@ -2496,9 +2492,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def cert_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=certificate&certificate.id=%s" % (
-            self.cert_pem_modulus_md5,
+    def cert_spki_search(self):
+        return "type=spki&spki=%s&source=certificate&certificate.id=%s" % (
+            self.spki_sha256,
             self.id,
         )
 
@@ -3407,7 +3403,6 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.KeyTechnology
     key_pem = sa.Column(sa.Text, nullable=False)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
 
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
@@ -3513,9 +3508,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def key_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (
-            self.key_pem_modulus_md5,
+    def key_spki_search(self):
+        return "type=spki&spki=%s&source=private_key&private_key.id=%s" % (
+            self.spki_sha256,
             self.id,
         )
 

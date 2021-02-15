@@ -192,12 +192,12 @@
                                     <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                                 </tr>
                                 <tr>
-                                    <th>key_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <td>
-                                        <code>${AcmeAccount.acme_account_key.key_pem_modulus_md5}</code>
+                                        <code>${AcmeAccount.acme_account_key.spki_sha256}</code>
                                         <a
                                             class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_pem_modulus_search}"
+                                            href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_spki_search}"
                                         >
                                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                         </a>

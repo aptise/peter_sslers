@@ -253,7 +253,6 @@ def getcreate__AcmeAccount(
 
     # scoping
     key_technology = None
-    key_pem_modulus_md5 = None
     acckey__spki_sha256 = None
     try:
         _tmpfile = cert_utils.new_pem_tempfile(key_pem)
@@ -261,12 +260,6 @@ def getcreate__AcmeAccount(
         # validate + grab the technology
         key_technology = cert_utils.validate_key(
             key_pem=key_pem, key_pem_filepath=_tmpfile.name
-        )
-
-        # grab the modulus
-        key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name,
         )
 
         # grab the spki
@@ -307,7 +300,6 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.timestamp_created = ctx.timestamp
     dbAcmeAccountKey.key_pem = key_pem
     dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-    dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
     dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
         key_technology
     )
@@ -722,12 +714,6 @@ def getcreate__CertificateCA__by_pem_text(
             # validate
             cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name)
 
-            # grab the modulus
-            _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-                cert_pem=cert_pem,
-                cert_pem_filepath=_tmpfile.name,
-            )
-
             # bookkeeping
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
@@ -743,7 +729,6 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.timestamp_created = ctx.timestamp
             dbCertificateCA.cert_pem = cert_pem
             dbCertificateCA.cert_pem_md5 = cert_pem_md5
-            dbCertificateCA.cert_pem_modulus_md5 = _cert_pem_modulus_md5
 
             _cert_data = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
@@ -915,11 +900,6 @@ def getcreate__PrivateKey__by_pem_text(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name
             )
 
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=key_pem,
-                key_pem_filepath=_tmpfile.name,
-            )
-
             pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name
             )
@@ -946,7 +926,6 @@ def getcreate__PrivateKey__by_pem_text(
         )
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
-        dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
         dbPrivateKey.spki_sha256 = pkey__spki_sha256
         dbPrivateKey.operations_event_id__created = dbOperationsEvent.id
         dbPrivateKey.acme_account_id__owner = acme_account_id__owner
@@ -1189,33 +1168,33 @@ def getcreate__CertificateSigned(
     cert_pem_md5 = utils.md5_text(cert_pem)
 
     # make sure the Certificate Elements match
-    _cert_pem_modulus_md5 = None
-    _csr_pem_modulus_md5 = None
-    _pkey_pem_modulus_md5 = None
+    _cert_spki = None
     try:
         _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-        # grab the modulus
-        _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
+        # grab the spki
+        _cert_spki = cert_utils.parse_cert__spki_sha256(
             cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
         )
     finally:
         _tmpfile.close()
+
+    _pkey_spki = None
     try:
         _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
-        # grab the modulus
-        _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key(
+        # grab the spki
+        _pkey_spki = cert_utils.parse_key__spki_sha256(
             key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
         )
     finally:
         _tmpfile.close()
 
-    if not all((_cert_pem_modulus_md5, _pkey_pem_modulus_md5)):
-        raise ValueError("Could not compute the Certificate or Key's elements")
-    if _cert_pem_modulus_md5 != _pkey_pem_modulus_md5:
+    if not all((_cert_spki, _pkey_spki)):
+        raise ValueError("Could not compute the Certificate or Key's SPKI")
+    if _cert_spki != _pkey_spki:
         raise ValueError("The PrivateKey did not sign the CertificateSigned")
 
     if dbCertificateRequest:
-        if _cert_pem_modulus_md5 != dbCertificateRequest.csr_pem_modulus_md5:
+        if _cert_spki != dbCertificateRequest.spki_sha256:
             raise ValueError("The PrivateKey did not sign the CertificateRequest")
 
     dbCertificateSigned = (

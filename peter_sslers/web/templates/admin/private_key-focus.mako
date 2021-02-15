@@ -176,13 +176,13 @@
                         <td><code>${PrivateKey.key_pem_md5}</code></td>
                     </tr>
                     <tr>
-                        <th>key_pem_modulus_md5</th>
+                        <th>spki_sha256</th>
                         <td>
                             % if not PrivateKey.is_placeholder:
-                                <code>${PrivateKey.key_pem_modulus_md5}</code>
+                                <code>${PrivateKey.spki_sha256}</code>
                                 <a
                                     class="btn btn-xs btn-info"
-                                    href="${admin_prefix}/search?${PrivateKey.key_pem_modulus_search}"
+                                    href="${admin_prefix}/search?${PrivateKey.key_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                 </a>

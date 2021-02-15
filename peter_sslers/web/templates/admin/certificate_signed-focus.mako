@@ -384,12 +384,12 @@
                         <td><code>${CertificateSigned.cert_pem_md5}</code></td>
                     </tr>
                     <tr>
-                        <th>cert_pem_modulus_md5</th>
+                        <th>spki_sha256</th>
                         <td>
-                            <code>${CertificateSigned.cert_pem_modulus_md5}</code>
+                            <code>${CertificateSigned.spki_sha256}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CertificateSigned.cert_pem_modulus_search}"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_spki_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
