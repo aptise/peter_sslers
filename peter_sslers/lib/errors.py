@@ -62,6 +62,10 @@ class OpenSslError_InvalidCertificate(OpenSslError):
     pass
 
 
+class OpenSslError_VersionTooLow(OpenSslError):
+    pass
+
+
 class QueueProcessingError(Exception):
     pass
 

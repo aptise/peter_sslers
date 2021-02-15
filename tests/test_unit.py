@@ -155,6 +155,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "d.example.com",
             ],
             "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
+            "key_technology": "RSA",
+            "spki_sha256": "NOZ8xhV2HLra9DCy4C4Ow5yZ7vxzzORpsYrlSjfvaUI=",
             "cert.notAfter": "2025-06-16 20:19:30",  # "Jun 16 20:19:30 2025 GMT",
             "cert.notBefore": "2020-06-16 20:19:30",
             "cert.fingerprints": {
@@ -171,6 +173,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "csr.domains.san": [],
             "cert": False,
             "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
+            "key_technology": "RSA",
+            "spki_sha256": "wf9xRu6GFHmumXYXy5lEJJBflEHG2eZpqabMUgRFxmM=",
         },
         "003": {
             "csr.domains.all": [
@@ -187,6 +191,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "example.com",
             ],
             "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
+            "key_technology": "RSA",
+            "spki_sha256": "BDrxucwa+SXBMuGVdPt7JR9yfVXhhdmIK3py8R+CrZc=",
             "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
             "cert.notBefore": "2020-06-16 22:06:46",
             "cert.fingerprints": {
@@ -224,6 +230,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "d.example.com",
             ],
             "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
+            "key_technology": "RSA",
+            "spki_sha256": "BIJayn/eeRw//axzuPUldepZh1PQ+emVGH6FbjRjOSI=",
             "cert.notAfter": "2025-06-16 22:07:02",  # "Jun 16 22:07:02 2025 GMT",
             "cert.notBefore": "2020-06-16 22:07:02",
             "cert.fingerprints": {
@@ -247,6 +255,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             ],
             "cert": False,
             "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
+            "key_technology": "RSA",
+            "spki_sha256": "vtmS2tVwpJhOpHvhyS8JGDmIi8NILZIG+JHEqCOa0qs=",
         },
     }
 
@@ -506,6 +516,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
     def test__parse_key(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_key
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test__parse_key
 
         This is a debugging display function. The output is not guaranteed across installations.
         """
@@ -516,6 +527,15 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             key_pem = self._filedata_testfile(key_filename)
             rval = cert_utils.parse_key(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(
+                rval["key_technology"], self._cert_sets[cert_set]["key_technology"]
+            )
+            self.assertEqual(
+                rval["modulus_md5"], self._cert_sets[cert_set]["pubkey_modulus_md5"]
+            )
+            self.assertEqual(
+                rval["spki_sha256"], self._cert_sets[cert_set]["spki_sha256"]
             )
 
         # this will test against EC+RSA
@@ -529,6 +549,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 rval["key_technology"], KEY_SETS[key_filename]["key_technology"]
             )
             self.assertEqual(rval["modulus_md5"], KEY_SETS[key_filename]["modulus_md5"])
+            self.assertEqual(rval["spki_sha256"], KEY_SETS[key_filename]["spki_sha256"])
 
     def test__parse_cert(self):
         """

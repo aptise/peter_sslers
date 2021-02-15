@@ -327,6 +327,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -2058,12 +2059,15 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
+
     timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
     timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
     cert_subject = sa.Column(sa.Text, nullable=False)
     cert_issuer = sa.Column(sa.Text, nullable=False)
+
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
-    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -2224,6 +2228,8 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     csr_pem = sa.Column(sa.Text, nullable=False)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+
     key_technology_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
@@ -2360,12 +2366,15 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     key_technology_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
+
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
+
     cert_subject = sa.Column(sa.Text, nullable=False)
     cert_issuer = sa.Column(sa.Text, nullable=False)
-    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_deactivated = sa.Column(
         sa.Boolean, nullable=True, default=None
@@ -3399,6 +3408,8 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     key_pem = sa.Column(sa.Text, nullable=False)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_compromised = sa.Column(sa.Boolean, nullable=True, default=None)

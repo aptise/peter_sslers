@@ -195,6 +195,61 @@ def _openssl_key_technology(key):
 # ==============================================================================
 
 
+def openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None):
+    """
+    in a shell environment, we could do this in a single command:
+        openssl rsa -in {KEY_FILEPATH} -pubout -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+    """
+    if key_technology not in ("EC", "RSA"):
+        raise ValueError("must submit `key_technology`")
+    key_technology = key_technology.lower()
+    spki_hash = None
+    # convert to DER
+    p1 = psutil.Popen(
+        [
+            openssl_path,
+            key_technology,
+            "-pubout",
+            "-outform",
+            "der",
+            "-in",
+            key_pem_filepath,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    # digest
+    p2 = psutil.Popen(
+        [
+            openssl_path,
+            "dgst",
+            "-sha256",
+            "-binary",
+        ],
+        stdin=p1.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    # encode
+    with psutil.Popen(
+        [
+            openssl_path,
+            "enc",
+            "-base64",
+        ],
+        stdin=p2.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc3:
+        spki_hash, err = proc3.communicate()
+        spki_hash = spki_hash.strip()
+        if err:
+            raise errors.OpenSslError("could not generate SPKI Hash")
+        if six.PY3:
+            spki_hash = spki_hash.decode("utf8")
+    return spki_hash
+
+
 def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None):
     """
     This routine will use crypto/certbot if available.
@@ -1020,11 +1075,11 @@ def key_single_op__pem_filepath(keytype="RSA", pem_filepath=None, single_op=None
     ) as proc:
         data, err = proc.communicate()
         if not data:
-            # this happens!
-            if err != b"read EC key\nEC Key valid.\n":
-                raise errors.OpenSslError_InvalidCertificate(err)
-            elif err.startswith(b"unknown option -check"):
-                raise errors.OpenSslError(err)
+            if err.startswith(b"unknown option -check"):
+                raise errors.OpenSslError_VersionTooLow(err)
+            elif err != b"read EC key\nEC Key valid.\n":
+                # this happens, where some versions give an error and no data!
+                raise errors.OpenSslError_InvalidKey(err)
         if six.PY3:
             data = data.decode("utf8")
         data = data.strip()
@@ -1179,6 +1234,7 @@ def parse_key(key_pem=None, key_pem_filepath=None):
         "text": None,
         "modulus_md5": None,
         "key_technology": None,
+        "spki_sha256": None,
     }
     _key_technology = "RSA"  # try this first!
 
@@ -1200,15 +1256,21 @@ def parse_key(key_pem=None, key_pem_filepath=None):
             openssl_crypto.FILETYPE_PEM, key_pem
         )
         _cert_type = _crypto_privkey.type()
+        _cryptography_privkey = _crypto_privkey.to_cryptography_key()
+        _cryptography_publickey = _cryptography_privkey.public_key()
+        _public_bytes = _cryptography_publickey.public_bytes(
+            cryptography_serialization.Encoding.DER,
+            cryptography_serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        _spki_hash = hashlib.sha256(_public_bytes).digest()
+        spki_sha256 = base64.b64encode(_spki_hash)
+        if six.PY3:
+            spki_sha256 = spki_sha256.decode()
+        rval["spki_sha256"] = spki_sha256
         if _cert_type == openssl_crypto.TYPE_RSA:
             rval["key_technology"] = _key_technology = "RSA"
             try:
-                modn = (
-                    _crypto_privkey.to_cryptography_key()
-                    .public_key()
-                    .public_numbers()
-                    .n
-                )
+                modn = _cryptography_publickey.public_numbers().n
                 modn = "{:X}".format(modn)
                 if six.PY3:
                     modn = modn.encode()
@@ -1230,18 +1292,26 @@ def parse_key(key_pem=None, key_pem_filepath=None):
                 _key_technology, key_pem_filepath, "-check"
             )
             rval["key_technology"] = _key_technology
-        except errors.OpenSslError_InvalidCertificate as exc:
+        except errors.OpenSslError_InvalidKey as exc1:
             _key_technology = "EC"
             try:
                 rval["check"] = key_single_op__pem_filepath(
                     _key_technology, key_pem_filepath, "-check"
                 )
                 rval["key_technology"] = _key_technology
-            except errors.OpenSslError_InvalidCertificate as exc:
+            except errors.OpenSslError_VersionTooLow as exc2:
+                # TODO: make this conditional
+                # i doubt many people have old versions but who knows?
+                raise
+            except errors.OpenSslError_InvalidKey as exc2:
                 rval["XX-check"] = str(exc)
         rval["text"] = key_single_op__pem_filepath(
             _key_technology, key_pem_filepath, "-text"
         )
+        if _key_technology in ("RSA", "EC"):
+            rval["spki_sha256"] = openssl_spki_hash_pkey(
+                key_technology=_key_technology, key_pem_filepath=key_pem_filepath
+            )
         if _key_technology == "RSA":
             _modulus = key_single_op__pem_filepath(
                 _key_technology, key_pem_filepath, "-modulus"

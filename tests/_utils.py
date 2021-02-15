@@ -695,10 +695,12 @@ KEY_SETS = {
     "key_technology-rsa/acme_account_1.key": {
         "key_technology": "RSA",
         "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
+        "spki_sha256": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
     },
     "key_technology-ec/ec384-1-key.pem": {
         "key_technology": "EC",
         "modulus_md5": None,
+        "spki_sha256": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
     },
 }
 

@@ -98,6 +98,21 @@
 	>> certificate_upchain_alternates -> certificates_upchain
 
 
+	FINISH
+		migrate to SPKI
+		[x] parse_key
+		[x] parse_key - tests
+		[ ] parse_key - populate objects
+		[ ] parse_cert
+		[ ] parse_cert - tests
+		[ ] parse_cert - populate objects
+		[ ] parse_csr
+		[ ] parse_csr - tests
+		[ ] parse_csr - populate objects
+		[ ] remove modulus_md5
+
+
+
 
 
 	+ other fixes and improvements
