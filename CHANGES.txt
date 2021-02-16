@@ -111,6 +111,9 @@
 	  stores a given certificate is in; however this is good for now
 	* updated index to show "Welcome! setup!" instructions
 	* updated AcmeAccount New form logic, better handles exceptions
+	* added `AcmeOrder.acme_process_steps` to list how many loops/process are needed to complete an order
+	  acme_order-focus.mako is updated to show this information in human and machine-readable form
+	  acme-order/{ID}.json endpoint is updated to show this information
 	+ other fixes and improvements
 	
 	AUDIT:
@@ -118,7 +121,6 @@
 	
 	TODO:
 	* debugtoolbar error on duplicate acmeaccount registration
-	* list how many loops/process are needed on an acme order
 	* shortcut to creating an order from a domain
 			
 

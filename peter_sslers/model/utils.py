@@ -521,6 +521,26 @@ class Acme_Status_Order(_Acme_Status_All):
         "valid",
     )
 
+    # orders with these status can not be processed any further
+    OPTIONS_inactive = (
+        "valid",
+        "invalid",
+        "*404*",
+        "*406*",
+        "*410*",
+    )
+
+    OPTIONS_potential_finalize = (
+        "pending",
+        "ready",
+    )
+    # do not include "valid", even though that can download
+    OPTIONS_potential_certificate_download = (
+        "pending",
+        "ready",
+        "processing",
+    )
+
     IDS_BLOCKING = None  # define after declaring the class
 
     _mapping = {

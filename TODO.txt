@@ -3,7 +3,6 @@ Not Finished Yet
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
 [ ] Endpoint Docs for the CA Preference
-[ ] Tests, new route tests needed; e.g. CA Preference
 
 
 Almost done:
@@ -80,14 +79,8 @@ EDIT:
 		/.well-known/admin/acme-order/{ID}/renew/custom
 			list the challenge types
 
-
-
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
-
-* AcmeOrder
-	- create an endpoint to sync all pending orders against ACME server
-	- this is needed on testing and large installs
 
 * UniqueFQDNSet
 	- allow a set to be decomposed into one or more sets
@@ -99,7 +92,6 @@ EDIT:
 
 * cert_utils
 	figure out how to emulate openssl's `--text` with crypto in `parse_key`
-
 * search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging

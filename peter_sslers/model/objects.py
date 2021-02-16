@@ -1722,6 +1722,50 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                     return True
         return False
 
+    @reify
+    def acme_process_steps(self):
+        """
+        this is a JSON payload which can be shown to an API client or used to
+        render more informative instructions on the AcmeOrder process page.
+        """
+        rval = {
+            "authorizations": [],
+            "authorizations_remaining": 0,
+            "finalize": None,
+            "download": None,
+            "next_step": None,
+        }
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_inactive:
+            return rval
+
+        if self.acme_status_order == "pending":
+            rval["finalize"] = True
+            for _to_auth in self.to_acme_authorizations:
+                _pending = (
+                    True
+                    if (
+                        _to_auth.acme_authorization.acme_status_authorization
+                        in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+                    )
+                    else None
+                )
+                _auth_tuple = (_pending, _to_auth.acme_authorization)
+                rval["authorizations"].append(_auth_tuple)
+                if _pending:
+                    rval["authorizations_remaining"] += 1
+            if rval["authorizations_remaining"]:
+                rval["next_step"] = "challenge"
+        elif self.acme_status_order == "ready":
+            rval["finalize"] = True
+            rval["download"] = True
+            rval["next_step"] = "finalize"
+        elif self.acme_status_order == "processing":
+            rval["finalize"] = False
+            rval["download"] = True
+            rval["next_step"] = "download"
+
+        return rval
+
     @property
     def is_can_acme_process(self):
         # `process` will iterate authorizations and finalize
@@ -1787,6 +1831,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
+            "acme_process_steps": self.acme_process_steps,
             "certificate_request_id": self.certificate_request_id,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,

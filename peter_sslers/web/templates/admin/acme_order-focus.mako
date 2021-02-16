@@ -95,6 +95,41 @@
                                     </td>
                                     <td>
                                         Starts processing
+                                        <%
+                                            process_data = AcmeOrder.acme_process_steps
+                                        %>
+                                        % if AcmeOrder.is_can_acme_process:
+                                            <ul class="list list-unstyled">
+                                                <li>
+                                                    Authorizations Remaining?
+                                                    <span
+                                                        class="label label-default" 
+                                                        data-process-authorizations_remaining="${process_data['authorizations_remaining']}"
+                                                    >${process_data["authorizations_remaining"]}</span>
+                                                </li>
+                                                <li>
+                                                    Potential Finalize?
+                                                    <span
+                                                        class="label label-default" 
+                                                        data-process-finalize="${process_data['finalize']}"
+                                                    >${process_data["finalize"]}</span>
+                                                </li>
+                                                <li>
+                                                    Potential Download?
+                                                    <span
+                                                        class="label label-default" 
+                                                        data-process-download="${process_data['download']}"
+                                                    >${process_data["download"]}</span>
+                                                </li>
+                                                <li>
+                                                    Next Step
+                                                    <span
+                                                        class="label label-default" 
+                                                        data-process-next_step="${process_data['next_step']}"
+                                                    >${process_data["next_step"]}</span>
+                                                </li>
+                                            </ul>
+                                        % endif
                                     </td>
                                 </tr>
                             </table>
