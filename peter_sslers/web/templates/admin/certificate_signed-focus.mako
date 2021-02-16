@@ -429,11 +429,11 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in CertificateSigned.certificates_upchain:
+                                % for _to_upchain in CertificateSigned.certificates_upchain:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.json">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_to_upchain.certificate_ca.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCA-${_certificate_upchain.id}
+                                            CertificateCA-${_to_upchain.certificate_ca.id}
                                             config.json</a>
                                     </li>
                                 % endfor
@@ -465,16 +465,16 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in CertificateSigned.certificates_upchain:
+                                % for _to_upchain in CertificateSigned.certificates_upchain:
                                     <li>
                                         <a
                                             class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.zip"
-                                            data-certificate_ca-id="${_certificate_upchain.id}"
-                                            data-certificate_ca-fingerprint_sha1="${_certificate_upchain.fingerprint_sha1}"
+                                            href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_to_upchain.certificate_ca.id}/config.zip"
+                                            data-certificate_ca-id="${_to_upchain.certificate_ca.id}"
+                                            data-certificate_ca-fingerprint_sha1="${_to_upchain.certificate_ca.fingerprint_sha1}"
                                         >
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCA-${_certificate_upchain.id}
+                                            CertificateCA-${_to_upchain.certificate_ca.id}
                                             config.zip</a>
                                     </li>
                                 % endfor
