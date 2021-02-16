@@ -114,6 +114,8 @@
 	* added `AcmeOrder.acme_process_steps` to list how many loops/process are needed to complete an order
 	  acme_order-focus.mako is updated to show this information in human and machine-readable form
 	  acme-order/{ID}.json endpoint is updated to show this information
+	* removed `iter_certificates_upchain`, in favor of `certificates_upchain`
+	* fixed display and query of CertificatesSigned and CertificatesSignedAlt
 	+ other fixes and improvements
 	
 	AUDIT:

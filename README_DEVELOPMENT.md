@@ -71,6 +71,9 @@ To have all challenge POST requests succeed without performing any validation ru
 	cd $GOPATH/src/github.com/letsencrypt/pebble
 	PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 pebble -config ./test/config/pebble-config.json
 
+Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
+
+
 ## Integrated Testing
 
 The tools directory has a list of nginx files (`tools/nginx_conf`) .

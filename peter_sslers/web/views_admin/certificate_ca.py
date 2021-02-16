@@ -360,11 +360,15 @@ class View_Focus(Handler):
     @view_config(route_name="admin:certificate_ca:focus|json", renderer="json")
     def focus(self):
         dbCertificateCA = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__count(
-            self.request.api_context, dbCertificateCA.id
+        items_count = (
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__count(
+                self.request.api_context, dbCertificateCA.id
+            )
         )
-        items_paged = lib_db.get.get__CertificateSigned__by_CertificateCAId__paginated(
-            self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+        items_paged = (
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__paginated(
+                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+            )
         )
         items_paged_alt = (
             lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__paginated(
@@ -428,16 +432,20 @@ class View_Focus(Handler):
     )
     def related__CertificateSigneds(self):
         dbCertificateCA = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__count(
-            self.request.api_context, dbCertificateCA.id
+        items_count = (
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__count(
+                self.request.api_context, dbCertificateCA.id
+            )
         )
         url_template = "%s/certificate-signeds/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_CertificateCAId__paginated(
-            self.request.api_context,
-            dbCertificateCA.id,
-            limit=items_per_page,
-            offset=offset,
+        items_paged = (
+            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__paginated(
+                self.request.api_context,
+                dbCertificateCA.id,
+                limit=items_per_page,
+                offset=offset,
+            )
         )
         return {
             "project": "peter_sslers",

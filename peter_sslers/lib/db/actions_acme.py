@@ -1639,6 +1639,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 csr_pem=csr_pem,
                 transaction_commit=True,
             )
+            import pdb
+
+            pdb.set_trace()
+
         except errors.AcmeServer404 as exc:
             updated_AcmeOrder_status(
                 ctx,

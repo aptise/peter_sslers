@@ -429,7 +429,7 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
+                                % for _certificate_upchain in CertificateSigned.certificates_upchain:
                                     <li>
                                         <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-cert-ca/${_certificate_upchain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
@@ -465,7 +465,7 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _certificate_upchain in CertificateSigned.iter_certificate_upchain:
+                                % for _certificate_upchain in CertificateSigned.certificates_upchain:
                                     <li>
                                         <a
                                             class="btn btn-xs btn-info"

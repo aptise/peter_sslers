@@ -5898,7 +5898,7 @@ class FunctionalTests_AlternateChains(AppTest):
         certificate_signed_id = focus_CertificateSigned.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        upchain_ids = [i.id for i in focus_CertificateSigned.iter_certificate_upchain]
+        upchain_ids = [i.id for i in focus_CertificateSigned.certificates_upchain]
 
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s" % certificate_signed_id,

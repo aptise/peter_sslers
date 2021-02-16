@@ -2409,7 +2409,7 @@ def get__CertificateSigned__by_AcmeAccountId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateSigned__by_CertificateCAId__count(ctx, cert_ca_id):
+def get__CertificateSigned__by_CertificateCAId__primary__count(ctx, cert_ca_id):
     counted = (
         ctx.dbSession.query(model_objects.CertificateSigned)
         .join(
@@ -2418,12 +2418,13 @@ def get__CertificateSigned__by_CertificateCAId__count(ctx, cert_ca_id):
             == model_objects.CertificateSignedChain.certificate_signed_id,
         )
         .filter(model_objects.CertificateSignedChain.certificate_ca_id == cert_ca_id)
+        .filter(model_objects.CertificateSignedChain.is_upstream_default.is_(True))
         .count()
     )
     return counted
 
 
-def get__CertificateSigned__by_CertificateCAId__paginated(
+def get__CertificateSigned__by_CertificateCAId__primary__paginated(
     ctx, cert_ca_id, limit=None, offset=0
 ):
     items_paged = (
@@ -2434,6 +2435,7 @@ def get__CertificateSigned__by_CertificateCAId__paginated(
             == model_objects.CertificateSignedChain.certificate_signed_id,
         )
         .filter(model_objects.CertificateSignedChain.certificate_ca_id == cert_ca_id)
+        .filter(model_objects.CertificateSignedChain.is_upstream_default.is_(True))
         .order_by(model_objects.CertificateSigned.id.desc())
         .limit(limit)
         .offset(offset)
@@ -2451,6 +2453,7 @@ def get__CertificateSigned__by_CertificateCAId__alt__count(ctx, cert_ca_id):
             == model_objects.CertificateSignedChain.certificate_signed_id,
         )
         .filter(model_objects.CertificateSignedChain.certificate_ca_id == cert_ca_id)
+        .filter(model_objects.CertificateSignedChain.is_upstream_default.isnot(True))
         .count()
     )
     return counted
@@ -2467,6 +2470,7 @@ def get__CertificateSigned__by_CertificateCAId__alt__paginated(
             == model_objects.CertificateSignedChain.certificate_signed_id,
         )
         .filter(model_objects.CertificateSignedChain.certificate_ca_id == cert_ca_id)
+        .filter(model_objects.CertificateSignedChain.is_upstream_default.isnot(True))
         .order_by(model_objects.CertificateSignedChain.id.desc())
         .limit(limit)
         .offset(offset)

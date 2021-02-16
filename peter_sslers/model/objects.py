@@ -2132,9 +2132,14 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    certificate_signed_primarys = sa_orm_relationship(
+        "CertificateSignedChain",
+        primaryjoin="and_(CertificateCA.id==CertificateSignedChain.certificate_ca_id, CertificateSignedChain.is_upstream_default.is_(True))",
+        uselist=True,
+    )
     certificate_signed_alternates = sa_orm_relationship(
         "CertificateSignedChain",
-        primaryjoin="CertificateCA.id==CertificateSignedChain.certificate_ca_id",
+        primaryjoin="and_(CertificateCA.id==CertificateSignedChain.certificate_ca_id, CertificateSignedChain.is_upstream_default.isnot(True))",
         uselist=True,
     )
     operations_event__created = sa_orm_relationship(
@@ -2578,11 +2583,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             return None
         return "\n".join((self.cert_pem, self.cert_chain_pem))
 
-    @property
-    def iter_certificate_upchain(self):
-        for dbCertificateSignedChain in self.certificates_upchain:
-            yield dbCertificateSignedChain.certificate_ca
-
     @reify
     def certificate_cas__upchain(self):
         # this loops `ORM:certificates_upchain`
@@ -2841,7 +2841,7 @@ class CertificateSignedChain(Base):
 
     ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
     presented the CertificateCA as the primary/default chain (``True``), or if
-    the upstream server provided the CertificateCA as an upstream chain.
+    the upstream server provided the CertificateCA as an alternate chain.
     """
 
     __tablename__ = "certificate_signed_chain"
