@@ -112,12 +112,12 @@
 	+ other fixes and improvements
 	
 	AUDIT:
-		certificate_ca_download
+	* certificate_ca_download - Is this needed anymore? We now bundle the LetsEncrypt certificates.
 	
 	TODO:
-		debugtoolbar error on duplicate acmeaccount registration
-		list how many loops/process are needed on an acme order
-		shortcut to creating an order from a domain
+	* debugtoolbar error on duplicate acmeaccount registration
+	* list how many loops/process are needed on an acme order
+	* shortcut to creating an order from a domain
 			
 
 0.4.0

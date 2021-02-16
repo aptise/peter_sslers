@@ -8917,8 +8917,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _expected_max = stats_og["count-AcmeAuthorization-pending"] + 20
             # no need to assume one for the failed auth
             _expected_min = stats_og["count-AcmeAuthorization-pending"] + 1
-            assert stats_b["count-AcmeAuthorization-pending"] < _expected_max
-            assert stats_b["count-AcmeAuthorization-pending"] > _expected_min
+            assert stats_b["count-AcmeAuthorization-pending"] <= _expected_max
+            assert stats_b["count-AcmeAuthorization-pending"] >= _expected_min
 
         finally:
             # reset
