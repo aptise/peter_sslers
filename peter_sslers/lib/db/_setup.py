@@ -147,11 +147,15 @@ def initialize_CertificateCAs(ctx):
             ctx, cert_data["cert_pem"]
         )
         if not dbCertificateCA:
+            is_trusted_root = cert_data.get("is_trusted_root")
             (
                 dbCertificateCA,
                 _is_created,
             ) = db_getcreate.getcreate__CertificateCA__by_pem_text(
-                ctx, cert_data["cert_pem"], display_name=cert_data["display_name"]
+                ctx,
+                cert_data["cert_pem"],
+                display_name=cert_data["display_name"],
+                is_trusted_root=is_trusted_root,
             )
             if _is_created:
                 certs_discovered.append(dbCertificateCA)

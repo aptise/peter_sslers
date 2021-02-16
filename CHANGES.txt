@@ -106,12 +106,10 @@
 	* changed letsencrypt certs dataset from list to dict
 	* if openssl set in ini+env:
 		raise an exception
-
+	* updated `getcreate__CertificateCA__by_pem_text` to now track "is_trusted_root"
+	  This should be redone with an association table that tracks which trusted root
+	  stores a given certificate is in; however this is good for now
 	+ other fixes and improvements
-
-	UPDATE:
-		getcreate__CertificateCA__by_pem_text
-			+is_trusted_root
 	
 	AUDIT:
 		certificate_ca_download

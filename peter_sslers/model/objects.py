@@ -2050,7 +2050,10 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     id = sa.Column(sa.Integer, primary_key=True)
     display_name = sa.Column(sa.Unicode(255), nullable=False)
 
-    is_trusted_root = sa.Column(sa.Boolean, nullable=True, default=None)
+    # todo: migrate this to an association table that tracks different trusted root stores
+    is_trusted_root = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # this is just used to track if we know this cert is in trusted root stores.
     key_technology_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
