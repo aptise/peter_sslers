@@ -109,6 +109,8 @@
 	* updated `getcreate__CertificateCA__by_pem_text` to now track "is_trusted_root"
 	  This should be redone with an association table that tracks which trusted root
 	  stores a given certificate is in; however this is good for now
+	* updated index to show "Welcome! setup!" instructions
+	* updated AcmeAccount New form logic, better handles exceptions
 	+ other fixes and improvements
 	
 	AUDIT:

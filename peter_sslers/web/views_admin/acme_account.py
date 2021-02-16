@@ -263,7 +263,19 @@ class View_New(Handler):
                     self.request.api_context, _dbAcmeAccount
                 )
                 dbAcmeAccount = _dbAcmeAccount
+
+            except errors.ConflictingObject as exc:
+                # this happens via `getcreate__AcmeAccount`
+                # * args[0] = tuple(conflicting_object, error_message_string)
+                _dbAcmeAccountDuplicate = exc.args[0][0]
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="account__contact",
+                    message=exc.args[0][1],
+                )
+
             except errors.AcmeDuplicateAccount as exc:
+                # this happens via `do__AcmeAccount_AcmeV2_register`
                 # args[0] MUST be the duplicate AcmeAccount
                 _dbAcmeAccountDuplicate = exc.args[0]
                 # the 'Duplicate' account was the earlier account and therefore
@@ -291,14 +303,9 @@ class View_New(Handler):
 
         except errors.AcmeServerError as exc:
             if self.request.wants_json:
-                return {"result": "error", "error": exc.as_querystring}
-            return HTTPSeeOther(
-                "%s/acme-account/new?result=error&error=%s"
-                % (
-                    self.request.admin_url,
-                    exc.as_querystring,
-                )
-            )
+                return {"result": "error", "form_errors": formStash.errors}
+            formStash.register_error_main_exception(exc)
+            return formhandling.form_reprint(self.request, self._new__print)
 
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
