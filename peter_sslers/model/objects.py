@@ -297,6 +297,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
                 "key_pem_md5": self.acme_account_key.key_pem_md5
                 if self.acme_account_key
                 else None,
+                "spki_sha256": self.acme_account_key.spki_sha256
+                if self.acme_account_key
+                else None,
                 "acme_account_key_source": self.acme_account_key.acme_account_key_source
                 if self.acme_account_key
                 else None,
@@ -2173,6 +2176,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             "cert_subject": self.cert_subject,
             "cert_issuer": self.cert_issuer,
             "fingerprint_sha1": self.fingerprint_sha1,
+            "spki_sha256": self.spki_sha256,
             "key_technology": self.key_technology,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_not_after": self.timestamp_not_after_isoformat,
@@ -2325,6 +2329,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
             "certificate_request_source": self.certificate_request_source,
             "csr_pem_md5": self.csr_pem_md5,
             "private_key_id": self.private_key_id,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -2340,6 +2345,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
             "domains": self.domains_as_list,
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -2772,6 +2778,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
             "cert_subject": self.cert_subject,
             "cert_issuer": self.cert_issuer,
             "fingerprint_sha1": self.fingerprint_sha1,
+            "spki_sha256": self.spki_sha256,
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
             # "acme_account_id": self.acme_account_id,
@@ -3550,6 +3557,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
             "key_technology": self.key_technology,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "private_key_source": self.private_key_source,
             "private_key_type": self.private_key_type,
