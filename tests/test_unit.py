@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 # stdlib
+import json
 import os
 import os.path
 import pdb
@@ -815,6 +816,111 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             (_cert, _chain) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             self.assertEqual(_cert, cert_pem)
 
+    def test_analyze_chains(self):
+        """
+        This tests:
+        * cert_utils.cert_and_chain_from_fullchain
+        * cert_utils.decompose_chain
+        * cert_utils.ensure_chain
+        """
+        # test long chains
+        long_chain_tests = [
+            "TestA",
+        ]
+        for _test_id in long_chain_tests:
+            _test_dir = "long_chains/%s" % _test_id
+            _test_data_filename = "%s/_data.json" % _test_dir
+            _test_data_filepath = self._filepath_testfile(_test_data_filename)
+            _test_data = self._filedata_testfile(_test_data_filepath)
+            _test_data = json.loads(_test_data)
+            count_roots = _test_data["roots"]
+            count_intermediates = _test_data["intermediates"]
+
+            cert_filename = "%s/cert.pem" % _test_dir
+            cert_pem = self._filedata_testfile(cert_filename)
+
+            test_pems = {}
+            for i in range(0, count_roots):
+                root_filename = "%s/root_%s.pem" % (_test_dir, i)
+                root_pem_filepath = self._filepath_testfile(root_filename)
+                root_pem = self._filedata_testfile(root_pem_filepath)
+
+                chain_filename = "%s/chain_%s.pem" % (_test_dir, i)
+                chain_pem_filepath = self._filepath_testfile(chain_filename)
+                chain_pem = self._filedata_testfile(chain_pem_filepath)
+
+                test_pems[i] = {"root": root_pem, "chain": chain_pem}
+
+            for idx in test_pems:
+                # create a fullchain
+                # cert_pem ends in a "\n"
+                fullchain_pem = cert_pem + test_pems[idx]["chain"]
+
+                # decompose a fullchain
+                (_cert, _chain) = cert_utils.cert_and_chain_from_fullchain(
+                    fullchain_pem
+                )
+                self.assertEqual(_cert, cert_pem)
+                self.assertEqual(_chain, test_pems[idx]["chain"])
+
+                _upstream_certs = cert_utils.decompose_chain(_chain)
+                self.assertEqual(len(_upstream_certs), count_intermediates)
+
+                _all_certs = cert_utils.decompose_chain(fullchain_pem)
+                self.assertEqual(len(_all_certs), count_intermediates + 1)
+
+                # `ensure_chain` can accept two types of data
+                roots = [
+                    test_pems[idx]["root"],
+                ]
+                self.assertTrue(
+                    cert_utils.ensure_chain(roots, chain_pem=_chain, cert_pem=cert_pem)
+                )
+                self.assertTrue(
+                    cert_utils.ensure_chain(roots, fullchain_pem=fullchain_pem)
+                )
+
+                # `ensure_chain` will not accept user error
+                # fullchain error
+                _error_expected = "If `ensure_chain` is invoked with `fullchain_pem`, do not pass in `chain_pem` or `cert_pem`."
+                # invoking `fullchain_pem` with: `chain_pem`
+                with self.assertRaises(ValueError) as cm:
+                    result = cert_utils.ensure_chain(
+                        roots, fullchain_pem=fullchain_pem, chain_pem=_chain
+                    )
+                self.assertEqual(cm.exception.args[0], _error_expected)
+                # invoking `fullchain_pem` with: `cert_pem`
+                with self.assertRaises(ValueError) as cm:
+                    result = cert_utils.ensure_chain(
+                        roots, fullchain_pem=fullchain_pem, cert_pem=cert_pem
+                    )
+                self.assertEqual(cm.exception.args[0], _error_expected)
+                # invoking `fullchain_pem` with: `cert_pem` and `chain_pem`
+                with self.assertRaises(ValueError) as cm:
+                    result = cert_utils.ensure_chain(
+                        roots,
+                        fullchain_pem=fullchain_pem,
+                        chain_pem=_chain,
+                        cert_pem=cert_pem,
+                    )
+                self.assertEqual(cm.exception.args[0], _error_expected)
+                # NO fullchain error
+                _error_expected = "If `ensure_chain` is not invoked with `fullchain_pem`, you must pass in `chain_pem` and `cert_pem`."
+                # invoking NO `fullchain_pem` with: `chain_pem`
+                with self.assertRaises(ValueError) as cm:
+                    result = cert_utils.ensure_chain(roots, chain_pem=_chain)
+                self.assertEqual(cm.exception.args[0], _error_expected)
+                # invoking NO `fullchain_pem` with: `cert_pem`
+                with self.assertRaises(ValueError) as cm:
+                    result = cert_utils.ensure_chain(roots, cert_pem=cert_pem)
+
+
+def parse_cert__spki_sha256(
+    cert_pem=None,
+    cert_pem_filepath=None,
+    cryptography_cert=None,
+    key_technology=None,
+):
     def test__convert_lejson_to_pem(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__convert_lejson_to_pem

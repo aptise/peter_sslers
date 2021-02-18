@@ -69,7 +69,7 @@ Good to go?  Ok, run pebble!
 To have all challenge POST requests succeed without performing any validation run:
 
 	cd $GOPATH/src/github.com/letsencrypt/pebble
-	PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 pebble -config ./test/config/pebble-config.json
+	PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 PEBBLE_CHAIN_LENGTH=3 pebble -config ./test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
 

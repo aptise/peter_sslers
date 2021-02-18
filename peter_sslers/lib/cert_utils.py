@@ -2304,6 +2304,18 @@ def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
     submit EITHER fullchain_pem or chain_pem+cert_pem
 
     """
+    if fullchain_pem:
+        if chain_pem or cert_pem:
+            raise ValueError(
+                "If `ensure_chain` is invoked with `fullchain_pem`, do not pass in `chain_pem` or `cert_pem`."
+            )
+    else:
+        if not chain_pem or not cert_pem:
+            raise ValueError(
+                "If `ensure_chain` is not invoked with `fullchain_pem`, you must pass in `chain_pem` and `cert_pem`."
+            )
+
+    # build a root storage
     store = openssl_crypto.X509Store()
     for _root_pem in root_pems:
         _root_parsed = openssl_crypto.load_certificate(
@@ -2313,13 +2325,14 @@ def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
 
     if fullchain_pem:
         intermediates = CERT_PEM_REGEX.findall(fullchain_pem.encode())
-    if cert_pem is None:
-        # this is a fullchain
         cert_pem = intermediates.pop(0)
     else:
-        cert_pem = cert_pem.strip()  # needed to match regex results
-        if intermediates[-1] == cert_pem:
-            intermediates = intermediates[:-1]
+        intermediates = CERT_PEM_REGEX.findall(chain_pem.encode())
+        cert_pem = cert_pem.strip()  # needed to match regex results in above situation
+
+    # sometimes people submit things they should not
+    if intermediates[-1] == cert_pem:
+        intermediates = intermediates[:-1]
 
     for _intermediate_pem in reversed(intermediates):
         _intermediate_parsed = openssl_crypto.load_certificate(
