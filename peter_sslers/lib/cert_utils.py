@@ -2256,6 +2256,86 @@ def cert_and_chain_from_fullchain(fullchain_pem):
     return (certs_normalized[0], "".join(certs_normalized[1:]))
 
 
+def decompose_chain(fullchain_pem):
+    """
+    Split `fullchain_pem` into multiple PEM encoded certs
+    """
+    log.info("decompose_chain >")
+    # First pass: find the boundary of each certificate in the chain.
+    # TODO: This will silently skip over any "explanatory text" in between boundaries,
+    # which is prohibited by RFC8555.
+    certs = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+    if len(certs) < 2:
+        raise errors.OpenSslError(
+            "failed to parse fullchain into cert and chain: "
+            + "less than 2 certificates in chain"
+        )
+    # Second pass: for each certificate found, parse it using OpenSSL and re-encode it,
+    # with the effect of normalizing any encoding variations (e.g. CRLF, whitespace).
+    if openssl_crypto:
+        certs_normalized = [
+            openssl_crypto.dump_certificate(
+                openssl_crypto.FILETYPE_PEM,
+                openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert),
+            ).decode()
+            for cert in certs
+        ]
+    else:
+        log.debug(".decompose_chain > openssl fallback")
+        certs_normalized = []
+        for _cert_pem in certs:
+            _cert_pem = _openssl_cert__normalize_pem(_cert_pem)
+            _cert_pem = cleanup_pem_text(_cert_pem)
+            certs_normalized.append(_cert_pem)
+
+    return certs_normalized
+
+
+def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
+    """
+    validates from a root down to a chain
+    if chain is a fullchain (with endentity), cert_pem can be None
+
+    :param root_pems: an iterable list of trusted roots, in PEM form
+    :param fullchain_pem: a chain in PEM form, which is multiple upstream certs in a single string
+    :param chain_pem: a chain in PEM form, which is multiple upstream certs in a single string
+    :param cert_pem: the final certificate
+
+    submit EITHER fullchain_pem or chain_pem+cert_pem
+
+    """
+    store = openssl_crypto.X509Store()
+    for _root_pem in root_pems:
+        _root_parsed = openssl_crypto.load_certificate(
+            openssl_crypto.FILETYPE_PEM, _root_pem
+        )
+        store.add_cert(_root_parsed)
+
+    if fullchain_pem:
+        intermediates = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+    if cert_pem is None:
+        # this is a fullchain
+        cert_pem = intermediates.pop(0)
+    else:
+        cert_pem = cert_pem.strip()  # needed to match regex results
+        if intermediates[-1] == cert_pem:
+            intermediates = intermediates[:-1]
+
+    for _intermediate_pem in reversed(intermediates):
+        _intermediate_parsed = openssl_crypto.load_certificate(
+            openssl_crypto.FILETYPE_PEM, _intermediate_pem
+        )
+        # Check the chain certificate before adding it to the store.
+        _store_ctx = openssl_crypto.X509StoreContext(store, _intermediate_parsed)
+        _store_ctx.verify_certificate()
+        store.add_cert(_intermediate_parsed)
+
+    cert_parsed = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+    _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
+    _store_ctx.verify_certificate()
+    return True
+
+
 # ------------------------------------------------------------------------------
 
 
