@@ -116,6 +116,8 @@
 	  acme-order/{ID}.json endpoint is updated to show this information
 	* removed `iter_certificates_upchain`, in favor of `certificates_upchain`
 	* fixed display and query of CertificatesSigned and CertificatesSignedAlt
+	* tests now inspect and enroll Pebble CA roots
+	* getcreate__CertificateCA__by_pem_text now inspects and ensures submitted key_technology is correct
 	+ other fixes and improvements
 	
 	AUDIT:

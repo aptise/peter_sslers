@@ -714,6 +714,18 @@ def getcreate__CertificateCA__by_pem_text(
             # validate
             cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name)
 
+            _key_technology = cert_utils.parse_cert__key_technology(
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+            )
+            _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
+            if key_technology_id is None:
+                key_technology_id = _key_technology_id
+            else:
+                if key_technology_id != _key_technology_id:
+                    raise ValueError(
+                        "Detected a different `key_technology_id` than submitted"
+                    )
+
             # bookkeeping
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(

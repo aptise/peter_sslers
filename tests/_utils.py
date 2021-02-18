@@ -25,9 +25,10 @@ from pyramid.paster import get_appsettings
 # pypi
 import psutil
 import transaction
+import requests
+import sqlalchemy
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
-import sqlalchemy
 
 # local
 from peter_sslers.web import main
@@ -37,6 +38,7 @@ from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from peter_sslers.model import meta as model_meta
 import peter_sslers.lib
+from peter_sslers.lib import acme_v2
 from peter_sslers.lib import cert_utils
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
@@ -123,13 +125,17 @@ if RUN_API_TESTS__PEBBLE:
 
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
-PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
 PEBBLE_ENV["PEBBLE_VA_NOSLEEP"] = "1"
+PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
+PEBBLE_ENV["PEBBLE_ALTERNATE_ROOTS"] = "1"
+PEBBLE_ENV["PEBBLE_CHAIN_LENGTH"] = "3"
 
 PEBBLE_ENV_STRICT = os.environ.copy()
 PEBBLE_ENV_STRICT["PEBBLE_VA_ALWAYS_VALID"] = "0"
 PEBBLE_ENV_STRICT["PEBBLE_AUTHZREUSE"] = "0"
 PEBBLE_ENV_STRICT["PEBBLE_VA_NOSLEEP"] = "1"
+PEBBLE_ENV_STRICT["PEBBLE_ALTERNATE_ROOTS"] = "1"
+PEBBLE_ENV_STRICT["PEBBLE_CHAIN_LENGTH"] = "3"
 
 
 # run tests against ACME_DNS_API
@@ -165,6 +171,50 @@ class FakeRequest(testing.DummyRequest):
         return transaction.manager
 
 
+def process_pebble_roots():
+    """
+    Pebble generates new roots on every run
+    We must load them
+    """
+    log.info("`pebble`: process_pebble_roots")
+
+    # the first root is guaranteed to be here:
+    r0 = requests.get("https://0.0.0.0:15000/roots/0", verify=False)
+    if r0.status_code != 200:
+        raise ValueError("Could not load first root")
+    root_pems = [
+        r0.text,
+    ]
+    alternates = acme_v2.get_header_links(r0.headers, "alternate")
+    if alternates:
+        for _alt in alternates:
+            _r = requests.get(_alt, verify=False)
+            if _r.status_code != 200:
+                raise ValueError("Could not load additional root")
+            root_pems.append(_r.text)
+    settings = get_appsettings(
+        TEST_INI, name="main"
+    )  # this can cause an unclosed resource
+    session_factory = get_session_factory(get_engine(settings))
+    dbSession = session_factory()
+    ctx = utils.ApiContext(
+        request=FakeRequest(),
+        dbSession=dbSession,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    for _root_pem in root_pems:
+        (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+        )
+        if _is_created is not True:
+            raise ValueError(
+                "Detected a previously encountered Pebble root. "
+                "This should not be possible"
+            )
+    dbSession.commit()
+    return True
+
+
 def under_pebble(_function):
     """
     decorator to spin up an external pebble server
@@ -198,6 +248,7 @@ def under_pebble(_function):
                     raise ValueError("`pebble`: ERROR spinning up")
                 time.sleep(1)
             try:
+                process_pebble_roots()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -242,6 +293,7 @@ def under_pebble_strict(_function):
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
                 time.sleep(1)
             try:
+                process_pebble_roots()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -760,8 +812,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         )  # this can cause an unclosed resource
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
-        if False:
-            settings["sqlalchemy.url"] = "sqlite://"
+        # settings["sqlalchemy.url"] = "sqlite://"
 
         self._session_factory = get_session_factory(get_engine(settings))
         if not AppTestCore._DB_INTIALIZED:
