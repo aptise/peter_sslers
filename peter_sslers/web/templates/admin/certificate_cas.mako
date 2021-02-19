@@ -23,8 +23,8 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a  href="${admin_prefix}/certificate-ca/upload"
-            title="CertificateCA - Upload"
+        <a  href="${admin_prefix}/certificate-ca/upload-cert"
+            title="CertificateCA - Upload Cert"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

@@ -101,10 +101,14 @@
                             </a>
                         </td>
                     </tr>
-                    ## <tr>
-                    ##    <th>cert_pem</th>
-                    ##    <td><code>${CertificateCA.cert_pem}</code></td>
-                    ## </tr>
+                    <tr>
+                        <th>cert_issuer_uri</th>
+                        <td><code>${CertificateCA.cert_issuer_uri or ''}</code></td>
+                    </tr>
+                    <tr>
+                        <th>cert_authority_key_identifier</th>
+                        <td><code>${CertificateCA.cert_authority_key_identifier or ''}</code></td>
+                    </tr>
                     <tr>
                         <th>download</th>
                         <td>

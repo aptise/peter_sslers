@@ -1166,6 +1166,20 @@ def get__CertificateCA__by_pem_text(ctx, cert_pem):
     return dbCertificate
 
 
+def get__CertificateCAChain__by_pem_text(ctx, cert_pem):
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem_md5 = utils.md5_text(cert_pem)
+    dbChain = (
+        ctx.dbSession.query(model_objects.CertificateCAChain)
+        .filter(
+            model_objects.CertificateCAChain.cert_pem_md5 == cert_pem_md5,
+            model_objects.CertificateCAChain.cert_pem == cert_pem,
+        )
+        .first()
+    )
+    return dbChain
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

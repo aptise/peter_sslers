@@ -230,6 +230,7 @@ class _OperationsUnified(_mixin_mapping):
         200: "CertificateCA__letsencrypt_sync",
         210: "CertificateCA__insert",
         220: "CertificateCA__upload_bundle",
+        230: "CertificateCAChain__insert",
         610: "CertificateRequest__insert",
         620: "CertificateRequest__new",
         621: "CertificateRequest__new__imported",

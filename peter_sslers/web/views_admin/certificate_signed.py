@@ -295,6 +295,7 @@ class View_New(Handler):
             if six.PY3:
                 if not isinstance(ca_chain_pem, str):
                     ca_chain_pem = ca_chain_pem.decode("utf8")
+            # TODO - getcreate__CertificateCAChain__by_pem_text
             (
                 dbCertificateCA,
                 certca_is_created,

@@ -421,12 +421,17 @@ class Form_CertificateCAPreference__prioritize(_Form_Schema_Base):
     priority = OneOf(("increase", "decrease"), not_empty=True)
 
 
-class Form_CertificateCA_Upload__file(_Form_Schema_Base):
+class Form_CertificateCA_Upload_Cert__file(_Form_Schema_Base):
+    cert_file = FieldStorageUploadConverter(not_empty=True)
+    cert_file_name = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_CertificateCA_Upload_Chain__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)
 
 
-class Form_CertificateCA_UploadBundle__file(_Form_Schema_Base):
+class Form_CertificateCA_Upload_Bundle__file(_Form_Schema_Base):
     isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     isrgrootx2_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     isrgrootx2_cross_file = FieldStorageUploadConverter(
@@ -437,13 +442,13 @@ class Form_CertificateCA_UploadBundle__file(_Form_Schema_Base):
 
 
 for le_serial in letsencrypt_info.CA_LE_INTERMEDIATES_CROSSED:
-    Form_CertificateCA_UploadBundle__file.add_field(
+    Form_CertificateCA_Upload_Bundle__file.add_field(
         "le_%s_cross_file" % le_serial,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )
 
 for le_serial in letsencrypt_info.CA_LE_INTERMEDIATES:
-    Form_CertificateCA_UploadBundle__file.add_field(
+    Form_CertificateCA_Upload_Bundle__file.add_field(
         "le_int_%s_file" % le_serial,
         FieldStorageUploadConverter(not_empty=False, if_missing=None),
     )

@@ -119,6 +119,11 @@
 	* tests now inspect and enroll Pebble CA roots
 	* getcreate__CertificateCA__by_pem_text now inspects and ensures submitted key_technology is correct
 	* added `cert_utils.ensure_chain()`
+		TODO: openssl fallback
+	* introduced a new "CertificateCAChain" object
+	* tracking CertificateCA fields:
+		* issuer_uri
+		* authority key identifier
 	+ other fixes and improvements
 	
 	AUDIT:

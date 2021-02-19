@@ -1537,16 +1537,34 @@
 </%def>
 
 
-<%def name="formgroup__CertificateCAChain_file(show_text=False)">
+<%def name="formgroup__CertificateCA_Chain_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-chain_file">Chain File</label>
         <input class="form-control" type="file" id="f1-chain_file" name="chain_file" />
         <p class="help-block">
-            This should be the public cert of the upstream signer.
+            This should be the public cert chain of the upstream signer.
         </p>
         % if show_text:
             <label for="f1-chain">Chain File [text]</label>
             <textarea class="form-control" rows="4" name="chain" id="f1-chain"></textarea>
+            <p class="help-block">
+                Alternately, provide text inline.
+            </p>
+        % endif
+    </div>
+</%def>
+
+
+<%def name="formgroup__CertificateCA_Cert_file(show_text=False)">
+    <div class="form-group clearfix">
+        <label for="f1-cert_file">Cert File</label>
+        <input class="form-control" type="file" id="f1-cert_file" name="cert_file" />
+        <p class="help-block">
+            This should be the public cert of the upstream signer.
+        </p>
+        % if show_text:
+            <label for="f1-cert">Cert File [text]</label>
+            <textarea class="form-control" rows="4" name="cert" id="f1-cert"></textarea>
             <p class="help-block">
                 Alternately, provide text inline.
             </p>

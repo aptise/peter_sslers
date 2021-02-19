@@ -695,8 +695,10 @@ CERT_CA_SETS = {
         "cert.fingerprints": {
             "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
         },
-        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
         "subject": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
     },
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
@@ -705,8 +707,10 @@ CERT_CA_SETS = {
         "cert.fingerprints": {
             "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
         },
-        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
     },
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
@@ -715,8 +719,22 @@ CERT_CA_SETS = {
         "cert.fingerprints": {
             "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
         },
-        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
+    },
+    "letsencrypt-certs/isrg-root-x2-cross-signed.pem": {
+        "key_technology": "EC",
+        "modulus_md5": None,
+        "spki_sha256": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
+        "cert.fingerprints": {
+            "sha1": "15:16:82:F5:21:8C:0A:51:1C:28:F4:06:0A:73:B9:CA:78:CE:9A:53",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer_uri": "http://x1.i.lencr.org/",
+        "authority_key_identifier": "79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E",
     },
     "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem": {
         "key_technology": "RSA",
@@ -725,8 +743,10 @@ CERT_CA_SETS = {
         "cert.fingerprints": {
             "sha1": "48:50:4E:97:4C:0D:AC:5B:5C:D4:76:C8:20:22:74:B2:4C:8C:71:72",
         },
-        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
         "subject": "C=US\nO=Let's Encrypt\nCN=R3",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
+        "authority_key_identifier": "C4:A7:B1:A4:7B:2C:71:FA:DB:E1:4B:90:75:FF:C4:15:60:85:89:10",
     },
 }
 

@@ -118,8 +118,19 @@ def update_from_appsettings(appsettings):
 # this is because of differing openssl versions
 RE_openssl_x509_subject = re.compile(r"Subject:.*? CN ?= ?([^\s,;/]+)")
 RE_openssl_x509_san = re.compile(
-    r"X509v3 Subject Alternative Name: \n +([^\n]+)\n?", re.MULTILINE | re.DOTALL
+    r"X509v3 Subject Alternative Name: ?\n +([^\n]+)\n?", re.MULTILINE | re.DOTALL
 )
+
+
+RE_openssl_x509_authority_key_identifier = re.compile(
+    r"X509v3 Authority Key Identifier: ?\n +keyid:([^\n]+)\n?", re.MULTILINE | re.DOTALL
+)
+# we have a potential line in there for the OSCP or something else.
+RE_openssl_x509_issuer_uri = re.compile(
+    r"Authority Information Access: ?\n(?:[^\n]*^\n)? +CA Issuers - URI:([^\n]+)\n?",
+    re.MULTILINE | re.DOTALL,
+)
+
 
 #
 # https://github.com/certbot/certbot/blob/master/certbot/certbot/crypto_util.py#L482
@@ -247,6 +258,33 @@ def convert_pem_to_der(pem_data=None):
     return result
 
 
+def convert_binary_to_hex_colons(input):
+    """
+    the cryptography package surfaces raw binary data
+    openssl uses hex encoding with colons
+    this function translates the binary to the hex
+
+    example: isrg-root-x2-cross-signed.pem's authority_key_identifier
+
+    binary (from cryptography)
+        y\xb4Y\xe6{\xb6\xe5\xe4\x01s\x80\x08\x88\xc8\x1aX\xf6\xe9\x9bn
+
+    hex (from openssl)
+        79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E
+
+    """
+    # input = "y\xb4Y\xe6{\xb6\xe5\xe4\x01s\x80\x08\x88\xc8\x1aX\xf6\xe9\x9bn"
+    _as_hex = binascii.b2a_hex(input)
+    # _as_hex = "79b459e67bb6e5e40173800888c81a58f6e99b6e"
+    _as_hex = _as_hex.upper()
+    # _as_hex = "79B459E67BB6E5E40173800888C81A58F6E99B6E"
+    _pairs = [_as_hex[idx : idx + 2] for idx in range(0, len(_as_hex), 2)]
+    # _pairs = ['79', 'B4', '59', 'E6', '7B', 'B6', 'E5', 'E4', '01', '73', '80', '08', '88', 'C8', '1A', '58', 'F6', 'E9', '9B', '6E']
+    output = ":".join(_pairs)
+    # '79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E'
+    return output
+
+
 def san_domains_from_text(input):
     san_domains = set([])
     _subject_alt_names = RE_openssl_x509_san.search(input)
@@ -255,6 +293,20 @@ def san_domains_from_text(input):
             if _san.startswith("DNS:"):
                 san_domains.add(_san[4:].lower())
     return sorted(list(san_domains))
+
+
+def authority_key_identifier_from_text(input):
+    results = RE_openssl_x509_authority_key_identifier.findall(input)
+    if results:
+        return results[0]
+    return None
+
+
+def issuer_uri_from_text(input):
+    results = RE_openssl_x509_issuer_uri.findall(input)
+    if results:
+        return results[0]
+    return None
 
 
 def _cert_pubkey_technology__text(cert_text):
@@ -1535,6 +1587,8 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         "key_technology": None,
         "fingerprint_sha1": None,
         "spki_sha256": None,
+        "issuer_uri": None,
+        "authority_key_identifier": None,
     }
 
     if openssl_crypto:
@@ -1561,6 +1615,44 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             if ext:
                 _names = ext.value.get_values_for_type(cryptography.x509.DNSName)
                 rval["SubjectAlternativeName"] = sorted(_names)
+        except:
+            pass
+        try:
+            ext = cert_cryptography.extensions.get_extension_for_oid(
+                cryptography.x509.oid.ExtensionOID.AUTHORITY_KEY_IDENTIFIER
+            )
+            if ext:
+                # this comes out as binary, so we need to convert it to the
+                # openssl version, which is an list of uppercase hex pairs
+                _as_binary = ext.value.key_identifier
+                rval["authority_key_identifier"] = convert_binary_to_hex_colons(
+                    _as_binary
+                )
+        except:
+            pass
+        try:
+            ext = cert_cryptography.extensions.get_extension_for_oid(
+                cryptography.x509.oid.ExtensionOID.AUTHORITY_INFORMATION_ACCESS
+            )
+            if ext:
+                for _item in ext.value:
+                    if not isinstance(
+                        _item, cryptography.x509.extensions.AccessDescription
+                    ):
+                        continue
+                    # _item.access_method is either:
+                    # * cryptography.x509.oid.AuthorityInformationAccessOID.OCSP
+                    # * cryptography.x509.oid.AuthorityInformationAccessOID.CA_ISSUERS
+                    # we only care about CA_ISSUERS
+                    if (
+                        _item.access_method
+                        == cryptography.x509.oid.AuthorityInformationAccessOID.CA_ISSUERS
+                    ):
+                        if isinstance(
+                            _item.access_location,
+                            cryptography.x509.UniformResourceIdentifier,
+                        ):
+                            rval["issuer_uri"] = _item.access_location.value
         except:
             pass
         return rval
@@ -1598,11 +1690,26 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
 
         if openssl_version is None:
             check_openssl_version()
+
         if _openssl_behavior == "b":
             try:
                 _text = cert_ext__pem_filepath(cert_pem_filepath, "subjectAltName")
                 found_domains = san_domains_from_text(_text)
                 rval["SubjectAlternativeName"] = found_domains
+            except:
+                pass
+            try:
+                _text = cert_ext__pem_filepath(
+                    cert_pem_filepath, "authorityKeyIdentifier"
+                )
+                authority_key_identifier = authority_key_identifier_from_text(_text)
+                rval["authority_key_identifier"] = authority_key_identifier
+            except:
+                pass
+            try:
+                _text = cert_ext__pem_filepath(cert_pem_filepath, "authorityInfoAccess")
+                issuer_uri = issuer_uri_from_text(_text)
+                rval["issuer_uri"] = issuer_uri
             except:
                 pass
         else:
@@ -1616,6 +1723,12 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                     data = data.decode("utf8")
                 found_domains = san_domains_from_text(data)
                 rval["SubjectAlternativeName"] = found_domains
+
+                authority_key_identifier = authority_key_identifier_from_text(data)
+                rval["authority_key_identifier"] = authority_key_identifier
+
+                issuer_uri = issuer_uri_from_text(data)
+                rval["issuer_uri"] = issuer_uri
 
         return rval
     except Exception as exc:
@@ -2347,6 +2460,10 @@ def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
     _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
     _store_ctx.verify_certificate()
     return True
+
+
+def cert_extract_issuer_uri(cert_pem=None, cert_pem_filepath=None):
+    pass
 
 
 # ------------------------------------------------------------------------------

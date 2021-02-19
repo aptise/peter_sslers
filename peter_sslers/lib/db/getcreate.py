@@ -30,6 +30,7 @@ from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__CertificateCA__by_pem_text
+from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlocklisted__by_name
@@ -686,6 +687,63 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def getcreate__CertificateCAChain__by_pem_text(
+    ctx,
+    chain_pem,
+    display_name=None,
+):
+    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_certs = cert_utils.CERT_PEM_REGEX.findall(chain_pem.encode())
+    if len(chain_certs) < 1:
+        raise ValueError("Did not find at least 1 Certificate in this Chain.")
+    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
+    if not dbCertificateCAChain:
+        chain_pem_md5 = utils.md5_text(chain_pem)
+
+        dbCertificateCAs = []
+        for cert_pem in chain_certs:
+            (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
+                ctx, cert_pem, display_name=display_name
+            )
+            dbCertificateCAs.append(_dbCertificateCA)
+
+        # bookkeeping
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string("CertificateCAChain__insert"),
+        )
+
+        dbCertificateCAChain = model_objects.CertificateCAChain()
+        dbCertificateCAChain.display_name = display_name or "discovered"
+        dbCertificateCAChain.timestamp_created = ctx.timestamp
+        dbCertificateCAChain.chain_pem = chain_pem
+        dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
+        dbCertificateCAChain.certificate_ca_0_id = dbCertificateCAs[0].id
+        dbCertificateCAChain.certificate_ca_ids_string = ",".join(
+            [str(i.id) for i in dbCertificateCAs]
+        )
+        dbCertificateCAChain.operations_event_id__created = dbOperationsEvent.id
+        ctx.dbSession.add(dbCertificateCAChain)
+        ctx.dbSession.flush(objects=[dbCertificateCAChain])
+        is_created = True
+
+        event_payload_dict["certificate_ca_chain.id"] = dbCertificateCAChain.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "CertificateCAChain__insert"
+            ),
+            dbCertificateCAChain=dbCertificateCAChain,
+        )
+
+    return (dbCertificateCAChain, is_created)
+
+
 def getcreate__CertificateCA__by_pem_text(
     ctx,
     cert_pem,
@@ -703,10 +761,15 @@ def getcreate__CertificateCA__by_pem_text(
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
     """
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    certs = cert_utils.CERT_PEM_REGEX.findall(cert_pem.encode())
+    if len(certs) > 1:
+        raise ValueError("More than 1 Certificate in this PEM.")
+    elif len(certs) != 1:
+        raise ValueError("Did not find 1 Certificate in this PEM.")
     is_created = False
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
     if not dbCertificateCA:
-        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
         cert_pem_md5 = utils.md5_text(cert_pem)
         try:
             _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
@@ -754,6 +817,10 @@ def getcreate__CertificateCA__by_pem_text(
                 _cert_data["key_technology"]
             )
             dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
+            dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
+            dbCertificateCA.cert_authority_key_identifier = _cert_data[
+                "authority_key_identifier"
+            ]
             dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
 
             ctx.dbSession.add(dbCertificateCA)
@@ -824,6 +891,173 @@ def getcreate__CertificateRequest__by_pem_text(
         is_created = True
 
     return (dbCertificateRequest, is_created)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__CertificateSigned(
+    ctx,
+    cert_pem,
+    cert_domains_expected=None,
+    is_active=None,
+    dbAcmeOrder=None,
+    dbCertificateCA=None,
+    dbCertificateCAs_alt=None,
+    dbCertificateRequest=None,
+    dbPrivateKey=None,
+    dbUniqueFQDNSet=None,
+):
+    """
+    getcreate wrapping issued certs
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param cert_pem: (required) The certificate in PEM encoding
+    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
+
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
+        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
+    :param dbCertificateCA: (required) The upstream :class:`model.objects.CertificateCA` that signed the certificate
+    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
+        if provivded, do not submit `dbAcmeOrder`
+    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
+    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
+
+    returns:
+
+    tuple (dbCertificateSigned, is_created)
+    """
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        raise ValueError(
+            "getcreate__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+        )
+    if dbUniqueFQDNSet:
+        if any(
+            (
+                dbAcmeOrder,
+                dbCertificateRequest,
+            )
+        ):
+            raise ValueError(
+                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+            )
+
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        if not dbUniqueFQDNSet:
+            raise ValueError(
+                "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
+            )
+
+    if not all(
+        (
+            cert_pem,
+            dbCertificateCA,
+            dbPrivateKey,
+        )
+    ):
+        raise ValueError(
+            "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCA, dbPrivateKey)"
+        )
+
+    is_created = None
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem_md5 = utils.md5_text(cert_pem)
+
+    # make sure the Certificate Elements match
+    _cert_spki = None
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
+        # grab the spki
+        _cert_spki = cert_utils.parse_cert__spki_sha256(
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+        )
+    finally:
+        _tmpfile.close()
+
+    _pkey_spki = None
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
+        # grab the spki
+        _pkey_spki = cert_utils.parse_key__spki_sha256(
+            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
+        )
+    finally:
+        _tmpfile.close()
+
+    if not all((_cert_spki, _pkey_spki)):
+        raise ValueError("Could not compute the Certificate or Key's SPKI")
+    if _cert_spki != _pkey_spki:
+        raise ValueError("The PrivateKey did not sign the CertificateSigned")
+
+    if dbCertificateRequest:
+        if _cert_spki != dbCertificateRequest.spki_sha256:
+            raise ValueError("The PrivateKey did not sign the CertificateRequest")
+
+    dbCertificateSigned = (
+        ctx.dbSession.query(model_objects.CertificateSigned)
+        .filter(
+            model_objects.CertificateSigned.cert_pem_md5 == cert_pem_md5,
+            model_objects.CertificateSigned.cert_pem == cert_pem,
+        )
+        .first()
+    )
+    if dbCertificateSigned:
+        is_created = False
+        if dbUniqueFQDNSet:
+            if dbCertificateSigned.unique_fqdn_set_id != dbUniqueFQDNSet.id:
+                raise ValueError("Integrity Error. UniqueFQDNSet differs.")
+        if dbPrivateKey and (dbCertificateSigned.private_key_id != dbPrivateKey.id):
+            if dbCertificateSigned.private_key_id:
+                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
+            elif dbCertificateSigned.private_key_id is None:
+                dbCertificateSigned.private_key_id = dbPrivateKey.id
+                dbPrivateKey.count_certificate_signeds += 1
+                if not dbPrivateKey.timestamp_last_certificate_issue or (
+                    dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
+                ):
+                    dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
+                ctx.dbSession.flush(objects=[dbCertificateSigned, dbPrivateKey])
+
+        # ensure we have all the Alternate Chains connected to this ServerCerticiate
+        _upchains_existing = dbCertificateSigned.certificate_upchain_ids
+        _upchains_needed = []
+        # check the primary
+        if dbCertificateCA.id not in _upchains_existing:
+            _upchains_needed.append(dbCertificateCA.id)
+        if dbCertificateCAs_alt:
+            # check the alts
+            for _dbCertificateCA_alt in dbCertificateCAs_alt:
+                if _dbCertificateCA_alt.id not in _upchains_existing:
+                    _upchains_needed.append(_dbCertificateCA_alt.id)
+        for _up_needed in _upchains_needed:
+            dbCertificateSignedChain = model_objects.CertificateSignedChain()
+            dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+            dbCertificateSignedChain.certificate_ca_id = _up_needed
+            if _up_needed == dbCertificateCA.id:
+                dbCertificateSignedChain.is_upstream_default = True
+            else:
+                dbCertificateSignedChain.is_upstream_default = None
+            ctx.dbSession.add(dbCertificateSignedChain)
+            ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+
+    elif not dbCertificateSigned:
+        dbCertificateSigned = create__CertificateSigned(
+            ctx,
+            cert_pem=cert_pem,
+            cert_domains_expected=cert_domains_expected,
+            is_active=is_active,
+            dbAcmeOrder=dbAcmeOrder,
+            dbCertificateCA=dbCertificateCA,
+            dbCertificateCAs_alt=dbCertificateCAs_alt,
+            dbCertificateRequest=dbCertificateRequest,
+            dbPrivateKey=dbPrivateKey,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+        )
+        is_created = True
+
+    return (dbCertificateSigned, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1105,173 +1339,6 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
         ctx.dbSession.flush(objects=[dbRemoteIpAddress])
         is_created = True
     return (dbRemoteIpAddress, is_created)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__CertificateSigned(
-    ctx,
-    cert_pem,
-    cert_domains_expected=None,
-    is_active=None,
-    dbAcmeOrder=None,
-    dbCertificateCA=None,
-    dbCertificateCAs_alt=None,
-    dbCertificateRequest=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
-):
-    """
-    getcreate wrapping issued certs
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param cert_pem: (required) The certificate in PEM encoding
-    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
-
-    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
-        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
-    :param dbCertificateCA: (required) The upstream :class:`model.objects.CertificateCA` that signed the certificate
-    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
-        if provivded, do not submit `dbAcmeOrder`
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
-
-    returns:
-
-    tuple (dbCertificateSigned, is_created)
-    """
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
-        raise ValueError(
-            "getcreate__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
-        )
-    if dbUniqueFQDNSet:
-        if any(
-            (
-                dbAcmeOrder,
-                dbCertificateRequest,
-            )
-        ):
-            raise ValueError(
-                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
-            )
-
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
-        if not dbUniqueFQDNSet:
-            raise ValueError(
-                "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
-            )
-
-    if not all(
-        (
-            cert_pem,
-            dbCertificateCA,
-            dbPrivateKey,
-        )
-    ):
-        raise ValueError(
-            "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCA, dbPrivateKey)"
-        )
-
-    is_created = None
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
-
-    # make sure the Certificate Elements match
-    _cert_spki = None
-    try:
-        _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-        # grab the spki
-        _cert_spki = cert_utils.parse_cert__spki_sha256(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
-        )
-    finally:
-        _tmpfile.close()
-
-    _pkey_spki = None
-    try:
-        _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
-        # grab the spki
-        _pkey_spki = cert_utils.parse_key__spki_sha256(
-            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
-        )
-    finally:
-        _tmpfile.close()
-
-    if not all((_cert_spki, _pkey_spki)):
-        raise ValueError("Could not compute the Certificate or Key's SPKI")
-    if _cert_spki != _pkey_spki:
-        raise ValueError("The PrivateKey did not sign the CertificateSigned")
-
-    if dbCertificateRequest:
-        if _cert_spki != dbCertificateRequest.spki_sha256:
-            raise ValueError("The PrivateKey did not sign the CertificateRequest")
-
-    dbCertificateSigned = (
-        ctx.dbSession.query(model_objects.CertificateSigned)
-        .filter(
-            model_objects.CertificateSigned.cert_pem_md5 == cert_pem_md5,
-            model_objects.CertificateSigned.cert_pem == cert_pem,
-        )
-        .first()
-    )
-    if dbCertificateSigned:
-        is_created = False
-        if dbUniqueFQDNSet:
-            if dbCertificateSigned.unique_fqdn_set_id != dbUniqueFQDNSet.id:
-                raise ValueError("Integrity Error. UniqueFQDNSet differs.")
-        if dbPrivateKey and (dbCertificateSigned.private_key_id != dbPrivateKey.id):
-            if dbCertificateSigned.private_key_id:
-                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
-            elif dbCertificateSigned.private_key_id is None:
-                dbCertificateSigned.private_key_id = dbPrivateKey.id
-                dbPrivateKey.count_certificate_signeds += 1
-                if not dbPrivateKey.timestamp_last_certificate_issue or (
-                    dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
-                ):
-                    dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
-                ctx.dbSession.flush(objects=[dbCertificateSigned, dbPrivateKey])
-
-        # ensure we have all the Alternate Chains connected to this ServerCerticiate
-        _upchains_existing = dbCertificateSigned.certificate_upchain_ids
-        _upchains_needed = []
-        # check the primary
-        if dbCertificateCA.id not in _upchains_existing:
-            _upchains_needed.append(dbCertificateCA.id)
-        if dbCertificateCAs_alt:
-            # check the alts
-            for _dbCertificateCA_alt in dbCertificateCAs_alt:
-                if _dbCertificateCA_alt.id not in _upchains_existing:
-                    _upchains_needed.append(_dbCertificateCA_alt.id)
-        for _up_needed in _upchains_needed:
-            dbCertificateSignedChain = model_objects.CertificateSignedChain()
-            dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-            dbCertificateSignedChain.certificate_ca_id = _up_needed
-            if _up_needed == dbCertificateCA.id:
-                dbCertificateSignedChain.is_upstream_default = True
-            else:
-                dbCertificateSignedChain.is_upstream_default = None
-            ctx.dbSession.add(dbCertificateSignedChain)
-            ctx.dbSession.flush(objects=[dbCertificateSignedChain])
-
-    elif not dbCertificateSigned:
-        dbCertificateSigned = create__CertificateSigned(
-            ctx,
-            cert_pem=cert_pem,
-            cert_domains_expected=cert_domains_expected,
-            is_active=is_active,
-            dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCA,
-            dbCertificateCAs_alt=dbCertificateCAs_alt,
-            dbCertificateRequest=dbCertificateRequest,
-            dbPrivateKey=dbPrivateKey,
-            dbUniqueFQDNSet=dbUniqueFQDNSet,
-        )
-        is_created = True
-
-    return (dbCertificateSigned, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

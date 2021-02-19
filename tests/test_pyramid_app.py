@@ -2476,7 +2476,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_ca:upload",
+            "admin:certificate_ca:upload_cert",
             "admin:certificate_ca:upload_bundle",
         )
     )
@@ -2487,9 +2487,11 @@ class FunctionalTests_CertificateCA(AppTest):
         _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
-        res = self.testapp.get("/.well-known/admin/certificate-ca/upload", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/upload-cert", status=200
+        )
         form = res.form
-        form["chain_file"] = Upload(_cert_ca_filepath)
+        form["cert_file"] = Upload(_cert_ca_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
 
@@ -2534,7 +2536,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_ca:upload|json",
+            "admin:certificate_ca:upload_cert|json",
             "admin:certificate_ca:upload_bundle|json",
         )
     )
@@ -2546,10 +2548,12 @@ class FunctionalTests_CertificateCA(AppTest):
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload.json", status=200
+            "/.well-known/admin/certificate-ca/upload-cert.json", status=200
         )
-        _data = {"chain_file": Upload(_cert_ca_filepath)}
-        res2 = self.testapp.post("/.well-known/admin/certificate-ca/upload.json", _data)
+        _data = {"cert_file": Upload(_cert_ca_filepath)}
+        res2 = self.testapp.post(
+            "/.well-known/admin/certificate-ca/upload-cert.json", _data
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
 

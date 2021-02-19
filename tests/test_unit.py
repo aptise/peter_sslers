@@ -157,9 +157,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "c.example.com",
                 "d.example.com",
             ],
-            "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
-            "key_technology": "RSA",
-            "spki_sha256": "NOZ8xhV2HLra9DCy4C4Ow5yZ7vxzzORpsYrlSjfvaUI=",
             "cert.notAfter": "2025-06-16 20:19:30",  # "Jun 16 20:19:30 2025 GMT",
             "cert.notBefore": "2020-06-16 20:19:30",
             "cert.fingerprints": {
@@ -167,6 +164,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "sha256": "02:7E:69:B3:5F:0D:8F:2D:2A:3D:06:D4:72:08:F0:C4:FD:31:B6:9A:42:9D:FC:36:BE:8D:D0:D5:B7:3D:8D:C4",
                 "md5": "21:C6:0F:E6:39:DF:16:CA:5B:F1:5D:82:07:F0:7A:42",
             },
+            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.issuer_uri": None,
+            "key_technology": "RSA",
+            "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
+            "spki_sha256": "NOZ8xhV2HLra9DCy4C4Ow5yZ7vxzzORpsYrlSjfvaUI=",
         },
         "002": {
             "csr": True,
@@ -177,8 +179,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "csr.domains.subject": "example.com",
             "csr.domains.san": [],
             "cert": False,
-            "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
             "key_technology": "RSA",
+            "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
             "spki_sha256": "wf9xRu6GFHmumXYXy5lEJJBflEHG2eZpqabMUgRFxmM=",
         },
         "003": {
@@ -197,9 +199,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.domains.san": [
                 "example.com",
             ],
-            "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
-            "key_technology": "RSA",
-            "spki_sha256": "BDrxucwa+SXBMuGVdPt7JR9yfVXhhdmIK3py8R+CrZc=",
             "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
             "cert.notBefore": "2020-06-16 22:06:46",
             "cert.fingerprints": {
@@ -207,6 +206,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "sha256": "CC:8D:06:6A:7C:59:D6:7A:4D:AE:E0:2A:C6:7B:AA:C5:DA:02:96:30:37:58:CC:82:4A:F6:24:3D:5A:8C:78:F6",
                 "md5": "45:5A:11:B0:57:29:B3:BD:E1:1A:86:D5:A9:4C:40:D7",
             },
+            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.issuer_uri": None,
+            "key_technology": "RSA",
+            "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
+            "spki_sha256": "BDrxucwa+SXBMuGVdPt7JR9yfVXhhdmIK3py8R+CrZc=",
         },
         "004": {
             "csr": True,
@@ -238,9 +242,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "c.example.com",
                 "d.example.com",
             ],
-            "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
-            "key_technology": "RSA",
-            "spki_sha256": "BIJayn/eeRw//axzuPUldepZh1PQ+emVGH6FbjRjOSI=",
             "cert.notAfter": "2025-06-16 22:07:02",  # "Jun 16 22:07:02 2025 GMT",
             "cert.notBefore": "2020-06-16 22:07:02",
             "cert.fingerprints": {
@@ -248,6 +249,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "sha256": "39:06:F1:74:72:B9:E1:80:C6:52:61:35:B0:BB:F4:CA:2C:61:87:D2:DC:90:67:80:9F:C0:23:B5:EA:27:62:57",
                 "md5": "36:D3:A4:29:48:CF:7C:78:D5:06:60:C9:F4:66:18:B3",
             },
+            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.issuer_uri": None,
+            "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
+            "key_technology": "RSA",
+            "spki_sha256": "BIJayn/eeRw//axzuPUldepZh1PQ+emVGH6FbjRjOSI=",
         },
         "005": {
             "csr": True,
@@ -265,8 +271,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 "d.example.com",
             ],
             "cert": False,
-            "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
             "key_technology": "RSA",
+            "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
             "spki_sha256": "vtmS2tVwpJhOpHvhyS8JGDmIi8NILZIG+JHEqCOa0qs=",
         },
     }
@@ -545,6 +551,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
     def test__parse_cert(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__parse_cert
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test__parse_cert
 
         This UnitTest tests the following functions:
 
@@ -576,6 +583,13 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             self.assertEqual(
                 rval["spki_sha256"], self._cert_sets[cert_set]["spki_sha256"]
             )
+            self.assertEqual(
+                rval["issuer_uri"], self._cert_sets[cert_set]["cert.issuer_uri"]
+            )
+            self.assertEqual(
+                rval["authority_key_identifier"],
+                self._cert_sets[cert_set]["cert.authority_key_identifier"],
+            )
 
             # `cert_utils.parse_cert__spki_sha256`
             spki_sha256 = cert_utils.parse_cert__spki_sha256(
@@ -601,7 +615,13 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
-            for field in ("key_technology", "issuer", "subject"):
+            for field in (
+                "key_technology",
+                "issuer",
+                "subject",
+                "issuer_uri",
+                "authority_key_identifier",
+            ):
                 self.assertEqual(rval[field], CERT_CA_SETS[cert_filename][field])
             self.assertEqual(
                 rval["fingerprint_sha1"],

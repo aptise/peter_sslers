@@ -466,6 +466,7 @@ def _log_object_event(
     dbAcmeDnsServer=None,
     dbAcmeOrder=None,
     dbCertificateCA=None,
+    dbCertificateCAChain=None,
     dbCertificateRequest=None,
     dbCoverageAssuranceEvent=None,
     dbDomain=None,
@@ -490,6 +491,8 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_dns_server_id = dbAcmeDnsServer.id
     elif dbCertificateCA:
         dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
+    elif dbCertificateCAChain:
+        dbOperationsObjectEvent.certificate_ca_chain_id = dbCertificateCAChain.id
     elif dbCertificateRequest:
         dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
     elif dbCoverageAssuranceEvent:

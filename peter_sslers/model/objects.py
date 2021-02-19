@@ -2116,6 +2116,11 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
     cert_subject = sa.Column(sa.Text, nullable=False)
     cert_issuer = sa.Column(sa.Text, nullable=False)
 
+    # these are not guaranteed
+    cert_issuer_uri = sa.Column(sa.Text, nullable=True)
+    cert_authority_key_identifier = sa.Column(sa.Text, nullable=True)
+
+    # internal tracking
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
 
     operations_event_id__created = sa.Column(
@@ -2232,6 +2237,33 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
         }
+
+
+class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
+    """
+    These are pre-assembled chains of CertificateCA objects.
+    """
+
+    __tablename__ = "certificate_ca_chain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    display_name = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # this is the PEM encoding of the ENTIRE chain, not just element 0
+    chain_pem = sa.Column(sa.Text, nullable=False)
+    chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
+
+    # this is the first item in the chain; what signs the CertificateSigned
+    certificate_ca_0_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+    # this is a comma(,) separated list of the involved CertificateCA ids
+    # using a string here is not a normalized data storage, but is more useful and efficient
+    certificate_ca_ids_string = sa.Column(sa.Unicode(255), nullable=False)
+
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
 
 
 # ==============================================================================
@@ -3284,6 +3316,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN certificate_ca_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
+            " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
             " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN certificate_signed_id IS NOT NULL THEN 1 ELSE 0 END "
@@ -3324,6 +3358,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
     certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )
+    certificate_ca_chain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True

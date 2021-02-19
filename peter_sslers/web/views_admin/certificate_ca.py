@@ -18,8 +18,9 @@ from ..lib import formhandling
 from ..lib.forms import Form_CertificateCAPreference__add
 from ..lib.forms import Form_CertificateCAPreference__delete
 from ..lib.forms import Form_CertificateCAPreference__prioritize
-from ..lib.forms import Form_CertificateCA_Upload__file
-from ..lib.forms import Form_CertificateCA_UploadBundle__file
+from ..lib.forms import Form_CertificateCA_Upload_Cert__file
+from ..lib.forms import Form_CertificateCA_Upload_Chain__file
+from ..lib.forms import Form_CertificateCA_Upload_Bundle__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
@@ -490,48 +491,52 @@ class View_Focus(Handler):
 
 
 class View_New(Handler):
-    @view_config(route_name="admin:certificate_ca:upload")
-    @view_config(route_name="admin:certificate_ca:upload|json", renderer="json")
-    def upload(self):
+    @view_config(route_name="admin:certificate_ca:upload_cert")
+    @view_config(route_name="admin:certificate_ca:upload_cert|json", renderer="json")
+    def upload_cert(self):
         if self.request.method == "POST":
-            return self._upload__submit()
-        return self._upload__print()
+            return self._upload_cert__submit()
+        return self._upload_cert__print()
 
-    def _upload__print(self):
+    def _upload_cert__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/certificate-ca/upload.json"""
+                "instructions": """curl --form 'cert_file=@chain1.pem' --form %s/certificate-ca/upload-cert.json"""
                 % self.request.admin_url,
-                "form_fields": {"chain_file": "required"},
+                "form_fields": {"cert_file": "required"},
             }
-        return render_to_response("/admin/certificate_ca-upload.mako", {}, self.request)
+        return render_to_response(
+            "/admin/certificate_ca-upload_cert.mako", {}, self.request
+        )
 
-    def _upload__submit(self):
+    def _upload_cert__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_CertificateCA_Upload__file, validate_get=False
+                self.request,
+                schema=Form_CertificateCA_Upload_Cert__file,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
 
-            ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
+            cert_pem = formhandling.slurp_file_field(formStash, "cert_file")
             if six.PY3:
-                if not isinstance(ca_chain_pem, str):
-                    ca_chain_pem = ca_chain_pem.decode("utf8")
+                if not isinstance(cert_pem, str):
+                    cert_pem = cert_pem.decode("utf8")
 
-            chain_file_name = formStash.results["chain_file_name"] or "manual upload"
+            cert_file_name = formStash.results["cert_file_name"] or "manual upload"
             (
                 dbCertificateCA,
-                certca_is_created,
+                _is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
-                self.request.api_context, ca_chain_pem, display_name=chain_file_name
+                self.request.api_context, cert_pem, display_name=cert_file_name
             )
 
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "CertificateCA": {
-                        "created": certca_is_created,
+                        "created": _is_created,
                         "id": dbCertificateCA.id,
                     },
                 }
@@ -540,14 +545,79 @@ class View_New(Handler):
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbCertificateCA.id,
-                    (1 if certca_is_created else 0),
+                    (1 if _is_created else 0),
                 )
             )
 
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            return formhandling.form_reprint(self.request, self._upload__print)
+            return formhandling.form_reprint(self.request, self._upload_cert__submit)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:certificate_ca:upload_chain")
+    @view_config(route_name="admin:certificate_ca:upload_chain|json", renderer="json")
+    def upload_chain(self):
+        if self.request.method == "POST":
+            return self._upload_chain__submit()
+        return self._upload_chain__print()
+
+    def _upload_chain__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/certificate-ca/upload-chain.json"""
+                % self.request.admin_url,
+                "form_fields": {"chain_file": "required"},
+            }
+        return render_to_response(
+            "/admin/certificate_ca-upload_chain.mako", {}, self.request
+        )
+
+    def _upload_chain__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_CertificateCA_Upload_Chain__file,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
+            if six.PY3:
+                if not isinstance(chain_pem, str):
+                    chain_pem = chain_pem.decode("utf8")
+
+            chain_file_name = formStash.results["chain_file_name"] or "manual upload"
+            (
+                dbCertificateCAChain,
+                _is_created,
+            ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                self.request.api_context, chain_pem, display_name=chain_file_name
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "CertificateCAChain": {
+                        "created": _is_created,
+                        "id": dbCertificateCAChain.id,
+                    },
+                }
+            return HTTPSeeOther(
+                "%s/certificate-ca/%s?result=success&is_created=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbCertificateCAChain.id,
+                    (1 if _is_created else 0),
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._upload_chain__submit)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -595,7 +665,7 @@ class View_New(Handler):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_CertificateCA_UploadBundle__file,
+                schema=Form_CertificateCA_Upload_Bundle__file,
                 validate_get=False,
             )
             if not result:

@@ -40,7 +40,7 @@
                 ${admin_partials.formgroup__Certificate_file(show_text=show_text)}
                 <hr/>
 
-                ${admin_partials.formgroup__CertificateCAChain_file(show_text=show_text)}
+                ${admin_partials.formgroup__CertificateCA_Chain_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

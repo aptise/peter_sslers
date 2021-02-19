@@ -39,6 +39,7 @@ from .get import get__AcmeAccount__by_account_url
 
 
 TESTING_ENVIRONMENT = True
+TEST_CERTIFICATE_CHAIN = True
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1639,9 +1640,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 csr_pem=csr_pem,
                 transaction_commit=True,
             )
-            import pdb
-
-            pdb.set_trace()
 
         except errors.AcmeServer404 as exc:
             updated_AcmeOrder_status(
@@ -1657,7 +1655,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None
-        dbCertificateCAs_chained = []
+        dbCertificateCAChains_alternates = []
         for fullchain_pem in fullchain_pems:
             (
                 _certificate_pem,
@@ -1671,16 +1669,16 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
             # get/create the CertificateCA
             (
-                dbCertificateCA,
-                is_created__CertificateCA,
-            ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
+                dbCertificateCAChain,
+                is_created__CertificateCAChain,
+            ) = lib.db.getcreate.getcreate__CertificateCAChain__by_pem_text(
                 ctx,
                 _ca_chain_pem,
                 display_name="ACME Server Response",
             )
-            if is_created__CertificateCA:
+            if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
-            dbCertificateCAs_chained.append(dbCertificateCA)
+            dbCertificateCAChains_alternates.append(dbCertificateCAChain)
 
         dbCertificateSigned = lib.db.create.create__CertificateSigned(
             ctx,
@@ -1688,8 +1686,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
             cert_domains_expected=domain_names,
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCAs_chained[0],
-            dbCertificateCAs_alt=dbCertificateCAs_chained[1:],
+            dbCertificateCA=dbCertificateCAChains_alternates[0],
+            dbCertificateCAs_alt=dbCertificateCAChains_alternates[1:],
             dbCertificateRequest=dbCertificateRequest,
         )
         ctx.pyramid_transaction_commit()
@@ -2349,7 +2347,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None
-        dbCertificateCAs_chained = []
+        dbCertificateCAChains_alternates = []
         for fullchain_pem in fullchain_pems:
             (
                 _certificate_pem,
@@ -2363,16 +2361,16 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 
             # get/create the CertificateCA
             (
-                dbCertificateCA,
-                is_created__CertificateCA,
-            ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
+                dbCertificateCAChain,
+                is_created__CertificateCAChain,
+            ) = lib.db.getcreate.getcreate__CertificateCAChain__by_pem_text(
                 ctx,
                 _ca_chain_pem,
                 display_name="ACME Server Response",
             )
-            if is_created__CertificateCA:
+            if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
-            dbCertificateCAs_chained.append(dbCertificateCA)
+            dbCertificateCAChains_alternates.append(dbCertificateCAChain)
 
         (
             dbCertificateSigned,
@@ -2382,8 +2380,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             cert_pem=certificate_pem,
             cert_domains_expected=dbAcmeOrder.domains_as_list,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCAs_chained[0],
-            dbCertificateCAs_alt=dbCertificateCAs_chained[1:],
+            dbCertificateCA=dbCertificateCAChains_alternates[0],
+            dbCertificateCAs_alt=dbCertificateCAChains_alternates[1:],
             dbPrivateKey=dbAcmeOrder.private_key,
         )
         if dbAcmeOrder.certificate_signed:
