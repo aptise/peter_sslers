@@ -2391,15 +2391,22 @@ def decompose_chain(fullchain_pem):
     return certs_normalized
 
 
-def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
+def ensure_chain(
+    root_pem=None,
+    fullchain_pem=None,
+    chain_pem=None,
+    cert_pem=None,
+    root_pems_other=None,
+):
     """
     validates from a root down to a chain
     if chain is a fullchain (with endentity), cert_pem can be None
 
-    :param root_pems: an iterable list of trusted roots, in PEM form
+    :param root_pem: the root certificate
     :param fullchain_pem: a chain in PEM form, which is multiple upstream certs in a single string
     :param chain_pem: a chain in PEM form, which is multiple upstream certs in a single string
     :param cert_pem: the final certificate
+    :param root_pems_other: an iterable list of trusted roots, in PEM form; currently unused
 
     submit EITHER fullchain_pem or chain_pem+cert_pem
 
@@ -2415,14 +2422,6 @@ def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
                 "If `ensure_chain` is not invoked with `fullchain_pem`, you must pass in `chain_pem` and `cert_pem`."
             )
 
-    # build a root storage
-    store = openssl_crypto.X509Store()
-    for _root_pem in root_pems:
-        _root_parsed = openssl_crypto.load_certificate(
-            openssl_crypto.FILETYPE_PEM, _root_pem
-        )
-        store.add_cert(_root_parsed)
-
     if fullchain_pem:
         intermediates = CERT_PEM_REGEX.findall(fullchain_pem.encode())
         cert_pem = intermediates.pop(0)
@@ -2434,19 +2433,77 @@ def ensure_chain(root_pems, fullchain_pem=None, chain_pem=None, cert_pem=None):
     if intermediates[-1] == cert_pem:
         intermediates = intermediates[:-1]
 
-    for _intermediate_pem in reversed(intermediates):
-        _intermediate_parsed = openssl_crypto.load_certificate(
-            openssl_crypto.FILETYPE_PEM, _intermediate_pem
-        )
-        # Check the chain certificate before adding it to the store.
-        _store_ctx = openssl_crypto.X509StoreContext(store, _intermediate_parsed)
-        _store_ctx.verify_certificate()
-        store.add_cert(_intermediate_parsed)
+    if openssl_crypto:
 
-    cert_parsed = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
-    _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
-    _store_ctx.verify_certificate()
-    return True
+        # build a root storage
+        store = openssl_crypto.X509Store()
+        root_parsed = openssl_crypto.load_certificate(
+            openssl_crypto.FILETYPE_PEM, root_pem
+        )
+        store.add_cert(root_parsed)
+
+        for _intermediate_pem in reversed(intermediates):
+            _intermediate_parsed = openssl_crypto.load_certificate(
+                openssl_crypto.FILETYPE_PEM, _intermediate_pem
+            )
+            # Check the chain certificate before adding it to the store.
+            _store_ctx = openssl_crypto.X509StoreContext(store, _intermediate_parsed)
+            _store_ctx.verify_certificate()
+            store.add_cert(_intermediate_parsed)
+
+        cert_parsed = openssl_crypto.load_certificate(
+            openssl_crypto.FILETYPE_PEM, cert_pem
+        )
+        _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
+        _store_ctx.verify_certificate()
+        return True
+
+    log.debug(".ensure_chain > openssl fallback")
+    """
+    modern versions of openssl accept multiple -untrusted 
+        openssl verify -CAfile root.pem [[-untrusted intermediate.pem],[-untrusted intermediate.pem],] cert.pem
+    however older ones only want to see a single one
+        openssl verify -CAfile root.pem -untrusted intermediate.pem cert.pem
+    
+    to get around this, put all the intermediates into a file
+    """
+    _tempfiles = []
+    try:
+        _tmpfile_root = new_pem_tempfile(root_pem)
+        _tempfiles.append(_tmpfile_root)
+
+        intermediates = "\n".join(intermediates)
+        _tempfile_intermediate = new_pem_tempfile(intermediates)
+        _tempfiles.append(_tempfile_intermediate)
+
+        _tmpfile_cert = new_pem_tempfile(cert_pem)
+        _tempfiles.append(_tmpfile_cert)
+
+        expected_success = "%s: OK\n" % _tmpfile_cert.name
+        with psutil.Popen(
+            [
+                openssl_path,
+                "verify",
+                "-CAfile",
+                _tmpfile_root.name,
+                "-untrusted",
+                _tempfile_intermediate.name,
+                _tmpfile_cert.name,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if err:
+                raise errors.OpenSslError("could not check version")
+            if six.PY3:
+                data = data.decode("utf8")
+            if data != expected_success:
+                raise errors.OpenSslError("could not verify")
+        return True
+    finally:
+        for _tmp in _tempfiles:
+            _tmp.close()
 
 
 def cert_extract_issuer_uri(cert_pem=None, cert_pem_filepath=None):

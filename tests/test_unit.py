@@ -890,14 +890,16 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 self.assertEqual(len(_all_certs), count_intermediates + 1)
 
                 # `ensure_chain` can accept two types of data
-                roots = [
-                    test_pems[idx]["root"],
-                ]
+                root_pem = test_pems[idx]["root"]
                 self.assertTrue(
-                    cert_utils.ensure_chain(roots, chain_pem=_chain, cert_pem=cert_pem)
+                    cert_utils.ensure_chain(
+                        root_pem=root_pem, chain_pem=_chain, cert_pem=cert_pem
+                    )
                 )
                 self.assertTrue(
-                    cert_utils.ensure_chain(roots, fullchain_pem=fullchain_pem)
+                    cert_utils.ensure_chain(
+                        root_pem=root_pem, fullchain_pem=fullchain_pem
+                    )
                 )
 
                 # `ensure_chain` will not accept user error
@@ -906,19 +908,21 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 # invoking `fullchain_pem` with: `chain_pem`
                 with self.assertRaises(ValueError) as cm:
                     result = cert_utils.ensure_chain(
-                        roots, fullchain_pem=fullchain_pem, chain_pem=_chain
+                        root_pem=root_pem, fullchain_pem=fullchain_pem, chain_pem=_chain
                     )
                 self.assertEqual(cm.exception.args[0], _error_expected)
                 # invoking `fullchain_pem` with: `cert_pem`
                 with self.assertRaises(ValueError) as cm:
                     result = cert_utils.ensure_chain(
-                        roots, fullchain_pem=fullchain_pem, cert_pem=cert_pem
+                        root_pem=root_pem,
+                        fullchain_pem=fullchain_pem,
+                        cert_pem=cert_pem,
                     )
                 self.assertEqual(cm.exception.args[0], _error_expected)
                 # invoking `fullchain_pem` with: `cert_pem` and `chain_pem`
                 with self.assertRaises(ValueError) as cm:
                     result = cert_utils.ensure_chain(
-                        roots,
+                        root_pem=root_pem,
                         fullchain_pem=fullchain_pem,
                         chain_pem=_chain,
                         cert_pem=cert_pem,
@@ -928,11 +932,15 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 _error_expected = "If `ensure_chain` is not invoked with `fullchain_pem`, you must pass in `chain_pem` and `cert_pem`."
                 # invoking NO `fullchain_pem` with: `chain_pem`
                 with self.assertRaises(ValueError) as cm:
-                    result = cert_utils.ensure_chain(roots, chain_pem=_chain)
+                    result = cert_utils.ensure_chain(
+                        root_pem=root_pem, chain_pem=_chain
+                    )
                 self.assertEqual(cm.exception.args[0], _error_expected)
                 # invoking NO `fullchain_pem` with: `cert_pem`
                 with self.assertRaises(ValueError) as cm:
-                    result = cert_utils.ensure_chain(roots, cert_pem=cert_pem)
+                    result = cert_utils.ensure_chain(
+                        root_pem=root_pem, cert_pem=cert_pem
+                    )
 
 
 def parse_cert__spki_sha256(
