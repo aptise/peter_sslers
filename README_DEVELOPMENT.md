@@ -120,7 +120,14 @@ If there is an error, tests and code should be constructed with the following qu
 please note the order:
 
 	result, error, operation, action
-	
+
+
+Unit tests will use the `test.ini` file for configuration.
+
+Instead of editing this file, you can overwrite it with an environment variable:
+
+	export SSL_TEST_INI="test_local.ini"
+
 
 ## check nginx/openresty routes
 

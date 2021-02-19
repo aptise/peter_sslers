@@ -5861,7 +5861,7 @@ class FunctionalTests_AlternateChains(AppTest):
             .first()
         )
         assert focus_item is not None
-        assert focus_item.certificates_upchain
+        assert focus_item.certificate_signed_chains
         return focus_item
 
     @routes_tested(
@@ -5872,8 +5872,10 @@ class FunctionalTests_AlternateChains(AppTest):
     )
     def test_CertificateCA_view(self):
         focus_CertificateSigned = self._get_one()
-        for _to_ca_cert in focus_CertificateSigned.certificates_upchain:
-            cert_ca_alt_id = _to_ca_cert.certificate_ca_id
+        for (
+            _certificate_signed_chain
+        ) in focus_CertificateSigned.certificate_signed_chains:
+            cert_ca_alt_id = _certificate_signed_chain.certificate_ca_id
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s" % cert_ca_alt_id, status=200
             )
@@ -5890,10 +5892,10 @@ class FunctionalTests_AlternateChains(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_signed:focus:via_cert_ca:config|json",
-            "admin:certificate_signed:focus:via_cert_ca:config|zip",
-            "admin:certificate_signed:focus:via_cert_ca:chain:raw",
-            "admin:certificate_signed:focus:via_cert_ca:fullchain:raw",
+            "admin:certificate_signed:focus:via_certificate_ca:config|json",
+            "admin:certificate_signed:focus:via_certificate_ca:config|zip",
+            "admin:certificate_signed:focus:via_certificate_ca:chain:raw",
+            "admin:certificate_signed:focus:via_certificate_ca:fullchain:raw",
         )
     )
     def test_CertificateSigned_view(self):
@@ -5902,64 +5904,67 @@ class FunctionalTests_AlternateChains(AppTest):
         certificate_signed_id = focus_CertificateSigned.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        upchain_ids = [i.id for i in focus_CertificateSigned.certificates_upchain]
+        certificate_ca_ids = [
+            i.certificate_ca_id
+            for i in focus_CertificateSigned.certificate_signed_chains
+        ]
 
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s" % certificate_signed_id,
             status=200,
         )
 
-        for cert_ca_id in upchain_ids:
+        for cert_ca_id in certificate_ca_ids:
             focus_ids = (certificate_signed_id, cert_ca_id)
 
             # chain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.cer"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.crt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.der"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/chain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/fullchain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/fullchain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/config.json"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-cert-ca/%s/config.zip"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/config.zip"
                 % focus_ids,
                 status=200,
             )

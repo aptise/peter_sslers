@@ -2527,7 +2527,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
     )
 
-    certificates_upchain = sa_orm_relationship(
+    certificate_signed_chains = sa_orm_relationship(
         "CertificateSignedChain",
         primaryjoin="CertificateSigned.id==CertificateSignedChain.certificate_signed_id",
         uselist=True,
@@ -2617,33 +2617,33 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     @reify
     def certificate_cas__upchain(self):
-        # this loops `ORM:certificates_upchain`
+        # this loops `ORM:certificate_signed_chains`
         # this is NOT in order of preference
         _ids = {
             i.certificate_ca_id: i.certificate_ca.fingerprint_sha1
-            for i in self.certificates_upchain
+            for i in self.certificate_signed_chains
         }
         return _ids
 
     @reify
     def certificate_upchain_ids(self):
-        # this loops `ORM:certificates_upchain`
+        # this loops `ORM:certificate_signed_chains`
         # this is NOT in order of preference
-        _ids = [i.certificate_ca_id for i in self.certificates_upchain]
+        _ids = [i.certificate_ca_id for i in self.certificate_signed_chains]
         return _ids
 
     @reify
     def certificate_ca_id__preferred(self):
         # this invokes `certificate_ca__preferred`
-        # which then loops `ORM:certificates_upchain`
+        # which then loops `ORM:certificate_signed_chains`
         if not self.certificate_ca__preferred:
             return None
         return self.certificate_ca__preferred.id
 
     @reify
     def certificate_ca__preferred(self):
-        # this loops `ORM:certificates_upchain`
-        if not self.certificates_upchain:
+        # this loops `ORM:certificate_signed_chains`
+        if not self.certificate_signed_chains:
             return None
         try:
             dbSession = sa_Session.object_session(self)
@@ -2654,7 +2654,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
                 # loop CertificateSignedChain
                 lookup_upchain = {
                     _csc.certificate_ca_id: _csc.certificate_ca
-                    for _csc in self.certificates_upchain
+                    for _csc in self.certificate_signed_chains
                 }
 
                 # lookup CertificateCAPreference, return the first match
@@ -2664,7 +2664,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
                         return lookup_upchain[_pref_id]
 
             # we have None! so just return the first one we have
-            return self.certificates_upchain[0].certificate_ca
+            return self.certificate_signed_chains[0].certificate_ca
 
         except Exception as exc:
             pass
@@ -2817,7 +2817,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
     def valid_certificate_upchain(self, cert_ca_id=None):
         """return a single CertificateCA, or the default"""
-        for _to_upchain in self.certificates_upchain:
+        for _to_upchain in self.certificate_signed_chains:
             if _to_upchain.certificate_ca_id == cert_ca_id:
                 return _to_upchain.certificate_ca
         raise ValueError("No CertificateCA available (?!?!)")

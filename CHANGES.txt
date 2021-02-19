@@ -54,7 +54,7 @@
 		
 		Renamed
 			CertificateSignedAlternateChain -> CertificateSignedChain 
-			certificate_upchain_alternates -> certificates_upchain
+			certificate_upchain_alternates -> certificate_signed_chains
 
 		Removed
 			CertificateSigned.certificate_ca_id__upchain

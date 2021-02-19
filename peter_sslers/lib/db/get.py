@@ -1495,7 +1495,7 @@ def _get__Domain__core(q, preload=False, eagerload_web=False):
         sqlalchemy.orm.subqueryload("certificate_signed__latest_single"),
         sqlalchemy.orm.joinedload("certificate_signed__latest_single.private_key"),
         sqlalchemy.orm.joinedload(
-            "certificate_signed__latest_single.certificates_upchain"
+            "certificate_signed__latest_single.certificate_signed_chains"
         ),
         sqlalchemy.orm.joinedload("certificate_signed__latest_single.unique_fqdn_set"),
         sqlalchemy.orm.joinedload(
@@ -1507,7 +1507,7 @@ def _get__Domain__core(q, preload=False, eagerload_web=False):
         sqlalchemy.orm.subqueryload("certificate_signed__latest_multi"),
         sqlalchemy.orm.joinedload("certificate_signed__latest_multi.private_key"),
         sqlalchemy.orm.joinedload(
-            "certificate_signed__latest_multi.certificates_upchain"
+            "certificate_signed__latest_multi.certificate_signed_chains"
         ),
         sqlalchemy.orm.joinedload("certificate_signed__latest_multi.unique_fqdn_set"),
         sqlalchemy.orm.joinedload(

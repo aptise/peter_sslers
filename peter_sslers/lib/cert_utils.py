@@ -137,10 +137,14 @@ RE_openssl_x509_issuer_uri = re.compile(
 #
 # Finds one CERTIFICATE stricttextualmsg according to rfc7468#section-3.
 # Does not validate the base64text - use crypto.load_certificate.
+#
+# NOTE: this functions slightly differently as " *?" was added
+#       the first two letsencrypt certificates added a trailing space, which may
+#       not be compliant with the specification
 CERT_PEM_REGEX = re.compile(
-    b"""-----BEGIN CERTIFICATE-----\r?
+    b"""-----BEGIN CERTIFICATE----- *?\r?
 .+?\r?
------END CERTIFICATE-----\r?
+-----END CERTIFICATE----- *?\r?
 """,
     re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
 )
@@ -186,10 +190,11 @@ def new_pem_tempfile(pem_data):
 def cleanup_pem_text(pem_text):
     """
     standardizes newlines;
+    removes trailing spaces
     ensures a trailing newline
     """
     pem_text = _RE_rn.sub("\n", pem_text)
-    pem_text = pem_text.strip() + "\n"
+    pem_text = "\n".join([i.strip() for i in pem_text.split("\n")]) + "\n"
     return pem_text
 
 
@@ -235,6 +240,9 @@ def convert_pem_to_der(pem_data=None):
         stderr=subprocess.PIPE,
     ) as proc:
         csr_der, err = proc.communicate()
+
+    The RFC requires the PEM header/footer to start/end with 5 dashes
+    This function is a bit lazy and does not check that.
     """
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split("\n")]
@@ -2016,39 +2024,18 @@ def parse_key(key_pem=None, key_pem_filepath=None):
     log.debug(".parse_key > openssl fallback")
     tmpfile_pem = None
     try:
-
-        rval["key_technology"] = _key_technology = parse_key__technology(
-            key_pem=key_pem, key_pem_filepath=key_pem_filepath
-        )
-
         if not key_pem_filepath:
             tmpfile_pem = new_pem_tempfile(key_pem)
             key_pem_filepath = tmpfile_pem.name
         try:
-            """
-            earlier versions of this logic were structured as:
-
-                try:
-                    _key_technology = "RSA"
-                    rval["check"] = key_single_op__pem_filepath(
-                        _key_technology, key_pem_filepath, "-check"
-                    )
-                except errors.OpenSslError_InvalidKey as exc1:
-                    try:
-                        _key_technology = "EC"
-                        rval["check"] = key_single_op__pem_filepath(
-                            _key_technology, key_pem_filepath, "-check"
-                        )
-                    except errors.OpenSslError_VersionTooLow as exc2:
-                        # TODO: make this conditional
-                        # i doubt many people have old versions but who knows?
-                        raise
-                    except errors.OpenSslError_InvalidKey as exc2:
-                        rval["XX-check"] = str(exc)
-
-            However, now that we know the _key_technology,
-            this conditional is not needed
-            """
+            rval["key_technology"] = _key_technology = parse_key__technology(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+        except errors.OpenSslError_VersionTooLow as exc2:
+            # TODO: make this conditional
+            # i doubt many people have old versions but who knows?
+            raise
+        try:
             rval["check"] = key_single_op__pem_filepath(
                 _key_technology, key_pem_filepath, "-check"
             )

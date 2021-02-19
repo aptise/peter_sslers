@@ -1071,7 +1071,7 @@ class UnitTest_CertUtils_fallback(_MixinNoCrypto, UnitTest_CertUtils):
     pass
 
 
-class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_CertUtils):
+class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_OpenSSL):
     """python -m unittest tests.test_unit.UnitTest_OpenSSL_fallback"""
 
     pass

@@ -584,7 +584,7 @@ class View_Focus_via_CertificateCA(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_cert_ca:config|json",
+        route_name="admin:certificate_signed:focus:via_certificate_ca:config|json",
         renderer="json",
     )
     def config_json(self):
@@ -601,7 +601,9 @@ class View_Focus_via_CertificateCA(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate_signed:focus:via_cert_ca:config|zip")
+    @view_config(
+        route_name="admin:certificate_signed:focus:via_certificate_ca:config|zip"
+    )
     def config_zip(self):
         (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
         try:
@@ -625,7 +627,7 @@ class View_Focus_via_CertificateCA(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_cert_ca:chain:raw",
+        route_name="admin:certificate_signed:focus:via_certificate_ca:chain:raw",
         renderer="string",
     )
     def chain(self):
@@ -650,7 +652,7 @@ class View_Focus_via_CertificateCA(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_cert_ca:fullchain:raw",
+        route_name="admin:certificate_signed:focus:via_certificate_ca:fullchain:raw",
         renderer="string",
     )
     def fullchain(self):
