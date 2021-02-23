@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
+import pdb
 import tempfile
 import time
 import zipfile
@@ -295,11 +296,10 @@ class View_New(Handler):
             if six.PY3:
                 if not isinstance(ca_chain_pem, str):
                     ca_chain_pem = ca_chain_pem.decode("utf8")
-            # TODO - getcreate__CertificateCAChain__by_pem_text
             (
-                dbCertificateCA,
-                certca_is_created,
-            ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
+                dbCertificateCAChain,
+                chain_is_created,
+            ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
                 self.request.api_context, ca_chain_pem, display_name="manual upload"
             )
 
@@ -340,7 +340,7 @@ class View_New(Handler):
                 self.request.api_context,
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
-                dbCertificateCA=dbCertificateCA,
+                dbCertificateCAChain=dbCertificateCAChain,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
             )
@@ -359,9 +359,9 @@ class View_New(Handler):
                             dbCertificateSigned.id,
                         ),
                     },
-                    "CertificateCA": {
-                        "created": certca_is_created,
-                        "id": dbCertificateCA.id,
+                    "CertificateCAChain": {
+                        "created": chain_is_created,
+                        "id": dbCertificateCAChain.id,
                     },
                     "PrivateKey": {"created": pkey_is_created, "id": dbPrivateKey.id},
                 }
@@ -573,41 +573,49 @@ class View_Focus(Handler):
         }
 
 
-class View_Focus_via_CertificateCA(View_Focus):
-    def _focus_via_CertificateCA(self):
+class View_Focus_via_CertificateCAChain(View_Focus):
+    def _focus_via_CertificateCAChain(self):
         dbCertificateSigned = self._focus()
-        id_certca = int(self.request.matchdict["id_certca"])
-        if id_certca not in dbCertificateSigned.valid_certificate_upchain_ids:
-            raise HTTPNotFound("invalid CertificateCA")
-        return (dbCertificateSigned, id_certca)
+        certificate_ca_chain_id = int(self.request.matchdict["id_cachain"])
+        if certificate_ca_chain_id not in dbCertificateSigned.certificate_ca_chain_ids:
+            raise HTTPNotFound("invalid CertificateCAChain")
+        return (dbCertificateSigned, certificate_ca_chain_id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_certificate_ca:config|json",
+        route_name="admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
         renderer="json",
     )
     def config_json(self):
-        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
+        (
+            dbCertificateSigned,
+            certificate_ca_chain_id,
+        ) = self._focus_via_CertificateCAChain()
         if self.request.params.get("idonly", None):
             rval = dbCertificateSigned.custom_config_payload(
-                cert_ca_id=id_certca, id_only=True
+                certificate_ca_chain_id=certificate_ca_chain_id, id_only=True
             )
         else:
             rval = dbCertificateSigned.custom_config_payload(
-                cert_ca_id=id_certca, id_only=False
+                certificate_ca_chain_id=certificate_ca_chain_id, id_only=False
             )
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_certificate_ca:config|zip"
+        route_name="admin:certificate_signed:focus:via_certificate_ca_chain:config|zip"
     )
     def config_zip(self):
-        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
+        (
+            dbCertificateSigned,
+            certificate_ca_chain_id,
+        ) = self._focus_via_CertificateCAChain()
         try:
-            tmpfile = archive_zipfile(dbCertificateSigned, cert_ca_id=id_certca)
+            tmpfile = archive_zipfile(
+                dbCertificateSigned, cert_ca_id=certificate_ca_chain_id
+            )
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
@@ -615,7 +623,7 @@ class View_Focus_via_CertificateCA(View_Focus):
                 "Content-Disposition"
             ] = "attachment; filename= cert%s-chain%s.zip" % (
                 dbCertificateSigned.id,
-                id_certca,
+                certificate_ca_chain_id,
             )
             return response
 
@@ -627,12 +635,17 @@ class View_Focus_via_CertificateCA(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_certificate_ca:chain:raw",
+        route_name="admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
         renderer="string",
     )
     def chain(self):
-        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
-        cert_chain_pem = dbCertificateSigned.valid_cert_chain_pem(id_certca)
+        (
+            dbCertificateSigned,
+            certificate_ca_chain_id,
+        ) = self._focus_via_CertificateCAChain()
+        cert_chain_pem = dbCertificateSigned.valid_cert_chain_pem(
+            certificate_ca_chain_id
+        )
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return cert_chain_pem
@@ -652,12 +665,17 @@ class View_Focus_via_CertificateCA(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:via_certificate_ca:fullchain:raw",
+        route_name="admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
         renderer="string",
     )
     def fullchain(self):
-        (dbCertificateSigned, id_certca) = self._focus_via_CertificateCA()
-        cert_fullchain_pem = dbCertificateSigned.valid_cert_fullchain_pem(id_certca)
+        (
+            dbCertificateSigned,
+            certificate_ca_chain_id,
+        ) = self._focus_via_CertificateCAChain()
+        cert_fullchain_pem = dbCertificateSigned.valid_cert_fullchain_pem(
+            certificate_ca_chain_id
+        )
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return cert_fullchain_pem

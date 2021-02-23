@@ -402,11 +402,19 @@ def operations_update_recents__global(ctx):
     #
     # Step3:
     # update the count of active cert for each CertificateCA
+
     CertificateSigned1 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
     CertificateSigned2 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
 
-    CertificateChain1 = sqlalchemy.orm.aliased(model_objects.CertificateSignedChain)
-    CertificateChain2 = sqlalchemy.orm.aliased(model_objects.CertificateSignedChain)
+    CertificateSignedChain1 = sqlalchemy.orm.aliased(
+        model_objects.CertificateSignedChain
+    )
+    CertificateSignedChain2 = sqlalchemy.orm.aliased(
+        model_objects.CertificateSignedChain
+    )
+
+    CertificateCAChain1 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
+    CertificateCAChain2 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
 
     _q_sub = (
         ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
@@ -421,17 +429,29 @@ def operations_update_recents__global(ctx):
             == CertificateSigned2.id,
         )
         .outerjoin(
-            CertificateChain1,
-            CertificateSigned1.id == CertificateChain1.certificate_signed_id,
+            CertificateSignedChain1,
+            CertificateSigned1.id == CertificateSignedChain1.certificate_signed_id,
         )
         .outerjoin(
-            CertificateChain2,
-            CertificateSigned2.id == CertificateChain2.certificate_signed_id,
+            CertificateSignedChain2,
+            CertificateSignedChain2.id == CertificateSignedChain2.certificate_signed_id,
+        )
+        .outerjoin(
+            CertificateCAChain1,
+            CertificateSignedChain1.certificate_ca_chain_id
+            == CertificateCAChain1.certificate_ca_0_id,
+        )
+        .outerjoin(
+            CertificateCAChain2,
+            CertificateSignedChain1.certificate_ca_chain_id
+            == CertificateCAChain2.certificate_ca_0_id,
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.CertificateCA.id == CertificateChain1.certificate_ca_id,
-                model_objects.CertificateCA.id == CertificateChain2.certificate_ca_id,
+                model_objects.CertificateCA.id
+                == CertificateCAChain1.certificate_ca_0_id,
+                model_objects.CertificateCA.id
+                == CertificateCAChain2.certificate_ca_0_id,
             )
         )
         .subquery()

@@ -97,7 +97,7 @@ class View_Focus(Handler):
             }
         return {
             "project": "peter_sslers",
-            "CertificateCAChain": dbCertificateCA,
+            "CertificateCAChain": dbCertificateCAChain,
         }
 
 

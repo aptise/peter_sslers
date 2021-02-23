@@ -143,11 +143,24 @@ CERT_CAS_DATA = {
         "formfield_base": "isrgrootx1",
         "is_active": True,
         "key_technology": "RSA",
+        "alternates": ["isrg_root_x1_cross"],
         "is_bundle_supported": True,
         "cert.fingerprints": {
             "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
         },
         ".enddate": (2035, 6, 4, 11, 4, 38),
+    },
+    "isrg_root_x1_cross": {
+        # x1 this is cross signed by x1 to act as an intermediate!
+        "display_name": "ISRG Root X1 (IdenTrust cross-signed)",
+        "url_pem": "https://letsencrypt.org/certs/isrg-root-x1-cross-signed.pem",
+        "is_trusted_root": False,
+        "formfield_base": "isrgrootx1_cross",
+        "is_active": False,
+        "key_technology": "RSA",
+        "signed_by": "trustid_root_x3",
+        "alternate_of": "isrg_root_x1",
+        "is_bundle_supported": True,
     },
     "isrg_root_x2": {
         # x2 is self-signed by default, but is available as cross-signed by isrgrootx1
@@ -170,7 +183,7 @@ CERT_CAS_DATA = {
         # x2 this is cross signed by x1 to act as an intermediate!
         "display_name": "ISRG Root X2 (Cross-signed by ISRG Root X1)",
         "url_pem": "https://letsencrypt.org/certs/isrg-root-x2-cross-signed.pem",
-        "is_trusted_root": True,
+        "is_trusted_root": False,
         "formfield_base": "isrgrootx2_cross",
         "is_active": False,
         "key_technology": "RSA",

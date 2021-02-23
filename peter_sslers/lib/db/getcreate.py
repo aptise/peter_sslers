@@ -12,6 +12,7 @@ import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
+import six
 import sqlalchemy
 
 # localapp
@@ -699,9 +700,12 @@ def getcreate__CertificateCAChain__by_pem_text(
     dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
     if not dbCertificateCAChain:
         chain_pem_md5 = utils.md5_text(chain_pem)
-
         dbCertificateCAs = []
         for cert_pem in chain_certs:
+            # the regex is against a `b`, so we need to decode
+            if six.PY3:
+                cert_pem = cert_pem.decode()
+            cert_pem = cert_utils.cleanup_pem_text(cert_pem)
             (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
                 ctx, cert_pem, display_name=display_name
             )
@@ -720,6 +724,7 @@ def getcreate__CertificateCAChain__by_pem_text(
         dbCertificateCAChain.chain_pem = chain_pem
         dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
         dbCertificateCAChain.certificate_ca_0_id = dbCertificateCAs[0].id
+        dbCertificateCAChain.certificate_ca_n_id = dbCertificateCAs[-1].id
         dbCertificateCAChain.certificate_ca_ids_string = ",".join(
             [str(i.id) for i in dbCertificateCAs]
         )
@@ -902,8 +907,8 @@ def getcreate__CertificateSigned(
     cert_domains_expected=None,
     is_active=None,
     dbAcmeOrder=None,
-    dbCertificateCA=None,
-    dbCertificateCAs_alt=None,
+    dbCertificateCAChain=None,
+    dbCertificateCAChains_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
@@ -913,20 +918,28 @@ def getcreate__CertificateSigned(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required) The certificate in PEM encoding
-    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
+    :param cert_domains_expected: (required) a list of domains in the cert we
+      expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate
+      when uploading unless specified.
 
-    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
-        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
-    :param dbCertificateCA: (required) The upstream :class:`model.objects.CertificateCA` that signed the certificate
-    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
-        if provivded, do not submit `dbAcmeOrder`
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
+      certificate was generated through. If provivded, do not submit
+      `dbCertificateRequest` or `dbPrivateKey`
+    :param dbCertificateCAChain: (required) The upstream
+       :class:`model.objects.CertificateCAChain` that signed the certificate
+    :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
+      :class:`model.objects.CertificateCAChain`s that signed this certificate
+    :param dbCertificateRequest: (optional) The
+      :class:`model.objects.CertificateRequest` the certificate was generated
+      through. If provivded, do not submit `dbAcmeOrder`.
+    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
+      signed the certificate
+    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or
+      `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet`
+      representing domains on the certificate.
 
     returns:
-
     tuple (dbCertificateSigned, is_created)
     """
     if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
@@ -953,12 +966,12 @@ def getcreate__CertificateSigned(
     if not all(
         (
             cert_pem,
-            dbCertificateCA,
+            dbCertificateCAChain,
             dbPrivateKey,
         )
     ):
         raise ValueError(
-            "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCA, dbPrivateKey)"
+            "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCAChain, dbPrivateKey)"
         )
 
     is_created = None
@@ -1024,18 +1037,18 @@ def getcreate__CertificateSigned(
         _upchains_existing = dbCertificateSigned.certificate_upchain_ids
         _upchains_needed = []
         # check the primary
-        if dbCertificateCA.id not in _upchains_existing:
-            _upchains_needed.append(dbCertificateCA.id)
-        if dbCertificateCAs_alt:
+        if dbCertificateCAChain.id not in _upchains_existing:
+            _upchains_needed.append(dbCertificateCAChain.id)
+        if dbCertificateCAChains_alt:
             # check the alts
-            for _dbCertificateCA_alt in dbCertificateCAs_alt:
-                if _dbCertificateCA_alt.id not in _upchains_existing:
-                    _upchains_needed.append(_dbCertificateCA_alt.id)
+            for _dbCertificateCAChain_alt in dbCertificateCAChains_alt:
+                if _dbCertificateCAChain_alt.id not in _upchains_existing:
+                    _upchains_needed.append(_dbCertificateCAChain_alt.id)
         for _up_needed in _upchains_needed:
             dbCertificateSignedChain = model_objects.CertificateSignedChain()
             dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-            dbCertificateSignedChain.certificate_ca_id = _up_needed
-            if _up_needed == dbCertificateCA.id:
+            dbCertificateSignedChain.certificate_ca_chain_id = _up_needed
+            if _up_needed == dbCertificateCAChain.id:
                 dbCertificateSignedChain.is_upstream_default = True
             else:
                 dbCertificateSignedChain.is_upstream_default = None
@@ -1049,8 +1062,8 @@ def getcreate__CertificateSigned(
             cert_domains_expected=cert_domains_expected,
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCA,
-            dbCertificateCAs_alt=dbCertificateCAs_alt,
+            dbCertificateCAChain=dbCertificateCAChain,
+            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbCertificateRequest=dbCertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,

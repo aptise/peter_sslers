@@ -487,6 +487,7 @@ TEST_FILES = {
         "order": (
             "trustid_root_x3",
             "isrg_root_x1",
+            "isrg_root_x1_cross",
             "isrg_root_x2",
             "isrg_root_x2_cross",
             "letsencrypt_ocsp_root_x1",
@@ -506,6 +507,7 @@ TEST_FILES = {
         "cert": {
             "trustid_root_x3": "letsencrypt-certs/trustid-x3-root.pem",
             "isrg_root_x1": "letsencrypt-certs/isrgrootx1.pem",
+            "isrg_root_x1_cross": "letsencrypt-certs/isrg-root-x1-cross-signed.pem",
             "isrg_root_x2": "letsencrypt-certs/isrg-root-x2.pem",
             "isrg_root_x2_cross": "letsencrypt-certs/isrg-root-x2-cross-signed.pem",
             "letsencrypt_ocsp_root_x1": "letsencrypt-certs/isrg-root-ocsp-x1.pem",
@@ -711,6 +713,18 @@ CERT_CA_SETS = {
         "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
         "issuer_uri": None,
         "authority_key_identifier": None,
+    },
+    "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "9454972e3730ac131def33e045ab19df",
+        "spki_sha256": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+        "cert.fingerprints": {
+            "sha1": "93:3C:6D:DE:E9:5C:9C:41:A4:0F:9F:50:49:3D:82:BE:03:AD:87:BF",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
+        "authority_key_identifier": "C4:A7:B1:A4:7B:2C:71:FA:DB:E1:4B:90:75:FF:C4:15:60:85:89:10",
     },
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
@@ -1001,11 +1015,14 @@ class AppTest(AppTestCore):
             % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["chain"]
         )
         _chain_pem = self._filedata_testfile(_chain_filename)
-        (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+        (
+            _dbChain,
+            _is_created,
+        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
             self.ctx, _chain_pem, display_name=_chain_filename
         )
 
-        dbCertificateCAs_alt = None
+        dbCertificateCAChains_alt = None
         if (
             "alternate_chains"
             in TEST_FILES["CertificateSigneds"][payload_section][payload_key]
@@ -1025,10 +1042,10 @@ class AppTest(AppTestCore):
                 (
                     _dbChainAlternate,
                     _is_created,
-                ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+                ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
                     self.ctx, _chain_pem, display_name=_chain_filename
                 )
-                dbCertificateCAs_alt.append(_dbChainAlternate)
+                dbCertificateCAChains_alt.append(_dbChainAlternate)
 
         _cert_filename = (
             filename_template
@@ -1053,8 +1070,8 @@ class AppTest(AppTestCore):
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
-            dbCertificateCA=_dbChain,
-            dbCertificateCAs_alt=dbCertificateCAs_alt,
+            dbCertificateCAChain=_dbChain,
+            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
             dbPrivateKey=_dbPrivateKey,
         )
@@ -1209,14 +1226,14 @@ class AppTest(AppTestCore):
                     _cert_ca_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
-                    cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
+                    chain_pem = self._filedata_testfile(_cert_ca_filename)
                     (
-                        _dbCertificateCA_SelfSigned,
+                        _dbCertificateCAChain_SelfSigned,
                         _is_created,
-                    ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-                        self.ctx, cert_ca_pem, display_name=_cert_ca_filename
+                    ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                        self.ctx, chain_pem, display_name=_cert_ca_filename
                     )
-                    # print(_dbCertificateCA_SelfSigned, _is_created)
+                    # print(_dbCertificateCAChain_SelfSigned, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
                     _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
@@ -1241,7 +1258,7 @@ class AppTest(AppTestCore):
                         self.ctx,
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
-                        dbCertificateCA=_dbCertificateCA_SelfSigned,
+                        dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
                         dbUniqueFQDNSet=_dbUniqueFQDNSet,
                         dbPrivateKey=_dbPrivateKey,
                     )

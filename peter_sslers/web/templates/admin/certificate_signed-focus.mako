@@ -163,7 +163,7 @@
                                     AcmeOrder-${CertificateSigned.acme_order.id}
                                 </a>
                             % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
-                                <p>Imported CertificateSigneds do not support auto-renew. Queue a renewal AcmeOrder below.</p>
+                                <p>Imported CertificateSigneds do not support auto-renew. Queue a renewal AcmeOrder below to enroll in auto-renewal.</p>
                             % endif
                         </td>
                     </tr>
@@ -218,13 +218,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateCAs</th>
+                        <th>CertificateCAChains</th>
                         <td>
                             % if CertificateSigned.certificate_signed_chains:
                                 <em>Available Signing Chains:</em>
                                 <ul>
                                     % for _chain in CertificateSigned.certificate_signed_chains:
-                                        <li>${_chain.certificate_ca.button_view|n}</li>
+                                        <li>${_chain.certificate_ca_chain.button_view|n}</li>
                                     % endfor
                                 </ul>
                             % endif
@@ -416,9 +416,9 @@
                             <em>designed for http server config</em>
                             <hr/>
 
-                            % if CertificateSigned.certificate_ca__preferred:
-                                <em>default chain</em><br/>
-                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view|n}
+                            % if CertificateSigned.certificate_ca_chain__preferred:
+                                <em>Default Chain</em><br/>
+                                The Default Chain is ${CertificateSigned.certificate_ca_chain__preferred.button_view|n}
                                 </p>
 
                                 <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
@@ -429,11 +429,11 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _to_upchain in CertificateSigned.certificate_signed_chains:
+                                % for _to_certificate_ca_chain in CertificateSigned.certificate_signed_chains:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${_to_upchain.certificate_ca.id}/config.json">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCA-${_to_upchain.certificate_ca.id}
+                                            CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
                                             config.json</a>
                                     </li>
                                 % endfor
@@ -447,16 +447,17 @@
                             <em>designed for http server config</em>
                             <hr/>
 
-                            % if CertificateSigned.certificate_ca__preferred:
-                                <em>default chain</em><br/>
-                                The default chain is ${CertificateSigned.certificate_ca__preferred.button_view|n}
+                            % if CertificateSigned.certificate_ca_chain__preferred:
+                                <em>Default Chain</em><br/>
+                                The Default Chain is ${CertificateSigned.certificate_ca_chain__preferred.button_view|n}
                                 </p>
 
                                 <a
                                     class="btn btn-xs btn-info"
                                     href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip"
-                                    data-certificate_ca-id="${CertificateSigned.certificate_ca__preferred.id}"
-                                    data-certificate_ca-fingerprint_sha1="${CertificateSigned.certificate_ca__preferred.fingerprint_sha1}"
+                                    data-certificate_ca_chain-id="${CertificateSigned.certificate_ca_chain__preferred.id}"
+                                    ## TODO- this can only happen on the signing cert
+                                    ## data-certificate_ca-fingerprint_sha1="${CertificateSigned.certificate_ca_chain__preferred.fingerprint_sha1}"
                                 >
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     config.zip</a><br/>
@@ -465,16 +466,17 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _to_upchain in CertificateSigned.certificate_signed_chains:
+                                % for _to_certificate_ca_chain in CertificateSigned.certificate_signed_chains:
                                     <li>
                                         <a
                                             class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${_to_upchain.certificate_ca.id}/config.zip"
-                                            data-certificate_ca-id="${_to_upchain.certificate_ca.id}"
-                                            data-certificate_ca-fingerprint_sha1="${_to_upchain.certificate_ca.fingerprint_sha1}"
+                                            href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.zip"
+                                            certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain.id}"
+                                            ## TODO: this can only happen on the signing cert
+                                            ## data-certificate_ca-fingerprint_sha1="${_to_upchain.certificate_ca.fingerprint_sha1}"
                                         >
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCA-${_to_upchain.certificate_ca.id}
+                                            CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
                                             config.zip</a>
                                     </li>
                                 % endfor
@@ -548,48 +550,53 @@
                                         <tr>
                                             <th colspan="2">Certificate Chains</th>
                                         </tr>
-                                        % for toChain in CertificateSigned.certificate_signed_chains:
+                                        % for _to_certificate_ca_chain in CertificateSigned.certificate_signed_chains:
                                             <tr>
                                                 <th>chain (upstream)
-                                                    <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain_id}</span>
                                                 </th>
                                                 <td>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/chain.pem.txt"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem.txt"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/chain.pem"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/chain.cer"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.cer"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.cer (der)</a>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/chain.crt"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.crt"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.crt (der)</a>
                                                     <a
-                                                        class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/chain.der"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.der"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.der (der)</a>
@@ -597,22 +604,24 @@
                                             </tr>
                                             <tr>
                                                 <th>fullchain (cert+upstream chain)
-                                                    <span class="label label-default">CertificateCA-${toChain.certificate_ca_id}</span>
+                                                    <span class="label label-default">CertificateCA-${_to_certificate_ca_chain.certificate_ca_chain_id}</span>
                                                 </th>
                                                 <td>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/fullchain.pem.txt"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem.txt"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
                                                     <a
                                                         class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca/${toChain.certificate_ca_id}/fullchain.pem"
-                                                        data-certificate_ca-id="${toChain.certificate_ca_id}"
-                                                        data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem"
+                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
+                                                        ## TODO: this can only happen on the signing cert
+                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>

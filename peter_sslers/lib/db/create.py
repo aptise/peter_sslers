@@ -745,8 +745,8 @@ def create__CertificateSigned(
     cert_domains_expected=None,
     is_active=None,
     dbAcmeOrder=None,
-    dbCertificateCA=None,
-    dbCertificateCAs_alt=None,
+    dbCertificateCAChain=None,
+    dbCertificateCAChains_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
@@ -756,20 +756,19 @@ def create__CertificateSigned(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required) The certificate in PEM encoding
-    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
-
-    :param dbCertificateCA: (required) The :class:`model.objects.CertificateCA` that signed this certificate.
-    :param dbCertificateCAs_alt: (optional) Iterable. Alternate :class:`model.objects.CertificateCA`s that signed this certificate
-
+    :param cert_domains_expected: (required) a list of domains in the cert we
+      expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate
+      when uploading unless specified.
+    :param dbCertificateCAChain: (required) The :class:`model.objects.CertificateCAChain`
+      that signed this certificate.
+    :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
+      :class:`model.objects.CertificateCAChain`s that signed this certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
-
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
         if provivded, do not submit `dbAcmeOrder`
-
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
-
     :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
         required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
     """
@@ -791,8 +790,8 @@ def create__CertificateSigned(
             raise ValueError(
                 "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )
-    if not dbCertificateCA:
-        raise ValueError("must submit `dbCertificateCA`")
+    if not dbCertificateCAChain:
+        raise ValueError("must submit `dbCertificateCAChain`")
 
     dbAcmeAccount = None
     if dbAcmeOrder:
@@ -889,8 +888,8 @@ def create__CertificateSigned(
         ctx.dbSession.flush(objects=[dbCertificateSigned])
 
         dbCertificateSignedChain = model_objects.CertificateSignedChain()
-        dbCertificateSignedChain.certificate_ca_id = dbCertificateCA.id
         dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+        dbCertificateSignedChain.certificate_ca_chain_id = dbCertificateCAChain.id
         dbCertificateSignedChain.is_upstream_default = True
         ctx.dbSession.add(dbCertificateSignedChain)
         ctx.dbSession.flush(objects=[dbCertificateSignedChain])
@@ -934,11 +933,13 @@ def create__CertificateSigned(
             # final, just to be safe
             ctx.dbSession.flush()
 
-        if dbCertificateCAs_alt:
-            for _dbCertificateCA in dbCertificateCAs_alt:
+        if dbCertificateCAChains_alt:
+            for _dbCertificateCAChain in dbCertificateCAChains_alt:
                 dbCertificateSignedChain = model_objects.CertificateSignedChain()
                 dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-                dbCertificateSignedChain.certificate_ca_id = _dbCertificateCA.id
+                dbCertificateSignedChain.certificate_ca_chain_id = (
+                    _dbCertificateCAChain.id
+                )
                 dbCertificateSignedChain.is_upstream_default = False
                 ctx.dbSession.add(dbCertificateSignedChain)
                 ctx.dbSession.flush(objects=[dbCertificateSignedChain])

@@ -3155,7 +3155,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
             "/.well-known/admin/certificate-ca-chain/1.json", status=200
         )
 
-    @routes_tested(("admin:certificate_ca:upload_chain",))
+    @routes_tested(("admin:certificate_ca_chain:upload_chain",))
     def test_upload_html(self):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_html
@@ -3173,13 +3173,13 @@ class FunctionalTests_CertificateCAChain(AppTest):
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/upload-chain", status=200
+                "/.well-known/admin/certificate-ca-chain/upload-chain", status=200
             )
             form = res.form
             form["chain_file"] = Upload(tmpfile_pem.name)
             res2 = form.submit()
             assert res2.status_code == 303
-            matched = RE_CertificateCA_uploaded.match(res2.location)
+            matched = RE_CertificateCAChain_uploaded.match(res2.location)
             # this querystring ends: ?result=success&is_created=0'
             _is_created = bool(int(res2.location[-1]))
             assert matched
@@ -3211,26 +3211,14 @@ class FunctionalTests_CertificateCAChain(AppTest):
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             _data = {"chain_file": Upload(tmpfile_pem.name)}
-            res = self.testapp.post(
-                "/.well-known/admin/certificate-ca/upload-chain.json", _data
+            res2 = self.testapp.post(
+                "/.well-known/admin/certificate-ca-chain/upload-chain.json", _data
             )
             assert res2.status_code == 200
             assert res2.json["result"] == "success"
             # we may not have created this
             assert res2.json["CertificateCAChain"]["created"] in (True, False)
 
-            # TODO - redo this once chain/etc is done
-
-            form = res.form
-            form["chain_file"] = Upload(tmpfile_pem.name)
-            res2 = form.submit()
-            assert res2.status_code == 303
-            matched = RE_CertificateCA_uploaded.match(res2.location)
-            # this querystring ends: ?result=success&is_created=0'
-            _is_created = bool(int(res2.location[-1]))
-            assert matched
-            obj_id = matched.groups()[0]
-            res3 = self.testapp.get(res2.location, status=200)
         finally:
             if tmpfile_pem is not None:
                 tmpfile_pem.close()
@@ -6020,10 +6008,10 @@ class FunctionalTests_AlternateChains(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_signed:focus:via_certificate_ca:config|json",
-            "admin:certificate_signed:focus:via_certificate_ca:config|zip",
-            "admin:certificate_signed:focus:via_certificate_ca:chain:raw",
-            "admin:certificate_signed:focus:via_certificate_ca:fullchain:raw",
+            "admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
+            "admin:certificate_signed:focus:via_certificate_ca_chain:config|zip",
+            "admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
+            "admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
         )
     )
     def test_CertificateSigned_view(self):
@@ -6047,52 +6035,52 @@ class FunctionalTests_AlternateChains(AppTest):
 
             # chain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.cer"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.crt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.der"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/chain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/fullchain.pem"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/fullchain.pem.txt"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/config.json"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca/%s/config.zip"
+                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/config.zip"
                 % focus_ids,
                 status=200,
             )

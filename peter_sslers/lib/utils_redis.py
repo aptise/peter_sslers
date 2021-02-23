@@ -128,7 +128,7 @@ def prime_redis_domain(request, dbDomain):
                 )
                 redis_prime_logic__style_1_CertificateCA(
                     redis_client,
-                    dbCertificateSigned.certificate_ca__preferred,
+                    dbCertificateSigned.certificate_ca_chain__preferred,
                     redis_timeouts,
                 )
             except Exception as exc:

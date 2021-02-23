@@ -260,6 +260,26 @@ Re-using PrivateKeys across orders is supported because this application's
 OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master,
 redis) for dynamic certificate lookups.
 
+### CertificateCAs and Certificate Chains
+
+The normalized data structure used by the backend and object hierarchy is as follows:
+
+* `CertificateSigned`
+  * The "End Entity" certificate
+* `CertificateSignedChain`
+  * One or more per `CertificateSigned`
+  * Maps a `CertificateSigned` to the ACME indicated `CertificateCAChain`
+  * Indicates if the association was the primary/default or an alterate
+* `CertificateCAChain`
+  * Represents a chain of one or more `CertificateCA` certificates
+  * item 0 signed the `CertificateSigned`
+  * item n is typically signed by the Trust store certificate
+* `CertificateCA`
+  * A root or intermediate certificate
+
+Earlier versions of this library treated the entire chain as a unique CertificateCA.
+
+
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
 One of the LetsEncrypt service's ratelimits is based on a Certificate Request's

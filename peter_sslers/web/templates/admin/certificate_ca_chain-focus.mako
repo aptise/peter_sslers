@@ -6,8 +6,8 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
-        <li class="active">Focus [${CertificateCA.id}]</li>
+        <li><a href="${admin_prefix}/certificate-cas">CertificateCAChains</a></li>
+        <li class="active">Focus [${CertificateCAChain.id}]</li>
     </ol>
 </%block>
 
@@ -50,6 +50,28 @@
                     <tr>
                         <th>chain_pem_md5</th>
                         <td><code>${CertificateCAChain.chain_pem_md5}</code></td>
+                    </tr>
+
+                    <tr>
+                        <th>certificate_ca_0</th>
+                        <td>
+                            The first item in the chain (signed a cert)<br/>
+                            ${CertificateCAChain.certificate_ca_0.button_view|n}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_ca_n</th>
+                        <td>
+                            The last item in the chain (signed by a root)<br/>
+                            ${CertificateCAChain.certificate_ca_n.button_view|n}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>chain item ids</th>
+                        <td>
+                            ids of CertificateCAs in this chain<br/>
+                            <code>${CertificateCAChain.certificate_ca_ids_string}</code>
+                        </td>
                     </tr>
                 </tbody>
             </table>

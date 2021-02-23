@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
+        <li><a href="${admin_prefix}/certificate-ca-chains">CertificateCAChains</a></li>
         <li class="active">Upload Chain</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAs | Upload Chain</h2>
+    <h2>CertificateCAChains | Upload Chain</h2>
 </%block>
 
 
@@ -40,11 +40,9 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_CertificateCA()}
-
             <h3>This form is JSON capable</h3>
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/certificate-ca/upload-chain.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/certificate-ca-chain/upload-chain.json</code>
             </p>
 
             <p>

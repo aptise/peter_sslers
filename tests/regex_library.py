@@ -161,6 +161,14 @@ RE_CertificateCA_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca/(\d+)\?result=success&is_created=\d$"""
 )
 
+# note: CertificateCAChain
+
+RE_CertificateCAChain_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
+)
+
+# note: CoverageAssuranceEvent
+
 RE_CoverageAssuranceEvent_mark = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/coverage-assurance-event/(\d+)\?result=success&operation=mark&action=resolution$"""
 )

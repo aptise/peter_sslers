@@ -1686,8 +1686,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
             cert_domains_expected=domain_names,
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCAChains_alternates[0],
-            dbCertificateCAs_alt=dbCertificateCAChains_alternates[1:],
+            dbCertificateCAChain=dbCertificateCAChains_alternates[0],
+            dbCertificateCAChains_alt=dbCertificateCAChains_alternates[1:],
             dbCertificateRequest=dbCertificateRequest,
         )
         ctx.pyramid_transaction_commit()
@@ -2380,8 +2380,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             cert_pem=certificate_pem,
             cert_domains_expected=dbAcmeOrder.domains_as_list,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCA=dbCertificateCAChains_alternates[0],
-            dbCertificateCAs_alt=dbCertificateCAChains_alternates[1:],
+            dbCertificateCAChain=dbCertificateCAChains_alternates[0],
+            dbCertificateCAChains_alt=dbCertificateCAChains_alternates[1:],
             dbPrivateKey=dbAcmeOrder.private_key,
         )
         if dbAcmeOrder.certificate_signed:
