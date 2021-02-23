@@ -2479,8 +2479,13 @@ def ensure_chain(
         openssl verify -CAfile root.pem [[-untrusted intermediate.pem],[-untrusted intermediate.pem],] cert.pem
     however older ones only want to see a single one
         openssl verify -CAfile root.pem -untrusted intermediate.pem cert.pem
-    
+
     to get around this, put all the intermediates into a file
+    
+    this is a stopgap solution and needs to be refactored:
+    
+        openssl does not care about the order of intermediates, so this should
+        be iteratively built up like the pure-python example
     """
     _tempfiles = []
     try:
