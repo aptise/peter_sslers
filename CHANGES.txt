@@ -129,24 +129,23 @@
 	* fullchains no longer have blank lines
 	* remove the "letsencrypt/cert-ca-bundle" concept; these certificates are
 	  now distributed with the library
-	
+	* renamed Form_CertificateCA_Upload_Chain__file  to Form_CertificateCAChain_Upload__file
 	+ other fixes and improvements
 	
-	AUDIT:
-	* certificate_ca_download - Is this needed anymore? We now bundle the LetsEncrypt certificates.
-	
 	TODO:
-	* rename Form_CertificateCA_Upload_Chain__file
     * audit todos:
-	    # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
 	    # TODO general
-        # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
+	    # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
         # TODO: this can only happen on the signing cert
 
-	* CertificateCAPreferences -> CertificateCAChainPreference
 	* debugtoolbar error on duplicate acmeaccount registration
 	* shortcut to creating an order from a domain
 	* add a test to ensure chains/fullchains do not have blank lines
+
+	UNDECIDED
+	* CertificateCAPreferences -> CertificateCAChainPreference
+	  This would pin the chain, which is possibly not something we want to do
+	  It may be best to keep this as-is, then try to find the shortest compatible chain
 			
 
 0.4.0

@@ -1391,8 +1391,10 @@ def cert_ext__pem_filepath(pem_filepath, ext):
     """
     handles a single pem operation to `openssl x509` with EXTENSION
     /usr/local/bin/openssl x509  -noout -ext subjectAltName -in cert.pem
+    /usr/local/bin/openssl x509  -noout -ext authorityKeyIdentifier -in cert.pem
+    /usr/local/bin/openssl x509  -noout -ext authorityInfoAccess -in cert.pem
     """
-    if ext not in ("subjectAltName",):
+    if ext not in ("subjectAltName", "authorityKeyIdentifier", "authorityInfoAccess"):
         raise ValueError("invalid `ext`")
     with psutil.Popen(
         [openssl_path, "x509", "-noout", "-ext", ext, "-in", pem_filepath],
@@ -1706,6 +1708,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 rval["SubjectAlternativeName"] = found_domains
             except:
                 pass
+            print("authority_key_identifier? - b")
             try:
                 _text = cert_ext__pem_filepath(
                     cert_pem_filepath, "authorityKeyIdentifier"
@@ -1721,6 +1724,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             except:
                 pass
         else:
+            print("authority_key_identifier? - a")
             with psutil.Popen(
                 [openssl_path, "x509", "-text", "-noout", "-in", cert_pem_filepath],
                 stdout=subprocess.PIPE,

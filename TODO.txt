@@ -16,6 +16,9 @@ These sections still need to be audited and streamlined.
 
 Audit/Remove "todo" markers
 
+AUDIT:
+* certificate_ca_download - Is this needed anymore? We now bundle the LetsEncrypt certificates.
+
 asap tasks
 ---------------
 

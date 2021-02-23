@@ -836,7 +836,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             (_cert, _chain) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             self.assertEqual(_cert, cert_pem)
 
-    def test_analyze_chains(self):
+    def test__analyze_chains(self):
         """
         This tests:
         * cert_utils.cert_and_chain_from_fullchain
