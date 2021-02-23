@@ -15,7 +15,7 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib.forms import Form_CertificateCA_Upload_Chain__file
+from ..lib.forms import Form_CertificateCAChain_Upload__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
@@ -126,7 +126,7 @@ class View_New(Handler):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_CertificateCA_Upload_Chain__file,
+                schema=Form_CertificateCAChain_Upload__file,
                 validate_get=False,
             )
             if not result:
