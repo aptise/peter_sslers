@@ -705,17 +705,13 @@ There is even an `invoke` script to automate these imports:
 	invoke import-certbot-cert-plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
-### `/.well-known/admin/certificate-ca/upload.json`
+### `/.well-known/admin/certificate-ca/upload-cert.json`
 
-Upload a new LetsEncrypt certificate.
+Upload a new Certificate Authority (LetsEncrypt) certificate.
 
-`uplaod_bundle` is preferred as it provides better tracking.
+### `/.well-known/admin/certificate-ca-chain/upload-chain.json`
 
-
-### `/.well-known/admin/certificate-ca/upload-bundle.json`
-
-Upload a new LetsEncrypt certificate with a known role.
-
+Upload a new Certificate Authority (LetsEncrypt) chain.
 
 ### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
 

@@ -1341,7 +1341,6 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
         self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES"))
 
         seen = {
-            "formfield_base": [],
             "url_pem": [],
             "display_name": [],
         }
@@ -1373,12 +1372,7 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             self.assertNotIn(_url_pem, seen["url_pem"])
             seen["url_pem"].append(_url_pem)
 
-            # our formfields should be unique
-            _formfield_base = cert_payload.get("formfield_base")
-            self.assertNotIn(_formfield_base, seen["formfield_base"])
-            seen["formfield_base"].append(_formfield_base)
-
             # our display_name should be unique
             _display_name = cert_payload.get("display_name")
-            self.assertNotIn(_formfield_base, seen["display_name"])
+            self.assertNotIn(_display_name, seen["display_name"])
             seen["display_name"].append(_display_name)

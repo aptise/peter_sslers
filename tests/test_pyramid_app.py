@@ -2506,39 +2506,7 @@ class FunctionalTests_CertificateCA(AppTest):
         obj_id = matched.groups()[0]
         res3 = self.testapp.get(res2.location, status=200)
 
-        # try a bundle
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload-bundle", status=200
-        )
-        form = res.form
-        _fields = [i[0] for i in form.submit_fields()]
-        for _cert_id in letsencrypt_info.CA_LE_BUNDLE_SUPPORTED:
-            _field_base = letsencrypt_info.CERT_CAS_DATA[_cert_id]["formfield_base"]
-            _field = "%s_file" % _field_base
-            self.assertIn(_field, _fields)
-            form[_field] = Upload(
-                self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"][_cert_id])
-            )
-
-        res2 = form.submit()
-        assert res2.status_code == 303
-        assert (
-            res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/certificate-cas?uploaded=1"""
-        )
-        res3 = self.testapp.get(res2.location, status=200)
-
-        """This should enter in item #4"""
-        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
-        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
-        _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
-
-    @routes_tested(
-        (
-            "admin:certificate_ca:upload_cert|json",
-            "admin:certificate_ca:upload_bundle|json",
-        )
-    )
+    @routes_tested(("admin:certificate_ca:upload_cert|json",))
     def test_upload_json(self):
         """
         This should enter in item #9, but the CertificateCAs.order is 0.
@@ -2569,25 +2537,6 @@ class FunctionalTests_CertificateCA(AppTest):
         res3 = self.testapp.get(
             "/.well-known/admin/certificate-ca/%s" % obj_id, status=200
         )
-
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload-bundle.json", status=200
-        )
-        chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
-        form = {}
-        for _cert_id in letsencrypt_info.CA_LE_BUNDLE_SUPPORTED:
-            _field_base = letsencrypt_info.CERT_CAS_DATA[_cert_id]["formfield_base"]
-            _field = "%s_file" % _field_base
-            form[_field] = Upload(
-                self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"][_cert_id])
-            )
-        res2 = self.testapp.post(
-            "/.well-known/admin/certificate-ca/upload-bundle.json", form
-        )
-        assert res2.status_code == 200
-        assert res2.json["result"] == "success"
-        # this is going to be too messy to check all the vars
-        # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_int_x2_pem': {u'id': 3, u'created': False}, u'letsencrypt_intermediate_x4_cross_pem': {u'id': 6, u'created': False}, u'letsencrypt_intermediate_x2_cross_pem': {u'id': 7, u'created': False}, u'letsencrypt_intermediate_x3_cross_pem': {u'id': 8, u'created': False}, u'result': u'success', u'letsencrypt_intermediate_x1_cross_pem': {u'id': 4, u'created': False}, u'le_int_x1_pem': {u'id': 1, u'created': False}}
 
     def _expected_preferences(self):
         """this is shared by html and json"""

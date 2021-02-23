@@ -374,19 +374,6 @@ json_capable = {
             "curl --form 'chain_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca/upload.json",
         ],
     },
-    "/certificate-ca/upload-bundle.json": {
-        "endpoint": "/certificate-ca/upload-bundle.json",
-        "section": "certificate-ca",
-        "about": """Upload an authority certificate bundle""",
-        "POST": True,
-        "GET": None,
-        "GET-SELF-DOCUMENTING": True,
-        "args": None,
-        "examples": [
-            "curl {ADMIN_PREFIX}/certificate-ca/upload-bundle.json",
-            "curl --form 'isrgrootx1_file=@isrgrootx1.pem' --form 'le_int_x1_cross_file=@lets-encrypt-x1-cross-signed.pem' --form 'le_int_x2_cross_file=@lets-encrypt-x2-cross-signed.pem' --form 'le_int_x3_cross_file=@lets-encrypt-x3-cross-signed.pem' --form 'le_int_x4_cross_file=@lets-encrypt-x4-cross-signed.pem' --form 'le_int_x1_file=@letsencryptauthorityx1' --form 'le_int_x2_file=@letsencryptauthorityx2' {ADMIN_PREFIX}/certificate-ca/upload-bundle.json",
-        ],
-    },
     "/certificate-signeds.json": {
         "endpoint": "/certificate-signeds.json",
         "section": "certificate-signed",

@@ -655,12 +655,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:certificate_ca:upload_cert|json", "/certificate-ca/upload-cert.json"
     )
-    config.add_route_7(
-        "admin:certificate_ca:upload_bundle", "/certificate-ca/upload-bundle"
-    )
-    config.add_route_7(
-        "admin:certificate_ca:upload_bundle|json", "/certificate-ca/upload-bundle.json"
-    )
 
     # !!!: CertificateCAChains (Certificate Authority)
     config.add_route_7("admin:certificate_ca_chains", "/certificate-ca-chains")

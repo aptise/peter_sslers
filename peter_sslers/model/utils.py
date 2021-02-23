@@ -229,7 +229,6 @@ class _OperationsUnified(_mixin_mapping):
         2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
         200: "CertificateCA__letsencrypt_sync",
         210: "CertificateCA__insert",
-        220: "CertificateCA__upload_bundle",
         230: "CertificateCAChain__insert",
         610: "CertificateRequest__insert",
         620: "CertificateRequest__new",

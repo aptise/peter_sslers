@@ -127,7 +127,8 @@
 	* CertificateSigneds now map to CertificateCAChains
 	* cleaning up docs
 	* fullchains no longer have blank lines
-	
+	* remove the "letsencrypt/cert-ca-bundle" concept; these certificates are
+	  now distributed with the library
 	
 	+ other fixes and improvements
 	
@@ -135,6 +136,7 @@
 	* certificate_ca_download - Is this needed anymore? We now bundle the LetsEncrypt certificates.
 	
 	TODO:
+	* rename Form_CertificateCA_Upload_Chain__file
     * audit todos:
 	    # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
 	    # TODO general
@@ -144,7 +146,6 @@
 	* CertificateCAPreferences -> CertificateCAChainPreference
 	* debugtoolbar error on duplicate acmeaccount registration
 	* shortcut to creating an order from a domain
-	* remove the letsencrypt/cert-ca-bundle ; this is now part of the library
 	* add a test to ensure chains/fullchains do not have blank lines
 			
 
