@@ -1155,7 +1155,7 @@ def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
 def get__CertificateCA__by_pem_text(ctx, cert_pem):
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
-    dbCertificate = (
+    dbCertificateCA = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
             model_objects.CertificateCA.cert_pem_md5 == cert_pem_md5,
@@ -1163,21 +1163,49 @@ def get__CertificateCA__by_pem_text(ctx, cert_pem):
         )
         .first()
     )
-    return dbCertificate
+    return dbCertificateCA
 
 
-def get__CertificateCAChain__by_pem_text(ctx, cert_pem):
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
-    dbChain = (
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateCAChain__count(ctx):
+    counted = ctx.dbSession.query(model_objects.CertificateCAChain).count()
+    return counted
+
+
+def get__CertificateCAChain__paginated(ctx, limit=None, offset=0):
+    q = (
+        ctx.dbSession.query(model_objects.CertificateCAChain)
+        .order_by(model_objects.CertificateCAChain.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__CertificateCAChain__by_id(ctx, chain_id):
+    dbCertificateCAChain = (
+        ctx.dbSession.query(model_objects.CertificateCAChain)
+        .filter(model_objects.CertificateCAChain.id == chain_id)
+        .first()
+    )
+    return dbCertificateCAChain
+
+
+def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
+    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_pem_md5 = utils.md5_text(chain_pem)
+    dbCertificateCAChain = (
         ctx.dbSession.query(model_objects.CertificateCAChain)
         .filter(
-            model_objects.CertificateCAChain.cert_pem_md5 == cert_pem_md5,
-            model_objects.CertificateCAChain.cert_pem == cert_pem,
+            model_objects.CertificateCAChain.chain_pem_md5 == chain_pem_md5,
+            model_objects.CertificateCAChain.chain_pem == chain_pem,
         )
         .first()
     )
-    return dbChain
+    return dbCertificateCAChain
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

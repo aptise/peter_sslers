@@ -170,8 +170,12 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-cas</a></li>
+                <li><a href="${admin_prefix}/certificate-ca-chains"
+                       title="CertificateCAChains"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificate-ca-chains</a></li>
             </ul>
-
 
 
         </div>

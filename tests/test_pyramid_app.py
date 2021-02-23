@@ -29,6 +29,7 @@ import sqlalchemy
 
 # local
 from peter_sslers.lib import letsencrypt_info
+from peter_sslers.lib import cert_utils
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -2474,14 +2475,15 @@ class FunctionalTests_CertificateCA(AppTest):
         assert "id" in res.json["CertificateCA"]
         assert "parsed" in res.json["CertificateCA"]
 
-    @routes_tested(
-        (
-            "admin:certificate_ca:upload_cert",
-            "admin:certificate_ca:upload_bundle",
-        )
-    )
+    @routes_tested(("admin:certificate_ca:upload_chain",))
     def test_upload_html(self):
-        """This should enter in item #8, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1`"""
+        """
+        This should enter in item #8, but the CertificateCAs.order is 0.
+        xxx At this point, the only CA Cert that is not self-signed should be `ISRG Root X1`
+        update: ISRG Root X2 has a cross-signed variant
+
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_html
+        """
         _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][0]
         self.assertEqual(_cert_ca_id, "trustid_root_x3")
         _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
@@ -2499,9 +2501,6 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # this querystring ends: ?result=success&is_created=0'
         _is_created = bool(int(res2.location[-1]))
-
-        # focus_items = self.ctx.dbSession.query(model_objects.CertificateCA).all()
-        # pdb.set_trace()
 
         assert matched
         obj_id = matched.groups()[0]
@@ -2541,7 +2540,12 @@ class FunctionalTests_CertificateCA(AppTest):
         )
     )
     def test_upload_json(self):
-        """This should enter in item #9, but the CertificateCAs.order is 0. At this point, the only CA Cert that is not self-signed should be `ISRG Root X1` and the trustid from `test_upload_html`"""
+        """
+        This should enter in item #9, but the CertificateCAs.order is 0.
+        xxx At this point, the only CA Cert that is not self-signed should be `ISRG Root X1` and the trustid from `test_upload_html`
+
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_json
+        """
         _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
         self.assertEqual(_cert_ca_id, "isrg_root_x2")
         _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
@@ -2556,30 +2560,27 @@ class FunctionalTests_CertificateCA(AppTest):
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
-
         # we may not have created this
         assert res2.json["CertificateCA"]["created"] in (True, False)
         assert (
             res2.json["CertificateCA"]["id"] > 2
         )  # the database was set up with 2 items
         obj_id = res2.json["CertificateCA"]["id"]
-
         res3 = self.testapp.get(
             "/.well-known/admin/certificate-ca/%s" % obj_id, status=200
         )
+
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/upload-bundle.json", status=200
         )
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         form = {}
-
         for _cert_id in letsencrypt_info.CA_LE_BUNDLE_SUPPORTED:
             _field_base = letsencrypt_info.CERT_CAS_DATA[_cert_id]["formfield_base"]
             _field = "%s_file" % _field_base
             form[_field] = Upload(
                 self._filepath_testfile(TEST_FILES["CertificateCAs"]["cert"][_cert_id])
             )
-
         res2 = self.testapp.post(
             "/.well-known/admin/certificate-ca/upload-bundle.json", form
         )
@@ -3106,6 +3107,133 @@ class FunctionalTests_CertificateCA(AppTest):
         _ensure_compliance_payload(res, expected_preferences_initial)
 
         # TODO: test adding more than 10 items
+
+
+class FunctionalTests_CertificateCAChain(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain
+    """
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_chains",
+            "admin:certificate_ca_chains_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/certificate-ca-chains", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/certificate-ca-chains/1", status=200)
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_chains|json",
+            "admin:certificate_ca_chains_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # JSON root
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca-chains.json", status=200
+        )
+        assert "CertificateCAChains" in res.json
+
+        # JSON paginated
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca-chains/1.json", status=200
+        )
+        assert "CertificateCAChains" in res.json
+
+    @routes_tested(("admin:certificate_ca_chain:focus",))
+    def test_focus_html(self):
+        res = self.testapp.get("/.well-known/admin/certificate-ca-chain/1", status=200)
+
+    @routes_tested(("admin:certificate_ca_chain:focus|json",))
+    def test_focus_json(self):
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca-chain/1.json", status=200
+        )
+
+    @routes_tested(("admin:certificate_ca:upload_chain",))
+    def test_upload_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_html
+        """
+        # let's build a chain!
+        chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
+        chain_data = []
+        for _cert_ca_id in chain_items:
+            _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+            _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
+            _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
+            chain_data.append(_cert_ca_filedata)
+        chain_data = "\n".join(chain_data)
+        tmpfile_pem = None
+        try:
+            tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
+            res = self.testapp.get(
+                "/.well-known/admin/certificate-ca/upload-chain", status=200
+            )
+            form = res.form
+            form["chain_file"] = Upload(tmpfile_pem.name)
+            res2 = form.submit()
+            assert res2.status_code == 303
+            matched = RE_CertificateCA_uploaded.match(res2.location)
+            # this querystring ends: ?result=success&is_created=0'
+            _is_created = bool(int(res2.location[-1]))
+            assert matched
+            obj_id = matched.groups()[0]
+            res3 = self.testapp.get(res2.location, status=200)
+        finally:
+            if tmpfile_pem is not None:
+                tmpfile_pem.close()
+
+    @routes_tested(("admin:certificate_ca_chain:upload_chain|json",))
+    def test_upload_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_json
+        """
+        # test chain uploads
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/upload-chain.json", status=200
+        )
+        # let's build a chain!
+        chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
+        chain_data = []
+        for _cert_ca_id in chain_items:
+            _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+            _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
+            _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
+            chain_data.append(_cert_ca_filedata)
+        chain_data = "\n".join(chain_data)
+        tmpfile_pem = None
+        try:
+            tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
+            _data = {"chain_file": Upload(tmpfile_pem.name)}
+            res = self.testapp.post(
+                "/.well-known/admin/certificate-ca/upload-chain.json", _data
+            )
+            assert res2.status_code == 200
+            assert res2.json["result"] == "success"
+            # we may not have created this
+            assert res2.json["CertificateCAChain"]["created"] in (True, False)
+
+            # TODO - redo this once chain/etc is done
+
+            form = res.form
+            form["chain_file"] = Upload(tmpfile_pem.name)
+            res2 = form.submit()
+            assert res2.status_code == 303
+            matched = RE_CertificateCA_uploaded.match(res2.location)
+            # this querystring ends: ?result=success&is_created=0'
+            _is_created = bool(int(res2.location[-1]))
+            assert matched
+            obj_id = matched.groups()[0]
+            res3 = self.testapp.get(res2.location, status=200)
+        finally:
+            if tmpfile_pem is not None:
+                tmpfile_pem.close()
 
 
 class FunctionalTests_CertificateRequest(AppTest):

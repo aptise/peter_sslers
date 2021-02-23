@@ -656,16 +656,36 @@ def _admin_views(config):
         "admin:certificate_ca:upload_cert|json", "/certificate-ca/upload-cert.json"
     )
     config.add_route_7(
-        "admin:certificate_ca:upload_chain", "/certificate-ca/upload-chain"
-    )
-    config.add_route_7(
-        "admin:certificate_ca:upload_chain|json", "/certificate-ca/upload-chain.json"
-    )
-    config.add_route_7(
         "admin:certificate_ca:upload_bundle", "/certificate-ca/upload-bundle"
     )
     config.add_route_7(
         "admin:certificate_ca:upload_bundle|json", "/certificate-ca/upload-bundle.json"
+    )
+
+    # !!!: CertificateCAChains (Certificate Authority)
+    config.add_route_7("admin:certificate_ca_chains", "/certificate-ca-chains")
+    config.add_route_7(
+        "admin:certificate_ca_chains_paginated", "/certificate-ca-chains/{@page}"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chains|json", "/certificate-ca-chains.json"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chains_paginated|json",
+        "/certificate-ca-chains/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chain:focus", "/certificate-ca-chain/{@id}"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chain:focus|json", "/certificate-ca-chain/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chain:upload_chain", "/certificate-ca-chain/upload-chain"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chain:upload_chain|json",
+        "/certificate-ca-chain/upload-chain.json",
     )
 
     # !!!: Certificate Requests

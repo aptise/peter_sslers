@@ -23,22 +23,27 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
+        <a  href="${admin_prefix}/certificate-ca-chains"
+            title="CertificateCAChains"
+            class="btn btn-xs btn-info"
+        >
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            CertificateCAChains</a>
         <a  href="${admin_prefix}/certificate-ca/upload-cert"
             title="CertificateCA - Upload Cert"
             class="btn btn-xs btn-primary"
         >
-        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-        Upload: CertificateCA</a>
+            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+            Upload: CertificateCA</a>
         <a  href="${admin_prefix}/certificate-cas/preferred"
             title="CertificateCAs - Preferred"
             class="btn btn-xs btn-info"
         >
-        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-        List: Preferred</a>
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            List: Preferred</a>
         <a href="${admin_prefix}/certificate-cas.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-            .json
-        </a>
+            .json</a>
     </p>
 </%block>
 

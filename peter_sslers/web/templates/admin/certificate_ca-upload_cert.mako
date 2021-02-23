@@ -50,7 +50,7 @@
             <p>
                 You can upload a certificate chain on this form: <br/>
                 <a  class="btn btn-primary"
-                    href="${admin_prefix}/certificate-ca/upload-chain"
+                    href="${admin_prefix}/certificate-ca-chain/upload-chain"
                 >Upload CertificateCA Chain</a>
             </p>
 

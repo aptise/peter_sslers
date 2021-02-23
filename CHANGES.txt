@@ -121,9 +121,11 @@
 	* added `cert_utils.ensure_chain()`
 		TODO: openssl fallback
 	* introduced a new "CertificateCAChain" object
+		* introduced routes
 	* tracking CertificateCA fields:
 		* issuer_uri
 		* authority key identifier
+	* cleaning up docs
 	+ other fixes and improvements
 	
 	AUDIT:
@@ -132,6 +134,7 @@
 	TODO:
 	* debugtoolbar error on duplicate acmeaccount registration
 	* shortcut to creating an order from a domain
+	* remove the letsencrypt/cert-ca-bundle ; this is now part of the library
 			
 
 0.4.0

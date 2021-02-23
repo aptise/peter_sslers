@@ -21,7 +21,9 @@ peter_sslers README
 
 Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*.
 
-`peter_sslers` is a package designed to help *experienced* admins and DevOps people manage SSL Certificates and deploy them on larger systems (e.g. you have lots of domains and/or nodes).
+`peter_sslers` is a package designed to help *experienced* admins and DevOps people
+manage SSL Certificates and deploy them on larger systems (e.g. you have lots of
+Domains and/or Nodes and/or Networks).
 
 What's in the "box" ?
 
@@ -33,48 +35,71 @@ THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SE
 
 Amazing, right?
 
-This project is *not* aimed at casual users or people concerned with a handful of websites or servers.
+This project is *not* aimed at casual users or people concerned with a handful of
+websites or servers.
 
-This project is designed for people who have lots of domains and servers, which all need to be coordinated.
+This project is designed for people who have lots of domains and servers,
+which all need to be coordinated.
 
-If you can use Certbot or another consumer client, YOU ABSOLUTELY WANT TO USE THAT CLIENT. 
+If you can use Certbot or another consumer client to solve your needs, YOU ALMOST
+ABSOLUTELY WANT TO USE THAT CLIENT. 
 
-Peter, as we fondly call this package, offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; Sqlite is supported and the primary testing environment.  A good-faith effort is made to get this to work on MySQL, but, well, sigh.
+Peter, as we fondly call this package, offers lightweight tools to centrally manage
+SSL Certificate data in a SQL database of your choice. PostgreSQL is recommended;
+Sqlite is supported and the primary testing environment. A good-faith effort is
+made to get this to work on MySQL, but, well, sigh.
 
-Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage, deploy and troubleshoot SSL Certificates.
+Peter combines an ACME V2 Client designed to primary operate against the LetsEncrypt
+service, alongside tools designed to manage, deploy and troubleshoot SSL Certificates.
 
 The client supported ACME v1 until version `0.4.0`. 
 
-**As of 0.4.0, Only ACME V2 is now supported.**
+**As of 0.4.0, Only ACME V2 is supported.**
 
 **Only LetsEncrypt is supported as a target ACME Server.**
 
-It is highly likely that PeterSSLers will work with most, if not all, ACME Servers. The LetsEncrypt/Boulder implementation of the RFC has some unique characteristics and this was written to support those.
+It is highly likely that PeterSSLers will work with most, if not all, ACME Servers.
+The LetsEncrypt/Boulder implementation of the RFC has some unique characteristics
+and this was written to support those first.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
-* Act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
-* Offer a simple API for creating and managing the ACME process. Your software talks to Peter, not LetsEncrypt.
-* Import existing ssl Certificates
+* Act as a client for the entire "LetsEncrypt" issuance process, operating behind
+  a proxied webserver
+* Offer a simple API for creating and managing the ACME process. Your software
+  talks to Peter, not LetsEncrypt/ACME.
+* Import existing SSL Certificates
 * Ease provisioning Certificates onto various servers across your systems
 * Browse certificate data and easily see what needs to be renewed
-* Interact with the upstream ACME Servers to deal with accounts and pending authorizations, and all that mess.
-* Communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
+* Interact with the upstream ACME Servers to deal with accounts and pending
+  authorizations, and all that mess.
+* Communicate with a properly configured `OpenResty` enabled `Nginx` web server
+  (see next section)
 * Prime a Redis cache with certificate data
 * Translate Certificates into different formats
 * Be the source of lots of puns!
 
-Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the `Nginx` server which will:
+Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the
+`Nginx` server which will:
 
 * Dynamically request Certificates from a primed `Redis` cache
 * Store data in shared `Nginx` worker memory and
 * Expose routes to flush the worker shared memory or expire select keys. 
 
-The `OpenResty` module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your `OpenResty`/`Nginx` server via the `opm` package installer.  It has been used in production for several years.
+The `OpenResty` module is available in a separate project,
+https://github.com/aptise/peter_sslers-lua-resty and can be installed into your
+`OpenResty`/`Nginx` server via the `opm` package installer. It has been used in
+production for several years.
 
-The `Pyramid` based application can function as a daemon for Admin or API access, or even a commandline script. Most web pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with Lynx. I shit you not, Lynx.
+The `Pyramid` based application can function as a daemon for Admin or API access,
+or even a commandline script. Most web pages offer `.json` endpoints, so you can
+easily issue commands via `curl` and have human-readable data in a terminal window.
+Don't want to do things manually? Ok - everything was built to be readable on
+commandline browsers... yes, this is actually developed-for and tested-with Lynx.
+I shit you not, Lynx.
 
-Do you like book-keeping and logging?  Peter's ACME Client logs everything into SQL so you can easily find the answers to burning questions like:
+Do you like book-keeping and logging?  Peter's ACME Client logs everything into
+SQL so you can easily find the answers to burning questions like:
 
 * What authorizations are still pending?
 * What challenges are active?
@@ -82,7 +107,8 @@ Do you like book-keeping and logging?  Peter's ACME Client logs everything into 
 * Where did this PrivateKey come from?
 * How many requests have I been making to upstream servers?
 
-All communication to the upstream ACME server is logged using Python's standard `logging` module.
+All communication to the upstream ACME server is logged using Python's standard
+`logging` module.
 
 	module: peter_sslers.lib.acme_v2
 	log level: logging.info will show the raw data received
@@ -90,30 +116,53 @@ All communication to the upstream ACME server is logged using Python's standard 
 
 THIS PACKAGE IS EXTREME TO THE MAX!!!
 
-Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
+Do you like cross-referencing?  Your certs are broken down into fields that are
+cross-referenced or searchable within Peter as well.
 
-*Peter has absolutely no security measures and should only be used by people who understand that.* This should be a self-selecting group, because many people won't want this tool. Peter is a honeybadger, he don't care. He does what he wants.
+*Peter has absolutely no security measures and should only be used by people who
+understand that.* This should be a self-selecting group, because many people will
+not want this tool. Peter is a honeybadger, he don't care. He does what he wants.
 
-Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
+Peter offers several commandline tools -- so spinning up a tool "webserver" mode
+may not be necessary at all -- or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL. SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
+SqlAlchemy is the backing database library, so virtually any database can be used
+(SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but
+the package has been tested against PostgreSQL. SQLite is actually kind of great,
+because a single `.sqlite` file can be sftp'd on-to and off-of different machines
+for distribution and local viewings.
 
-Peter will use installed Python cryptography modules whenever possible.  If the required packages are not available, Peter will leverage the system's installed OpenSSL binaries using subprocesses. The reason is to minimize the amount of installations/downloads/packages.
+Peter will use installed Python cryptography modules whenever possible.
+If the required packages are not available, Peter will leverage the system's
+installed OpenSSL binaries using subprocesses. The reason is to minimize the
+amount of installations/downloads/packages when used for debugging. Every single
+operation involved with procuring and inspecting SSL Certificates is implemented
+Python-first, with an OpenSSL fallback.
 
-Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have to deal legacy systems.
+Although Python2 is no longer supported by Python itself, both Python2 and Python3
+are targeted platforms for this library because we all have to deal legacy systems.
 
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This also allows for programmatic control of most ACME operations that can be difficult to accomplish with Certbot and other popular clients.
+Most of us hate having to spend time on DevOps tasks. Personally, I would rather
+spend time working on the core product or consumer products. This tool was designed
+as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues
+with https hosting. This also allows for programmatic control of most ACME
+operations that can be difficult to accomplish with Certbot and other popular clients.
 
 Most importantly, Peter SSLers allows you to 
 
-This is a pre-release but deployable for many situations; it is actively being worked on as it fixes new issues on production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+This is a pre-release but deployable for many situations; it is actively being
+worked on as it fixes new issues on production system.
 
-Peter sits in between your machines and LetsEncrypt. It is designed to let your applications programmatically interact with ACME servers, allowing you to provision new certificates and autoload them into webservers.
+PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
-Peter was originally designed for systems that offer whitelabel services in the cloud.
+Peter sits in between your machines and LetsEncrypt. It is designed to let your
+applications programmatically interact with ACME servers, allowing you to
+provision new certificates and autoload them into webservers.
+
+Peter is originally designed for systems that offer whitelabel services in the cloud.
 
 
 ## Status
@@ -141,15 +190,26 @@ The following features are being reworked:
 
 ## "Peter SSLers" - a `Pyramid` Application
 
-"Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface. Peter is your friend and handles all of the Certificate Management and translation functions for you. He's a bit eccentric, but basically a good guy.
+"Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be
+spun up as a webserver or used via a commandline interface. Peter is your friend
+and handles all of the Certificate Management and translation functions for you.
+He's a bit eccentric, but basically a good guy.
 
 ## "SSL Minnow" - The Datastore
 
-By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters, who are great to watch but do you want to be stuck on a remote desert island with them?!?! No.
+By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the
+backing datastore for SSL Certificates and the operations log. Your data is ONLY
+saved to the SSL Minnow - not to the filesystem like other LE clients - so you
+should be careful with it. If the Minnow would be lost, it can not be recovered.
+Be a good skipper, or your three hour tour could end up taking many years and might
+involve the Harlem Globetrotters, who are great to watch but do you want to be stuck
+on a remote desert island with them?!?! No.
 
 ## "SSLX" - The `OpenResty` package
 
-OpenResty is a fork of the nginx webserver which offers a lot of programmatic hooks (similar to Apache's mod_perl). One of the many hooks allows for programmatic determination and loading of SSL Certificates based on the hostname.
+OpenResty is a fork of the nginx webserver which offers a lot of programmatic hooks
+(similar to Apache's mod_perl). One of the many hooks allows for programmatic
+determination and loading of SSL Certificates based on the hostname.
 
 A tiered waterfall approach is used to aggressively cache certificates:
 
@@ -166,32 +226,44 @@ Available via the opm package manager:
 
 	opm get lua-resty-peter_sslers
 
-The source and docs are available on a separate github repository https://github.com/aptise/peter_sslers-lua-resty
+The source and docs are available on a separate github repository:
+
+* https://github.com/aptise/peter_sslers-lua-resty
 
 
 
 ## "Tools"
 
-The "/tools" directory contains scripts useful for certificate operations. Currently this includes:
+The "/tools" directory contains scripts useful for certificate operations.
+Currently this includes:
 
 * an `invoke` script for some miscellaneous tasks
-* a sample `fake_server.py` that will spin up a server with routes that you can test against. this will allow you to setup your integration without running peter_sslers
+* a sample `fake_server.py` that will spin up a server with routes that you can
+  test against. this will allow you to setup your integration without running
+  peter_sslers
 
 # General Management Concepts
 
 ## Intuitive Hierarchy of Related Objects
 
-* With a migration to ACME-2, this project shifted the "core" object from a CertificateSigned to the AcmeOrder.
-* An ACME-Order's primary relations are an AcmeAccount (who owns the order?) and a UniqueFQDNSet (what domains are in the order?)
-* A PrivateKey is considered a secondary item. One can be specified for an AcmeOrder, but the AcmeAccount can specify it's own strategy
+* With a migration to ACME-2, this project shifted the "core" object from a
+  CertificateSigned to the AcmeOrder.
+* An ACME-Order's primary relations are an AcmeAccount (who owns the order?) and
+  a UniqueFQDNSet (what domains are in the order?)
+* A PrivateKey is considered a secondary item. One can be specified for an
+  AcmeOrder, but the AcmeAccount can specify it's own strategy
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified
-* An AcmeAccount can specify: use the same PrivateKey, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
+* An AcmeAccount can specify: use the same PrivateKey, always use a unique
+  PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
 
-Re-using PrivateKeys across orders is supported because this application's OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master, redis) for dynamic certificate lookups.
+Re-using PrivateKeys across orders is supported because this application's
+OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master,
+redis) for dynamic certificate lookups.
 
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
-One of the LetsEncrypt service's ratelimits is based on a Certificate Request's "uniqueness" of Domains.
+One of the LetsEncrypt service's ratelimits is based on a Certificate Request's
+"uniqueness" of Domains.
 
 To more easily deal with this limit, Orders/Certificates/CertificateRequests are designed around the idea of a "UniqueFQDNSet" and not a single Domain.
 
@@ -789,9 +861,11 @@ Account keys from the LetsEncrypt client are reformatted into PEM-encoded RSA ke
 
 When this package was first developed, installing the necessary python packages for cryptography required a lot of work and downloading.  OpenSSL should already be running on any machine PeterSslers needs to work on, so it was chosen for easy in quick deployment.
 
-It was also much easier to peg this to `openssl` in a linux environment for now; which ruled out windows.
+It was also much easier to peg this to `openssl` in a linux environment for now;
+which ruled out windows.
 
-The current version only uses `openssl` if the requisite Python modules are not installed. That should work on windows.
+The current version only uses `openssl` if the requisite Python modules are not
+installed. That should work on windows.
 
 If someone wants to make a PR to support windows as a fallback, it will be reviewed!
 
@@ -802,14 +876,17 @@ When imported, Certificates are read into "text" form and parsed for data.
 
 When generated via the acme protocol, certificate data is provided in the headers.
 
-Useful fields are duplicated from the certificate into SQL to allow for better searching. Certificates are not changed in any way (aside from whitespace cleanup).
+Useful fields are duplicated from the certificate into SQL to allow for better
+searching. Certificates are not changed in any way (aside from whitespace cleanup).
 
 
 # Misc tips
 
-So far this has been tested behind a couple of load balancers that use round-robin dns. They were both in the same physical network.
+So far this has been tested behind a couple of load balancers that use round-robin
+DNS. They were both in the same physical network.
 
-* `Nginx` is on port 80. everything in the `/.well-known directory` is proxied to an internal machine *which is not guaranteed to be up*
+* `Nginx` is on port 80. everything in the `/.well-known directory` is proxied to
+  an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
 * `/.well-known/admin` is not on the public internet
 
@@ -894,15 +971,19 @@ There are a few environment variables you can set:
 	# - test suite that responds to public requests
 	export SSL_LETSENCRYPT_API_VALIDATES=True
 
-Tests are done on a SQLite database as specified in `test.ini` AND WILL REQUIRE CUSTOMIZATION FOR YOUR OPENSSL location
-
-The `test.ini` should also reflect the openssl for your distribution. YOU PROBABLY HAVE TO EDIT THIS.
+Tests are done on a SQLite database as specified in `test.ini` AND MAY REQUIRE
+CUSTOMIZATION FOR YOUR OPENSSL location. The `test.ini` should also reflect the
+OpenSSL for your distribution. Do not edit `test.ini` though, instead create a
+`test_local.ini` file and set an environment variable to use that file. More info
+on this is available in the development readme file.
 
 `test_data/` contains the keys and Certificates used for testing
 
-You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how the tests are structured.
+You can overwrite the testdb; beware that it CAN NOT run as a memory db. It must
+be a disk file due to how the tests are structured.
 
-If running tests against the LetsEncrypt test API, there are some extra configurations to note:
+If running tests against the LetsEncrypt test API, there are some extra
+configurations to note:
 
 * `SSL_TEST_DOMAINS` should reflect one or more domains which point to the IP
   address the server runs on.  This will be used for verification challenges.
@@ -945,15 +1026,20 @@ after running the server, in another window...
 - $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
-There is also a button under "operations" to sync LetsEncrypt's public website and update your certs with data.
+There is also a button under "operations" to sync LetsEncrypt's public website
+and update your certs with data, however the current codebase ships with these
+CA Certificates pre-loaded.
 
 
 How to check if it's working?
 -----------------------------
 
-The Lua script for SSL certificate handling makes a handful of DEBUG and NOTICE calls during certain actions. `Nginx` typically ignores DEBUG unless you build enable it at configuration/build time.
+The Lua script for SSL certificate handling makes a handful of `DEBUG` and `NOTICE`
+calls during certain actions. `Nginx` typically ignores `DEBUG` unless you enable
+it at configuration/build time.
 
-After querying the server, you can check the `Redis` server directly to see if keys are being set.  Assuming `Redis` is configured to use 127.0.0.1:6379:9
+After querying the server, you can check the `Redis` server directly to see if
+keys are being set.  Assuming `Redis` is configured to use 127.0.0.1:6379:9
 
 	workstation username$ redis-cli
 	127.0.0.1:6379> select 9
@@ -962,7 +1048,8 @@ After querying the server, you can check the `Redis` server directly to see if k
 	
 This should then show a bunch of keys.  If not, you have a problem.
 
-You can also query nginx directly for status. Please note, the status route is configurable:
+You can also query nginx directly for status. Please note, the status route is
+configurable:
 
 	https://example.com/.peter_sslers/nginx/shared_cache/status
 
@@ -1001,27 +1088,23 @@ The payload might look like:
 		"result": "success"
 	}
 
-If you start to see valid/invalid keys disappear it is often because the `expiries` or `maxitems` have removed them from the cache.
+If you start to see valid/invalid keys disappear it is often because the `expiries`
+or `maxitems` have removed them from the cache.
 
 
 Are Alternate Chains Supported?
 -------------------------------
 
-LetsEncrypt and other ACME Certificate Authorities may support "Alternate Chains" of their signed certificates that lead to different trusted roots.
+LetsEncrypt and other ACME Certificate Authorities may support "Alternate Chains"
+of their signed Certificates that lead to different trusted roots.
 
 Alternate Chains are fully supported by PeterSSLers
 
-Support:
-
 * Alternate Certificate Chains are downloaded and tracked
 * Machine-readable Endpoints are available to detect and utilize the Alternate Chains
-
-However:
-
-* Overall UX, payloads and endpoints are optimized for the Primary Chain
-* Some advanced features such as Cache Priming only utilize the Primary Chain
-
-Pull Requests to bring the overall experience of Alternate Chains on-par with Primary Chains are welcome.
+* Default UX, payloads and endpoints are optimized for the Primary Chain
+* Default payloads may be configured to enforce a chain preference, so alternate
+  chains can override the default chain
 
 
 What does it look like?
