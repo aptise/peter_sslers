@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAChains</a></li>
+        <li><a href="${admin_prefix}/certificate-ca-chains">CertificateCAChains</a></li>
         <li class="active">Focus [${CertificateCAChain.id}]</li>
     </ol>
 </%block>
@@ -71,6 +71,11 @@
                         <td>
                             ids of CertificateCAs in this chain<br/>
                             <code>${CertificateCAChain.certificate_ca_ids_string}</code>
+                            <ul style="list list-unstyled">
+                                % for certificate_ca in CertificateCAChain.certificate_cas_all:
+                                    <li>${certificate_ca.button_view|n}</li>
+                                % endfor
+                            </ul>
                         </td>
                     </tr>
                 </tbody>

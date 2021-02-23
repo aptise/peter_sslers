@@ -231,6 +231,23 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>CertificateCAs</th>
+                        <td>
+                            <p>The following CertificateCAs have signed this Certificate in a known chain</p>
+                            <ul class="list list-unstyled">
+                                % if CertificateSigned.certificate_signed_chains:
+                                    % for _chain in CertificateSigned.certificate_signed_chains:
+                                        <li>
+                                            ${_chain.certificate_ca_chain.certificate_ca_0.button_view|n}
+                                        </li>
+                                    % endfor
+                                % else:
+                                    <li><em>No known CertificateCAs</em></li>
+                                % endif
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>PrivateKey</th>
                         <td>
                             % if not CertificateSigned.private_key.is_compromised:

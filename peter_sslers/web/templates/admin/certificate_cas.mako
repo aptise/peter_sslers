@@ -73,8 +73,8 @@
                                 CertificateCA-${cert.id}</a>
                             </td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
-                            <td><code>${cert.cert_issuer}</code></td>
                             <td><code>${cert.cert_subject}</code></td>
+                            <td><code>${cert.cert_issuer}</code></td>
                             <td>${cert.display_name or ''}</td>
                             <td><timestamp>${cert.timestamp_created}</timestamp></td>
                             <td><code>${cert.fingerprint_sha1_preview|n}</code></td>

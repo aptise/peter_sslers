@@ -137,6 +137,9 @@
 	    # TODO general
 	    # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
         # TODO: this can only happen on the signing cert
+	* CertificateSigned - add
+		* presented certificate cas - the first item in each chain
+		* "compatible certificate cas"
 
 	* debugtoolbar error on duplicate acmeaccount registration
 	* shortcut to creating an order from a domain

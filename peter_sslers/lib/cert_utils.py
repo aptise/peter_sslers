@@ -194,8 +194,19 @@ def cleanup_pem_text(pem_text):
     ensures a trailing newline
     """
     pem_text = _RE_rn.sub("\n", pem_text)
-    pem_text = "\n".join([i.strip() for i in pem_text.split("\n")]) + "\n"
+    pem_text = [i.strip() for i in pem_text.split("\n")]
+    pem_text = [i for i in pem_text if i]
+    pem_text = "\n".join(pem_text) + "\n"
     return pem_text
+
+
+def split_pem_chain(pem_text):
+    """
+    splits a PEM chain into multiple certs
+    """
+    _certs = CERT_PEM_REGEX.findall(pem_text.encode())
+    certs = [cleanup_pem_text(i.decode()) for i in _certs]
+    return certs
 
 
 def convert_der_to_pem(der_data=None):
@@ -2342,7 +2353,7 @@ def cert_and_chain_from_fullchain(fullchain_pem):
     # First pass: find the boundary of each certificate in the chain.
     # TODO: This will silently skip over any "explanatory text" in between boundaries,
     # which is prohibited by RFC8555.
-    certs = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+    certs = split_pem_chain(fullchain_pem)
     if len(certs) < 2:
         raise errors.OpenSslError(
             "failed to parse fullchain into cert and chain: "
@@ -2368,7 +2379,7 @@ def decompose_chain(fullchain_pem):
     # First pass: find the boundary of each certificate in the chain.
     # TODO: This will silently skip over any "explanatory text" in between boundaries,
     # which is prohibited by RFC8555.
-    certs = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+    certs = split_pem_chain(fullchain_pem)
     if len(certs) < 2:
         raise errors.OpenSslError(
             "failed to parse fullchain into cert and chain: "
@@ -2427,10 +2438,10 @@ def ensure_chain(
             )
 
     if fullchain_pem:
-        intermediates = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+        intermediates = split_pem_chain(fullchain_pem)
         cert_pem = intermediates.pop(0)
     else:
-        intermediates = CERT_PEM_REGEX.findall(chain_pem.encode())
+        intermediates = split_pem_chain(chain_pem)
         cert_pem = cert_pem.strip()  # needed to match regex results in above situation
 
     # sometimes people submit things they should not

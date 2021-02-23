@@ -2106,8 +2106,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    cert_pem = sa.Column(sa.Text, nullable=False)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True, unique=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
     fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
 
@@ -2137,21 +2137,6 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    if False:
-        # TODO: CertificateSignedChain now aligns a CertificateSigned to a CertificateCaChain; e.g. certificate_ca_chain_id
-        certificate_signed_primarys = sa_orm_relationship(
-            "CertificateSignedChain",
-            primaryjoin="and_(CertificateCA.id==CertificateSignedChain.certificate_ca_id, CertificateSignedChain.is_upstream_default.is_(True))",
-            uselist=True,
-        )
-        certificate_signed_alternates = sa_orm_relationship(
-            "CertificateSignedChain",
-            primaryjoin="and_(CertificateCA.id==CertificateSignedChain.certificate_ca_id, CertificateSignedChain.is_upstream_default.isnot(True))",
-            uselist=True,
-        )
-    else:
-        certificate_signed_primarys = []
-        certificate_signed_alternates = []
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="CertificateCA.operations_event_id__created==OperationsEvent.id",
@@ -2211,9 +2196,9 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
             """CertificateCA-%(id)s</a>"""
             """<code>%(sha1_preview)s</code>"""
             """|"""
-            """<code>%(cert_issuer)s</code>"""
-            """|"""
             """<code>%(cert_subject)s</code>"""
+            """|"""
+            """<code>%(cert_issuer)s</code>"""
             % {
                 "admin_prefix": request.registry.settings["app_settings"][
                     "admin_prefix"
@@ -2256,8 +2241,8 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
 
     # this is the PEM encoding of the ENTIRE chain, not just element 0
     # while this could be assembled, for now it is being cached here
-    chain_pem = sa.Column(sa.Text, nullable=False)
-    chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    chain_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
 
     # this is the first item in the chain; what signs the CertificateSigned
     certificate_ca_0_id = sa.Column(
@@ -2311,6 +2296,18 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             }
         )
         return button
+
+    @reify
+    def certificate_cas_all(self):
+        # reify vs property, because this queries the database
+        certificate_ca_ids = self.certificate_ca_ids_string.split(",")
+        dbSession = sa_Session.object_session(self)
+        dbCertificateCAs = (
+            dbSession.query(CertificateCA)
+            .filter(CertificateCA.id.in_(certificate_ca_ids))
+            .all()
+        )
+        return dbCertificateCAs
 
 
 # ==============================================================================
@@ -2502,8 +2499,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    cert_pem = sa.Column(sa.Text, nullable=False)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
     spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
     fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
     cert_subject = sa.Column(sa.Text, nullable=False)

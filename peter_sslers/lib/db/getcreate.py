@@ -694,18 +694,16 @@ def getcreate__CertificateCAChain__by_pem_text(
     display_name=None,
 ):
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
-    chain_certs = cert_utils.CERT_PEM_REGEX.findall(chain_pem.encode())
+    chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
     if len(chain_certs) < 1:
         raise ValueError("Did not find at least 1 Certificate in this Chain.")
+    is_created = False
     dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
     if not dbCertificateCAChain:
+        # TODO: ensure the certificate chain is structured front to back
         chain_pem_md5 = utils.md5_text(chain_pem)
         dbCertificateCAs = []
         for cert_pem in chain_certs:
-            # the regex is against a `b`, so we need to decode
-            if six.PY3:
-                cert_pem = cert_pem.decode()
-            cert_pem = cert_utils.cleanup_pem_text(cert_pem)
             (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
                 ctx, cert_pem, display_name=display_name
             )
@@ -767,10 +765,10 @@ def getcreate__CertificateCA__by_pem_text(
 
     """
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    certs = cert_utils.CERT_PEM_REGEX.findall(cert_pem.encode())
-    if len(certs) > 1:
+    _certs = cert_utils.split_pem_chain(cert_pem)  # this will clean it
+    if len(_certs) > 1:
         raise ValueError("More than 1 Certificate in this PEM.")
-    elif len(certs) != 1:
+    elif len(_certs) != 1:
         raise ValueError("Did not find 1 Certificate in this PEM.")
     is_created = False
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
@@ -1034,7 +1032,7 @@ def getcreate__CertificateSigned(
                 ctx.dbSession.flush(objects=[dbCertificateSigned, dbPrivateKey])
 
         # ensure we have all the Alternate Chains connected to this ServerCerticiate
-        _upchains_existing = dbCertificateSigned.certificate_upchain_ids
+        _upchains_existing = dbCertificateSigned.certificate_ca_chain_ids
         _upchains_needed = []
         # check the primary
         if dbCertificateCAChain.id not in _upchains_existing:
