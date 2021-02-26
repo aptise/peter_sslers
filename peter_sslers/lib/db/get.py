@@ -1849,40 +1849,6 @@ def get__OperationsEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__OperationsEvent__certificate_download__count(ctx):
-    counted = (
-        ctx.dbSession.query(model_objects.OperationsEvent)
-        .filter(
-            model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string(
-                "CertificateCA__letsencrypt_sync"
-            )
-        )
-        .count()
-    )
-    return counted
-
-
-def get__OperationsEvent__certificate_download__paginated(ctx, limit=None, offset=0):
-    paged_items = (
-        ctx.dbSession.query(model_objects.OperationsEvent)
-        .order_by(model_objects.OperationsEvent.id.desc())
-        .filter(
-            model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string(
-                "CertificateCA__letsencrypt_sync"
-            )
-        )
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return paged_items
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def get__PrivateKey__count(ctx, active_usage_only=None):
     q = ctx.dbSession.query(model_objects.PrivateKey)
     if active_usage_only:

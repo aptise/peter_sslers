@@ -555,14 +555,6 @@ def _admin_views(config):
         "admin:api:deactivate_expired|json", "/api/deactivate-expired.json"
     )
     # -
-    config.add_route_7(
-        "admin:api:certificate_ca:letsencrypt_sync",
-        "/api/certificate-ca/letsencrypt-sync",
-    )
-    config.add_route_7(
-        "admin:api:certificate_ca:letsencrypt_sync|json",
-        "/api/certificate-ca/letsencrypt-sync.json",
-    )
     config.add_route_7("admin:api:nginx:cache_flush", "/api/nginx/cache-flush")
     config.add_route_7(
         "admin:api:nginx:cache_flush|json", "/api/nginx/cache-flush.json"
@@ -936,15 +928,6 @@ def _admin_views(config):
 
     # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
-    # -
-    config.add_route_7(
-        "admin:operations:certificate_ca_downloads",
-        "/operations/certificate-ca-downloads",
-    )
-    config.add_route_7(
-        "admin:operations:certificate_ca_downloads_paginated",
-        "/operations/certificate-ca-downloads/{@page}",
-    )
     # -
     config.add_route_7("admin:operations:log", "/operations/log")
     config.add_route_7("admin:operations:log_paginated", "/operations/log/{@page}")

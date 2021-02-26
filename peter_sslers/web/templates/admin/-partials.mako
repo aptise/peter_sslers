@@ -1879,11 +1879,6 @@
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
                 Operations Log: Nginx</a></li>
         % endif
-        <li class="${'active' if active =='/operations/certificate-ca-downloads' else ''}">
-            <a  href="${admin_prefix}/operations/certificate-ca-downloads"
-            >
-            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CertificateCA Downloads</a></li>
         <li class="${'active' if active =='/operations/object-log' else ''}">
             <a  href="${admin_prefix}/operations/object-log"
             >

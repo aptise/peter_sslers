@@ -369,6 +369,11 @@ for cert_id, cert_data in CERT_CAS_DATA.items():
 
 def download_letsencrypt_certificates():
     """
+    DEPRECATED
+
+    nothing calls this. may be useful for testing to ensure the certs have not
+    changed on disk, such as the whitespace issue in 2021/02
+
     download the known LetsEncrypt certificates
 
     * correct usage of `requests`

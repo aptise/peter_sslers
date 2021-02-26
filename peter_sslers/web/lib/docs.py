@@ -10,14 +10,6 @@ json_docs_post_only = {
 
 
 api_endpoints = {
-    "/api/certificate-ca/letsencrypt-sync.json": {
-        "endpoint": "/api/certificate-ca/letsencrypt-sync.json",
-        "about": """download from the LetsEncrypt website""",
-        "POST": True,
-        "GET": False,
-        "args": None,
-        "POST-button": True,
-    },
     "/api/deactivate-expired.json": {
         "endpoint": "/api/deactivate-expired.json",
         "about": """deactivates expired certificates; runs update-recents""",

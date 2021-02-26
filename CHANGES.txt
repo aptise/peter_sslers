@@ -50,7 +50,7 @@
 			`server_certificate` to `certificate_signed`
 			`ServerCertificate` to `CertificateSigned`
 			`id_cross_signed_of` to `id_cross_signed_by`
-			"letsencrypt-download" to "letsencrypt-sync"
+			xxx "letsencrypt-download" to "letsencrypt-sync"  xxx removed
 		
 		Renamed
 			CertificateSignedAlternateChain -> CertificateSignedChain 
@@ -63,6 +63,7 @@
 		Removed:
 			`CertificateCA.is_authority_certificate`
 			`CertificateCA.is_ca_certificate`	
+
 
     Bugfixes:
 	* Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
@@ -130,6 +131,10 @@
 	* remove the "letsencrypt/cert-ca-bundle" concept; these certificates are
 	  now distributed with the library
 	* renamed Form_CertificateCA_Upload_Chain__file  to Form_CertificateCAChain_Upload__file
+	* removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
+	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
+
+
 	+ other fixes and improvements
 	
 	TODO:

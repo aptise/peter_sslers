@@ -749,7 +749,6 @@ https://github.com/aptise/peter_sslers-lua-resty
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json`
 `$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
 
 using `prequest` is recommended in most contexts, because it will not timeout. this will allow for long-running processes.
@@ -757,12 +756,6 @@ using `prequest` is recommended in most contexts, because it will not timeout. t
 
 ## Routes Designed for JSON Automation
 
-
-### `/.well-known/admin/api/certificate-ca/letsencrypt-sync.json`
-
-Syncs known URLs of LetsEncrypt keys and saves them with the correct role information.
-
-If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
 
 ### `/.well-known/admin/api/deactivate-expired.json`
 

@@ -35,68 +35,6 @@ from .logger import _log_object_event
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def certificate_ca_download(ctx):
-    """
-    Downloads from the LetsEncrypt Certificate Authority
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    """
-
-    # create a bookkeeping object
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("CertificateCA__letsencrypt_sync"),
-    )
-
-    certs = letsencrypt_info.download_letsencrypt_certificates()
-    certs_discovered = []
-    certs_modified = []
-
-    for cert_id, cert_data in certs.items():
-        _is_created = False
-        dbCertificateCA = lib.db.get.get__CertificateCA__by_pem_text(
-            ctx, cert_data["cert_pem"]
-        )
-        if not dbCertificateCA:
-            (
-                dbCertificateCA,
-                _is_created,
-            ) = lib.db.getcreate.getcreate__CertificateCA__by_pem_text(
-                ctx, cert_data["cert_pem"], display_name=cert_data["display_name"]
-            )
-            if _is_created:
-                certs_discovered.append(dbCertificateCA)
-        if "is_trusted_root" in cert_data:
-            if dbCertificateCA.is_trusted_root != cert_data["is_trusted_root"]:
-                dbCertificateCA.is_trusted_root = cert_data["is_trusted_root"]
-                if dbCertificateCA not in certs_discovered:
-                    certs_modified.append(dbCertificateCA)
-        else:
-            attrs = ("display_name",)
-            for _k in attrs:
-                if getattr(dbCertificateCA, _k) is None:
-                    setattr(dbCertificateCA, _k, cert_data[_k])
-                    if dbCertificateCA not in certs_discovered:
-                        certs_modified.append(dbCertificateCA)
-
-    # bookkeeping update
-    event_payload_dict["is_certificates_discovered"] = (
-        True if certs_discovered else False
-    )
-    event_payload_dict["is_certificates_updated"] = True if certs_modified else False
-    event_payload_dict["ids_discovered"] = [c.id for c in certs_discovered]
-    event_payload_dict["ids_modified"] = [c.id for c in certs_modified]
-
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-    return dbOperationsEvent
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def operations_deactivate_expired(ctx):
     """
     deactivates expired certificates automatically

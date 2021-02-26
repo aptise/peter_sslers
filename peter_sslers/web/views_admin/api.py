@@ -56,45 +56,6 @@ class ViewAdminApi(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:certificate_ca:letsencrypt_sync", renderer=None)
-    @view_config(
-        route_name="admin:api:certificate_ca:letsencrypt_sync|json", renderer="json"
-    )
-    def certificate_ca__download(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return docs.json_docs_post_only
-            return HTTPSeeOther(
-                "%s/operations/certificate-ca-downloads?result=error&operation=certificate_ca-letsencrypt_sync&error=HTTP+POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-
-        operations_event = lib_db.actions.certificate_ca_download(
-            self.request.api_context
-        )
-        if self.request.wants_json:
-            return {
-                "result": "success",
-                "operations_event": {
-                    "id": operations_event.id,
-                    "is_certificates_discovered": operations_event.event_payload_json[
-                        "is_certificates_discovered"
-                    ],
-                    "is_certificates_updated": operations_event.event_payload_json[
-                        "is_certificates_updated"
-                    ],
-                },
-            }
-        return HTTPSeeOther(
-            "%s/operations/certificate-ca-downloads?result=success&event.id=%s"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                operations_event.id,
-            )
-        )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name="admin:api:deactivate_expired", renderer=None)
     @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
     def deactivate_expired(self):

@@ -4225,8 +4225,6 @@ class FunctionalTests_Operations(AppTest):
     @routes_tested(
         (
             "admin:operations",
-            "admin:operations:certificate_ca_downloads",
-            "admin:operations:certificate_ca_downloads_paginated",
             "admin:operations:log",
             "admin:operations:log_paginated",
             "admin:operations:log:focus",
@@ -4259,13 +4257,6 @@ class FunctionalTests_Operations(AppTest):
         assert (
             res.location
             == "http://peter-sslers.example.com/.well-known/admin/operations/log"
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/operations/certificate-ca-downloads", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/operations/certificate-ca-downloads/1", status=200
         )
 
         res = self.testapp.get("/.well-known/admin/operations/log", status=200)
@@ -8565,28 +8556,6 @@ class FunctionalTests_API(AppTest):
         )
         assert res.json["result"] == "success"
 
-    @routes_tested(
-        (
-            "admin:api:certificate_ca:letsencrypt_sync",
-            "admin:api:certificate_ca:letsencrypt_sync|json",
-        )
-    )
-    def test_letsencrypt_sync(self):
-        res = self.testapp.post(
-            "/.well-known/admin/api/certificate-ca/letsencrypt-sync", {}, status=303
-        )
-        assert (
-            "/admin/operations/certificate-ca-downloads?result=success&event.id="
-            in res.location
-        )
-
-        res = self.testapp.post(
-            "/.well-known/admin/api/certificate-ca/letsencrypt-sync.json",
-            {},
-            status=200,
-        )
-        assert res.json["result"] == "success"
-
     @unittest.skipUnless(RUN_REDIS_TESTS, "Not Running Against: redis")
     @under_redis
     @routes_tested(
@@ -8705,14 +8674,15 @@ class FunctionalTests_API(AppTest):
             assert "invalid" in res.json["servers_status"]["servers"][server]["keys"]
             assert "valid" in res.json["servers_status"]["servers"][server]["keys"]
 
-    def test_post_required_html(self):
-        res = self.testapp.get(
-            "/.well-known/admin/api/certificate-ca/letsencrypt-sync", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/certificate-ca-downloads?result=error&operation=certificate_ca-letsencrypt_sync&error=HTTP+POST+required"
-        )
+    if False:
+
+        def test_post_required_html(self):
+            """
+            previously, this used a GET against `/admin/api/certificate-ca/letsencrypt-sync`
+            to trigger a redirect with "?result=error&operation=certificate_ca-letsencrypt_sync&error=HTTP+POST+required"
+            """
+            # TODO: new test
+            pass
 
     def test_post_required_json(self):
         # !!!: test `POST required` `api/domain/autocert.json`
@@ -8731,14 +8701,6 @@ class FunctionalTests_API(AppTest):
 
         # !!!: test `POST required` `api/update-recents.json`
         res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-        # !!!: test `POST required` `api/certificate-ca/letsencrypt-sync.json`
-        res = self.testapp.get(
-            "/.well-known/admin/api/certificate-ca/letsencrypt-sync.json",
-            status=200,
-        )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
