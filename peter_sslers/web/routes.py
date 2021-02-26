@@ -631,7 +631,7 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:certificate_ca:focus:raw",
-        "/certificate-ca/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+        "/certificate-ca/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
         "admin:certificate_ca:focus:certificate_signeds",
@@ -673,6 +673,10 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:certificate_ca_chain:focus|json", "/certificate-ca-chain/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:certificate_ca_chain:focus:raw",
+        "/certificate-ca-chain/{@id}/chain.{format:(pem|pem.txt)}",
     )
     config.add_route_7(
         "admin:certificate_ca_chain:upload_chain", "/certificate-ca-chain/upload-chain"

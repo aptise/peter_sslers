@@ -112,12 +112,12 @@
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.pem.txt">chain.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.pem">chain.pem</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem.txt">cert.pem.txt</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem">cert.pem</a>
 
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.cer">chain.cer (der)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.crt">chain.crt (der)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/chain.der">chain.der (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.cer">cert.cer (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.crt">cert.crt (der)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.der">cert.der (der)</a>
 
                         </td>
                     </tr>

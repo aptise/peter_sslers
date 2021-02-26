@@ -27,11 +27,13 @@ Domains and/or Nodes and/or Networks).
 
 What's in the "box" ?
 
-* `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx` webserver
+* `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx`
+  webserver
 * A robust SSL Certificate Manager with Admin Dashboard and a full API
 * An integrated ACME V2 Client for LetsEncrypt Certificate Authority
 
-THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
+THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER
+OR MULTI-DOMAIN SETUP!!!
 
 Amazing, right?
 
@@ -126,7 +128,7 @@ not want this tool. Peter is a honeybadger, he don't care. He does what he wants
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode
 may not be necessary at all -- or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used
+SQLAlchemy is the backing database library, so virtually any database can be used
 (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but
 the package has been tested against PostgreSQL. SQLite is actually kind of great,
 because a single `.sqlite` file can be sftp'd on-to and off-of different machines
@@ -183,7 +185,8 @@ The following features are being reworked:
 
 * This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
 * This package manages PRIVATE SSL KEYS and makes them readable.
-* If you do not know / are not really awesome with basic network security PLEASE DO NOT USE THIS.
+* If you do not know / are not really awesome with basic network security PLEASE
+  DO NOT USE THIS.
 
 
 # The Components
@@ -231,7 +234,6 @@ The source and docs are available on a separate github repository:
 * https://github.com/aptise/peter_sslers-lua-resty
 
 
-
 ## "Tools"
 
 The "/tools" directory contains scripts useful for certificate operations.
@@ -248,19 +250,25 @@ Currently this includes:
 
 * With a migration to ACME-2, this project shifted the "core" object from a
   CertificateSigned to the AcmeOrder.
-* An ACME-Order's primary relations are an AcmeAccount (who owns the order?) and
-  a UniqueFQDNSet (what domains are in the order?)
-* A PrivateKey is considered a secondary item. One can be specified for an
-  AcmeOrder, but the AcmeAccount can specify it's own strategy
-* A PrivateKey can be re-used across new/renewed AcmeOrders if specified
+* An ACME-Order's primary relations are an AcmeAccount (who owns the Order?) and
+  a UniqueFQDNSet (what domains are in the Order?)
+* A PrivateKey is considered a secondary item to the Order. One can be specified
+  for an AcmeOrder, but the AcmeAccount can specify it's own strategy when
+  obtaining an initial Certificate or Renewing.
+* A PrivateKey can be re-used across new/renewed AcmeOrders if specified.
 * An AcmeAccount can specify: use the same PrivateKey, always use a unique
-  PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
+  PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week.
+  The AcmeAccount can choose to use daily or weekly per-account or global keys.
 
 Re-using PrivateKeys across orders is supported because this application's
 OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master,
 redis) for dynamic certificate lookups.
 
 ### CertificateCAs and Certificate Chains
+
+Earlier versions of this library treated the entire chain as a unique CertificateCA.
+
+This has since changed.
 
 The normalized data structure used by the backend and object hierarchy is as follows:
 
@@ -277,120 +285,178 @@ The normalized data structure used by the backend and object hierarchy is as fol
 * `CertificateCA`
   * A root or intermediate certificate
 
-Earlier versions of this library treated the entire chain as a unique CertificateCA.
-
+When Alternate Chains are offered by the ACME server, the system will download 
+all chains and associate them to the Certificate.
 
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
 One of the LetsEncrypt service's ratelimits is based on a Certificate Request's
 "uniqueness" of Domains.
 
-To more easily deal with this limit, Orders/Certificates/CertificateRequests are designed around the idea of a "UniqueFQDNSet" and not a single Domain.
+To more easily deal with this limit, Orders/Certificates/CertificateRequests are
+designed around the idea of a "UniqueFQDNSet" and not a single Domain.
 
-When requesting a new certificate or importing existing ones, most of this happens behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
+When requesting a new certificate or importing existing ones, most of this happens
+behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
 ## A single web application?
 
-In a perfect world we could deploy the combination of web application (enter data, serve responses) and a task runner (process ACME Server interactions) - but that involves quite a bit of overhead to deploy and run.
+In a perfect world we could deploy the combination of web application (enter data,
+serve responses) and a task runner (process ACME Server interactions) - but that
+involves quite a bit of overhead to deploy and run.
 
-The ACME protocol requires a web-server to respond to validation requests. A web-server is a great choice for an admin interface, and to provide a programmatic API.
+The ACME protocol requires a web-server to respond to HTTP-01 validation requests.
+A web-server is a great choice for an admin interface, and to provide a programmatic API.
 
-The `Pyramid` framework has a wonderful utility called `prequest` (https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html) which allows you to invoke web requests from the commandline.
+The `Pyramid` framework has a wonderful utility called
+[`prequest`](https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html)
+which allows you to invoke web requests from the commandline.
 
 Using `prequest`, long-running processes can be easily triggered off the commandline.
 
 ## Cryptography: Python vs OpenSSL
 
-When this package was initially written, a decision was made to avoid using Python cryptography libraries and wrap OpenSSL via subprocesses:
+When this package was initially written, a decision was made to avoid using Python
+cryptography libraries and wrap OpenSSL via subprocesses:
 
-* The Python crypto libraries required large downloads and/or builds, which hindered jumping into a server to fix something fast.
+* The Python cryptography libraries required large downloads and/or builds, which
+  hindered jumping into a server to fix something fast.
 * OpenSSL was on every target machine
 
-As time progressed, it has become much easier to deploy Python cryptography libraries onto target servers.
+As time progressed, it has become much easier to deploy Python cryptography libraries
+onto target server, and many servers already have them installed.
 
-The current library prioritizes doing the work in Python, and will fallback to OpenSSL if the requisite libraries are not available.  *installing the EFF's LetsEncrypt client `certbot` should install all the Python libraries*
+The current library prioritizes doing the work in Python when possible, and will
+fallback to OpenSSL if the requisite libraries are not available. *installing the
+EFF's LetsEncrypt client `certbot` will install all the Python libraries*
 
-An extended test suite ensures the primary and fallback systems work.
+An extended test suite ensures both the primary and fallback systems work.
 
 
 ## "autocert" functionality
 
 The system has two endpoints that can quickly provide single domain certificates
 
-* `/api/domain/certificate-if-needed` will instantiate a certificate request if needed, or serve existing data. this is designed for programmatic access and offers full control.
+* `/api/domain/certificate-if-needed` will instantiate a certificate request if
+  needed, or serve an existing certificate. This is designed for programmatic access
+  and offers full control.
 
-* `/api/domain/autocert` will instantiate a certificate request if needed, or serve existing data. this is designed for automatically handling the certificate process from nginx, has some throttle protections, and relies on system default values
+* `/api/domain/autocert` will instantiate a certificate request if needed, or
+  serve existing certificate. this is designed for automatically handling the
+  certificate process from within nginx, has some throttle protections, and
+  relies on configurable system default values.
+  
+While several webservers offer autocert functionality, PeterSSLers is different
+because our integration handles the autocert from a secondary service that multiple
+webservers can interact with.
 
 
 ## Certificates and Certificate Requests
 
-This handles several types of certificate requests
+PeterSSLers handles several types of Certificate Requests
 
 1. Upload an existing Certificate Request and Certificate for tracking
-2. Have the built-in ACME-v2 client generate an AcmeOrder and it's own Certificate Request, then handle the challeges (Acme-Automated)
-3. Use an external tool to generate the Certificate Request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
+2. Have the built-in ACME-v2 client generate an AcmeOrder and it's own Certificate
+   Request, then handle the challeges (Acme-Automated).
+3. Use an external tool to generate the Certificate Request and ACME Order, use
+   PeterSSLers via HTML/API to manage the challenges (Acme-Flow).
 
 ## Input
 
-1. An admin dashboard allows you to upload Certificates (in a triplet of Cert, Signing Key, CA-Chain)
-2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of Domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
-3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt issues for manual verification. (ie, run this behind `Nginx`)
-4. You can run the 'webserver' on a private IP, and `curl` data into it via the commandline or miscellaneous scripts
+1. An admin dashboard allows you to upload Certificates (in a triplet of Cert,
+   Signing Key, CA-Chain)
+2. An admin dashboard allows you to initiate LetsEncrypt certificate signing.
+   Upload a list of Domains, your LetsEncrypt account key, and private key used
+   for signing/serving, and the system will generate the CSR and perform all the
+   verifications.
+3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt
+   issues for manual verification. (ie, run this behind `Nginx`)
+4. You can run the 'webserver' on a private IP, and `curl` data into it via the
+   commandline or miscellaneous scripts
 
 ## Output
 
 1. All the keys & certs are viewable in a wonderfully connected RDMBS browser.
 2. Any keys/certs/chains can be queried in PEM & DER formats.
-3. All the Certificates are checked to track their validity dates, so you can search and re-issue
-4. This can "prime" a `Redis` cache with SSL Cert info in several formats.  A Lua script for `OpenResty` is included that enables dynamic SSL certs.
+3. All the Certificates are checked to track their validity dates, so you can
+   search and re-issue
+4. This can "prime" a `Redis` cache with SSL Cert info in several formats.
+   A Lua script for `OpenResty` is included that enables dynamic SSL certs.
 
 ## Management
 
 * Everything is in the RDBMS and de-duped.
-* certificate chains are built on-the-fly.
-* a growing API powers most functionality
-* public and admin routes can be isolated in the app & firewall, so you can just turn this on/off as needed
+* Certificate chains are built on-the-fly.
+* A growing API powers most functionality
+* Public and Admin routes can be isolated in the app & firewall, so you can just
+  turn this on/off as needed
 * you can easily see when Certificates and/or Domains expire and need to be renewed
-* if SQLite is your backend, you can just run this for signing and deployment; then handle everything else offline.
-* "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
+* if SQLite is your backend, you can just run this for signing and deployment;
+  then handle everything else offline.
+* "Admin" and "Public" functions are isolated from each other. By changing the
+  config, you can run a public-only "validation" interface or enable the admin
+  tools that broadcast certificate information.
 * the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
 
 ## Private Key Cycling
 
-PeterSSLers allows you to control how Private Keys are cycled on renewals or new orders.
+PeterSSLers allows you to control how Private Keys are cycled on renewals or new
+orders.
 
-* `single_certificate` - This is what the official LetsEncrypt client, Certbot, uses. A new PrivateKey is generated for each certificate.
+* `single_certificate` - This is the stame strategy the official LetsEncrypt client,
+  Certbot, uses. A new PrivateKey is generated for each certificate.
 
-PeterSSLers is designed to host large amounts of websites, and aggressively cache the certificates and keys into OpenResty/Nginx and Redis. Being able to recycle keys will use less memory and support more sites.  The following options are available:
+PeterSSLers is designed to host large amounts of websites, and aggressively cache
+the certificates and keys into OpenResty/Nginx and Redis. Being able to recycle
+keys will use less memory and support more sites. The following options are available:
 
-* `account_daily` - The order/certificate should use a PrivateKey generated for a unique ACME Account for the DAY the order is finalized.
-* `account_weekly` - The order/certificate should use a PrivateKey generated for a unique ACME Account for the WEEK the order is finalized.
-* `global_daily` - The order/certificate should use a PrivateKey generated for the entire installation for the DAY the order is finalized.
-* `global_weekly` - The order/certificate should use a PrivateKey generated for the entire installation for the WEEK the order is finalized.
+* `account_daily` - The order/certificate should use a PrivateKey generated for a
+  unique ACME Account for the DAY the order is finalized.
+* `account_weekly` - The order/certificate should use a PrivateKey generated for a
+  unique ACME Account for the WEEK the order is finalized.
+* `global_daily` - The order/certificate should use a PrivateKey generated for the
+  entire installation for the DAY the order is finalized.
+* `global_weekly` - The order/certificate should use a PrivateKey generated for the
+  entire installation for the WEEK the order is finalized.
 
-AcmeOrders and Queues can also specify
+AcmeOrders and Queues can also specify:
 
-* `account_key_default` - The order/certificate will use whatever option is set as the default strategy for the active AcmeAccount key.
+* `account_key_default` - The order/certificate will use whatever option is set as
+  the default strategy for the active AcmeAccount key.
 
-Using the weekly or daily options will allow you to constantly cycle new keys into your installation, while minimizing the total number of keys the system needs to operate.
+Using the weekly or daily options will allow you to constantly cycle new keys into
+your installation, while minimizing the total number of keys the system needs to
+operate.
 
 
 ## Certificate Pinning and Alternate Chains
 
-PeterSSLers will track/enroll EVERY Certificate Chain presented by the upstream ACME Server.  There is no facility to disable this functionality, and there are no plans to disable this functionality.
+PeterSSLers will track/enroll EVERY Certificate Chain presented by the upstream
+ACME Server.  There is no facility to disable this functionality, and there are
+no plans to disable this functionality.
 
-The Default Certificate Chains can only be pinned globally.  The "Certificate CA" Administration Panel has an option to set a hierarchy of upstream CA Certificates.  When a default chain is needed, Peter will iterate the list of preferred upstream CAs and return the first signing chain that matches. If no match is found, a random upstream will be used.
+The Default Certificate Chains can only be pinned globally.  The "CertificateCA"
+Administration Panel has an option to set a hierarchy of upstream CA Certificates.
+When a default chain is needed, Peter will iterate the list of preferred upstream
+CAs and return the first signing chain that matches. If no match is found, the
+default upstream from ACME will be used.
 
-This only affects the "default" endpoints, which are used as shortcuts for Nginx and other system integrations.  Every signing chain is always available for a given Certificate. Certificates also list the possible signing chains by their system identifier AND sha1 fingerprint. 
+This only affects the "default" endpoints, which are used as shortcuts for Nginx
+and other system integrations.  Every signing chain is always available for a
+given Certificate. Certificates also list the possible signing chains by their
+system identifier AND sha1 fingerprint. 
 
 
 # Installation
 
-This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone messed up. That someone was me. Sorry.
+This is pretty much ready to go for development use.
+Python should install everything for you.
+If it doesn't, someone messed up. That someone was me. Sorry.
 
-You should create a virtualenv for this project. In this example, we will create the following directory structure:
+You should create a virtualenv for this project. In this example, we will create
+the following directory structure:
 
-* `certificate_admin` - core page
+* `certificate_admin` - core directory
 * `certificate_admin/peter_sslers-venv` - dedicated virtualenv
 * `certificate_admin/peter_sslers` - git checkout
 
@@ -406,18 +472,20 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db example_development.ini	
-	prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json
 	pserve --reload example_development.ini
 	
 Then you can visit `http://127.0.0.1:7201`
 
-Editing the `example_development.ini` file will let you specify how the package runs.  some fields are necessary for it to work correctly, they are noted below...
+Editing the `example_development.ini` file will let you specify how the package
+runs. Some fields are necessary for it to work correctly, they are noted below...
 
-`Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
+This `Pyramid` application is configured via `.ini` files.  You can use multiple
+files to deploy the server differently on the same machine, or on different environments.
 
-You can run this on SQLite or switch to PosgtreSQL by adjusting the SqlAlchemy url
+You can run this on SQLite or switch to PosgtreSQL by adjusting the SQLAlchemy url.
 
-If you run via PosgtreSQL, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
+If you run via PosgtreSQL, you will need to setup the database BEFORE running
+`initialize_peter_sslers_db`.
 
 roughly, that entails...
 
@@ -425,14 +493,14 @@ roughly, that entails...
 	psql> create user ssl_minnow with password '{PASSWORD}';
 	psql> create database ssl_minnow with owner ssl_minnow ;
 
-Some tools are provided to automatically import existing Certificates and chains (see below).
+Some tools are provided to automatically import existing Certificates and Chains
+(see below).
 
 It is recommended to open up a new terminal and do the following commands
 
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest -m POST example_development.ini /.well-known/admin/api/certificate-ca/letsencrypt-sync.json
 	pserve example_development.ini
 
 then in another terminal window:	
@@ -443,8 +511,19 @@ then in another terminal window:
 	invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
 	invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
 	invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	
+Alternately, you can use shell variables to make this more readable:
 
-The `prequest` command above will import the current LetsEncrypt Certificates to get you started.
+	cd certificate_admin
+	source peter_sslers-venv/bin/activate
+	cd peter_sslers/tools
+	export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+	invoke import-certbot-certs-live --live-path='/etc/letsencrypt/live'
+	invoke import-certbot-certs-archive --live-path='/etc/letsencrypt/archive' 
+	invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts'
+
+The `prequest` command above will import the current LetsEncrypt Certificates to
+get you started.
 The first `invoke` command will import existing LetsEncrypt live Certificates
 The second `invoke` command will import all existing LetsEncrypt issued Certificates
 The third `invoke` command will import existing LetsEncrypt accounts
@@ -469,30 +548,44 @@ The server will respond to requests with the following header to identify it:
 THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the `example_production.ini` file won't even run the admin tools.  that is how serious we are about telling you to be careful!
+By default, the `example_production.ini` file won't even run the admin tools. 
+That is how serious we are about telling you to be careful!
 
 
 # why/how?
 
-Again, the purpose of this package is to enable certificate management in systems where one or more of the following apply:
+Again, the purpose of this package is to enable certificate management in systems
+where one or more of the following apply:
 
 * you have a lot of Domains
 * you have a lot of machines
 * your Domains resolve to more than one IP address
 
-Imagine you want to issue a certificate for 100 Domains, which could be served from any one of 5 machines (load balancers or round-robin dns) and the Certificates need to be deployable to all 5 machines.
+Imagine you want to issue a certificate for 100 Domains, which could be served from
+any one of 5 machines (load balancers or round-robin dns) and the Certificates need
+to be deployable to all 5 machines.
 
 To solve this you can:
 
-* proxy external ` /.well-known/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
+* proxy external ` /.well-known/acme-challenge/` to one or more machines running
+  this tool (they just need to share a common datastore)
 * make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
-* on a machine within your LAN, you can query for the latest certs for Domain(s) using simple `curl` commands
+* on a machine within your LAN, you can query for the latest certs for Domain(s)
+  using simple `curl` commands
 
-In a more advanced implementation (such as what this was originally designed to manage) the Certificates need to be loaded into a `Redis` server for use by an `OpenResty`/`Nginx` webserver/gateway that will dynamically handle ssl Certificates.
+In a more advanced implementation (such as what this was originally designed to
+manage) the Certificates need to be loaded into a `Redis` server for use by an
+`OpenResty`/`Nginx` webserver/gateway that will dynamically handle SSL Certificates.
 
-In a simple example, `OpenResty`/`Nginx` will query `/.well-known/admin/domain/example.com/config.json` to pull the active certificate information for a domain.  In advanced versions, that certificate information will be cached into multiple levels of `OpenResty`/`Nginx` and `Redis` using different optimization strategies.
+In a simple example, `OpenResty`/`Nginx` will query
+`/.well-known/admin/domain/example.com/config.json` to pull the active certificate
+information for a domain.  In advanced versions, that certificate information will
+be cached into multiple levels of `OpenResty`/`Nginx` and `Redis` using different
+optimization strategies.
 
-This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need Certificates for and in which format and THERE YOU GO.*
+This package does all the annoying openssl work in terms of building chains and
+converting formats *You just tell it what domains you need Certificates for and
+in which format AND THERE YOU GO.*
 
 
 # Deployment Concepts
@@ -505,11 +598,14 @@ The SSLMinnow datastore is entirely separate and standalone.  It is portable.
 
 ![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-02.png)
 
-In order to make network configuration more simple, the package includes a "fake server" that includes routes for the major public and admin endpoints. This should support most integration tests. 
+In order to make network configuration more simple, the package includes a "fake
+server" that includes routes for the major public and admin endpoints. This should
+support most integration test needs.
 
 ![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-03.png)
 
-In an advanced setting, multiple servers proxy to multiple peter-sslers "public" instances.
+In an advanced setting, multiple servers proxy to multiple peter-sslers "public"
+instances.
 
 The instances share a single SSLMinnow data store.
 
@@ -520,21 +616,30 @@ The "Admin" tool runs on the private intranet.
 
 ## Certificate/Key Translations
 
-Certificates and Keys are stored in the PEM format, but can be downloaded in the DER format if needed.
+Certificates and Keys are stored in the PEM format, but can be downloaded in the
+DER format if needed.
 
-There are several ways to download each file. Different file suffix will change the format and headers.
+There are several ways to download each file. Different file suffix will change
+the format and headers.
 
 Peter shows you buttons for available formats on each page.
 
 ### CertificateCA
 
-    could be `cert` or `chain`
+    a `cert`
 
     cert.pem        PEM     application/x-pem-file
     cert.pem.txt    PEM     text/plain
     cert.cer        DER     application/pkix-cert
     cert.der        DER     application/x-x509-ca-cert
     cert.crt        DER     application/x-x509-ca-cert
+
+### CertificateCAChain
+
+    one or more certificates
+
+    cert.pem        PEM     application/x-pem-file
+    cert.pem.txt    PEM     text/plain
 
 ### Signed Certificate
 

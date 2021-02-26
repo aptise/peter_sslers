@@ -1325,8 +1325,10 @@
 <%def name="info_CertificateCA()">
     <h3>What are CertificateCAs?</h3>
     <p>
-        These are the trusted(?) certs that CertificateAuthorities use to sign your certs.  They are used for building fullchains.
-        Often these are called 'chain.pem'.
+        These are the trusted(?) certs that CertificateAuthorities use to sign your certs.
+        They are used for building chains and fullchains. Trusted ones may be
+        preloaded into your browser or operating system. Often one or more of these
+        are 'chain.pem'.
     </p>
 </%def>
 

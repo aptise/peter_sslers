@@ -2439,19 +2439,19 @@ class FunctionalTests_CertificateCA(AppTest):
     def test_focus_html(self):
         res = self.testapp.get("/.well-known/admin/certificate-ca/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/chain.cer", status=200
+            "/.well-known/admin/certificate-ca/1/cert.cer", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/chain.crt", status=200
+            "/.well-known/admin/certificate-ca/1/cert.crt", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/chain.der", status=200
+            "/.well-known/admin/certificate-ca/1/cert.der", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/chain.pem", status=200
+            "/.well-known/admin/certificate-ca/1/cert.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/chain.pem.txt", status=200
+            "/.well-known/admin/certificate-ca/1/cert.pem.txt", status=200
         )
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/1/certificate-signeds", status=200

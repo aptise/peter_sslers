@@ -316,32 +316,32 @@ json_capable = {
         "args": None,
         "example": "curl {ADMIN_PREFIX}/certificate-ca/1/parse.json",
     },
-    "/certificate-cas/{ID}/chain.pem": {
-        "endpoint": "/certificate-cas/{ID}/chain.pem",
+    "/certificate-ca/{ID}/cert.pem": {
+        "endpoint": "/certificate-ca/{ID}/cert.pem",
         "section": "certificate-ca",
         "about": """cert as pem""",
         "POST": True,
         "GET": True,
         "args": None,
-        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/chain.pem",
+        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem",
     },
-    "/certificate-cas/{ID}/chain.pem.txt": {
-        "endpoint": "/certificate-cas/{ID}/chain.pem.txt",
+    "/certificate-ca/{ID}/cert.pem.txt": {
+        "endpoint": "/certificate-cas/{ID}/cert.pem.txt",
         "section": "certificate-ca",
         "about": """cert as pem.txt""",
         "POST": True,
         "GET": True,
         "args": None,
-        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/chain.pem.txt",
+        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem.txt",
     },
-    "/certificate-cas/{ID}/chain.cer": {
-        "endpoint": "/certificate-cas/{ID}/chain.cer",
+    "/certificate-ca/{ID}/cert.cer": {
+        "endpoint": "/certificate-ca/{ID}/cert.cer",
         "section": "certificate-ca",
         "about": """cert as cer""",
         "POST": True,
         "GET": True,
         "args": None,
-        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/chain.cer",
+        "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.cer",
     },
     "/certificate-cas/{ID}/chain.crt": {
         "endpoint": "/certificate-cas/{ID}/chain.crt",

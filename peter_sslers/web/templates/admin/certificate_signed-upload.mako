@@ -103,7 +103,7 @@
 
             <p>
                 Right now this tool only handles Chain files that include a single cert.
-                We do not need <code>fullchain.pem</code>, because that is just <code>cert.pem + fullchain.pem</code>
+                We do not need <code>fullchain.pem</code>, because that is just <code>cert.pem + chain.pem</code>
             </p>
 
         </div>
