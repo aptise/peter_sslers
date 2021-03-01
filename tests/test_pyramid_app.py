@@ -2438,6 +2438,13 @@ class FunctionalTests_CertificateCA(AppTest):
     )
     def test_focus_html(self):
         res = self.testapp.get("/.well-known/admin/certificate-ca/1", status=200)
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/cert.pem", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/cert.pem.txt", status=200
+        )
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/1/cert.cer", status=200
         )
@@ -2446,12 +2453,6 @@ class FunctionalTests_CertificateCA(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/1/cert.der", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.pem", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.pem.txt", status=200
         )
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/1/certificate-signeds", status=200
@@ -2515,7 +2516,7 @@ class FunctionalTests_CertificateCA(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_json
         """
         _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
-        self.assertEqual(_cert_ca_id, "isrg_root_x2")
+        self.assertEqual(_cert_ca_id, "isrg_root_x1_cross")
         _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
@@ -4762,15 +4763,25 @@ class FunctionalTests_CertificateSigned(AppTest):
                 """this tests's class directly to ensure a pass."""
             )
 
+        # CERTIFICATE
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/chain.cer" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/cert.pem" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/chain.crt" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/cert.pem.txt" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/chain.der" % focus_id, status=200
+            "/.well-known/admin/certificate-signed/%s/cert.cer" % focus_id, status=200
         )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/cert.crt" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-signed/%s/cert.der" % focus_id, status=200
+        )
+
+        # CHAIN
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s/chain.pem" % focus_id, status=200
         )
@@ -4779,6 +4790,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             status=200,
         )
 
+        # FULLCHAIN
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s/fullchain.pem" % focus_id,
             status=200,
@@ -4788,6 +4800,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             status=200,
         )
 
+        # PRIVATE KEY
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s/privkey.key" % focus_id,
             status=200,
@@ -4801,16 +4814,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             status=200,
         )
 
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.crt" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.pem" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.pem.txt" % focus_id,
-            status=200,
-        )
+        # CONFIG
         res = self.testapp.get(
             "/.well-known/admin/certificate-signed/%s/config.zip" % focus_id,
             status=200,

@@ -78,6 +78,13 @@
                             </ul>
                         </td>
                     </tr>
+                    <tr>
+                        <th>download</th>
+                        <td>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca-chain/${CertificateCAChain.id}/chain.pem.txt">chain.pem.txt</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca-chain/${CertificateCAChain.id}/chain.pem">chain.pem</a>
+                        <.td>
+                    </tr>
                 </tbody>
             </table>
         </div>

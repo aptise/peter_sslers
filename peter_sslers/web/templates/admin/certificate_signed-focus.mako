@@ -418,13 +418,19 @@
                             ## <textarea class="form-control">${CertificateSigned.key_pem}</textarea>
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                cert.pem</a>
+                                cert.pem (PEM)</a>
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem.txt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                cert.pem.txt</a>
+                                cert.pem.txt (PEM)</a>
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.crt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                cert.crt (der)</a>
+                                cert.crt (DER)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.cer">
+                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                cert.cer (DER)</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.der">
+                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                cert.der (DER)</a>
                         </td>
                     </tr>
                     <tr>
@@ -591,32 +597,6 @@
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
-                                                    <a
-                                                        class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.cer"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
-                                                    >
-                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                        chain.cer (der)</a>
-                                                    <a
-                                                        class="btn btn-xs btn-info"
-                                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.crt"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
-                                                    >
-                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                        chain.crt (der)</a>
-                                                    <a
-                                                        class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.der"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
-                                                    >
-                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                        chain.der (der)</a>
                                                 </td>
                                             </tr>
                                             <tr>

@@ -707,6 +707,145 @@ def _admin_views(config):
         "/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
     )
 
+    # !!!: CertificateSigneds
+    config.add_route_7("admin:certificate_signeds", "/certificate-signeds")
+
+    config.add_route_7("admin:certificate_signeds:all", "/certificate-signeds/all")
+    config.add_route_7(
+        "admin:certificate_signeds:all_paginated",
+        "/certificate-signeds/all/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active", "/certificate-signeds/active"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active_paginated",
+        "/certificate-signeds/active/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:expiring", "/certificate-signeds/expiring"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:expiring_paginated",
+        "/certificate-signeds/expiring/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive", "/certificate-signeds/inactive"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_paginated",
+        "/certificate-signeds/inactive/{@page}",
+    )
+    config.add_route_7("admin:certificate_signeds|json", "/certificate-signeds.json")
+    config.add_route_7(
+        "admin:certificate_signeds:all|json", "/certificate-signeds/all.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:all_paginated|json",
+        "/certificate-signeds/all/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active|json", "/certificate-signeds/active.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active_paginated|json",
+        "/certificate-signeds/active/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:expiring|json", "/certificate-signeds/expiring.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:expiring_paginated|json",
+        "/certificate-signeds/expiring/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive|json", "/certificate-signeds/inactive.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_paginated|json",
+        "/certificate-signeds/inactive/{@page}.json",
+    )
+
+    # !!!: CertificateSigned - Focus
+    config.add_route_7("admin:certificate_signed:focus", "/certificate-signed/{@id}")
+    config.add_route_7(
+        "admin:certificate_signed:focus|json", "/certificate-signed/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:config|json",
+        "/certificate-signed/{@id}/config.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:config|zip",
+        "/certificate-signed/{@id}/config.zip",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:parse|json",
+        "/certificate-signed/{@id}/parse.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:cert:raw",
+        "/certificate-signed/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:chain:raw",
+        "/certificate-signed/{@id}/chain.{format:(pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:fullchain:raw",
+        "/certificate-signed/{@id}/fullchain.{format:(pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:privatekey:raw",
+        "/certificate-signed/{@id}/privkey.{format:(key|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:nginx_cache_expire",
+        r"/certificate-signed/{@id}/nginx-cache-expire",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:nginx_cache_expire|json",
+        r"/certificate-signed/{@id}/nginx-cache-expire.json",
+    )
+    # via ca-cert routes
+    config.add_route_7(
+        "admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
+        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:via_certificate_ca_chain:config|zip",
+        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
+        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
+        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
+    )
+    # end via ca-cert
+
+    config.add_route_7("admin:certificate_signed:upload", "/certificate-signed/upload")
+    config.add_route_7(
+        "admin:certificate_signed:upload|json", "/certificate-signed/upload.json"
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:mark", "/certificate-signed/{@id}/mark"
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:mark|json",
+        "/certificate-signed/{@id}/mark.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:queue_certificates",
+        "/certificate-signed/{@id}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:queue_certificates_paginated",
+        "/certificate-signed/{@id}/queue-certificates/{@page}",
+    )
+
     # !!!: CoverageAssuranceEvents
     config.add_route_7("admin:coverage_assurance_events", "/coverage-assurance-events")
     config.add_route_7(
@@ -1123,145 +1262,6 @@ def _admin_views(config):
     config.add_route_7("admin:queue_domain:focus:mark", "/queue-domain/{@id}/mark")
     config.add_route_7(
         "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
-    )
-
-    # !!!: CertificateSigneds
-    config.add_route_7("admin:certificate_signeds", "/certificate-signeds")
-
-    config.add_route_7("admin:certificate_signeds:all", "/certificate-signeds/all")
-    config.add_route_7(
-        "admin:certificate_signeds:all_paginated",
-        "/certificate-signeds/all/{@page}",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active", "/certificate-signeds/active"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_paginated",
-        "/certificate-signeds/active/{@page}",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring", "/certificate-signeds/expiring"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring_paginated",
-        "/certificate-signeds/expiring/{@page}",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive", "/certificate-signeds/inactive"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_paginated",
-        "/certificate-signeds/inactive/{@page}",
-    )
-    config.add_route_7("admin:certificate_signeds|json", "/certificate-signeds.json")
-    config.add_route_7(
-        "admin:certificate_signeds:all|json", "/certificate-signeds/all.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:all_paginated|json",
-        "/certificate-signeds/all/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active|json", "/certificate-signeds/active.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_paginated|json",
-        "/certificate-signeds/active/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring|json", "/certificate-signeds/expiring.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring_paginated|json",
-        "/certificate-signeds/expiring/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive|json", "/certificate-signeds/inactive.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_paginated|json",
-        "/certificate-signeds/inactive/{@page}.json",
-    )
-
-    # !!!: CertificateSigned - Focus
-    config.add_route_7("admin:certificate_signed:focus", "/certificate-signed/{@id}")
-    config.add_route_7(
-        "admin:certificate_signed:focus|json", "/certificate-signed/{@id}.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:config|json",
-        "/certificate-signed/{@id}/config.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:config|zip",
-        "/certificate-signed/{@id}/config.zip",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:parse|json",
-        "/certificate-signed/{@id}/parse.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:chain:raw",
-        "/certificate-signed/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:fullchain:raw",
-        "/certificate-signed/{@id}/fullchain.{format:(pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:privatekey:raw",
-        "/certificate-signed/{@id}/privkey.{format:(key|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:cert:raw",
-        "/certificate-signed/{@id}/cert.{format:(crt|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:nginx_cache_expire",
-        r"/certificate-signed/{@id}/nginx-cache-expire",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:nginx_cache_expire|json",
-        r"/certificate-signed/{@id}/nginx-cache-expire.json",
-    )
-    # via ca-cert routes
-    config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:config|zip",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
-    )
-    # end via ca-cert
-
-    config.add_route_7("admin:certificate_signed:upload", "/certificate-signed/upload")
-    config.add_route_7(
-        "admin:certificate_signed:upload|json", "/certificate-signed/upload.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:mark", "/certificate-signed/{@id}/mark"
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:mark|json",
-        "/certificate-signed/{@id}/mark.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:queue_certificates",
-        "/certificate-signed/{@id}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:queue_certificates_paginated",
-        "/certificate-signed/{@id}/queue-certificates/{@page}",
     )
 
     # !!!: Unique FQDN Sets

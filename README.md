@@ -624,46 +624,60 @@ the format and headers.
 
 Peter shows you buttons for available formats on each page.
 
+### CertificateSigned
+
+The Certificate Itself:
+
+    cert.pem        	PEM     application/x-pem-file
+    cert.pem.txt    	PEM     text/plain
+    cert.cer        	DER     application/pkix-cert
+    cert.crt        	DER     application/x-x509-server-cert
+    cert.der        	DER     application/x-x509-server-cert
+    
+The Certificate Chain:
+
+    chain.pem       	PEM     application/x-pem-file
+    chain.pem.txt  		PEM     text/plain
+    
+The Certificate Fullchain
+    
+    fullchain.pem       PEM     application/x-pem-file
+    fullchain.pem.txt   PEM     text/plain
+
 ### CertificateCA
 
-    a `cert`
+The Certificate Authority's Certificate:
 
-    cert.pem        PEM     application/x-pem-file
-    cert.pem.txt    PEM     text/plain
-    cert.cer        DER     application/pkix-cert
-    cert.der        DER     application/x-x509-ca-cert
-    cert.crt        DER     application/x-x509-ca-cert
+    cert.pem        	PEM     application/x-pem-file
+    cert.pem.txt    	PEM     text/plain
+    cert.cer        	DER     application/pkix-cert
+    cert.crt        	DER     application/x-x509-ca-cert
+    cert.der        	DER     application/x-x509-ca-cert
 
 ### CertificateCAChain
 
-    one or more certificates
+One or more CertificateAuthority certificates
 
-    cert.pem        PEM     application/x-pem-file
-    cert.pem.txt    PEM     text/plain
-
-### Signed Certificate
-
-    cert.pem        PEM     application/x-pem-file
-    cert.pem.txt    PEM     text/plain
-    cert.crt        DER     application/x-x509-server-cert
+    chain.pem       	PEM     application/x-pem-file
+    chain.pem.txt   	PEM     text/plain
 
 ### Certificate Request
 
-    csr.pem         PEM     application/x-pem-file
-    csr.pem.txt     PEM     text/plain
-    csr.csr         PEM     application/pkcs10
+    csr.pem         	PEM     application/x-pem-file
+    csr.pem.txt     	PEM     text/plain
+    csr.csr         	PEM     application/pkcs10
 
 ### Account/Domain Keys
 
-    key.pem         PEM     application/x-pem-file
-    key.pem.txt     PEM     text/plain
-    key.key         DER     application/pkcs8
+    key.pem         	PEM     application/x-pem-file
+    key.pem.txt     	PEM     text/plain
+    key.key         	DER     application/pkcs8
 
 ### Account/Domain Keys
 
-    key.pem         PEM     application/x-pem-file
-    key.pem.txt     PEM     text/plain
-    key.key         DER     application/pkcs8
+    key.pem         	PEM     application/x-pem-file
+    key.pem.txt     	PEM     text/plain
+    key.key         	DER     application/pkcs8
 
 
 # Configuration options

@@ -416,6 +416,31 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:certificate_signed:focus:cert:raw", renderer="string"
+    )
+    def focus_raw(self):
+        dbCertificateSigned = self._focus()
+        if self.request.matchdict["format"] == "pem":
+            self.request.response.content_type = "application/x-pem-file"
+            return dbCertificateSigned.cert_pem
+        elif self.request.matchdict["format"] == "pem.txt":
+            return dbCertificateSigned.cert_pem
+        elif self.request.matchdict["format"] in ("cer", "crt", "der"):
+            as_der = cert_utils.convert_pem_to_der(
+                pem_data=dbCertificateSigned.cert_pem
+            )
+            response = Response()
+            if self.request.matchdict["format"] in ("crt", "der"):
+                response.content_type = "application/x-x509-server-cert"
+            elif self.request.matchdict["format"] in ("cer",):
+                response.content_type = "application/pkix-cert"
+            response.body = as_der
+            return response
+        return "UNSUPPORTED FORMAT"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:certificate_signed:focus:parse|json", renderer="json"
     )
     def parse_json(self):
@@ -439,17 +464,6 @@ class View_Focus(Handler):
             return dbCertificateSigned.cert_chain_pem
         elif self.request.matchdict["format"] == "pem.txt":
             return dbCertificateSigned.cert_chain_pem
-        elif self.request.matchdict["format"] in ("cer", "crt", "der"):
-            as_der = cert_utils.convert_pem_to_der(
-                pem_data=dbCertificateSigned.cert_chain_pem
-            )
-            response = Response()
-            if self.request.matchdict["format"] in ("crt", "der"):
-                response.content_type = "application/x-x509-ca-cert"
-            elif self.request.matchdict["format"] in ("cer",):
-                response.content_type = "application/pkix-cert"
-            response.body = as_der
-            return response
         return "chain.pem"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -487,28 +501,6 @@ class View_Focus(Handler):
             response.body = as_der
             return response
         return "privatekey.pem"
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:certificate_signed:focus:cert:raw", renderer="string"
-    )
-    def cert(self):
-        dbCertificateSigned = self._focus()
-        if self.request.matchdict["format"] == "pem":
-            self.request.response.content_type = "application/x-pem-file"
-            return dbCertificateSigned.cert_pem
-        elif self.request.matchdict["format"] == "pem.txt":
-            return dbCertificateSigned.cert_pem
-        elif self.request.matchdict["format"] == "crt":
-            as_der = cert_utils.convert_pem_to_der(
-                pem_data=dbCertificateSigned.cert_pem
-            )
-            response = Response()
-            response.content_type = "application/x-x509-server-cert"
-            response.body = as_der
-            return response
-        return "cert.pem"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

@@ -2309,6 +2309,21 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         )
         return dbCertificateCAs
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        certificate_cas = {}
+        return {
+            "id": self.id,
+            "display_name": self.display_name,
+            "chain_pem_md5": self.chain_pem_md5,
+            "chain_pem": self.chain_pem,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "certificate_ca_ids": self.certificate_ca_ids_string.split(","),
+            "certificate_cas": [i.as_json for i in self.certificate_cas_all],
+        }
+
 
 # ==============================================================================
 

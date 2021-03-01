@@ -405,7 +405,7 @@ class View_Focus(Handler):
                 response.content_type = "application/pkix-cert"
             response.body = as_der
             return response
-        return "chain.?"
+        return "UNSUPPORTED FORMAT"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

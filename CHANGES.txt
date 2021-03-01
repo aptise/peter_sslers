@@ -133,6 +133,7 @@
 	* renamed Form_CertificateCA_Upload_Chain__file  to Form_CertificateCAChain_Upload__file
 	* removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
 	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
+	* restricted formats for chain certs
 
 
 	+ other fixes and improvements

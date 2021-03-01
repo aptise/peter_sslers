@@ -110,7 +110,7 @@ class View_Focus(Handler):
             return dbCertificateCAChain.chain_pem
         elif self.request.matchdict["format"] == "pem.txt":
             return dbCertificateCAChain.chain_pem
-        return "chain.?"
+        return "UNSUPPORTED FORMAT"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
