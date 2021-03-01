@@ -1027,7 +1027,7 @@ class AppTest(AppTestCore):
             "alternate_chains"
             in TEST_FILES["CertificateSigneds"][payload_section][payload_key]
         ):
-            dbCertificateCAs_alt = []
+            dbCertificateCAChains_alt = []
             for _chain_index in TEST_FILES["CertificateSigneds"][payload_section][
                 payload_key
             ]["alternate_chains"]:
