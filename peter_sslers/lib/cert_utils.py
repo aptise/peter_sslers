@@ -315,6 +315,7 @@ def san_domains_from_text(input):
 
 
 def authority_key_identifier_from_text(input):
+    print("authority_key_identifier_from_text", input)
     results = RE_openssl_x509_authority_key_identifier.findall(input)
     if results:
         return results[0]
@@ -1639,9 +1640,11 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         except:
             pass
         try:
+            print("parse_cert - authority_key_identifier")
             ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.AUTHORITY_KEY_IDENTIFIER
             )
+            print("parse_cert - authority_key_identifier", "ext", ext)
             if ext:
                 # this comes out as binary, so we need to convert it to the
                 # openssl version, which is an list of uppercase hex pairs
@@ -1649,7 +1652,8 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 rval["authority_key_identifier"] = convert_binary_to_hex_colons(
                     _as_binary
                 )
-        except:
+        except Exception as exc:
+            print("parse_cert - authority_key_identifier", "Exception", exc)
             pass
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
@@ -1719,7 +1723,6 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 rval["SubjectAlternativeName"] = found_domains
             except:
                 pass
-            print("authority_key_identifier? - b")
             try:
                 _text = cert_ext__pem_filepath(
                     cert_pem_filepath, "authorityKeyIdentifier"
@@ -1735,7 +1738,6 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             except:
                 pass
         else:
-            print("authority_key_identifier? - a")
             with psutil.Popen(
                 [openssl_path, "x509", "-text", "-noout", "-in", cert_pem_filepath],
                 stdout=subprocess.PIPE,
