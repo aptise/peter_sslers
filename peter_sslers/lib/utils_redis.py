@@ -174,7 +174,7 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     value_redis = {
         "c": "%s" % dbCertificateSigned.id,
         "p": "%s" % dbCertificateSigned.private_key_id,
-        "i": "%s" % dbCertificateSigned.certificate_ca_id__preferred,
+        "i": "%s" % dbCertificateSigned.certificate_ca_chain_id__preferred,
     }
     redis_client.hmset(key_redis, value_redis)
 

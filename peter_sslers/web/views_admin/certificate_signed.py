@@ -37,9 +37,9 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-def archive_zipfile(dbCertificateSigned, cert_ca_id=None):
-    if cert_ca_id is None:
-        cert_ca_id = dbCertificateSigned.certificate_ca_id__preferred
+def archive_zipfile(dbCertificateSigned, certificate_ca_chain_id=None):
+    if certificate_ca_chain_id is None:
+        certificate_ca_chain_id = dbCertificateSigned.certificate_ca_chain_id__preferred
 
     now = time.localtime(time.time())[:6]
     tmpfile = tempfile.SpooledTemporaryFile()
@@ -55,14 +55,20 @@ def archive_zipfile(dbCertificateSigned, cert_ca_id=None):
         info.date_time = now
         info.compress_type = zipfile.ZIP_DEFLATED
         archive.writestr(
-            info, dbCertificateSigned.valid_cert_chain_pem(cert_ca_id=cert_ca_id)
+            info,
+            dbCertificateSigned.valid_cert_chain_pem(
+                certificate_ca_chain_id=certificate_ca_chain_id
+            ),
         )
         # `fullchain1.pem`
         info = zipfile.ZipInfo("fullchain%s.pem" % dbCertificateSigned.id)
         info.date_time = now
         info.compress_type = zipfile.ZIP_DEFLATED
         archive.writestr(
-            info, dbCertificateSigned.valid_cert_fullchain_pem(cert_ca_id=cert_ca_id)
+            info,
+            dbCertificateSigned.valid_cert_fullchain_pem(
+                certificate_ca_chain_id=certificate_ca_chain_id
+            ),
         )
         # `privkey1.pem`
         info = zipfile.ZipInfo("privkey%s.pem" % dbCertificateSigned.id)
@@ -614,7 +620,7 @@ class View_Focus_via_CertificateCAChain(View_Focus):
         ) = self._focus_via_CertificateCAChain()
         try:
             tmpfile = archive_zipfile(
-                dbCertificateSigned, cert_ca_id=certificate_ca_chain_id
+                dbCertificateSigned, certificate_ca_chain_id=certificate_ca_chain_id
             )
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
