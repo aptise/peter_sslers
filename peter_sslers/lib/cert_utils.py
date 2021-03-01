@@ -297,6 +297,8 @@ def convert_binary_to_hex_colons(input):
     # _as_hex = "79b459e67bb6e5e40173800888c81a58f6e99b6e"
     _as_hex = _as_hex.upper()
     # _as_hex = "79B459E67BB6E5E40173800888C81A58F6E99B6E"
+    if six.PY3:
+        _as_hex = _as_hex.decode()
     _pairs = [_as_hex[idx : idx + 2] for idx in range(0, len(_as_hex), 2)]
     # _pairs = ['79', 'B4', '59', 'E6', '7B', 'B6', 'E5', 'E4', '01', '73', '80', '08', '88', 'C8', '1A', '58', 'F6', 'E9', '9B', '6E']
     output = ":".join(_pairs)
@@ -315,7 +317,6 @@ def san_domains_from_text(input):
 
 
 def authority_key_identifier_from_text(input):
-    print("authority_key_identifier_from_text", input)
     results = RE_openssl_x509_authority_key_identifier.findall(input)
     if results:
         return results[0]
@@ -1640,11 +1641,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         except:
             pass
         try:
-            print("parse_cert - authority_key_identifier")
             ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.AUTHORITY_KEY_IDENTIFIER
             )
-            print("parse_cert - authority_key_identifier", "ext", ext)
             if ext:
                 # this comes out as binary, so we need to convert it to the
                 # openssl version, which is an list of uppercase hex pairs
@@ -1652,8 +1651,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 rval["authority_key_identifier"] = convert_binary_to_hex_colons(
                     _as_binary
                 )
-        except Exception as exc:
-            print("parse_cert - authority_key_identifier", "Exception", exc)
+        except:
             pass
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
