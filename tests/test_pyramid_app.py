@@ -2475,7 +2475,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert "id" in res.json["CertificateCA"]
         assert "parsed" in res.json["CertificateCA"]
 
-    @routes_tested(("admin:certificate_ca:upload_chain",))
+    @routes_tested(("admin:certificate_ca:upload_cert",))
     def test_upload_html(self):
         """
         This should enter in item #8, but the CertificateCAs.order is 0.
@@ -3094,9 +3094,20 @@ class FunctionalTests_CertificateCAChain(AppTest):
         )
         assert "CertificateCAChains" in res.json
 
-    @routes_tested(("admin:certificate_ca_chain:focus",))
+    @routes_tested(
+        ("admin:certificate_ca_chain:focus", "admin:certificate_ca_chain:focus:raw")
+    )
     def test_focus_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_focus_html
+        """
         res = self.testapp.get("/.well-known/admin/certificate-ca-chain/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca-chain/1/chain.pem", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca-chain/1/chain.pem.txt", status=200
+        )
 
     @routes_tested(("admin:certificate_ca_chain:focus|json",))
     def test_focus_json(self):

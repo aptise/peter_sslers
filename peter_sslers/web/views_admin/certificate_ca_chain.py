@@ -100,6 +100,20 @@ class View_Focus(Handler):
             "CertificateCAChain": dbCertificateCAChain,
         }
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:certificate_ca_chain:focus:raw", renderer="string")
+    def focus_raw(self):
+        dbCertificateCAChain = self._focus()
+        if self.request.matchdict["format"] == "pem":
+            self.request.response.content_type = "application/x-pem-file"
+            return dbCertificateCAChain.chain_pem
+        elif self.request.matchdict["format"] == "pem.txt":
+            return dbCertificateCAChain.chain_pem
+        return "chain.?"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 class View_New(Handler):
     @view_config(route_name="admin:certificate_ca_chain:upload_chain")
