@@ -723,6 +723,7 @@ def getcreate__CertificateCAChain__by_pem_text(
         dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
         dbCertificateCAChain.certificate_ca_0_id = dbCertificateCAs[0].id
         dbCertificateCAChain.certificate_ca_n_id = dbCertificateCAs[-1].id
+        dbCertificateCAChain.chain_length = len(dbCertificateCAs)
         dbCertificateCAChain.certificate_ca_ids_string = ",".join(
             [str(i.id) for i in dbCertificateCAs]
         )

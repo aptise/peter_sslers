@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import json
+import pdb
 
 # pypi
 from pyramid.decorator import reify
@@ -2244,6 +2245,9 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     chain_pem = sa.Column(sa.Text, nullable=False, unique=True)
     chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
 
+    # how many items are in the chain?
+    chain_length = sa.Column(sa.Integer, nullable=False)
+
     # this is the first item in the chain; what signs the CertificateSigned
     certificate_ca_0_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
@@ -2298,9 +2302,14 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         return button
 
     @reify
+    def certificate_ca_ids(self):
+        _certificate_ca_ids = self.certificate_ca_ids_string.split(",")
+        return _certificate_ca_ids
+
+    @reify
     def certificate_cas_all(self):
         # reify vs property, because this queries the database
-        certificate_ca_ids = self.certificate_ca_ids_string.split(",")
+        certificate_ca_ids = self.certificate_ca_ids
         dbSession = sa_Session.object_session(self)
         dbCertificateCAs = (
             dbSession.query(CertificateCA)
@@ -2320,7 +2329,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             "chain_pem_md5": self.chain_pem_md5,
             "chain_pem": self.chain_pem,
             "timestamp_created": self.timestamp_created_isoformat,
-            "certificate_ca_ids": self.certificate_ca_ids_string.split(","),
+            "certificate_ca_ids": self.certificate_ca_ids,
             "certificate_cas": [i.as_json for i in self.certificate_cas_all],
         }
 
@@ -2665,7 +2674,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     def cert_chain_pem(self):
         if not self.certificate_ca_chain__preferred:
             return None
-        return self.certificate_ca_chain__preferred.cert_pem
+        return self.certificate_ca_chain__preferred.chain_pem
 
     @property
     def cert_fullchain_pem(self):
@@ -2696,9 +2705,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
     def certificate_ca_chain_id__preferred(self):
         # this invokes `certificate_ca_chain__preferred`
         # which then loops `ORM:certificate_signed_chains`
-        if not self.certificate_ca_chain__preferred:
-            return None
-        return self.certificate_ca_chain__preferred.id
+        if self.certificate_ca_chain__preferred:
+            return self.certificate_ca_chain__preferred.id
+        return None
 
     @reify
     def certificate_ca_chain__preferred(self):
@@ -2711,20 +2720,23 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
 
             # only search for a preference if they exist
             if request and request.dbCertificateCAPreferences:
-                # loop CertificateSignedChain
-                lookup_upchain = {
-                    _csc.certificate_ca_id: _csc.certificate_ca
-                    for _csc in self.certificate_signed_chains
-                }
-
-                # lookup CertificateCAPreference, return the first match
-                for _pref in request.dbCertificateCAPreferences:
-                    _pref_id = _pref.certificate_ca_id
-                    if _pref_id in lookup_upchain:
-                        return lookup_upchain[_pref_id]
+                # TODO: first match or shortest match?
+                # first match for now!
+                # there are a lot of ways to compute this,
+                # this is not efficient. this is just a quick pass
+                preferred_ca_ids = [
+                    i.certificate_ca_id for i in request.dbCertificateCAPreferences
+                ]
+                for _preferred_ca_id in preferred_ca_ids:
+                    for _csc in self.certificate_signed_chains:
+                        _ca_chain = _csc.certificate_ca_chain
+                        # right now we don't care WHERE in the chain the
+                        # certificate CA pref is, just that it is in the chain
+                        if _preferred_ca_id in _ca_chain.certificate_ca_ids:
+                            return _ca_chain
 
             # we have None! so just return the first one we have
-            return self.certificate_signed_chains[0].certificate_ca
+            return self.certificate_signed_chains[0].certificate_ca_chain
 
         except Exception as exc:
             pass

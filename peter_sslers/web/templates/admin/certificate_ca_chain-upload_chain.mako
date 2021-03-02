@@ -25,7 +25,7 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/certificate-ca/upload-chain"
+                action="${admin_prefix}/certificate-ca-chain/upload-chain"
                 method="POST"
                 enctype="multipart/form-data"
             >

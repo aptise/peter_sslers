@@ -3157,7 +3157,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
         """
         # test chain uploads
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload-chain.json", status=200
+            "/.well-known/admin/certificate-ca-chain/upload-chain.json", status=200
         )
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
@@ -5946,18 +5946,24 @@ class FunctionalTests_AlternateChains(AppTest):
         for (
             _certificate_signed_chain
         ) in focus_CertificateSigned.certificate_signed_chains:
-            cert_ca_alt_id = _certificate_signed_chain.certificate_ca_id
+            chain_id = _certificate_signed_chain.certificate_ca_chain_id
+            certificate_ca_id = (
+                _certificate_signed_chain.certificate_ca_chain.certificate_ca_0_id
+            )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/%s" % cert_ca_alt_id, status=200
+                "/.well-known/admin/certificate-ca-chain/%s" % chain_id, status=200
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/certificate-ca/%s" % certificate_ca_id, status=200
             )
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt"
-                % cert_ca_alt_id,
+                % certificate_ca_id,
                 status=200,
             )
             res = self.testapp.get(
                 "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt/1"
-                % cert_ca_alt_id,
+                % certificate_ca_id,
                 status=200,
             )
 
@@ -5975,8 +5981,8 @@ class FunctionalTests_AlternateChains(AppTest):
         certificate_signed_id = focus_CertificateSigned.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        certificate_ca_ids = [
-            i.certificate_ca_id
+        certificate_ca_chain_ids = [
+            i.certificate_ca_chain_id
             for i in focus_CertificateSigned.certificate_signed_chains
         ]
 
@@ -5985,8 +5991,8 @@ class FunctionalTests_AlternateChains(AppTest):
             status=200,
         )
 
-        for cert_ca_id in certificate_ca_ids:
-            focus_ids = (certificate_signed_id, cert_ca_id)
+        for certificate_ca_chain_id in certificate_ca_chain_ids:
+            focus_ids = (certificate_signed_id, certificate_ca_chain_id)
 
             # chain
             res = self.testapp.get(
