@@ -134,6 +134,7 @@
 	* removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
 	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
 	* restricted formats for chain certs
+	* spki computation can be b64 encoded or not
 
 
 	+ other fixes and improvements

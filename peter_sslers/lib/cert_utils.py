@@ -411,7 +411,7 @@ def _openssl_cert__normalize_pem(cert_pem):
         _tmpfile_pem.close()
 
 
-def _openssl_spki_hash_cert(key_technology=None, cert_pem_filepath=None):
+def _openssl_spki_hash_cert(key_technology=None, cert_pem_filepath=None, as_b64=None):
     """
     in a shell environment, we could do this in a single command:
         openssl x509 -pubkey -noout -in {CERT_FILEPATH} | openssl {key_technology} -pubout -outform DER -pubin | openssl dgst -sha256 -binary | openssl enc -base64
@@ -463,22 +463,31 @@ def _openssl_spki_hash_cert(key_technology=None, cert_pem_filepath=None):
             stderr=subprocess.PIPE,
         )
         # encode
-        with psutil.Popen(
-            [
-                openssl_path,
-                "enc",
-                "-base64",
-            ],
-            stdin=p3.stdout,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc4:
-            spki_hash, err = proc4.communicate()
-            spki_hash = spki_hash.strip()
+        spki_hash = None
+        if as_b64:
+            with psutil.Popen(
+                [
+                    openssl_path,
+                    "enc",
+                    "-base64",
+                ],
+                stdin=p3.stdout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc4:
+                spki_hash, err = proc4.communicate()
+                if err:
+                    raise errors.OpenSslError("could not generate SPKI Hash")
+        else:
+            spki_hash, err = p3.communicate()
             if err:
                 raise errors.OpenSslError("could not generate SPKI Hash")
-            if six.PY3:
-                spki_hash = spki_hash.decode("utf8")
+            spki_hash = binascii.b2a_hex(spki_hash)
+            spki_hash = spki_hash.upper()
+        spki_hash = spki_hash.strip()
+        if six.PY3:
+            spki_hash = spki_hash.decode("utf8")
+
     finally:
         # Note: explicitly close what we opened
         for _p in (
@@ -487,14 +496,17 @@ def _openssl_spki_hash_cert(key_technology=None, cert_pem_filepath=None):
             p3,
         ):
             if _p is not None:
-                _p.stdout.close()
-                _p.stderr.close()
-                _p.terminate()
-                _p.wait()
+                try:
+                    _p.stdout.close()
+                    _p.stderr.close()
+                    _p.terminate()
+                    _p.wait()
+                except psutil.NoSuchProcess:
+                    pass
     return spki_hash
 
 
-def _openssl_spki_hash_csr(key_technology=None, csr_pem_filepath=None):
+def _openssl_spki_hash_csr(key_technology=None, csr_pem_filepath=None, as_b64=None):
     """
     in a shell environment, we could do this in a single command:
         openssl REQ -pubkey -noout -in {CSR_FILEPATH} | openssl {key_technology} -pubout -outform DER -pubin | openssl dgst -sha256 -binary | openssl enc -base64
@@ -546,22 +558,30 @@ def _openssl_spki_hash_csr(key_technology=None, csr_pem_filepath=None):
             stderr=subprocess.PIPE,
         )
         # encode
-        with psutil.Popen(
-            [
-                openssl_path,
-                "enc",
-                "-base64",
-            ],
-            stdin=p3.stdout,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc4:
-            spki_hash, err = proc4.communicate()
-            spki_hash = spki_hash.strip()
+        spki_hash = None
+        if as_b64:
+            with psutil.Popen(
+                [
+                    openssl_path,
+                    "enc",
+                    "-base64",
+                ],
+                stdin=p3.stdout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc4:
+                spki_hash, err = proc4.communicate()
+                if err:
+                    raise errors.OpenSslError("could not generate SPKI Hash")
+        else:
+            spki_hash, err = p3.communicate()
             if err:
                 raise errors.OpenSslError("could not generate SPKI Hash")
-            if six.PY3:
-                spki_hash = spki_hash.decode("utf8")
+            spki_hash = binascii.b2a_hex(spki_hash)
+            spki_hash = spki_hash.upper()
+        spki_hash = spki_hash.strip()
+        if six.PY3:
+            spki_hash = spki_hash.decode("utf8")
     finally:
         # Note: explicitly close what we opened
         for _p in (
@@ -570,14 +590,17 @@ def _openssl_spki_hash_csr(key_technology=None, csr_pem_filepath=None):
             p3,
         ):
             if _p is not None:
-                _p.stdout.close()
-                _p.stderr.close()
-                _p.terminate()
-                _p.wait()
+                try:
+                    _p.stdout.close()
+                    _p.stderr.close()
+                    _p.terminate()
+                    _p.wait()
+                except psutil.NoSuchProcess:
+                    pass
     return spki_hash
 
 
-def _openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None):
+def _openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None, as_b64=None):
     """
     in a shell environment, we could do this in a single command:
         openssl rsa -in {KEY_FILEPATH} -pubout -outform der | openssl dgst -sha256 -binary | openssl enc -base64
@@ -616,22 +639,29 @@ def _openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None):
             stderr=subprocess.PIPE,
         )
         # encode
-        with psutil.Popen(
-            [
-                openssl_path,
-                "enc",
-                "-base64",
-            ],
-            stdin=p2.stdout,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc3:
-            spki_hash, err = proc3.communicate()
-            spki_hash = spki_hash.strip()
+        if as_b64:
+            with psutil.Popen(
+                [
+                    openssl_path,
+                    "enc",
+                    "-base64",
+                ],
+                stdin=p2.stdout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc3:
+                spki_hash, err = proc3.communicate()
+                if err:
+                    raise errors.OpenSslError("could not generate SPKI Hash")
+        else:
+            spki_hash, err = p2.communicate()
             if err:
                 raise errors.OpenSslError("could not generate SPKI Hash")
-            if six.PY3:
-                spki_hash = spki_hash.decode("utf8")
+            spki_hash = binascii.b2a_hex(spki_hash)
+            spki_hash = spki_hash.upper()
+        spki_hash = spki_hash.strip()
+        if six.PY3:
+            spki_hash = spki_hash.decode("utf8")
     finally:
         # Note: explicitly close what we opened
         for _p in (
@@ -639,10 +669,13 @@ def _openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None):
             p2,
         ):
             if _p is not None:
-                _p.stdout.close()
-                _p.stderr.close()
-                _p.terminate()
-                _p.wait()
+                try:
+                    _p.stdout.close()
+                    _p.stderr.close()
+                    _p.terminate()
+                    _p.wait()
+                except psutil.NoSuchProcess:
+                    pass
     return spki_hash
 
 
@@ -664,13 +697,17 @@ def _openssl_crypto__key_technology(key):
     return None
 
 
-def _cryptography__public_key_spki_sha256(cryptography_publickey):
+def _cryptography__public_key_spki_sha256(cryptography_publickey, as_b64=None):
     _public_bytes = cryptography_publickey.public_bytes(
         cryptography_serialization.Encoding.DER,
         cryptography_serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    _spki_hash = hashlib.sha256(_public_bytes).digest()
-    spki_sha256 = base64.b64encode(_spki_hash)
+    spki_sha256 = hashlib.sha256(_public_bytes).digest()
+    if as_b64:
+        spki_sha256 = base64.b64encode(spki_sha256)
+    else:
+        spki_sha256 = binascii.b2a_hex(spki_sha256)
+        spki_sha256 = spki_sha256.upper()
     if six.PY3:
         spki_sha256 = spki_sha256.decode()
     return spki_sha256
@@ -1541,12 +1578,14 @@ def parse_cert__spki_sha256(
     cert_pem_filepath=None,
     cryptography_cert=None,
     key_technology=None,
+    as_b64=None,
 ):
     """
     :param str cert_pem: Cert in PEM form
     :param str cert_pem_filepath: Filepath to PEM
     :param object cryptography_cert: optional hint to aid in crypto commands
     :param str key_technology: optional hint to aid in openssl fallback
+    :param bool as_b64: encode with b64?
     """
     log.info("parse_cert__spki_sha256 >")
     if openssl_crypto and certbot_crypto_util:
@@ -1556,7 +1595,9 @@ def parse_cert__spki_sha256(
             )
             cryptography_cert = cert.to_cryptography()
         cryptography_publickey = cryptography_cert.public_key()
-        return _cryptography__public_key_spki_sha256(cryptography_publickey)
+        return _cryptography__public_key_spki_sha256(
+            cryptography_publickey, as_b64=as_b64
+        )
     log.debug(".parse_cert__spki_sha256 > openssl fallback")
     tmpfile_pem = None
     try:
@@ -1565,7 +1606,9 @@ def parse_cert__spki_sha256(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
         spki_sha256 = _openssl_spki_hash_cert(
-            key_technology=key_technology, cert_pem_filepath=cert_pem_filepath
+            key_technology=key_technology,
+            cert_pem_filepath=cert_pem_filepath,
+            as_b64=as_b64,
         )
         return spki_sha256
     except Exception as exc:
@@ -1630,6 +1673,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             cert_pem=cert_pem,
             cert_pem_filepath=cert_pem_filepath,
             cryptography_cert=cert_cryptography,
+            as_b64=False,
         )
         try:
             ext = cert_cryptography.extensions.get_extension_for_oid(
@@ -1709,6 +1753,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             cert_pem=cert_pem,
             cert_pem_filepath=cert_pem_filepath,
             key_technology=rval["key_technology"],
+            as_b64=False,
         )
 
         if openssl_version is None:
@@ -1789,12 +1834,14 @@ def parse_csr__spki_sha256(
     csr_pem_filepath=None,
     crypto_csr=None,
     key_technology=None,
+    as_b64=None,
 ):
     """
     :param str csr_pem: csr in PEM form
     :param str csr_pem_filepath: Filepath to PEM
     :param object crypto_csr: optional hint to aid in crypto commands
     :param str key_technology: optional hint to aid in openssl fallback
+    :param bool as_b64: encode with b64?
     """
     log.info("parse_csr__spki_sha256 >")
     if openssl_crypto and certbot_crypto_util:
@@ -1803,9 +1850,11 @@ def parse_csr__spki_sha256(
                 openssl_crypto.FILETYPE_PEM, csr_pem
             )
         cryptography_publickey = crypto_csr.get_pubkey().to_cryptography_key()
-        spki_sha256 = _cryptography__public_key_spki_sha256(cryptography_publickey)
+        spki_sha256 = _cryptography__public_key_spki_sha256(
+            cryptography_publickey, as_b64=as_b64
+        )
         return spki_sha256
-    log.debug(".parse_key__spki_sha256 > openssl fallback")
+    log.debug(".parse_csr__spki_sha256 > openssl fallback")
     tmpfile_pem = None
     try:
         if key_technology is None:
@@ -1813,7 +1862,9 @@ def parse_csr__spki_sha256(
                 csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
             )
         spki_sha256 = _openssl_spki_hash_csr(
-            key_technology=key_technology, csr_pem_filepath=csr_pem_filepath
+            key_technology=key_technology,
+            csr_pem_filepath=csr_pem_filepath,
+            as_b64=as_b64,
         )
         return spki_sha256
     except Exception as exc:
@@ -1856,7 +1907,10 @@ def parse_csr(csr_pem=None, csr_pem_filepath=None):
             _crypto_csr.get_pubkey()
         )
         rval["spki_sha256"] = parse_csr__spki_sha256(
-            csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath, crypto_csr=_crypto_csr
+            csr_pem=csr_pem,
+            csr_pem_filepath=csr_pem_filepath,
+            crypto_csr=_crypto_csr,
+            as_b64=False,
         )
         return rval
 
@@ -1879,6 +1933,7 @@ def parse_csr(csr_pem=None, csr_pem_filepath=None):
             csr_pem=csr_pem,
             csr_pem_filepath=csr_pem_filepath,
             key_technology=rval["key_technology"],
+            as_b64=False,
         )
 
         with psutil.Popen(
@@ -1904,12 +1959,14 @@ def parse_key__spki_sha256(
     key_pem_filepath=None,
     cryptography_publickey=None,
     key_technology=None,
+    as_b64=None,
 ):
     """
     :param str key_pem: Key in PEM form
     :param str key_pem_filepath: Filepath to PEM
     :param object cryptography_publickey: optional hint to aid in crypto commands
     :param str key_technology: optional hint to aid in openssl fallback
+    :param bool as_b64: encode with b64?
     """
     log.info("parse_key__spki_sha256 >")
     if openssl_crypto and certbot_crypto_util:
@@ -1919,7 +1976,9 @@ def parse_key__spki_sha256(
             )
             _cryptography_privkey = _crypto_privkey.to_cryptography_key()
             cryptography_publickey = _cryptography_privkey.public_key()
-        spki_sha256 = _cryptography__public_key_spki_sha256(cryptography_publickey)
+        spki_sha256 = _cryptography__public_key_spki_sha256(
+            cryptography_publickey, as_b64=as_b64
+        )
         return spki_sha256
     log.debug(".parse_key__spki_sha256 > openssl fallback")
     tmpfile_pem = None
@@ -1929,7 +1988,9 @@ def parse_key__spki_sha256(
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
         spki_sha256 = _openssl_spki_hash_pkey(
-            key_technology=key_technology, key_pem_filepath=key_pem_filepath
+            key_technology=key_technology,
+            key_pem_filepath=key_pem_filepath,
+            as_b64=as_b64,
         )
         return spki_sha256
     except Exception as exc:
@@ -2032,8 +2093,8 @@ def parse_key(key_pem=None, key_pem_filepath=None):
             key_pem=None,
             key_pem_filepath=None,
             cryptography_publickey=_cryptography_publickey,
+            as_b64=False,
         )
-
         return rval
 
     log.debug(".parse_key > openssl fallback")
@@ -2060,11 +2121,12 @@ def parse_key(key_pem=None, key_pem_filepath=None):
             _key_technology, key_pem_filepath, "-text"
         )
         if _key_technology in ("RSA", "EC"):
-            # rval["spki_sha256"] = _openssl_spki_hash_pkey(key_technology=_key_technology, key_pem_filepath=key_pem_filepath)
+            # rval["spki_sha256"] = _openssl_spki_hash_pkey(key_technology=_key_technology, key_pem_filepath=key_pem_filepath, as_b64=False)
             rval["spki_sha256"] = parse_key__spki_sha256(
                 key_pem=key_pem,
                 key_pem_filepath=key_pem_filepath,
                 key_technology=_key_technology,
+                as_b64=False,
             )
 
         if _key_technology == "RSA":

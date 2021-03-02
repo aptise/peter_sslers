@@ -693,7 +693,8 @@ CERT_CA_SETS = {
     "letsencrypt-certs/trustid-x3-root.pem": {
         "key_technology": "RSA",
         "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
-        "spki_sha256": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
+        "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
+        "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
         "cert.fingerprints": {
             "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
         },
@@ -705,7 +706,8 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
         "modulus_md5": "9454972e3730ac131def33e045ab19df",
-        "spki_sha256": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+        "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
+        "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
             "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
         },
@@ -717,7 +719,8 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
         "key_technology": "RSA",
         "modulus_md5": "9454972e3730ac131def33e045ab19df",
-        "spki_sha256": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+        "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
+        "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
             "sha1": "93:3C:6D:DE:E9:5C:9C:41:A4:0F:9F:50:49:3D:82:BE:03:AD:87:BF",
         },
@@ -729,7 +732,8 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
         "modulus_md5": None,
-        "spki_sha256": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
+        "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
+        "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
             "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
         },
@@ -741,7 +745,8 @@ CERT_CA_SETS = {
     "letsencrypt-certs/isrg-root-x2-cross-signed.pem": {
         "key_technology": "EC",
         "modulus_md5": None,
-        "spki_sha256": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
+        "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
+        "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
             "sha1": "15:16:82:F5:21:8C:0A:51:1C:28:F4:06:0A:73:B9:CA:78:CE:9A:53",
         },
@@ -752,7 +757,8 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem": {
         "key_technology": "RSA",
-        "spki_sha256": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
+        "spki_sha256": "8D02536C887482BC34FF54E41D2BA659BF85B341A0A20AFADB5813DCFBCF286D",
+        "spki_sha256.b64": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
         "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
         "cert.fingerprints": {
             "sha1": "48:50:4E:97:4C:0D:AC:5B:5C:D4:76:C8:20:22:74:B2:4C:8C:71:72",
@@ -789,12 +795,14 @@ KEY_SETS = {
     "key_technology-rsa/acme_account_1.key": {
         "key_technology": "RSA",
         "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
-        "spki_sha256": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
+        "spki_sha256": "E70DCB45009DF3F79FC708B46888609E34A3D8D19AEAFA566389718A29140782",
+        "spki_sha256.b64": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
     },
     "key_technology-ec/ec384-1-key.pem": {
         "key_technology": "EC",
         "modulus_md5": None,
-        "spki_sha256": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
+        "spki_sha256": "E739FB0081868C97B8AC0D3773680974E9FCECBFA1FC8B80AFDDBE42F30D1D9D",
+        "spki_sha256.b64": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
     },
 }
 

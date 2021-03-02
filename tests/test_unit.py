@@ -168,7 +168,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.issuer_uri": None,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
-            "spki_sha256": "NOZ8xhV2HLra9DCy4C4Ow5yZ7vxzzORpsYrlSjfvaUI=",
+            "spki_sha256": "34E67CC615761CBADAF430B2E02E0EC39C99EEFC73CCE469B18AE54A37EF6942",
+            "spki_sha256.b64": "NOZ8xhV2HLra9DCy4C4Ow5yZ7vxzzORpsYrlSjfvaUI=",
         },
         "002": {
             "csr": True,
@@ -181,7 +182,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert": False,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
-            "spki_sha256": "wf9xRu6GFHmumXYXy5lEJJBflEHG2eZpqabMUgRFxmM=",
+            "spki_sha256": "C1FF7146EE861479AE997617CB994424905F9441C6D9E669A9A6CC520445C663",
+            "spki_sha256.b64": "wf9xRu6GFHmumXYXy5lEJJBflEHG2eZpqabMUgRFxmM=",
         },
         "003": {
             "csr": True,
@@ -210,7 +212,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.issuer_uri": None,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
-            "spki_sha256": "BDrxucwa+SXBMuGVdPt7JR9yfVXhhdmIK3py8R+CrZc=",
+            "spki_sha256": "043AF1B9CC1AF925C132E19574FB7B251F727D55E185D9882B7A72F11F82AD97",
+            "spki_sha256.b64": "BDrxucwa+SXBMuGVdPt7JR9yfVXhhdmIK3py8R+CrZc=",
         },
         "004": {
             "csr": True,
@@ -253,7 +256,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.issuer_uri": None,
             "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
             "key_technology": "RSA",
-            "spki_sha256": "BIJayn/eeRw//axzuPUldepZh1PQ+emVGH6FbjRjOSI=",
+            "spki_sha256": "04825ACA7FDE791C3FFDAC73B8F52575EA598753D0F9E995187E856E34633922",
+            "spki_sha256.b64": "BIJayn/eeRw//axzuPUldepZh1PQ+emVGH6FbjRjOSI=",
         },
         "005": {
             "csr": True,
@@ -273,7 +277,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert": False,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
-            "spki_sha256": "vtmS2tVwpJhOpHvhyS8JGDmIi8NILZIG+JHEqCOa0qs=",
+            "spki_sha256": "BED992DAD570A4984EA47BE1C92F091839888BC3482D9206F891C4A8239AD2AB",
+            "spki_sha256.b64": "vtmS2tVwpJhOpHvhyS8JGDmIi8NILZIG+JHEqCOa0qs=",
         },
     }
     _csr_sets_alt = {
@@ -291,7 +296,8 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert": False,
             "pubkey_modulus_md5": "None",
             "key_technology": "EC",
-            "spki_sha256": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
+            "spki_sha256": "E739FB0081868C97B8AC0D3773680974E9FCECBFA1FC8B80AFDDBE42F30D1D9D",
+            "spki_sha256.b64": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
         }
     }
 
@@ -596,6 +602,12 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_cert__spki_sha256(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath, as_b64=True
+            )
+            self.assertEqual(
+                spki_sha256_b64, self._cert_sets[cert_set]["spki_sha256.b64"]
+            )
 
             # `cert_utils.parse_cert__key_technology`
             key_technology = cert_utils.parse_cert__key_technology(
@@ -633,6 +645,12 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(spki_sha256, CERT_CA_SETS[cert_filename]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_cert__spki_sha256(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath, as_b64=True
+            )
+            self.assertEqual(
+                spki_sha256_b64, CERT_CA_SETS[cert_filename]["spki_sha256.b64"]
+            )
 
             # `cert_utils.parse_cert__key_technology`
             key_technology = cert_utils.parse_cert__key_technology(
@@ -690,6 +708,12 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
             )
             self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_csr__spki_sha256(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath, as_b64=True
+            )
+            self.assertEqual(
+                spki_sha256_b64, self._cert_sets[cert_set]["spki_sha256.b64"]
+            )
 
             # `cert_utils.parse_csr__key_technology`
             key_technology = cert_utils.parse_csr__key_technology(
@@ -735,6 +759,12 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
             )
             self.assertEqual(spki_sha256, self._csr_sets_alt[csr_set]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_csr__spki_sha256(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath, as_b64=True
+            )
+            self.assertEqual(
+                spki_sha256_b64, self._csr_sets_alt[csr_set]["spki_sha256.b64"]
+            )
 
             # `cert_utils.parse_csr__key_technology`
             key_technology = cert_utils.parse_csr__key_technology(
@@ -782,6 +812,12 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
             self.assertEqual(spki_sha256, self._cert_sets[cert_set]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath, as_b64=True
+            )
+            self.assertEqual(
+                spki_sha256_b64, self._cert_sets[cert_set]["spki_sha256.b64"]
+            )
 
             # `cert_utils.parse_key__technology`
             key_technology = cert_utils.parse_key__technology(
@@ -811,6 +847,10 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
             self.assertEqual(spki_sha256, KEY_SETS[key_filename]["spki_sha256"])
+            spki_sha256_b64 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath, as_b64=True
+            )
+            self.assertEqual(spki_sha256_b64, KEY_SETS[key_filename]["spki_sha256.b64"])
 
             # `cert_utils.parse_key__technology`
             key_technology = cert_utils.parse_key__technology(
@@ -942,13 +982,6 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                         root_pem=root_pem, cert_pem=cert_pem
                     )
 
-
-def parse_cert__spki_sha256(
-    cert_pem=None,
-    cert_pem_filepath=None,
-    cryptography_cert=None,
-    key_technology=None,
-):
     def test__convert_lejson_to_pem(self):
         """
         python -m unittest tests.test_unit.UnitTest_CertUtils.test__convert_lejson_to_pem
