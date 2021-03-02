@@ -1750,7 +1750,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                     )
                     else None
                 )
-                _auth_tuple = (_pending, _to_auth.acme_authorization)
+                _auth_tuple = (_pending, _to_auth.acme_authorization.as_json)
                 rval["authorizations"].append(_auth_tuple)
                 if _pending:
                     rval["authorizations_remaining"] += 1

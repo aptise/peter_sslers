@@ -27,7 +27,13 @@ TESTS:
 		test against different strategies to ensure correct behavior
 		- dogpile defense
 		- repeat request, correct data
-
+		
+	Add a unit test to ensure every object with an `.as_json` property can be encoded.
+		Context: AcmeOrder.as_json has an `acme_process_steps` method
+			     `acme_process_steps` did not properly encode an AcmeAuthorization item
+			     This caused AcmeOrder to not encode, but the tracebacks buried the underlying
+			     cause of this. A direct test should prevent this from happening again.
+	
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
