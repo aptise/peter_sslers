@@ -479,8 +479,10 @@
                                     class="btn btn-xs btn-info"
                                     href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip"
                                     data-certificate_ca_chain-id="${CertificateSigned.certificate_ca_chain__preferred.id}"
-                                    ## TODO- this can only happen on the signing cert
-                                    ## data-certificate_ca-fingerprint_sha1="${CertificateSigned.certificate_ca_chain__preferred.fingerprint_sha1}"
+                                    data-certificate_ca_chain-certificate_ca_0-id="${CertificateSigned.certificate_ca_chain__preferred.certificate_ca_0.id}"
+                                    data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${CertificateSigned.certificate_ca_chain__preferred.certificate_ca_0.fingerprint_sha1}"
+                                    data-certificate_ca_chain-certificate_ca_n-id="${CertificateSigned.certificate_ca_chain__preferred.certificate_ca_n.id}"
+                                    data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${CertificateSigned.certificate_ca_chain__preferred.certificate_ca_n.fingerprint_sha1}"
                                 >
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     config.zip</a><br/>
@@ -494,9 +496,11 @@
                                         <a
                                             class="btn btn-xs btn-info"
                                             href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.zip"
-                                            certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain.id}"
-                                            ## TODO: this can only happen on the signing cert
-                                            ## data-certificate_ca-fingerprint_sha1="${_to_upchain.certificate_ca.fingerprint_sha1}"
+                                            data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain.id}"
+                                            data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
+                                            data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
+                                            data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
+                                            data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
                                         >
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
@@ -583,8 +587,10 @@
                                                         class="btn btn-xs btn-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem.txt"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
+                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
+                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
@@ -592,8 +598,10 @@
                                                         class="btn btn-xs btn-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
+                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
+                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
@@ -608,8 +616,10 @@
                                                         class="btn btn-xs btn-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem.txt"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
+                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
+                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
@@ -617,8 +627,10 @@
                                                         class="btn btn-xs btn-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        ## TODO: this can only happen on the signing cert
-                                                        ## data-certificate_ca-fingerprint_sha1="${toChain.certificate_ca.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
+                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
+                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>

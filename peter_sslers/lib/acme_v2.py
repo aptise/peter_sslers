@@ -1036,7 +1036,7 @@ class AuthenticatedUser(object):
             transaction_commit=transaction_commit,
         )
 
-        # todo: should we ensure every Authorization is already tracked?
+        # TODO: should we ensure every Authorization is already tracked?
 
         url_certificate = acme_order_finalized.get("certificate")
         if not url_certificate:
@@ -1135,8 +1135,8 @@ class AuthenticatedUser(object):
             ):
                 raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
-        # scoping, our todo list
-        _todo__complete_challenge = None
+        # scoping, our task list
+        _task__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
         # in v2, we must query an order's authorization url to get the domain
@@ -1249,24 +1249,24 @@ class AuthenticatedUser(object):
         _challenge_status_text = dbAcmeChallenge.acme_status_challenge
         if _challenge_status_text == "*discovered*":
             # internal marker, pre "pending"
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "pending":
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "processing":
             # we may need to trigger again?
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "valid":
             # already completed
-            _todo__complete_challenge = False
+            _task__complete_challenge = False
         elif _challenge_status_text == "invalid":
             # we may need to trigger again?
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         else:
             raise ValueError(
                 "unexpected challenge status: `%s`" % _challenge_status_text
             )
 
-        if _todo__complete_challenge:
+        if _task__complete_challenge:
             self.prepare_acme_challenge(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
@@ -1496,7 +1496,7 @@ class AuthenticatedUser(object):
                 "AcmeChallenge is not 'pending' or 'valid' on the ACME server"
             )
 
-        # TODO - COULD an accepted challenge be here?
+        # TODO: COULD an accepted challenge be here?
         log.info(
             ") acme_challenge_trigger | checking domain {0}".format(
                 dbAcmeAuthorization.domain.domain_name

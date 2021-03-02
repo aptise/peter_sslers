@@ -155,7 +155,7 @@ class View_List(Handler):
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % base_url
             )
-        # todo: batch this with limits and offsets?
+        # TODO: batch this with limits and offsets?
         items_paged = lib_db.get.get__AcmeOrder__paginated(
             self.request.api_context,
             active_only=True,

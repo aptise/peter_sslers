@@ -379,7 +379,8 @@ def queue_certificates__update(ctx):
         )
         results = _core_query.all()
         for dbAcmeOrder in results:
-            raise ValueError("TODO: This feature has not been ported yet")
+            # TODO: This feature has not been ported yet
+            raise ValueError("This feature has not been ported yet")
             # this will call `_log_object_event` as needed
             dbQueueCertificate = lib.db.create.create__QueueCertificate(
                 ctx,

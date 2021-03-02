@@ -563,7 +563,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
         ctx, authenticatedUser, dbAcmeOrder
     )
 
-    _todo_finalize_order = None
+    _task_finalize_order = None
     _order_status = acmeOrderRfcObject.rfc_object["status"]
     if _order_status == "pending":
         # if we are retrying an order, we can try to handle it
@@ -580,7 +580,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             )
             if not _handled:
                 raise ValueError("Order Authorizations failed")
-            _todo_finalize_order = True
+            _task_finalize_order = True
         except errors.AcmeAuthorizationFailure as exc:
             # if an Authorization fails, the entire order fails
             (
@@ -621,7 +621,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             raise errors.AcmeOrderFatal("Order Already Abandoned")
         elif _order_status == "ready":
             # requirements/challenges fulfilled
-            _todo_finalize_order = True
+            _task_finalize_order = True
         elif _order_status == "processing":
             # The certificate is being issued.
             # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
@@ -631,7 +631,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             raise errors.AcmeOrderValid()
         else:
             raise ValueError("unsure how to handle this status: `%s`" % _order_status)
-    return _todo_finalize_order
+    return _task_finalize_order
 
 
 def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
@@ -2038,10 +2038,10 @@ def _do__AcmeV2_AcmeOrder__new_core(
         ):
 
             # handle the order towards finalized?
-            _todo_finalize_order = _AcmeV2_AcmeOrder__process_authorizations(
+            _task_finalize_order = _AcmeV2_AcmeOrder__process_authorizations(
                 ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
             )
-            if not _todo_finalize_order:
+            if not _task_finalize_order:
                 return dbAcmeOrder
 
             dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
