@@ -8974,8 +8974,35 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _expected_max = stats_og["count-AcmeAuthorization-pending"] + 20
             # no need to assume one for the failed auth
             _expected_min = stats_og["count-AcmeAuthorization-pending"] + 1
-            assert stats_b["count-AcmeAuthorization-pending"] <= _expected_max
-            assert stats_b["count-AcmeAuthorization-pending"] >= _expected_min
+            try:
+                assert stats_b["count-AcmeAuthorization-pending"] <= _expected_max
+                assert stats_b["count-AcmeAuthorization-pending"] >= _expected_min
+            except:
+                # this sometimes doesn't work. it's a flaky test.
+                # this is here to help debug it
+                _auths = []
+                _auths_all = self.ctx.dbSession.query(
+                    model_objects.AcmeAuthorization
+                ).all()
+                for i in _auths_all:
+                    if i.domain and (i.domain.domain_name in domain_names):
+                        _auths.append(i)
+                _auths = sorted(
+                    _auths,
+                    key=lambda auth: (
+                        auth.acme_status_authorization_id,
+                        auth.domain.domain_name,
+                    ),
+                )
+                print("===================== AcmeAuthorization/")
+                for _auth in _auths:
+                    print(
+                        auth.acme_status_authorization_id,
+                        auth.id,
+                        auth.domain.domain_name,
+                    )
+                print("===================== /AcmeAuthorization")
+                raise
 
         finally:
             # reset
