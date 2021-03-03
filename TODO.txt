@@ -19,9 +19,25 @@ Audit/Remove "todo" markers
 asap tasks
 ---------------
 
+
+	* shortcut to creating an order from a domain
+
+	UNDECIDED
+	* CertificateCAPreferences -> CertificateCAChainPreference
+	  This would pin the chain, which is possibly not something we want to do
+	  It may be best to keep this as-is, then try to find the shortest compatible chain
+			
+
+
 TESTS:
+	unit
+		* add a test to ensure chains/fullchains do not have blank lines
+		* add a test to ensure chain direction
+
 	AcmeAccount
-		submit a different key for an existing contact
+		* upload: a duplicate key
+		* new: submit a different key for an existing contact on the acme server
+		* new: submit a new key for an existing contact on the acme server
 
 	api/domain/autocert
 		test against different strategies to ensure correct behavior
@@ -46,8 +62,6 @@ ensure_chain
 	not leveraged yet
 
 * CertificateCAs / AcmeOrders
-** if the fullchain has more than one certificate, track it as an intermediary
-** should CertificateCAs just be normal certificates with a flag?
 * integrate ALEMEBIC and migrate the database_migrations file to it
 
 ====
