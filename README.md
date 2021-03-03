@@ -369,7 +369,7 @@ PeterSSLers handles several types of CertificateRequests
    Upload a list of Domains, your LetsEncrypt AccountKey, and PrivateKey used
    for signing/serving, and the system will generate the CSR and perform all the
    verifications.
-3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt
+3. A public interface allows you to proxypass the AcmeChallenges that LetsEncrypt
    issues for manual verification. (ie, run this behind `Nginx`)
 4. You can run the 'webserver' on a private IP, and `curl` data into it via the
    commandline or miscellaneous scripts
@@ -694,9 +694,9 @@ These are documented at-length on the in-app settings page.
   their docs. You can also use the string "pebble" or "custom" to enable local testing.
 * `certificate_authority_agreement` - the LetsEncrypt agreement URL used when
   creating new accounts. Everything will probably fail if you don't include this argument.
-* `certificate_authority_endpoint` - acmev1; if `certificate_authority=custom` or
+* `certificate_authority_endpoint` - ACME v1; if `certificate_authority=custom` or
   `certificate_authority=pebble`, you must supply a url for the endpoint
-* `certificate_authority_directory` - acmev2; if `certificate_authority=custom` or
+* `certificate_authority_directory` - ACME v2; if `certificate_authority=custom` or
   `certificate_authority=pebble`, you must supply a url for the directory endpoint
 
 * `cleanup_pending_authorizations` - boolean, default True. if an AcmeChallenge
@@ -704,7 +704,7 @@ These are documented at-length on the in-app settings page.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
-* `enable_acme_flow` - boolean, should we enable the acme-flow tool?
+* `enable_acme_flow` - boolean, should we enable the ACME-flow tool?
 
 * `redis.url` - URL of `Redis` (includes port)
 * `redis.prime_style` - MUST be "1" or "2"; see `Redis` Prime section below.
@@ -1005,18 +1005,21 @@ the queue. Refresh tags are used to continue processing until finished.
 
 # FAQ
 
-## Does this reformat certs?
+## Does this reformat Certificates?
 
 Yes. PEM certs are reformatted to have a single trailing newline (via stripping
 then padding the input) and newlines are standardized to unix ("\n"). This seems
-to be one of the more common standards people have for saving Certificates.
-Otherwise Certificates are left as-is.
+to be one of the more common standards people utilize for saving Certificates.
+Certificates may be reformatted for compliance with other details of open standards.
+The actual content of Certificates are unchanged.
 
 
-## Is there a fast way to import existing certs?
+## Is there a fast way to import existing Certificates?
 
-Yes. Use `curl` on the commandline. see the *TOOLS* section for an `invoke` script
-that can automate many Certificates from the LetsEncrypt data store.
+See the *TOOLS* section for an `invoke` script that can automate importing
+Certificates and other data from the LetsEncrypt data store.  The "invoke" tools
+provide a commandline interface to batch POSTing data to the PeterSSLers server;
+one could use `curl` or write their own tools.
 
 
 ## What happens if multiple Certificates are available for a Domain ?
@@ -1039,15 +1042,16 @@ recent Certificate. a future feature might allow for this to be customized, and 
 the most widely usable Certificate.
 
 
-## How does this handle LetsEncrypt AccountKeys?
+## How does this handle Certbot AccountKeys?
 
-AccountKeys from the LetsEncrypt client are reformatted into PEM-encoded RSA keys.
-The data from the various json files are archived into the database for use later.
-The account data is searched for the actual environment it is registered with, and
-that becomes part of the Account record.
+Certbot stores RSA AccountKeys in a JWK (JSON Web Key) format.  AccountKeys from the
+Certbot client are reformatted into PEM-encoded RSA key.  The data from the various
+json files are archived into the database for use later. The account data is anayzed
+for the actual environment it is registered with, and that becomes part of the
+AcmeAccount record.
 
 
-## Why use OpenSSL directly? / does this work on windows?
+## Why use OpenSSL directly? / Does this work on Windows?
 
 When this package was first developed, installing the necessary python packages for
 cryptography required a lot of work and downloading. OpenSSL should already be
@@ -1055,28 +1059,29 @@ running on any machine PeterSslers needs to work on, so it was chosen for easy i
 deployment.
 
 It was also much easier to peg this to `openssl` in a linux environment for now;
-which ruled out windows.
+which ruled out Windows.
 
 The current version only uses `openssl` if the requisite Python modules are not
-installed. That should work on windows.
+installed. That should work on Windows.
 
-If someone wants to make a PR to support windows as a fallback, it will be reviewed!
-
-
-## Where does the various data come from?
-
-When imported, Certificates are read into "text" form and parsed for data.
-
-When generated via the acme protocol, certificate data is provided in the headers.
-
-Useful fields are duplicated from the certificate into SQL to allow for better
-searching. Certificates are not changed in any way (aside from whitespace cleanup).
+If someone wants to make a PR to fully support Windows, it will be reviewed!
 
 
-# Misc tips
+## Where does the various data associated with Certificates come from?
 
-So far this has been tested behind a couple of load balancers that use round-robin
-DNS. They were both in the same physical network.
+When imported, Certificates are decoded and parsed for data.
+
+When generated via the ACME protocol, Certificate data is provided in the headers.
+
+Useful fields are duplicated from the cCrtificate into SQL to allow for better
+searching. Certificates are not changed in any way, aside from the cleanup of
+whitespace and/or other formatting concerns.
+
+
+# Misc Tips
+
+This library was designed to be deployed behind a couple of load balancers that
+use round-robin DNS. They were both in the same physical network.
 
 * `Nginx` is on port 80. everything in the `/.well-known directory` is proxied to
   an internal machine *which is not guaranteed to be up*
@@ -1110,11 +1115,11 @@ This prime style will store data into `Redis` in the following format:
 * `d:{DOMAIN_NAME}` a 3 element hash for
   * CertificateSigned (c)
   * PrivateKey (p)
-  * CertificateCA (i)
+  * CertificateCAChain (i)
   * Note: the leading colon is required
 * `c{ID}` the CertificateSigned in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
-* `i{ID}` the CertificateCA in PEM format; (i)ntermediate cert
+* `i{ID}` the CertificateCAChain in PEM format; (i)ntermediate cert
 
 The `Redis` datastore might look something like this:
 
@@ -1123,7 +1128,7 @@ The `Redis` datastore might look something like this:
     r['c1'] = CERT.PEM  # (c)ert
     r['c2'] = CERT.PEM
     r['p2'] = PKEY.PEM  # (p)rivate
-    r['i99'] = CACERT.PEM  # (i)ntermediate cert
+    r['i99'] = CHAIN.PEM  # (i)ntermediate cert
     
 to assemble the data for `foo.example.com`:
 
@@ -1139,7 +1144,7 @@ to assemble the data for `foo.example.com`:
 This prime style will store data into `Redis` in the following format:
 
 * `{DOMAIN_NAME}` a 2 element hash for:
-  * FullChain [CertificateSigned+CertificateCA] (f)
+  * FullChain [CertificateSigned+CertificateCAChain] (f)
   * PrivateKey (p)
 
 The `Redis` datastore might look something like this:
@@ -1299,7 +1304,7 @@ of their signed Certificates that lead to different trusted roots.
 
 Alternate Chains are fully supported by PeterSSLers
 
-* Alternate Certificate Chains are downloaded and tracked
+* Alternate CertificateCAChains are downloaded and tracked
 * Machine-readable Endpoints are available to detect and utilize the Alternate Chains
 * Default UX, payloads and endpoints are optimized for the Primary Chain
 * Default payloads may be configured to enforce a chain preference, so alternate
