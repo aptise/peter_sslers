@@ -128,7 +128,7 @@ CERT_CAS_DATA = {
         "is_active": True,
         "key_technology": "RSA",
         "cert.fingerprints": {
-            "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
+            "sha1": "DAC9024F54D8F6DF94935FB1732638CA6AD77C13",
         },
         ".enddate": (2021, 9, 30, 14, 1, 15),
     },
@@ -142,7 +142,7 @@ CERT_CAS_DATA = {
         "key_technology": "RSA",
         "alternates": ["isrg_root_x1_cross"],
         "cert.fingerprints": {
-            "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
+            "sha1": "CABD2A79A1076A31F21D253635CB039D4329A5E8",
         },
         ".enddate": (2035, 6, 4, 11, 4, 38),
     },
@@ -167,7 +167,7 @@ CERT_CAS_DATA = {
         "key_technology": "EC",  # ECDSA
         "alternates": ["isrg_root_x2_cross"],
         "cert.fingerprints": {
-            "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
+            "sha1": "BDB1B93CD5978D45C6261455F8DB95C75AD153AF",
         },
         ".enddate": (2040, 9, 17, 16, 0),
     },

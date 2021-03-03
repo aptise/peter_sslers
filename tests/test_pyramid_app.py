@@ -2544,9 +2544,9 @@ class FunctionalTests_CertificateCA(AppTest):
         # when we initialize the application, the setup routine inserts some
         # default CertificateCA preferences
         expected_preferences_initial = (
-            ("1", "DA:C9:02"),  # trustid_root_x3
-            ("2", "BD:B1:B9"),  # isrg_root_x2
-            ("3", "CA:BD:2A"),  # isrg_root_x1
+            ("1", "DAC902"),  # trustid_root_x3
+            ("2", "BDB1B9"),  # isrg_root_x2
+            ("3", "CABD2A"),  # isrg_root_x1
         )
         # calculate the expected matrix after an alteration
         # in this alteration, we swap the first and second items
