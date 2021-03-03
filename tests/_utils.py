@@ -696,7 +696,7 @@ CERT_CA_SETS = {
         "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
         "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
         "cert.fingerprints": {
-            "sha1": "DA:C9:02:4F:54:D8:F6:DF:94:93:5F:B1:73:26:38:CA:6A:D7:7C:13",
+            "sha1": "DAC9024F54D8F6DF94935FB1732638CA6AD77C13",
         },
         "subject": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
         "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
@@ -709,7 +709,7 @@ CERT_CA_SETS = {
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
-            "sha1": "CA:BD:2A:79:A1:07:6A:31:F2:1D:25:36:35:CB:03:9D:43:29:A5:E8",
+            "sha1": "CABD2A79A1076A31F21D253635CB039D4329A5E8",
         },
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
         "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
@@ -722,12 +722,12 @@ CERT_CA_SETS = {
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
-            "sha1": "93:3C:6D:DE:E9:5C:9C:41:A4:0F:9F:50:49:3D:82:BE:03:AD:87:BF",
+            "sha1": "933C6DDEE95C9C41A40F9F50493D82BE03AD87BF",
         },
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
         "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
         "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
-        "authority_key_identifier": "C4:A7:B1:A4:7B:2C:71:FA:DB:E1:4B:90:75:FF:C4:15:60:85:89:10",
+        "authority_key_identifier": "C4A7B1A47B2C71FADBE14B9075FFC41560858910",
     },
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
@@ -735,7 +735,7 @@ CERT_CA_SETS = {
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
-            "sha1": "BD:B1:B9:3C:D5:97:8D:45:C6:26:14:55:F8:DB:95:C7:5A:D1:53:AF",
+            "sha1": "BDB1B93CD5978D45C6261455F8DB95C75AD153AF",
         },
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
         "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
@@ -748,12 +748,12 @@ CERT_CA_SETS = {
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
-            "sha1": "15:16:82:F5:21:8C:0A:51:1C:28:F4:06:0A:73:B9:CA:78:CE:9A:53",
+            "sha1": "151682F5218C0A511C28F4060A73B9CA78CE9A53",
         },
         "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
         "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
         "issuer_uri": "http://x1.i.lencr.org/",
-        "authority_key_identifier": "79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E",
+        "authority_key_identifier": "79B459E67BB6E5E40173800888C81A58F6E99B6E",
     },
     "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem": {
         "key_technology": "RSA",
@@ -761,12 +761,12 @@ CERT_CA_SETS = {
         "spki_sha256.b64": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
         "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
         "cert.fingerprints": {
-            "sha1": "48:50:4E:97:4C:0D:AC:5B:5C:D4:76:C8:20:22:74:B2:4C:8C:71:72",
+            "sha1": "48504E974C0DAC5B5CD476C8202274B24C8C7172",
         },
         "subject": "C=US\nO=Let's Encrypt\nCN=R3",
         "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
         "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
-        "authority_key_identifier": "C4:A7:B1:A4:7B:2C:71:FA:DB:E1:4B:90:75:FF:C4:15:60:85:89:10",
+        "authority_key_identifier": "C4A7B1A47B2C71FADBE14B9075FFC41560858910",
     },
 }
 

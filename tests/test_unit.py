@@ -29,6 +29,7 @@ import cryptography
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import cert_utils
+from peter_sslers.lib import errors
 from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
 from peter_sslers.lib.db import get as lib_db_get
@@ -160,11 +161,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.notAfter": "2025-06-16 20:19:30",  # "Jun 16 20:19:30 2025 GMT",
             "cert.notBefore": "2020-06-16 20:19:30",
             "cert.fingerprints": {
-                "sha1": "F6:3C:5C:66:B5:25:51:EE:DA:DF:7C:E4:43:01:D6:46:68:0B:8F:5D",
-                "sha256": "02:7E:69:B3:5F:0D:8F:2D:2A:3D:06:D4:72:08:F0:C4:FD:31:B6:9A:42:9D:FC:36:BE:8D:D0:D5:B7:3D:8D:C4",
-                "md5": "21:C6:0F:E6:39:DF:16:CA:5B:F1:5D:82:07:F0:7A:42",
+                "sha1": "F63C5C66B52551EEDADF7CE44301D646680B8F5D",
+                "sha256": "027E69B35F0D8F2D2A3D06D47208F0C4FD31B69A429DFC36BE8DD0D5B73D8DC4",
+                "md5": "21C60FE639DF16CA5BF15D8207F07A42",
             },
-            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.authority_key_identifier": "D159010094B0A62ADBABE54B2321CA1B6EBA93E7",
             "cert.issuer_uri": None,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
@@ -204,11 +205,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
             "cert.notBefore": "2020-06-16 22:06:46",
             "cert.fingerprints": {
-                "sha1": "E8:50:3E:AC:0F:4F:96:85:84:1F:96:1A:D9:66:77:4D:66:52:1C:5E",
-                "sha256": "CC:8D:06:6A:7C:59:D6:7A:4D:AE:E0:2A:C6:7B:AA:C5:DA:02:96:30:37:58:CC:82:4A:F6:24:3D:5A:8C:78:F6",
-                "md5": "45:5A:11:B0:57:29:B3:BD:E1:1A:86:D5:A9:4C:40:D7",
+                "sha1": "E8503EAC0F4F9685841F961AD966774D66521C5E",
+                "sha256": "CC8D066A7C59D67A4DAEE02AC67BAAC5DA0296303758CC824AF6243D5A8C78F6",
+                "md5": "455A11B05729B3BDE11A86D5A94C40D7",
             },
-            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.authority_key_identifier": "D159010094B0A62ADBABE54B2321CA1B6EBA93E7",
             "cert.issuer_uri": None,
             "key_technology": "RSA",
             "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
@@ -248,11 +249,11 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             "cert.notAfter": "2025-06-16 22:07:02",  # "Jun 16 22:07:02 2025 GMT",
             "cert.notBefore": "2020-06-16 22:07:02",
             "cert.fingerprints": {
-                "sha1": "A8:88:02:00:45:24:52:AD:F1:92:84:7C:DE:C1:33:06:17:20:4D:14",
-                "sha256": "39:06:F1:74:72:B9:E1:80:C6:52:61:35:B0:BB:F4:CA:2C:61:87:D2:DC:90:67:80:9F:C0:23:B5:EA:27:62:57",
-                "md5": "36:D3:A4:29:48:CF:7C:78:D5:06:60:C9:F4:66:18:B3",
+                "sha1": "A8880200452452ADF192847CDEC1330617204D14",
+                "sha256": "3906F17472B9E180C6526135B0BBF4CA2C6187D2DC9067809FC023B5EA276257",
+                "md5": "36D3A42948CF7C78D50660C9F46618B3",
             },
-            "cert.authority_key_identifier": "D1:59:01:00:94:B0:A6:2A:DB:AB:E5:4B:23:21:CA:1B:6E:BA:93:E7",
+            "cert.authority_key_identifier": "D159010094B0A62ADBABE54B2321CA1B6EBA93E7",
             "cert.issuer_uri": None,
             "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
             "key_technology": "RSA",
@@ -882,6 +883,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
         * cert_utils.cert_and_chain_from_fullchain
         * cert_utils.decompose_chain
         * cert_utils.ensure_chain
+        * cert_utils.ensure_chain_order
         """
         # test long chains
         long_chain_tests = [
@@ -981,6 +983,16 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                     result = cert_utils.ensure_chain(
                         root_pem=root_pem, cert_pem=cert_pem
                     )
+
+                # ENSURE THE CHAIN ORDER
+                # forward: YAY!
+                _all_certs = cert_utils.decompose_chain(fullchain_pem)
+                cert_utils.ensure_chain_order(_all_certs)
+                # reverse: nay :(
+                _all_certs_reversed = _all_certs[::-1]
+                with self.assertRaises(errors.OpenSslError) as cm:
+                    cert_utils.ensure_chain_order(_all_certs_reversed)
+                self.assertTrue(cm.exception.args[0].startswith("could not verify:"))
 
     def test__convert_lejson_to_pem(self):
         """

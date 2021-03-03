@@ -135,12 +135,10 @@
 	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
 	* restricted formats for chain certs
 	* spki computation can be b64 encoded or not
-
-
+	* ensure_chain_order on getcreate chains. this should aid in deduplication and misc integrity errors
+	* hex data is now saved WITHOUT colons. they can be added in on render.
 	+ other fixes and improvements
 	
-	# TODO: ensure the certificate chain is structured front to back
-	    
 	* CertificateSigned - add
 		* presented certificate cas - the first item in each chain
 		* "compatible certificate cas"
@@ -149,7 +147,6 @@
 	* shortcut to creating an order from a domain
 	* add a test to ensure chains/fullchains do not have blank lines
 	
-
 
 	UNDECIDED
 	* CertificateCAPreferences -> CertificateCAChainPreference

@@ -699,8 +699,13 @@ def getcreate__CertificateCAChain__by_pem_text(
         raise ValueError("Did not find at least 1 Certificate in this Chain.")
     is_created = False
     dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
+
+    # Ensure the certificate chain is structured front to back
+    # this will raise an error
+    if len(chain_certs) > 1:
+        cert_utils.ensure_chain_order(chain_certs)
+
     if not dbCertificateCAChain:
-        # TODO: ensure the certificate chain is structured front to back
         chain_pem_md5 = utils.md5_text(chain_pem)
         dbCertificateCAs = []
         for cert_pem in chain_certs:

@@ -39,6 +39,12 @@ EDIT:
 		change "PrivateKeyCycle - renewals"
 		??xx?? add "is_via_emergency"
 
+
+ensure_chain_order 
+	The pure-python does not correctly ensure the chain order. it just looks at the subject/issuer for matches
+ensure_chain
+	not leveraged yet
+
 * CertificateCAs / AcmeOrders
 ** if the fullchain has more than one certificate, track it as an intermediary
 ** should CertificateCAs just be normal certificates with a flag?

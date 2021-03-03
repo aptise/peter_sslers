@@ -61,6 +61,22 @@ Under Pyramid, the `request` is stashed into the db session
 # ==============================================================================
 
 
+class _Mixin_Hex_Pretty(object):
+    @property
+    def cert_authority_key_identifier__colon(self):
+        return cert_utils.hex_with_colons(self.cert_authority_key_identifier)
+
+    @property
+    def fingerprint_sha1__colon(self):
+        if self.fingerprint_sha1:
+            return cert_utils.hex_with_colons(self.fingerprint_sha1)
+        return ""
+
+    @property
+    def spki_sha256__colon(self):
+        return cert_utils.hex_with_colons(self.spki_sha256)
+
+
 class _Mixin_Timestamps_Pretty(object):
     @property
     def timestamp_created_isoformat(self):
@@ -310,7 +326,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         }
 
 
-class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
+class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     Represents a key associated with the AcmeAccount on the LetsEncrypt Service.
     This is used for authentication to the LE API, it is not tied to any certificates directly.
@@ -2086,7 +2102,7 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CertificateCA(Base, _Mixin_Timestamps_Pretty):
+class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
     are used to sign server certificates.
@@ -2174,7 +2190,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     @reify
     def fingerprint_sha1_preview(self):
-        return "%s&hellip;" % (self.fingerprint_sha1 or "")[:8]
+        return "%s&hellip;" % (self.fingerprint_sha1__colon or "")[:8]
 
     @property
     def key_technology(self):
@@ -2364,7 +2380,7 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
+class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.
     In goes your hope, out comes your dreams.
@@ -2504,7 +2520,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CertificateSigned(Base, _Mixin_Timestamps_Pretty):
+class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     A signed Server Certificate.
     To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
@@ -3555,7 +3571,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class PrivateKey(Base, _Mixin_Timestamps_Pretty):
+class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a CertificateSigned.
 
