@@ -62,6 +62,7 @@ from . import utils
 from .. import (
     lib,
 )  # only here to access `lib.letsencrypt_info` without a circular import
+from ..lib import utils as lib_utils
 from ..model.utils import KeyTechnology
 
 
@@ -275,43 +276,6 @@ def convert_pem_to_der(pem_data=None):
     lines = "".join(lines)
     result = base64.b64decode(lines)
     return result
-
-
-def hex_with_colons(as_hex):
-    # as_hex = '79B459E67BB6E5E40173800888C81A58F6E99B6E'
-    _pairs = [as_hex[idx : idx + 2] for idx in range(0, len(as_hex), 2)]
-    # _pairs = ['79', 'B4', '59', 'E6', '7B', 'B6', 'E5', 'E4', '01', '73', '80', '08', '88', 'C8', '1A', '58', 'F6', 'E9', '9B', '6E']
-    output = ":".join(_pairs)
-    # '79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E'
-    return output
-
-
-def convert_binary_to_hex(input):
-    """
-    the cryptography package surfaces raw binary data
-    openssl uses hex encoding, uppercased, with colons
-    this function translates the binary to the hex uppercase.
-    the colons can be rendered on demand.
-
-    example: isrg-root-x2-cross-signed.pem's authority_key_identifier
-
-        binary (from cryptography)
-            y\xb4Y\xe6{\xb6\xe5\xe4\x01s\x80\x08\x88\xc8\x1aX\xf6\xe9\x9bn
-
-        hex (from openssl)
-            79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E
-
-        via this function:
-            79B459E67BB6E5E40173800888C81A58F6E99B6E
-    """
-    # input = "y\xb4Y\xe6{\xb6\xe5\xe4\x01s\x80\x08\x88\xc8\x1aX\xf6\xe9\x9bn"
-    _as_hex = binascii.b2a_hex(input)
-    # _as_hex = "79b459e67bb6e5e40173800888c81a58f6e99b6e"
-    _as_hex = _as_hex.upper()
-    # _as_hex = "79B459E67BB6E5E40173800888C81A58F6E99B6E"
-    if six.PY3:
-        _as_hex = _as_hex.decode()
-    return _as_hex
 
 
 def san_domains_from_text(input):
@@ -1709,7 +1673,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 # this comes out as binary, so we need to convert it to the
                 # openssl version, which is an list of uppercase hex pairs
                 _as_binary = ext.value.key_identifier
-                rval["authority_key_identifier"] = convert_binary_to_hex(_as_binary)
+                rval["authority_key_identifier"] = lib_utils.convert_binary_to_hex(
+                    _as_binary
+                )
         except:
             pass
         try:

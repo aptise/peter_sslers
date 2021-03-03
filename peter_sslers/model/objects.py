@@ -13,7 +13,7 @@ from sqlalchemy.orm.session import Session as sa_Session
 # localapp
 from .meta import Base
 from . import utils as model_utils
-from ..lib import cert_utils
+from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -65,17 +65,17 @@ Under Pyramid, the `request` is stashed into the db session
 class _Mixin_Hex_Pretty(object):
     @property
     def cert_authority_key_identifier__colon(self):
-        return cert_utils.hex_with_colons(self.cert_authority_key_identifier)
+        return lib_utils.hex_with_colons(self.cert_authority_key_identifier)
 
     @property
     def fingerprint_sha1__colon(self):
         if self.fingerprint_sha1:
-            return cert_utils.hex_with_colons(self.fingerprint_sha1)
+            return lib_utils.hex_with_colons(self.fingerprint_sha1)
         return ""
 
     @property
     def spki_sha256__colon(self):
-        return cert_utils.hex_with_colons(self.spki_sha256)
+        return lib_utils.hex_with_colons(self.spki_sha256)
 
 
 class _Mixin_Timestamps_Pretty(object):
