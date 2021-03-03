@@ -13,6 +13,7 @@ from sqlalchemy.orm.session import Session as sa_Session
 # localapp
 from .meta import Base
 from . import utils as model_utils
+from ..lib import cert_utils
 
 
 # ==============================================================================
