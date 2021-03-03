@@ -112,6 +112,7 @@
 	  stores a given certificate is in; however this is good for now
 	* updated index to show "Welcome! setup!" instructions
 	* updated AcmeAccount New form logic, better handles exceptions
+	* updated AcmeAccount Upload form logic, better handles exceptions, such as duplicate AcmeAccount registration
 	* added `AcmeOrder.acme_process_steps` to list how many loops/process are needed to complete an order
 	  acme_order-focus.mako is updated to show this information in human and machine-readable form
 	  acme-order/{ID}.json endpoint is updated to show this information
@@ -138,15 +139,12 @@
 	* ensure_chain_order on getcreate chains. this should aid in deduplication and misc integrity errors
 	* hex data is now saved WITHOUT colons. they can be added in on render.
 	+ other fixes and improvements
-	
 	* CertificateSigned - add
 		* presented certificate cas - the first item in each chain
 		* "compatible certificate cas"
 
-	* debugtoolbar error on duplicate acmeaccount registration
 	* shortcut to creating an order from a domain
 	* add a test to ensure chains/fullchains do not have blank lines
-	
 
 	UNDECIDED
 	* CertificateCAPreferences -> CertificateCAChainPreference

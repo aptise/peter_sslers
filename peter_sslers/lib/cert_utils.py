@@ -2633,7 +2633,7 @@ def ensure_chain_order(chain_certs, cert_pem=None):
                 _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
                 _store_ctx.verify_certificate()
                 store.add_cert(cert_parsed)
-            except openssl_crypto.X509StoreContextError, exc:
+            except openssl_crypto.X509StoreContextError as exc:
                 raise errors.OpenSslError("could not verify: crypto")
         """
         # stash our data in here

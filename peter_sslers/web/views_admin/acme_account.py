@@ -139,9 +139,14 @@ class View_New(Handler):
             key_create_args[
                 "acme_account_key_source_id"
             ] = model_utils.AcmeAccountKeySource.from_string("imported")
-            (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
-                self.request.api_context, **key_create_args
-            )
+            try:
+                (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
+                    self.request.api_context, **key_create_args
+                )
+            except errors.ConflictingObject as exc:
+                # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
+                # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(message=exc.args[0][1])
 
             if self.request.wants_json:
                 return {
