@@ -277,6 +277,14 @@ def convert_pem_to_der(pem_data=None):
     return result
 
 
+def hex_with_colons(as_hex):
+    _pairs = [as_hex[idx : idx + 2] for idx in range(0, len(as_hex), 2)]
+    # _pairs = ['79', 'B4', '59', 'E6', '7B', 'B6', 'E5', 'E4', '01', '73', '80', '08', '88', 'C8', '1A', '58', 'F6', 'E9', '9B', '6E']
+    output = ":".join(_pairs)
+    # '79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E'
+    return output
+
+
 def convert_binary_to_hex_colons(input):
     """
     the cryptography package surfaces raw binary data
@@ -290,7 +298,6 @@ def convert_binary_to_hex_colons(input):
 
     hex (from openssl)
         79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E
-
     """
     # input = "y\xb4Y\xe6{\xb6\xe5\xe4\x01s\x80\x08\x88\xc8\x1aX\xf6\xe9\x9bn"
     _as_hex = binascii.b2a_hex(input)
@@ -299,11 +306,7 @@ def convert_binary_to_hex_colons(input):
     # _as_hex = "79B459E67BB6E5E40173800888C81A58F6E99B6E"
     if six.PY3:
         _as_hex = _as_hex.decode()
-    _pairs = [_as_hex[idx : idx + 2] for idx in range(0, len(_as_hex), 2)]
-    # _pairs = ['79', 'B4', '59', 'E6', '7B', 'B6', 'E5', 'E4', '01', '73', '80', '08', '88', 'C8', '1A', '58', 'F6', 'E9', '9B', '6E']
-    output = ":".join(_pairs)
-    # '79:B4:59:E6:7B:B6:E5:E4:01:73:80:08:88:C8:1A:58:F6:E9:9B:6E'
-    return output
+    return hex_with_colons(_as_hex)
 
 
 def san_domains_from_text(input):
@@ -2479,6 +2482,8 @@ def ensure_chain(
     validates from a root down to a chain
     if chain is a fullchain (with endentity), cert_pem can be None
 
+    THIS WILL RAISE ERRORS, NOT RETURN VALUES
+
     :param root_pem: the root certificate
     :param fullchain_pem: a chain in PEM form, which is multiple upstream certs in a single string
     :param chain_pem: a chain in PEM form, which is multiple upstream certs in a single string
@@ -2488,6 +2493,7 @@ def ensure_chain(
     submit EITHER fullchain_pem or chain_pem+cert_pem
 
     """
+    log.debug(".ensure_chain >")
     if fullchain_pem:
         if chain_pem or cert_pem:
             raise ValueError(
@@ -2577,19 +2583,108 @@ def ensure_chain(
         ) as proc:
             data, err = proc.communicate()
             if err:
-                raise errors.OpenSslError("could not check version")
+                raise errors.OpenSslError("could not verify: 1")
             if six.PY3:
                 data = data.decode("utf8")
             if data != expected_success:
-                raise errors.OpenSslError("could not verify")
+                raise errors.OpenSslError("could not verify: 2")
         return True
     finally:
         for _tmp in _tempfiles:
             _tmp.close()
 
 
-def cert_extract_issuer_uri(cert_pem=None, cert_pem_filepath=None):
-    pass
+def ensure_chain_order(chain_certs, cert_pem=None):
+    log.debug(".ensure_chain_order >")
+    if cert_pem:
+        chain_certs = chain_certs.append(cert_pem)
+    if len(chain_certs) < 2:
+        raise ValueError("must submit 2 or more chain certificates")
+    # reverse the cert list
+    # we're going to pretend the last item is a root
+    r_chain_certs = chain_certs[::-1]
+    if openssl_crypto:
+        # TODO: openssl crypto does not seem to support partial chains yet
+        # as a stopgap, just look to ensure the issuer/subject match
+        """
+        # build a root storage
+        # pretend the first item is a root
+        store = openssl_crypto.X509Store()
+        root_pem = r_chain_certs.pop(0)
+        root_parsed = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, root_pem)
+        store.add_cert(root_parsed)
+
+        for (idx, cert_pem) in enumerate(r_chain_certs):
+            # Check the chain certificate before adding it to the store.
+            try:
+                cert_parsed = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+                _store_ctx = openssl_crypto.X509StoreContext(store, cert_parsed)
+                _store_ctx.verify_certificate()
+                store.add_cert(cert_parsed)
+            except openssl_crypto.X509StoreContextError, exc:
+                raise errors.OpenSslError("could not verify: crypto")
+        """
+        # stash our data in here
+        parsed_certs = {}
+
+        # loop the certs
+        for (idx, cert_pem) in enumerate(r_chain_certs):
+            # everyone generates data
+            cert = openssl_crypto.load_certificate(
+                openssl_crypto.FILETYPE_PEM, cert_pem
+            )
+            parsed_certs[idx] = cert
+            if idx == 0:
+                continue
+            # only after the first cert do we need to check the last cert
+            upchain = parsed_certs[idx - 1]
+            if upchain.get_subject() != cert.get_issuer():
+                raise errors.OpenSslError(
+                    "could not verify: upchain does not match issuer"
+                )
+        return True
+    log.debug(".ensure_chain_order > openssl fallback")
+    """
+    /usr/local/bin/openssl verify -partial_chain -trusted chain_0_1.pem chain_0_0.pem
+    """
+    _tempfiles = {}
+    _last_idx = len(r_chain_certs) - 1
+    try:
+        # make a bunch of tempfiles
+        for _idx, cert_pem in enumerate(r_chain_certs):
+            _tmpfile_cert = new_pem_tempfile(cert_pem)
+            _tempfiles[_idx] = _tmpfile_cert
+
+        for (idx, cert_pem) in enumerate(r_chain_certs):
+            if idx == _last_idx:
+                break
+            file_a = _tempfiles[idx]
+            file_b = _tempfiles[idx + 1]
+
+            expected_success = "%s: OK\n" % file_b.name
+            with psutil.Popen(
+                [
+                    openssl_path,
+                    "verify",
+                    "-partial_chain",
+                    "-trusted",
+                    file_a.name,
+                    file_b.name,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc:
+                data, err = proc.communicate()
+                if err:
+                    raise errors.OpenSslError("could not verify: 1")
+                if six.PY3:
+                    data = data.decode("utf8")
+                if data != expected_success:
+                    raise errors.OpenSslError("could not verify: 2")
+    finally:
+        for _idx in _tempfiles:
+            _tmp = _tempfiles[_idx]
+            _tmp.close()
 
 
 # ------------------------------------------------------------------------------
