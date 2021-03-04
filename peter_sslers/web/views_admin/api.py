@@ -648,7 +648,7 @@ class ViewAdminApi_Redis(Handler):
                             redis_client, dbCertificateCAChain, redis_timeouts
                         )
                     )
-                if len(active_certs) < limit:
+                if len(active_chains) < limit:
                     # no more
                     break
                 offset += limit
