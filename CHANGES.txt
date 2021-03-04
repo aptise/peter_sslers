@@ -140,7 +140,9 @@
 	* hex data is now saved WITHOUT colons. they can be added in on render.
 	* CertificateSigned - added
 		* presented certificate cas - the first item in each chain
-		* "compatible certificate cas"
+		* "compatible certificate cas" search
+	* CertificateCA
+		* added exploration of chains
 	+ other fixes and improvements
 
 0.4.0
