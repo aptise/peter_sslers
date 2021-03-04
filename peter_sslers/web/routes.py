@@ -642,6 +642,22 @@ def _admin_views(config):
         "/certificate-ca/{@id}/certificate-signeds-alt/{@page}",
     )
     config.add_route_7(
+        "admin:certificate_ca:focus:certificate_ca_chains_0",
+        "/certificate-ca/{@id}/certificate-ca-chains-0",
+    )
+    config.add_route_7(
+        "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+        "/certificate-ca/{@id}/certificate-ca-chains-0/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_ca:focus:certificate_ca_chains_n",
+        "/certificate-ca/{@id}/certificate-ca-chains-n",
+    )
+    config.add_route_7(
+        "admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
+        "/certificate-ca/{@id}/certificate-ca-chains-n/{@page}",
+    )
+    config.add_route_7(
         "admin:certificate_ca:upload_cert", "/certificate-ca/upload-cert"
     )
     config.add_route_7(

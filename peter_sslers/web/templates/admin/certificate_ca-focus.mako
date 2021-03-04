@@ -93,12 +93,7 @@
                         <th>spki_sha256</th>
                         <td>
                             <code>${CertificateCA.spki_sha256}</code>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CertificateCA.cert_spki_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
+                            ${CertificateCA.button_search_spki|n}
                         </td>
                     </tr>
                     <tr>
@@ -144,6 +139,32 @@
                         </th>
                     </tr>
                 </thead>
+                <tbody>
+                    <tr>
+                        <th>CertificateCAChains0</th>
+                        <td>
+                            % if CertificateCAChains0:
+                                ${admin_partials.table_CertificateCAChains(CertificateCAChains0)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-ca-chains-0" % (admin_prefix, CertificateCA.id))}
+                            % else:
+                                No known CertificateCAChains.
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <th>CertificateCAChainsN</th>
+                        <td>
+                            % if CertificateCAChainsN:
+                                ${admin_partials.table_CertificateCAChains(CertificateCAChainsN)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-ca-chains-n" % (admin_prefix, CertificateCA.id))}
+                            % else:
+                                No known CertificateCAChains.
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
                 <tbody>
                     <tr>
                         <th>CertificateSigneds</th>

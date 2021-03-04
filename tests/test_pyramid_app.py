@@ -2434,6 +2434,10 @@ class FunctionalTests_CertificateCA(AppTest):
             "admin:certificate_ca:focus:raw",
             "admin:certificate_ca:focus:certificate_signeds",
             "admin:certificate_ca:focus:certificate_signeds_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_0",
+            "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_n",
+            "admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
         )
     )
     def test_focus_html(self):
@@ -2459,6 +2463,18 @@ class FunctionalTests_CertificateCA(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/certificate-ca/1/certificate-signeds/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-0", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-0/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-n", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-n/1", status=200
         )
 
     @routes_tested(

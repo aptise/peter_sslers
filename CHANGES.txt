@@ -135,13 +135,13 @@
 	* removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
 	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
 	* restricted formats for chain certs
-	* spki computation can be b64 encoded or not
+	* spki computation is stored as not-b64 encoded, but there are render helpers
 	* ensure_chain_order on getcreate chains. this should aid in deduplication and misc integrity errors
 	* hex data is now saved WITHOUT colons. they can be added in on render.
-	+ other fixes and improvements
-	* CertificateSigned - add
+	* CertificateSigned - added
 		* presented certificate cas - the first item in each chain
 		* "compatible certificate cas"
+	+ other fixes and improvements
 
 0.4.0
 - 2020/08/06

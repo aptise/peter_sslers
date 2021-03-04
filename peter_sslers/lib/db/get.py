@@ -1220,6 +1220,67 @@ def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _get__CertificateCAChain__by_certificateCaId__core(
+    ctx, certificate_ca_id, column=None
+):
+    """
+    column is either
+        * model_objects.CertificateCAChain.certificate_ca_0_id
+        * model_objects.CertificateCAChain.certificate_ca_n_id
+    """
+    query = ctx.dbSession.query(model_objects.CertificateCAChain).filter(
+        column == certificate_ca_id
+    )
+    return query
+
+
+def get__CertificateCAChain__by_CertificateCAId0__count(ctx, certificate_ca_id):
+    query = _get__CertificateCAChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, model_objects.CertificateCAChain.certificate_ca_0_id
+    )
+    return query.count()
+
+
+def get__CertificateCAChain__by_CertificateCAId0__paginated(
+    ctx, certificate_ca_id, limit=None, offset=0
+):
+    query = _get__CertificateCAChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, model_objects.CertificateCAChain.certificate_ca_0_id
+    )
+    items_paged = (
+        query.order_by(model_objects.CertificateCAChain.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__CertificateCAChain__by_CertificateCAIdN__count(ctx, certificate_ca_id):
+    query = _get__CertificateCAChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, model_objects.CertificateCAChain.certificate_ca_n_id
+    )
+    return query.count()
+
+
+def get__CertificateCAChain__by_CertificateCAIdN__paginated(
+    ctx, certificate_ca_id, limit=None, offset=0
+):
+    query = _get__CertificateCAChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, model_objects.CertificateCAChain.certificate_ca_n_id
+    )
+    items_paged = (
+        query.order_by(model_objects.CertificateCAChain.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__CertificateRequest__count(ctx):
     counted = ctx.dbSession.query(model_objects.CertificateRequest).count()
     return counted

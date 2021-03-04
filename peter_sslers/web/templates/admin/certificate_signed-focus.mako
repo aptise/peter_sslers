@@ -233,18 +233,27 @@
                     <tr>
                         <th>CertificateCAs</th>
                         <td>
-                            <p>The following CertificateCAs have signed this Certificate in a known chain</p>
-                            <ul class="list list-unstyled">
-                                % if CertificateSigned.certificate_signed_chains:
-                                    % for _chain in CertificateSigned.certificate_signed_chains:
+                            % if CertificateSigned.certificate_cas__upchain:
+                                <p>The following CertificateCAs have signed this Certificate in a presented chain</p>
+                                <ul class="list list-unstyled">
+                                    % for cert_ca in CertificateSigned.certificate_cas__upchain:
                                         <li>
-                                            ${_chain.certificate_ca_chain.certificate_ca_0.button_view|n}
+                                            ${cert_ca.button_view|n}
                                         </li>
                                     % endfor
-                                % else:
-                                    <li><em>No known CertificateCAs</em></li>
-                                % endif
-                            </ul>
+                                </ul>
+                                <p>Search for additional compatible CertificateCAs</p>
+                                <ul class="list list-unstyled">
+                                    % for cert_ca in CertificateSigned.certificate_cas__upchain:
+                                        <li>
+                                            <span class="label label-default">CertificateCA-${cert_ca.id}</span>
+                                            ${cert_ca.button_search_spki|n}
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % else:
+                                <li><em>No CertificateCAs are currently associated to this Certificate.</em></li>
+                            % endif
                         </td>
                     </tr>
                     <tr>

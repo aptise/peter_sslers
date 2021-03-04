@@ -635,6 +635,46 @@
 </%def>
 
 
+<%def name="table_CertificateCAChains(certificate_ca_chains, perspective=None)">
+    <%
+        cols = ("id",
+                "display_name",
+                "chain_length",
+                "certificate_ca_0_id",
+                "certificate_ca_n_id",
+                "certificate_ca_ids_string",
+               )
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for certificate_ca_chain in certificate_ca_chains:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/certificate-ca-chain/${certificate_ca_chain.id}">
+                                    <span class="glyphicon certificate_ca_chain-file" aria-hidden="true"></span>
+                                    CertificateCAChain-${certificate_ca_chain.id}</a>
+                                % else:
+                                    ${getattr(certificate_ca_chain, c)}
+                                % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_CertificateRequests(certificate_requests, perspective=None)">
     <%
         show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
@@ -702,6 +742,79 @@
                     % endfor
                 </tr>
             % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>auto-renew?</th>
+                <th>is renewed?</th>
+                <th>timestamp_not_before</th>
+                <th>timestamp_not_after</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for cert in certificates:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/certificate-signed/${cert.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    CertificateSigned-${cert.id}</a>
+                </td>
+                <td>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    % if cert.renewals_managed_by == "AcmeOrder":
+                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
+                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
+                            via AcmeOrder
+                        </div>
+                    % elif cert.renewals_managed_by == "CertificateSigned":
+                        <div class="label label-warning">
+                            unavailable
+                            ## via CertificateSigned
+                        </div>
+                    % endif
+                </td>
+                <td>
+                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
+                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
+                    </div>
+                </td>
+                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${cert.expiring_days_label}">
+                            ${cert.expiring_days} days
+                        </span>
+                    </td>
+                % endif
+                % if show_domains:
+                    <td><code>${cert.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
         </tbody>
     </table>
 </%def>
@@ -1063,79 +1176,6 @@
                 <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
                 <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
                 <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>auto-renew?</th>
-                <th>is renewed?</th>
-                <th>timestamp_not_before</th>
-                <th>timestamp_not_after</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
-                % endif
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for cert in certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate-signed/${cert.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    CertificateSigned-${cert.id}</a>
-                </td>
-                <td>
-                    % if cert.is_revoked:
-                        <span class="label label-danger">
-                            revoked
-                        </span>
-                    % else:
-                        <span class="label label-${'success' if cert.is_active else 'warning'}">
-                            ${'Active' if cert.is_active else 'inactive'}
-                        </span>
-                    % endif
-                </td>
-                <td>
-                    % if cert.renewals_managed_by == "AcmeOrder":
-                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
-                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
-                            via AcmeOrder
-                        </div>
-                    % elif cert.renewals_managed_by == "CertificateSigned":
-                        <div class="label label-warning">
-                            unavailable
-                            ## via CertificateSigned
-                        </div>
-                    % endif
-                </td>
-                <td>
-                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
-                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
-                    </div>
-                </td>
-                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
-                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
-                % if show_expiring_days:
-                    <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                    <td><code>${cert.domains_as_string}</code></td>
-                % endif
             </tr>
         % endfor
         </tbody>

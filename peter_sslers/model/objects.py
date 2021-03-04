@@ -2155,6 +2155,16 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    certificate_ca_chains_0 = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_0_id",
+        back_populates="certificate_ca_0",
+    )
+    certificate_ca_chains_n = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_n_id",
+        back_populates="certificate_ca_n",
+    )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="CertificateCA.operations_event_id__created==OperationsEvent.id",
@@ -2230,6 +2240,27 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return button
 
     @property
+    def button_search_spki(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="btn btn-xs btn-info" href="%(admin_prefix)s/search?%(cert_spki_search)s">"""
+            """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
+            """</a>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "cert_spki_search": self.cert_spki_search,
+            }
+        )
+        return button
+
+    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -2287,18 +2318,41 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         "CertificateCA",
         primaryjoin="CertificateCAChain.certificate_ca_0_id==CertificateCA.id",
         uselist=False,
+        back_populates="certificate_ca_chains_0",
     )
 
     certificate_ca_n = sa_orm_relationship(
         "CertificateCA",
         primaryjoin="CertificateCAChain.certificate_ca_n_id==CertificateCA.id",
         uselist=False,
+        back_populates="certificate_ca_chains_n",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
     def button_view(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """CertificateCAChain-%(id)s</a>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "id": self.id,
+            }
+        )
+        return button
+
+    @property
+    def button_compatible_search_view(self):
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
 
@@ -2710,6 +2764,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             _ids.add(_chain.certificate_ca_0_id)
         _ids = list(_ids)
         return _ids
+
+    @reify
+    def certificate_cas__upchain(self):
+        # this loops `ORM:certificate_signed_chains`
+        # this is NOT in order of preference
+        _cas = set([])
+        for _to_certificate_ca_chain in self.certificate_signed_chains:
+            _chain = _to_certificate_ca_chain.certificate_ca_chain
+            _cas.add(_chain.certificate_ca_0)
+        _cas = list(_cas)
+        return _cas
 
     @reify
     def certificate_ca_chain_ids(self):
