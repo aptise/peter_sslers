@@ -603,7 +603,7 @@ class ViewAdminApi_Redis(Handler):
         redis_client = utils_redis.redis_connection_from_registry(self.request)
         redis_timeouts = utils_redis.redis_timeouts_from_registry(self.request)
 
-        total_primed = {"certca": 0, "cert": 0, "pkey": 0, "domain": 0}
+        total_primed = {"certcachain": 0, "cert": 0, "pkey": 0, "domain": 0}
 
         dbEvent = None
         if prime_style == "1":
@@ -617,7 +617,7 @@ class ViewAdminApi_Redis(Handler):
                 r['c1'] = CERT.PEM  # (c)ert
                 r['c2'] = CERT.PEM
                 r['p2'] = PKEY.PEM  # (p)rivate
-                r['i99'] = CACERT.PEM  # (i)ntermediate cert
+                r['i99'] = CHAIN.PEM  # (i)ntermediate certs
 
             to assemble the data for `foo.example.com`:
 
@@ -632,19 +632,21 @@ class ViewAdminApi_Redis(Handler):
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get.get__CertificateCA__paginated(
+                active_chains = lib_db.get.get__CertificateCAChain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
                     active_only=True,
                 )
-                if not active_certs:
+                if not active_chains:
                     # no certs
                     break
-                for dbCertificateCA in active_certs:
-                    total_primed["certca"] += 1
-                    is_primed = utils_redis.redis_prime_logic__style_1_CertificateCA(
-                        redis_client, dbCertificateCA, redis_timeouts
+                for dbCertificateCAChain in active_chains:
+                    total_primed["certcachain"] += 1
+                    is_primed = (
+                        utils_redis.redis_prime_logic__style_1_CertificateCAChain(
+                            redis_client, dbCertificateCAChain, redis_timeouts
+                        )
                     )
                 if len(active_certs) < limit:
                     # no more

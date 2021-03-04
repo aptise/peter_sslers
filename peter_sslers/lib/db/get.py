@@ -1100,13 +1100,16 @@ def get__CertificateCA__count(ctx):
     return counted
 
 
-def get__CertificateCA__paginated(ctx, limit=None, offset=0, active_only=False):
-    q = ctx.dbSession.query(model_objects.CertificateCA)
-    if active_only:
-        q = q.filter(model_objects.CertificateCA.count_active_certificates >= 1)
-    q = q.order_by(model_objects.CertificateCA.id.desc()).limit(limit).offset(offset)
+def get__CertificateCA__paginated(ctx, limit=None, offset=0):
+    q = (
+        ctx.dbSession.query(model_objects.CertificateCA)
+        .order_by(model_objects.CertificateCA.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     items_paged = q.all()
     return items_paged
+    certificate_ca_0
 
 
 def get__CertificateCAPreference__paginated(ctx, limit=None, offset=0):
@@ -1174,10 +1177,16 @@ def get__CertificateCAChain__count(ctx):
     return counted
 
 
-def get__CertificateCAChain__paginated(ctx, limit=None, offset=0):
+def get__CertificateCAChain__paginated(ctx, limit=None, offset=0, active_only=False):
+    q = ctx.dbSession.query(model_objects.CertificateCAChain)
+    if active_only:
+        q = q.join(
+            model_objects.CertificateCA,
+            model_objects.CertificateCAChain.certificate_ca_0_id
+            == model_objects.CertificateCA.id,
+        ).filter(model_objects.CertificateCA.count_active_certificates >= 1)
     q = (
-        ctx.dbSession.query(model_objects.CertificateCAChain)
-        .order_by(model_objects.CertificateCAChain.id.desc())
+        q.order_by(model_objects.CertificateCAChain.id.desc())
         .limit(limit)
         .offset(offset)
     )

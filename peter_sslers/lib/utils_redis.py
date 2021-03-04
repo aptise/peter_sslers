@@ -89,7 +89,7 @@ def redis_timeouts_from_registry(request):
     """
     :param request: The current Pyramid `request` object
     """
-    timeouts = {"certca": None, "cert": None, "pkey": None, "domain": None}
+    timeouts = {"certcachain": None, "cert": None, "pkey": None, "domain": None}
     for _t in timeouts.keys():
         key_ini = "redis.timeout.%s" % _t
         val = request.registry.settings["app_settings"].get(key_ini)
@@ -126,7 +126,7 @@ def prime_redis_domain(request, dbDomain):
                 redis_prime_logic__style_1_PrivateKey(
                     redis_client, dbCertificateSigned.private_key, redis_timeouts
                 )
-                redis_prime_logic__style_1_CertificateCA(
+                redis_prime_logic__style_1_CertificateCAChain(
                     redis_client,
                     dbCertificateSigned.certificate_ca_chain__preferred,
                     redis_timeouts,
@@ -201,18 +201,20 @@ def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_time
     return True
 
 
-def redis_prime_logic__style_1_CertificateCA(
-    redis_client, dbCertificateCA, redis_timeouts
+def redis_prime_logic__style_1_CertificateCAChain(
+    redis_client, dbCertificateCAChain, redis_timeouts
 ):
     """
     :param redis_client:
-    :param dbCertificateCA: A :class:`model.objects.CertificateCA`
+    :param dbCertificateCAChain: A :class:`model.objects.CertificateCAChain`
     :param redis_timeouts:
 
-    r['i99'] = CERTCA.PEM  # (i)ntermediate cert
+    r['i99'] = CHAIN.PEM  # (i)ntermediate certs
     """
     key_redis = "i%s" % dbCertificateCA.id
-    redis_client.set(key_redis, dbCertificateCA.cert_pem, redis_timeouts["certca"])
+    redis_client.set(
+        key_redis, dbCertificateCAChain.chain_pem, redis_timeouts["certcachain"]
+    )
     return True
 
 

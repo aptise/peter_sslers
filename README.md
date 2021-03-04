@@ -1119,7 +1119,7 @@ This prime style will store data into `Redis` in the following format:
   * Note: the leading colon is required
 * `c{ID}` the CertificateSigned in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
-* `i{ID}` the CertificateCAChain in PEM format; (i)ntermediate cert
+* `i{ID}` the CertificateCAChain in PEM format; (i)ntermediate certs
 
 The `Redis` datastore might look something like this:
 
@@ -1128,7 +1128,7 @@ The `Redis` datastore might look something like this:
     r['c1'] = CERT.PEM  # (c)ert
     r['c2'] = CERT.PEM
     r['p2'] = PKEY.PEM  # (p)rivate
-    r['i99'] = CHAIN.PEM  # (i)ntermediate cert
+    r['i99'] = CHAIN.PEM  # (i)ntermediate certs
     
 to assemble the data for `foo.example.com`:
 
