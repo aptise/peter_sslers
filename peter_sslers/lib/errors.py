@@ -46,10 +46,6 @@ class OpenSslError(Exception):
     pass
 
 
-class QueueProcessingError(Exception):
-    pass
-
-
 class OpenSslError_CsrGeneration(OpenSslError):
     pass
 
@@ -63,6 +59,14 @@ class OpenSslError_InvalidCSR(OpenSslError):
 
 
 class OpenSslError_InvalidCertificate(OpenSslError):
+    pass
+
+
+class OpenSslError_VersionTooLow(OpenSslError):
+    pass
+
+
+class QueueProcessingError(Exception):
     pass
 
 
@@ -186,7 +190,7 @@ class AcmeOrderValid(AcmeOrderCreatedError):
     """
 
     def __str__(self):
-        return "An AcmeOrder-{0} was created. The order is valid and the ServerCertificate can be downloaded.".format(
+        return "An AcmeOrder-{0} was created. The order is valid and the CertificateSigned can be downloaded.".format(
             self.args[0]
         )
 

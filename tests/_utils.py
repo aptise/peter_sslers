@@ -13,6 +13,7 @@ import packaging.version
 import pdb
 import subprocess
 import unittest
+import traceback
 import time
 from io import open  # overwrite `open` in Python2
 from functools import wraps
@@ -24,9 +25,10 @@ from pyramid.paster import get_appsettings
 # pypi
 import psutil
 import transaction
+import requests
+import sqlalchemy
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
-import sqlalchemy
 
 # local
 from peter_sslers.web import main
@@ -35,8 +37,12 @@ from peter_sslers.web.models import get_session_factory
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from peter_sslers.model import meta as model_meta
+import peter_sslers.lib
+from peter_sslers.lib import acme_v2
+from peter_sslers.lib import cert_utils
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
+from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
 
 
@@ -59,6 +65,16 @@ port80 of that domain to this app, so LetsEncrypt can access it.
 
 see the nginx test config file `testing.conf`
 
+
+IMPORTANT
+
+cert_utils also has some environ vars:
+
+    openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
+    openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
+
+    export SSL_BIN_OPENSSL="/usr/local/bin/openssl"
+    export SSL_CONF_OPENSSL="/usr/local/ssl/openssl.cnf"
 """
 
 # run tests that expire nginx caches
@@ -109,13 +125,17 @@ if RUN_API_TESTS__PEBBLE:
 
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
-PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
 PEBBLE_ENV["PEBBLE_VA_NOSLEEP"] = "1"
+PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
+PEBBLE_ENV["PEBBLE_ALTERNATE_ROOTS"] = "1"
+PEBBLE_ENV["PEBBLE_CHAIN_LENGTH"] = "3"
 
 PEBBLE_ENV_STRICT = os.environ.copy()
 PEBBLE_ENV_STRICT["PEBBLE_VA_ALWAYS_VALID"] = "0"
 PEBBLE_ENV_STRICT["PEBBLE_AUTHZREUSE"] = "0"
 PEBBLE_ENV_STRICT["PEBBLE_VA_NOSLEEP"] = "1"
+PEBBLE_ENV_STRICT["PEBBLE_ALTERNATE_ROOTS"] = "1"
+PEBBLE_ENV_STRICT["PEBBLE_CHAIN_LENGTH"] = "3"
 
 
 # run tests against ACME_DNS_API
@@ -135,6 +155,13 @@ OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.1"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
 
 
+# override to "test_local.ini" if needed
+TEST_INI = os.environ.get("SSL_TEST_INI", "test.ini")
+
+# This is some fancy footwork to update our settings
+_appsettings = get_appsettings(TEST_INI, name="main")
+cert_utils.update_from_appsettings(_appsettings)
+
 # ==============================================================================
 
 
@@ -142,6 +169,50 @@ class FakeRequest(testing.DummyRequest):
     @property
     def tm(self):
         return transaction.manager
+
+
+def process_pebble_roots():
+    """
+    Pebble generates new roots on every run
+    We must load them
+    """
+    log.info("`pebble`: process_pebble_roots")
+
+    # the first root is guaranteed to be here:
+    r0 = requests.get("https://0.0.0.0:15000/roots/0", verify=False)
+    if r0.status_code != 200:
+        raise ValueError("Could not load first root")
+    root_pems = [
+        r0.text,
+    ]
+    alternates = acme_v2.get_header_links(r0.headers, "alternate")
+    if alternates:
+        for _alt in alternates:
+            _r = requests.get(_alt, verify=False)
+            if _r.status_code != 200:
+                raise ValueError("Could not load additional root")
+            root_pems.append(_r.text)
+    settings = get_appsettings(
+        TEST_INI, name="main"
+    )  # this can cause an unclosed resource
+    session_factory = get_session_factory(get_engine(settings))
+    dbSession = session_factory()
+    ctx = utils.ApiContext(
+        request=FakeRequest(),
+        dbSession=dbSession,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    for _root_pem in root_pems:
+        (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+        )
+        if _is_created is not True:
+            raise ValueError(
+                "Detected a previously encountered Pebble root. "
+                "This should not be possible"
+            )
+    dbSession.commit()
+    return True
 
 
 def under_pebble(_function):
@@ -177,6 +248,7 @@ def under_pebble(_function):
                     raise ValueError("`pebble`: ERROR spinning up")
                 time.sleep(1)
             try:
+                process_pebble_roots()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -221,6 +293,7 @@ def under_pebble_strict(_function):
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
                 time.sleep(1)
             try:
+                process_pebble_roots()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -342,7 +415,7 @@ TEST_FILES = {
                 "type": "upload",
                 "private_key_cycling": "single_certificate",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "acme_account_1.key",
+                "account_key_file_pem": "key_technology-rsa/acme_account_1.key",
             },
         },
     },
@@ -351,7 +424,7 @@ TEST_FILES = {
             "acme-order/new/freeform#1": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
@@ -365,7 +438,7 @@ TEST_FILES = {
             "acme-order/new/freeform#2": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
-                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
@@ -380,70 +453,90 @@ TEST_FILES = {
     },
     "AcmeAccount": {
         "1": {
-            "key": "acme_account_1.key",
+            "key": "key_technology-rsa/acme_account_1.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.a@example.com",
         },
         "2": {
-            "key": "acme_account_2.key",
+            "key": "key_technology-rsa/acme_account_2.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.b@example.com",
         },
         "3": {
-            "key": "acme_account_3.key",
+            "key": "key_technology-rsa/acme_account_3.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.c@example.com",
         },
         "4": {
-            "key": "acme_account_4.key",
+            "key": "key_technology-rsa/acme_account_4.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.d@example.com",
         },
         "5": {
-            "key": "acme_account_5.key",
+            "key": "key_technology-rsa/acme_account_5.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
             "contact": "contact.e@example.com",
         },
     },
-    "CACertificates": {
+    "CertificateCAs": {
         "order": (
-            "isrgrootx1",
-            "le_x1_auth",
-            "le_x2_auth",
-            "le_x3_auth",
-            "le_x4_auth",
-            "le_x1_cross_signed",
-            "le_x2_cross_signed",
-            "le_x3_cross_signed",
-            "le_x4_cross_signed",
+            "trustid_root_x3",
+            "isrg_root_x1",
+            "isrg_root_x1_cross",
+            "isrg_root_x2",
+            "isrg_root_x2_cross",
+            "letsencrypt_ocsp_root_x1",
+            "letsencrypt_intermediate_e1",
+            "letsencrypt_intermediate_e2",
+            "letsencrypt_intermediate_r3",
+            "letsencrypt_intermediate_r4",
+            "letsencrypt_intermediate_x1",
+            "letsencrypt_intermediate_x2",
+            "letsencrypt_intermediate_x3",
+            "letsencrypt_intermediate_x4",
+            "letsencrypt_intermediate_x1_cross",
+            "letsencrypt_intermediate_x2_cross",
+            "letsencrypt_intermediate_x3_cross",
+            "letsencrypt_intermediate_x4_cross",
         ),
         "cert": {
-            "isrgrootx1": "isrgrootx1.pem.txt",
-            "le_x1_auth": "letsencryptauthorityx1.pem.txt",
-            "le_x2_auth": "letsencryptauthorityx2.pem.txt",
-            "le_x3_auth": "letsencryptauthorityx3.pem.txt",
-            "le_x4_auth": "letsencryptauthorityx4.pem.txt",
-            "le_x1_cross_signed": "lets-encrypt-x1-cross-signed.pem.txt",
-            "le_x2_cross_signed": "lets-encrypt-x2-cross-signed.pem.txt",
-            "le_x3_cross_signed": "lets-encrypt-x3-cross-signed.pem.txt",
-            "le_x4_cross_signed": "lets-encrypt-x4-cross-signed.pem.txt",
+            "trustid_root_x3": "letsencrypt-certs/trustid-x3-root.pem",
+            "isrg_root_x1": "letsencrypt-certs/isrgrootx1.pem",
+            "isrg_root_x1_cross": "letsencrypt-certs/isrg-root-x1-cross-signed.pem",
+            "isrg_root_x2": "letsencrypt-certs/isrg-root-x2.pem",
+            "isrg_root_x2_cross": "letsencrypt-certs/isrg-root-x2-cross-signed.pem",
+            "letsencrypt_ocsp_root_x1": "letsencrypt-certs/isrg-root-ocsp-x1.pem",
+            "letsencrypt_intermediate_x1": "letsencrypt-certs/letsencryptauthorityx1.pem",
+            "letsencrypt_intermediate_x2": "letsencrypt-certs/letsencryptauthorityx2.pem",
+            "letsencrypt_intermediate_x3": "letsencrypt-certs/letsencryptauthorityx3.pem",
+            "letsencrypt_intermediate_x4": "letsencrypt-certs/letsencryptauthorityx4.pem",
+            "letsencrypt_intermediate_r3": "letsencrypt-certs/lets-encrypt-r3.pem",
+            "letsencrypt_intermediate_r4": "letsencrypt-certs/lets-encrypt-r4.pem",
+            "letsencrypt_intermediate_e1": "letsencrypt-certs/lets-encrypt-e1.pem",
+            "letsencrypt_intermediate_e2": "letsencrypt-certs/lets-encrypt-e2.pem",
+            "letsencrypt_intermediate_x1_cross": "letsencrypt-certs/lets-encrypt-x1-cross-signed.pem",
+            "letsencrypt_intermediate_x2_cross": "letsencrypt-certs/lets-encrypt-x2-cross-signed.pem",
+            "letsencrypt_intermediate_x3_cross": "letsencrypt-certs/lets-encrypt-x3-cross-signed.pem",
+            "letsencrypt_intermediate_x4_cross": "letsencrypt-certs/lets-encrypt-x4-cross-signed.pem",
+            "letsencrypt_intermediate_r3_cross": "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem",
+            "letsencrypt_intermediate_r4_cross": "letsencrypt-certs/lets-encrypt-r4-cross-signed.pem",
         },
     },
     "CertificateRequests": {
         "1": {
             "domains": "foo.example.com, bar.example.com",
-            "account_key": "account_1.key",
-            "private_key": "private_1.key",
+            "account_key": "key_technology-rsa/account_1.key",
+            "private_key": "key_technology-rsa/private_1.key",
         },
         "acme_test": {
             "domains": SSL_TEST_DOMAINS,
-            "account_key": "account_2.key",
-            "private_key": "private_2.key",
+            "account_key": "key_technology-rsa/account_2.key",
+            "private_key": "key_technology-rsa/private_2.key",
         },
     },
     "Domains": {
@@ -457,72 +550,92 @@ TEST_FILES = {
             "1": {
                 "ensure-domains.html": "ensure1-html.example.com, ensure2-html.example.com, ensure1.example.com",
                 "ensure-domains.json": "ensure1-json.example.com, ensure2-json.example.com, ensure1.example.com",
+                "import-domain.html": {
+                    "payload": {
+                        "domain_name": "import1-html.example.com",
+                        "username": "xxusernamexx",
+                        "password": "xxpasswordxx",
+                        "fulldomain": "html.fqdn.acmedns.example.com",
+                        "subdomain": "html.fqdn",
+                        "allowfrom": "[]",
+                    }
+                },
+                "import-domain.json": {
+                    "payload": {
+                        "domain_name": "import1-json.example.com",
+                        "username": "xxusernameyy",
+                        "password": "xxpasswordyy",
+                        "fulldomain": "json.fqdn.acmedns.example.com",
+                        "subdomain": "json.fqdn",
+                        "allowfrom": "[]",
+                    }
+                },
             },
         },
     },
     "PrivateKey": {
         "1": {
-            "file": "private_1.key",
+            "file": "key_technology-rsa/private_1.key",
             "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
             "key_pem_modulus_md5": "fc1a6c569cba199eb5341c0c423fb768",
         },
         "2": {
-            "file": "private_2.key",
+            "file": "key_technology-rsa/private_2.key",
             "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
             "key_pem_modulus_md5": "397282f3cd67d33b2b018b61fdd3f4aa",
         },
         "3": {
-            "file": "private_3.key",
+            "file": "key_technology-rsa/private_3.key",
             "key_pem_md5": "399236401eb91c168762da425669ad06",
             "key_pem_modulus_md5": "112d2db5daba540f8ff26fcaaa052707",
         },
         "4": {
-            "file": "private_4.key",
+            "file": "key_technology-rsa/private_4.key",
             "key_pem_md5": "6867998790e09f18432a702251bb0e11",
             "key_pem_modulus_md5": "687f3a3659cd423c48c50ed78a75eba0",
         },
         "5": {
-            "file": "private_5.key",
+            "file": "key_technology-rsa/private_5.key",
             "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
             "key_pem_modulus_md5": "1eee27c04e912ff24614911abd2f0f8b",
         },
     },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
-    "ServerCertificates": {
+    "CertificateSigneds": {
         "SelfSigned": {
             "1": {
                 "domain": "selfsigned-1.example.com",
-                "cert": "selfsigned_1-server.crt",
-                "csr": "selfsigned_1-server.csr",
-                "pkey": "selfsigned_1-server.key",
+                "cert": "key_technology-rsa/selfsigned_1-server.crt",
+                "csr": "key_technology-rsa/selfsigned_1-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_1-server.key",
             },
             "2": {
                 "domain": "selfsigned-2.example.com",
-                "cert": "selfsigned_2-server.crt",
-                "csr": "selfsigned_2-server.csr",
-                "pkey": "selfsigned_2-server.key",
+                "cert": "key_technology-rsa/selfsigned_2-server.crt",
+                "csr": "key_technology-rsa/selfsigned_2-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_2-server.key",
             },
             "3": {
                 "domain": "selfsigned-3.example.com",
-                "cert": "selfsigned_3-server.crt",
-                "csr": "selfsigned_3-server.csr",
-                "pkey": "selfsigned_3-server.key",
+                "cert": "key_technology-rsa/selfsigned_3-server.crt",
+                "csr": "key_technology-rsa/selfsigned_3-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_3-server.key",
             },
             "4": {
                 "domain": "selfsigned-4.example.com",
-                "cert": "selfsigned_4-server.crt",
-                "csr": "selfsigned_4-server.csr",
-                "pkey": "selfsigned_4-server.key",
+                "cert": "key_technology-rsa/selfsigned_4-server.crt",
+                "csr": "key_technology-rsa/selfsigned_4-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_4-server.key",
             },
             "5": {
                 "domain": "selfsigned-5.example.com",
-                "cert": "selfsigned_5-server.crt",
-                "csr": "selfsigned_5-server.csr",
-                "pkey": "selfsigned_5-server.key",
+                "cert": "key_technology-rsa/selfsigned_5-server.crt",
+                "csr": "key_technology-rsa/selfsigned_5-server.csr",
+                "pkey": "key_technology-rsa/selfsigned_5-server.key",
             },
         },
         "Pebble": {
-            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
             "1": {
                 "domain": "a.example.com",
                 "cert": "cert1.pem",
@@ -555,7 +668,7 @@ TEST_FILES = {
             },
         },
         "AlternateChains": {
-            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
             "1": {
                 # reseved for `FunctionalTests_AlternateChains`
                 "domain": "example.com",
@@ -576,6 +689,124 @@ TEST_FILES = {
 }
 
 
+CERT_CA_SETS = {
+    "letsencrypt-certs/trustid-x3-root.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
+        "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
+        "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
+        "cert.fingerprints": {
+            "sha1": "DAC9024F54D8F6DF94935FB1732638CA6AD77C13",
+        },
+        "subject": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
+    },
+    "letsencrypt-certs/isrgrootx1.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "9454972e3730ac131def33e045ab19df",
+        "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
+        "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+        "cert.fingerprints": {
+            "sha1": "CABD2A79A1076A31F21D253635CB039D4329A5E8",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
+    },
+    "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
+        "key_technology": "RSA",
+        "modulus_md5": "9454972e3730ac131def33e045ab19df",
+        "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
+        "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+        "cert.fingerprints": {
+            "sha1": "933C6DDEE95C9C41A40F9F50493D82BE03AD87BF",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
+        "authority_key_identifier": "C4A7B1A47B2C71FADBE14B9075FFC41560858910",
+    },
+    "letsencrypt-certs/isrg-root-x2.pem": {
+        "key_technology": "EC",
+        "modulus_md5": None,
+        "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
+        "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
+        "cert.fingerprints": {
+            "sha1": "BDB1B93CD5978D45C6261455F8DB95C75AD153AF",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer_uri": None,
+        "authority_key_identifier": None,
+    },
+    "letsencrypt-certs/isrg-root-x2-cross-signed.pem": {
+        "key_technology": "EC",
+        "modulus_md5": None,
+        "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
+        "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
+        "cert.fingerprints": {
+            "sha1": "151682F5218C0A511C28F4060A73B9CA78CE9A53",
+        },
+        "subject": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X2",
+        "issuer": "C=US\nO=Internet Security Research Group\nCN=ISRG Root X1",
+        "issuer_uri": "http://x1.i.lencr.org/",
+        "authority_key_identifier": "79B459E67BB6E5E40173800888C81A58F6E99B6E",
+    },
+    "letsencrypt-certs/lets-encrypt-r3-cross-signed.pem": {
+        "key_technology": "RSA",
+        "spki_sha256": "8D02536C887482BC34FF54E41D2BA659BF85B341A0A20AFADB5813DCFBCF286D",
+        "spki_sha256.b64": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
+        "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
+        "cert.fingerprints": {
+            "sha1": "48504E974C0DAC5B5CD476C8202274B24C8C7172",
+        },
+        "subject": "C=US\nO=Let's Encrypt\nCN=R3",
+        "issuer": "O=Digital Signature Trust Co.\nCN=DST Root CA X3",
+        "issuer_uri": "http://apps.identrust.com/roots/dstrootcax3.p7c",
+        "authority_key_identifier": "C4A7B1A47B2C71FADBE14B9075FFC41560858910",
+    },
+}
+
+
+CSR_SETS = {
+    "key_technology-ec/ec384-1.csr": {
+        "key_private": {
+            "file": "key_technology-ec/ec384-1-key.pem",
+            "key_technology": "EC",
+            "modulus_md5": None,
+        },
+        "modulus_md5": "e69f1df0d5a5c7c63e81a83c4f5411a7",
+    },
+    "key_technology-rsa/selfsigned_1-server.csr": {
+        "key_private": {
+            "file": "key_technology-rsa/selfsigned_1-server.csr",
+            "key_technology": "RSA",
+            "modulus_md5": "e0d99ec6424d5182755315d56398f658",
+        },
+        "modulus_md5": "e0d99ec6424d5182755315d56398f658",
+    },
+}
+
+
+KEY_SETS = {
+    "key_technology-rsa/acme_account_1.key": {
+        "key_technology": "RSA",
+        "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
+        "spki_sha256": "E70DCB45009DF3F79FC708B46888609E34A3D8D19AEAFA566389718A29140782",
+        "spki_sha256.b64": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
+    },
+    "key_technology-ec/ec384-1-key.pem": {
+        "key_technology": "EC",
+        "modulus_md5": None,
+        "spki_sha256": "E739FB0081868C97B8AC0D3773680974E9FCECBFA1FC8B80AFDDBE42F30D1D9D",
+        "spki_sha256.b64": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
+    },
+}
+
+
 # ==============================================================================
 
 
@@ -589,12 +820,23 @@ class FakeAuthenticatedUser(object):
 class _Mixin_filedata(object):
 
     _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
+    _data_root_letsencrypt = os.path.join(
+        os.path.dirname(os.path.realpath(peter_sslers.lib.__file__)),
+        "letsencrypt-certs",
+    )
 
     def _filepath_testfile(self, filename):
+        if filename.startswith("letsencrypt-certs/"):
+            filename = filename[18:]
+            return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
     def _filedata_testfile(self, filename):
-        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
+        _data_root = self._data_root
+        if filename.startswith("letsencrypt-certs/"):
+            filename = filename[18:]
+            _data_root = self._data_root_letsencrypt
+        with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
             data = f.read()
         return data
 
@@ -608,12 +850,11 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
     def setUp(self):
         self._settings = settings = get_appsettings(
-            "test.ini", name="main"
+            TEST_INI, name="main"
         )  # this can cause an unclosed resource
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
-        if False:
-            settings["sqlalchemy.url"] = "sqlite://"
+        # settings["sqlalchemy.url"] = "sqlite://"
 
         self._session_factory = get_session_factory(get_engine(settings))
         if not AppTestCore._DB_INTIALIZED:
@@ -625,9 +866,16 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             model_meta.Base.metadata.create_all(engine)
 
             dbSession = self._session_factory()
+            ctx = utils.ApiContext(
+                timestamp=datetime.datetime.utcnow(),
+                dbSession=dbSession,
+                request=None,
+            )
+
             # this would have been invoked by `initialize_database`
-            db._setup.initialize_AcmeAccountProviders(dbSession)
-            db._setup.initialize_DomainBlocklisted(dbSession)
+            db._setup.initialize_AcmeAccountProviders(ctx)
+            db._setup.initialize_CertificateCAs(ctx)
+            db._setup.initialize_DomainBlocklisted(ctx)
             dbSession.commit()
             dbSession.close()
 
@@ -751,7 +999,7 @@ class AppTest(AppTestCore):
     _ctx = None
     _DB_SETUP_RECORDS = False
 
-    def _setUp_ServerCertificates_FormatA(self, payload_section, payload_key):
+    def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
         filename_template = None
         if payload_section == "AlternateChains":
             filename_template = "alternate_chains/%s/%%s" % payload_key
@@ -761,7 +1009,7 @@ class AppTest(AppTestCore):
             raise ValueError("invalid payload_section")
         _pkey_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["pkey"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["pkey"]
         )
         _pkey_pem = self._filedata_testfile(_pkey_filename)
         (_dbPrivateKey, _is_created,) = db.getcreate.getcreate__PrivateKey__by_pem_text(
@@ -772,25 +1020,28 @@ class AppTest(AppTestCore):
         )
         _chain_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["chain"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["chain"]
         )
         _chain_pem = self._filedata_testfile(_chain_filename)
-        (_dbChain, _is_created,) = db.getcreate.getcreate__CACertificate__by_pem_text(
-            self.ctx, _chain_pem, ca_chain_name=_chain_filename
+        (
+            _dbChain,
+            _is_created,
+        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+            self.ctx, _chain_pem, display_name=_chain_filename
         )
 
-        dbCACertificates_alt = None
+        dbCertificateCAChains_alt = None
         if (
             "alternate_chains"
-            in TEST_FILES["ServerCertificates"][payload_section][payload_key]
+            in TEST_FILES["CertificateSigneds"][payload_section][payload_key]
         ):
-            dbCACertificates_alt = []
-            for _chain_index in TEST_FILES["ServerCertificates"][payload_section][
+            dbCertificateCAChains_alt = []
+            for _chain_index in TEST_FILES["CertificateSigneds"][payload_section][
                 payload_key
             ]["alternate_chains"]:
                 _chain_subpath = "alternate_chains/%s/%s" % (
                     payload_key,
-                    TEST_FILES["ServerCertificates"][payload_section][payload_key][
+                    TEST_FILES["CertificateSigneds"][payload_section][payload_key][
                         "alternate_chains"
                     ][_chain_index]["chain"],
                 )
@@ -799,17 +1050,17 @@ class AppTest(AppTestCore):
                 (
                     _dbChainAlternate,
                     _is_created,
-                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
-                    self.ctx, _chain_pem, ca_chain_name=_chain_filename
+                ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                    self.ctx, _chain_pem, display_name=_chain_filename
                 )
-                dbCACertificates_alt.append(_dbChainAlternate)
+                dbCertificateCAChains_alt.append(_dbChainAlternate)
 
         _cert_filename = (
             filename_template
-            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["cert"]
+            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["cert"]
         )
         _cert_domains_expected = [
-            TEST_FILES["ServerCertificates"][payload_section][payload_key]["domain"],
+            TEST_FILES["CertificateSigneds"][payload_section][payload_key]["domain"],
         ]
         (
             _dbUniqueFQDNSet,
@@ -821,14 +1072,14 @@ class AppTest(AppTestCore):
         _cert_pem = self._filedata_testfile(_cert_filename)
 
         (
-            _dbServerCertificate,
+            _dbCertificateSigned,
             _is_created,
-        ) = db.getcreate.getcreate__ServerCertificate(
+        ) = db.getcreate.getcreate__CertificateSigned(
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
-            dbCACertificate=_dbChain,
-            dbCACertificates_alt=dbCACertificates_alt,
+            dbCertificateCAChain=_dbChain,
+            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
             dbPrivateKey=_dbPrivateKey,
         )
@@ -848,8 +1099,8 @@ class AppTest(AppTestCore):
 
                     AccountKey:
                         account_1.key
-                    CACertificates:
-                        isrgrootx1.pem.txt
+                    CertificateCAs:
+                        isrgrootx1.pem
                         selfsigned_1-server.crt
                     PrivateKey
                         selfsigned_1-server.key
@@ -891,24 +1142,24 @@ class AppTest(AppTestCore):
                             )
                         self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate CACertificate
-                # this should create `/ca-certificate/1`
+                # note: pre-populate CertificateCA
+                # this should create `/certificate-ca/1`
                 #
-                _ca_cert_id = "isrgrootx1"
-                _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
-                ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                _cert_ca_id = "isrg_root_x1"
+                _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+                _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
+                    "display_name"
+                ]
+                cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
                 (
-                    _ca_cert_1,
+                    _cert_ca_1,
                     _is_created,
-                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                     self.ctx,
-                    ca_cert_pem,
-                    ca_chain_name="ISRG Root",
-                    le_authority_name="ISRG ROOT",
-                    is_authority_certificate=True,
-                    is_cross_signed_authority_certificate=False,
+                    cert_ca_pem,
+                    display_name=_display_name,
                 )
-                # print(_ca_cert_1, _is_created)
+                # print(_cert_ca_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
                 # we need a few PrivateKeys, because we'll turn them off
@@ -944,20 +1195,20 @@ class AppTest(AppTestCore):
                             self.ctx, _dbPrivateKey_alt, _dbOperationsEvent
                         )
 
-                # note: pre-populate ServerCertificate 1-5
-                # this should create `/server-certificate/1`
+                # note: pre-populate CertificateSigned 1-5
+                # this should create `/certificate-signed/1`
                 #
-                _dbServerCertificate_1 = None
-                _dbServerCertificate_2 = None
-                _dbServerCertificate_3 = None
-                _dbServerCertificate_4 = None
-                _dbServerCertificate_5 = None
+                _dbCertificateSigned_1 = None
+                _dbCertificateSigned_2 = None
+                _dbCertificateSigned_3 = None
+                _dbCertificateSigned_4 = None
+                _dbCertificateSigned_5 = None
                 _dbPrivateKey_1 = None
                 _dbUniqueFQDNSet_1 = None
-                for _id in TEST_FILES["ServerCertificates"]["SelfSigned"].keys():
+                for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
                     # note: pre-populate PrivateKey
                     # this should create `/private-key/1`
-                    _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _pkey_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["pkey"]
                     pkey_pem = self._filedata_testfile(_pkey_filename)
@@ -977,27 +1228,27 @@ class AppTest(AppTestCore):
                     # print(_dbPrivateKey, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
-                    # note: pre-populate CACertificate - self-signed
-                    # this should create `/ca-certificate/2`
+                    # note: pre-populate CertificateCA - self-signed
+                    # this should create `/certificate-ca/2`
                     #
-                    _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _cert_ca_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
-                    ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                    chain_pem = self._filedata_testfile(_cert_ca_filename)
                     (
-                        _dbCACertificate_SelfSigned,
+                        _dbCertificateCAChain_SelfSigned,
                         _is_created,
-                    ) = db.getcreate.getcreate__CACertificate__by_pem_text(
-                        self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
+                    ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                        self.ctx, chain_pem, display_name=_cert_ca_filename
                     )
-                    # print(_dbCACertificate_SelfSigned, _is_created)
+                    # print(_dbCertificateCAChain_SelfSigned, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
-                    _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                    _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
                         _id
                     ]["cert"]
                     _cert_domains_expected = [
-                        TEST_FILES["ServerCertificates"]["SelfSigned"][_id]["domain"],
+                        TEST_FILES["CertificateSigneds"]["SelfSigned"][_id]["domain"],
                     ]
                     (
                         _dbUniqueFQDNSet,
@@ -1009,45 +1260,45 @@ class AppTest(AppTestCore):
 
                     cert_pem = self._filedata_testfile(_cert_filename)
                     (
-                        _dbServerCertificate,
+                        _dbCertificateSigned,
                         _is_created,
-                    ) = db.getcreate.getcreate__ServerCertificate(
+                    ) = db.getcreate.getcreate__CertificateSigned(
                         self.ctx,
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
-                        dbCACertificate=_dbCACertificate_SelfSigned,
+                        dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
                         dbUniqueFQDNSet=_dbUniqueFQDNSet,
                         dbPrivateKey=_dbPrivateKey,
                     )
-                    # print(_dbServerCertificate_1, _is_created)
+                    # print(_dbCertificateSigned_1, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
                     if _id == "1":
-                        _dbServerCertificate_1 = _dbServerCertificate
+                        _dbCertificateSigned_1 = _dbCertificateSigned
                         _dbPrivateKey_1 = _dbPrivateKey
                         _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
                     elif _id == "2":
-                        _dbServerCertificate_2 = _dbServerCertificate
+                        _dbCertificateSigned_2 = _dbCertificateSigned
                     elif _id == "3":
-                        _dbServerCertificate_3 = _dbServerCertificate
+                        _dbCertificateSigned_3 = _dbCertificateSigned
                     elif _id == "4":
-                        _dbServerCertificate_4 = _dbServerCertificate
+                        _dbCertificateSigned_4 = _dbCertificateSigned
                     elif _id == "5":
-                        _dbServerCertificate_5 = _dbServerCertificate
+                        _dbCertificateSigned_5 = _dbCertificateSigned
 
                 # note: pre-populate Domain
                 # ensure we have domains?
                 domains = db.get.get__Domain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert (
-                    TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
+                    TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
                         "domain"
                     ].lower()
                     in domain_names
                 )
 
                 # note: pre-populate CertificateRequest
-                _csr_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
+                _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
                     "csr"
                 ]
                 csr_pem = self._filedata_testfile(_csr_filename)
@@ -1060,13 +1311,13 @@ class AppTest(AppTestCore):
                     certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
                     dbPrivateKey=_dbPrivateKey_1,
                     domain_names=[
-                        TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
+                        TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"]["domain"],
                     ],  # make it an iterable
                 )
 
-                # note: pre-populate ServerCertificate 6-10, via "Pebble"
-                for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
-                    self._setUp_ServerCertificates_FormatA("Pebble", _id)
+                # note: pre-populate CertificateSigned 6-10, via "Pebble"
+                for _id in TEST_FILES["CertificateSigneds"]["Pebble"].keys():
+                    self._setUp_CertificateSigneds_FormatA("Pebble", _id)
 
                 # self.ctx.pyramid_transaction_commit()
 
@@ -1095,7 +1346,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_1,
+                    dbCertificateSigned=_dbCertificateSigned_1,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1108,7 +1359,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_2,
+                    dbCertificateSigned=_dbCertificateSigned_2,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1118,7 +1369,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_3,
+                    dbCertificateSigned=_dbCertificateSigned_3,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1128,7 +1379,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbServerCertificate=_dbServerCertificate_4,
+                    dbCertificateSigned=_dbCertificateSigned_4,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
@@ -1308,6 +1559,7 @@ class AppTest(AppTestCore):
                 print("EXCEPTION IN SETUP")
                 print("")
                 print(exc)
+                traceback.print_exc()
 
                 print("")
                 print("")

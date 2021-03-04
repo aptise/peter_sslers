@@ -110,14 +110,14 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>server_certificate_id</th>
+                    <th>certificate_signed_id</th>
                     <td>
-                        % if AcmeEventLog.server_certificate_id:
+                        % if AcmeEventLog.certificate_signed_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/server-certificate/${AcmeEventLog.server_certificate_id}"
+                                href="${admin_prefix}/certificate-signed/${AcmeEventLog.certificate_signed_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${AcmeEventLog.server_certificate_id}
+                                CertificateSigned-${AcmeEventLog.certificate_signed_id}
                             </a>
                         % endif
                     </td>

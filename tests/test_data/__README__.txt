@@ -23,6 +23,12 @@ openssl req -new -sha256 -key selfsigned_5-server.key -subj "/CN=selfsigned-5.ex
 openssl x509 -req -days 365 -in selfsigned_5-server.csr -signkey selfsigned_5-server.key -out selfsigned_5-server.crt
 
 
+openssl ecparam -genkey -name secp384r1 -noout -out ec384-1-key.pem
+openssl ecparam -genkey -name secp384r1 -noout -out ec384-2-key.pem
+
+openssl req -new -sha256 -key ec384-1-key.pem -subj "/CN=ec384-1.example.com" -out ec384-1.csr
+
+
 ================================================================================
 
 AcmeAccountKeys

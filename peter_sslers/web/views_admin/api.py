@@ -56,47 +56,6 @@ class ViewAdminApi(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(
-        route_name="admin:api:ca_certificate:letsencrypt_download", renderer=None
-    )
-    @view_config(
-        route_name="admin:api:ca_certificate:letsencrypt_download|json", renderer="json"
-    )
-    def ca_certificate__download(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return docs.json_docs_post_only
-            return HTTPSeeOther(
-                "%s/operations/ca-certificate-downloads?result=error&operation=ca-certificate-proble&error=HTTP+POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-
-        operations_event = lib_db.actions.ca_certificate_download(
-            self.request.api_context
-        )
-        if self.request.wants_json:
-            return {
-                "result": "success",
-                "operations_event": {
-                    "id": operations_event.id,
-                    "is_certificates_discovered": operations_event.event_payload_json[
-                        "is_certificates_discovered"
-                    ],
-                    "is_certificates_updated": operations_event.event_payload_json[
-                        "is_certificates_updated"
-                    ],
-                },
-            }
-        return HTTPSeeOther(
-            "%s/operations/ca-certificate-downloads?result=success&event.id=%s"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                operations_event.id,
-            )
-        )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name="admin:api:deactivate_expired", renderer=None)
     @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
     def deactivate_expired(self):
@@ -109,7 +68,7 @@ class ViewAdminApi(Handler):
         )
         count_deactivated = operations_event.event_payload_json["count_deactivated"]
         rval = {
-            "ServerCertificate": {
+            "CertificateSigned": {
                 "expired": count_deactivated,
             },
             "result": "success",
@@ -571,8 +530,8 @@ class ViewAdminApi_Domain(Handler):
                     "result": "error",
                 }
                 rval["domain"] = None
-                rval["server_certificate__latest_single"] = None
-                rval["server_certificate__latest_multi"] = None
+                rval["certificate_signed__latest_single"] = None
+                rval["certificate_signed__latest_multi"] = None
                 rval["AcmeOrder"] = {
                     "id": dbAcmeOrder.id,
                 }
@@ -607,8 +566,8 @@ class ViewAdminApi_Domain(Handler):
                 "result": "error",
                 "form_errors": formStash.errors,
                 "domain": None,
-                "server_certificate__latest_single": None,
-                "server_certificate__latest_multi": None,
+                "certificate_signed__latest_single": None,
+                "certificate_signed__latest_multi": None,
             }
 
         finally:
@@ -644,7 +603,7 @@ class ViewAdminApi_Redis(Handler):
         redis_client = utils_redis.redis_connection_from_registry(self.request)
         redis_timeouts = utils_redis.redis_timeouts_from_registry(self.request)
 
-        total_primed = {"cacert": 0, "cert": 0, "pkey": 0, "domain": 0}
+        total_primed = {"certcachain": 0, "cert": 0, "pkey": 0, "domain": 0}
 
         dbEvent = None
         if prime_style == "1":
@@ -658,7 +617,7 @@ class ViewAdminApi_Redis(Handler):
                 r['c1'] = CERT.PEM  # (c)ert
                 r['c2'] = CERT.PEM
                 r['p2'] = PKEY.PEM  # (p)rivate
-                r['i99'] = CACERT.PEM  # (i)ntermediate cert
+                r['i99'] = CHAIN.PEM  # (i)ntermediate certs
 
             to assemble the data for `foo.example.com`:
 
@@ -669,25 +628,27 @@ class ViewAdminApi_Redis(Handler):
                 * chain = r.get('i99')
                 * fullchain = cert + "\n" + chain
             """
-            # prime the CACertificates that are active
+            # prime the CertificateCAs that are active
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get.get__CACertificate__paginated(
+                active_chains = lib_db.get.get__CertificateCAChain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
                     active_only=True,
                 )
-                if not active_certs:
+                if not active_chains:
                     # no certs
                     break
-                for dbCACertificate in active_certs:
-                    total_primed["cacert"] += 1
-                    is_primed = utils_redis.redis_prime_logic__style_1_CACertificate(
-                        redis_client, dbCACertificate, redis_timeouts
+                for dbCertificateCAChain in active_chains:
+                    total_primed["certcachain"] += 1
+                    is_primed = (
+                        utils_redis.redis_prime_logic__style_1_CertificateCAChain(
+                            redis_client, dbCertificateCAChain, redis_timeouts
+                        )
                     )
-                if len(active_certs) < limit:
+                if len(active_chains) < limit:
                     # no more
                     break
                 offset += limit

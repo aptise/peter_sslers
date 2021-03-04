@@ -195,20 +195,41 @@ def update_AcmeAccount__set_global_default(ctx, dbAcmeAccount):
 
 def update_AcmeAccount__private_key_cycle(ctx, dbAcmeAccount, private_key_cycle):
     if dbAcmeAccount.private_key_cycle == private_key_cycle:
-        raise errors.InvalidTransition("Already updated")
+        raise errors.InvalidTransition("Already updated: `private_key_cycle`")
     try:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle
         )
     except KeyError:
-        raise errors.InvalidTransition("invalid option")
+        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
     if (
         private_key_cycle_id
         not in model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
     ):
-        raise errors.InvalidTransition("invalid option")
+        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
     dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
-    event_status = "AcmeAccount__edit__primary_key_cycle"
+    event_status = "AcmeAccount__edit__private_key_cycle"
+    return event_status
+
+
+def update_AcmeAccount__private_key_technology(
+    ctx, dbAcmeAccount, private_key_technology
+):
+    if dbAcmeAccount.private_key_technology == private_key_technology:
+        raise errors.InvalidTransition("Already updated: `private_key_technology`")
+    try:
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+    except KeyError:
+        raise errors.InvalidTransition("Invalid option: `private_key_technology`")
+    if (
+        private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
+    ):
+        raise errors.InvalidTransition("Invalid option: `private_key_technology`")
+    dbAcmeAccount.private_key_technology_id = private_key_technology_id
+    event_status = "AcmeAccount__edit__private_key_technology"
     return event_status
 
 
@@ -361,6 +382,78 @@ def update_AcmeOrderless_deactivate(ctx, dbAcmeOrderless):
     return True
 
 
+def update_CertificateCAPreference_reprioritize(
+    ctx, dbPreference_active, dbCertificateCAPreferences, priority=None
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbPreference_active: (required) A single instance of
+        :class:`model.objects.CertificateCAPreference` which is being moved
+        within the Preference list
+    :param dbCertificateCAPreferences: (required) The full listing of
+        :class:`model.objects.CertificateCAPreference` objects
+    :param priority: string. required. must be "increase" or "decrease"
+    """
+    dbPref_other = None
+    if priority == "increase":
+        if dbPreference_active.id <= 1:
+            raise errors.InvalidTransition(
+                "This item can not be increased in priority."
+            )
+        target_slot_id = dbPreference_active.id - 1
+        # okay, now iterate over the list...
+        for _dbPref in dbCertificateCAPreferences:
+            if _dbPref.id == target_slot_id:
+                dbPref_other = _dbPref
+                break
+        if not dbPref_other:
+            raise errors.InvalidTransition("Illegal Operation.")
+
+        # set the other to a placeholder
+        dbPref_other.id = 999
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+        # set the new
+        dbPreference_active.id = target_slot_id
+        ctx.dbSession.flush(objects=[dbPreference_active])
+
+        # and update the other
+        dbPref_other.id = dbPreference_active.id + 1
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+    elif priority == "decrease":
+        if dbPreference_active.id == len(dbCertificateCAPreferences):
+            raise errors.InvalidTransition(
+                "This item can not be decreased in priority."
+            )
+        target_slot_id = dbPreference_active.id + 1
+        # okay, now iterate over the list...
+        for _dbPref in dbCertificateCAPreferences:
+            if _dbPref.id == target_slot_id:
+                dbPref_other = _dbPref
+                break
+        if not dbPref_other:
+            raise errors.InvalidTransition("Illegal Operation.")
+
+        # set the old to a placeholder
+        dbPref_other.id = 999
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+        # set the new
+        dbPreference_active.id = target_slot_id
+        ctx.dbSession.flush(objects=[dbPreference_active])
+
+        # and update the other
+        dbPref_other.id = dbPreference_active.id - 1
+        ctx.dbSession.flush(objects=[dbPref_other])
+
+    else:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("Invalid priority.")
+
+    return True
+
+
 def update_CoverageAssuranceEvent__set_resolution(
     ctx, dbCoverageAssuranceEvent, resolution
 ):
@@ -370,10 +463,10 @@ def update_CoverageAssuranceEvent__set_resolution(
     elif resolution == "abandoned":
         pass
     elif resolution == "PrivateKey_replaced":
-        if dbCoverageAssuranceEvent.server_certificate_id:
+        if dbCoverageAssuranceEvent.certificate_signed_id:
             raise errors.InvalidTransition("incompatible `resolution`")
-    elif resolution == "ServerCertificate_replaced":
-        if not dbCoverageAssuranceEvent.server_certificate_id:
+    elif resolution == "CertificateSigned_replaced":
+        if not dbCoverageAssuranceEvent.certificate_signed_id:
             raise errors.InvalidTransition("incompatible `resolution`")
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
@@ -567,115 +660,115 @@ def update_QueuedDomain_dequeue(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_ServerCertificate__mark_compromised(
-    ctx, dbServerCertificate, via_PrivateKey_compromised=None
+def update_CertificateSigned__mark_compromised(
+    ctx, dbCertificateSigned, via_PrivateKey_compromised=None
 ):
     # the PrivateKey has been compromised
-    dbServerCertificate.is_compromised_private_key = True
-    dbServerCertificate.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
-    if dbServerCertificate.is_active:
-        dbServerCertificate.is_active = False
-    event_status = "ServerCertificate__mark__compromised"
+    dbCertificateSigned.is_compromised_private_key = True
+    dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
+    if dbCertificateSigned.is_active:
+        dbCertificateSigned.is_active = False
+    event_status = "CertificateSigned__mark__compromised"
     return event_status
 
 
-def update_ServerCertificate__set_active(ctx, dbServerCertificate):
+def update_CertificateSigned__set_active(ctx, dbCertificateSigned):
 
-    if dbServerCertificate.is_active:
+    if dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already active.")
 
-    if dbServerCertificate.is_revoked:
+    if dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition(
             "Certificate is revoked; `active` status can not be changed."
         )
 
-    if dbServerCertificate.is_compromised_private_key:
+    if dbCertificateSigned.is_compromised_private_key:
         raise errors.InvalidTransition(
             "Certificate has a compromised PrivateKey; `active` status can not be changed."
         )
 
-    if dbServerCertificate.is_deactivated:
+    if dbCertificateSigned.is_deactivated:
         raise errors.InvalidTransition(
             "Certificate was deactivated; `active` status can not be changed."
         )
 
     # now make it active!
-    dbServerCertificate.is_active = True
+    dbCertificateSigned.is_active = True
 
     # cleanup options
-    event_status = "ServerCertificate__mark__active"
+    event_status = "CertificateSigned__mark__active"
     return event_status
 
 
-def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
+def update_CertificateSigned__unset_active(ctx, dbCertificateSigned):
 
-    if not dbServerCertificate.is_active:
+    if not dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already inactive.")
 
     # inactivate it
-    dbServerCertificate.is_active = False
+    dbCertificateSigned.is_active = False
 
-    event_status = "ServerCertificate__mark__inactive"
+    event_status = "CertificateSigned__mark__inactive"
     return event_status
 
 
 """
-as of .40, ServerCertificates do not auto-renew. Instead, AcmeOrders do.
+as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
 
-def update_ServerCertificate__set_renew_auto(ctx, dbServerCertificate):
-    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
         raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if dbServerCertificate.is_auto_renew:
+    if dbCertificateSigned.is_auto_renew:
         raise errors.InvalidTransition("Already active.")
     # activate!
-    dbServerCertificate.is_auto_renew = True
-    event_status = "ServerCertificate__mark__renew_auto"
+    dbCertificateSigned.is_auto_renew = True
+    event_status = "CertificateSigned__mark__renew_auto"
     return event_status
 
 
-def update_ServerCertificate__set_renew_manual(ctx, dbServerCertificate):
-    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
         raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if not dbServerCertificate.is_auto_renew:
+    if not dbCertificateSigned.is_auto_renew:
         raise errors.InvalidTransition("Already inactive.")
     # deactivate!
-    dbServerCertificate.is_auto_renew = False
-    event_status = "ServerCertificate__mark__renew_manual"
+    dbCertificateSigned.is_auto_renew = False
+    event_status = "CertificateSigned__mark__renew_manual"
     return event_status
 """
 
 
-def update_ServerCertificate__set_revoked(ctx, dbServerCertificate):
+def update_CertificateSigned__set_revoked(ctx, dbCertificateSigned):
 
-    if dbServerCertificate.is_revoked:
+    if dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition("Certificate is already revoked")
 
     # mark revoked
-    dbServerCertificate.is_revoked = True
+    dbCertificateSigned.is_revoked = True
 
     # inactivate it
-    dbServerCertificate.is_active = False
+    dbCertificateSigned.is_active = False
 
     # deactivate it, permanently
-    dbServerCertificate.is_deactivated = True
+    dbCertificateSigned.is_deactivated = True
 
     # cleanup options
-    event_status = "ServerCertificate__mark__revoked"
+    event_status = "CertificateSigned__mark__revoked"
     return event_status
 
 
-def update_ServerCertificate__unset_revoked(ctx, dbServerCertificate):
+def update_CertificateSigned__unset_revoked(ctx, dbCertificateSigned):
     """
     this is currently not supported
     """
 
-    if not dbServerCertificate.is_revoked:
+    if not dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition("Certificate is not revoked")
 
     # unset the revoke
-    dbServerCertificate.is_revoked = False
+    dbCertificateSigned.is_revoked = False
 
     # lead is_active and is_deactivated as-is
     # cleanup options
-    event_status = "ServerCertificate__mark__unrevoked"
+    event_status = "CertificateSigned__mark__unrevoked"
     return event_status

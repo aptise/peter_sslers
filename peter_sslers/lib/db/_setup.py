@@ -1,15 +1,25 @@
 from __future__ import print_function
 
+import logging
 
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
+# stdlib
 import datetime
 
-
+# local
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...lib import letsencrypt_info
 from ...lib import utils
+from .logger import log__OperationsEvent
 from . import create as db_create
 from . import get as db_get
+from . import getcreate as db_getcreate
 from . import update as db_update
+
 
 # ==============================================================================
 
@@ -68,7 +78,7 @@ acme_account_providers = {
 }
 
 
-def initialize_AcmeAccountProviders(dbSession):
+def initialize_AcmeAccountProviders(ctx):
 
     timestamp_now = datetime.datetime.utcnow()
 
@@ -83,22 +93,19 @@ def initialize_AcmeAccountProviders(dbSession):
         dbObject.is_enabled = item["is_enabled"]
         dbObject.protocol = item["protocol"]
         dbObject.server = item["server"]
-        dbSession.add(dbObject)
-        dbSession.flush(
+        ctx.dbSession.add(dbObject)
+        ctx.dbSession.flush(
             objects=[
                 dbObject,
             ]
         )
 
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = model_objects.OperationsEvent()
-    dbOperationsEvent.operations_event_type_id = (
-        _event_type_id
-    ) = model_utils.OperationsEventType.from_string("_DatabaseInitialization")
-    dbOperationsEvent.timestamp_event = timestamp_now
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    dbSession.add(dbOperationsEvent)
-    dbSession.flush(objects=[dbOperationsEvent])
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("_DatabaseInitialization"),
+        event_payload_dict,
+    )
 
     dbObject = model_objects.PrivateKey()
     dbObject.id = 0
@@ -106,29 +113,129 @@ def initialize_AcmeAccountProviders(dbSession):
     _placeholder_text = "*placeholder-key*"
     dbObject.key_pem = _placeholder_text
     dbObject.key_pem_md5 = utils.md5_text(_placeholder_text)
-    dbObject.key_pem_modulus_md5 = _placeholder_text
+    dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
     dbObject.private_key_source_id = model_utils.PrivateKeySource.from_string(
         "placeholder"
     )
     dbObject.private_key_type_id = model_utils.PrivateKeyType.from_string("placeholder")
-    dbSession.add(dbObject)
-    dbSession.flush(
+    # SYSTEM_DEFAULT
+    dbObject.key_technology_id = model_utils.KeyTechnology.from_string(
+        "RSA"
+    )  # default to RSA
+    ctx.dbSession.add(dbObject)
+    ctx.dbSession.flush(
         objects=[
             dbObject,
         ]
     )
+    return True
+
+
+def initialize_CertificateCAs(ctx):
+
+    # create a bookkeeping object
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("_DatabaseInitialization"),
+        event_payload_dict,
+    )
+
+    certs = letsencrypt_info.CERT_CAS_DATA
+    certs_order = letsencrypt_info._CERT_CAS_ORDER
+
+    # do a quick check
+    _cert_ids = set(certs.keys())
+    _cert_ids_order = set(certs_order)
+    _missing_data = _cert_ids_order - _cert_ids
+    if _missing_data:
+        raise ValueError(
+            "Missing from `letsencrypt_info.CERT_CAS_DATA`: %s" % _missing_data
+        )
+    _unordered = _cert_ids - _cert_ids_order
+    if _unordered:
+        raise ValueError(
+            "Missing from `letsencrypt_info._CERT_CAS_ORDER`: %s" % _unordered
+        )
+    # end check
+
+    certs_discovered = []
+    certs_modified = []
+    certs_lookup = {}  # stash the ones we create for a moment
+    for cert_id in certs_order:
+        cert_data = certs[cert_id]
+        _is_created = False
+        dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
+            ctx, cert_data["cert_pem"]
+        )
+        if not dbCertificateCA:
+            is_trusted_root = cert_data.get("is_trusted_root")
+            (
+                dbCertificateCA,
+                _is_created,
+            ) = db_getcreate.getcreate__CertificateCA__by_pem_text(
+                ctx,
+                cert_data["cert_pem"],
+                display_name=cert_data["display_name"],
+                is_trusted_root=is_trusted_root,
+            )
+            if _is_created:
+                certs_discovered.append(dbCertificateCA)
+        if "is_trusted_root" in cert_data:
+            if dbCertificateCA.is_trusted_root != cert_data["is_trusted_root"]:
+                dbCertificateCA.is_trusted_root = cert_data["is_trusted_root"]
+                if dbCertificateCA not in certs_discovered:
+                    certs_modified.append(dbCertificateCA)
+        else:
+            attrs = ("display_name",)
+            for _k in attrs:
+                if getattr(dbCertificateCA, _k) is None:
+                    setattr(dbCertificateCA, _k, cert_data[_k])
+                    if dbCertificateCA not in certs_discovered:
+                        certs_modified.append(dbCertificateCA)
+        certs_lookup[cert_id] = dbCertificateCA
+
+    # bookkeeping update
+    event_payload_dict["is_certificates_discovered"] = (
+        True if certs_discovered else False
+    )
+    event_payload_dict["is_certificates_updated"] = True if certs_modified else False
+    event_payload_dict["ids_discovered"] = [c.id for c in certs_discovered]
+    event_payload_dict["ids_modified"] = [c.id for c in certs_modified]
+
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    # now install the default preference chain
+    _now = datetime.datetime.utcnow()
+    _buffer = datetime.timedelta(90)
+    date_cutoff = _now + _buffer
+
+    slot_id = 1
+    for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
+        cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
+        cert_enddate = datetime.datetime(*cert_payload[".enddate"])
+        if cert_enddate < date_cutoff:
+            continue
+        if cert_id not in certs_lookup:
+            raise ValueError("Certificate `%s` is unknown" % cert_id)
+        dbCertificateCA = certs_lookup[cert_id]
+        dbPref = db_create.create__CertificateCAPreference(
+            ctx, slot_id=slot_id, dbCertificateCA=dbCertificateCA
+        )
+        slot_id += 1  # increment the slot
 
     return True
 
 
-def initialize_DomainBlocklisted(dbSession):
+def initialize_DomainBlocklisted(ctx):
 
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
-    dbSession.add(dbDomainBlocklisted)
-    dbSession.flush(
+    ctx.dbSession.add(dbDomainBlocklisted)
+    ctx.dbSession.flush(
         objects=[
             dbDomainBlocklisted,
         ]

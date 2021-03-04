@@ -1,15 +1,19 @@
 # stdlib
 import datetime
 import json
+import pdb
 
 # pypi
+from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
-from pyramid.decorator import reify
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm.session import Session as sa_Session
 
 # localapp
 from .meta import Base
 from . import utils as model_utils
+from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -27,8 +31,51 @@ Coding Style:
         properties/functions
 """
 
+"""
+IMPORTANT
+
+Under Pyramid, the `request` is stashed into the db session
+
+    # stashed in peter_sslers/web/models/__init__.py
+    request = dbSession.info["request"]
+
+
+    There are two ways of getting an object's session in SQLAlchemy
+
+    1. Legacy Classmethod
+
+        dbSession = sqlalchemy.orm.session.Session.object_session(self)
+
+    2. Modern Runtime API
+
+        dbSession = sa_inspect(self).session
+
+    The Legacy Method is faster and not deprecated.
+    The Modern Method is preferable in situations where you may do other
+    things with the object's runtime information.
+
+    In this project, we will opt for the legacy system
+
+
+"""
 
 # ==============================================================================
+
+
+class _Mixin_Hex_Pretty(object):
+    @property
+    def cert_authority_key_identifier__colon(self):
+        return lib_utils.hex_with_colons(self.cert_authority_key_identifier)
+
+    @property
+    def fingerprint_sha1__colon(self):
+        if self.fingerprint_sha1:
+            return lib_utils.hex_with_colons(self.fingerprint_sha1)
+        return ""
+
+    @property
+    def spki_sha256__colon(self):
+        return lib_utils.hex_with_colons(self.spki_sha256)
 
 
 class _Mixin_Timestamps_Pretty(object):
@@ -126,7 +173,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     account_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
 
     count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
-    count_server_certificates = sa.Column(sa.Integer, nullable=True, default=0)
+    count_certificate_signeds = sa.Column(sa.Integer, nullable=True, default=0)
 
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
@@ -142,6 +189,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     private_key_cycle_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
+    private_key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -229,10 +279,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @reify
-    def key_pem_modulus_search(self):
+    def key_spki_search(self):
         if not self.acme_account_key:
             return "type=error&error=missing-acme-account-key"
-        return self.acme_account_key.key_pem_modulus_search
+        return self.acme_account_key.key_spki_search
 
     @reify
     def key_pem_sample(self):
@@ -243,6 +293,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     @reify
     def private_key_cycle(self):
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+
+    @reify
+    def private_key_technology(self):
+        return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
     @property
     def as_json(self):
@@ -261,6 +315,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
                 "key_pem_md5": self.acme_account_key.key_pem_md5
                 if self.acme_account_key
                 else None,
+                "spki_sha256": self.acme_account_key.spki_sha256
+                if self.acme_account_key
+                else None,
                 "acme_account_key_source": self.acme_account_key.acme_account_key_source
                 if self.acme_account_key
                 else None,
@@ -270,7 +327,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         }
 
 
-class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
+class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     Represents a key associated with the AcmeAccount on the LetsEncrypt Service.
     This is used for authentication to the LE API, it is not tied to any certificates directly.
@@ -284,9 +341,13 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -324,9 +385,9 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         )
 
     @reify
-    def key_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
-            self.key_pem_modulus_md5,
+    def key_spki_search(self):
+        return "type=spki&spki=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
+            self.spki_sha256,
             self.id,
             self.acme_account_id,
         )
@@ -336,6 +397,12 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
 
 # ==============================================================================
@@ -644,7 +711,12 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             return False
         return True
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "acme_status_authorization": self.acme_status_authorization,
@@ -669,10 +741,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             if self.is_can_acme_server_deactivate
             else None,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 # ==============================================================================
@@ -906,7 +974,12 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
                 return True
         return False
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
@@ -929,10 +1002,6 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             else None,
             # "acme_event_log_id": self.acme_event_log_id,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 # ==============================================================================
@@ -1194,6 +1263,19 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
             "allowfrom": json.loads(self.allowfrom),
         }
 
+    @property
+    def pyacmedns_dict(self):
+        """
+        :returns: a dict of items required for a pyacmedns client
+        """
+        return {
+            "username": self.username,
+            "password": self.password,
+            "fulldomain": self.fulldomain,
+            "subdomain": self.subdomain,
+            "allowfrom": json.loads(self.allowfrom) if self.allowfrom else [],
+        }
+
 
 # ==============================================================================
 
@@ -1226,9 +1308,9 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    server_certificate_id = sa.Column(
+    certificate_signed_id = sa.Column(
         sa.Integer,
-        sa.ForeignKey("server_certificate.id", use_alter=True),
+        sa.ForeignKey("certificate_signed.id", use_alter=True),
         nullable=True,
     )
 
@@ -1260,7 +1342,7 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_id": self.acme_challenge_id,
             "acme_order_id": self.acme_order_id,
             "certificate_request_id": self.certificate_request_id,
-            "server_certificate_id": self.server_certificate_id,
+            "certificate_signed_id": self.certificate_signed_id,
         }
 
 
@@ -1409,14 +1491,14 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
+    certificate_signed_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    )
     private_key_id__requested = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
-    )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
@@ -1432,9 +1514,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
-    server_certificate_id__renewal_of = sa.Column(
+    certificate_signed_id__renewal_of = sa.Column(
         sa.Integer,
-        sa.ForeignKey("server_certificate.id", use_alter=True),
+        sa.ForeignKey("certificate_signed.id", use_alter=True),
         nullable=True,
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1463,6 +1545,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="AcmeOrder.certificate_signed_id==CertificateSigned.id",
+        uselist=False,
+        back_populates="acme_order",
+    )
+    certificate_signed__renewal_of = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="AcmeOrder.certificate_signed_id__renewal_of==CertificateSigned.id",
+        back_populates="acme_order__renewals",
+        uselist=False,
+    )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="AcmeOrder.id==OperationsObjectEvent.acme_order_id",
@@ -1483,18 +1577,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         "QueueCertificate",
         primaryjoin="AcmeOrder.id==QueueCertificate.acme_order_id__generated",
         back_populates="acme_order__generated",
-        uselist=False,
-    )
-    server_certificate = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="AcmeOrder.server_certificate_id==ServerCertificate.id",
-        uselist=False,
-        back_populates="acme_order",
-    )
-    server_certificate__renewal_of = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="AcmeOrder.server_certificate_id__renewal_of==ServerCertificate.id",
-        back_populates="acme_order__renewals",
         uselist=False,
     )
     to_acme_authorizations = sa_orm_relationship(
@@ -1649,14 +1731,58 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def is_can_acme_server_download_certificate(self):
         """
-        can we download a ServerCertificate from the AcmeServer?
-        only works for VALID AcmeOrder if we do not have a ServerCertificate
+        can we download a CertificateSigned from the AcmeServer?
+        only works for VALID AcmeOrder if we do not have a CertificateSigned
         """
         if self.acme_status_order == "valid":
             if self.certificate_url:
-                if not self.server_certificate_id:
+                if not self.certificate_signed_id:
                     return True
         return False
+
+    @reify
+    def acme_process_steps(self):
+        """
+        this is a JSON payload which can be shown to an API client or used to
+        render more informative instructions on the AcmeOrder process page.
+        """
+        rval = {
+            "authorizations": [],
+            "authorizations_remaining": 0,
+            "finalize": None,
+            "download": None,
+            "next_step": None,
+        }
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_inactive:
+            return rval
+
+        if self.acme_status_order == "pending":
+            rval["finalize"] = True
+            for _to_auth in self.to_acme_authorizations:
+                _pending = (
+                    True
+                    if (
+                        _to_auth.acme_authorization.acme_status_authorization
+                        in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+                    )
+                    else None
+                )
+                _auth_tuple = (_pending, _to_auth.acme_authorization.as_json)
+                rval["authorizations"].append(_auth_tuple)
+                if _pending:
+                    rval["authorizations_remaining"] += 1
+            if rval["authorizations_remaining"]:
+                rval["next_step"] = "challenge"
+        elif self.acme_status_order == "ready":
+            rval["finalize"] = True
+            rval["download"] = True
+            rval["next_step"] = "finalize"
+        elif self.acme_status_order == "processing":
+            rval["finalize"] = False
+            rval["download"] = True
+            rval["next_step"] = "download"
+
+        return rval
 
     @property
     def is_can_acme_process(self):
@@ -1707,7 +1833,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 return True
         return False
 
-    def _as_json(self, admin_url=""):
+    @property
+    def as_json(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+        admin_url = request.admin_url if request else ""
+
         return {
             "id": self.id,
             "AcmeAccount": {
@@ -1718,6 +1849,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
+            "acme_process_steps": self.acme_process_steps,
             "certificate_request_id": self.certificate_request_id,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
@@ -1742,8 +1874,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.private_key_id
                 else None,
             },
-            "server_certificate_id": self.server_certificate_id,
-            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
+            "certificate_signed_id": self.certificate_signed_id,
+            "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_finalized": self.timestamp_finalized_isoformat,
@@ -1753,7 +1885,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
             else None,
-            "url_acme_server_certificate_download": "%s/acme-order/%s/acme-server/download-certificate.json"
+            "url_acme_certificate_signed_download": "%s/acme-order/%s/acme-server/download-certificate.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_download_certificate
             else None,
@@ -1766,10 +1898,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "private_key_strategy__final": self.private_key_strategy__final,
             "acme_authorization_ids": self.acme_authorization_ids,
         }
-
-    @property
-    def as_json(self):
-        return self._as_json()
 
 
 class AcmeOrderSubmission(Base):
@@ -1975,93 +2103,339 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CACertificate(Base, _Mixin_Timestamps_Pretty):
+class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
-    These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
-    These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a CertificateSigned and are needed to create a
+    "fullchain" certificate for most deployments.
     """
 
-    __tablename__ = "ca_certificate"
+    __tablename__ = "certificate_ca"
     id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.Unicode(255), nullable=False)
-    le_authority_name = sa.Column(sa.Unicode(255), nullable=True)
-    is_ca_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_authority_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_cross_signed_authority_certificate = sa.Column(
+    display_name = sa.Column(sa.Unicode(255), nullable=False)
+
+    # TODO: migrate this to an association table that tracks different trusted root stores
+    is_trusted_root = sa.Column(
         sa.Boolean, nullable=True, default=None
-    )
-    id_cross_signed_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
-    )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    cert_pem = sa.Column(sa.Text, nullable=False)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
-    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    )  # this is just used to track if we know this cert is in trusted root stores.
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
+    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True, unique=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
+
     timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
     timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
-    cert_subject = sa.Column(sa.Text, nullable=True)
-    cert_issuer = sa.Column(sa.Text, nullable=True)
+    cert_subject = sa.Column(sa.Text, nullable=False)
+    cert_issuer = sa.Column(sa.Text, nullable=False)
+
+    # these are not guaranteed
+    cert_issuer_uri = sa.Column(sa.Text, nullable=True)
+    cert_authority_key_identifier = sa.Column(sa.Text, nullable=True)
+
+    # internal tracking
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
+
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
+    id_signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )
+    id_cross_signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )
+
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    certificate_ca_chains_0 = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_0_id",
+        back_populates="certificate_ca_0",
+    )
+    certificate_ca_chains_n = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_n_id",
+        back_populates="certificate_ca_n",
+    )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
-        primaryjoin="CACertificate.operations_event_id__created==OperationsEvent.id",
+        primaryjoin="CertificateCA.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
-        primaryjoin="CACertificate.id==OperationsObjectEvent.ca_certificate_id",
-        back_populates="ca_certificate",
-    )
-    server_certificate_alternates = sa_orm_relationship(
-        "ServerCertificateAlternateChain",
-        primaryjoin="CACertificate.id==ServerCertificateAlternateChain.ca_certificate_id",
-        uselist=True,
+        primaryjoin="CertificateCA.id==OperationsObjectEvent.certificate_ca_id",
+        back_populates="certificate_ca",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def cert_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=ca_certificate&ca_certificate.id=%s" % (
-            self.cert_pem_modulus_md5,
+    def cert_spki_search(self):
+        return "type=spki&spki=%s&source=certificate_ca&certificate_ca.id=%s" % (
+            self.spki_sha256,
             self.id,
         )
 
     @reify
     def cert_subject_search(self):
         return (
-            "type=cert_subject&cert_subject=%s&source=ca_certificate&ca_certificate.id=%s"
+            "type=cert_subject&cert_subject=%s&source=certificate_ca&certificate_ca.id=%s"
             % (self.cert_subject, self.id)
         )
 
     @reify
     def cert_issuer_search(self):
         return (
-            "type=cert_issuer&cert_issuer=%s&source=ca_certificate&ca_certificate.id=%s"
+            "type=cert_issuer&cert_issuer=%s&source=certificate_ca&certificate_ca.id=%s"
             % (self.cert_issuer, self.id)
         )
+
+    @reify
+    def fingerprint_sha1_preview(self):
+        return "%s&hellip;" % (self.fingerprint_sha1__colon or "")[:8]
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
+
+    @property
+    def button_view(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
+            """data-sha1-preview="%(sha1_preview)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """CertificateCA-%(id)s</a>"""
+            """<code>%(sha1_preview)s</code>"""
+            """|"""
+            """<code>%(cert_subject)s</code>"""
+            """|"""
+            """<code>%(cert_issuer)s</code>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "id": self.id,
+                "sha1_preview": self.fingerprint_sha1_preview,
+                "cert_issuer": self.cert_issuer,
+                "cert_subject": self.cert_subject,
+            }
+        )
+        return button
+
+    @property
+    def button_search_spki(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="btn btn-xs btn-info" href="%(admin_prefix)s/search?%(cert_spki_search)s">"""
+            """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
+            """</a>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "cert_spki_search": self.cert_spki_search,
+            }
+        )
+        return button
 
     @property
     def as_json(self):
         return {
             "id": self.id,
-            "name": self.name,
+            "display_name": self.display_name,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_pem": self.cert_pem,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "fingerprint_sha1": self.fingerprint_sha1,
+            "spki_sha256": self.spki_sha256,
+            "key_technology": self.key_technology,
             "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+        }
+
+
+class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
+    """
+    These are pre-assembled chains of CertificateCA objects.
+    """
+
+    __tablename__ = "certificate_ca_chain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    display_name = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # this is the PEM encoding of the ENTIRE chain, not just element 0
+    # while this could be assembled, for now it is being cached here
+    chain_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
+
+    # how many items are in the chain?
+    chain_length = sa.Column(sa.Integer, nullable=False)
+
+    # this is the first item in the chain; what signs the CertificateSigned
+    certificate_ca_0_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+    # this is the last item in the chain; usually a leaf of a trusted root
+    certificate_ca_n_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+    # this is a comma(,) separated list of the involved CertificateCA ids
+    # using a string here is not a normalized data storage, but is more useful and efficient
+    certificate_ca_ids_string = sa.Column(sa.Unicode(255), nullable=False)
+
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_ca_0 = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCAChain.certificate_ca_0_id==CertificateCA.id",
+        uselist=False,
+        back_populates="certificate_ca_chains_0",
+    )
+
+    certificate_ca_n = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCAChain.certificate_ca_n_id==CertificateCA.id",
+        uselist=False,
+        back_populates="certificate_ca_chains_n",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def button_view(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """CertificateCAChain-%(id)s</a>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "id": self.id,
+            }
+        )
+        return button
+
+    @property
+    def button_compatible_search_view(self):
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info["request"]
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """CertificateCAChain-%(id)s</a>"""
+            % {
+                "admin_prefix": request.registry.settings["app_settings"][
+                    "admin_prefix"
+                ],
+                "id": self.id,
+            }
+        )
+        return button
+
+    @reify
+    def certificate_ca_ids(self):
+        _certificate_ca_ids = self.certificate_ca_ids_string.split(",")
+        return _certificate_ca_ids
+
+    @reify
+    def certificate_cas_all(self):
+        # reify vs property, because this queries the database
+        certificate_ca_ids = self.certificate_ca_ids
+        dbSession = sa_Session.object_session(self)
+        dbCertificateCAs = (
+            dbSession.query(CertificateCA)
+            .filter(CertificateCA.id.in_(certificate_ca_ids))
+            .all()
+        )
+        return dbCertificateCAs
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        certificate_cas = {}
+        return {
+            "id": self.id,
+            "display_name": self.display_name,
+            "chain_pem_md5": self.chain_pem_md5,
+            "chain_pem": self.chain_pem,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "certificate_ca_ids": self.certificate_ca_ids,
+            "certificate_cas": [i.as_json for i in self.certificate_cas_all],
         }
 
 
 # ==============================================================================
 
 
-class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
+class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a CertificateSigned and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "certificate_ca_preference"
+    id = sa.Column(sa.Integer, primary_key=True)
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCAPreference.certificate_ca_id==CertificateCA.id",
+        uselist=False,
+    )
+
+
+# ==============================================================================
+
+
+class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.
     In goes your hope, out comes your dreams.
@@ -2079,7 +2453,11 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.CertificateRequestSource
     csr_pem = sa.Column(sa.Text, nullable=False)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -2098,6 +2476,12 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="certificate_request",
     )
+    certificate_signeds = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="CertificateRequest.id==CertificateSigned.certificate_request_id",
+        back_populates="certificate_request",
+        uselist=True,
+    )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="CertificateRequest.id==OperationsObjectEvent.certificate_request_id",
@@ -2109,12 +2493,6 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="certificate_requests",
     )
-    server_certificates = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="CertificateRequest.id==ServerCertificate.certificate_request_id",
-        back_populates="certificate_request",
-        uselist=True,
-    )
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -2125,16 +2503,22 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def csr_pem_modulus_search(self):
-        return (
-            "type=modulus&modulus=%s&source=certificate_request&certificate_request.id=%s"
-            % (self.csr_pem_modulus_md5, self.id)
-        )
-
-    @reify
     def certificate_request_source(self):
         return model_utils.CertificateRequestSource.as_string(
             self.certificate_request_source_id
+        )
+
+    @property
+    def certificate_signed_id__latest(self):
+        if self.certificate_signed__latest:
+            return self.certificate_signed__latest.id
+        return None
+
+    @reify
+    def csr_spki_search(self):
+        return (
+            "type=spki&spki=%s&source=certificate_request&certificate_request.id=%s"
+            % (self.spki_sha256, self.id)
         )
 
     @property
@@ -2154,9 +2538,9 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         return domain_names
 
     @property
-    def server_certificate_id__latest(self):
-        if self.server_certificate__latest:
-            return self.server_certificate__latest.id
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
@@ -2166,6 +2550,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
             "certificate_request_source": self.certificate_request_source,
             "csr_pem_md5": self.csr_pem_md5,
             "private_key_id": self.private_key_id,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -2175,11 +2560,13 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "certificate_request_source": self.certificate_request_source,
+            "certificate_signed_id__latest": self.certificate_signed_id__latest,
             "csr_pem": self.csr_pem,
             "csr_pem_md5": self.csr_pem_md5,
             "domains": self.domains_as_list,
+            "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
-            "server_certificate_id__latest": self.server_certificate_id__latest,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -2188,15 +2575,500 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
+    """
+    A signed Server Certificate.
+    To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
+
+    The domains will be stored in:
+    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
+    """
+
+    __tablename__ = "certificate_signed"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
+    is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
+    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
+    cert_subject = sa.Column(sa.Text, nullable=False)
+    cert_issuer = sa.Column(sa.Text, nullable=False)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_deactivated = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
+    is_revoked = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
+    is_compromised_private_key = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+    timestamp_revoked_upstream = sa.Column(
+        sa.DateTime, nullable=True
+    )  # if set, the cert was reported revoked upstream and this is FINAL
+
+    # as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
+    # is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+
+    # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
+
+    # this is the private key
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
+    )
+
+    # tracking
+    # `use_alter=True` is needed for setup/drop
+    certificate_request_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("certificate_request.id", use_alter=True),
+        nullable=True,
+    )
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_account = sa_orm_relationship(
+        AcmeAccount,
+        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
+        secondary=(
+            """join(AcmeOrder,
+                    AcmeAccount,
+                    AcmeOrder.acme_account_id == AcmeAccount.id
+                    )"""
+        ),
+        # back_populates="certificate_signeds__issued",
+        uselist=False,
+    )
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
+        uselist=False,
+        back_populates="certificate_signed",
+    )
+    certificate_request = sa_orm_relationship(
+        "CertificateRequest",
+        primaryjoin="CertificateSigned.certificate_request_id==CertificateRequest.id",
+        back_populates="certificate_signeds",
+        uselist=False,
+    )
+
+    certificate_signed_chains = sa_orm_relationship(
+        "CertificateSignedChain",
+        primaryjoin="CertificateSigned.id==CertificateSignedChain.certificate_signed_id",
+        uselist=True,
+    )
+    coverage_assurance_events = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="CertificateSigned.id==CoverageAssuranceEvent.certificate_signed_id",
+        back_populates="certificate_signed",
+        uselist=True,
+    )
+    operations_event__created = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="CertificateSigned.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="CertificateSigned.id==OperationsObjectEvent.certificate_signed_id",
+        back_populates="certificate_signed",
+    )
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="CertificateSigned.private_key_id==PrivateKey.id",
+        uselist=False,
+        back_populates="certificate_signeds",
+    )
+    unique_fqdn_set = sa_orm_relationship(
+        "UniqueFQDNSet",
+        primaryjoin="CertificateSigned.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="certificate_signeds",
+    )
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    acme_order__renewals = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id__renewal_of",
+        back_populates="certificate_signed__renewal_of",
+        uselist=True,
+    )
+    queue_certificate__parent = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="CertificateSigned.id==QueueCertificate.certificate_signed_id__generated",
+        back_populates="certificate_signed__generated",
+        uselist=True,
+    )
+    queue_certificate__renewal = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="CertificateSigned.id==QueueCertificate.certificate_signed_id__source",
+        back_populates="certificate_signed__source",
+        uselist=True,
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def cert_spki_search(self):
+        return "type=spki&spki=%s&source=certificate&certificate.id=%s" % (
+            self.spki_sha256,
+            self.id,
+        )
+
+    @property
+    def cert_subject_search(self):
+        return (
+            "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
+            % (self.cert_subject, self.id)
+        )
+
+    @property
+    def cert_issuer_search(self):
+        return (
+            "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
+            % (self.cert_issuer, self.id)
+        )
+
+    @property
+    def cert_chain_pem(self):
+        if not self.certificate_ca_chain__preferred:
+            return None
+        return self.certificate_ca_chain__preferred.chain_pem
+
+    @property
+    def cert_fullchain_pem(self):
+        if not self.certificate_ca_chain__preferred:
+            return None
+        # certs are standardized to have a newline
+        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))
+
+    @reify
+    def certificate_ca_ids__upchain(self):
+        # this loops `ORM:certificate_signed_chains`
+        # this is NOT in order of preference
+        _ids = set([])
+        for _to_certificate_ca_chain in self.certificate_signed_chains:
+            _chain = _to_certificate_ca_chain.certificate_ca_chain
+            _ids.add(_chain.certificate_ca_0_id)
+        _ids = list(_ids)
+        return _ids
+
+    @reify
+    def certificate_cas__upchain(self):
+        # this loops `ORM:certificate_signed_chains`
+        # this is NOT in order of preference
+        _cas = set([])
+        for _to_certificate_ca_chain in self.certificate_signed_chains:
+            _chain = _to_certificate_ca_chain.certificate_ca_chain
+            _cas.add(_chain.certificate_ca_0)
+        _cas = list(_cas)
+        return _cas
+
+    @reify
+    def certificate_ca_chain_ids(self):
+        # this loops `ORM:certificate_signed_chains`
+        # this is NOT in order of preference
+        _ids = [i.certificate_ca_chain_id for i in self.certificate_signed_chains]
+        return _ids
+
+    @reify
+    def certificate_ca_chain_id__preferred(self):
+        # this invokes `certificate_ca_chain__preferred`
+        # which then loops `ORM:certificate_signed_chains`
+        if self.certificate_ca_chain__preferred:
+            return self.certificate_ca_chain__preferred.id
+        return None
+
+    @reify
+    def certificate_ca_chain__preferred(self):
+        # this loops `ORM:certificate_signed_chains`
+        if not self.certificate_signed_chains:
+            return None
+        try:
+            dbSession = sa_Session.object_session(self)
+            request = dbSession.info["request"]
+
+            # only search for a preference if they exist
+            if request and request.dbCertificateCAPreferences:
+                # TODO: first match or shortest match?
+                # first match for now!
+                # there are a lot of ways to compute this,
+                # this is not efficient. this is just a quick pass
+                preferred_ca_ids = [
+                    i.certificate_ca_id for i in request.dbCertificateCAPreferences
+                ]
+                for _preferred_ca_id in preferred_ca_ids:
+                    for _csc in self.certificate_signed_chains:
+                        _ca_chain = _csc.certificate_ca_chain
+                        # right now we don't care WHERE in the chain the
+                        # certificate CA pref is, just that it is in the chain
+                        if _preferred_ca_id in _ca_chain.certificate_ca_ids:
+                            return _ca_chain
+
+            # we have None! so just return the first one we have
+            return self.certificate_signed_chains[0].certificate_ca_chain
+
+        except Exception as exc:
+            pass
+        return None
+
+    @reify
+    def expiring_days(self):
+        if self._expiring_days is None:
+            self._expiring_days = (
+                self.timestamp_not_after - datetime.datetime.utcnow()
+            ).days
+        return self._expiring_days
+
+    _expiring_days = None
+
+    @reify
+    def expiring_days_label(self):
+        if self.is_active:
+            if self.expiring_days <= 0:
+                return "danger"
+            elif self.expiring_days <= 30:
+                return "warning"
+            elif self.expiring_days > 30:
+                return "success"
+        return "danger"
+
+    def custom_config_payload(self, certificate_ca_chain_id=None, id_only=False):
+        # if there is no `certificate_ca_chain_id` specified, use the default
+        if not certificate_ca_chain_id:
+            certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
+
+        # invoke this to trigger a invalid error
+        dbCertificateCAChain = self.valid_certificate_ca_chain(
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+
+        # the ids are strings so that the fullchain id can be split by a client without further processing
+
+        if id_only:
+            return {
+                "id": str(self.id),
+                "private_key": {"id": str(self.private_key.id)},
+                "certificate": {"id": str(self.id)},
+                "chain": {"id": str(certificate_ca_chain_id)},
+                "fullchain": {"id": "%s,%s" % (self.id, certificate_ca_chain_id)},
+            }
+
+        return {
+            "id": str(self.id),
+            "private_key": {
+                "id": str(self.private_key.id),
+                "pem": self.private_key.key_pem,
+            },
+            "certificate": {"id": str(self.id), "pem": self.cert_pem},
+            "chain": {
+                "id": str(certificate_ca_chain_id),
+                "pem": self.valid_cert_chain_pem(
+                    certificate_ca_chain_id=certificate_ca_chain_id
+                ),
+            },
+            "fullchain": {
+                "id": "%s,%s" % (self.id, certificate_ca_chain_id),
+                "pem": self.valid_cert_fullchain_pem(
+                    certificate_ca_chain_id=certificate_ca_chain_id
+                ),
+            },
+        }
+
+    @property
+    def config_payload(self):
+        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=False)
+
+    @property
+    def config_payload_idonly(self):
+        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=True)
+
+    @property
+    def is_can_renew_letsencrypt(self):
+        """only allow renew of LE certificates"""
+        # if self.acme_account_id:
+        #    return True
+        return False
+
+    @property
+    def domains_as_string(self):
+        return self.unique_fqdn_set.domains_as_string
+
+    @property
+    def domains_as_list(self):
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
+
+    @property
+    def renewals_managed_by(self):
+        if self.acme_order:
+            return "AcmeOrder"
+        return "CertificateSigned"
+
+    """
+    @property
+    def backup__private_key_cycle_id(self):
+        if self.acme_order:
+            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
+            if _private_key_cycle__renewal == "account_key_default":
+                 ???
+            return self.acme_order.private_key_cycle_id__renewal
+        else:
+            return model_utils.PrivateKeyCycle.from_string(
+                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
+            )
+    """
+
+    @property
+    def renewal__private_key_cycle_id(self):
+        if self.acme_order:
+            return self.acme_order.private_key_cycle_id__renewal
+        else:
+            return model_utils.PrivateKeyCycle.from_string(
+                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
+            )
+
+    @property
+    def renewal__private_key_strategy_id(self):
+        if self.acme_order:
+            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
+            if _private_key_cycle__renewal != "account_key_default":
+                _private_key_strategy = (
+                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                        _private_key_cycle__renewal
+                    ]
+                )
+            else:
+                _private_key_strategy = (
+                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                        self.acme_order.acme_account.private_key_cycle
+                    ]
+                )
+            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
+        else:
+            return model_utils.PrivateKeyStrategy.from_string(
+                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
+            )
+
+    def valid_certificate_ca_chain(self, certificate_ca_chain_id=None):
+        """return a single CertificateCA, or the default"""
+        for _to_upchain in self.certificate_signed_chains:
+            if _to_upchain.certificate_ca_chain_id == certificate_ca_chain_id:
+                return _to_upchain.certificate_ca_chain
+        raise ValueError("No CertificateCAChain available (?!?!)")
+
+    def valid_cert_chain_pem(self, certificate_ca_chain_id=None):
+        certificate_chain = self.valid_certificate_ca_chain(
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+        return certificate_chain.chain_pem
+
+    def valid_cert_fullchain_pem(self, certificate_ca_chain_id=None):
+        certificate_chain = self.valid_certificate_ca_chain(
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+        # certs are standardized to have a newline
+        return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
+
+    @property
+    def as_json(self):
+        return {
+            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
+            if self.acme_order
+            else None,
+            "domains_as_list": self.domains_as_list,
+            "id": self.id,
+            "is_active": True if self.is_active else False,
+            "is_deactivated": True if self.is_deactivated else False,
+            "is_revoked": True if self.is_revoked else False,
+            "is_compromised_private_key": True
+            if self.is_compromised_private_key
+            else False,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
+            "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
+            "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
+            "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
+            "cert_pem": self.cert_pem,
+            "cert_pem_md5": self.cert_pem_md5,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "fingerprint_sha1": self.fingerprint_sha1,
+            "spki_sha256": self.spki_sha256,
+            "key_technology": self.key_technology,
+            "private_key_id": self.private_key_id,
+            # "acme_account_id": self.acme_account_id,
+            "renewals_managed_by": self.renewals_managed_by,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+        }
+
+
+# ==============================================================================
+
+
+class CertificateSignedChain(Base):
+    """
+    It is possible for alternate chains to be provided for a CertificateSigned
+
+    ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
+    presented the CertificateCAChain as the primary/default chain (``True``), or if
+    the upstream server provided the CertificateCA as an alternate chain.
+    """
+
+    __tablename__ = "certificate_signed_chain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    certificate_signed_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=False
+    )
+    certificate_ca_chain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=False
+    )
+    is_upstream_default = sa.Column(sa.Boolean, nullable=True, default=None)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="CertificateSignedChain.certificate_signed_id==CertificateSigned.id",
+        uselist=False,
+    )
+    certificate_ca_chain = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="CertificateSignedChain.certificate_ca_chain_id==CertificateCAChain.id",
+        uselist=False,
+    )
+
+
+# ==============================================================================
+
+
 class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     """
-    A CoverageAssuranceEvent occurs when a ServerCertificate is deactivated
+    A CoverageAssuranceEvent occurs when a CertificateSigned is deactivated
     """
 
     __tablename__ = "coverage_assurance_event"
     __table_args__ = (
         sa.CheckConstraint(
-            "(private_key_id IS NOT NULL OR server_certificate_id IS NOT NULL OR queue_certificate_id IS NOT NULL)",
+            "(private_key_id IS NOT NULL OR certificate_signed_id IS NOT NULL OR queue_certificate_id IS NOT NULL)",
             name="check_pkey_andor_certs",
         ),
     )
@@ -2206,8 +3078,8 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    certificate_signed_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
     queue_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
@@ -2227,6 +3099,12 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="CoverageAssuranceEvent.certificate_signed_id==CertificateSigned.id",
+        back_populates="coverage_assurance_events",
+        uselist=False,
+    )
     coverage_assurance_event__children = sa_orm_relationship(
         "CoverageAssuranceEvent",
         backref=sa.orm.backref("coverage_assurance_event__parent", remote_side=[id]),
@@ -2240,12 +3118,6 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="CoverageAssuranceEvent.private_key_id==PrivateKey.id",
-        back_populates="coverage_assurance_events",
-        uselist=False,
-    )
-    server_certificate = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="CoverageAssuranceEvent.server_certificate_id==ServerCertificate.id",
         back_populates="coverage_assurance_events",
         uselist=False,
     )
@@ -2284,7 +3156,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
             "private_key_id": self.private_key_id,
-            "server_certificate_id": self.private_key_id,
+            "certificate_signed_id": self.private_key_id,
             "coverage_assurance_event_type": self.coverage_assurance_event_type,
             "coverage_assurance_event_status": self.coverage_assurance_event_status,
             "coverage_assurance_resolution": self.coverage_assurance_resolution,
@@ -2310,15 +3182,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     is_from_queue_domain = sa.Column(
         sa.Boolean, nullable=True, default=None
     )  # ???: deprecation candidate
-
+    certificate_signed_id__latest_single = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    )
+    certificate_signed_id__latest_multi = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    )
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    server_certificate_id__latest_single = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-    server_certificate_id__latest_multi = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2353,6 +3224,16 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
+    certificate_signed__latest_single = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="Domain.certificate_signed_id__latest_single==CertificateSigned.id",
+        uselist=False,
+    )
+    certificate_signed__latest_multi = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="Domain.certificate_signed_id__latest_multi==CertificateSigned.id",
+        uselist=False,
+    )
     domain_autocerts = sa_orm_relationship(
         "DomainAutocert",
         primaryjoin="Domain.id==DomainAutocert.domain_id",
@@ -2370,16 +3251,6 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="domain",
     )
-    server_certificate__latest_single = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="Domain.server_certificate_id__latest_single==ServerCertificate.id",
-        uselist=False,
-    )
-    server_certificate__latest_multi = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="Domain.server_certificate_id__latest_multi==ServerCertificate.id",
-        uselist=False,
-    )
     to_fqdns = sa_orm_relationship(
         "UniqueFQDNSet2Domain",
         primaryjoin="Domain.id==UniqueFQDNSet2Domain.domain_id",
@@ -2393,8 +3264,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         return (
             True
             if (
-                self.server_certificate_id__latest_single
-                or self.server_certificate_id__latest_multi
+                self.certificate_signed_id__latest_single
+                or self.certificate_signed_id__latest_multi
             )
             else False
         )
@@ -2408,17 +3279,17 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
         }
-        if self.server_certificate_id__latest_multi:
+        if self.certificate_signed_id__latest_multi:
             payload["certificate__latest_multi"] = {
-                "id": self.server_certificate_id__latest_multi,
-                "timestamp_not_after": self.server_certificate__latest_multi.timestamp_not_after_isoformat,
-                "expiring_days": self.server_certificate__latest_multi.expiring_days,
+                "id": self.certificate_signed_id__latest_multi,
+                "timestamp_not_after": self.certificate_signed__latest_multi.timestamp_not_after_isoformat,
+                "expiring_days": self.certificate_signed__latest_multi.expiring_days,
             }
-        if self.server_certificate_id__latest_single:
+        if self.certificate_signed_id__latest_single:
             payload["certificate__latest_single"] = {
-                "id": self.server_certificate_id__latest_single,
-                "timestamp_not_after": self.server_certificate__latest_single.timestamp_not_after_isoformat,
-                "expiring_days": self.server_certificate__latest_single.expiring_days,
+                "id": self.certificate_signed_id__latest_single,
+                "timestamp_not_after": self.certificate_signed__latest_single.timestamp_not_after_isoformat,
+                "expiring_days": self.certificate_signed__latest_single.expiring_days,
             }
         return payload
 
@@ -2434,29 +3305,29 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 "domain_name": self.domain_name,
                 "is_active": self.is_active,
             },
-            "server_certificate__latest_single": None,
-            "server_certificate__latest_multi": None,
+            "certificate_signed__latest_single": None,
+            "certificate_signed__latest_multi": None,
         }
         if active_only and not self.is_active:
             return rval
-        if self.server_certificate_id__latest_single:
+        if self.certificate_signed_id__latest_single:
             if id_only:
                 rval[
-                    "server_certificate__latest_single"
-                ] = self.server_certificate__latest_single.config_payload_idonly
+                    "certificate_signed__latest_single"
+                ] = self.certificate_signed__latest_single.config_payload_idonly
             else:
                 rval[
-                    "server_certificate__latest_single"
-                ] = self.server_certificate__latest_single.config_payload
-        if self.server_certificate_id__latest_multi:
+                    "certificate_signed__latest_single"
+                ] = self.certificate_signed__latest_single.config_payload
+        if self.certificate_signed_id__latest_multi:
             if id_only:
                 rval[
-                    "server_certificate__latest_multi"
-                ] = self.server_certificate__latest_multi.config_payload_idonly
+                    "certificate_signed__latest_multi"
+                ] = self.certificate_signed__latest_multi.config_payload_idonly
             else:
                 rval[
-                    "server_certificate__latest_multi"
-                ] = self.server_certificate__latest_multi.config_payload
+                    "certificate_signed__latest_multi"
+                ] = self.certificate_signed__latest_multi.config_payload
         return rval
 
 
@@ -2600,9 +3471,13 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN acme_dns_server_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
+            " CASE WHEN certificate_ca_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
+            " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
             " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN certificate_signed_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN coverage_assurance_event_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
@@ -2613,8 +3488,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " CASE WHEN queue_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
@@ -2640,11 +3513,17 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=True
     )
     acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    ca_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )
+    certificate_ca_chain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    certificate_signed_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
     coverage_assurance_event_id = sa.Column(
         sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
@@ -2658,9 +3537,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     queue_domain_id = sa.Column(
         sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
-    )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
@@ -2693,15 +3569,21 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
-    ca_certificate = sa_orm_relationship(
-        "CACertificate",
-        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="OperationsObjectEvent.certificate_ca_id==CertificateCA.id",
         uselist=False,
         back_populates="operations_object_events",
     )
     certificate_request = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="OperationsObjectEvent.certificate_signed_id==CertificateSigned.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -2736,12 +3618,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
-    server_certificate = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="OperationsObjectEvent.server_certificate_id==ServerCertificate.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="OperationsObjectEvent.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -2761,9 +3637,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class PrivateKey(Base, _Mixin_Timestamps_Pretty):
+class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
-    These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
+    These keys are used to sign CertificateRequests and are the PrivateKey component to a CertificateSigned.
 
     If `acme_account_id__owner` is specified, this key can only be used in combination with that key.
     """
@@ -2771,14 +3647,18 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "private_key"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    key_technology_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
     key_pem = sa.Column(sa.Text, nullable=False)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_compromised = sa.Column(sa.Boolean, nullable=True, default=None)
     count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
-    count_server_certificates = sa.Column(sa.Integer, nullable=True, default=0)
+    count_certificate_signeds = sa.Column(sa.Integer, nullable=True, default=0)
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
     operations_event_id__created = sa.Column(
@@ -2818,17 +3698,17 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         order_by="CertificateRequest.id.desc()",
         back_populates="private_key",
     )
+    certificate_signeds = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="PrivateKey.id==CertificateSigned.private_key_id",
+        order_by="CertificateSigned.id.desc()",
+        back_populates="private_key",
+    )
     coverage_assurance_events = sa_orm_relationship(
         "CoverageAssuranceEvent",
         primaryjoin="PrivateKey.id==CoverageAssuranceEvent.private_key_id",
         back_populates="private_key",
         uselist=True,
-    )
-    server_certificates = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="PrivateKey.id==ServerCertificate.private_key_id",
-        order_by="ServerCertificate.id.desc()",
-        back_populates="private_key",
     )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
@@ -2877,9 +3757,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def key_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (
-            self.key_pem_modulus_md5,
+    def key_spki_search(self):
+        return "type=spki&spki=%s&source=private_key&private_key.id=%s" % (
+            self.spki_sha256,
             self.id,
         )
 
@@ -2892,6 +3772,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         except:
             # it's possible to have no lines if this is the placeholder key
             return "..."
+
+    @property
+    def key_technology(self):
+        if self.key_technology_id:
+            return model_utils.KeyTechnology.as_string(self.key_technology_id)
+        return None
 
     @reify
     def private_key_source(self):
@@ -2909,6 +3795,8 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
             "is_compromised": True if self.is_compromised else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
+            "key_technology": self.key_technology,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "private_key_source": self.private_key_source,
             "private_key_type": self.private_key_type,
@@ -2938,7 +3826,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.CheckConstraint(
             "(CASE WHEN acme_order_id__source IS NOT NULL THEN 1 ELSE 0 END"
             " + "
-            " CASE WHEN server_certificate_id__source IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN certificate_signed_id__source IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN unique_fqdn_set_id__source IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
@@ -2981,8 +3869,8 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     acme_order_id__source = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
-    server_certificate_id__source = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    certificate_signed_id__source = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
     unique_fqdn_set_id__source = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
@@ -2995,8 +3883,8 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     certificate_request_id__generated = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    server_certificate_id__generated = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    certificate_signed_id__generated = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
 
     # let's require this
@@ -3027,6 +3915,18 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="QueueCertificate.certificate_request_id__generated==CertificateRequest.id",
         uselist=False,
     )
+    certificate_signed__generated = sa.orm.relationship(
+        "CertificateSigned",
+        primaryjoin="QueueCertificate.certificate_signed_id__generated==CertificateSigned.id",
+        back_populates="queue_certificate__parent",
+        uselist=False,
+    )
+    certificate_signed__source = sa.orm.relationship(
+        "CertificateSigned",
+        primaryjoin="QueueCertificate.certificate_signed_id__source==CertificateSigned.id",
+        back_populates="queue_certificate__renewal",
+        uselist=False,
+    )
     coverage_assurance_events = sa_orm_relationship(
         "CoverageAssuranceEvent",
         primaryjoin="QueueCertificate.id==CoverageAssuranceEvent.queue_certificate_id",
@@ -3046,18 +3946,6 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     private_key = sa.orm.relationship(
         "PrivateKey",
         primaryjoin="QueueCertificate.private_key_id==PrivateKey.id",
-        uselist=False,
-    )
-    server_certificate__generated = sa.orm.relationship(
-        "ServerCertificate",
-        primaryjoin="QueueCertificate.server_certificate_id__generated==ServerCertificate.id",
-        back_populates="queue_certificate__parent",
-        uselist=False,
-    )
-    server_certificate__source = sa.orm.relationship(
-        "ServerCertificate",
-        primaryjoin="QueueCertificate.server_certificate_id__source==ServerCertificate.id",
-        back_populates="queue_certificate__renewal",
         uselist=False,
     )
     unique_fqdn_set = sa.orm.relationship(
@@ -3108,11 +3996,11 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
             "generated": {
                 "acme_order_id__generated": self.acme_order_id__generated,
                 "certificate_request_id__generated": self.certificate_request_id__generated,
-                "server_certificate_id__generated": self.server_certificate_id__generated,
+                "certificate_signed_id__generated": self.certificate_signed_id__generated,
             },
             "source": {
                 "acme_order_id__source": self.acme_order_id__source,
-                "server_certificate_id__source": self.server_certificate_id__source,
+                "certificate_signed_id__source": self.certificate_signed_id__source,
                 "unique_fqdn_set_id__source": self.unique_fqdn_set_id__source,
             },
         }
@@ -3129,9 +4017,9 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
 
 class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
-    A list of domains to be queued into ServerCertificates.
+    A list of domains to be queued into CertificateSigneds.
     This is only used for batch processing consumer Domains
-    Domains that are included in CertificateRequests or ServerCertificates
+    Domains that are included in CertificateRequests or CertificateSigneds
     The DomainQueue will allow you to queue-up Domain names for management
 
     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3223,422 +4111,6 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
-    """
-    A signed Server Certificate.
-    To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
-
-    The domains will be stored in:
-    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
-    """
-
-    __tablename__ = "server_certificate"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
-    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
-    is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
-    cert_pem = sa.Column(sa.Text, nullable=False)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    cert_subject = sa.Column(sa.Text, nullable=True)
-    cert_issuer = sa.Column(sa.Text, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_deactivated = sa.Column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
-    is_revoked = sa.Column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    is_compromised_private_key = sa.Column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-    timestamp_revoked_upstream = sa.Column(
-        sa.DateTime, nullable=True
-    )  # if set, the cert was reported revoked upstream and this is FINAL
-
-    # as of .40, ServerCertificates do not auto-renew. Instead, AcmeOrders do.
-    # is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
-
-    # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
-
-    # this is the LetsEncrypt key
-    ca_certificate_id__upchain = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
-    )
-
-    # this is the private key
-    private_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
-    )
-
-    # tracking
-    # `use_alter=True` is needed for setup/drop
-    certificate_request_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("certificate_request.id", use_alter=True),
-        nullable=True,
-    )
-    operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_account = sa_orm_relationship(
-        AcmeAccount,
-        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
-        secondary=(
-            """join(AcmeOrder,
-                    AcmeAccount,
-                    AcmeOrder.acme_account_id == AcmeAccount.id
-                    )"""
-        ),
-        # back_populates="server_certificates__issued",
-        uselist=False,
-    )
-    acme_order = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
-        uselist=False,
-        back_populates="server_certificate",
-    )
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="ServerCertificate.certificate_request_id==CertificateRequest.id",
-        back_populates="server_certificates",
-        uselist=False,
-    )
-    certificate_upchain = sa_orm_relationship(
-        "CACertificate",
-        primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
-        uselist=False,
-    )
-    certificate_upchain_alternates = sa_orm_relationship(
-        "ServerCertificateAlternateChain",
-        primaryjoin="ServerCertificate.id==ServerCertificateAlternateChain.server_certificate_id",
-        uselist=True,
-    )
-    coverage_assurance_events = sa_orm_relationship(
-        "CoverageAssuranceEvent",
-        primaryjoin="ServerCertificate.id==CoverageAssuranceEvent.server_certificate_id",
-        back_populates="server_certificate",
-        uselist=True,
-    )
-    operations_event__created = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="ServerCertificate.operations_event_id__created==OperationsEvent.id",
-        uselist=False,
-    )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="ServerCertificate.id==OperationsObjectEvent.server_certificate_id",
-        back_populates="server_certificate",
-    )
-    private_key = sa_orm_relationship(
-        "PrivateKey",
-        primaryjoin="ServerCertificate.private_key_id==PrivateKey.id",
-        uselist=False,
-        back_populates="server_certificates",
-    )
-    unique_fqdn_set = sa_orm_relationship(
-        "UniqueFQDNSet",
-        primaryjoin="ServerCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="server_certificates",
-    )
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    acme_order__renewals = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id__renewal_of",
-        back_populates="server_certificate__renewal_of",
-        uselist=True,
-    )
-    queue_certificate__parent = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="ServerCertificate.id==QueueCertificate.server_certificate_id__generated",
-        back_populates="server_certificate__generated",
-        uselist=True,
-    )
-    queue_certificate__renewal = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="ServerCertificate.id==QueueCertificate.server_certificate_id__source",
-        back_populates="server_certificate__source",
-        uselist=True,
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def cert_pem_modulus_search(self):
-        return "type=modulus&modulus=%s&source=certificate&certificate.id=%s" % (
-            self.cert_pem_modulus_md5,
-            self.id,
-        )
-
-    @property
-    def cert_subject_search(self):
-        return (
-            "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
-            % (self.cert_subject, self.id)
-        )
-
-    @property
-    def cert_issuer_search(self):
-        return (
-            "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
-            % (self.cert_issuer, self.id)
-        )
-
-    @property
-    def cert_chain_pem(self):
-        return self.certificate_upchain.cert_pem
-
-    @property
-    def cert_fullchain_pem(self):
-        return "\n".join((self.cert_pem, self.cert_chain_pem))
-
-    @property
-    def expiring_days(self):
-        if self._expiring_days is None:
-            self._expiring_days = (
-                self.timestamp_not_after - datetime.datetime.utcnow()
-            ).days
-        return self._expiring_days
-
-    _expiring_days = None
-
-    @property
-    def expiring_days_label(self):
-        if self.is_active:
-            if self.expiring_days <= 0:
-                return "danger"
-            elif self.expiring_days <= 30:
-                return "warning"
-            elif self.expiring_days > 30:
-                return "success"
-        return "danger"
-
-    @property
-    def certificate_upchain_alternate_ids(self):
-        certificate_upchain_alternate_ids = [
-            i.ca_certificate_id for i in self.certificate_upchain_alternates
-        ]
-        return certificate_upchain_alternate_ids
-
-    def custom_config_payload(self, ca_cert_id=None, id_only=False):
-        # invoke this to trigger a invalid error
-        dbCaCertificate = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
-
-        # the ids are strings so that the fullchain id can be split by a client without further processing
-
-        if id_only:
-            return {
-                "id": str(self.id),
-                "private_key": {"id": str(self.private_key.id)},
-                "certificate": {"id": str(self.id)},
-                "chain": {"id": str(ca_cert_id)},
-                "fullchain": {"id": "%s,%s" % (self.id, ca_cert_id)},
-            }
-
-        return {
-            "id": str(self.id),
-            "private_key": {
-                "id": str(self.private_key.id),
-                "pem": self.private_key.key_pem,
-            },
-            "certificate": {"id": str(self.id), "pem": self.cert_pem},
-            "chain": {
-                "id": str(ca_cert_id),
-                "pem": self.valid_cert_chain_pem(ca_cert_id=ca_cert_id),
-            },
-            "fullchain": {
-                "id": "%s,%s" % (self.id, ca_cert_id),
-                "pem": self.valid_cert_fullchain_pem(ca_cert_id=ca_cert_id),
-            },
-        }
-
-    @property
-    def config_payload(self):
-        return self.custom_config_payload(ca_cert_id=None, id_only=False)
-
-    @property
-    def config_payload_idonly(self):
-        return self.custom_config_payload(ca_cert_id=None, id_only=True)
-
-    @property
-    def is_can_renew_letsencrypt(self):
-        """only allow renew of LE certificates"""
-        # if self.acme_account_id:
-        #    return True
-        return False
-
-    @property
-    def domains_as_string(self):
-        return self.unique_fqdn_set.domains_as_string
-
-    @property
-    def domains_as_list(self):
-        return self.unique_fqdn_set.domains_as_list
-
-    @property
-    def renewals_managed_by(self):
-        if self.acme_order:
-            return "AcmeOrder"
-        return "ServerCertificate"
-
-    """
-    @property
-    def backup__private_key_cycle_id(self):
-        if self.acme_order:
-            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
-            if _private_key_cycle__renewal == "account_key_default":
-                 ???
-            return self.acme_order.private_key_cycle_id__renewal
-        else:
-            return model_utils.PrivateKeyCycle.from_string(
-                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
-            )
-    """
-
-    @property
-    def renewal__private_key_cycle_id(self):
-        if self.acme_order:
-            return self.acme_order.private_key_cycle_id__renewal
-        else:
-            return model_utils.PrivateKeyCycle.from_string(
-                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
-            )
-
-    @property
-    def renewal__private_key_strategy_id(self):
-        if self.acme_order:
-            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
-            if _private_key_cycle__renewal != "account_key_default":
-                _private_key_strategy = (
-                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
-                        _private_key_cycle__renewal
-                    ]
-                )
-            else:
-                _private_key_strategy = (
-                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
-                        self.acme_order.acme_account.private_key_cycle
-                    ]
-                )
-            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
-        else:
-            return model_utils.PrivateKeyStrategy.from_string(
-                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
-            )
-
-    @reify
-    def valid_certificate_upchain_ids(self):
-        """return a list of all the CaCertificate IDs that can be used as an intermediate"""
-        _allowed_ids = list(
-            set(
-                [
-                    self.ca_certificate_id__upchain,
-                ]
-                + self.certificate_upchain_alternate_ids
-            )
-        )
-        return _allowed_ids
-
-    def valid_certificate_upchain(self, ca_cert_id=None):
-        """return a single CaCertificate, or the default"""
-        if ca_cert_id is None:
-            ca_cert_id = self.ca_certificate_id__upchain
-        if ca_cert_id not in self.valid_certificate_upchain_ids:
-            raise ValueError(
-                "selected CACertificate did not sign this ServerCertificate"
-            )
-        if ca_cert_id == self.ca_certificate_id__upchain:
-            return self.certificate_upchain
-        for _to_upchain in self.certificate_upchain_alternates:
-            if _to_upchain.ca_certificate_id == ca_cert_id:
-                return _to_upchain.ca_certificate
-        raise ValueError("No CaCertificate available (?!?!)")
-
-    def valid_cert_chain_pem(self, ca_cert_id=None):
-        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
-        return certificate_upchain.cert_pem
-
-    def valid_cert_fullchain_pem(self, ca_cert_id=None):
-        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
-        return "\n".join((self.cert_pem, certificate_upchain.cert_pem))
-
-    @property
-    def iter_certificate_upchain(self):
-        yield self.certificate_upchain
-        for dbServerCertificateAlternateChain in self.certificate_upchain_alternates:
-            yield dbServerCertificateAlternateChain.ca_certificate
-
-    @property
-    def as_json(self):
-        return {
-            "id": self.id,
-            "is_active": True if self.is_active else False,
-            "is_deactivated": True if self.is_deactivated else False,
-            "is_revoked": True if self.is_revoked else False,
-            "is_compromised_private_key": True
-            if self.is_compromised_private_key
-            else False,
-            "timestamp_not_after": self.timestamp_not_after_isoformat,
-            "timestamp_not_before": self.timestamp_not_before_isoformat,
-            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
-            "cert_pem": self.cert_pem,
-            "cert_pem_md5": self.cert_pem_md5,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
-            "ca_certificate_id__upchain_alternates": self.certificate_upchain_alternate_ids,
-            "private_key_id": self.private_key_id,
-            # "acme_account_id": self.acme_account_id,
-            "domains_as_list": self.domains_as_list,
-            "renewals_managed_by": self.renewals_managed_by,
-            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
-            if self.acme_order
-            else None,
-        }
-
-
-# ==============================================================================
-
-
-class ServerCertificateAlternateChain(Base):
-    """
-    It is possible for alternate chains to be provided for a ServerCertificate
-    """
-
-    __tablename__ = "server_certificate_alternate_chain"
-    id = sa.Column(sa.Integer, primary_key=True)
-    ca_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
-    )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    ca_certificate = sa_orm_relationship(
-        "CACertificate",
-        primaryjoin="ServerCertificateAlternateChain.ca_certificate_id==CACertificate.id",
-        uselist=False,
-    )
-    server_certificate = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="ServerCertificateAlternateChain.server_certificate_id==ServerCertificate.id",
-        uselist=False,
-    )
-
-
-# ==============================================================================
-
-
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
     There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
@@ -3672,9 +4144,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="UniqueFQDNSet.id==CertificateRequest.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-    server_certificates = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="UniqueFQDNSet.id==ServerCertificate.unique_fqdn_set_id",
+    certificate_signeds = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="UniqueFQDNSet.id==CertificateSigned.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
     to_domains = sa_orm_relationship(
@@ -3907,30 +4379,30 @@ AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
 )
 
 
-# note: AcmeAccount.server_certificates__5
-AcmeAccount.server_certificates__5 = sa_orm_relationship(
-    ServerCertificate,
+# note: AcmeAccount.certificate_signeds__5
+AcmeAccount.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin="AcmeAccount.id==AcmeOrder.acme_account_id",
     secondary=(
         """join(AcmeOrder,
-                ServerCertificate,
-                AcmeOrder.server_certificate_id == ServerCertificate.id
+                CertificateSigned,
+                AcmeOrder.certificate_signed_id == CertificateSigned.id
                 )"""
     ),
     secondaryjoin=(
         sa.and_(
-            ServerCertificate.id == sa.orm.foreign(AcmeOrder.server_certificate_id),
-            ServerCertificate.id.in_(
-                sa.select([ServerCertificate.id])
-                .where(ServerCertificate.id == AcmeOrder.server_certificate_id)
+            CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
+            CertificateSigned.id.in_(
+                sa.select([CertificateSigned.id])
+                .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
                 .where(AcmeOrder.acme_account_id == AcmeAccount.id)
-                .order_by(ServerCertificate.id.desc())
+                .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=ServerCertificate.id.desc(),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 
@@ -4175,18 +4647,18 @@ CertificateRequest.latest_acme_order = sa_orm_relationship(
 )
 
 
-# note: CertificateRequest.server_certificate__latest
-CertificateRequest.server_certificate__latest = sa_orm_relationship(
-    ServerCertificate,
+# note: CertificateRequest.certificate_signed__latest
+CertificateRequest.certificate_signed__latest = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            CertificateRequest.id == ServerCertificate.certificate_request_id,
-            ServerCertificate.id.in_(
-                sa.select([sa.func.max(ServerCertificate.id)])
+            CertificateRequest.id == CertificateSigned.certificate_request_id,
+            CertificateSigned.id.in_(
+                sa.select([sa.func.max(CertificateSigned.id)])
                 .where(
-                    ServerCertificate.certificate_request_id == CertificateRequest.id
+                    CertificateSigned.certificate_request_id == CertificateRequest.id
                 )
-                .where(ServerCertificate.is_active.op("IS")(True))
+                .where(CertificateSigned.is_active.op("IS")(True))
                 .offset(0)
                 .limit(1)
                 .correlate()
@@ -4198,18 +4670,18 @@ CertificateRequest.server_certificate__latest = sa_orm_relationship(
 )
 
 
-# note: CertificateRequest.server_certificates__5
-CertificateRequest.server_certificates__5 = sa_orm_relationship(
-    ServerCertificate,
+# note: CertificateRequest.certificate_signeds__5
+CertificateRequest.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            CertificateRequest.id == ServerCertificate.certificate_request_id,
-            ServerCertificate.id.in_(
-                sa.select([sa.func.max(ServerCertificate.id)])
+            CertificateRequest.id == CertificateSigned.certificate_request_id,
+            CertificateSigned.id.in_(
+                sa.select([sa.func.max(CertificateSigned.id)])
                 .where(
-                    ServerCertificate.certificate_request_id == CertificateRequest.id
+                    CertificateSigned.certificate_request_id == CertificateRequest.id
                 )
-                .order_by(ServerCertificate.id.desc())
+                .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
             ),
@@ -4453,34 +4925,34 @@ Domain.queue_certificates__5 = sa_orm_relationship(
 )
 
 
-# note: Domain.server_certificates__5
-Domain.server_certificates__5 = sa_orm_relationship(
-    ServerCertificate,
+# note: Domain.certificate_signeds__5
+Domain.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
     secondary=(
         """join(UniqueFQDNSet2Domain,
-                ServerCertificate,
-                UniqueFQDNSet2Domain.unique_fqdn_set_id == ServerCertificate.unique_fqdn_set_id
+                CertificateSigned,
+                UniqueFQDNSet2Domain.unique_fqdn_set_id == CertificateSigned.unique_fqdn_set_id
                 )"""
     ),
     secondaryjoin=(
         sa.and_(
-            ServerCertificate.unique_fqdn_set_id
+            CertificateSigned.unique_fqdn_set_id
             == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
-            ServerCertificate.id.in_(
-                sa.select([ServerCertificate.id])
+            CertificateSigned.id.in_(
+                sa.select([CertificateSigned.id])
                 .where(
-                    ServerCertificate.unique_fqdn_set_id
+                    CertificateSigned.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
-                .order_by(ServerCertificate.id.desc())
+                .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=ServerCertificate.id.desc(),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 
@@ -4528,22 +5000,22 @@ PrivateKey.certificate_requests__5 = sa_orm_relationship(
 )
 
 
-# note: PrivateKey.server_certificates__5
-PrivateKey.server_certificates__5 = sa_orm_relationship(
-    ServerCertificate,
+# note: PrivateKey.certificate_signeds__5
+PrivateKey.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            PrivateKey.id == ServerCertificate.private_key_id,
-            ServerCertificate.id.in_(
-                sa.select([ServerCertificate.id])
-                .where(PrivateKey.id == ServerCertificate.private_key_id)
-                .order_by(ServerCertificate.id.desc())
+            PrivateKey.id == CertificateSigned.private_key_id,
+            CertificateSigned.id.in_(
+                sa.select([CertificateSigned.id])
+                .where(PrivateKey.id == CertificateSigned.private_key_id)
+                .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=ServerCertificate.id.desc(),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 
@@ -4570,10 +5042,10 @@ PrivateKey.queue_certificates__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: ServerCertificate.queue_certificates__5
-ServerCertificate.queue_certificates__5 = sa_orm_relationship(
+# note: CertificateSigned.queue_certificates__5
+CertificateSigned.queue_certificates__5 = sa_orm_relationship(
     QueueCertificate,
-    primaryjoin="""ServerCertificate.unique_fqdn_set_id == UniqueFQDNSet.id""",
+    primaryjoin="""CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id""",
     secondary="""join(UniqueFQDNSet,
                       QueueCertificate,
                       UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id
@@ -4583,7 +5055,7 @@ ServerCertificate.queue_certificates__5 = sa_orm_relationship(
             QueueCertificate.id.in_(
                 sa.select([QueueCertificate.id])
                 .where(
-                    ServerCertificate.unique_fqdn_set_id
+                    CertificateSigned.unique_fqdn_set_id
                     == QueueCertificate.unique_fqdn_set_id
                 )
                 .order_by(QueueCertificate.id.desc())
@@ -4640,22 +5112,22 @@ UniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
 )
 
 
-# note: UniqueFQDNSet.server_certificates__5
-UniqueFQDNSet.server_certificates__5 = sa_orm_relationship(
-    ServerCertificate,
+# note: UniqueFQDNSet.certificate_signeds__5
+UniqueFQDNSet.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
-            ServerCertificate.id.in_(
-                sa.select([ServerCertificate.id])
-                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
-                .order_by(ServerCertificate.id.desc())
+            UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
+            CertificateSigned.id.in_(
+                sa.select([CertificateSigned.id])
+                .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
+                .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=ServerCertificate.id.desc(),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 
@@ -4680,13 +5152,13 @@ UniqueFQDNSet.queue_certificates__5 = sa_orm_relationship(
 
 # note: UniqueFQDNSet.latest_certificate
 UniqueFQDNSet.latest_certificate = sa_orm_relationship(
-    ServerCertificate,
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
-            ServerCertificate.id.in_(
-                sa.select([sa.func.max(ServerCertificate.id)])
-                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
+            UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
+            CertificateSigned.id.in_(
+                sa.select([sa.func.max(CertificateSigned.id)])
+                .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
                 .correlate()
             ),
         )
@@ -4697,14 +5169,14 @@ UniqueFQDNSet.latest_certificate = sa_orm_relationship(
 
 # note: UniqueFQDNSet.latest_active_certificate
 UniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
-    ServerCertificate,
+    CertificateSigned,
     primaryjoin=(
         sa.and_(
-            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
-            ServerCertificate.id.in_(
-                sa.select([sa.func.max(ServerCertificate.id)])
-                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
-                .where(ServerCertificate.is_active.op("IS")(True))
+            UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
+            CertificateSigned.id.in_(
+                sa.select([sa.func.max(CertificateSigned.id)])
+                .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
+                .where(CertificateSigned.is_active.op("IS")(True))
                 .correlate()
             ),
         )

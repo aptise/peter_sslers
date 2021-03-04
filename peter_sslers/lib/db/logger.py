@@ -371,7 +371,7 @@ class AcmeLogger(object):
     def log_CertificateProcured(
         self,
         acme_version,
-        dbServerCertificate=None,
+        dbCertificateSigned=None,
         dbCertificateRequest=None,
         transaction_commit=True,
     ):
@@ -379,7 +379,7 @@ class AcmeLogger(object):
         Logs an AcmeOrder as finalized
 
         :param acme_version: (required) The ACME version of the API we are using.
-        :param dbServerCertificate: (required) The :class:`model.objects.ServerCertificate`
+        :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
         :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest`
         :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
@@ -402,7 +402,7 @@ class AcmeLogger(object):
             self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         )
         dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
+        dbAcmeEventLog.certificate_signed_id = dbCertificateSigned.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -465,14 +465,15 @@ def _log_object_event(
     dbAcmeAccountKey=None,
     dbAcmeDnsServer=None,
     dbAcmeOrder=None,
-    dbCACertificate=None,
+    dbCertificateCA=None,
+    dbCertificateCAChain=None,
     dbCertificateRequest=None,
     dbCoverageAssuranceEvent=None,
     dbDomain=None,
     dbPrivateKey=None,
     dbQueueCertificate=None,
     dbQueueDomain=None,
-    dbServerCertificate=None,
+    dbCertificateSigned=None,
     dbUniqueFQDNSet=None,
 ):
     """additional logging for objects"""
@@ -488,8 +489,10 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
     elif dbAcmeDnsServer:
         dbOperationsObjectEvent.acme_dns_server_id = dbAcmeDnsServer.id
-    elif dbCACertificate:
-        dbOperationsObjectEvent.ca_certificate_id = dbCACertificate.id
+    elif dbCertificateCA:
+        dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
+    elif dbCertificateCAChain:
+        dbOperationsObjectEvent.certificate_ca_chain_id = dbCertificateCAChain.id
     elif dbCertificateRequest:
         dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
     elif dbCoverageAssuranceEvent:
@@ -504,8 +507,8 @@ def _log_object_event(
         dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
     elif dbQueueDomain:
         dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
-    elif dbServerCertificate:
-        dbOperationsObjectEvent.server_certificate_id = dbServerCertificate.id
+    elif dbCertificateSigned:
+        dbOperationsObjectEvent.certificate_signed_id = dbCertificateSigned.id
     elif dbUniqueFQDNSet:
         dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
 

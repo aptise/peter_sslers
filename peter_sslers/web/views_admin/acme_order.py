@@ -122,7 +122,7 @@ class View_List(Handler):
         if self.request.wants_json:
             admin_url = self.request.admin_url
             return {
-                "AcmeOrders": [i._as_json(admin_url=admin_url) for i in items_paged],
+                "AcmeOrders": [i.as_json for i in items_paged],
                 "pagination": json_pagination(items_count, pager),
             }
         return {
@@ -155,7 +155,7 @@ class View_List(Handler):
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % base_url
             )
-        # todo: bath this with limits and offsets?
+        # TODO: batch this with limits and offsets?
         items_paged = lib_db.get.get__AcmeOrder__paginated(
             self.request.api_context,
             active_only=True,
@@ -221,7 +221,7 @@ class View_Focus(Handler):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.wants_json:
             return {
-                "AcmeOrder": dbAcmeOrder._as_json(admin_url=self.request.admin_url),
+                "AcmeOrder": dbAcmeOrder.as_json,
             }
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 

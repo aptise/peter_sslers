@@ -34,7 +34,7 @@ def upload_fileset(server_url_root, fset):
     """actually uploads a fileset"""
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = "%s/server-certificate/upload.json" % server_url_root
+    url = "%s/certificate-signed/upload.json" % server_url_root
 
     try:
         with psutil.Popen(
@@ -70,12 +70,19 @@ def upload_fileset(server_url_root, fset):
 
 
 def upload_account(server_url_root, fset):
-    """actually uploads an account fileset"""
+    """
+    actually uploads an account fileset
+    hardcoded to RSA private key preference
+    """
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
     url = "%s/acme-account/upload.json" % server_url_root
 
     try:
+        with open(fset["private_key.json"]) as fp:
+            _contents = fp.read()
+            if '"kty": "RSA"' not in _contents:
+                raise ValueError("This Certbot AccountKey is not supported for import")
         with psutil.Popen(
             [
                 "curl",
@@ -87,6 +94,8 @@ def upload_account(server_url_root, fset):
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
                 "--form",
                 "account__private_key_cycle=single_certificate",
+                "--form",
+                "account__private_key_technology=RSA",
                 url,
             ],
             stdin=subprocess.PIPE,
@@ -283,6 +292,9 @@ def import_certbot_certs_live(live_path, server_url_root):
     filesets = []
 
     for d in dirs:
+        if d == "README":
+            # recent versions of Certbot place a README file
+            continue
         dpath = os.path.join(live_path, d)
         if not os.path.isdir(dpath):
             raise ValueError("`%s` is not a directory" % dpath)

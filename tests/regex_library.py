@@ -90,6 +90,13 @@ RE_AcmeDnsServer_checked = re.compile(
 RE_AcmeDnsServer_ensure_domains_results = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)/ensure-domains-results\?acme-dns-server-accounts=[\d,]+$"""
 )
+RE_AcmeDnsServer_import_domain_success = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server-account/(\d+)\?result=success&operation=import$"""
+)
+RE_AcmeDnsServer_import_domain_existing = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server-account/(\d+)\?result=existing&operation=import$"""
+)
+
 
 # note: AcmeOrder
 
@@ -148,11 +155,19 @@ RE_AcmeOrderless = re.compile(
 )
 
 
-# note: CACertificate
+# note: CertificateCA
 
-RE_CACertificate_uploaded = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
+RE_CertificateCA_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca/(\d+)\?result=success&is_created=\d$"""
 )
+
+# note: CertificateCAChain
+
+RE_CertificateCAChain_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
+)
+
+# note: CoverageAssuranceEvent
 
 RE_CoverageAssuranceEvent_mark = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/coverage-assurance-event/(\d+)\?result=success&operation=mark&action=resolution$"""
@@ -191,12 +206,12 @@ RE_QueueDomain_process_success = re.compile(
 )
 
 
-# note: ServerCertificate
+# note: CertificateSigned
 
-RE_ServerCertificate_main = re.compile(
-    r"""href="/\.well-known/admin/server-certificate/(\d+)"""
+RE_CertificateSigned_main = re.compile(
+    r"""href="/\.well-known/admin/certificate-signed/(\d+)"""
 )
 
-RE_ServerCertificate_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/server-certificate/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+RE_CertificateSigned_operation_nginx_expire = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
 )

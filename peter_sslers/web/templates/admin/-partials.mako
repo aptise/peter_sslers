@@ -57,7 +57,7 @@
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
                     <td><span class="badge">${account.count_acme_orders or ''}</span></td>
-                    <td><span class="badge">${account.count_server_certificates or ''}</span></td>
+                    <td><span class="badge">${account.count_certificate_signeds or ''}</span></td>
                 </tr>
             % endfor
         </tbody>
@@ -391,7 +391,7 @@
                 <th>acme_challenge_id</th>
                 <th>acme_order_id</th>
                 <th>certificate_request_id</th>
-                <th>server_certificate_id</th>
+                <th>certificate_signed_id</th>
             </tr>
         </thead>
         <tbody>
@@ -458,12 +458,12 @@
                     % endif
                 </td>
                 <td>
-                    % if logged.server_certificate_id:
+                    % if logged.certificate_signed_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/server-certificate/${logged.server_certificate_id}"
+                            href="${admin_prefix}/certificate-signed/${logged.certificate_signed_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ServerCertificate-${logged.server_certificate_id}
+                            CertificateSigned-${logged.certificate_signed_id}
                         </a>
                     % endif
                 </td>
@@ -533,7 +533,7 @@
                 "timestamp_finalized",
                 "acme_account_id",
                 "certificate_request_id",
-                "server_certificate_id",
+                "certificate_signed_id",
                 "unique_fqdn_set_id",
                )
         if perspective == 'AcmeOrders':
@@ -611,11 +611,11 @@
                                         CertificateRequest-${acme_order.certificate_request_id}
                                     </a>
                                 % endif
-                            % elif c == 'server_certificate_id':
-                                % if acme_order.server_certificate_id:
-                                    <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
+                            % elif c == 'certificate_signed_id':
+                                % if acme_order.certificate_signed_id:
+                                    <a href="${admin_prefix}/certificate-signed/${acme_order.certificate_signed_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ServerCertificate-${acme_order.server_certificate_id}
+                                        CertificateSigned-${acme_order.certificate_signed_id}
                                     </a>
                                 % endif
                             % elif c == 'unique_fqdn_set_id':
@@ -635,10 +635,50 @@
 </%def>
 
 
+<%def name="table_CertificateCAChains(certificate_ca_chains, perspective=None)">
+    <%
+        cols = ("id",
+                "display_name",
+                "chain_length",
+                "certificate_ca_0_id",
+                "certificate_ca_n_id",
+                "certificate_ca_ids_string",
+               )
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for certificate_ca_chain in certificate_ca_chains:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/certificate-ca-chain/${certificate_ca_chain.id}">
+                                    <span class="glyphicon certificate_ca_chain-file" aria-hidden="true"></span>
+                                    CertificateCAChain-${certificate_ca_chain.id}</a>
+                                % else:
+                                    ${getattr(certificate_ca_chain, c)}
+                                % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_CertificateRequests(certificate_requests, perspective=None)">
     <%
         show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
-        show_certificate = True if perspective in ("ServerCertificate", 'CertificateRequest', ) else False
+        show_certificate = True if perspective in ("CertificateSigned", 'CertificateRequest', ) else False
     %>
     <%
         cols = ("id",
@@ -655,7 +695,7 @@
             cols = [c for c in cols]
         elif perspective == 'PrivateKey':
             cols = [c for c in cols if c != 'private_key_id']
-        elif perspective == 'ServerCertificate':
+        elif perspective == 'CertificateSigned':
             cols = [c for c in cols]
         elif perspective == 'UniqueFQDNSet':
             cols = [c for c in cols if c != 'unique_fqdn_set_id']
@@ -702,6 +742,79 @@
                     % endfor
                 </tr>
             % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>auto-renew?</th>
+                <th>is renewed?</th>
+                <th>timestamp_not_before</th>
+                <th>timestamp_not_after</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for cert in certificates:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/certificate-signed/${cert.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    CertificateSigned-${cert.id}</a>
+                </td>
+                <td>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    % if cert.renewals_managed_by == "AcmeOrder":
+                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
+                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
+                            via AcmeOrder
+                        </div>
+                    % elif cert.renewals_managed_by == "CertificateSigned":
+                        <div class="label label-warning">
+                            unavailable
+                            ## via CertificateSigned
+                        </div>
+                    % endif
+                </td>
+                <td>
+                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
+                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
+                    </div>
+                </td>
+                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${cert.expiring_days_label}">
+                            ${cert.expiring_days} days
+                        </span>
+                    </td>
+                % endif
+                % if show_domains:
+                    <td><code>${cert.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
         </tbody>
     </table>
 </%def>
@@ -754,12 +867,12 @@
                     % endif
                 </td>
                 <td>
-                    % if cae.server_certificate_id:
+                    % if cae.certificate_signed_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/server-certificate/${cae.server_certificate_id}"
+                            href="${admin_prefix}/certificate-signed/${cae.certificate_signed_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ServerCertificate-${cae.server_certificate_id}</a>
+                            CertificateSigned-${cae.certificate_signed_id}</a>
                     % endif
                 </td>
                 <td>
@@ -939,6 +1052,7 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>private_key_type</th>
+                <th>key_technology</th>
                 <th>source</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -963,17 +1077,14 @@
                         </span>
                     % endif
                 </td>
-                <td>
-                    <span class="label label-default">
-                        ${key.private_key_type}
-                    </span>
-                </td>
+                <td><span class="label label-default">${key.private_key_type}</span></td>
+                <td><span class="label label-default">${key.key_technology}</span></td>
                 <td><span class="label label-default">${key.private_key_source}</span></td>
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                 <td><code>${key.key_pem_md5}</code></td>
                 <td><span class="badge">${key.count_active_certificates or ''}</span></td>
                 <td><span class="badge">${key.count_acme_orders or ''}</span></td>
-                <td><span class="badge">${key.count_server_certificates or ''}</span></td>
+                <td><span class="badge">${key.count_certificate_signeds or ''}</span></td>
             </tr>
         % endfor
     </table>
@@ -1036,10 +1147,10 @@
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeOrder-${queue_certificate.acme_order_id__source}</a>
                     % endif
-                    % if queue_certificate.server_certificate_id__source:
-                        <a class="label label-info" href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id__source}">
+                    % if queue_certificate.certificate_signed_id__source:
+                        <a class="label label-info" href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__source}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ServerCertificate-${queue_certificate.server_certificate_id__source}</a>
+                        CertificateSigned-${queue_certificate.certificate_signed_id__source}</a>
                     % endif
                     % if queue_certificate.unique_fqdn_set_id__source:
                         <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id__source}">
@@ -1055,89 +1166,16 @@
                     % endif
                 </td>
                 <td>
-                    % if queue_certificate.server_certificate_id__generated:
-                        <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id__generated}" class="label label-info">
+                    % if queue_certificate.certificate_signed_id__generated:
+                        <a href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__generated}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ServerCertificate-${queue_certificate.server_certificate_id__generated}</a>
+                            CertificateSigned-${queue_certificate.certificate_signed_id__generated}</a>
                     % endif
                 </td>
                 <td><timestamp>${queue_certificate.timestamp_created or ''}</timestamp></td>
                 <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
                 <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
                 <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_ServerCertificates(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>auto-renew?</th>
-                <th>is renewed?</th>
-                <th>timestamp_not_before</th>
-                <th>timestamp_not_after</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
-                % endif
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for cert in certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/server-certificate/${cert.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ServerCertificate-${cert.id}</a>
-                </td>
-                <td>
-                    % if cert.is_revoked:
-                        <span class="label label-danger">
-                            revoked
-                        </span>
-                    % else:
-                        <span class="label label-${'success' if cert.is_active else 'warning'}">
-                            ${'Active' if cert.is_active else 'inactive'}
-                        </span>
-                    % endif
-                </td>
-                <td>
-                    % if cert.renewals_managed_by == "AcmeOrder":
-                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
-                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
-                            via AcmeOrder
-                        </div>
-                    % elif cert.renewals_managed_by == "ServerCertificate":
-                        <div class="label label-warning">
-                            unavailable
-                            ## via ServerCertificate
-                        </div>
-                    % endif
-                </td>
-                <td>
-                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
-                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
-                    </div>
-                </td>
-                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
-                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
-                % if show_expiring_days:
-                    <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                    <td><code>${cert.domains_as_string}</code></td>
-                % endif
             </tr>
         % endfor
         </tbody>
@@ -1208,10 +1246,10 @@
 
 
 <%def name="object_event__object(object_event)">
-    % if object_event.ca_certificate_id:
-        <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ca_certificate_id}">
+    % if object_event.certificate_ca_id:
+        <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.certificate_ca_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            CACertificate-${object_event.ca_certificate_id}
+            CertificateCA-${object_event.certificate_ca_id}
         </a>
     % elif object_event.certificate_request_id:
         <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
@@ -1250,10 +1288,10 @@
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             QueueCertificate-${object_event.queue_certificate_id}
         </a>
-    % elif object_event.server_certificate_id:
-        <a class="label label-info" href="${admin_prefix}/server-certificate/${object_event.server_certificate_id}">
+    % elif object_event.certificate_signed_id:
+        <a class="label label-info" href="${admin_prefix}/certificate-signed/${object_event.certificate_signed_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            ServerCertificate-${object_event.server_certificate_id}
+            CertificateSigned-${object_event.certificate_signed_id}
         </a>
     % elif object_event.unique_fqdn_set_id:
         <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.unique_fqdn_set_id}">
@@ -1324,11 +1362,13 @@
 </%def>
 
 
-<%def name="info_CACertificate()">
-    <h3>What are CA Certificates?</h3>
+<%def name="info_CertificateCA()">
+    <h3>What are CertificateCAs?</h3>
     <p>
-        These are the trusted(?) certs that CertificateAuthorities use to sign your certs.  They are used for building fullchains.
-        Often these are called 'chain.pem'.
+        These are the trusted(?) certs that CertificateAuthorities use to sign your certs.
+        They are used for building chains and fullchains. Trusted ones may be
+        preloaded into your browser or operating system. Often one or more of these
+        are 'chain.pem'.
     </p>
 </%def>
 
@@ -1393,6 +1433,7 @@
                                      >
                                          AcmeAccount-${AcmeAccount_GlobalDefault.id}
                                      </a><br/>
+                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_account_provider.server}</code><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
@@ -1538,12 +1579,12 @@
 </%def>
 
 
-<%def name="formgroup__CACertificateChain_file(show_text=False)">
+<%def name="formgroup__CertificateCA_Chain_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-chain_file">Chain File</label>
         <input class="form-control" type="file" id="f1-chain_file" name="chain_file" />
         <p class="help-block">
-            This should be the public cert of the upstream signer.
+            This should be the public cert chain of the upstream signer.
         </p>
         % if show_text:
             <label for="f1-chain">Chain File [text]</label>
@@ -1556,38 +1597,21 @@
 </%def>
 
 
-<%def name="formgroup__CACertificateChain_bundle_file(CA_CROSS_SIGNED_X=None, CA_AUTH_X=None)">
+<%def name="formgroup__CertificateCA_Cert_file(show_text=False)">
     <div class="form-group clearfix">
-        <label for="f1-isrgrootx1_file">ISRG Root X1</label>
-        <input class="form-control" type="file" id="f1-isrgrootx1_file" name="isrgrootx1_file" />
+        <label for="f1-cert_file">Cert File</label>
+        <input class="form-control" type="file" id="f1-cert_file" name="cert_file" />
         <p class="help-block">
-            As linked to from https://letsencrypt.org/certificates/
+            This should be the public cert of the upstream signer.
         </p>
+        % if show_text:
+            <label for="f1-cert">Cert File [text]</label>
+            <textarea class="form-control" rows="4" name="cert" id="f1-cert"></textarea>
+            <p class="help-block">
+                Alternately, provide text inline.
+            </p>
+        % endif
     </div>
-    <hr/>
-
-    % for xi in CA_AUTH_X:
-        <div class="form-group clearfix">
-            <label for="f1-le_${xi}_auth_file">Let’s Encrypt Authority ${xi}</label>
-            <input class="form-control" type="file" id="f1-le_${xi}_auth_file" name="le_${xi}_auth_file" />
-            <p class="help-block">
-                As linked to from https://letsencrypt.org/certificates/
-            </p>
-        </div>
-        <hr/>
-    % endfor
-
-    % for xi in CA_CROSS_SIGNED_X:
-        <div class="form-group clearfix">
-            <label for="f1-le_${xi}_cross_signed_file">Let’s Encrypt Authority ${xi} (IdenTrust cross-signed)</label>
-            <input class="form-control" type="file" id="f1-le_${xi}_cross_signed_file" name="le_${xi}_cross_signed_file" />
-            <p class="help-block">
-                As linked to from https://letsencrypt.org/certificates/
-            </p>
-        </div>
-        <hr/>
-    % endfor
-
 </%def>
 
 
@@ -1766,7 +1790,7 @@
             <tr><td>
                 <p class="help-block">
                     Upload a RSA PrivateKey in PEM format.
-                    This will be used to sign CertificateRequests and is required for ServerCertificate deployment.
+                    This will be used to sign CertificateRequests and is required for CertificateSigned deployment.
                     The key will be saved into the system.
                 </p>
                 <table class="table table-condensed table-striped">
@@ -1835,7 +1859,7 @@
             <a  href="${admin_prefix}/api/deactivate-expired"
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Deactivate Expired ServerCertificates</a></li>
+             Deactivate Expired CertificateSigneds</a></li>
         <li class="${'active' if active =='/api/update-recents' else ''}">
             <a  href="${admin_prefix}/api/update-recents"
             >
@@ -1895,11 +1919,6 @@
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
                 Operations Log: Nginx</a></li>
         % endif
-        <li class="${'active' if active =='/operations/ca-certificate-downloads' else ''}">
-            <a  href="${admin_prefix}/operations/ca-certificate-downloads"
-            >
-            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CA Certificate Downloads</a></li>
         <li class="${'active' if active =='/operations/object-log' else ''}">
             <a  href="${admin_prefix}/operations/object-log"
             >

@@ -168,21 +168,21 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:private_key:focus:server_certificates",
-        renderer="/admin/private_key-focus-server_certificates.mako",
+        route_name="admin:private_key:focus:certificate_signeds",
+        renderer="/admin/private_key-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:private_key:focus:server_certificates_paginated",
-        renderer="/admin/private_key-focus-server_certificates.mako",
+        route_name="admin:private_key:focus:certificate_signeds_paginated",
+        renderer="/admin/private_key-focus-certificate_signeds.mako",
     )
-    def related__ServerCertificates(self):
+    def related__CertificateSigneds(self):
         dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_PrivateKeyId__count(
+        items_count = lib_db.get.get__CertificateSigned__by_PrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id
         )
-        url_template = "%s/server-certificates/{0}" % self._focus_url
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
+        items_paged = lib_db.get.get__CertificateSigned__by_PrivateKeyId__paginated(
             self.request.api_context,
             dbPrivateKey.id,
             limit=items_per_page,
@@ -191,8 +191,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "PrivateKey": dbPrivateKey,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 
@@ -309,7 +309,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
 
                 else:
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
@@ -379,7 +379,6 @@ class View_New(Handler):
             try:
                 dbPrivateKey = lib_db.create.create__PrivateKey(
                     self.request.api_context,
-                    # bits=4096,
                     private_key_source_id=model_utils.PrivateKeySource.from_string(
                         "generated"
                     ),

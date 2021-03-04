@@ -150,6 +150,14 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
         not_empty=True,
     )
 
+    # this is the `private_key_technology` of the AcmeAccount
+    # this is not required on Upload, only New
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=False,
+        if_missing=None,
+    )
+
     # these are via Form_AcmeAccount_new__file
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_meta = FieldStorageUploadConverter(
@@ -193,6 +201,12 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
         not_empty=True,
     )
 
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=True,
+    )
+
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=True, if_missing=None)
@@ -201,6 +215,12 @@ class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     # this is the `private_key_cycle` of the AcmeAccount
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+        not_empty=True,
+    )
+
+    # this is the `private_key_technology` of the AcmeAccount
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
         not_empty=True,
     )
 
@@ -217,6 +237,14 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
         not_empty=True,
+    )
+
+    # this is the `private_key_technology` of the AcmeAccount
+    # this is not required on Upload, only New
+    account__private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=False,
+        if_missing=None,
     )
 
     # if this isn't provided...
@@ -264,6 +292,16 @@ class Form_AcmeDnsServer_edit(_Form_Schema_Base):
 
 class Form_AcmeDnsServer_ensure_domains(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
+
+
+class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True)
+    # acme-dns fields:
+    username = UnicodeString(not_empty=True)
+    password = UnicodeString(not_empty=True)
+    fulldomain = UnicodeString(not_empty=True)
+    subdomain = UnicodeString(not_empty=True)
+    allowfrom = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
@@ -368,26 +406,29 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_CACertificate_Upload__file(_Form_Schema_Base):
+class Form_CertificateCAPreference__add(_Form_Schema_Base):
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+
+
+class Form_CertificateCAPreference__delete(_Form_Schema_Base):
+    slot = Int(not_empty=True)
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+
+
+class Form_CertificateCAPreference__prioritize(_Form_Schema_Base):
+    slot = Int(not_empty=True)
+    fingerprint_sha1 = UnicodeString(not_empty=True)
+    priority = OneOf(("increase", "decrease"), not_empty=True)
+
+
+class Form_CertificateCA_Upload_Cert__file(_Form_Schema_Base):
+    cert_file = FieldStorageUploadConverter(not_empty=True)
+    cert_file_name = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_CertificateCAChain_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)
-
-
-class Form_CACertificate_UploadBundle__file(_Form_Schema_Base):
-    isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-
-
-for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
-    Form_CACertificate_UploadBundle__file.add_field(
-        "le_%s_cross_signed_file" % xi,
-        FieldStorageUploadConverter(not_empty=False, if_missing=None),
-    )
-
-for xi in letsencrypt_info.CA_AUTH_X:
-    Form_CACertificate_UploadBundle__file.add_field(
-        "le_%s_auth_file" % xi,
-        FieldStorageUploadConverter(not_empty=False, if_missing=None),
-    )
 
 
 class Form_Certificate_Upload__file(_Form_Schema_Base):
@@ -468,13 +509,13 @@ class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
     queue_source = OneOf(
         (
             "AcmeOrder",
-            "ServerCertificate",
+            "CertificateSigned",
             "UniqueFQDNSet",
         ),
         not_empty=True,
     )
     acme_order = Int(not_empty=False, if_missing=None)
-    server_certificate = Int(not_empty=False, if_missing=None)
+    certificate_signed = Int(not_empty=False, if_missing=None)
     unique_fqdn_set = Int(not_empty=False, if_missing=None)
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
@@ -485,7 +526,7 @@ class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
 
     chained_validators = [
         OnlyOneOf(
-            ("acme_order", "server_certificate", "unique_fqdn_set"), not_empty=True
+            ("acme_order", "certificate_signed", "unique_fqdn_set"), not_empty=True
         )
     ]
 
@@ -519,7 +560,7 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_ServerCertificate_mark(_Form_Schema_Base):
+class Form_CertificateSigned_mark(_Form_Schema_Base):
     action = OneOf(
         (
             "active",

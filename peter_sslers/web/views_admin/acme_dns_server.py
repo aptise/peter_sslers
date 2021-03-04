@@ -9,14 +9,11 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
-try:
-    import pyacmedns
-except ImportError:
-    pyacmedns = None
 import requests
 import sqlalchemy
 
 # localapp
+from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...model import utils as model_utils
 from ..lib import formhandling
@@ -24,6 +21,7 @@ from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.forms import Form_AcmeDnsServer_mark
 from ..lib.forms import Form_AcmeDnsServer_edit
 from ..lib.forms import Form_AcmeDnsServer_ensure_domains
+from ..lib.forms import Form_AcmeDnsServer_import_domain
 from ..lib.handler import Handler
 from ..lib.handler import json_pagination
 from ...lib import utils
@@ -273,7 +271,7 @@ class View_Focus(Handler):
     def _ensure_domains__submit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         try:
-            if pyacmedns is None:
+            if lib_acmedns.pyacmedns is None:
                 raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -307,7 +305,7 @@ class View_Focus(Handler):
                 )
 
             # initialize a client
-            client = pyacmedns.Client(dbAcmeDnsServer.root_url)
+            client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
 
             dbAcmeDnsServerAccounts = []
             for _domain_name in domain_names:
@@ -409,6 +407,132 @@ class View_Focus(Handler):
         except:
             raise
 
+    @view_config(route_name="admin:acme_dns_server:focus:import_domain", renderer=None)
+    @view_config(
+        route_name="admin:acme_dns_server:focus:import_domain|json", renderer="json"
+    )
+    def import_domain(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+        if self.request.method == "POST":
+            return self._import_domain__submit()
+        return self._import_domain__print()
+
+    def _import_domain__print(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    "HTTP POST required",
+                ],
+                "form_fields": {
+                    "domain_name": "The domain name",
+                    "username": "The acme-dns username",
+                    "password": "The acme-dns password",
+                    "fulldomain": "The acme-dns fulldomain",
+                    "subdomain": "The acme-dns subdomain",
+                    "allowfrom": "The acme-dns allowfrom",
+                },
+                "notes": [],
+                "valid_options": {},
+            }
+        # quick setup, we need a bunch of options for dropdowns...
+        return render_to_response(
+            "/admin/acme_dns_server-focus-import_domain.mako",
+            {"AcmeDnsServer": dbAcmeDnsServer},
+            self.request,
+        )
+
+    def _import_domain__submit(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
+        try:
+            if lib_acmedns.pyacmedns is None:
+                raise formhandling.FormInvalid("`pyacmedns` is not installed")
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeDnsServer_import_domain,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            for test_domain in ("domain_name", "fulldomain"):
+                try:
+                    # this function checks the domain names match a simple regex
+                    domain_name = utils.domains_from_string(
+                        formStash.results[test_domain]
+                    )
+                except ValueError as exc:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field=test_domain, message="invalid domain names detected"
+                    )
+                if not domain_name:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field=test_domain,
+                        message="invalid or no valid domain names detected",
+                    )
+                if len(domain_name) != 1:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field=test_domain,
+                        message="Only 1 domain accepted here.",
+                    )
+
+            # ensure we have a domain!
+            domain_name = formStash.results["domain_name"]
+            (
+                _dbDomain,
+                _is_created__domain,
+            ) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                self.request.api_context, domain_name, is_from_queue_domain=False
+            )
+            _dbAcmeDnsServerAccount = None
+            _is_created__account = None
+            if not _is_created__domain:
+                _dbAcmeDnsServerAccount = (
+                    lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+                        self.request.api_context,
+                        acme_dns_server_id=dbAcmeDnsServer.id,
+                        domain_id=_dbDomain.id,
+                    )
+                )
+            if not _dbAcmeDnsServerAccount:
+                _dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
+                    self.request.api_context,
+                    dbAcmeDnsServer=dbAcmeDnsServer,
+                    dbDomain=_dbDomain,
+                    username=formStash.results["username"],
+                    password=formStash.results["password"],
+                    fulldomain=formStash.results["fulldomain"],
+                    subdomain=formStash.results["subdomain"],
+                    allowfrom=formStash.results["allowfrom"] or "[]",
+                )
+                _is_created__account = True
+
+            if self.request.wants_json:
+                result_matrix = encode_AcmeDnsServerAccounts(
+                    [
+                        _dbAcmeDnsServerAccount,
+                    ]
+                )
+                result_matrix[_dbDomain.domain_name]["result"] = (
+                    "success" if _is_created__account else "existing"
+                )
+                return {"result": "success", "result_matrix": result_matrix}
+
+            url_success = "%s/acme-dns-server-account/%s?result=%s&operation=import" % (
+                self.request.admin_url,
+                _dbAcmeDnsServerAccount.id,
+                "success" if _is_created__account else "existing",
+            )
+            return HTTPSeeOther(url_success)
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._import_domain__print)
+
 
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_dns_server:focus:mark", renderer=None)
@@ -476,7 +600,7 @@ class View_Focus_Manipulate(View_Focus):
                         event_alt = alt_info["event_alt"]
 
                 else:
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

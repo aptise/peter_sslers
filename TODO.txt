@@ -1,6 +1,10 @@
 Not Finished Yet
 ===============
 
+[ ] Trigger invalid "no row for one" when adding a CA Preference
+[ ] Endpoint Docs for the CA Preference
+
+
 Almost done:
 ------------
 
@@ -15,24 +19,49 @@ Audit/Remove "todo" markers
 asap tasks
 ---------------
 
+
+	* shortcut to creating an order from a domain
+
+	UNDECIDED
+	* CertificateCAPreferences -> CertificateCAChainPreference
+	  This would pin the chain, which is possibly not something we want to do
+	  It may be best to keep this as-is, then try to find the shortest compatible chain
+			
+
+
 TESTS:
+	unit
+		* add a test to ensure chains/fullchains do not have blank lines
+		* add a test to ensure chain direction
+
 	AcmeAccount
-		submit a different key for an existing contact
+		* upload: a duplicate key
+		* new: submit a different key for an existing contact on the acme server
+		* new: submit a new key for an existing contact on the acme server
 
 	api/domain/autocert
 		test against different strategies to ensure correct behavior
 		- dogpile defense
 		- repeat request, correct data
-
+		
+	Add a unit test to ensure every object with an `.as_json` property can be encoded.
+		Context: AcmeOrder.as_json has an `acme_process_steps` method
+			     `acme_process_steps` did not properly encode an AcmeAuthorization item
+			     This caused AcmeOrder to not encode, but the tracebacks buried the underlying
+			     cause of this. A direct test should prevent this from happening again.
+	
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
 		??xx?? add "is_via_emergency"
 
-* CA Certificates / AcmeOrders
-** if the fullchain has more than one certificate, track it as an intermediary
-** should CA Certificates just be normal certificates with a flag?
 
+ensure_chain_order 
+	The pure-python does not correctly ensure the chain order. it just looks at the subject/issuer for matches
+ensure_chain
+	not leveraged yet
+
+* CertificateCAs / AcmeOrders
 * integrate ALEMEBIC and migrate the database_migrations file to it
 
 ====
@@ -42,7 +71,7 @@ EDIT:
 	- include an offset of the last domain added, so there isn't a race condition
 	- before creating an acme-order, run a HTTP test on all the domains(!) to ensure it works
 
-* ServerCertificate
+* CertificateSigned
 	* TESTS
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
@@ -75,14 +104,8 @@ EDIT:
 		/.well-known/admin/acme-order/{ID}/renew/custom
 			list the challenge types
 
-
-
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
-
-* AcmeOrder
-	- create an endpoint to sync all pending orders against ACME server
-	- this is needed on testing and large installs
 
 * UniqueFQDNSet
 	- allow a set to be decomposed into one or more sets
@@ -94,8 +117,7 @@ EDIT:
 
 * cert_utils
 	figure out how to emulate openssl's `--text` with crypto in `parse_key`
-
-* search expiring soon | note: isn't this the `/server-certificates/expiring` view?
+* search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging
 * associate all objects to one another when imported; only some objects are currently associated

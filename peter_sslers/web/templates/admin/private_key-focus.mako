@@ -32,7 +32,6 @@
 
     <div class="row">
         <div class="col-sm-12">
-            ${admin_partials.handle_querystring_result()}
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
@@ -161,28 +160,37 @@
                         <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_server_certificates</th>
-                        <td><span class="badge">${PrivateKey.count_server_certificates or ''}</span></td>
+                        <th>count_certificate_signeds</th>
+                        <td><span class="badge">${PrivateKey.count_certificate_signeds or ''}</span></td>
+                    </tr>
+                    <tr>
+                        <th>key_technology</th>
+                        <td>
+                            <span class="label label-default">
+                                ${PrivateKey.key_technology}
+                            </span>
+                        </td>
                     </tr>
                     <tr>
                         <th>key_pem_md5</th>
                         <td><code>${PrivateKey.key_pem_md5}</code></td>
                     </tr>
                     <tr>
-                        <th>key_pem_modulus_md5</th>
+                        <th>spki_sha256</th>
                         <td>
                             % if not PrivateKey.is_placeholder:
-                                <code>${PrivateKey.key_pem_modulus_md5}</code>
+                                <code>${PrivateKey.spki_sha256}</code>
                                 <a
                                     class="btn btn-xs btn-info"
-                                    href="${admin_prefix}/search?${PrivateKey.key_pem_modulus_search}"
+                                    href="${admin_prefix}/search?${PrivateKey.key_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                 </a>
+                            % else:
+                                <code>key is placeholder</code>
                             % endif
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
                         <th>key_pem</th>
                         <td>
@@ -195,6 +203,7 @@
                             % endif
                         </td>
                     </tr>
+                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
                         <th>AcmeAccount Owner</th>
                         <td>
@@ -221,11 +230,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>ServerCertificates</th>
+                        <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(PrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if PrivateKey.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/server-certificates" % (admin_prefix, PrivateKey.id))}
+                            ${admin_partials.table_CertificateSigneds(PrivateKey.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % if PrivateKey.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/private-key/%s/certificate-signeds" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>

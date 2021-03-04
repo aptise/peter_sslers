@@ -12,6 +12,7 @@ import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
+import six
 import sqlalchemy
 
 # localapp
@@ -24,12 +25,13 @@ from ...model import objects as model_objects
 from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__PrivateKey
-from .create import create__ServerCertificate
+from .create import create__CertificateSigned
 from .get import get__AcmeAccountProvider__by_server
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
-from .get import get__CACertificate__by_pem_text
+from .get import get__CertificateCA__by_pem_text
+from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlocklisted__by_name
@@ -39,7 +41,6 @@ from .get import get__PrivateKey_CurrentWeek_AcmeAccount
 from .get import get__PrivateKey_CurrentWeek_Global
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
-from .helpers import _certificate_parse_to_record
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeDnsServer__set_global_default
 from .validate import validate_domain_names
@@ -61,6 +62,7 @@ def getcreate__AcmeAccount(
     account_url=None,
     event_type="AcmeAccount__insert",
     private_key_cycle_id=None,
+    private_key_technology_id=None,
 ):
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
@@ -86,6 +88,7 @@ def getcreate__AcmeAccount(
     :param terms_of_service: (optional)
     :param account_url: (optional)
     :param private_key_cycle_id: (required) id corresponding to a :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology_id: (required) id corresponding to a :class:`model.utils.KeyTechnology`
     """
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError(
@@ -106,12 +109,24 @@ def getcreate__AcmeAccount(
     else:
         raise ValueError("invalid `event_type`")
 
+    # KeyCycle
     if private_key_cycle_id is None:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount
         )
     if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
         raise ValueError("invalid `private_key_cycle_id`")
+
+    # KeyTechnology
+    if private_key_technology_id is None:
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount
+        )
+    if (
+        private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
+    ):
+        raise ValueError("invalid `private_key_technology_id`")
 
     # scoping
     _letsencrypt_data = None
@@ -227,7 +242,7 @@ def getcreate__AcmeAccount(
             raise errors.ConflictingObject(
                 (
                     dbAcmeAccount,
-                    "The submitted AcmeAccountProvider and contact ino is already associated with another AcmeAccountKey.",
+                    "The submitted AcmeAccountProvider and contact info is already associated with another AcmeAccountKey.",
                 )
             )
     elif dbAcmeAccountKey:
@@ -238,14 +253,19 @@ def getcreate__AcmeAccount(
             )
         )
 
+    # scoping
+    key_technology = None
+    acckey__spki_sha256 = None
     try:
         _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-        # validate
-        cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
+        # validate + grab the technology
+        key_technology = cert_utils.validate_key(
+            key_pem=key_pem, key_pem_filepath=_tmpfile.name
+        )
 
-        # grab the modulus
-        key_pem_modulus_md5 = cert_utils.modulus_md5_key(
+        # grab the spki
+        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name,
         )
@@ -271,6 +291,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.account_url = account_url
     dbAcmeAccount.acme_account_provider_id = acme_account_provider_id
     dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
+    dbAcmeAccount.private_key_technology_id = private_key_technology_id
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
@@ -281,7 +302,10 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.timestamp_created = ctx.timestamp
     dbAcmeAccountKey.key_pem = key_pem
     dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-    dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+    dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
+        key_technology
+    )
+    dbAcmeAccountKey.spki_sha256 = acckey__spki_sha256
     dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
     ctx.dbSession.add(dbAcmeAccountKey)
@@ -664,28 +688,97 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__CACertificate__by_pem_text(
+def getcreate__CertificateCAChain__by_pem_text(
+    ctx,
+    chain_pem,
+    display_name=None,
+):
+    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
+    if len(chain_certs) < 1:
+        raise ValueError("Did not find at least 1 Certificate in this Chain.")
+    is_created = False
+    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
+
+    # Ensure the certificate chain is structured front to back
+    # this will raise an error
+    if len(chain_certs) > 1:
+        cert_utils.ensure_chain_order(chain_certs)
+
+    if not dbCertificateCAChain:
+        chain_pem_md5 = utils.md5_text(chain_pem)
+        dbCertificateCAs = []
+        for cert_pem in chain_certs:
+            (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
+                ctx, cert_pem, display_name=display_name
+            )
+            dbCertificateCAs.append(_dbCertificateCA)
+
+        # bookkeeping
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string("CertificateCAChain__insert"),
+        )
+
+        dbCertificateCAChain = model_objects.CertificateCAChain()
+        dbCertificateCAChain.display_name = display_name or "discovered"
+        dbCertificateCAChain.timestamp_created = ctx.timestamp
+        dbCertificateCAChain.chain_pem = chain_pem
+        dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
+        dbCertificateCAChain.certificate_ca_0_id = dbCertificateCAs[0].id
+        dbCertificateCAChain.certificate_ca_n_id = dbCertificateCAs[-1].id
+        dbCertificateCAChain.chain_length = len(dbCertificateCAs)
+        dbCertificateCAChain.certificate_ca_ids_string = ",".join(
+            [str(i.id) for i in dbCertificateCAs]
+        )
+        dbCertificateCAChain.operations_event_id__created = dbOperationsEvent.id
+        ctx.dbSession.add(dbCertificateCAChain)
+        ctx.dbSession.flush(objects=[dbCertificateCAChain])
+        is_created = True
+
+        event_payload_dict["certificate_ca_chain.id"] = dbCertificateCAChain.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "CertificateCAChain__insert"
+            ),
+            dbCertificateCAChain=dbCertificateCAChain,
+        )
+
+    return (dbCertificateCAChain, is_created)
+
+
+def getcreate__CertificateCA__by_pem_text(
     ctx,
     cert_pem,
-    ca_chain_name=None,
-    le_authority_name=None,
-    is_authority_certificate=None,
-    is_cross_signed_authority_certificate=None,
+    display_name=None,
+    is_trusted_root=None,
+    key_technology_id=None,
 ):
     """
-    Gets or Creates CACertificates
+    Gets or Creates CertificateCAs
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
-    :param ca_chain_name:
-    :param le_authority_name:
-    :param is_authority_certificate:
-    :param is_cross_signed_authority_certificate:
+    :param display_name: a name to display this as
+    :param is_trusted_root:
+    :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
+
     """
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    _certs = cert_utils.split_pem_chain(cert_pem)  # this will clean it
+    if len(_certs) > 1:
+        raise ValueError("More than 1 Certificate in this PEM.")
+    elif len(_certs) != 1:
+        raise ValueError("Did not find 1 Certificate in this PEM.")
     is_created = False
-    dbCACertificate = get__CACertificate__by_pem_text(ctx, cert_pem)
-    if not dbCACertificate:
-        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
+    if not dbCertificateCA:
         cert_pem_md5 = utils.md5_text(cert_pem)
         try:
             _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
@@ -693,48 +786,57 @@ def getcreate__CACertificate__by_pem_text(
             # validate
             cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name)
 
-            # grab the modulus
-            _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-                cert_pem=cert_pem,
-                cert_pem_filepath=_tmpfile.name,
+            _key_technology = cert_utils.parse_cert__key_technology(
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
             )
+            _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
+            if key_technology_id is None:
+                key_technology_id = _key_technology_id
+            else:
+                if key_technology_id != _key_technology_id:
+                    raise ValueError(
+                        "Detected a different `key_technology_id` than submitted"
+                    )
 
             # bookkeeping
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string("CaCertificate__insert"),
+                model_utils.OperationsEventType.from_string("CertificateCA__insert"),
             )
 
-            dbCACertificate = model_objects.CACertificate()
-            dbCACertificate.name = ca_chain_name or "unknown"
-
-            dbCACertificate.le_authority_name = le_authority_name
-            dbCACertificate.is_ca_certificate = True
-            dbCACertificate.is_authority_certificate = is_authority_certificate
-            dbCACertificate.is_cross_signed_authority_certificate = (
-                is_cross_signed_authority_certificate
-            )
-            dbCACertificate.id_cross_signed_of = None
-            dbCACertificate.timestamp_created = ctx.timestamp
-            dbCACertificate.cert_pem = cert_pem
-            dbCACertificate.cert_pem_md5 = cert_pem_md5
-            dbCACertificate.cert_pem_modulus_md5 = _cert_pem_modulus_md5
+            dbCertificateCA = model_objects.CertificateCA()
+            dbCertificateCA.display_name = display_name or "unknown"
+            dbCertificateCA.key_technology_id = key_technology_id
+            dbCertificateCA.is_trusted_root = is_trusted_root
+            dbCertificateCA.id_cross_signed_by = None
+            dbCertificateCA.timestamp_created = ctx.timestamp
+            dbCertificateCA.cert_pem = cert_pem
+            dbCertificateCA.cert_pem_md5 = cert_pem_md5
 
             _cert_data = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
             )
-            dbCACertificate.timestamp_not_before = _cert_data["startdate"]
-            dbCACertificate.timestamp_not_after = _cert_data["enddate"]
-            dbCACertificate.cert_subject = _cert_data["subject"]
-            dbCACertificate.cert_issuer = _cert_data["issuer"]
-            dbCACertificate.operations_event_id__created = dbOperationsEvent.id
+            dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
+            dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
+            dbCertificateCA.cert_subject = _cert_data["subject"]
+            dbCertificateCA.cert_issuer = _cert_data["issuer"]
+            dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
+            dbCertificateCA.key_technology_id = model_utils.KeyTechnology.from_string(
+                _cert_data["key_technology"]
+            )
+            dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
+            dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
+            dbCertificateCA.cert_authority_key_identifier = _cert_data[
+                "authority_key_identifier"
+            ]
+            dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
 
-            ctx.dbSession.add(dbCACertificate)
-            ctx.dbSession.flush(objects=[dbCACertificate])
+            ctx.dbSession.add(dbCertificateCA)
+            ctx.dbSession.flush(objects=[dbCertificateCA])
             is_created = True
 
-            event_payload_dict["ca_certificate.id"] = dbCACertificate.id
+            event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -742,9 +844,9 @@ def getcreate__CACertificate__by_pem_text(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "CaCertificate__insert"
+                    "CertificateCA__insert"
                 ),
-                dbCACertificate=dbCACertificate,
+                dbCertificateCA=dbCertificateCA,
             )
 
         except Exception as exc:
@@ -752,7 +854,7 @@ def getcreate__CACertificate__by_pem_text(
         finally:
             _tmpfile.close()
 
-    return (dbCACertificate, is_created)
+    return (dbCertificateCA, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -763,7 +865,7 @@ def getcreate__CertificateRequest__by_pem_text(
     csr_pem,
     certificate_request_source_id=None,
     dbPrivateKey=None,
-    dbServerCertificate__issued=None,
+    dbCertificateSigned__issued=None,
     domain_names=None,
 ):
     """
@@ -779,7 +881,7 @@ def getcreate__CertificateRequest__by_pem_text(
     :param csr_pem:
     :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbServerCertificate__issued: (required) The :class:`model.objects.ServerCertificate` this issued as
+    :param dbCertificateSigned__issued: (required) The :class:`model.objects.CertificateSigned` this issued as
     :param domain_names: (required) A list of fully qualified domain names
 
     log__OperationsEvent takes place in `create__CertificateRequest`
@@ -792,12 +894,187 @@ def getcreate__CertificateRequest__by_pem_text(
             csr_pem,
             certificate_request_source_id=certificate_request_source_id,
             dbPrivateKey=dbPrivateKey,
-            dbServerCertificate__issued=dbServerCertificate__issued,
+            dbCertificateSigned__issued=dbCertificateSigned__issued,
             domain_names=domain_names,
         )
         is_created = True
 
     return (dbCertificateRequest, is_created)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__CertificateSigned(
+    ctx,
+    cert_pem,
+    cert_domains_expected=None,
+    is_active=None,
+    dbAcmeOrder=None,
+    dbCertificateCAChain=None,
+    dbCertificateCAChains_alt=None,
+    dbCertificateRequest=None,
+    dbPrivateKey=None,
+    dbUniqueFQDNSet=None,
+):
+    """
+    getcreate wrapping issued certs
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param cert_pem: (required) The certificate in PEM encoding
+    :param cert_domains_expected: (required) a list of domains in the cert we
+      expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate
+      when uploading unless specified.
+
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
+      certificate was generated through. If provivded, do not submit
+      `dbCertificateRequest` or `dbPrivateKey`
+    :param dbCertificateCAChain: (required) The upstream
+       :class:`model.objects.CertificateCAChain` that signed the certificate
+    :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
+      :class:`model.objects.CertificateCAChain`s that signed this certificate
+    :param dbCertificateRequest: (optional) The
+      :class:`model.objects.CertificateRequest` the certificate was generated
+      through. If provivded, do not submit `dbAcmeOrder`.
+    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
+      signed the certificate
+    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or
+      `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet`
+      representing domains on the certificate.
+
+    returns:
+    tuple (dbCertificateSigned, is_created)
+    """
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        raise ValueError(
+            "getcreate__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+        )
+    if dbUniqueFQDNSet:
+        if any(
+            (
+                dbAcmeOrder,
+                dbCertificateRequest,
+            )
+        ):
+            raise ValueError(
+                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+            )
+
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        if not dbUniqueFQDNSet:
+            raise ValueError(
+                "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
+            )
+
+    if not all(
+        (
+            cert_pem,
+            dbCertificateCAChain,
+            dbPrivateKey,
+        )
+    ):
+        raise ValueError(
+            "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCAChain, dbPrivateKey)"
+        )
+
+    is_created = None
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem_md5 = utils.md5_text(cert_pem)
+
+    # make sure the Certificate Elements match
+    _cert_spki = None
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
+        # grab the spki
+        _cert_spki = cert_utils.parse_cert__spki_sha256(
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+        )
+    finally:
+        _tmpfile.close()
+
+    _pkey_spki = None
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
+        # grab the spki
+        _pkey_spki = cert_utils.parse_key__spki_sha256(
+            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
+        )
+    finally:
+        _tmpfile.close()
+
+    if not all((_cert_spki, _pkey_spki)):
+        raise ValueError("Could not compute the Certificate or Key's SPKI")
+    if _cert_spki != _pkey_spki:
+        raise ValueError("The PrivateKey did not sign the CertificateSigned")
+
+    if dbCertificateRequest:
+        if _cert_spki != dbCertificateRequest.spki_sha256:
+            raise ValueError("The PrivateKey did not sign the CertificateRequest")
+
+    dbCertificateSigned = (
+        ctx.dbSession.query(model_objects.CertificateSigned)
+        .filter(
+            model_objects.CertificateSigned.cert_pem_md5 == cert_pem_md5,
+            model_objects.CertificateSigned.cert_pem == cert_pem,
+        )
+        .first()
+    )
+    if dbCertificateSigned:
+        is_created = False
+        if dbUniqueFQDNSet:
+            if dbCertificateSigned.unique_fqdn_set_id != dbUniqueFQDNSet.id:
+                raise ValueError("Integrity Error. UniqueFQDNSet differs.")
+        if dbPrivateKey and (dbCertificateSigned.private_key_id != dbPrivateKey.id):
+            if dbCertificateSigned.private_key_id:
+                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
+            elif dbCertificateSigned.private_key_id is None:
+                dbCertificateSigned.private_key_id = dbPrivateKey.id
+                dbPrivateKey.count_certificate_signeds += 1
+                if not dbPrivateKey.timestamp_last_certificate_issue or (
+                    dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
+                ):
+                    dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
+                ctx.dbSession.flush(objects=[dbCertificateSigned, dbPrivateKey])
+
+        # ensure we have all the Alternate Chains connected to this ServerCerticiate
+        _upchains_existing = dbCertificateSigned.certificate_ca_chain_ids
+        _upchains_needed = []
+        # check the primary
+        if dbCertificateCAChain.id not in _upchains_existing:
+            _upchains_needed.append(dbCertificateCAChain.id)
+        if dbCertificateCAChains_alt:
+            # check the alts
+            for _dbCertificateCAChain_alt in dbCertificateCAChains_alt:
+                if _dbCertificateCAChain_alt.id not in _upchains_existing:
+                    _upchains_needed.append(_dbCertificateCAChain_alt.id)
+        for _up_needed in _upchains_needed:
+            dbCertificateSignedChain = model_objects.CertificateSignedChain()
+            dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+            dbCertificateSignedChain.certificate_ca_chain_id = _up_needed
+            if _up_needed == dbCertificateCAChain.id:
+                dbCertificateSignedChain.is_upstream_default = True
+            else:
+                dbCertificateSignedChain.is_upstream_default = None
+            ctx.dbSession.add(dbCertificateSignedChain)
+            ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+
+    elif not dbCertificateSigned:
+        dbCertificateSigned = create__CertificateSigned(
+            ctx,
+            cert_pem=cert_pem,
+            cert_domains_expected=cert_domains_expected,
+            is_active=is_active,
+            dbAcmeOrder=dbAcmeOrder,
+            dbCertificateCAChain=dbCertificateCAChain,
+            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
+            dbCertificateRequest=dbCertificateRequest,
+            dbPrivateKey=dbPrivateKey,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+        )
+        is_created = True
+
+    return (dbCertificateSigned, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -881,14 +1158,15 @@ def getcreate__PrivateKey__by_pem_text(
         try:
             _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-            # validate
-            cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
-
-            # grab the modulus
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=key_pem,
-                key_pem_filepath=_tmpfile.name,
+            # validate + grab the technology
+            key_technology = cert_utils.validate_key(
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name
             )
+
+            pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name
+            )
+
         except Exception as exc:
             raise
         finally:
@@ -906,9 +1184,12 @@ def getcreate__PrivateKey__by_pem_text(
 
         dbPrivateKey = model_objects.PrivateKey()
         dbPrivateKey.timestamp_created = ctx.timestamp
+        dbPrivateKey.key_technology_id = model_utils.KeyTechnology.from_string(
+            key_technology
+        )
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
-        dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
+        dbPrivateKey.spki_sha256 = pkey__spki_sha256
         dbPrivateKey.operations_event_id__created = dbOperationsEvent.id
         dbPrivateKey.acme_account_id__owner = acme_account_id__owner
         dbPrivateKey.private_key_source_id = private_key_source_id
@@ -948,17 +1229,18 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
     """
     private_key_cycle = dbAcmeAccount.private_key_cycle
+    private_key_technology = dbAcmeAccount.private_key_technology
     acme_account_id__owner = dbAcmeAccount.id
     if private_key_cycle == "single_certificate":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            # bits=4096,
             acme_account_id__owner=acme_account_id__owner,
             private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
             private_key_type_id=model_utils.PrivateKeyType.from_string(
                 "single_certificate"
             ),
+            key_technology_id=dbAcmeAccount.private_key_technology_id,
         )
         return dbPrivateKey_new
 
@@ -971,13 +1253,13 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 acme_account_id__owner=acme_account_id__owner,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "account_daily"
                 ),
+                key_technology_id=dbAcmeAccount.private_key_technology_id,
             )
         return dbPrivateKey_new
 
@@ -987,13 +1269,13 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "global_daily"
                 ),
+                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
 
@@ -1006,13 +1288,13 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 acme_account_id__owner=acme_account_id__owner,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "account_weekly"
                 ),
+                key_technology_id=dbAcmeAccount.private_key_technology_id,
             )
         return dbPrivateKey_new
 
@@ -1022,23 +1304,23 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "global_weekly"
                 ),
+                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_key_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_key_default | INVALID
-        raise ValueError("invalid option `account_key_default`")
+        raise ValueError("Invalid option: `account_key_default`")
 
     else:
         # NOTE: AcmeAccountNeedsPrivateKey | INVALID
-        raise ValueError("invalid option")
+        raise ValueError("Invalid option for `private_key_cycle`")
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1074,178 +1356,6 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
         ctx.dbSession.flush(objects=[dbRemoteIpAddress])
         is_created = True
     return (dbRemoteIpAddress, is_created)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__ServerCertificate(
-    ctx,
-    cert_pem,
-    cert_domains_expected=None,
-    is_active=None,
-    dbAcmeOrder=None,
-    dbCACertificate=None,
-    dbCACertificates_alt=None,
-    dbCertificateRequest=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
-):
-    """
-    getcreate wrapping issued certs
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param cert_pem: (required) The certificate in PEM encoding
-    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
-
-    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
-        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
-    :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
-    :param dbCACertificates_alt: (optional) Iterable. Alternate :class:`model.objects.CACertificate`s that signed this certificate
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
-        if provivded, do not submit `dbAcmeOrder`
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
-
-    returns:
-
-    tuple (dbServerCertificate, is_created)
-    """
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
-        raise ValueError(
-            "getcreate__ServerCertificate must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
-        )
-    if dbUniqueFQDNSet:
-        if any(
-            (
-                dbAcmeOrder,
-                dbCertificateRequest,
-            )
-        ):
-            raise ValueError(
-                "getcreate__ServerCertificate must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
-            )
-
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
-        if not dbUniqueFQDNSet:
-            raise ValueError(
-                "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
-            )
-
-    if not all(
-        (
-            cert_pem,
-            dbCACertificate,
-            dbPrivateKey,
-        )
-    ):
-        raise ValueError(
-            "getcreate__ServerCertificate must be provided with all of (cert_pem, dbCACertificate, dbPrivateKey)"
-        )
-
-    is_created = None
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
-
-    # make sure the Certificate Elements match
-    _cert_pem_modulus_md5 = None
-    _csr_pem_modulus_md5 = None
-    _pkey_pem_modulus_md5 = None
-    try:
-        _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-        # grab the modulus
-        _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
-        )
-    finally:
-        _tmpfile.close()
-    try:
-        _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
-        # grab the modulus
-        _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key(
-            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
-        )
-    finally:
-        _tmpfile.close()
-
-    if not all((_cert_pem_modulus_md5, _pkey_pem_modulus_md5)):
-        raise ValueError("Could not compute the Certificate or Key's elements")
-    if _cert_pem_modulus_md5 != _pkey_pem_modulus_md5:
-        raise ValueError("The PrivateKey did not sign the ServerCertificate")
-
-    if dbCertificateRequest:
-        if _cert_pem_modulus_md5 != dbCertificateRequest.csr_pem_modulus_md5:
-            raise ValueError("The PrivateKey did not sign the CertificateRequest")
-
-    dbServerCertificate = (
-        ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(
-            model_objects.ServerCertificate.cert_pem_md5 == cert_pem_md5,
-            model_objects.ServerCertificate.cert_pem == cert_pem,
-        )
-        .first()
-    )
-    if dbServerCertificate:
-        is_created = False
-        if dbUniqueFQDNSet:
-            if dbServerCertificate.unique_fqdn_set_id != dbUniqueFQDNSet.id:
-                raise ValueError("Integrity Error. UniqueFQDNSet differs.")
-        if dbPrivateKey and (dbServerCertificate.private_key_id != dbPrivateKey.id):
-            if dbServerCertificate.private_key_id:
-                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
-            elif dbServerCertificate.private_key_id is None:
-                dbServerCertificate.private_key_id = dbPrivateKey.id
-                dbPrivateKey.count_server_certificates += 1
-                if not dbPrivateKey.timestamp_last_certificate_issue or (
-                    dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
-                ):
-                    dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
-                ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
-
-        # ensure we have all the Alternate Chains connected to this ServerCerticiate
-        if dbCACertificates_alt:
-            _alts_existing = dbServerCertificate.certificate_upchain_alternate_ids
-            _alts_needed = []
-            # check the primary
-            if dbCACertificate.id != dbServerCertificate.ca_certificate_id__upchain:
-                if dbCACertificate.id not in _alts_existing:
-                    _alts_needed.append(dbCACertificate.id)
-            # check the alts
-            for _dbCACertificate_alt in dbCACertificates_alt:
-                if (
-                    _dbCACertificate_alt.id
-                    != dbServerCertificate.ca_certificate_id__upchain
-                ):
-                    if _dbCACertificate_alt.id not in _alts_existing:
-                        _alts_needed.append(_dbCACertificate_alt.id)
-            for _alt_needed in _alts_needed:
-                dbServerCertificateAlternateChain = (
-                    model_objects.ServerCertificateAlternateChain()
-                )
-                dbServerCertificateAlternateChain.server_certificate_id = (
-                    dbServerCertificate.id
-                )
-                dbServerCertificateAlternateChain.ca_certificate_id = _alt_needed
-                ctx.dbSession.add(dbServerCertificateAlternateChain)
-                ctx.dbSession.flush(objects=[dbServerCertificateAlternateChain])
-
-    elif not dbServerCertificate:
-        dbServerCertificate = create__ServerCertificate(
-            ctx,
-            cert_pem=cert_pem,
-            cert_domains_expected=cert_domains_expected,
-            is_active=is_active,
-            dbAcmeOrder=dbAcmeOrder,
-            dbCACertificate=dbCACertificate,
-            dbCACertificates_alt=dbCACertificates_alt,
-            dbCertificateRequest=dbCertificateRequest,
-            dbPrivateKey=dbPrivateKey,
-            dbUniqueFQDNSet=dbUniqueFQDNSet,
-        )
-        is_created = True
-
-    return (dbServerCertificate, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1357,10 +1467,10 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
 
 __all__ = (
     "getcreate__AcmeAccount",
-    "getcreate__CACertificate__by_pem_text",
+    "getcreate__CertificateCA__by_pem_text",
     "getcreate__CertificateRequest__by_pem_text",
     "getcreate__Domain__by_domainName",
     "getcreate__PrivateKey__by_pem_text",
-    "getcreate__ServerCertificate",
+    "getcreate__CertificateSigned",
     "getcreate__UniqueFQDNSet__by_domainObjects",
 )

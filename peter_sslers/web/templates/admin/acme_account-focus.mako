@@ -166,8 +166,8 @@
                         <td><span class="badge">${AcmeAccount.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_server_certificates</th>
-                        <td><span class="badge">${AcmeAccount.count_server_certificates or ''}</span></td>
+                        <th>count_certificate_signeds</th>
+                        <td><span class="badge">${AcmeAccount.count_certificate_signeds or ''}</span></td>
                     </tr>
                     <tr>
                         <th>AcmeAccountKey</th>
@@ -184,16 +184,20 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th>key_technology</th>
+                                    <td><span class="label label-default">${AcmeAccount.acme_account_key.key_technology}</span></td>
+                                </tr>
+                                <tr>
                                     <th>key_pem_md5</th>
                                     <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                                 </tr>
                                 <tr>
-                                    <th>key_pem_modulus_md5</th>
+                                    <th>spki_sha256</th>
                                     <td>
-                                        <code>${AcmeAccount.acme_account_key.key_pem_modulus_md5}</code>
+                                        <code>${AcmeAccount.acme_account_key.spki_sha256}</code>
                                         <a
                                             class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_pem_modulus_search}"
+                                            href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_spki_search}"
                                         >
                                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                         </a>
@@ -216,6 +220,18 @@
                         <th>PrivateKey cycle</th>
                         <td>
                             <code>${AcmeAccount.private_key_cycle}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>                        
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKey Technology</th>
+                        <td>
+                            <code>${AcmeAccount.private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >
@@ -258,11 +274,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ServerCertificate(s)</th>
+                        <th>CertificateSigned(s)</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(AcmeAccount.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if AcmeAccount.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account/%s/server-certificates" % (admin_prefix, AcmeAccount.id))}
+                            ${admin_partials.table_CertificateSigneds(AcmeAccount.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % if AcmeAccount.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/certificate-signeds" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>

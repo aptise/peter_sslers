@@ -92,12 +92,12 @@
                 </tr>
             </table>
 
-            <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/get"
-               class="btn btn-info"
-            >
-                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                GET
-            </a>
+            ## <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/get"
+            ##   class="btn btn-info"
+            ## >
+            ##    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+            ##    GET
+            ## </a>
 
         </div>
     </div>

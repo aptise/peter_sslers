@@ -11,6 +11,7 @@ log.setLevel(logging.INFO)
 import base64
 import binascii
 import datetime
+import hashlib
 import json
 import pdb
 import pprint
@@ -29,9 +30,11 @@ except ImportError:
 
 # pypi
 from requests.utils import parse_header_links
+import josepy
 
 
 # localapp
+from . import acmedns as lib_acmedns
 from . import cert_utils
 from . import errors
 from . import utils
@@ -184,6 +187,23 @@ def create_challenge_keyauthorization(token, accountkey_thumbprint):
     return keyauthorization
 
 
+def create_dns01_keyauthorization(keyauthorization):
+    """
+
+    Certbot:: acme/acme/challenges.py
+
+    class DNS01(KeyAuthorizationChallenge):
+        def validation(self, account_key, **unused_kwargs):
+            return jose.b64encode(hashlib.sha256(self.key_authorization(
+                account_key).encode("utf-8")).digest()).decode()
+
+    """
+    dns_keyauthorization = josepy.b64encode(
+        hashlib.sha256(keyauthorization.encode("utf-8")).digest()
+    ).decode("utf8")
+    return dns_keyauthorization
+
+
 # ------------------------------------------------------------------------------
 
 
@@ -237,10 +257,39 @@ def get_header_links(response_headers, relation_type):
 
     :param headers: response headers
     :param relation_type: the relation type sought
+
+    The response object may have multiple links:
+
+        Link: <https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index"
+        Link: <https://acme-staging-v02.api.letsencrypt.org/acme/cert/12345/1>;rel="alternate"
+
+    In Python 3.x , the <httplib.HTTPMessage> class has a `.get_all()` method:
+
+        (Pdb) response_headers.get_all("Link")
+        ['<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index"',
+         '<https://acme-staging-v02.api.letsencrypt.org/acme/cert/12345/1>;rel="alternate"'
+         ]
+
+    But in Python 2.x, we only have `get`:
+
+        (Pdb) response_headers.get("Link")
+        '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index",
+         <https://acme-staging-v02.api.letsencrypt.org/acme/cert/fa536ddfe679c4bcbdf48271f36975729229/1>;rel="alternate"'
+
+
+    Coverage for this is provided by:
+
+        tests_unit.UnitTest_ACME_v2.test__parse_headers
     """
     if not "Link" in response_headers:
         return []
-    links = parse_header_links(response_headers["Link"])
+    if hasattr(response_headers, "get_all"):
+        links = [parse_header_links(h) for h in response_headers.get_all("Link")]
+        links = [l[0] for l in links if l]
+    else:
+        # '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index", <https://acme-staging-v02.api.letsencrypt.org/acme/cert/123/1>;rel="alternate"'
+
+        links = parse_header_links(response_headers.get("Link"))
     return [
         l["url"]
         for l in links
@@ -667,6 +716,40 @@ class AuthenticatedUser(object):
 
         return (acmeOrderRfcObject, dbEventLogged)
 
+    def prepare_acme_challenge(
+        self,
+        ctx,
+        dbAcmeAuthorization=None,
+        dbAcmeChallenge=None,
+    ):
+        """
+        This is a core routine to "prepare" an ACME Challenge for processing.
+
+        This hook may consist of setting up the server(s) to respond to a
+        challenge, testing the server(s) for the challenge, or both.
+
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+        :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
+        :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
+        """
+        if dbAcmeChallenge.acme_challenge_type == "http-01":
+            self._prepare_acme_challenge__http01(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeChallenge=dbAcmeChallenge,
+            )
+        elif dbAcmeChallenge.acme_challenge_type == "dns-01":
+            self._prepare_acme_challenge__dns01(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeChallenge=dbAcmeChallenge,
+            )
+        elif dbAcmeChallenge.acme_challenge_type == "tls-alpn-01":
+            # TODO: tls-alpn-01
+            raise NotImplementedError()
+
+        return True
+
     def _prepare_acme_challenge__http01(
         self,
         ctx,
@@ -674,7 +757,18 @@ class AuthenticatedUser(object):
         dbAcmeChallenge=None,
     ):
         """
-        prepares an AcmeChallenge by registering - and perhaps testing, the url
+        In the current design of PeterSSLers, no additional setup is
+        required for a HTTP ACME Challenge, as the system can respond to the
+        challenge natively.
+
+        In earlier versions and from forked/inspired projects, this hook would
+        be used to configure the server or file directories.
+
+        This hook is currently used for testing.
+
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+        :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
+        :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         # acme_challenge_response
         keyauthorization = create_challenge_keyauthorization(
@@ -731,6 +825,58 @@ class AuthenticatedUser(object):
             raise errors.DomainVerificationError(
                 "couldn't download {0}: {1}".format(wellknown_url, exc)
             )
+
+    def _prepare_acme_challenge__dns01(
+        self,
+        ctx,
+        dbAcmeAuthorization=None,
+        dbAcmeChallenge=None,
+    ):
+        """
+        Prepares a DNS-01 ACME Challenge by updating the acme-dns server for
+        the domain belonging to the challenge
+
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+        :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
+        :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
+        """
+        # TODO: test the integration
+        if lib_acmedns.pyacmedns is None:
+            raise ValueError("`pyacmedns` is not installed")
+
+        dbAcmeDnsServerAccount = (
+            dbAcmeAuthorization.domain.acme_dns_server_account__active
+        )
+        if not dbAcmeDnsServerAccount:
+            raise ValueError(
+                "no active AcmeDnsServerAccount for domain: %s"
+                % dbAcmeAuthorization.domain.domain_name
+            )
+
+        # acme_challenge_response
+        keyauthorization = create_challenge_keyauthorization(
+            dbAcmeChallenge.token,
+            self.accountkey_thumbprint,
+        )
+        if dbAcmeChallenge.keyauthorization != keyauthorization:
+            raise ValueError("This should never happen!")
+
+        dns_keyauthorization = create_dns01_keyauthorization(keyauthorization)
+
+        try:
+
+            # initialize a client
+            client = lib_acmedns.new_client(
+                dbAcmeDnsServerAccount.acme_dns_server.root_url
+            )
+
+            # update the acmedns server
+            client.update_txt_record(
+                dbAcmeDnsServerAccount.pyacmedns_dict, dns_keyauthorization
+            )
+
+        except Exception as exc:
+            raise errors.DomainVerificationError(str(exc))
 
     def acme_order_process_authorizations(
         self,
@@ -890,7 +1036,7 @@ class AuthenticatedUser(object):
             transaction_commit=transaction_commit,
         )
 
-        # todo: should we ensure every Authorization is already tracked?
+        # TODO: should we ensure every Authorization is already tracked?
 
         url_certificate = acme_order_finalized.get("certificate")
         if not url_certificate:
@@ -924,7 +1070,6 @@ class AuthenticatedUser(object):
             alt_chains_urls = get_header_links(_certificate_headers, "alternate")
             alt_chains = [self._send_signed_request(url)[0] for url in alt_chains_urls]
             fullchain_pems.extend(alt_chains)
-
         log.info(") download_certificate | downloaded signed certificate!")
         return fullchain_pems
 
@@ -944,22 +1089,29 @@ class AuthenticatedUser(object):
         """
         Process a single Authorization URL
 
-        * fetch the URL, construct a `model.objects.AcmeAuthorization` if needed; update otherwise
+        * fetch the URL, construct a `model.objects.AcmeAuthorization` if needed;
+          update otherwise
         * complete ACME Challenge if possible
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
-
         :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge; `domains_challenged`
-        :param domains_challenged: An instance of :class:`model.utils.DomainsChallenged` that can indicate which challenge is preferred; or `acme_challenge_type_id__preferred`
-
-        :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, dbAcmeAuthorization=?, transaction_commit=?)
-
-        :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
-        :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
-        :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
-        :param dbAcmeAuthorization: A :class:`model.objects.AcmeAuthorization` instance
-        :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
+        :param domains_challenged: An instance of
+            :class:`model.utils.DomainsChallenged` that can indicate which
+            challenge is preferred; or `acme_challenge_type_id__preferred`
+        :param handle_authorization_payload: (required) Callable function.
+            expects ``(authorization_url, authorization_response,
+            dbAcmeAuthorization=?, transaction_commit=?)``
+        :param update_AcmeAuthorization_status: callable. expects ``(ctx,
+            dbAcmeAuthorization, status_text, transaction_commit)``
+        :param update_AcmeChallenge_status: callable. expects ``(ctx,
+            dbAcmeChallenge, status_text, transaction_commit)``
+        :param updated_AcmeOrder_ProcessingStatus: callable. expects ``(ctx,
+            dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)``
+        :param dbAcmeAuthorization: A :class:`model.objects.AcmeAuthorization`
+            instance
+        :param transaction_commit: (required) Boolean. Must indicate that we
+            will invoke this outside of transactions
 
         Returns:
 
@@ -983,8 +1135,8 @@ class AuthenticatedUser(object):
             ):
                 raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
-        # scoping, our todo list
-        _todo__complete_challenge = None
+        # scoping, our task list
+        _task__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
         # in v2, we must query an order's authorization url to get the domain
@@ -1064,7 +1216,8 @@ class AuthenticatedUser(object):
             )
 
         # we could parse the challenge
-        # however, the call to `process_discovered_auth` should have updated the challenge object already
+        # however, the call to `process_discovered_auth`
+        # should have updated the challenge object already
         acme_challenges = get_authorization_challenges(
             authorization_response,
             required_challenges=[
@@ -1096,37 +1249,29 @@ class AuthenticatedUser(object):
         _challenge_status_text = dbAcmeChallenge.acme_status_challenge
         if _challenge_status_text == "*discovered*":
             # internal marker, pre "pending"
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "pending":
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "processing":
             # we may need to trigger again?
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         elif _challenge_status_text == "valid":
             # already completed
-            _todo__complete_challenge = False
+            _task__complete_challenge = False
         elif _challenge_status_text == "invalid":
             # we may need to trigger again?
-            _todo__complete_challenge = True
+            _task__complete_challenge = True
         else:
             raise ValueError(
                 "unexpected challenge status: `%s`" % _challenge_status_text
             )
 
-        if _todo__complete_challenge:
-            if _acme_challenge_type == "http-01":
-                self._prepare_acme_challenge__http01(
-                    ctx,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    dbAcmeChallenge=dbAcmeChallenge,
-                )
-            elif _acme_challenge_type == "dns-01":
-                # TODO: dns-01 with acme
-                raise NotImplementedError()
-            elif _acme_challenge_type == "tls-alpn-01":
-                # TODO: tls-alpn-01
-                raise NotImplementedError()
-
+        if _task__complete_challenge:
+            self.prepare_acme_challenge(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeChallenge=dbAcmeChallenge,
+            )
             self.acme_challenge_trigger(
                 ctx,
                 dbAcmeChallenge=dbAcmeChallenge,
@@ -1143,7 +1288,8 @@ class AuthenticatedUser(object):
         """
         This loads the authorization object and pulls the payload
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+        :param dbAcmeAuthorization: (required) a
+            :class:`model.objects.AcmeAuthorization` instance
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_load(")
         if transaction_commit is not True:
@@ -1187,7 +1333,8 @@ class AuthenticatedUser(object):
         """
         This loads the authorization object and pulls the payload
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+        :param dbAcmeAuthorization: (required)
+            a :class:`model.objects.AcmeAuthorization` instance
 
         https://tools.ietf.org/html/rfc8555#section-7.5.2
 
@@ -1290,10 +1437,14 @@ class AuthenticatedUser(object):
         This triggers the challenge object
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-        :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
-        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
-        :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
-        :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
+        :param dbAcmeChallenge: (required) a
+            :class:`model.objects.AcmeChallenge` instance
+        :param dbAcmeAuthorization: (required) a
+            :class:`model.objects.AcmeAuthorization` instance
+        :param update_AcmeAuthorization_status: callable. expects ``(ctx,
+            dbAcmeAuthorization, status_text, transaction_commit)``
+        :param update_AcmeChallenge_status: callable. expects ``(ctx,
+            dbAcmeChallenge, status_text, transaction_commit)``
 
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
@@ -1345,7 +1496,7 @@ class AuthenticatedUser(object):
                 "AcmeChallenge is not 'pending' or 'valid' on the ACME server"
             )
 
-        # TODO - COULD an accepted challenge be here?
+        # TODO: COULD an accepted challenge be here?
         log.info(
             ") acme_challenge_trigger | checking domain {0}".format(
                 dbAcmeAuthorization.domain.domain_name
@@ -1480,7 +1631,8 @@ class AuthenticatedUser(object):
             )
 
             # a future version may want to log this failure somewhere
-            # why? the timestamp on our AuthorizationObject may get replaced during a server-sync
+            # why? the timestamp on our AuthorizationObject
+            # may get replaced during a server-sync
 
             raise errors.AcmeAuthorizationFailure(
                 "{0} challenge did not pass: {1}".format(

@@ -119,7 +119,7 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             parser = AcmeAccountUploadParser(formStash)
-            parser.require_upload(require_contact=None)
+            parser.require_upload(require_contact=None, require_technology=False)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
@@ -139,9 +139,14 @@ class View_New(Handler):
             key_create_args[
                 "acme_account_key_source_id"
             ] = model_utils.AcmeAccountKeySource.from_string("imported")
-            (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
-                self.request.api_context, **key_create_args
-            )
+            try:
+                (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
+                    self.request.api_context, **key_create_args
+                )
+            except errors.ConflictingObject as exc:
+                # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
+                # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(message=exc.args[0][1])
 
             if self.request.wants_json:
                 return {
@@ -186,6 +191,7 @@ class View_New(Handler):
                     "acme_account_provider_id": "which provider",
                     "account__contact": "the contact's email address for the ACME Server",
                     "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
+                    "account__private_key_technology": "what is the key technology preference for this account?",
                 },
                 "notes": [""],
                 "valid_options": {
@@ -194,6 +200,7 @@ class View_New(Handler):
                         for i in self.dbAcmeAccountProviders
                     },
                     "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+                    "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -238,7 +245,7 @@ class View_New(Handler):
             parser.require_new(require_contact=True)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
-            key_pem = cert_utils.new_account_key()  # bits=2048)
+            key_pem = cert_utils.new_account_key()  # rsa_bits=None
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccount__create"
             key_create_args[
@@ -261,7 +268,19 @@ class View_New(Handler):
                     self.request.api_context, _dbAcmeAccount
                 )
                 dbAcmeAccount = _dbAcmeAccount
+
+            except errors.ConflictingObject as exc:
+                # this happens via `getcreate__AcmeAccount`
+                # * args[0] = tuple(conflicting_object, error_message_string)
+                _dbAcmeAccountDuplicate = exc.args[0][0]
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="account__contact",
+                    message=exc.args[0][1],
+                )
+
             except errors.AcmeDuplicateAccount as exc:
+                # this happens via `do__AcmeAccount_AcmeV2_register`
                 # args[0] MUST be the duplicate AcmeAccount
                 _dbAcmeAccountDuplicate = exc.args[0]
                 # the 'Duplicate' account was the earlier account and therefore
@@ -289,14 +308,9 @@ class View_New(Handler):
 
         except errors.AcmeServerError as exc:
             if self.request.wants_json:
-                return {"result": "error", "error": exc.as_querystring}
-            return HTTPSeeOther(
-                "%s/acme-account/new?result=error&error=%s"
-                % (
-                    self.request.admin_url,
-                    exc.as_querystring,
-                )
-            )
+                return {"result": "error", "form_errors": formStash.errors}
+            formStash.register_error_main_exception(exc)
+            return formhandling.form_reprint(self.request, self._new__print)
 
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
@@ -526,21 +540,21 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_account:focus:server_certificates",
-        renderer="/admin/acme_account-focus-server_certificates.mako",
+        route_name="admin:acme_account:focus:certificate_signeds",
+        renderer="/admin/acme_account-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:server_certificates_paginated",
-        renderer="/admin/acme_account-focus-server_certificates.mako",
+        route_name="admin:acme_account:focus:certificate_signeds_paginated",
+        renderer="/admin/acme_account-focus-certificate_signeds.mako",
     )
-    def related__ServerCertificates(self):
+    def related__CertificateSigneds(self):
         dbAcmeAccount = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_AcmeAccountId__count(
+        items_count = lib_db.get.get__CertificateSigned__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        url_template = "%s/server-certificates/{0}" % self._focus_url
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountId__paginated(
+        items_paged = lib_db.get.get__CertificateSigned__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
             limit=items_per_page,
@@ -549,8 +563,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "AcmeAccount": dbAcmeAccount,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
             "pager": pager,
         }
 
@@ -600,15 +614,18 @@ class View_Focus_Manipulate(View_Focus):
             return {
                 "instructions": [
                     """HTTP POST required""",
-                    """curl --form 'account__private_key_cycle=certificate' %s/acme-account/{ID}/edit.json"""
-                    % self.request.admin_url,
+                    """curl --form 'account__private_key_cycle=certificate'"""
+                    """ --form 'account__private_key_technology=rsa'"""
+                    """ %s/acme-account/{ID}/edit.json""" % self.request.admin_url,
                 ],
                 "form_fields": {
                     "account__private_key_cycle": "option for cycling the PrivateKey on renewals",
+                    "account__private_key_technology": "what is the key technology preference for this account?",
                 },
                 "notes": [""],
                 "valid_options": {
                     "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+                    "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
                 },
             }
         return render_to_response(
@@ -632,19 +649,48 @@ class View_Focus_Manipulate(View_Focus):
             event_payload_dict["acme_account_id"] = self.dbAcmeAccount.id
             event_payload_dict["action"] = "edit"
             event_payload_dict["edit"] = {
-                "old": {"private_key_cycle": self.dbAcmeAccount.private_key_cycle},
-                "new": {"private_key_cycle": self.dbAcmeAccount.private_key_cycle},
+                "old": {},
+                "new": {},
             }
+            private_key_cycle = formStash.results["account__private_key_cycle"]
+            if private_key_cycle != self.dbAcmeAccount.private_key_cycle:
+                try:
+                    event_payload_dict["edit"]["old"][
+                        "private_key_cycle"
+                    ] = self.dbAcmeAccount.private_key_cycle
+                    event_payload_dict["edit"]["new"][
+                        "private_key_cycle"
+                    ] = private_key_cycle
+                    event_status = lib_db.update.update_AcmeAccount__private_key_cycle(
+                        self.request.api_context,
+                        self.dbAcmeAccount,
+                        private_key_cycle,
+                    )
+                except errors.InvalidTransition as exc:
+                    # `formStash.fatal_form(` will raise a `FormInvalid()`
+                    formStash.fatal_form(message=exc.args[0])
 
-            try:
-                event_status = lib_db.update.update_AcmeAccount__private_key_cycle(
-                    self.request.api_context,
-                    self.dbAcmeAccount,
-                    formStash.results["account__private_key_cycle"],
-                )
-            except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
-                formStash.fatal_form(message=exc.args[0])
+            private_key_technology = formStash.results[
+                "account__private_key_technology"
+            ]
+            if private_key_technology != self.dbAcmeAccount.private_key_technology:
+                try:
+                    event_payload_dict["edit"]["old"][
+                        "private_key_technology"
+                    ] = self.dbAcmeAccount.private_key_technology
+                    event_payload_dict["edit"]["new"][
+                        "private_key_technology"
+                    ] = private_key_technology
+                    event_status = (
+                        lib_db.update.update_AcmeAccount__private_key_technology(
+                            self.request.api_context,
+                            self.dbAcmeAccount,
+                            private_key_technology,
+                        )
+                    )
+                except errors.InvalidTransition as exc:
+                    # `formStash.fatal_form(` will raise a `FormInvalid()`
+                    formStash.fatal_form(message=exc.args[0])
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
@@ -804,7 +850,7 @@ class View_Focus_Manipulate(View_Focus):
                             event_payload_dict[k] = v
                         event_alt = alt_info["event_alt"]
                 else:
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

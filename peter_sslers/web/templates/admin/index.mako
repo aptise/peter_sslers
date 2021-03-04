@@ -4,6 +4,23 @@
 
 <%block name="page_header_col">
 ##    <h2>Admin Index</h2>
+
+    % if not AcmeAccount_GlobalDefault:
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <b>Setup Not Finished</b>
+            There is no Global Default AcmeAccount configured.
+            Any AcmeAccount for can be configured as the Global Default.
+            Browse AcmeAccounts at
+            <a  class="label label-info"
+                href="${admin_prefix}/acme-accounts"
+            >
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                AcmeAccounts
+            </a>
+        </div>
+    % endif
+
 </%block>
 
 
@@ -46,11 +63,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
-                <li><a href="${admin_prefix}/server-certificates"
-                       title="ServerCertificates"
+                <li><a href="${admin_prefix}/certificate-signeds"
+                       title="CertificateSigneds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    server-certificates</a></li>
+                    certificate-signeds</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="UniqueFQDNs"
                     >
@@ -148,13 +165,17 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-dns Server Accounts</a></li>
-                <li><a href="${admin_prefix}/ca-certificates"
-                       title="CACertificates"
+                <li><a href="${admin_prefix}/certificate-cas"
+                       title="CertificateCAs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates</a></li>
+                    certificate-cas</a></li>
+                <li><a href="${admin_prefix}/certificate-ca-chains"
+                       title="CertificateCAChains"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificate-ca-chains</a></li>
             </ul>
-
 
 
         </div>
@@ -184,7 +205,7 @@
                                                 )}
         </div>
         <div class="col-sm-4">
-            <h3>New ServerCertificates</h3>
+            <h3>New CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-order/new/freeform"
@@ -204,7 +225,7 @@
                 % endif
             </ul>
 
-            <h3>Existing ServerCertificates</h3>
+            <h3>Existing CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-account/upload"
@@ -213,14 +234,14 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: AcmeAccount</a></li>
                 <li>
-                    <a  href="${admin_prefix}/ca-certificate/upload"
-                        title="CA Certificate - Upload"
+                    <a  href="${admin_prefix}/certificate-ca/upload"
+                        title="CertificateCA - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: CA Certificate</a></li>
+                    Upload: CertificateCA</a></li>
                 <li>
-                    <a  href="${admin_prefix}/server-certificate/upload"
-                        title="ServerCertificate - Upload"
+                    <a  href="${admin_prefix}/certificate-signed/upload"
+                        title="CertificateSigned - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Certificate (Existing)</a></li>

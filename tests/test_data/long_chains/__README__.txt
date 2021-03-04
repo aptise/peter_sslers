@@ -1,0 +1,1 @@
+The folders should contain a `_data.json` file

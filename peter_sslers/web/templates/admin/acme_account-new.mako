@@ -48,10 +48,20 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="private_key_cyle">PrivateKey Cycling</label>
+                    <label for="private_key_cycle">PrivateKey Cycling</label>
                     <select class="form-control" name="account__private_key_cycle">
                         <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount %>
                         % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
+                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+                        % endfor
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="private_key_technology">PrivateKey Technology</label>
+                    <select class="form-control" name="account__private_key_technology">
+                        <% _default = model_websafe.KeyTechnology._DEFAULT_AcmeAccount %>
+                        % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
                             <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
                         % endfor
                     </select>
