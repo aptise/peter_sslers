@@ -1648,8 +1648,10 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["enddate"] = cert_cryptography.not_valid_after
         rval["startdate"] = cert_cryptography.not_valid_before
         rval["key_technology"] = _openssl_crypto__key_technology(cert.get_pubkey())
-        fingerprint = cert.digest("sha1").replace(":", "")
-        rval["fingerprint_sha1"] = fingerprint.decode() if six.PY3 else fingerprint
+        fingerprint = cert.digest("sha1")
+        if six.PY3:
+            fingerprint = fingerprint.decode()
+        rval["fingerprint_sha1"] = fingerprint.replace(":", "")
         rval["spki_sha256"] = parse_cert__spki_sha256(
             cert_pem=cert_pem,
             cert_pem_filepath=cert_pem_filepath,
