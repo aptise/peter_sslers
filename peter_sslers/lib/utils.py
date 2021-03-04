@@ -110,7 +110,7 @@ def convert_binary_to_hex(input):
     _as_hex = _as_hex.upper()
     # _as_hex = "79B459E67BB6E5E40173800888C81A58F6E99B6E"
     if six.PY3:
-        _as_hex = _as_hex.decode()
+        _as_hex = _as_hex.decode("utf8")
     return _as_hex
 
 

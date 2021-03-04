@@ -200,7 +200,7 @@ def create_dns01_keyauthorization(keyauthorization):
     """
     dns_keyauthorization = josepy.b64encode(
         hashlib.sha256(keyauthorization.encode("utf-8")).digest()
-    ).decode()
+    ).decode("utf8")
     return dns_keyauthorization
 
 

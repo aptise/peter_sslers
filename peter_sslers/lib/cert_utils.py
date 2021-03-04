@@ -206,7 +206,7 @@ def split_pem_chain(pem_text):
     splits a PEM chain into multiple certs
     """
     _certs = CERT_PEM_REGEX.findall(pem_text.encode())
-    certs = [cleanup_pem_text(i.decode()) for i in _certs]
+    certs = [cleanup_pem_text(i.decode("utf8")) for i in _certs]
     return certs
 
 
@@ -686,7 +686,7 @@ def _cryptography__public_key_spki_sha256(cryptography_publickey, as_b64=None):
         spki_sha256 = binascii.b2a_hex(spki_sha256)
         spki_sha256 = spki_sha256.upper()
     if six.PY3:
-        spki_sha256 = spki_sha256.decode()
+        spki_sha256 = spki_sha256.decode("utf8")
     return spki_sha256
 
 
@@ -1117,7 +1117,7 @@ def fingerprint_cert(cert_pem=None, cert_pem_filepath=None, algorithm="sha1"):
             raise errors.OpenSslError_InvalidCertificate()
         fingerprint = data.digest(algorithm)
         if six.PY3:
-            fingerprint = fingerprint.decode()
+            fingerprint = fingerprint.decode("utf8")
         fingerprint = fingerprint.replace(":", "")
         return fingerprint
 
@@ -1204,10 +1204,10 @@ def _format_crypto_components(_in, fieldset=None):
     _out = []
     for _in_set in _in:
         if six.PY3:
-            _in_set = [i.decode() if isinstance(i, bytes) else i for i in _in_set]
+            _in_set = [i.decode("utf8") if isinstance(i, bytes) else i for i in _in_set]
         _out.append("=".join(_in_set))
     _out = "\n".join(_out).strip()
-    # _out = _out.decode() if (six.PY3 and isinstance(_out, bytes)) else _out
+    # _out = _out.decode("utf8") if (six.PY3 and isinstance(_out, bytes)) else _out
     return _out
 
 
@@ -1650,7 +1650,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["key_technology"] = _openssl_crypto__key_technology(cert.get_pubkey())
         fingerprint = cert.digest("sha1")
         if six.PY3:
-            fingerprint = fingerprint.decode()
+            fingerprint = fingerprint.decode("utf8")
         rval["fingerprint_sha1"] = fingerprint.replace(":", "")
         rval["spki_sha256"] = parse_cert__spki_sha256(
             cert_pem=cert_pem,
@@ -2273,7 +2273,7 @@ def convert_jwk_to_ans1(pkey_jsons):
             data += b"=" * missing_padding
         data = binascii.hexlify(base64.b64decode(data, b"-_")).upper()
         if six.PY3:
-            data = data.decode()
+            data = data.decode("utf8")
         return "0x" + data
 
     for k, v in list(pkey.items()):
@@ -2319,7 +2319,7 @@ def convert_lejson_to_pem(pkey_jsons):
             encryption_algorithm=cryptography_serialization.NoEncryption(),
         )
         if six.PY3:
-            as_pem = as_pem.decode()
+            as_pem = as_pem.decode("utf8")
         as_pem = cleanup_pem_text(as_pem)
 
         # note: we don't need to provide key_pem_filepath because we already rely on openssl
@@ -2437,7 +2437,7 @@ def decompose_chain(fullchain_pem):
             openssl_crypto.dump_certificate(
                 openssl_crypto.FILETYPE_PEM,
                 openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert),
-            ).decode()
+            ).decode("utf8")
             for cert in certs
         ]
     else:
