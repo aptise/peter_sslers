@@ -211,7 +211,7 @@ def redis_prime_logic__style_1_CertificateCAChain(
 
     r['i99'] = CHAIN.PEM  # (i)ntermediate certs
     """
-    key_redis = "i%s" % dbCertificateCA.id
+    key_redis = "i%s" % dbCertificateCAChain.id
     redis_client.set(
         key_redis, dbCertificateCAChain.chain_pem, redis_timeouts["certcachain"]
     )

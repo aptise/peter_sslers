@@ -2510,10 +2510,10 @@ class FunctionalTests_CertificateCA(AppTest):
     @routes_tested(("admin:certificate_ca:upload_cert|json",))
     def test_upload_json(self):
         """
-        This should enter in item #9, but the CertificateCAs.order is 0.
-        xxx At this point, the only CA Cert that is not self-signed should be `ISRG Root X1` and the trustid from `test_upload_html`
-
         python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_json
+
+        This originally tested an upload, but now we preload this certificate
+        We
         """
         _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
         self.assertEqual(_cert_ca_id, "isrg_root_x1_cross")
@@ -2532,8 +2532,8 @@ class FunctionalTests_CertificateCA(AppTest):
         # we may not have created this
         assert res2.json["CertificateCA"]["created"] in (True, False)
         assert (
-            res2.json["CertificateCA"]["id"] > 2
-        )  # the database was set up with 2 items
+            res2.json["CertificateCA"]["id"] == 3
+        )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
         obj_id = res2.json["CertificateCA"]["id"]
         res3 = self.testapp.get(
             "/.well-known/admin/certificate-ca/%s" % obj_id, status=200
@@ -2544,9 +2544,9 @@ class FunctionalTests_CertificateCA(AppTest):
         # when we initialize the application, the setup routine inserts some
         # default CertificateCA preferences
         expected_preferences_initial = (
-            ("1", "DAC902"),  # trustid_root_x3
-            ("2", "BDB1B9"),  # isrg_root_x2
-            ("3", "CABD2A"),  # isrg_root_x1
+            ("1", "DAC9024F"),  # trustid_root_x3
+            ("2", "BDB1B93C"),  # isrg_root_x2
+            ("3", "CABD2A79"),  # isrg_root_x1
         )
         # calculate the expected matrix after an alteration
         # in this alteration, we swap the first and second items

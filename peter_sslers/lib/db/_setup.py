@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+import logging
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
 # stdlib
 import datetime
 
@@ -138,10 +144,28 @@ def initialize_CertificateCAs(ctx):
     )
 
     certs = letsencrypt_info.CERT_CAS_DATA
+    certs_order = letsencrypt_info._CERT_CAS_ORDER
+
+    # do a quick check
+    _cert_ids = set(certs.keys())
+    _cert_ids_order = set(certs_order)
+    _missing_data = _cert_ids_order - _cert_ids
+    if _missing_data:
+        raise ValueError(
+            "Missing from `letsencrypt_info.CERT_CAS_DATA`: %s" % _missing_data
+        )
+    _unordered = _cert_ids - _cert_ids_order
+    if _unordered:
+        raise ValueError(
+            "Missing from `letsencrypt_info._CERT_CAS_ORDER`: %s" % _unordered
+        )
+    # end check
+
     certs_discovered = []
     certs_modified = []
     certs_lookup = {}  # stash the ones we create for a moment
-    for cert_id, cert_data in letsencrypt_info.CERT_CAS_DATA.items():
+    for cert_id in certs_order:
+        cert_data = certs[cert_id]
         _is_created = False
         dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
             ctx, cert_data["cert_pem"]

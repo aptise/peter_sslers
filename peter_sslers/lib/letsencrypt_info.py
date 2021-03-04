@@ -329,6 +329,30 @@ CERT_CAS_DATA = {
         "signed_by": "staging_letsencrypt_root_x1",
     },
 }
+_CERT_CAS_ORDER = [
+    "trustid_root_x3",
+    "isrg_root_x1",
+    "isrg_root_x1_cross",
+    "isrg_root_x2",
+    "isrg_root_x2_cross",
+    "letsencrypt_ocsp_root_x1",
+    "letsencrypt_intermediate_x1",
+    "letsencrypt_intermediate_x1_cross",
+    "letsencrypt_intermediate_x2",
+    "letsencrypt_intermediate_x2_cross",
+    "letsencrypt_intermediate_x3",
+    "letsencrypt_intermediate_x3_cross",
+    "letsencrypt_intermediate_x4",
+    "letsencrypt_intermediate_x4_cross",
+    "letsencrypt_intermediate_r3",
+    "letsencrypt_intermediate_r3_cross",
+    "letsencrypt_intermediate_r4",
+    "letsencrypt_intermediate_r4_cross",
+    "letsencrypt_intermediate_e1",
+    "letsencrypt_intermediate_e2",
+    "staging_letsencrypt_root_x1",
+    "staging_letsencrypt_intermediate_x1",
+]
 
 
 # what are our default root preferences?
