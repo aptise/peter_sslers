@@ -90,7 +90,6 @@
                         </td>
                     </tr>
                     <tr>
-                    <tr>
                         <th>domains</th>
                         <td>
                             <table class="table table-striped table-condensed">
@@ -126,7 +125,21 @@
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                 Queue a CertificateSigned
                             </a>
-
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Modify?</th>
+                        <td>
+                            &nbsp;
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}/modify"
+                                title="Modify this UniqueFQDNSet"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Modify this UniqueFQDNSet
+                            </a>
+                            &nbsp;
+                            Modifying will create A NEW UniqueFQDNSet.
                         </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(UniqueFQDNSet)}

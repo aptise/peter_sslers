@@ -22,6 +22,10 @@
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
+        <a href="${admin_prefix}/unique-fqdn-set/new" class="btn btn-xs btn-primary">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            new
+        </a>
     </p>
 </%block>
 

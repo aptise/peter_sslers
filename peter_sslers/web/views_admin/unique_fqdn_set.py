@@ -16,6 +16,9 @@ import transaction
 from .. import lib
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
+from ..lib import formhandling
+from ..lib.forms import Form_UniqueFQDNSet_modify
+from ..lib.forms import Form_UniqueFQDNSet_new
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 from ...lib import db as lib_db
@@ -98,7 +101,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:unique_fqdn_set:focus:calendar|json", renderer="json"
     )
-    def focus__calendar(self):
+    def calendar(self):
         rval = {}
         dbUniqueFQDNSet = self._focus()
         weekly_certs = (
@@ -284,3 +287,250 @@ class View_Focus(Handler):
             "QueueCertificates": items_paged,
             "pager": pager,
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:modify",
+        renderer="/admin/unique_fqdn_set-focus-modify.mako",
+    )
+    @view_config(route_name="admin:unique_fqdn_set:focus:modify|json", renderer="json")
+    def modify(self):
+        if self.request.method != "POST":
+            return self._modify__print()
+        return self._modify__submit()
+
+    def _modify__print(self):
+        """
+        shared printing function
+        """
+        dbUniqueFQDNSet = self._focus()
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """HTTP POST required""",
+                    """curl --form 'domains_add=[]' --form 'domains_del=[]' %s/modify.json"""
+                    % self._focus_url,
+                ],
+                "form_fields": {
+                    "domain_names_add": "a comma separated list of domains to add",
+                    "domain_names_del": "a comma separated list of domains to delete",
+                },
+            }
+        params = {
+            "project": "peter_sslers",
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+        }
+        return render_to_response(
+            "/admin/unique_fqdn_set-focus-modify.mako", params, self.request
+        )
+
+    def _modify__submit(self):
+        dbUniqueFQDNSet = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_UniqueFQDNSet_modify,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # localize form values
+            domain_names_add = formStash.results["domain_names_add"]
+            domain_names_del = formStash.results["domain_names_del"]
+
+            # ensure domain names are submitted
+            if not domain_names_add and not domain_names_del:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(message="no domain names submitted")
+
+            # Pass 1- Validate Input
+            # validate the domain names - add:
+            try:
+                # this function checks the domain names match a simple regex
+                domain_names_add = utils.domains_from_string(domain_names_add)
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names_add", message="invalid domain names detected"
+                )
+            # validate the domain names - del:
+            try:
+                # this function checks the domain names match a simple regex
+                domain_names_del = utils.domains_from_string(domain_names_del)
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names_del", message="invalid domain names detected"
+                )
+
+            # Pass 2- Aggregate Input
+            # okay, and then again...
+            if not domain_names_add and not domain_names_del:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(message="no valid domain names submitted")
+
+            # any overlap?
+            domain_names_add = set(domain_names_add)
+            domain_names_del = set(domain_names_del)
+            if not domain_names_add.isdisjoint(domain_names_del):
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    message="Identical domain names submitted for add and delete operations",
+                )
+
+            # calculate the validity of the new UniqueFQDNSet
+            existing_domains = dbUniqueFQDNSet.domains_as_list
+            proposed_domains = set(existing_domains)
+            proposed_domains.update(domain_names_add)
+            proposed_domains.difference_update(domain_names_del)
+            proposed_domains = list(proposed_domains)
+            if len(proposed_domains) > 100:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    message="The proposed set contains more than 100 domain names. "
+                    "There is a max of 100 domains per certificate.",
+                )
+            elif len(proposed_domains) < 1:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    message="The proposed set contains less than 1 domain name.",
+                )
+            if set(existing_domains) == set(proposed_domains):
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    message="The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet.",
+                )
+
+            # okay, try to add it
+            try:
+                (
+                    dbUniqueFQDNSet,
+                    is_created,
+                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                    self.request.api_context,
+                    proposed_domains,
+                    allow_blocklisted_domains=False,
+                )
+            except Exception as exc:
+                raise
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "modify",
+                    "is_created": is_created,
+                    "UniqueFQDNSet": dbUniqueFQDNSet.as_json,
+                }
+            return HTTPSeeOther(
+                "%s/unique-fqdn-set/%s?result=success&operation=modify&is_created=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbUniqueFQDNSet.id,
+                    is_created,
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._modify__print)
+
+
+class ViewNew(Handler):
+    @view_config(route_name="admin:unique_fqdn_set:new")
+    @view_config(route_name="admin:unique_fqdn_set:new|json", renderer="json")
+    def new(self):
+        if self.request.method == "POST":
+            return self._new__submit()
+        return self._new__print()
+
+    def _new__print(self):
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "domain_names": "required; a comma separated list of domain names",
+                },
+                "instructions": [
+                    "HTTP POST required",
+                    """curl --form 'domain_names=domain_names' %s/unique-fqdn-set/new.json"""
+                    % self.request.admin_url,
+                ],
+            }
+        return render_to_response(
+            "/admin/unique_fqdn_set-new.mako",
+            {},
+            self.request,
+        )
+
+    def _new__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_UniqueFQDNSet_new,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # localize form values
+            domain_names = formStash.results["domain_names"]
+
+            # Pass 1- Validate Input
+            try:
+                # this function checks the domain names match a simple regex
+                domain_names = utils.domains_from_string(domain_names)
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="invalid domain names detected"
+                )
+
+            # Pass 2- Aggregate Input
+            # okay, and then again...
+            if not domain_names:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="no valid domain names submitted"
+                )
+            if len(domain_names) > 100:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(
+                    field="domain_names", message="more than 100 domain names submitted"
+                )
+
+            # okay, try to add it
+            try:
+                (
+                    dbUniqueFQDNSet,
+                    is_created,
+                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                    self.request.api_context,
+                    domain_names,
+                    allow_blocklisted_domains=False,
+                )
+            except Exception as exc:
+                raise
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "new",
+                    "is_created": is_created,
+                    "UniqueFQDNSet": dbUniqueFQDNSet.as_json,
+                }
+
+            return HTTPSeeOther(
+                "%s/unique-fqdn-set/%s?result=success&operation=new&is_created=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbUniqueFQDNSet.id,
+                    is_created,
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new__print)

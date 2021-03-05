@@ -4113,18 +4113,24 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
-    There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
+    UniqueFQDNSets are used for two reasons:
 
-    * `domain_ids_string` should be a unique list of ordered ids, separated by commas.
-    * the association table is used to actually join domains to Certificates and CSRs
+    1. They simplify tracking Lineage of Certificates vs Certbot's approach.
+    2. There is a ratelimit in effect from LetsEncrypt for unique sets of
+       fully-qualified domain names
 
+    Domains are actually associated to the UniqueFQDNSet by the table:
+    `UniqueFQDNSet2Domain`.
+
+    The column `domain_ids_string` is a unique list of ordered ids, separated by
+    commas. This is used as a fingerprint for searching and deduplication.
     """
 
     # note: RATELIMIT.FQDN
 
     __tablename__ = "unique_fqdn_set"
     id = sa.Column(sa.Integer, primary_key=True)
-    domain_ids_string = sa.Column(sa.Text, nullable=False)
+    domain_ids_string = sa.Column(sa.Text, nullable=False, unique=True)
     count_domains = sa.Column(sa.Integer, nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     operations_event_id__created = sa.Column(

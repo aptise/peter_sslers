@@ -143,6 +143,9 @@
 		* "compatible certificate cas" search
 	* CertificateCA
 		* added exploration of chains
+	* UniqueFQDNSet
+		* new routes to modify a set by add/remove domains
+		* with tests!
 	+ other fixes and improvements
 
 0.4.0

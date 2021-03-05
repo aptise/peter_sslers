@@ -239,10 +239,10 @@ The source and docs are available on a separate github repository:
 The "/tools" directory contains scripts useful for Certificate operations.
 Currently this includes:
 
-* an `invoke` script for some miscellaneous tasks
-* a sample `fake_server.py` that will spin up a server with routes that you can
-  test against. this will allow you to setup your integration without running
-  peter_sslers
+* An `invoke` script for importing Certbot archives, and potentially other tasks.
+* A sample `fake_server.py` that will spin up a web server with routes which you can
+  test against. This will allow you to setup your proxy integration without running
+  peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
 
 # General Management Concepts
 
@@ -260,9 +260,6 @@ Currently this includes:
   PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week.
   The AcmeAccount can choose to use daily or weekly per-account or global keys.
 
-Re-using PrivateKeys across AcmeOrders is supported because this application's
-OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master,
-redis) for dynamic Certificate lookups.
 
 ### CertificateCAs and Certificate Chains
 
@@ -288,15 +285,25 @@ The normalized data structure used by the backend and object hierarchy is as fol
 When Alternate Chains are offered by the ACME server, the system will download 
 all chains and associate them to the Certificate.
 
-## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
+### Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
-One of the LetsEncrypt service's ratelimits is based on a CertificateRequest's
-"uniqueness" of Domains.
+With PeterSSLers, Certificates are not associated to "Domains" but to "UniqueFQDNSets",
+which are unique collections of domains.
 
-To more easily deal with this limit, AcmeOrders/Certificates/CertificateRequests are
-designed around the idea of a "UniqueFQDNSet" and not a single Domain.
+This design was implemented for two reasons:
 
-When requesting a new Certificate or importing existing ones, most of this happens
+1. Certbot has a concept of "Lineage", which tracks the version history of a given
+   Certificate. This can create confusion when adding and removing domains, as the
+   lineage certificate's name does not necessarily reflect what is in the Certificate.
+
+2. One of the LetsEncrypt service's ratelimits is based on a CertificateRequest's
+   "uniqueness" of Domains, which is essentially a UniqueFQDNSet (There may only
+   be *n* "Duplicate Certificates" issued per week). By tracking the UniqueFQDNSets
+   natively, PeterSSLers can help you avoid hitting these limits.  To more easily
+   deal with this limit, AcmeOrders/Certificates/CertificateRequests are designed
+   around the idea of a "UniqueFQDNSet" and not a single Domain.
+
+When requesting a new Certificate or importing existing ones, this happens all
 behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
 ## A single web application?
@@ -428,6 +435,24 @@ Using the weekly or daily options will allow you to constantly cycle new keys in
 your installation, while minimizing the total number of keys the system needs to
 operate.
 
+Re-using PrivateKeys across AcmeOrders is particularly useful because this
+application's OpenResty plugin leverages a three-level cache (nginx-worker,
+nginx-master, redis) for dynamic Certificate lookups.
+
+In large-scale deployments, using a single PrivateKey per Certificate can cause
+memory concerns that lead users to stuff Certificates up to the limit of 100
+domain names. By re-using PrivateKeys, these concerns can be greatly alleviated
+and make grouping Certificates by domain more attractive.
+
+For example, consider bucking 50 domains with the bare "registered domain" and a
+subdomain (either the wildcard `*` or `www`):
+
+| Strategy | Certificates | PrivateKeys |
+| --- | --- | --- |
+| 1 Certificate | 1 | 1 |
+| 50 Certificates, No PrivateKey resuse | 50 | 50 |
+| 50 Certificates + PrivateKey resuse | 50 | 1 |
+
 
 ## Certificate Pinning and Alternate Chains
 
@@ -450,6 +475,8 @@ system identifier AND sha1 fingerprint.
 # Installation
 
 This is pretty much ready to go for development use.
+Production use requires some tweaking by design.
+
 Python should install everything for you.
 If it doesn't, someone messed up. That someone was me. Sorry.
 

@@ -5217,8 +5217,102 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "/.well-known/admin/unique-fqdn-set/%s/calendar.json" % focus_id, status=200
         )
 
-    @routes_tested(("admin:unique_fqdn_set:focus:update_recents",))
+    @routes_tested(("admin:unique_fqdn_set:new",))
+    def test_new_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_new_html
+        """
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        form = res.form
+        new_fields = dict(form.submit_fields())
+        assert "domain_names" in new_fields
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-new_html-1.example.com, test-unique_fqdn_set-new_html-2.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
+        matched = RE_UniqueFQDNSet_new.match(res2.location)
+        assert matched
+        (_id1, _is_created1) = matched.groups(0)
+        assert _is_created1 == "True"
+
+        # make it again, expect it to be NOT created
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        form = res.form
+        new_fields = dict(form.submit_fields())
+        assert "domain_names" in new_fields
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-new_html-1.example.com, test-unique_fqdn_set-new_html-2.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
+        matched = RE_UniqueFQDNSet_new.match(res2.location)
+        assert matched
+        (_id2, _is_created2) = matched.groups(0)
+        assert _is_created2 == "False"
+        assert _id2 == _id1
+
+        # TODO: test no domains
+        # TODO: test 100+ domains
+        # TODO: test valid + invalid domains
+
+    @routes_tested(("admin:unique_fqdn_set:new|json",))
+    def test_new_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_new_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/new.json", status=200
+        )
+        assert "form_fields" in res.json
+
+        form = {}
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-new_json-1.example.com, test-unique_fqdn_set-new_json-2.example.com"
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert "result" in res2.json
+        assert res2.json["result"] == "success"
+        assert "operation" in res2.json
+        assert res2.json["operation"] == "new"
+        assert "is_created" in res2.json
+        assert res2.json["is_created"] is True
+        assert "UniqueFQDNSet" in res2.json
+
+        form = {}
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-new_json-1.example.com, test-unique_fqdn_set-new_json-2.example.com"
+        res3 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res3.status_code == 200
+        assert "result" in res3.json
+        assert res3.json["result"] == "success"
+        assert "operation" in res3.json
+        assert res3.json["operation"] == "new"
+        assert "is_created" in res3.json
+        assert res3.json["is_created"] is False
+        assert "UniqueFQDNSet" in res3.json
+
+        assert res2.json["UniqueFQDNSet"]["id"] == res3.json["UniqueFQDNSet"]["id"]
+
+        # TODO: test no domains
+        # TODO: test 100+ domains
+        # TODO: test valid + invalid domains
+
+    @routes_tested(
+        (
+            "admin:unique_fqdn_set:focus:update_recents",
+            "admin:unique_fqdn_set:focus:modify",
+            "admin:unique_fqdn_set:new",
+        )
+    )
     def test_manipulate_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_manipulate_html
+        """
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
@@ -5241,8 +5335,83 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             % focus_id
         )
 
-    @routes_tested(("admin:unique_fqdn_set:focus:update_recents|json",))
+        # MODIFY
+        # create a new item
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        form = res.form
+        new_fields = dict(form.submit_fields())
+        assert "domain_names" in new_fields
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-manipulate_html-1.example.com, test-unique_fqdn_set-manipulate_html-2.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_UniqueFQDNSet_new.match(res2.location)
+        assert matched
+        (_id1, _is_created1) = matched.groups(0)
+        assert _is_created1 == "True"
+        # grab it
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s" % _id1, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+        )
+        forms = res.forms
+        assert "form-unique_fqdn_set-modify" in res.forms
+
+        # test 1- add/del the same domain
+        form = res.forms["form-unique_fqdn_set-modify"]
+        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Identical domain names submitted for add and delete operations</span></div></div>"""
+            in res2.text
+        )
+
+        # test 2- add existing domain
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+        )
+        forms = res.forms
+        assert "form-unique_fqdn_set-modify" in res.forms
+        form = res.forms["form-unique_fqdn_set-modify"]
+        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet.</span></div></div>"""
+            in res2.text
+        )
+
+        # test 3- remove a domain
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+        )
+        forms = res.forms
+        assert "form-unique_fqdn_set-modify" in res.forms
+        form = res.forms["form-unique_fqdn_set-modify"]
+        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_UniqueFQDNSet_modify.match(res2.location)
+        assert matched
+        (_id, _is_created) = matched.groups(0)
+        assert _is_created == "True"
+
+    @routes_tested(
+        (
+            "admin:unique_fqdn_set:focus:update_recents|json",
+            "admin:unique_fqdn_set:focus:modify|json",
+            "admin:unique_fqdn_set:new|json",
+        )
+    )
     def test_manipulate_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_manipulate_json
+        """
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.post(
@@ -5252,6 +5421,83 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "UniqueFQDNSet" in res.json
+
+        # MODIFY
+        # create a new item
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/new.json", status=200
+        )
+        assert "form_fields" in res.json
+
+        form = {}
+        form[
+            "domain_names"
+        ] = "test-unique_fqdn_set-manipulate_json-1.example.com, test-unique_fqdn_set-manipulate_json-2.example.com"
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert "result" in res2.json
+        assert res2.json["result"] == "success"
+        assert "operation" in res2.json
+        assert res2.json["operation"] == "new"
+        assert "is_created" in res2.json
+        assert res2.json["is_created"] is True
+        assert "UniqueFQDNSet" in res2.json
+
+        focus_id = res2.json["UniqueFQDNSet"]["id"]
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id, status=200
+        )
+        assert "form_fields" in res.json
+
+        form = {}
+        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        res2 = self.testapp.post(
+            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            form,
+            status=200,
+        )
+        assert res2.status_code == 200
+        assert res2["result"] == "error"
+        assert (
+            res2["form_errors"]["Error_Main"]
+            == "There was an error with your form. Identical domain names submitted for add and delete operations"
+        )
+
+        # test 2- add existing domain
+        form = {}
+        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        form["domain_names_del"] = ""
+        res2 = self.testapp.post(
+            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            form,
+            status=200,
+        )
+        assert res2.status_code == 200
+        assert res2["result"] == "error"
+        assert (
+            res2["form_errors"]["Error_Main"]
+            == "There was an error with your form. The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet"
+        )
+
+        # test 3- remove a domain
+        form = {}
+        form["domain_names_add"] = ""
+        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        res2 = self.testapp.post(
+            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            form,
+            status=200,
+        )
+        assert res2.status_code == 200
+        assert "result" in res2.json
+        assert res2.json["result"] == "success"
+        assert "operation" in res2.json
+        assert res2.json["operation"] == "modify"
+        assert "is_created" in res2.json
+        assert res3.json["is_created"] is True
+        assert "UniqueFQDNSet" in res3.json
 
     def test_post_required_json(self):
         (focus_item, focus_id) = self._get_one()

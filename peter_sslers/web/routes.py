@@ -1338,5 +1338,13 @@ def _admin_views(config):
         "admin:unique_fqdn_set:focus:queue_certificates_paginated",
         "/unique-fqdn-set/{@id}/queue-certificates/{@page}",
     )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:modify", "/unique-fqdn-set/{@id}/modify"
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:modify|json", "/unique-fqdn-set/{@id}/modify.json"
+    )
+    config.add_route_7("admin:unique_fqdn_set:new", "/unique-fqdn-set/new")
+    config.add_route_7("admin:unique_fqdn_set:new|json", "/unique-fqdn-set/new.json")
 
     config.scan("peter_sslers.web.views_admin")

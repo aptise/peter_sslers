@@ -68,7 +68,7 @@
                 <div class="form-group">
                     <label for="domain_names">Domains</label>
                     <em>A comma separated list of domain names to enroll with this server. </em>
-                    <textarea name="domain_names" class="form-control"/></textarea>
+                    <textarea name="domain_names" class="form-control"></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

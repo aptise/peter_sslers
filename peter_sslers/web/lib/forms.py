@@ -437,6 +437,20 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
 
 
+class Form_CertificateSigned_mark(_Form_Schema_Base):
+    action = OneOf(
+        (
+            "active",
+            "inactive",
+            "revoked",
+            # "renew_manual",
+            # "renew_auto",
+            "unrevoke",
+        ),
+        not_empty=True,
+    )
+
+
 class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
     action = OneOf(
         ("resolution"),
@@ -560,15 +574,10 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_CertificateSigned_mark(_Form_Schema_Base):
-    action = OneOf(
-        (
-            "active",
-            "inactive",
-            "revoked",
-            # "renew_manual",
-            # "renew_auto",
-            "unrevoke",
-        ),
-        not_empty=True,
-    )
+class Form_UniqueFQDNSet_modify(_Form_Schema_Base):
+    domain_names_add = UnicodeString(not_empty=False)
+    domain_names_del = UnicodeString(not_empty=False)
+
+
+class Form_UniqueFQDNSet_new(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
