@@ -5459,7 +5459,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             status=200,
         )
         assert res2.status_code == 200
-        assert res2["result"] == "error"
+        assert res2.json["result"] == "error"
         assert (
             res2["form_errors"]["Error_Main"]
             == "There was an error with your form. Identical domain names submitted for add and delete operations"
@@ -5475,7 +5475,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             status=200,
         )
         assert res2.status_code == 200
-        assert res2["result"] == "error"
+        assert res2.json["result"] == "error"
         assert (
             res2["form_errors"]["Error_Main"]
             == "There was an error with your form. The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet"
