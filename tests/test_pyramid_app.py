@@ -5228,7 +5228,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert "domain_names" in new_fields
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-new_html-1.example.com, test-unique_fqdn_set-new_html-2.example.com"
+        ] = "test--unique-fqdn-set--new-html--1.example.com, test--unique-fqdn-set--new-html--2.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
         # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
@@ -5244,7 +5244,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert "domain_names" in new_fields
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-new_html-1.example.com, test-unique_fqdn_set-new_html-2.example.com"
+        ] = "test--unique-fqdn-set--new-html--1.example.com, test--unique-fqdn-set--new-html--2.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
         # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
@@ -5254,9 +5254,50 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert _is_created2 == "False"
         assert _id2 == _id1
 
-        # TODO: test no domains
-        # TODO: test 100+ domains
-        # TODO: test valid + invalid domains
+        # test no domains
+        form["domain_names"] = ""
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_names -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Please enter a value</span></div></div>"""
+            in res2.text
+        )
+
+        # test no valid domains
+        form["domain_names"] = ",,"
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_names -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">no valid domain names submitted</span></div></div>"""
+            in res2.text
+        )
+        form["domain_names"] = "example.com."
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_names -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">invalid domain names detected</span></div></div>"""
+            in res2.text
+        )
+
+        # test valid + invalid domains
+        form["domain_names"] = "example.com., example.com"
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_names -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">invalid domain names detected</span></div></div>"""
+            in res2.text
+        )
+
+        # test 100+ domains
+        form["domain_names"] = ",".join(
+            ["test-%s.example.com" % i for i in range(0, 101)]
+        )
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: domain_names -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">more than 100 domain names submitted</span></div></div>"""
+            in res2.text
+        )
 
     @routes_tested(("admin:unique_fqdn_set:new|json",))
     def test_new_json(self):
@@ -5271,7 +5312,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form = {}
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-new_json-1.example.com, test-unique_fqdn_set-new_json-2.example.com"
+        ] = "test--unique-fqdn-set--new-json--1.example.com, test--unique-fqdn-set--new-json--2.example.com"
         res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
         assert res2.status_code == 200
         assert "result" in res2.json
@@ -5285,7 +5326,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form = {}
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-new_json-1.example.com, test-unique_fqdn_set-new_json-2.example.com"
+        ] = "test--unique-fqdn-set--new-json--1.example.com, test--unique-fqdn-set--new-json--2.example.com"
         res3 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
         assert res3.status_code == 200
         assert "result" in res3.json
@@ -5298,9 +5339,51 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         assert res2.json["UniqueFQDNSet"]["id"] == res3.json["UniqueFQDNSet"]["id"]
 
-        # TODO: test no domains
-        # TODO: test 100+ domains
-        # TODO: test valid + invalid domains
+        # test no domains
+        form["domain_names"] = ""
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert res2.json["form_errors"]["domain_names"] == "Please enter a value"
+
+        # test no valid domains
+        form["domain_names"] = ",,"
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert (
+            res2.json["form_errors"]["domain_names"]
+            == "no valid domain names submitted"
+        )
+
+        form["domain_names"] = "example.com."
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert (
+            res2.json["form_errors"]["domain_names"] == "invalid domain names detected"
+        )
+
+        # test valid + invalid domains
+        form["domain_names"] = "example.com., example.com"
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert (
+            res2.json["form_errors"]["domain_names"] == "invalid domain names detected"
+        )
+
+        # test 100+ domains
+        form["domain_names"] = ",".join(
+            ["test-%s.example.com" % i for i in range(0, 101)]
+        )
+        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert (
+            res2.json["form_errors"]["domain_names"]
+            == "more than 100 domain names submitted"
+        )
 
     @routes_tested(
         (
@@ -5343,7 +5426,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert "domain_names" in new_fields
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-manipulate_html-1.example.com, test-unique_fqdn_set-manipulate_html-2.example.com"
+        ] = "test--unique-fqdn-set--manipulate-html--1.example.com, test--unique-fqdn-set--manipulate-html--2.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_UniqueFQDNSet_new.match(res2.location)
@@ -5362,8 +5445,12 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test 1- add/del the same domain
         form = res.forms["form-unique_fqdn_set-modify"]
-        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
-        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        form[
+            "domain_names_add"
+        ] = "test--unique-fqdn-set--manipulate-html--1.example.com"
+        form[
+            "domain_names_del"
+        ] = "test--unique-fqdn-set--manipulate-html--1.example.com"
         res2 = form.submit()
         assert res2.status_code == 200
         assert (
@@ -5378,7 +5465,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         forms = res.forms
         assert "form-unique_fqdn_set-modify" in res.forms
         form = res.forms["form-unique_fqdn_set-modify"]
-        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        form[
+            "domain_names_add"
+        ] = "test--unique-fqdn-set--manipulate-html--1.example.com"
         res2 = form.submit()
         assert res2.status_code == 200
         assert (
@@ -5393,7 +5482,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         forms = res.forms
         assert "form-unique_fqdn_set-modify" in res.forms
         form = res.forms["form-unique_fqdn_set-modify"]
-        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_html-1.example.com"
+        form[
+            "domain_names_del"
+        ] = "test--unique-fqdn-set--manipulate-html--1.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_UniqueFQDNSet_modify.match(res2.location)
@@ -5432,7 +5523,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form = {}
         form[
             "domain_names"
-        ] = "test-unique_fqdn_set-manipulate_json-1.example.com, test-unique_fqdn_set-manipulate_json-2.example.com"
+        ] = "test--unique-fqdn-set--manipulate-json--1.example.com, test--unique-fqdn-set--manipulate-json--2.example.com"
         res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
         assert res2.status_code == 200
         assert "result" in res2.json
@@ -5451,8 +5542,12 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert "form_fields" in res.json
 
         form = {}
-        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
-        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        form[
+            "domain_names_add"
+        ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
+        form[
+            "domain_names_del"
+        ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         res2 = self.testapp.post(
             "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
             form,
@@ -5467,7 +5562,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test 2- add existing domain
         form = {}
-        form["domain_names_add"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        form[
+            "domain_names_add"
+        ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         form["domain_names_del"] = ""
         res2 = self.testapp.post(
             "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
@@ -5484,7 +5581,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         # test 3- remove a domain
         form = {}
         form["domain_names_add"] = ""
-        form["domain_names_del"] = "test-unique_fqdn_set-manipulate_json-1.example.com"
+        form[
+            "domain_names_del"
+        ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         res2 = self.testapp.post(
             "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
             form,

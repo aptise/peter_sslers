@@ -496,7 +496,7 @@ class ViewNew(Handler):
                 )
             if len(domain_names) > 100:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_form(
+                formStash.fatal_field(
                     field="domain_names", message="more than 100 domain names submitted"
                 )
 
