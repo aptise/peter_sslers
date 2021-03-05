@@ -1130,6 +1130,42 @@ class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_OpenSSL):
     pass
 
 
+class UnitTest_utils(unittest.TestCase):
+    """python -m unittest tests.test_unit.UnitTest_utils"""
+
+    def test_validate_domains__valid(self):
+        domains = (
+            "EXAMPLE.com",
+            "example.com",
+            "foo.example.com",
+            "test-1.example.com",
+        )
+        for d in domains:
+            # validate domains expects a list
+            utils.validate_domains(
+                [
+                    d,
+                ]
+            )
+
+    def test_validate_domains__invalid(self):
+        domains = (
+            "-EXAMPLE.com",
+            "example.com-",
+            "example.com.",
+            ".example.com.",
+            "test_1.example.com",
+        )
+        for d in domains:
+            # validate domains expects a list
+            with self.assertRaises(ValueError) as cm:
+                utils.validate_domains(
+                    [
+                        d,
+                    ]
+                )
+
+
 class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
     """
     uses `AppTest` so we have access to a `self.ctx`
