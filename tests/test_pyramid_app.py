@@ -5461,7 +5461,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert (
-            res2["form_errors"]["Error_Main"]
+            res2.json["form_errors"]["Error_Main"]
             == "There was an error with your form. Identical domain names submitted for add and delete operations"
         )
 
@@ -5496,8 +5496,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert "operation" in res2.json
         assert res2.json["operation"] == "modify"
         assert "is_created" in res2.json
-        assert res3.json["is_created"] is True
-        assert "UniqueFQDNSet" in res3.json
+        assert res2.json["is_created"] is True
+        assert "UniqueFQDNSet" in res2.json
 
     def test_post_required_json(self):
         (focus_item, focus_id) = self._get_one()
