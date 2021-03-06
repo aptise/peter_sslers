@@ -71,6 +71,13 @@ api_endpoints = {
         "args": None,
         "GET-button": True,
     },
+    "/api/reconcile-cas.json": {
+        "endpoint": "/api/reconcile-cas.json",
+        "about": """Reconcile outstanding CertificateCA records by downloading and enrolling the CertificateCA presented in their "AuthorityKeyIdentifier".""",
+        "POST": True,
+        "GET": False,
+        "args": None,
+    },
     "/api/nginx/cache-flush.json": {
         "endpoint": "/api/nginx/cache-flush.json",
         "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,

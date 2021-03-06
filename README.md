@@ -285,6 +285,17 @@ The normalized data structure used by the backend and object hierarchy is as fol
 When Alternate Chains are offered by the ACME server, the system will download 
 all chains and associate them to the Certificate.
 
+PeterSSLers also has a tool/endpoint to handle CertificateCA "Reconciliation".
+
+With Reconciliation, CertificateCAs with an issuer URI (aka "Authority Information
+Access" URI) will have that URI downloaded, processed and enrolled into the system.
+The record pertaining to the downloaded Certificate - which may have already been
+in the system, will be noted with the URI the Certificate was downloaded from.
+
+Reconciliation is designed to help ensure PeterSSLers can provide downstream tools
+with all the necessary Certificates in a chain -- including the Trusted Roots if
+necessary.
+
 ### Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
 With PeterSSLers, Certificates are not associated to "Domains" but to "UniqueFQDNSets",
