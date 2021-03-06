@@ -566,6 +566,9 @@ def _admin_views(config):
     config.add_route_7("admin:api:update_recents", "/api/update-recents")
     config.add_route_7("admin:api:update_recents|json", "/api/update-recents.json")
 
+    config.add_route_7("admin:api:reconcile_cas", "/api/reconcile-cas")
+    config.add_route_7("admin:api:reconcile_cas|json", "/api/reconcile-cas.json")
+
     # !!!: Admin API Items - QueueCertificates
     config.add_route_7(
         "admin:api:queue_certificates:process", "/api/queue-certificates/process"

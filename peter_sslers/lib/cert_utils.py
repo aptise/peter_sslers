@@ -42,6 +42,11 @@ try:
     )
     from cryptography.hazmat.primitives.asymmetric import ec as crypto_ec
     from cryptography.hazmat.primitives.asymmetric import rsa as crypto_rsa
+
+    try:
+        from cryptography.hazmat.primitives.serialization import pkcs7 as crypto_pkcs7
+    except:
+        crypto_pkcs7 = None
     import josepy
 
 except ImportError as exc:
@@ -54,6 +59,7 @@ except ImportError as exc:
     cryptography_serialization = None
     crypto_ec = None
     crypto_rsa = None
+    crypto_pkcs7 = None
     josepy = None
 
 # localapp
@@ -276,6 +282,19 @@ def convert_pem_to_der(pem_data=None):
     lines = "".join(lines)
     result = base64.b64decode(lines)
     return result
+
+
+def convert_pkcs7_to_pems(pkcs7_data=None):
+    if cryptography_serialization:
+        certs = crypto_pkcs7.load_der_pkcs7_certificates(pkcs7_data)
+        certs = [
+            cert.public_bytes(cryptography_serialization.Encoding.PEM) for cert in certs
+        ]
+        if six.PY3:
+            certs = [cert.decode("utf8") for cert in certs]
+        certs = [cleanup_pem_text(cert) for cert in certs]
+        return certs
+    raise ValueError("fallback not implemented yet")
 
 
 def san_domains_from_text(input):

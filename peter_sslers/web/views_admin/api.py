@@ -107,6 +107,27 @@ class ViewAdminApi(Handler):
             )
         )
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:api:reconcile_cas", renderer=None)
+    @view_config(route_name="admin:api:reconcile_cas|json", renderer="json")
+    def reconcile_cas(self):
+        if self.request.wants_json:
+            if self.request.method != "POST":
+                return docs.json_docs_post_only
+        operations_event = lib_db.actions.operations_reconcile_cas(
+            self.request.api_context
+        )
+        if self.request.wants_json:
+            return {"result": "success", "operations_event": operations_event.id}
+        return HTTPSeeOther(
+            "%s/operations/log?result=success&event.id=%s"
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                operations_event.id,
+            )
+        )
+
 
 class ViewAdminApi_Domain(Handler):
     @view_config(route_name="admin:api:domain:enable", renderer="json")

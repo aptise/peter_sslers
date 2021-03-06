@@ -49,7 +49,7 @@
 			`CertificateCA` to `CertificateCA`
 			`server_certificate` to `certificate_signed`
 			`ServerCertificate` to `CertificateSigned`
-			`id_cross_signed_of` to `id_cross_signed_by`
+			`id_cross_signed_of` to `cross_signed_by__certificate_ca_id`
 			xxx "letsencrypt-download" to "letsencrypt-sync"  xxx removed
 		
 		Renamed
@@ -143,6 +143,10 @@
 		* "compatible certificate cas" search
 	* CertificateCA
 		* added exploration of chains
+		* tracking reconcilation of cert_issuer_uri
+		* deprecated "signed_by__certificate_ca_id" and "cross_signed_by__certificate_ca_id" into information
+		* added "reconciliation" concept:
+			* if a CertificateCA has a `cert_issuer_uri` attribute, that will be loaded and processed
 	* UniqueFQDNSet
 		* new routes to modify a set by add/remove domains
 		* with tests!

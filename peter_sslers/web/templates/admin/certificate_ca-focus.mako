@@ -59,10 +59,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>id_cross_signed_by</th>
-                        <td>${CertificateCA.id_cross_signed_by or ''}</td>
-                    </tr>
-                    <tr>
                         <th>timestamp_not_before</th>
                         <td><timestamp>${CertificateCA.timestamp_not_before or ''}</timestamp></td>
                     </tr>
@@ -125,6 +121,30 @@
                         <td><samp>${CertificateCA.cert_issuer}</samp>
                             </td>
                     </tr>
+                    <tr>
+                        <th>Reconciliation</th>
+                        <td>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th>cert_issuer__reconciled</th>
+                                    <td>Has a reconciliation been attempted?<br/> ${CertificateCA.cert_issuer__reconciled or ""}</td>
+                                </tr>
+                                <tr>
+                                    <th>cert_issuer__certificate_ca_id</th>
+                                    <td>via reconciliation:
+                                        % if CertificateCA.cert_issuer__certificate_ca_id:
+                                            ${CertificateCA.cert_issuer__certificate_ca.button_view|n}
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>reconciled_uris</th>
+                                    <td>This certificate was served by the following urls during reconciliation processes: ${CertificateCA.reconciled_uris or ""}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
                     ${admin_partials.table_tr_OperationsEventCreated(CertificateCA)}
                 </tbody>
                 <thead>

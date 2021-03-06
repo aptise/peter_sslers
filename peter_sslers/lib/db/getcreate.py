@@ -809,7 +809,6 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.display_name = display_name or "unknown"
             dbCertificateCA.key_technology_id = key_technology_id
             dbCertificateCA.is_trusted_root = is_trusted_root
-            dbCertificateCA.id_cross_signed_by = None
             dbCertificateCA.timestamp_created = ctx.timestamp
             dbCertificateCA.cert_pem = cert_pem
             dbCertificateCA.cert_pem_md5 = cert_pem_md5

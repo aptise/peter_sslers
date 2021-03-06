@@ -9,6 +9,7 @@ import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
+import requests
 import sqlalchemy
 import transaction
 from zope.sqlalchemy import mark_changed
@@ -24,6 +25,7 @@ from .. import events
 from .. import errors
 from .. import utils
 from . import actions_acme
+from . import getcreate
 from . import update
 
 # local
@@ -185,6 +187,91 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+_header_2_format = {
+    "application/pkcs7-mime": "pkcs7",
+    "application/pkix-cert": "pkix-cert",
+}
+
+
+def operations_reconcile_cas(ctx):
+    """
+    tries to reconcile CAs
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    """
+    dbCertificateCAs = (
+        ctx.dbSession.query(model_objects.CertificateCA)
+        .filter(
+            model_objects.CertificateCA.cert_issuer_uri.isnot(None),
+            model_objects.CertificateCA.cert_issuer__reconciled.isnot(True),
+        )
+        .all()
+    )
+    _certificate_ca_ids = []
+    for dbCertificateCA in dbCertificateCAs:
+        print("Reconciling...")
+        _certificate_ca_ids.append(dbCertificateCA.id)
+        cert_issuer_uri = dbCertificateCA.cert_issuer_uri
+        print(dbCertificateCA.cert_subject)
+        print(cert_issuer_uri)
+        resp = requests.get(cert_issuer_uri)
+        if resp.status_code != 200:
+            raise ValueError("Could not load certificate")
+        content_type = resp.headers.get("content-type")
+        filetype = _header_2_format.get(content_type) if content_type else None
+        cert_pems = None
+        if filetype == "pkcs7":
+            cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
+        elif filetype == "pkix-cert":
+            cert_pem = cert_utils.convert_der_to_pem(resp.content)
+            cert_pems = [
+                cert_pem,
+            ]
+        else:
+            raise ValueError("Not Implemented: %s" % content_type)
+
+        for cert_pem in cert_pems:
+            cert_parsed = cert_utils.parse_cert(cert_pem)
+            (
+                _dbCertificateCAReconciled,
+                _is_created,
+            ) = getcreate.getcreate__CertificateCA__by_pem_text(ctx, cert_pem)
+            # mark the first item as reconciled
+            dbCertificateCA.cert_issuer__reconciled = True
+            if not dbCertificateCA.cert_issuer__certificate_ca_id:
+                dbCertificateCA.cert_issuer__certificate_ca_id = (
+                    _dbCertificateCAReconciled.id
+                )
+            else:
+                raise ValueError("Not Implemented: multiple reconciles")
+            # mark the second item
+            reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
+            reconciled_uris = reconciled_uris.split(" ") if reconciled_uris else []
+            if cert_issuer_uri not in reconciled_uris:
+                reconciled_uris.append(cert_issuer_uri)
+                reconciled_uris = " ".join(reconciled_uris)
+                _dbCertificateCAReconciled.reconciled_uris = reconciled_uris
+
+            dbCertificateCAReconciliation = model_objects.CertificateCAReconciliation()
+            dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
+            dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
+            dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
+                _dbCertificateCAReconciled.id
+            )
+            dbCertificateCAReconciliation.result = True
+            ctx.dbSession.add(dbCertificateCAReconciliation)
+
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["certificate_ca.ids"] = _certificate_ca_ids
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("operations__reconcile_cas"),
+        event_payload_dict,
+    )
+
+    return dbOperationsEvent
 
 
 def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=None):

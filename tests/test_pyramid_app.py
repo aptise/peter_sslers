@@ -8913,6 +8913,8 @@ class FunctionalTests_API(AppTest):
             "admin:api:deactivate_expired|json",
             "admin:api:update_recents",
             "admin:api:update_recents|json",
+            "admin:api:reconcile_cas",
+            "admin:api:reconcile_cas|json",
         )
     )
     def test_manipulate(self):
@@ -8935,6 +8937,15 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.post(
             "/.well-known/admin/api/update-recents.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+        res = self.testapp.get("/.well-known/admin/api/reconcile-cas", status=303)
+        assert (
+            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+        )
+        res = self.testapp.post(
+            "/.well-known/admin/api/reconcile-cas.json", {}, status=200
         )
         assert res.json["result"] == "success"
 

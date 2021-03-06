@@ -1865,6 +1865,11 @@
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
              Update Recents</a></li>
+        <li class="${'active' if active =='/api/reconcile-ca' else ''}">
+            <a  href="${admin_prefix}/api/reconcile-cas"
+            >
+             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+             Reconcile CAs</a></li>
         % if enable_redis:
             <li>
                 <a  href="${admin_prefix}/api/redis/prime"

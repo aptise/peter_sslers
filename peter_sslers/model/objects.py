@@ -2137,19 +2137,26 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # these are not guaranteed
     cert_issuer_uri = sa.Column(sa.Text, nullable=True)
     cert_authority_key_identifier = sa.Column(sa.Text, nullable=True)
+    cert_issuer__reconciled = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # status, True or False
+    cert_issuer__certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )  # who did we reconcile this to/
+    reconciled_uris = sa.Column(sa.Text, nullable=True)
 
-    # internal tracking
-    count_active_certificates = sa.Column(sa.Integer, nullable=True)
-
+    count_active_certificates = sa.Column(
+        sa.Integer, nullable=True
+    )  # internal tracking
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    id_signed_by = sa.Column(
+    )  # internal tracking
+    signed_by__certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )
-    id_cross_signed_by = sa.Column(
+    )  # internal tracking
+    cross_signed_by__certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )
+    )  # internal tracking
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
@@ -2164,6 +2171,11 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         "CertificateCAChain",
         primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_n_id",
         back_populates="certificate_ca_n",
+    )
+    cert_issuer__certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCA.cert_issuer__certificate_ca_id==remote(CertificateCA.id)",
+        uselist=False,
     )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
@@ -2429,6 +2441,24 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
         "CertificateCA",
         primaryjoin="CertificateCAPreference.certificate_ca_id==CertificateCA.id",
         uselist=False,
+    )
+
+
+# ==============================================================================
+
+
+class CertificateCAReconciliation(Base):
+    __tablename__ = "certificate_ca_reconciliation"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_operation = sa.Column(sa.DateTime, nullable=False)
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+    result = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # True - success; False - failure
+    certificate_ca_id__issuer__reconciled = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
 
 
