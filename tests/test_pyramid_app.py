@@ -2197,7 +2197,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert "token" in add_fields
         assert "acme_challenge_type" in add_fields
         form["keyauthorization"] = "keyauthorization_add"
-        form["domain"] = "domain_add.example.com"
+        form["domain"] = "domain-add.example.com"
         form["token"] = "token_add"
         form["acme_challenge_type"] = "http-01"
 
@@ -2339,7 +2339,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert "token" in add_fields
         assert "acme_challenge_type" in add_fields
         add_fields["keyauthorization"] = "keyauthorization_add"
-        add_fields["domain"] = "domain_add.example.com"
+        add_fields["domain"] = "domain-add.example.com"
         add_fields["token"] = "token_add"
         add_fields["acme_challenge_type"] = "http-01"
 
@@ -5575,7 +5575,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert res2.json["result"] == "error"
         assert (
             res2.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet"
+            == "There was an error with your form. The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet."
         )
 
         # test 3- remove a domain
