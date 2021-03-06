@@ -9345,8 +9345,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 _auths_all = self.ctx.dbSession.query(
                     model_objects.AcmeAuthorization
                 ).all()
+                _domain_names = [i.lower() for i in domain_names]
                 for i in _auths_all:
-                    if i.domain and (i.domain.domain_name in domain_names):
+                    if i.domain and (i.domain.domain_name in _domain_names):
                         _auths.append(i)
                 _auths = sorted(
                     _auths,
