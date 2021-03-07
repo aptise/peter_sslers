@@ -28,7 +28,6 @@ from ...lib import errors
 from ...lib import events
 from ...lib import db as lib_db
 from ...lib import cert_utils
-from ...lib import letsencrypt_info
 from ...lib import utils
 from ...lib import utils_nginx
 from ...model import utils as model_utils

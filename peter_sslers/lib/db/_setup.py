@@ -12,7 +12,6 @@ import datetime
 # local
 from ...model import objects as model_objects
 from ...model import utils as model_utils
-from ...lib import letsencrypt_info
 from ...lib import utils
 from .logger import log__OperationsEvent
 from . import create as db_create
@@ -134,6 +133,9 @@ def initialize_AcmeAccountProviders(ctx):
 
 
 def initialize_CertificateCAs(ctx):
+
+    # nestle this import, so we do not load it on every run
+    from ...lib import letsencrypt_info
 
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()

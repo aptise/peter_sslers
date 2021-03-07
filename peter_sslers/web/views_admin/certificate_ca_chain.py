@@ -21,7 +21,6 @@ from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import letsencrypt_info
 
 
 # ==============================================================================

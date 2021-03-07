@@ -14,7 +14,6 @@ from formencode.validators import (
 )
 
 # local app
-from ...lib import letsencrypt_info
 from ...model import utils as model_utils
 
 

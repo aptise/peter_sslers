@@ -17,7 +17,6 @@ import transaction
 from ... import lib
 from .. import acme_v2
 from .. import cert_utils
-from .. import letsencrypt_info
 from .. import events
 from .. import errors
 from .. import utils

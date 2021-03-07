@@ -1,3 +1,14 @@
+"""
+This file contains the following:
+
+* LetsEncrypt Rate Limits in JSON form
+* Information on the LetsEncrypt Trust Chain
+* A routine to load the LetsEncrypt Certificates into Python
+
+Because this loads Certificates into memory for some operations, it should
+generally not be imported.
+"""
+
 # stdlib
 import copy
 import datetime

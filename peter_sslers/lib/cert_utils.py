@@ -65,9 +65,6 @@ except ImportError as exc:
 # localapp
 from . import errors
 from . import utils
-from .. import (
-    lib,
-)  # only here to access `lib.letsencrypt_info` without a circular import
 from ..lib import utils as lib_utils
 from ..model.utils import KeyTechnology
 
@@ -784,7 +781,8 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
     If not, openssl is used via subprocesses
     """
     log.info("make_csr >")
-    max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
+    # keep synced with: lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
+    max_domains_certificate = 100
     if len(domain_names) > max_domains_certificate:
         raise errors.OpenSslError_CsrGeneration(
             "LetsEncrypt can only allow `%s` domains per certificate"
