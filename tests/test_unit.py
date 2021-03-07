@@ -1089,6 +1089,41 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                     "-----BEGIN EC PRIVATE KEY-----", key_pem.split("\n")[0]
                 )
 
+    def test_convert_pkcs7_to_pems(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test_convert_pkcs7_to_pems
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test_convert_pkcs7_to_pems
+        """
+        fname_pkcs7 = "letsencrypt-certs/trustid-x3-root.p7c"
+        fpath_pkcs7 = self._filepath_testfile(fname_pkcs7)
+        fdata_pkcs7 = self._filedata_testfile(fname_pkcs7, is_binary=True)
+        pkcs7_pems = cert_utils.convert_pkcs7_to_pems(fdata_pkcs7)
+
+        fname_pem = "letsencrypt-certs/trustid-x3-root.pem"
+        fpath_pem = self._filedata_testfile(fname_pem)
+        fdata_pem = self._filedata_testfile(fname_pem)
+        pem_pem = cert_utils.cleanup_pem_text(fdata_pem)
+
+        self.assertEqual(len(pkcs7_pems), 1)
+        self.assertEqual(pkcs7_pems[0], pem_pem)
+
+    def test_convert_pkix_to_pem(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test_convert_pkix_to_pem
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test_convert_pkix_to_pem
+        """
+        fname_pkix = "letsencrypt-certs/isrgrootx1.pkix"
+        fpath_pkix = self._filepath_testfile(fname_pkix)
+        fdata_pkix = self._filedata_testfile(fname_pkix, is_binary=True)
+        pkix_pem = cert_utils.convert_der_to_pem(fdata_pkix)
+
+        fname_pem = "letsencrypt-certs/isrgrootx1.pem"
+        fpath_pem = self._filedata_testfile(fname_pem)
+        fdata_pem = self._filedata_testfile(fname_pem)
+        pem_pem = cert_utils.cleanup_pem_text(fdata_pem)
+
+        self.assertEqual(pkix_pem, pem_pem)
+
 
 class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
     """python -m unittest tests.test_unit.UnitTest_OpenSSL"""

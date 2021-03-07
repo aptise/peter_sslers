@@ -831,13 +831,17 @@ class _Mixin_filedata(object):
             return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
-    def _filedata_testfile(self, filename):
+    def _filedata_testfile(self, filename, is_binary=False):
         _data_root = self._data_root
         if filename.startswith("letsencrypt-certs/"):
             filename = filename[18:]
             _data_root = self._data_root_letsencrypt
-        with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
-            data = f.read()
+        if is_binary:
+            with open(os.path.join(_data_root, filename), "rb") as f:
+                data = f.read()
+        else:
+            with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
+                data = f.read()
         return data
 
 

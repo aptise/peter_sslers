@@ -221,6 +221,14 @@ def new_pem_tempfile(pem_data):
     return tmpfile_pem
 
 
+def new_der_tempfile(der_data):
+    """this is just a convenience wrapper to create a tempfile and seek(0)"""
+    tmpfile_der = tempfile.NamedTemporaryFile()
+    tmpfile_der.write(der_data)
+    tmpfile_der.seek(0)
+    return tmpfile_der
+
+
 def cleanup_pem_text(pem_text):
     """
     standardizes newlines;
@@ -312,6 +320,7 @@ def convert_pem_to_der(pem_data=None):
 
 
 def convert_pkcs7_to_pems(pkcs7_data=None):
+    log.info("convert_pkcs7_to_pems >")
     if cryptography_serialization:
         certs = crypto_pkcs7.load_der_pkcs7_certificates(pkcs7_data)
         certs = [
@@ -321,7 +330,37 @@ def convert_pkcs7_to_pems(pkcs7_data=None):
             certs = [cert.decode("utf8") for cert in certs]
         certs = [cleanup_pem_text(cert) for cert in certs]
         return certs
-    raise ValueError("fallback not implemented yet")
+    log.debug(".convert_pkcs7_to_pems > openssl fallback")
+    _tmpfile_der = new_der_tempfile(pkcs7_data)
+    try:
+        cert_der_filepath = _tmpfile_der.name
+        with psutil.Popen(
+            [
+                openssl_path,
+                "pkcs7",
+                "-inform",
+                "DER",
+                "-in",
+                cert_der_filepath,
+                "-print_certs",
+                "-outform",
+                "PEM",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            # OpenSSL might return extra info
+            # for example: "subject=/O=Digital Signature Trust Co./CN=DST Root CA X3\nissuer=/O=Digital Signature Trust Co./CN=DST Root CA X3\n-----BEGIN CERTIFICATE---[...]"
+            # split_pem_chain works with this, and also handles the "b" decoding
+            certs = split_pem_chain(data)
+        return certs
+    except Exception as exc:
+        raise
+    finally:
+        _tmpfile_der.close()
 
 
 def san_domains_from_text(input):
