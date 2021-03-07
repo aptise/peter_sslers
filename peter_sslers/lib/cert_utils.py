@@ -180,6 +180,33 @@ ALLOWED_BITS_ECDSA = [256, 384]
 
 # ==============================================================================
 
+
+EXTENSION_TO_MIME = {
+    "pem": {
+        "*": "application/x-pem-file",
+    },
+    "cer": {
+        "*": "application/pkix-cert",
+    },
+    "crt": {
+        "CertificateCA": "application/x-x509-ca-cert",
+        "CertificateSigned": "application/x-x509-server-cert",
+    },
+    "p7c": {
+        "*": "application/pkcs7-mime",
+    },
+    "der": {
+        "CertificateCA": "application/x-x509-ca-cert",
+        "CertificateSigned": "application/x-x509-server-cert",
+    },
+    "key": {
+        "*": "application/pkcs8",
+    },
+}
+
+
+# ==============================================================================
+
 # General Utility Functions
 
 

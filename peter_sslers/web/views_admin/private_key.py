@@ -110,6 +110,9 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:private_key:focus:raw", renderer="string")
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbPrivateKey = self._focus()
         if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.from_string(
             "placeholder"

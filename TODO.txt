@@ -27,6 +27,9 @@ asap tasks
 	  This would pin the chain, which is possibly not something we want to do
 	  It may be best to keep this as-is, then try to find the shortest compatible chain
 			
+* Correctly support writing these formats
+	pkcs8
+	pkcs10
 
 
 TESTS:

@@ -398,6 +398,9 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:certificate_ca:focus:raw", renderer="string")
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbCertificateCA = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
