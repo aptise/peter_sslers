@@ -349,9 +349,11 @@ def convert_pkcs7_to_pems(pkcs7_data=None):
             data, err = proc.communicate()
             if not data:
                 raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode()
             # OpenSSL might return extra info
             # for example: "subject=/O=Digital Signature Trust Co./CN=DST Root CA X3\nissuer=/O=Digital Signature Trust Co./CN=DST Root CA X3\n-----BEGIN CERTIFICATE---[...]"
-            # split_pem_chain works with this, and also handles the "b" decoding
+            # split_pem_chain works perfectly with this payload!
             certs = split_pem_chain(data)
         return certs
     except Exception as exc:
