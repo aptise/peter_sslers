@@ -56,6 +56,22 @@
                             % if CertificateCA.is_trusted_root:
                                 <label class="label label-success">Y</label>
                             % endif
+                            % if CertificateCA.to_root_stores:
+                                <ul class="list list-unstyled">
+                                    % for to_root_store in CertificateCA.to_root_stores:
+                                        <li>
+                                            <a href="${admin_prefix}/root-store/${to_root_store.root_store.id}"
+                                               class="label label-info"
+                                            >
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                RootStore-${to_root_store.root_store.id}
+                                            </a>
+                                            <code>${to_root_store.root_store.name}</code>&nbsp;
+                                            <code>${to_root_store.root_store.version_string}</code>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
                         </td>
                     </tr>
                     <tr>

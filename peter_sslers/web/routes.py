@@ -1283,6 +1283,15 @@ def _admin_views(config):
         "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
     )
 
+    # !!!: Root Stores
+    config.add_route_7("admin:root_stores", "/root-stores")
+    config.add_route_7("admin:root_stores_paginated", "/root-stores/{@page}")
+    config.add_route_7("admin:root_stores|json", "/root-stores.json")
+    config.add_route_7("admin:root_stores_paginated|json", "/root-stores/{@page}.json")
+    # !!!: Root Store - Focus
+    config.add_route_7("admin:root_store:focus", "/root-store/{@id}")
+    config.add_route_7("admin:root_store:focus|json", "/root-store/{@id}.json")
+
     # !!!: Unique FQDN Sets
     # tied to Certs and Ratelimits
     config.add_route_7("admin:unique_fqdn_sets", "/unique-fqdn-sets")

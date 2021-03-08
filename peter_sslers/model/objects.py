@@ -2188,6 +2188,12 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_ca",
     )
 
+    to_root_stores = sa_orm_relationship(
+        "RootStore_2_CertificateCA",
+        primaryjoin="CertificateCA.id==RootStore_2_CertificateCA.certificate_ca_id",
+        back_populates="certificate_ca",
+    )
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
@@ -4135,6 +4141,57 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="RemoteIpAddress.id==AcmeChallengeUnknownPoll.remote_ip_address_id",
         uselist=True,
         back_populates="remote_ip_address",
+    )
+
+
+# ==============================================================================
+
+
+class RootStore(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store"
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.Text, nullable=False)
+    version_string = sa.Column(sa.Integer, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    to_certificate_cas = sa_orm_relationship(
+        "RootStore_2_CertificateCA",
+        primaryjoin="RootStore.id==RootStore_2_CertificateCA.root_store_id",
+        back_populates="root_store",
+    )
+
+
+if False:
+    idx_root_store_name = sa.Index(
+        "idx_root_store_name", sa.func.lower(RootStore.name), unique=True
+    )
+
+
+class RootStore_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_2_certificate_ca"
+    id = sa.Column(sa.Integer, primary_key=True)
+    root_store_id = sa.Column(
+        sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
+    )
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    root_store = sa_orm_relationship(
+        "RootStore",
+        primaryjoin="RootStore_2_CertificateCA.root_store_id==RootStore.id",
+        uselist=False,
+        back_populates="to_certificate_cas",
+    )
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="RootStore_2_CertificateCA.certificate_ca_id==CertificateCA.id",
+        uselist=False,
+        back_populates="to_root_stores",
     )
 
 

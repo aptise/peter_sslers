@@ -9,6 +9,9 @@ log.setLevel(logging.INFO)
 # stdlib
 import datetime
 
+# pypi
+import sqlalchemy
+
 # local
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -197,6 +200,55 @@ def initialize_CertificateCAs(ctx):
                     setattr(dbCertificateCA, _k, cert_data[_k])
                     if dbCertificateCA not in certs_discovered:
                         certs_modified.append(dbCertificateCA)
+
+        if "compatibility" in cert_data:
+            # TODO: migrate to getcreate
+            # TODO: log creation
+            for platform_info in cert_data["compatibility"].items():
+                dbRootStore = (
+                    ctx.dbSession.query(model_objects.RootStore)
+                    .filter(
+                        sqlalchemy.func.lower(model_objects.RootStore.name)
+                        == platform_info[0].lower(),
+                        sqlalchemy.func.lower(model_objects.RootStore.version_string)
+                        == platform_info[1].lower(),
+                    )
+                    .first()
+                )
+                if not dbRootStore:
+                    dbRootStore = model_objects.RootStore()
+                    dbRootStore.name = platform_info[0]
+                    dbRootStore.version_string = platform_info[1]
+                    dbRootStore.timestamp_created = ctx.timestamp
+                    ctx.dbSession.add(dbRootStore)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStore,
+                        ]
+                    )
+
+                dbRootStore2CertificateCA = (
+                    ctx.dbSession.query(model_objects.RootStore_2_CertificateCA)
+                    .filter(
+                        model_objects.RootStore_2_CertificateCA.root_store_id
+                        == dbRootStore.id,
+                        model_objects.RootStore_2_CertificateCA.certificate_ca_id
+                        == dbCertificateCA.id,
+                    )
+                    .first()
+                )
+                if not dbRootStore2CertificateCA:
+                    dbRootStore2CertificateCA = (
+                        model_objects.RootStore_2_CertificateCA()
+                    )
+                    dbRootStore2CertificateCA.root_store_id = dbRootStore.id
+                    dbRootStore2CertificateCA.certificate_ca_id = dbCertificateCA.id
+                    ctx.dbSession.add(dbRootStore2CertificateCA)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStore2CertificateCA,
+                        ]
+                    )
         certs_lookup[cert_id] = dbCertificateCA
 
     # bookkeeping update

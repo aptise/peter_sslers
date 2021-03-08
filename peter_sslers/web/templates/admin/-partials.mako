@@ -1183,6 +1183,35 @@
 </%def>
 
 
+<%def name="table_RootStores(root_stores)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>version_string</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in root_stores:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/root-store/${i.id}"
+                    >
+                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                     RootStore-${i.id}
+                    </a>
+                </td>
+                <td><code>${i.name}</code></td>
+                <td><code>${i.version_string}</code></td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
