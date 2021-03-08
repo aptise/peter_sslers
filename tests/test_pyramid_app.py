@@ -5099,6 +5099,102 @@ class FunctionalTests_CertificateSigned(AppTest):
         assert "HTTP POST required" in res.json["instructions"]
 
 
+class FunctionalTests_RootStore(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_RootStore
+    """
+
+    def _get_one(self):
+        # grab a RootStore
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.RootStore)
+            .order_by(model_objects.RootStore.id.asc())
+            .first()
+        )
+        assert focus_item is not None
+        return focus_item, focus_item.id
+
+    @routes_tested(
+        (
+            "admin:root_stores",
+            "admin:root_stores_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/root-stores", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/root-stores/1", status=200)
+
+    @routes_tested(
+        (
+            "admin:root_stores|json",
+            "admin:root_stores_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/root-stores.json", status=200)
+        assert "RootStores" in res.json
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/root-stores/1.json", status=200)
+        assert "RootStores" in res.json
+
+    @routes_tested(("admin:root_store:focus",))
+    def test_focus_html(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/root-store/%s" % focus_id, status=200
+        )
+
+    @routes_tested(("admin:root_store:focus|json",))
+    def test_focus_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/root-store/%s.json" % focus_id, status=200
+        )
+        assert "RootStore" in res.json
+        assert res.json["RootStore"]["id"] == focus_id
+
+
+class FunctionalTests_RootStoreVersion(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_RootStoreVersion
+    """
+
+    def _get_one(self):
+        # grab a RootStoreVersion
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.RootStoreVersion)
+            .order_by(model_objects.RootStoreVersion.id.asc())
+            .first()
+        )
+        assert focus_item is not None
+        return focus_item, focus_item.id
+
+    @routes_tested(("admin:root_store_version:focus",))
+    def test_focus_html(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/root-store-version/%s" % focus_id, status=200
+        )
+
+    @routes_tested(("admin:root_store_version:focus|json",))
+    def test_focus_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/root-store-version/%s.json" % focus_id, status=200
+        )
+        assert "RootStoreVersion" in res.json
+        assert res.json["RootStoreVersion"]["id"] == focus_id
+
+
 class FunctionalTests_UniqueFQDNSet(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet

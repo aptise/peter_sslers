@@ -1288,9 +1288,16 @@ def _admin_views(config):
     config.add_route_7("admin:root_stores_paginated", "/root-stores/{@page}")
     config.add_route_7("admin:root_stores|json", "/root-stores.json")
     config.add_route_7("admin:root_stores_paginated|json", "/root-stores/{@page}.json")
+
     # !!!: Root Store - Focus
     config.add_route_7("admin:root_store:focus", "/root-store/{@id}")
     config.add_route_7("admin:root_store:focus|json", "/root-store/{@id}.json")
+
+    # !!!: Root Store Version - Focus
+    config.add_route_7("admin:root_store_version:focus", "/root-store-version/{@id}")
+    config.add_route_7(
+        "admin:root_store_version:focus|json", "/root-store-version/{@id}.json"
+    )
 
     # !!!: Unique FQDN Sets
     # tied to Certs and Ratelimits

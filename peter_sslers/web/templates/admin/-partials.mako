@@ -1189,7 +1189,6 @@
             <tr>
                 <th>id</th>
                 <th>name</th>
-                <th>version_string</th>
             </tr>
         </thead>
         <tbody>
@@ -1204,7 +1203,6 @@
                     </a>
                 </td>
                 <td><code>${i.name}</code></td>
-                <td><code>${i.version_string}</code></td>
             </tr>
         % endfor
         </tbody>

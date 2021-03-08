@@ -2188,9 +2188,9 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_ca",
     )
 
-    to_root_stores = sa_orm_relationship(
-        "RootStore_2_CertificateCA",
-        primaryjoin="CertificateCA.id==RootStore_2_CertificateCA.certificate_ca_id",
+    to_root_store_versions = sa_orm_relationship(
+        "RootStoreVersion_2_CertificateCA",
+        primaryjoin="CertificateCA.id==RootStoreVersion_2_CertificateCA.certificate_ca_id",
         back_populates="certificate_ca",
     )
 
@@ -4151,29 +4151,66 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store"
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.Text, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    root_store_versions = sa_orm_relationship(
+        "RootStoreVersion",
+        primaryjoin="RootStore.id==RootStoreVersion.root_store_id",
+        back_populates="root_store",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "versions": [i.as_json for i in self.root_store_versions],
+        }
+
+
+class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_version"
+    id = sa.Column(sa.Integer, primary_key=True)
+    root_store_id = sa.Column(
+        sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
+    )
     version_string = sa.Column(sa.Integer, nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    root_store = sa_orm_relationship(
+        "RootStore",
+        primaryjoin="RootStoreVersion.root_store_id==RootStore.id",
+        uselist=False,
+        back_populates="root_store_versions",
+    )
     to_certificate_cas = sa_orm_relationship(
-        "RootStore_2_CertificateCA",
-        primaryjoin="RootStore.id==RootStore_2_CertificateCA.root_store_id",
-        back_populates="root_store",
+        "RootStoreVersion_2_CertificateCA",
+        primaryjoin="RootStoreVersion.id==RootStoreVersion_2_CertificateCA.root_store_version_id",
+        back_populates="root_store_version",
     )
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-if False:
-    idx_root_store_name = sa.Index(
-        "idx_root_store_name", sa.func.lower(RootStore.name), unique=True
-    )
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "name": self.root_store.name,
+            "version_string": self.version_string,
+        }
 
 
-class RootStore_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
-    __tablename__ = "root_store_2_certificate_ca"
+class RootStoreVersion_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_version_2_certificate_ca"
     id = sa.Column(sa.Integer, primary_key=True)
-    root_store_id = sa.Column(
-        sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
+    root_store_version_id = sa.Column(
+        sa.Integer, sa.ForeignKey("root_store_version.id"), nullable=False
     )
     certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
@@ -4181,17 +4218,17 @@ class RootStore_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    root_store = sa_orm_relationship(
-        "RootStore",
-        primaryjoin="RootStore_2_CertificateCA.root_store_id==RootStore.id",
+    root_store_version = sa_orm_relationship(
+        "RootStoreVersion",
+        primaryjoin="RootStoreVersion_2_CertificateCA.root_store_version_id==RootStoreVersion.id",
         uselist=False,
         back_populates="to_certificate_cas",
     )
     certificate_ca = sa_orm_relationship(
         "CertificateCA",
-        primaryjoin="RootStore_2_CertificateCA.certificate_ca_id==CertificateCA.id",
+        primaryjoin="RootStoreVersion_2_CertificateCA.certificate_ca_id==CertificateCA.id",
         uselist=False,
-        back_populates="to_root_stores",
+        back_populates="to_root_store_versions",
     )
 
 

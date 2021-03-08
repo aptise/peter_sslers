@@ -47,7 +47,6 @@ class View_List(Handler):
             self.request.api_context,
             limit=items_per_page,
             offset=offset,
-            eagerload_web=True,
         )
         if self.request.wants_json:
             _sets = {s.id: s.as_json for s in items_paged}

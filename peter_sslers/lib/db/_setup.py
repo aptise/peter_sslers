@@ -210,15 +210,12 @@ def initialize_CertificateCAs(ctx):
                     .filter(
                         sqlalchemy.func.lower(model_objects.RootStore.name)
                         == platform_info[0].lower(),
-                        sqlalchemy.func.lower(model_objects.RootStore.version_string)
-                        == platform_info[1].lower(),
                     )
                     .first()
                 )
                 if not dbRootStore:
                     dbRootStore = model_objects.RootStore()
                     dbRootStore.name = platform_info[0]
-                    dbRootStore.version_string = platform_info[1]
                     dbRootStore.timestamp_created = ctx.timestamp
                     ctx.dbSession.add(dbRootStore)
                     ctx.dbSession.flush(
@@ -226,27 +223,53 @@ def initialize_CertificateCAs(ctx):
                             dbRootStore,
                         ]
                     )
-
-                dbRootStore2CertificateCA = (
-                    ctx.dbSession.query(model_objects.RootStore_2_CertificateCA)
+                dbRootStoreVersion = (
+                    ctx.dbSession.query(model_objects.RootStoreVersion)
                     .filter(
-                        model_objects.RootStore_2_CertificateCA.root_store_id
-                        == dbRootStore.id,
-                        model_objects.RootStore_2_CertificateCA.certificate_ca_id
+                        model_objects.RootStoreVersion.root_store_id == dbRootStore.id,
+                        sqlalchemy.func.lower(
+                            model_objects.RootStoreVersion.version_string
+                        )
+                        == platform_info[1].lower(),
+                    )
+                    .first()
+                )
+                if not dbRootStoreVersion:
+                    dbRootStoreVersion = model_objects.RootStoreVersion()
+                    dbRootStoreVersion.root_store_id = dbRootStore.id
+                    dbRootStoreVersion.version_string = platform_info[1]
+                    dbRootStoreVersion.timestamp_created = ctx.timestamp
+                    ctx.dbSession.add(dbRootStoreVersion)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStoreVersion,
+                        ]
+                    )
+
+                dbRootStoreVersion2CertificateCA = (
+                    ctx.dbSession.query(model_objects.RootStoreVersion_2_CertificateCA)
+                    .filter(
+                        model_objects.RootStoreVersion_2_CertificateCA.root_store_version_id
+                        == dbRootStoreVersion.id,
+                        model_objects.RootStoreVersion_2_CertificateCA.certificate_ca_id
                         == dbCertificateCA.id,
                     )
                     .first()
                 )
-                if not dbRootStore2CertificateCA:
-                    dbRootStore2CertificateCA = (
-                        model_objects.RootStore_2_CertificateCA()
+                if not dbRootStoreVersion2CertificateCA:
+                    dbRootStoreVersion2CertificateCA = (
+                        model_objects.RootStoreVersion_2_CertificateCA()
                     )
-                    dbRootStore2CertificateCA.root_store_id = dbRootStore.id
-                    dbRootStore2CertificateCA.certificate_ca_id = dbCertificateCA.id
-                    ctx.dbSession.add(dbRootStore2CertificateCA)
+                    dbRootStoreVersion2CertificateCA.root_store_version_id = (
+                        dbRootStoreVersion.id
+                    )
+                    dbRootStoreVersion2CertificateCA.certificate_ca_id = (
+                        dbCertificateCA.id
+                    )
+                    ctx.dbSession.add(dbRootStoreVersion2CertificateCA)
                     ctx.dbSession.flush(
                         objects=[
-                            dbRootStore2CertificateCA,
+                            dbRootStoreVersion2CertificateCA,
                         ]
                     )
         certs_lookup[cert_id] = dbCertificateCA

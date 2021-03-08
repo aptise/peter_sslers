@@ -7,19 +7,21 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/root-stores">Root Stores</a></li>
+        <li><a href="${admin_prefix}/root-store/${RootStoreVersion.root_store.id}">Focus: ${RootStoreVersion.root_store.id}</a></li>
+        <li class="">Root Store Versions</li>
         <li class="active">Focus</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Root Store: Focus</h2>
+    <h2>Root Store Version: Focus</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/root-store/${RootStore.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/root-store-version/${RootStoreVersion.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -43,30 +45,37 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${RootStore.id}
+                                ${RootStoreVersion.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
-                        <th>name</th>
+                        <th>Root Store</th>
                         <td>
-                            <code>${RootStore.name}</code>
+                            <code>${RootStoreVersion.root_store.name}</code><br/>
+                            <a class="label label-info"
+                               href="${admin_prefix}/root-store/${RootStoreVersion.root_store.id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                RootStore-${RootStoreVersion.root_store_id}
+                            </a>
                         </td>
                     </tr>
                     <tr>
-                        <th>Versions</th>
+                        <th>version</th>
                         <td>
-                            % if RootStore.root_store_versions:
+                            <code>${RootStoreVersion.version_string}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateCAs</th>
+                        <td>
+                            % if RootStoreVersion.to_certificate_cas:
                                 <ul class="list list-unstyled">
-                                    % for root_store_version in RootStore.root_store_versions:
+                                    % for to_certificate_ca in RootStoreVersion.to_certificate_cas:
                                         <li>
-                                            <a class="label label-info"
-                                               href="${admin_prefix}/root-store-version/${root_store_version.id}"
-                                            >
-                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                RootStoreVersion-${root_store_version.id}&nbsp;
-                                            </a>
-                                            <code>${root_store_version.version_string}</code>
+                                            ${to_certificate_ca.certificate_ca.button_view|n}
+                                        </li>
                                     % endfor
                                 </ul>
                             % endif

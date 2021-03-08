@@ -179,7 +179,7 @@ CERT_CAS_DATA = {
         },
         ".enddate": (2035, 6, 4, 11, 4, 38),
         "compatibility": {
-            "Windows": "Windows >= XP SP3 (assuming Automatic Root Certificate Update isn’t manually disabled)",
+            "Windows": ">= XP SP3 (assuming Automatic Root Certificate Update isn't manually disabled)",
             "macOS": ">= 10.12.1",
             "iOS": ">= 10 (iOS 9 does not include it)",
             "Android": ">= 7.1.1",

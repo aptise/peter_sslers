@@ -2718,9 +2718,12 @@ def get__RootStore__count(ctx):
 
 
 def get__RootStore__paginated(ctx, limit=None, offset=0):
-    q = ctx.dbSession.query(model_objects.RootStore)
-    q = q.order_by(model_objects.RootStore.id.desc())
-    q = q.limit(limit).offset(offset)
+    q = (
+        ctx.dbSession.query(model_objects.RootStore)
+        .order_by(sqlalchemy.func.lower(model_objects.RootStore.name).asc())
+        .limit(limit)
+        .offset(offset)
+    )
     items_paged = q.all()
     return items_paged
 
@@ -2729,6 +2732,15 @@ def get__RootStore__by_id(ctx, root_store_id):
     item = (
         ctx.dbSession.query(model_objects.RootStore)
         .filter(model_objects.RootStore.id == root_store_id)
+        .first()
+    )
+    return item
+
+
+def get__RootStoreVersion__by_id(ctx, root_store_version_id):
+    item = (
+        ctx.dbSession.query(model_objects.RootStoreVersion)
+        .filter(model_objects.RootStoreVersion.id == root_store_version_id)
         .first()
     )
     return item

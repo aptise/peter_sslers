@@ -151,6 +151,7 @@
 		* new routes to modify a set by add/remove domains
 		* with tests!
 	* added openssl fallback routines, and tests, for pkcs7 conversion
+	* tracking root stores
 	+ other fixes and improvements
 
 0.4.0
