@@ -8,10 +8,9 @@ Manager's design. The central object changed from a `CertificateSigned` to the
 `AcmeOrder`, which caused a ripple effect.
 
 This project is still undergoing active development, and the design is not
-entirely finalized yet... but...
-
-Most of the functionality is working (and in production!). Everything is covered
-by extensive unit and integrated tests.
+entirely finalized yet... but... most of the functionality is working (and this
+package is used in production!). Everything is covered by extensive unit and
+integrated tests.
 
 WE ARE ALMOST THERE!!!
 
@@ -21,9 +20,9 @@ peter_sslers README
 
 Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*.
 
-`peter_sslers` is a framework designed to help *experienced* Admins and DevOps people
-manage SSL Certificates and deploy them on larger systems (e.g. you have lots of
-Domains and/or Nodes and/or Networks).
+`peter_sslers` is a framework designed to help *experienced* Admins and DevOps
+people manage SSL Certificates and deploy them on larger systems (e.g. you have
+lots of Domains and/or Nodes and/or Networks).
 
 What's in the "box" ?
 
@@ -41,11 +40,13 @@ Amazing, right?
 This project is *not* aimed at casual users or people concerned with a handful of
 websites or servers.
 
-This project is designed for people who have lots of Domains and servers,
-which all need to be coordinated.
+This project is designed for people who have lots of Domains and/or Servers,
+all of which need to be coordinated and centrally managed. The target audience
+is companies that offer whitelabel services, like: SAAS, PAAS, hosting user
+domains, and other infrastructure oriented systems.
 
-If you can use Certbot or another consumer client to solve your needs, YOU ALMOST
-ABSOLUTELY WANT TO USE THAT CLIENT. 
+If you can use Certbot or another consumer friendly client to solve your needs,
+YOU ALMOST ABSOLUTELY WANT TO USE THAT CLIENT. 
 
 Peter, as we fondly call this package, offers lightweight tools to centrally manage
 SSL Certificate data in a SQL database of your choice. PostgreSQL is recommended;
@@ -60,20 +61,20 @@ The client supported ACME v1 until version `0.4.0`.
 **As of 0.4.0, Only ACME V2 is supported.**
 
 It is highly likely that PeterSSLers will work with most, if not all, ACME Servers.
-However, **Only LetsEncrypt is supported as a target ACME Server.**
-The LetsEncrypt/Boulder implementation of the RFC has some unique characteristics
-and this system was written to support those first.
+However, **only LetsEncrypt is supported as a target ACME Server.**
+The LetsEncrypt/Boulder implementation of the ACME RFC has some unique
+characteristics and this system was written to support those first.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
-* Act as a client for the entire "LetsEncrypt" issuance process, operating behind
-  a proxied webserver.
+* Act as a client for the entire "LetsEncrypt" Certificate provisioning process,
+  operating behind a proxied webserver.
 * Offer a simple API for creating and managing the ACME process. Your software
   only talks to Peter, not LetsEncrypt/ACME.
 * Import existing SSL Certificates for management and exploration
 * Ease provisioning Certificates onto various servers across your systems
 * Browse Certificate data and easily see what needs to be renewed
-* Interact with the upstream ACME Servers to deal with accounts and pending
+* Interact with the upstream ACME Servers to deal with accounts, pending
   AcmeAuthorizations, and all that mess.
 * Communicate with a properly configured `OpenResty` enabled `Nginx` web server
   (see next section)
@@ -85,7 +86,7 @@ Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the
 `Nginx` server which will:
 
 * Dynamically request Certificates from a primed `Redis` cache
-* Store data in shared `Nginx` worker memory and
+* Store data in shared `Nginx` worker and main memory and
 * Expose routes to flush the worker shared memory or expire select keys. 
 
 The `OpenResty` module is available in a separate project,
@@ -105,7 +106,7 @@ SQL so you can easily find the answers to burning questions like:
 
 * What AcmeAuthorizations are still pending?
 * What AcmeChallenges are active?
-* Which external ips are triggering my AcmeChallenges?
+* Which external IPs are triggering my AcmeChallenges?
 * Where did this PrivateKey come from?
 * How many requests have I been making to upstream servers?
 
@@ -130,16 +131,16 @@ may not be necessary at all -- or might only be needed for brief periods of time
 
 SQLAlchemy is the backing database library, so virtually any database can be used
 (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but
-the package has been tested against PostgreSQL. SQLite is actually kind of great,
+the package is deployed against PostgreSQL. SQLite is actually kind of great,
 because a single `.sqlite` file can be sftp'd on-to and off-of different machines
 for distribution and local viewings.
 
 Peter will use installed Python cryptography modules whenever possible.
 If the required packages are not available, Peter will leverage the system's
 installed OpenSSL binaries using subprocesses. The reason is to minimize the
-amount of installations/downloads/packages when used for debugging. Every single
-operation involved with procuring and inspecting SSL Certificates is implemented
-Python-first, with an OpenSSL fallback.
+amount of installations/downloads/packages when used for emergency debugging.
+*Every single operation involved with procuring and inspecting SSL Certificates
+is implemented Python-first, with an OpenSSL fallback.*
 
 Although Python2 is no longer supported by Python itself, both Python2 and Python3
 are targeted platforms for this library because we all have to deal legacy systems.
@@ -153,18 +154,13 @@ as a swiss-army-knife to streamline some tasks and troubleshoot a handful of iss
 with https hosting. This also allows for programmatic control of most ACME
 operations that can be difficult to accomplish with Certbot and other popular clients.
 
-Most importantly, Peter SSLers allows you to 
-
-This is a pre-release but deployable for many situations; it is actively being
-worked on as it fixes new issues on production system.
-
-PRs are absolutely welcome, even if just fixes or additions to the test-suite.
-
 Peter sits in between your machines and LetsEncrypt. It is designed to let your
 applications programmatically interact with ACME servers, allowing you to
-provision new Certificates and autoload them into webservers.
+provision new Certificates and load them into webservers.
 
 Peter is originally designed for systems that offer whitelabel services in the cloud.
+
+PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 ## Status
@@ -317,20 +313,50 @@ This design was implemented for two reasons:
 When requesting a new Certificate or importing existing ones, this happens all
 behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
+
+## Single or Multi-Step Operations
+
+When provisioning a certificate, there are 3 options available:
+
+* _Create an ACME Order_ This option will internally validate the information
+  required for generating an ACME Order, and submit it to the ACME Server. To
+  complete the Order and obtain a Certificate, you must manually or 
+  programmatically complete the required steps.
+
+* _Process in a Single Request_ This option will create an ACME Order, submit it
+  to the ACME Server, and then attempt to complete every ACME Challenge, finalize
+  the order, and download the certificate.
+
+* _Process in Multiple Requests_ This option will create an ACME Order, 
+  submit it to the ACME Server, and then invoke some additional synchronization
+  operations that do not happen on within the "Create an ACME Order" flow. You
+  may then manually or programmatically complete the required steps.
+
+When manually or programmatically completing steps, you may elect to either
+explicitly invoke the next step, or to let the system "autodetect" the next step.
+When processing orders programmatically, "json" endpoints can be leveraged.
+
+
 ## A single web application?
 
-In a perfect world we could deploy the combination of web application (enter data,
+In a perfect world we could deploy the combination of a web application (enter data,
 serve responses) and a task runner (process ACME Server interactions) - but that
 involves quite a bit of overhead to deploy and run.
 
-The ACME protocol requires a web-server to respond to HTTP-01 validation requests.
-A web-server is a great choice for an admin interface, and to provide a programmatic API.
+The ACME protocol requires a web server to respond to HTTP-01 validation requests.
+A web server is a great choice for an admin interface, and to provide a programmatic
+API.
 
 The `Pyramid` framework has a wonderful utility called
 [`prequest`](https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html)
-which allows you to invoke web requests from the commandline.
+which allows users to invoke web requests from the commandline.
 
-Using `prequest`, long-running processes can be easily triggered off the commandline.
+Using `prequest`, long-running processes can be easily triggered off the commandline,
+so a persistent web server is not required, and the "server" aspect of this package
+is only needed to complete the HTTP-01 challenges. 
+
+If challenges are being completed with the DNS-01 method, the web server aspect of
+this package is not needed.
 
 ## Cryptography: Python vs OpenSSL
 
@@ -354,6 +380,7 @@ An extended test suite ensures both the primary and fallback systems work.
 ## "autocert" functionality
 
 The system has two endpoints that can quickly provide single Domain Certificates
+in an "autocert" functionality to nginx:
 
 * `/api/domain/certificate-if-needed` will instantiate a CertificateRequest if
   needed, or serve an existing Certificate. This is designed for programmatic access
@@ -455,7 +482,7 @@ memory concerns that lead users to stuff Certificates up to the limit of 100
 domain names. By re-using PrivateKeys, these concerns can be greatly alleviated
 and make grouping Certificates by domain more attractive.
 
-For example, consider bucking 50 domains with the bare "registered domain" and a
+For example, consider bucketing 50 domains with the bare "registered domain" and a
 subdomain (either the wildcard `*` or `www`):
 
 | Strategy | Certificates | PrivateKeys |
@@ -463,7 +490,6 @@ subdomain (either the wildcard `*` or `www`):
 | 1 Certificate | 1 | 1 |
 | 50 Certificates, No PrivateKey resuse | 50 | 50 |
 | 50 Certificates + PrivateKey resuse | 50 | 1 |
-
 
 ## Certificate Pinning and Alternate Chains
 
@@ -480,7 +506,7 @@ default upstream from ACME will be used.
 This only affects the "default" endpoints, which are used as shortcuts for Nginx
 and other system integrations. Every signing chain is always available for a
 given Certificate. Certificates also list the possible signing chains by their
-system identifier AND sha1 fingerprint. 
+system identifier AND SHA1 fingerprint. 
 
 
 # Installation
