@@ -189,6 +189,8 @@ class _OperationsUnified(_mixin_mapping):
         1: "_DatabaseInitialization",
         110: "AcmeAccount__insert",
         111: "AcmeAccount__create",
+        112: "AcmeAccount__deactivate",
+        113: "AcmeAccount__key_change",
         120: "AcmeAccount__authenticate",
         130: "AcmeAccount__mark",
         131: "AcmeAccount__mark__active",
@@ -199,6 +201,7 @@ class _OperationsUnified(_mixin_mapping):
         136: "AcmeAccount__edit__private_key_cycle",
         137: "AcmeAccount__edit_AcmeAccountKey",
         138: "AcmeAccount__edit__private_key_technology",
+        139: "AcmeAccount__mark__deactivated",
         150: "AcmeAccountKey__insert",
         151: "AcmeAccountKey__create",
         152: "AcmeAccountKey__mark__inactive",
@@ -642,6 +645,8 @@ class AcmeEvent(_mixin_mapping):
         12: "v2|Certificate-procured",  # we downloaded and enrolled the certificate
         13: "v2|-challenge-PostAsGet",
         14: "v2|-authorization-deactivate",
+        15: "v2|Account-deactivate",
+        16: "v2|keyChange",
     }
 
 

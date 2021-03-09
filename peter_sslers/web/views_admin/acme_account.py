@@ -19,6 +19,8 @@ from ..lib.forms import Form_AcmeAccount_new__file
 from ..lib.forms import Form_AcmeAccount_mark
 from ..lib.forms import Form_AcmeAccount_edit
 from ..lib.forms import Form_AcmeAccount_deactivate_authorizations
+from ..lib.forms import Form_AcmeAccount_deactivate
+from ..lib.forms import Form_AcmeAccount_key_change
 from ..lib.form_utils import AcmeAccountUploadParser
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -319,19 +321,23 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+
+    dbAcmeAccount = None
+
     def _focus(self):
-        dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbAcmeAccount:
-            raise HTTPNotFound("the key was not found")
-        self._focus_url = "%s/acme-account/%s" % (
-            self.request.admin_url,
-            dbAcmeAccount.id,
-        )
-        self.dbAcmeAccount = dbAcmeAccount
-        return dbAcmeAccount
+        if self.dbAcmeAccount is None:
+            dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbAcmeAccount:
+                raise HTTPNotFound("the key was not found")
+            self._focus_url = "%s/acme-account/%s" % (
+                self.request.admin_url,
+                dbAcmeAccount.id,
+            )
+            self.dbAcmeAccount = dbAcmeAccount
+        return self.dbAcmeAccount
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -377,33 +383,7 @@ class View_Focus(Handler):
     def focus_parse_json(self):
         dbAcmeAccount = self._focus()
         return {
-            "AcmeAccount": {
-                "id": dbAcmeAccount.id,
-                "AcmeAccountKey": {
-                    "id": dbAcmeAccount.acme_account_key.id
-                    if dbAcmeAccount.acme_account_key
-                    else None,
-                    "parsed": cert_utils.parse_key(
-                        key_pem=dbAcmeAccount.acme_account_key.key_pem
-                    )
-                    if dbAcmeAccount.acme_account_key
-                    else None,
-                },
-            }
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:acme_account:focus:config|json", renderer="json")
-    def focus_config_json(self):
-        dbAcmeAccount = self._focus()
-        return {
-            "AcmeAccount": {
-                "id": dbAcmeAccount.id,
-                "is_active": dbAcmeAccount.is_active,
-                "is_global_default": dbAcmeAccount.is_global_default,
-                "private_key_cycle": dbAcmeAccount.private_key_cycle,
-            },
+            "AcmeAccount": dbAcmeAccount.as_json,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -477,6 +457,56 @@ class View_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys",
+        renderer="/admin/acme_account-focus-acme_account_keys.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys_paginated",
+        renderer="/admin/acme_account-focus-acme_account_keys.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys_paginated|json",
+        renderer="json",
+    )
+    def related__AcmeAccountKeys(self):
+        dbAcmeAccount = self._focus()
+        items_count = lib_db.get.get__AcmeAccountKey__by_AcmeAccountId__count(
+            self.request.api_context,
+            dbAcmeAccount.id,
+        )
+        url_template = "%s/acme-account-keys/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AcmeAccountKey__by_AcmeAccountId__paginated(
+            self.request.api_context,
+            dbAcmeAccount.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        if self.request.wants_json:
+            _acme_account_keys = [k.as_json for k in items_paged]
+            return {
+                "AcmeAccountKeys": _acme_account_keys,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount": dbAcmeAccount,
+            "AcmeAccountKeys_count": items_count,
+            "AcmeAccountKeys": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_account:focus:acme_orders",
         renderer="/admin/acme_account-focus-acme_orders.mako",
@@ -720,6 +750,28 @@ class View_Focus_Manipulate(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def _handle_potentially_deactivated(self, exc):
+        if exc.args[0] == 403:
+            if isinstance(exc.args[1], dict):
+                info = exc.args[1]
+                # pebble and bounder use the same strings
+                if info.get("type") == "urn:ietf:params:acme:error:unauthorized":
+                    if (
+                        info.get("detail")
+                        == "An account with the provided public key exists but is deactivated"
+                    ):
+                        if not self.dbAcmeAccount.timestamp_deactivated:
+                            lib_db.update.update_AcmeAccount__set_deactivated(
+                                self.request.api_context, self.dbAcmeAccount
+                            )
+                            self.request.api_context.dbSession.flush(
+                                objects=[self.dbAcmeAccount]
+                            )
+                        return True
+        return False
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_account:focus:acme_server:authenticate",
         renderer=None,
@@ -748,10 +800,11 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
-            return self._focus__authenticate__submit(dbAcmeAccount)
-        return self._focus__authenticate__print(dbAcmeAccount)
+            return self._focus__authenticate__submit()
+        return self._focus__authenticate__print()
 
-    def _focus__authenticate__print(self, dbAcmeAccount):
+    def _focus__authenticate__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -766,12 +819,17 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus__authenticate__submit(self, dbAcmeAccount):
+    def _focus__authenticate__submit(self):
+        dbAcmeAccount = self._focus()
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
-            self.request.api_context, dbAcmeAccount
-        )
+        try:
+            authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                self.request.api_context, dbAcmeAccount
+            )
+        except errors.AcmeServerError as exc:
+            if not self._handle_potentially_deactivated(exc):
+                raise
         if self.request.wants_json:
             return {"AcmeAccount": dbAcmeAccount.as_json}
         return HTTPSeeOther(
@@ -786,10 +844,11 @@ class View_Focus_Manipulate(View_Focus):
     def focus_mark(self):
         dbAcmeAccount = self._focus()
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbAcmeAccount)
-        return self._focus_mark__print(dbAcmeAccount)
+            return self._focus_mark__submit()
+        return self._focus_mark__print()
 
-    def _focus_mark__print(self, dbAcmeAccount):
+    def _focus_mark__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -804,7 +863,8 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus_mark__submit(self, dbAcmeAccount):
+    def _focus_mark__submit(self):
+        dbAcmeAccount = self._focus()
         action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
@@ -924,16 +984,11 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
-            return self._focus__acme_server_deactivate_pending_authorizations__submit(
-                dbAcmeAccount
-            )
-        return self._focus__acme_server_deactivate_pending_authorizations__print(
-            dbAcmeAccount
-        )
+            return self._focus__acme_server_deactivate_pending_authorizations__submit()
+        return self._focus__acme_server_deactivate_pending_authorizations__print()
 
-    def _focus__acme_server_deactivate_pending_authorizations__print(
-        self, dbAcmeAccount
-    ):
+    def _focus__acme_server_deactivate_pending_authorizations__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return {
                 "form_fields": {
@@ -950,9 +1005,8 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus__acme_server_deactivate_pending_authorizations__submit(
-        self, dbAcmeAccount
-    ):
+    def _focus__acme_server_deactivate_pending_authorizations__submit(self):
+        dbAcmeAccount = self._focus()
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -968,7 +1022,6 @@ class View_Focus_Manipulate(View_Focus):
                     "You must supply at least one `acme_authorization_id` to deactivate."
                 )
 
-            dbAcmeAccount = self._focus()
             results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                 self.request.api_context,
                 dbAcmeAccount=dbAcmeAccount,
@@ -994,4 +1047,193 @@ class View_Focus_Manipulate(View_Focus):
                     self._focus_url,
                     errors.formstash_to_querystring(formStash),
                 )
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:deactivate",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:deactivate|json",
+        renderer="json",
+    )
+    def focus__acme_server_deactivate(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccount = self._focus()
+        if not dbAcmeAccount.is_can_deactivate:
+            error_message = "This AcmeAccount can not be deactivated"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=acme-server--deactivate" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
+            )
+            return HTTPSeeOther(url_error)
+        if self.request.method == "POST":
+            return self._focus__acme_server_deactivate__submit()
+        return self._focus__acme_server_deactivate__print()
+
+    def _focus__acme_server_deactivate__print(self):
+        dbAcmeAccount = self._focus()
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "key_pem": "the active key as md5(PEM) or PEM",
+                },
+                "instructions": [
+                    """curl -X POST %s/acme-server/deactivate.json""" % self._focus_url
+                ],
+            }
+        return render_to_response(
+            "/admin/acme_account-focus-deactivate.mako",
+            {"AcmeAccount": dbAcmeAccount},
+            self.request,
+        )
+
+    def _focus__acme_server_deactivate__submit(self):
+        dbAcmeAccount = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeAccount_deactivate,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # `key_pem` can match the full or md5
+            _key_pem = formStash.results["key_pem"]
+            if _key_pem != dbAcmeAccount.acme_account_key.key_pem_md5:
+                _key_pem = cert_utils.cleanup_pem_text(_key_pem)
+                if _key_pem != dbAcmeAccount.acme_account_key.key_pem:
+                    formStash.fatal_field(
+                        field="key_pem",
+                        message="This does not match the active account key",
+                    )
+            try:
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(
+                    self.request.api_context,
+                    dbAcmeAccount=dbAcmeAccount,
+                )
+            except errors.AcmeServerError as exc:
+                if self._handle_potentially_deactivated(exc):
+                    formStash.fatal_form(message=str(exc.args[1]))
+                raise
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "results": results,
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                }
+
+            return HTTPSeeOther(
+                "%s?&result=success&operation=acme-server--deactivate"
+                % (self._focus_url,)
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(
+                self.request, self._focus__acme_server_deactivate__print
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:key_change",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:key_change|json",
+        renderer="json",
+    )
+    def focus__acme_server_key_change(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccount = self._focus()
+        if not dbAcmeAccount.is_can_key_change:
+            error_message = "This AcmeAccount can not be key changed"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=acme-server--key-change" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
+            )
+            return HTTPSeeOther(url_error)
+        if self.request.method == "POST":
+            return self._focus__acme_server_key_change__submit()
+        return self._focus__acme_server_key_change__print()
+
+    def _focus__acme_server_key_change__print(self):
+        dbAcmeAccount = self._focus()
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "key_pem": "the active key as md5(PEM) or PEM",
+                },
+                "instructions": [
+                    """curl -X POST %s/acme-server/key-change.json""" % self._focus_url
+                ],
+            }
+        return render_to_response(
+            "/admin/acme_account-focus-key_change.mako",
+            {"AcmeAccount": dbAcmeAccount},
+            self.request,
+        )
+
+    def _focus__acme_server_key_change__submit(self):
+        dbAcmeAccount = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeAccount_key_change,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # `key_pem` can match the full or md5
+            _key_pem_old = formStash.results["key_pem_existing"]
+            if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem_md5:
+                _key_pem_old = cert_utils.cleanup_pem_text(_key_pem_old)
+                if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem:
+                    formStash.fatal_field(
+                        field="key_pem_existing",
+                        message="This does not match the active account key",
+                    )
+
+            try:
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(
+                    self.request.api_context,
+                    dbAcmeAccount=dbAcmeAccount,
+                    key_pem_new=None,
+                )
+            except errors.ConflictingObject as exc:
+                # args[0] = tuple(conflicting_object, error_message_string)
+                formStash.fatal_form(message=str(exc.args[0][1]))
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "results": results,
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                }
+
+            return HTTPSeeOther(
+                "%s?&result=success&operation=acme-server--key-change"
+                % (self._focus_url,)
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(
+                self.request, self._focus__acme_server_key_change__print
             )

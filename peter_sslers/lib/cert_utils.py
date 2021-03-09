@@ -2755,14 +2755,43 @@ def ensure_chain_order(chain_certs, cert_pem=None):
 # ------------------------------------------------------------------------------
 
 
-def _b64(b):
+def jose_b64(b):
     # helper function base64 encode for jose spec
     return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
 
 
+class AccountKeyData(object):
+    """
+    An object encapsulating Account Key data
+    """
+
+    key_pem = None
+    key_pem_filepath = None  # if used
+    jwk = None
+    thumbprint = None
+    alg = None
+
+    def __init__(self, key_pem, key_pem_filepath=None):
+        """
+        :param key_pem: (required) A PEM encoded RSA key
+        :param key_pem_filepath: (optional) The filepath of a PEM encoded RSA key
+        """
+        self.key_pem = key_pem
+        self.key_pem_filepath = key_pem_filepath
+
+        (_jwk, _thumbprint, _alg) = account_key__parse(
+            key_pem=key_pem,
+            key_pem_filepath=key_pem_filepath,
+        )
+        self.jwk = _jwk
+        self.thumbprint = _thumbprint
+        self.alg = _alg
+
+
 def account_key__parse(key_pem=None, key_pem_filepath=None):
     """
-    :param key_pem_filepath: (required) the filepath to a PEM encoded RSA account key file.
+    :param key_pem: (required) the RSA Key in PEM format
+    :param key_pem_filepath: (optional) the filepath to a PEM encoded RSA account key file.
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
@@ -2773,15 +2802,17 @@ def account_key__parse(key_pem=None, key_pem_filepath=None):
     log.info("account_key__parse >")
     alg = "RS256"
     if josepy:
-        if not key_pem:
-            raise ValueError("submit key_pem!!!")
-            key_pem = open(key_pem_filepath).read()
         _jwk = josepy.JWKRSA.load(key_pem.encode("utf8"))
         jwk = _jwk.public_key().fields_to_partial_json()
         jwk["kty"] = "RSA"
-        thumbprint = _b64(_jwk.thumbprint())
-    else:
-        log.debug(".account_key__parse > openssl fallback")
+        thumbprint = jose_b64(_jwk.thumbprint())
+        return jwk, thumbprint, alg
+    log.debug(".account_key__parse > openssl fallback")
+    _tmpfile = None
+    try:
+        if key_pem_filepath is None:
+            _tmpfile = new_pem_tempfile(key_pem)
+            key_pem_filepath = _tmpfile.name
         with psutil.Popen(
             [
                 openssl_path,
@@ -2805,21 +2836,27 @@ def account_key__parse(key_pem=None, key_pem_filepath=None):
         pub_exp = "{0:x}".format(int(pub_exp))
         pub_exp = "0{0}".format(pub_exp) if len(pub_exp) % 2 else pub_exp
         jwk = {
-            "e": _b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
+            "e": jose_b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
             "kty": "RSA",
-            "n": _b64(
+            "n": jose_b64(
                 binascii.unhexlify(re.sub(r"(\s|:)", "", pub_hex).encode("utf-8"))
             ),
         }
         _accountkey_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
-        thumbprint = _b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
-    return jwk, thumbprint, alg
+        thumbprint = jose_b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
+        return jwk, thumbprint, alg
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
 
 
 def account_key__sign(data, key_pem=None, key_pem_filepath=None):
     """
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
+
+    :param key_pem: (required) the RSA Key in PEM format
+    :param key_pem_filepath: (optional) the filepath to a PEM encoded RSA account key file.
     """
     log.info("account_key__sign >")
     if openssl_crypto:
@@ -2833,21 +2870,28 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
             cryptography.hazmat.primitives.hashes.SHA256(),
         )
         return signature
-
     log.debug(".account_key__sign > openssl fallback")
-    with psutil.Popen(
-        [openssl_path, "dgst", "-sha256", "-sign", key_pem_filepath],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        if six.PY3:
-            if not isinstance(data, bytes):
-                data = data.encode()
-        signature, err = proc.communicate(data)
-        if proc.returncode != 0:
-            raise IOError("account_key__sign\n{1}".format(err))
-        return signature
+    _tmpfile = None
+    try:
+        if key_pem_filepath is None:
+            _tmpfile = new_pem_tempfile(key_pem)
+            key_pem_filepath = _tmpfile.name
+        with psutil.Popen(
+            [openssl_path, "dgst", "-sha256", "-sign", key_pem_filepath],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            if six.PY3:
+                if not isinstance(data, bytes):
+                    data = data.encode()
+            signature, err = proc.communicate(data)
+            if proc.returncode != 0:
+                raise IOError("account_key__sign\n{1}".format(err))
+            return signature
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
 
 
 # ------------------------------------------------------------------------------

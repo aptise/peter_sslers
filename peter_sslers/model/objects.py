@@ -193,6 +193,8 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
+    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
+
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -265,6 +267,18 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
+    def is_can_deactivate(self):
+        if self.is_active:
+            return True
+        return False
+
+    @property
+    def is_can_key_change(self):
+        if self.is_active:
+            return True
+        return False
+
+    @property
     def is_global_default_candidate(self):
         if self.is_global_default:
             return False
@@ -302,26 +316,15 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         return {
             "is_active": True if self.is_active else False,
+            "is_deactivated": self.timestamp_deactivated or False,
             "is_global_default": True if self.is_global_default else False,
             "acme_account_provider_id": self.acme_account_provider_id,
             "acme_account_provider_name": self.acme_account_provider.name,
             "acme_account_provider_url": self.acme_account_provider.url,
             "acme_account_provider_protocol": self.acme_account_provider.protocol,
-            "AcmeAccountKey": {
-                "id": self.acme_account_key.id if self.acme_account_key else None,
-                "key_pem": self.acme_account_key.key_pem
-                if self.acme_account_key
-                else None,
-                "key_pem_md5": self.acme_account_key.key_pem_md5
-                if self.acme_account_key
-                else None,
-                "spki_sha256": self.acme_account_key.spki_sha256
-                if self.acme_account_key
-                else None,
-                "acme_account_key_source": self.acme_account_key.acme_account_key_source
-                if self.acme_account_key
-                else None,
-            },
+            "AcmeAccountKey": self.acme_account_key.as_json
+            if self.acme_account_key
+            else None,
             "id": self.id,
             "private_key_cycle": self.private_key_cycle,
         }
@@ -334,13 +337,23 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "acme_account_key"
+    __table_args__ = (
+        sa.Index(
+            "idx_acme_account_key_active",
+            "acme_account_id",
+            "is_active",
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     acme_account_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_active = sa.Column(sa.Boolean, nullable=True, default=None)
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
     key_technology_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
@@ -403,6 +416,17 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "key_pem": self.key_pem,
+            "key_pem_md5": self.key_pem_md5,
+            "spki_sha256": self.spki_sha256,
+            "acme_account_key_source": self.acme_account_key_source,
+            "is_active": self.is_active,
+        }
 
 
 # ==============================================================================

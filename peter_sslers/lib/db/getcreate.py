@@ -298,6 +298,7 @@ def getcreate__AcmeAccount(
 
     # next, create the AcmeAccountKey
     dbAcmeAccountKey = model_objects.AcmeAccountKey()
+    dbAcmeAccountKey.is_active = True
     dbAcmeAccountKey.acme_account_id = dbAcmeAccount.id
     dbAcmeAccountKey.timestamp_created = ctx.timestamp
     dbAcmeAccountKey.key_pem = key_pem

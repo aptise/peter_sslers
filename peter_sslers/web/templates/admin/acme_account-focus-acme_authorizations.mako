@@ -48,7 +48,7 @@
                     ${admin_partials.table_AcmeAuthorizations(AcmeAuthorizations, perspective='AcmeAccount', is_form_enabled=True)}
                 
                     <button class="btn btn-xs btn-danger" type="submit"  name="submit" value="submit">
-                        <span class="glyphicon glyphicon-times" aria-hidden="true"></span>
+                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         Deactivate Selected Pending Authorizations
                     </button>
                 </form>

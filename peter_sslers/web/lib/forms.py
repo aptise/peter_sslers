@@ -266,6 +266,14 @@ class Form_AcmeAccount_mark(_Form_Schema_Base):
     action = OneOf(("global_default", "active", "inactive"), not_empty=True)
 
 
+class Form_AcmeAccount_deactivate(_Form_Schema_Base):
+    key_pem = UnicodeString(not_empty=True)
+
+
+class Form_AcmeAccount_key_change(_Form_Schema_Base):
+    key_pem_existing = UnicodeString(not_empty=True)
+
+
 class Form_AcmeAccount_deactivate_authorizations(_Form_Schema_Base):
     acme_authorization_id = ForEach(Int())
 

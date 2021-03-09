@@ -152,6 +152,15 @@
 		* with tests!
 	* added openssl fallback routines, and tests, for pkcs7 conversion
 	* tracking root stores
+	* removed `acme-account/{}/config.json`; the same data is in `acme-account/{}.json`
+	* added routes
+		* `acme-account/{}/deactivate`
+		* `acme-account/{}/deactivate.json`
+		* `acme-account/{}/key-rollover`
+		* `acme-account/{}/key-rollover.json`
+	* AcmeAccount now supports:
+		* deactivate	
+		* keyChange (key rollover)
 	+ other fixes and improvements
 
 0.4.0

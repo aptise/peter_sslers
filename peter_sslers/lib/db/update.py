@@ -153,8 +153,19 @@ def update_AcmeAccount_from_new_duplicate(
 def update_AcmeAccount__set_active(ctx, dbAcmeAccount):
     if dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already activated.")
+    if dbAcmeAccount.timestamp_deactivated:
+        raise errors.InvalidTransition("AccountKey was deactivated.")
     dbAcmeAccount.is_active = True
     event_status = "AcmeAccount__mark__active"
+    return event_status
+
+
+def update_AcmeAccount__set_deactivated(ctx, dbAcmeAccount):
+    if dbAcmeAccount.timestamp_deactivated:
+        raise errors.InvalidTransition("Already deactivated.")
+    dbAcmeAccount.is_active = False
+    dbAcmeAccount.timestamp_deactivated = ctx.timestamp
+    event_status = "AcmeAccount__mark__deactivated"
     return event_status
 
 

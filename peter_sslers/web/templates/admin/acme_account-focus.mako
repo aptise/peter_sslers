@@ -65,35 +65,45 @@
                     <tr>
                         <th>active?</th>
                         <td>
-                            <span class="label label-${'success' if AcmeAccount.is_active else 'warning'}">
-                                ${'active' if AcmeAccount.is_active else 'inactive'}
-                            </span>
-                            &nbsp;
-                            % if not AcmeAccount.is_active:
-                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-info" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        active
-                                    </button>
-                                </form>
+                            % if AcmeAccount.timestamp_deactivated:
+                                <span class="label label-warning">deactivated</span>
                             % else:
-                                % if not AcmeAccount.is_global_default:
+                                <span class="label label-${'success' if AcmeAccount.is_active else 'warning'}">
+                                    ${'active' if AcmeAccount.is_active else 'inactive'}
+                                </span>
+                                &nbsp;
+                                % if not AcmeAccount.is_active:
                                     <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="inactive"/>
-                                        <button class="btn btn-xs btn-danger" type="submit">
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            inactive
+                                        <input type="hidden" name="action" value="active"/>
+                                        <button class="btn btn-xs btn-info" type="submit">
+                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                            active
                                         </button>
                                     </form>
                                 % else:
-                                    <span
-                                        class="label label-warning"
-                                    >
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        select another default key to deactivate this one
-                                    </span>
+                                    % if not AcmeAccount.is_global_default:
+                                        <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="inactive"/>
+                                            <button class="btn btn-xs btn-danger" type="submit">
+                                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                                inactive
+                                            </button>
+                                        </form>
+                                    % else:
+                                        <span
+                                            class="label label-warning"
+                                        >
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            select another default key to deactivate this one
+                                        </span>
+                                    % endif
                                 % endif
+                            % endif
+                            % if AcmeAccount.is_can_deactivate:
+                                <a class="btn btn-xs btn-danger" href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/deactivate">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    Deactivate on ACME Server
+                                </a>
                             % endif
                         </td>
                     </tr>
@@ -212,7 +222,23 @@
                                         <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
                                         <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
                                     </td>
-                                </tr>                        
+                                </tr>
+                                <tr>
+                                    <th>Key Change</th>
+                                    <td>
+                                        % if AcmeAccount.is_can_key_change:
+                                            <a class="btn btn-xs btn-warning" href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/key-change">
+                                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                                KeyChange on ACME Server
+                                            </a>
+                                        % endif
+                                        <hr/>
+                                        <a href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-account-keys" class="label label-info">
+                                            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                            Historical AcmeAccountKeys
+                                        </a>
+                                    </td>
+                                </tr>
                             </table>
                         </td>
                     </tr>

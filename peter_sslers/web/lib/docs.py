@@ -129,15 +129,6 @@ json_capable = {
         "args": None,
         "example": "curl {ADMIN_PREFIX}/acme-account/1.json",
     },
-    "/acme-account/{ID}/config.json": {
-        "endpoint": "/acme-account/{ID}/config.json",
-        "section": "acme-account",
-        "about": """config info for an AcmeAccount""",
-        "POST": True,
-        "GET": None,
-        "args": None,
-        "example": "curl {ADMIN_PREFIX}/acme-account/1/config.json",
-    },
     "/acme-account/{ID}/parse.json": {
         "endpoint": "/acme-account/{ID}/parse.json",
         "section": "acme-account",

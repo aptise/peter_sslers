@@ -40,6 +40,8 @@
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
+                        % elif account.timestamp_deactivated:
+                            <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
                     <td>
@@ -74,7 +76,9 @@
                 <th>acme_account_id</th>
                 <th><!-- active --></th>
                 <th>source</th>
-                <th>provider</th>
+                % if perspective != "AcmeAccount":
+                    <th>provider</th>
+                % endif
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
             </tr>
@@ -91,10 +95,14 @@
                     <td>
                         % if key.is_active:
                             <span class="label label-success">active</span>
+                        % elif key.timestamp_deactivated:
+                            <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
                     <td><span class="label label-default">${key.acme_account_key_source}</span></td>
-                    <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                    % if perspective != "AcmeAccount":
+                        <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                    % endif
                     <td><timestamp>${key.timestamp_created}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                 </tr>

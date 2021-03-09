@@ -148,6 +148,32 @@ def get__AcmeAccount__by_account_url(ctx, account_url):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeAccountKey__by_AcmeAccountId__count(ctx, acme_account_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeAccountKey)
+        .filter(model_objects.AcmeAccountKey.acme_account_id == acme_account_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeAccountKey__by_AcmeAccountId__paginated(
+    ctx,
+    acme_account_id,
+    limit=None,
+    offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeAccountKey)
+        .filter(model_objects.AcmeAccountKey.acme_account_id == acme_account_id)
+        .order_by(model_objects.AcmeAccountKey.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeAccountKeys = query.all()
+    return dbAcmeAccountKeys
+
+
 def get__AcmeAccountKey__count(ctx):
     counted = ctx.dbSession.query(model_objects.AcmeAccountKey).count()
     return counted
@@ -191,6 +217,14 @@ def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
     )
     if is_active:
         q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+    item = q.first()
+    return item
+
+
+def get__AcmeAccountKey__by_key_pem(ctx, key_pem):
+    q = ctx.dbSession.query(model_objects.AcmeAccountKey).filter(
+        model_objects.AcmeAccountKey.key_pem == key_pem
+    )
     item = q.first()
     return item
 

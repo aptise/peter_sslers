@@ -1056,7 +1056,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             signature = cert_utils.account_key__sign(
                 input, key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
-            signature = cert_utils._b64(signature)
+            signature = cert_utils.jose_b64(signature)
             self.assertEqual(signature, expected)
 
     def test__private_key__new(self):

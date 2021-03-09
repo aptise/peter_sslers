@@ -68,17 +68,12 @@ def _admin_views(config):
         "admin:acme_account:focus:edit|json", "/acme-account/{@id}/edit.json"
     )
     config.add_route_7(
-        "admin:acme_account:focus:config|json",
-        "/acme-account/{@id}/config.json",
-    )
-    config.add_route_7(
         "admin:acme_account:focus:parse|json", "/acme-account/{@id}/parse.json"
     )
     config.add_route_7(
         "admin:acme_account:focus:raw",
         "/acme-account/{@id}/key.{format:(key|pem|pem.txt)}",
     )
-
     config.add_route_7(
         "admin:acme_account:focus:acme_authorizations",
         "/acme-account/{@id}/acme-authorizations",
@@ -95,7 +90,22 @@ def _admin_views(config):
         "admin:acme_account:focus:acme_authorizations_paginated|json",
         "/acme-account/{@id}/acme-authorizations/{@page}.json",
     )
-
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys",
+        "/acme-account/{@id}/acme-account-keys",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys_paginated",
+        "/acme-account/{@id}/acme-account-keys/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys|json",
+        "/acme-account/{@id}/acme-account-keys.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys_paginated|json",
+        "/acme-account/{@id}/acme-account-keys/{@page}.json",
+    )
     config.add_route_7(
         "admin:acme_account:focus:acme_orders",
         "/acme-account/{@id}/acme-orders",
@@ -105,20 +115,20 @@ def _admin_views(config):
         "/acme-account/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account:focus:private_keys",
-        "/acme-account/{@id}/private-keys",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:private_keys_paginated",
-        "/acme-account/{@id}/private-keys/{@page}",
-    )
-    config.add_route_7(
         "admin:acme_account:focus:certificate_signeds",
         "/acme-account/{@id}/certificate-signeds",
     )
     config.add_route_7(
         "admin:acme_account:focus:certificate_signeds_paginated",
         "/acme-account/{@id}/certificate-signeds/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:private_keys",
+        "/acme-account/{@id}/private-keys",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:private_keys_paginated",
+        "/acme-account/{@id}/private-keys/{@page}",
     )
     config.add_route_7(
         "admin:acme_account:focus:queue_certificates",
@@ -148,6 +158,22 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_account:focus:acme_server:deactivate_pending_authorizations|json",
         "/acme-account/{@id}/acme-server/deactivate-pending-authorizations.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:deactivate",
+        "/acme-account/{@id}/acme-server/deactivate",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:deactivate|json",
+        "/acme-account/{@id}/acme-server/deactivate.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:key_change",
+        "/acme-account/{@id}/acme-server/key-change",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:key_change|json",
+        "/acme-account/{@id}/acme-server/key-change.json",
     )
 
     # !!!: AcmeAuthorizations

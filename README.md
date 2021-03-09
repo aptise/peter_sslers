@@ -314,6 +314,19 @@ When requesting a new Certificate or importing existing ones, this happens all
 behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
 
+## Accounts and AccountKeys
+
+Like Certbot, PeterSSLers supports using multiple accounts and multiple ACME
+servers.
+
+
+* An `AcmeAccount` is the intersection of a contact email address and an `AcmeAccountKey`
+* You may use the same contact email address with different ACME Servers
+* You may not use the same `AcmeAccountKey` with different ACME Servers or accounts.
+* You may choose a `PrivateKey` Technology and Cycling Strategy
+
+
+
 ## Single or Multi-Step Operations
 
 When provisioning a certificate, there are 3 options available:
@@ -442,6 +455,7 @@ PeterSSLers handles several types of CertificateRequests
   config, you can run a public-only "validation" interface or enable the admin
   tools that broadcast Certificate information.
 * the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
+
 
 ## PrivateKey Cycling
 
