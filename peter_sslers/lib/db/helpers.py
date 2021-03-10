@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # localapp
-from .. import cert_utils
+from ... import lib
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -26,7 +26,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
         :attr:`model.utils.CertificateSigned.spki_sha256`
 
     # --------------------------------------------------------------------------
-    cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
+    cert_dates = lib.cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
 
     datetime_signed = cert_dates["startdate"]
     if not datetime_signed.startswith("notBefore="):
@@ -45,7 +45,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned):
     dbCertificateSigned.timestamp_not_after = datetime_expires
     """
     # everything is in here
-    _cert_data = cert_utils.parse_cert(
+    _cert_data = lib.cert_utils.parse_cert(
         cert_pem=dbCertificateSigned.cert_pem,
         cert_pem_filepath=_tmpfileCert.name,
     )

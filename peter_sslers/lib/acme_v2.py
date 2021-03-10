@@ -8,25 +8,29 @@ log.setLevel(logging.INFO)
 
 
 # stdlib
-import base64
-import binascii
-import datetime
+# import base64
+# import binascii
+# import datetime
 import hashlib
 import json
 import pdb
 import pprint
 import re
-import six
+
+# import six
 import ssl
-import subprocess
+
+# import subprocess
 import time
 
 try:
     from urllib.request import urlopen, Request  # Python 3
-    from urllib.error import URLError
+
+    # from urllib.error import URLError
 except ImportError:
     from urllib2 import urlopen, Request  # Python 2
-    from urllib2 import URLError
+
+    # from urllib2 import URLError
 
 # pypi
 from requests.utils import parse_header_links
@@ -38,14 +42,8 @@ from . import acmedns as lib_acmedns
 from . import cert_utils
 from . import errors
 from . import utils
+from .db import update as db_update
 from ..model import utils as model_utils
-from .db import update
-
-
-# ==============================================================================
-
-
-TESTING_ENVIRONMENT = False
 
 
 # ==============================================================================
@@ -78,7 +76,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             "Content-Type": "application/jose+json",
             "User-Agent": "peter_sslers",
         }
-        if TESTING_ENVIRONMENT:
+        if cert_utils.TESTING_ENVIRONMENT:
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
@@ -98,9 +96,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
         # potentially there is a code=400  body=json{"type": "urn:ietf:params:acme:error:badNonce"}
         # that is caught below
     except Exception as exc:
-        pdb.set_trace()
         # TODO: log this error to the database
-        if TESTING_ENVIRONMENT:
+        if cert_utils.TESTING_ENVIRONMENT:
             raise ValueError("LOG THIS EXCEPTION?")
         raise errors.AcmeCommunicationError(str(exc))
     try:
@@ -763,7 +760,7 @@ class AuthenticatedUser(object):
         )
 
         # this would raise if we couldn't authenticate
-        update.update_AcmeAccount__set_deactivated(ctx, self.acmeAccount)
+        db_update.update_AcmeAccount__set_deactivated(ctx, self.acmeAccount)
         ctx.dbSession.flush(objects=[self.acmeAccount])
 
         # log this
@@ -1041,8 +1038,10 @@ class AuthenticatedUser(object):
 
         # check that the file is in place
         try:
-            if TESTING_ENVIRONMENT:
-                log.debug("TESTING_ENVIRONMENT, not ensuring the challenge is readable")
+            if cert_utils.TESTING_ENVIRONMENT:
+                log.debug(
+                    "cert_utils.TESTING_ENVIRONMENT, not ensuring the challenge is readable"
+                )
             else:
                 try:
                     resp = urlopen(wellknown_url)

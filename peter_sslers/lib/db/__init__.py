@@ -5,3 +5,4 @@ from . import getcreate
 from . import helpers
 from . import logger
 from . import queues
+from . import update

@@ -9,7 +9,7 @@ import datetime
 import pdb
 
 # pypi
-import transaction
+# import transaction
 
 # localapp
 from ... import lib

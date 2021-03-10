@@ -20,7 +20,6 @@ import hashlib
 import os
 import pdb
 import subprocess
-import sys
 import tempfile
 import textwrap
 
@@ -64,7 +63,6 @@ except ImportError as exc:
 
 # localapp
 from . import errors
-from . import utils
 from ..lib import utils as lib_utils
 from ..model.utils import KeyTechnology
 
@@ -86,6 +84,12 @@ openssl_version = None
 _RE_openssl_version = re.compile(r"OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
 _RE_rn = re.compile(r"\r\n")
 _openssl_behavior = None  # 'a' or 'b'
+
+
+# If True, will:
+# * disable SSL Verification
+# * disable HTTP Challenge pre-Read
+TESTING_ENVIRONMENT = False
 
 
 def update_from_appsettings(appsettings):

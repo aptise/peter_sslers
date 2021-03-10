@@ -1,10 +1,3 @@
-from ..lib.config_utils import set_bool_setting
-from ..lib.config_utils import set_int_setting
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def includeme(config):
 
     enable_views_admin = config.registry.settings["app_settings"]["enable_views_admin"]

@@ -1,29 +1,18 @@
 # pyramid
-from pyramid.response import Response
 from pyramid.view import view_config
-from pyramid.renderers import render, render_to_response
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
-import json
 
 # pypi
-import sqlalchemy
 
 # localapp
-from .. import lib
-from ..lib import formhandling
-from ..lib import form_utils as form_utils
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
-from ...lib import acme_v2
-from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils
 from ...model import objects as model_objects
-from ...model import utils as model_utils
 
 
 # ==============================================================================

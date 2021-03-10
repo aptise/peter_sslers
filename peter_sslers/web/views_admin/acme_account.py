@@ -1,18 +1,14 @@
 # pyramid
-from pyramid.response import Response
 from pyramid.view import view_config
-from pyramid.renderers import render, render_to_response
+from pyramid.renderers import render_to_response
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
-import json
 
 # pypi
-import sqlalchemy
 
 # localapp
-from .. import lib
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeAccount_new__file

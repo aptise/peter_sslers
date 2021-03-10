@@ -1,19 +1,13 @@
 # pyramid
-from pyramid.response import Response
 from pyramid.view import view_config
-from pyramid.renderers import render, render_to_response
 
 # stdlib
-import datetime
 
 # pypi
-import sqlalchemy
 
 # localapp
 from ..lib.handler import Handler
-from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model import utils as model_utils
 
 
 # ==============================================================================

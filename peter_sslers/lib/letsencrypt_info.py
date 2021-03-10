@@ -11,7 +11,6 @@ generally not be imported.
 
 # stdlib
 import copy
-import datetime
 import os
 
 # pypi

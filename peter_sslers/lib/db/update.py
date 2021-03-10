@@ -15,8 +15,8 @@ from dateutil import parser as dateutil_parser
 # localapp
 from ...model import objects as model_objects
 from ...model import utils as model_utils
-from ...lib import errors
 from ... import lib
+from .. import errors
 from .. import utils
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAccountProvider__default

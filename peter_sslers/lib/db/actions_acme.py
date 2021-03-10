@@ -12,15 +12,12 @@ import pprint
 
 # localapp
 from ... import lib
-from .. import acme_v2
-from .. import cert_utils
 from .. import errors
-from .. import utils
-from ...model import utils as model_utils
-from ...model import objects as model_objects
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 # local
 from .logger import AcmeLogger
@@ -34,7 +31,6 @@ from .get import get__AcmeAccount__by_account_url
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-TESTING_ENVIRONMENT = True
 TEST_CERTIFICATE_CHAIN = True
 
 
@@ -69,7 +65,7 @@ def do__AcmeAccount_AcmeV2_register(
         # the global key identifier
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        authenticatedUser = acme_v2.AuthenticatedUser(
+        authenticatedUser = lib.acme_v2.AuthenticatedUser(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             account_key_path=account_key_path,
@@ -139,7 +135,7 @@ def do__AcmeAccount_AcmeV2_authenticate(
     # the global key identifier
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
-    authenticatedUser = acme_v2.AuthenticatedUser(
+    authenticatedUser = lib.acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         account_key_path=account_key_path,
@@ -170,7 +166,7 @@ def do__AcmeV2_AcmeAccount__deactivate(
     # the global key identifier
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
-    authenticatedUser = acme_v2.AuthenticatedUser(
+    authenticatedUser = lib.acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
@@ -199,12 +195,12 @@ def do__AcmeV2_AcmeAccount__key_change(
     )
 
     if key_pem_new is not None:
-        key_pem_new = cert_utils.cleanup_pem_text(key_pem_new)
+        key_pem_new = lib.cert_utils.cleanup_pem_text(key_pem_new)
         acme_account_key_source_id = model_utils.AcmeAccountKeySource.from_string(
             "imported"
         )
     else:
-        key_pem_new = cert_utils.new_account_key()  # rsa_bits=None
+        key_pem_new = lib.cert_utils.new_account_key()  # rsa_bits=None
         acme_account_key_source_id = model_utils.AcmeAccountKeySource.from_string(
             "generated"
         )
@@ -214,7 +210,7 @@ def do__AcmeV2_AcmeAccount__key_change(
             (dbAcmeAccountKeyNew, "The new key already exists")
         )
 
-    key_pem_new_md5 = utils.md5_text(key_pem_new)
+    key_pem_new_md5 = lib.utils.md5_text(key_pem_new)
 
     # scoping
     key_technology = None
@@ -223,15 +219,15 @@ def do__AcmeV2_AcmeAccount__key_change(
     # TODO: predict if we need the tempfiles
     _tmpfile_new = None
     try:
-        _tmpfile_new = cert_utils.new_pem_tempfile(key_pem_new)
+        _tmpfile_new = lib.cert_utils.new_pem_tempfile(key_pem_new)
 
         # validate + grab the technology
-        key_technology = cert_utils.validate_key(
+        key_technology = lib.cert_utils.validate_key(
             key_pem=key_pem_new, key_pem_filepath=_tmpfile_new.name
         )
 
         # grab the spki
-        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+        acckey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
             key_pem=key_pem_new,
             key_pem_filepath=_tmpfile_new.name,
         )
@@ -278,7 +274,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     # the global key identifier
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
-    authenticatedUser = acme_v2.AuthenticatedUser(
+    authenticatedUser = lib.acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
@@ -752,7 +748,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to deactivate on the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     """
     # TODO: sync the AcmeOrder objects instead
 
@@ -861,7 +857,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to refresh against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     """
     # TODO: sync the AcmeOrder objects instead
 
@@ -960,7 +956,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to trigger against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
 
     :returns: a boolean result True/False
     """
@@ -1105,7 +1101,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to refresh against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     """
     # TODO: sync the Authorization objects instead
     # TODO: sync the AcmeOrder objects instead
@@ -1217,7 +1213,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
 
     returns:
         dbAcmeOrder
@@ -1267,7 +1263,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acme_v2.new_response_404(),
+                lib.acme_v2.new_response_404(),
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
                 is_via_acme_sync=True,
@@ -1339,7 +1335,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acme_v2.new_response_404(),
+                lib.acme_v2.new_response_404(),
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
                 is_via_acme_sync=True,
@@ -1394,7 +1390,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object that owns the authorization ids
     :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     """
     # TODO: sync the AcmeAuthorization objects instead
     # TODO: sync the AcmeOrder objects instead
@@ -1430,7 +1426,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                 results[dbAcmeAuthorization.id] = True
             except errors.AcmeServer404 as exc:
                 results[dbAcmeAuthorization.id] = None
-                authorization_response = acme_v2.new_response_404()
+                authorization_response = lib.acme_v2.new_response_404()
             update_AcmeAuthorization_status(
                 ctx,
                 dbAcmeAuthorization,
@@ -1458,7 +1454,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                     updated_AcmeOrder_status(
                         ctx,
                         _to_acme_order.acme_order,
-                        acme_v2.new_response_invalid(),
+                        lib.acme_v2.new_response_invalid(),
                         timestamp=ctx.timestamp,
                         transaction_commit=True,
                     )
@@ -1477,7 +1473,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1513,7 +1509,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acme_v2.new_response_404(),
+                lib.acme_v2.new_response_404(),
                 is_processing_False=True,
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
@@ -1545,7 +1541,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     transaction_commit=True,
                 )
             except errors.AcmeServer404 as exc:
-                authorization_response = acme_v2.new_response_404()
+                authorization_response = lib.acme_v2.new_response_404()
                 update_AcmeAuthorization_status(
                     ctx,
                     dbAcmeAuthorization,
@@ -1595,7 +1591,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 ):
     """
     `_do__AcmeV2_AcmeOrder__finalize` is invoked to actually finalize the order.
-    :param authenticatedUser: (required) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (required) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
 
     :returns:  The :class:`model.objects.AcmeOrder` originally passed in as `dbAcmeOrder`
@@ -1705,7 +1701,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # we need to use tmpfiles on the disk for the Private Key signing
         private_key_pem = dbAcmeOrder.private_key.key_pem
-        tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
+        tmpfile_pkey = lib.cert_utils.new_pem_tempfile(private_key_pem)
         tmpfiles.append(tmpfile_pkey)
 
         # what are the domain names?
@@ -1715,16 +1711,16 @@ def _do__AcmeV2_AcmeOrder__finalize(
         if dbAcmeOrder.certificate_request:
             dbCertificateRequest = dbAcmeOrder.certificate_request
             csr_pem = dbCertificateRequest.csr_pem
-            tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
+            tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
         else:
             # make the CSR
-            csr_pem = cert_utils.make_csr(
+            csr_pem = lib.cert_utils.make_csr(
                 domain_names,
                 key_pem=private_key_pem,
                 key_pem_filepath=tmpfile_pkey.name,
             )
-            tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
+            tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
 
             # immediately commit this
@@ -1741,7 +1737,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ctx.pyramid_transaction_commit()
 
         # pull domains from csr
-        csr_domains = cert_utils.parse_csr_domains(
+        csr_domains = lib.cert_utils.parse_csr_domains(
             csr_pem=csr_pem,
             csr_pem_filepath=tmpfile_csr.name,
             submitted_domain_names=domain_names,
@@ -1765,7 +1761,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acme_v2.new_response_404(),
+                lib.acme_v2.new_response_404(),
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
                 is_via_acme_sync=True,
@@ -1780,7 +1776,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             (
                 _certificate_pem,
                 _ca_chain_pem,
-            ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            ) = lib.cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             if certificate_pem is None:
                 certificate_pem = _certificate_pem
             else:
@@ -2226,7 +2222,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
 
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
@@ -2273,7 +2269,7 @@ def do__AcmeV2_AcmeOrder__process(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    :param authenticatedUser: (optional) An authenticated instance of :class:`lib.acme_v2.AuthenticatedUser`
 
     This processes authorizations in sequence
 
@@ -2477,7 +2473,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             (
                 _certificate_pem,
                 _ca_chain_pem,
-            ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            ) = lib.cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             if certificate_pem is None:
                 certificate_pem = _certificate_pem
             else:

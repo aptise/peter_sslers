@@ -24,7 +24,8 @@ from ..model import objects as model_objects
 from ..model import utils as model_utils
 from ..model import websafe as model_websafe
 from ..lib.config_utils import set_bool_setting
-from ..lib.config_utils import set_int_setting
+
+# from ..lib.config_utils import set_int_setting
 from ..lib.config_utils import ApplicationSettings
 from . import models
 

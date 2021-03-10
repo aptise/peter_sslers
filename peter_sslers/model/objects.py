@@ -7,7 +7,8 @@ import pdb
 from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
-from sqlalchemy import inspect as sa_inspect
+
+# from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.session import Session as sa_Session
 
 # localapp

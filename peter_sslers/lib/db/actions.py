@@ -4,25 +4,20 @@ import logging
 log = logging.getLogger(__name__)
 
 # stdlib
-import datetime
 import pdb
 
 # pypi
-from dateutil import parser as dateutil_parser
 import requests
 import sqlalchemy
-import transaction
-from zope.sqlalchemy import mark_changed
+
+# from zope.sqlalchemy import mark_changed
 
 # localapp
-from ... import lib  # here for `lib.db`
+from ... import lib
+from .. import errors
+from .. import events
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-from .. import acme_v2
-from .. import cert_utils
-from .. import events
-from .. import errors
-from .. import utils
 from . import actions_acme
 from . import getcreate
 from . import update
@@ -43,7 +38,7 @@ def operations_deactivate_expired(ctx):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # create an event first
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__OperationsEvent(
         ctx,
@@ -105,7 +100,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
         raise ValueError("MUST run `operations_update_recents__global` first")
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__OperationsEvent(
         ctx,
@@ -222,9 +217,9 @@ def operations_reconcile_cas(ctx):
         filetype = _header_2_format.get(content_type) if content_type else None
         cert_pems = None
         if filetype == "pkcs7":
-            cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
+            cert_pems = lib.cert_utils.convert_pkcs7_to_pems(resp.content)
         elif filetype == "pkix-cert":
-            cert_pem = cert_utils.convert_der_to_pem(resp.content)
+            cert_pem = lib.cert_utils.convert_der_to_pem(resp.content)
             cert_pems = [
                 cert_pem,
             ]
@@ -232,7 +227,7 @@ def operations_reconcile_cas(ctx):
             raise ValueError("Not Implemented: %s" % content_type)
 
         for cert_pem in cert_pems:
-            cert_parsed = cert_utils.parse_cert(cert_pem)
+            cert_parsed = lib.cert_utils.parse_cert(cert_pem)
             (
                 _dbCertificateCAReconciled,
                 _is_created,
@@ -262,7 +257,7 @@ def operations_reconcile_cas(ctx):
             dbCertificateCAReconciliation.result = True
             ctx.dbSession.add(dbCertificateCAReconciliation)
 
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["certificate_ca.ids"] = _certificate_ca_ids
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -349,7 +344,7 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
     )
 
     # bookkeeping, doing this will mark the session as changed!
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["domain.ids"] = _domain_ids
     event_payload_dict["unique_fqdn_set.ids"] = _unique_fqdn_set_ids
     dbOperationsEvent = log__OperationsEvent(
@@ -600,7 +595,7 @@ def api_domains__enable(ctx, domain_names):
     """
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ApiDomains__enable"),
@@ -624,11 +619,11 @@ def api_domains__disable(ctx, domain_names):
     :param domain_names: (required) a list of domain names
     """
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = lib.utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ApiDomains__disable"),
@@ -725,7 +720,7 @@ def api_domains__certificate_if_needed(
     )
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
