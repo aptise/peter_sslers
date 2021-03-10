@@ -4173,6 +4173,14 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 
 class RootStore(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store"
+    __table_args__ = (
+        sa.Index(
+            "idx_root_store_name",
+            model_utils.indexable_lower(sa.text("name")),
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.Text, nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
@@ -4198,6 +4206,15 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
 
 class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store_version"
+    __table_args__ = (
+        sa.Index(
+            "idx_root_store_version",
+            "root_store_id",
+            model_utils.indexable_lower(sa.text("version_string")),
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     root_store_id = sa.Column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False

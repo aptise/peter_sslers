@@ -142,6 +142,7 @@ def min_date__sqlite(element, compiler, **kw):
 
 class utcnow(expression.FunctionElement):
     type = sqlalchemy.types.DateTime()
+    name = "utcnow"
 
 
 @compiles(utcnow)
@@ -153,6 +154,29 @@ def utcnow__default(element, compiler, **kw):
 @compiles(utcnow, "postgresql")
 def utcnow__postgresql(element, compiler, **kw):
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+class indexable_lower(expression.FunctionElement):
+    type = sqlalchemy.types.String()
+    name = "indexable_lower"
+
+
+@compiles(indexable_lower)
+def indexable_lower__default(element, compiler, **kw):
+    args = list(element.clauses)
+    return "LOWER(%s)" % (compiler.process(args[0], **kw))
+
+
+@compiles(indexable_lower, "sqlite")
+def indexable_lower__sqlite(element, compiler, **kw):
+    args = list(element.clauses)
+    if compiler.dialect.dbapi.sqlite_version_info < (3, 9, 0):
+        return compiler.process(args[0], **kw)
+    else:
+        return "LOWER(%s)" % (compiler.process(args[0], **kw))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
