@@ -634,15 +634,19 @@ def create__CertificateRequest(
 
     _tmpfile = None
     try:
-        # store the csr_text in a tmpfile
-        _tmpfile = lib.cert_utils.new_pem_tempfile(csr_pem)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            # store the csr_text in a tmpfile
+            _tmpfile = lib.cert_utils.new_pem_tempfile(csr_pem)
 
         # validate
-        lib.cert_utils.validate_csr(csr_pem=csr_pem, csr_pem_filepath=_tmpfile.name)
+        lib.cert_utils.validate_csr(
+            csr_pem=csr_pem,
+            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
+        )
 
         _csr_domain_names = lib.cert_utils.parse_csr_domains(
             csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name,
+            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
             submitted_domain_names=domain_names,
         )
         # this function checks the domain names match a simple regex
@@ -667,13 +671,14 @@ def create__CertificateRequest(
         # grab and check the spki
         csr__spki_sha256 = lib.cert_utils.parse_csr__spki_sha256(
             csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name,
+            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
         if csr__spki_sha256 != dbPrivateKey.spki_sha256:
             raise ValueError("Computed mismatch on SPKI")
 
     finally:
-        _tmpfile.close()
+        if _tmpfile is not None:
+            _tmpfile.close()
 
     # ensure the domains are registered into our system
     domain_objects = {
@@ -831,11 +836,13 @@ def create__CertificateSigned(
 
         # cleanup the cert_pem
         cert_pem = lib.cert_utils.cleanup_pem_text(cert_pem)
-        _tmpfileCert = lib.cert_utils.new_pem_tempfile(cert_pem)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            _tmpfileCert = lib.cert_utils.new_pem_tempfile(cert_pem)
 
         # validate
         lib.cert_utils.validate_cert(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
+            cert_pem=cert_pem,
+            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
         )
 
         # validate the domains!
@@ -844,7 +851,8 @@ def create__CertificateSigned(
         # for all requests...
         # so we don't need to handle this or save it
         cert_domains = lib.cert_utils.parse_cert__domains(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
+            cert_pem=cert_pem,
+            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
         )
         if set(cert_domains_expected) != set(cert_domains):
             log.error("set(cert_domains_expected) != set(cert_domains)")
@@ -878,7 +886,11 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.fingerprint_sha1`
             :attr:`model.utils.CertificateSigned.spki_sha256`
         """
-        _certificate_parse_to_record(_tmpfileCert, dbCertificateSigned)
+        _certificate_parse_to_record(
+            cert_pem=cert_pem,
+            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
+            dbCertificateSigned=dbCertificateSigned,
+        )
         if dbPrivateKey:
             if dbCertificateSigned.spki_sha256 != dbPrivateKey.spki_sha256:
                 raise ValueError("Computed mismatch on SPKI")
@@ -947,7 +959,7 @@ def create__CertificateSigned(
     except Exception as exc:
         raise
     finally:
-        if _tmpfileCert:
+        if _tmpfileCert is not None:
             _tmpfileCert.close()
 
     return dbCertificateSigned

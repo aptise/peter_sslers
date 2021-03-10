@@ -159,8 +159,12 @@
 		* `acme-account/{}/key-rollover`
 		* `acme-account/{}/key-rollover.json`
 	* AcmeAccount now supports:
-		* deactivate
-		* keyChange (key rollover)
+		* Account Key Deactivation https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
+		* Account Key Rollover (keyChange) https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
+	* refactor acme actions to not require the account_key_path unless necessary
+		* this is a legacy overhead from the openssl fallback
+
+
 	+ other fixes and improvements
 
 0.4.0

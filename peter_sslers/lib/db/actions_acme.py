@@ -230,24 +230,26 @@ def do__AcmeV2_AcmeAccount__key_change(
     key_technology = None
     acckey__spki_sha256 = None
 
-    # TODO: predict if we need the tempfiles
     _tmpfile_new = None
     try:
-        _tmpfile_new = lib.cert_utils.new_pem_tempfile(key_pem_new)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            _tmpfile_new = lib.cert_utils.new_pem_tempfile(key_pem_new)
 
         # validate + grab the technology
         key_technology = lib.cert_utils.validate_key(
-            key_pem=key_pem_new, key_pem_filepath=_tmpfile_new.name
+            key_pem=key_pem_new,
+            key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
         )
 
         # grab the spki
         acckey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
             key_pem=key_pem_new,
-            key_pem_filepath=_tmpfile_new.name,
+            key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
         )
 
     finally:
-        _tmpfile_new.close()
+        if _tmpfile_new is not None:
+            _tmpfile_new.close()
 
     dbOperationsEvent_AcmeAccountKey_new = lib.db.logger.log__OperationsEvent(
         ctx,
@@ -311,16 +313,17 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
     """
     account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
-    # TODO: predict if we need the tempfiles
     tmpfile_account = None
+    if lib.cert_utils.NEEDS_TEMPFILES:
+        tmpfile_account = lib.cert_utils.new_pem_tempfile(account_key_pem)
+        account_key_path = tmpfile_account.name
 
     # register the account / ensure that it is registered
     # the authenticatedUser will have a `logger.AcmeLogger` object as the
     # `.acmeLogger` attribtue
     # the `acmeLogger` may need to have the `AcmeOrder` registered
     authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
-        ctx,
-        dbAcmeAccount,
+        ctx, dbAcmeAccount, account_key_path=account_key_path
     )
     return (authenticatedUser, tmpfile_account)
 
@@ -773,7 +776,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
         raise ValueError("Can not deactivate this `AcmeAuthorization`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -862,7 +864,8 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeAuthorization__acme_server_sync(
@@ -882,7 +885,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization.is_can_acme_server_sync:
         raise ValueError("Can not sync this `AcmeAuthorization`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -961,7 +963,8 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_trigger(
@@ -985,7 +988,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeChallenge`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # this is used a bit
@@ -1105,7 +1107,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
     return True
 
 
@@ -1127,7 +1130,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge.is_can_acme_server_sync:
         raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # this is used a bit
@@ -1218,7 +1220,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeOrder__acme_server_sync(
@@ -1237,7 +1240,6 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1291,7 +1293,8 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
@@ -1307,7 +1310,6 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1393,7 +1395,8 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
@@ -1413,7 +1416,6 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     if not dbAcmeAccount:
         raise ValueError("Must submit `dbAcmeAccount`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1478,7 +1480,8 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
@@ -1494,7 +1497,6 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1597,7 +1599,8 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def _do__AcmeV2_AcmeOrder__finalize(
@@ -1616,7 +1619,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
 
@@ -1715,10 +1717,12 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ]
         )
 
-        # we need to use tmpfiles on the disk for the Private Key signing
+        # we may need to use tmpfiles on the disk for the Private Key signing
+        tmpfile_pkey = None
         private_key_pem = dbAcmeOrder.private_key.key_pem
-        tmpfile_pkey = lib.cert_utils.new_pem_tempfile(private_key_pem)
-        tmpfiles.append(tmpfile_pkey)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            tmpfile_pkey = lib.cert_utils.new_pem_tempfile(private_key_pem)
+            tmpfiles.append(tmpfile_pkey)
 
         # what are the domain names?
         domain_names = dbAcmeOrder.domains_as_list
@@ -1727,8 +1731,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
         if dbAcmeOrder.certificate_request:
             dbCertificateRequest = dbAcmeOrder.certificate_request
             csr_pem = dbCertificateRequest.csr_pem
-            tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
-            tmpfiles.append(tmpfile_csr)
+            if lib.cert_utils.NEEDS_TEMPFILES:
+                tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
+                tmpfiles.append(tmpfile_csr)
         else:
             # make the CSR
             csr_pem = lib.cert_utils.make_csr(
@@ -1736,8 +1741,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 key_pem=private_key_pem,
                 key_pem_filepath=tmpfile_pkey.name,
             )
-            tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
-            tmpfiles.append(tmpfile_csr)
+            if lib.cert_utils.NEEDS_TEMPFILES:
+                tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
+                tmpfiles.append(tmpfile_csr)
 
             # immediately commit this
             dbCertificateRequest = lib.db.create.create__CertificateRequest(
@@ -1755,7 +1761,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # pull domains from csr
         csr_domains = lib.cert_utils.parse_csr_domains(
             csr_pem=csr_pem,
-            csr_pem_filepath=tmpfile_csr.name,
+            csr_pem_filepath=tmpfile_csr.name if tmpfile_csr else None,
             submitted_domain_names=domain_names,
         )
         if set(csr_domains) != set(domain_names):
@@ -1841,7 +1847,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def _do__AcmeV2_AcmeOrder__new_core(
@@ -2069,7 +2076,6 @@ def _do__AcmeV2_AcmeOrder__new_core(
         if active_challenges:
             raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     dbAcmeOrder = None
     dbCertificateSigned = None
@@ -2227,7 +2233,8 @@ def _do__AcmeV2_AcmeOrder__new_core(
 
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 def do__AcmeV2_AcmeOrder__finalize(
@@ -2247,7 +2254,6 @@ def do__AcmeV2_AcmeOrder__finalize(
     if not dbAcmeOrder.is_can_acme_finalize:
         raise ValueError("Can not finalize this `dbAcmeOrder`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -2271,7 +2277,8 @@ def do__AcmeV2_AcmeOrder__finalize(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2296,7 +2303,6 @@ def do__AcmeV2_AcmeOrder__process(
     if not dbAcmeOrder.is_can_acme_process:
         raise ValueError("Can not process this `dbAcmeOrder`")
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -2391,7 +2397,8 @@ def do__AcmeV2_AcmeOrder__process(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2463,7 +2470,6 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             "this AcmeOrder is not eligible for a certificate download"
         )
 
-    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # we need to use tmpfiles on the disk
@@ -2549,7 +2555,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
-            tf.close()
+            if tf is not None:
+                tf.close()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

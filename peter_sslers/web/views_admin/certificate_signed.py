@@ -317,10 +317,11 @@ class View_New(Handler):
 
             _tmpfileCert = None
             try:
-                _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
+                if cert_utils.NEEDS_TEMPFILES:
+                    _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
                 _certificate_domain_names = cert_utils.parse_cert__domains(
                     cert_pem=certificate_pem,
-                    cert_pem_filepath=_tmpfileCert.name,
+                    cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
                 )
                 if not _certificate_domain_names:
                     raise ValueError(

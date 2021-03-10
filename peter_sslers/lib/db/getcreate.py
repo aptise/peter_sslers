@@ -254,22 +254,26 @@ def getcreate__AcmeAccount(
     # scoping
     key_technology = None
     acckey__spki_sha256 = None
+    _tmpfile = None
     try:
-        _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
 
         # validate + grab the technology
         key_technology = lib.cert_utils.validate_key(
-            key_pem=key_pem, key_pem_filepath=_tmpfile.name
+            key_pem=key_pem,
+            key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
 
         # grab the spki
         acckey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
             key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name,
+            key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
 
     finally:
-        _tmpfile.close()
+        if _tmpfile is not None:
+            _tmpfile.close()
 
     dbOperationsEvent_AcmeAccount = log__OperationsEvent(
         ctx,
@@ -780,16 +784,18 @@ def getcreate__CertificateCA__by_pem_text(
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
     if not dbCertificateCA:
         cert_pem_md5 = utils.md5_text(cert_pem)
+        _tmpfile = None
         try:
-            _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
+            if lib.cert_utils.NEEDS_TEMPFILES:
+                _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
 
             # validate
             lib.cert_utils.validate_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 
             _key_technology = lib.cert_utils.parse_cert__key_technology(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
             _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
             if key_technology_id is None:
@@ -816,7 +822,7 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.cert_pem_md5 = cert_pem_md5
 
             _cert_data = lib.cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
             dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
             dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
@@ -853,7 +859,8 @@ def getcreate__CertificateCA__by_pem_text(
         except Exception as exc:
             raise
         finally:
-            _tmpfile.close()
+            if _tmpfile is not None:
+                _tmpfile.close()
 
     return (dbCertificateCA, is_created)
 
@@ -985,24 +992,31 @@ def getcreate__CertificateSigned(
 
     # make sure the Certificate Elements match
     _cert_spki = None
+    _tmpfile = None
     try:
-        _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
         # grab the spki
         _cert_spki = lib.cert_utils.parse_cert__spki_sha256(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
         )
     finally:
-        _tmpfile.close()
+        if _tmpfile:
+            _tmpfile.close()
 
     _pkey_spki = None
+    _tmpfile = None
     try:
-        _tmpfile = lib.cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
+        if lib.cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = lib.cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
         # grab the spki
         _pkey_spki = lib.cert_utils.parse_key__spki_sha256(
-            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
+            key_pem=dbPrivateKey.key_pem,
+            key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
     finally:
-        _tmpfile.close()
+        if _tmpfile:
+            _tmpfile.close()
 
     if not all((_cert_spki, _pkey_spki)):
         raise ValueError("Could not compute the Certificate or Key's SPKI")
@@ -1156,22 +1170,25 @@ def getcreate__PrivateKey__by_pem_text(
         .first()
     )
     if not dbPrivateKey:
+        _tmpfile = None
         try:
-            _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
+            if lib.cert_utils.NEEDS_TEMPFILES:
+                _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
 
             # validate + grab the technology
             key_technology = lib.cert_utils.validate_key(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 
             pkey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 
         except Exception as exc:
             raise
         finally:
-            _tmpfile.close()
+            if _tmpfile:
+                _tmpfile.close()
 
         event_payload_dict = utils.new_event_payload_dict()
         _event_type_id = model_utils.OperationsEventType.from_string(
