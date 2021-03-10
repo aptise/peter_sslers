@@ -74,6 +74,7 @@ def do__AcmeAccount_AcmeV2_register(
         authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
 
         # update based off the ACME service
+        # the server's TOS should take precedence
         acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"]
         if acme_tos:
             if acme_tos != dbAcmeAccount.terms_of_service:
@@ -96,7 +97,6 @@ def do__AcmeAccount_AcmeV2_register(
             )
             if _dbAcmeAccountOther and (_dbAcmeAccountOther.id != dbAcmeAccount.id):
                 # another AcmeAccount is registered to this account_url
-
                 # update this after the get, so it's not flushed and it
                 # does not trigger an IntegrityError
                 dbAcmeAccount.account_url = acme_account_url
@@ -316,14 +316,15 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
     tmpfile_account = None
     if lib.cert_utils.NEEDS_TEMPFILES:
         tmpfile_account = lib.cert_utils.new_pem_tempfile(account_key_pem)
-        account_key_path = tmpfile_account.name
 
     # register the account / ensure that it is registered
     # the authenticatedUser will have a `logger.AcmeLogger` object as the
     # `.acmeLogger` attribtue
     # the `acmeLogger` may need to have the `AcmeOrder` registered
     authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
-        ctx, dbAcmeAccount, account_key_path=account_key_path
+        ctx,
+        dbAcmeAccount,
+        account_key_path=tmpfile_account.name if tmpfile_account else None,
     )
     return (authenticatedUser, tmpfile_account)
 

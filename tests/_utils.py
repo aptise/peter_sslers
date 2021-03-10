@@ -3,7 +3,6 @@ from __future__ import print_function
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 # stdlib
@@ -216,6 +215,60 @@ def process_pebble_roots():
     return True
 
 
+def archive_pebble_data():
+    """
+    pebble account urls have a serial that restarts on each load
+    this causes issues with tests
+    """
+    log.info("`pebble`: archive_pebble_data")
+    settings = get_appsettings(
+        TEST_INI, name="main"
+    )  # this can cause an unclosed resource
+    session_factory = get_session_factory(get_engine(settings))
+    dbSession = session_factory()
+    ctx = utils.ApiContext(
+        request=FakeRequest(),
+        dbSession=dbSession,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    # model_objects.AcmeAccount
+    # migration strategy - append a `@{UUID}` to the url, so it will not match
+    dbAcmeAccounts = db.get.get__AcmeAccount__paginated(ctx)
+    for _dbAcmeAccount in dbAcmeAccounts:
+        if _dbAcmeAccount.account_url:
+            if "@" not in _dbAcmeAccount.account_url:
+                log.debug(
+                    "archive_pebble_data: migrating _dbAcmeAccount %s %s",
+                    _dbAcmeAccount.id,
+                    _dbAcmeAccount.account_url,
+                )
+                account_url = _dbAcmeAccount.account_url
+                _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
+                dbSession.flush(
+                    objects=[
+                        _dbAcmeAccount,
+                    ]
+                )
+                log.debug(
+                    "archive_pebble_data: migrated _dbAcmeAccount %s %s",
+                    _dbAcmeAccount.id,
+                    _dbAcmeAccount.account_url,
+                )
+    dbSession.commit()
+    return True
+
+
+def handle_new_pebble():
+    """
+    When pebble starts:
+        * we must inspect the new pebble roots
+    When pebble restarts
+        * the database may have old pebble data
+    """
+    process_pebble_roots()
+    archive_pebble_data()
+
+
 def under_pebble(_function):
     """
     decorator to spin up an external pebble server
@@ -249,7 +302,7 @@ def under_pebble(_function):
                     raise ValueError("`pebble`: ERROR spinning up")
                 time.sleep(1)
             try:
-                process_pebble_roots()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -294,7 +347,7 @@ def under_pebble_strict(_function):
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
                 time.sleep(1)
             try:
-                process_pebble_roots()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit

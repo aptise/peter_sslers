@@ -328,6 +328,8 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             else None,
             "id": self.id,
             "private_key_cycle": self.private_key_cycle,
+            "contact": self.contact,
+            "account_url": self.account_url,
         }
 
 

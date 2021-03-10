@@ -79,19 +79,22 @@ def update_AcmeAccount_from_new_duplicate(
             "New Account `deduplication` requires a single `AcmeAccountProvider`"
         )
 
+    pdb.set_trace()
     with ctx.dbSession.no_autoflush:
-        print("Attempting to migrate the following:")
-        print("TARGET record:")
-        print(" dbAcmeAccountTarget.id", dbAcmeAccountTarget.id)
-        print(" dbAcmeAccountTarget.account_url", dbAcmeAccountTarget.account_url)
-        print(
+        log.info("Attempting to migrate the following:")
+        log.info("TARGET record:")
+        log.info(" dbAcmeAccountTarget.id", dbAcmeAccountTarget.id)
+        log.info(" dbAcmeAccountTarget.account_url", dbAcmeAccountTarget.account_url)
+        log.info(
             " dbAcmeAccountTarget.acme_account_key.id",
             dbAcmeAccountTarget.acme_account_key.acme_account_id,
         )
-        print("SOURCE record:")
-        print(" dbAcmeAccountDuplicate.id", dbAcmeAccountDuplicate.id)
-        print(" dbAcmeAccountDuplicate.account_url", dbAcmeAccountDuplicate.account_url)
-        print(
+        log.info("SOURCE record:")
+        log.info(" dbAcmeAccountDuplicate.id", dbAcmeAccountDuplicate.id)
+        log.info(
+            " dbAcmeAccountDuplicate.account_url", dbAcmeAccountDuplicate.account_url
+        )
+        log.info(
             " dbAcmeAccountDuplicate.acme_account_key.id",
             dbAcmeAccountDuplicate.acme_account_key.acme_account_id,
         )
@@ -115,7 +118,7 @@ def update_AcmeAccount_from_new_duplicate(
                 "the Duplicate AcmeAccount's AcmeAccountKey should be active!"
             )
         # Step 1 - Disable the Target's OLD key
-        dbAcmeAccountKey_old.is_active = False
+        dbAcmeAccountKey_old.is_active = None  # False violates the unique index
 
         # Step 2: ReAssociate the NEW key
         dbAcmeAccountKey_new.acme_account_id = dbAcmeAccountTarget.id
@@ -161,6 +164,7 @@ def update_AcmeAccount__set_active(ctx, dbAcmeAccount):
 
 
 def update_AcmeAccount__set_deactivated(ctx, dbAcmeAccount):
+    log.debug("update_AcmeAccount__set_deactivated", dbAcmeAccount.id)
     if dbAcmeAccount.timestamp_deactivated:
         raise errors.InvalidTransition("Already deactivated.")
     dbAcmeAccount.is_active = False
@@ -170,6 +174,7 @@ def update_AcmeAccount__set_deactivated(ctx, dbAcmeAccount):
 
 
 def update_AcmeAccount__unset_active(ctx, dbAcmeAccount):
+    log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     if dbAcmeAccount.is_global_default:
