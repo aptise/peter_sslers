@@ -41,6 +41,7 @@ from ._utils import AppTestWSGI
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
 from ._utils import under_redis
+from ._utils import generate_random_emailaddress
 
 # local, flags
 from .regex_library import *
@@ -6527,13 +6528,13 @@ class FunctionalTests_AlternateChains(AppTest):
             assert found == expectations
 
 
-class FunctionalTests_AcmeServer(AppTest):
+class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:new")
-    def test_AcmeAccount_new_html(self):
+    def test_new_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_new_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_new_html
         """
 
         res = self.testapp.get("/.well-known/admin/acme-account/new", status=200)
@@ -6557,9 +6558,9 @@ class FunctionalTests_AcmeServer(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:new|json")
-    def test_AcmeAccount_new_json(self):
+    def test_new_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_new_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_new_json
         """
         form = {}
         res2 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
@@ -6606,13 +6607,34 @@ class FunctionalTests_AcmeServer(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
+    def _make_one_AcmeAccount(self):
+        """use the json api!"""
+        form = {
+            "acme_account_provider_id": 1,
+            "account__contact": generate_random_emailaddress(),
+            "account__private_key_cycle": "single_certificate",
+            "account__private_key_technology": "RSA",
+        }
+        res4 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        assert res4.json["result"] == "success"
+        assert "AcmeAccount" in res4.json
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeAccount)
+            .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
+            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
+            .first()
+        )
+        assert focus_item is not None
+        return focus_item, focus_item.id
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:focus:acme_server:authenticate")
-    def test_AcmeAccount_authenticate_html(self):
+    def test_authenticate_html(self):
         """
         # this hits Pebble via http
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_authenticate_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_authenticate_html
         """
         (focus_item, focus_id) = self._get_one_AcmeAccount()
 
@@ -6639,10 +6661,10 @@ class FunctionalTests_AcmeServer(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:focus:acme_server:authenticate|json")
-    def test_AcmeAccount_authenticate_json(self):
+    def test_authenticate_json(self):
         """
         # this hits Pebble via http
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_authenticate_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_authenticate_json
         """
         (focus_item, focus_id) = self._get_one_AcmeAccount()
 
@@ -6654,6 +6676,150 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.status_code == 200
         assert res.location is None  # no redirect
         assert "AcmeAccount" in res.json
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:deactivate")
+    def test_deactivate_html(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_deactivate_html
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/deactivate" % focus_id,
+            status=200,
+        )
+        assert "form-acme_account-deactivate" in res.forms
+        form = res.forms["form-acme_account-deactivate"]
+
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: key_pem -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Please enter a value</span></div></div>"""
+            in res2.text
+        )
+
+        form["key_pem"] = focus_item.acme_account_key.key_pem_md5
+        res3 = form.submit()
+        assert res3.status_code == 303
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:deactivate.json")
+    def test_deactivate_json(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_deactivate_json
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "form_fields" in res.json
+        assert "key_pem" in res.json["form_fields"]
+
+        form = {}
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            form,
+        )
+        assert res2.json["result"] == "error"
+        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        form["key_pem"] = "foo"
+        res3 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            form,
+        )
+        assert res3.json["result"] == "error"
+        assert (
+            res3.json["form_errors"]["key_pem"]
+            == "This does not match the active account key"
+        )
+
+        form["key_pem"] = focus_item.acme_account_key.key_pem_md5
+        res4 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            form,
+        )
+        assert res4.json["result"] == "success"
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:key_change")
+    def test_key_change_html(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_key_change_html
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/key-change" % focus_id,
+            status=200,
+        )
+        assert "form-acme_account-key_change" in res.forms
+        form = res.forms["form-acme_account-key_change"]
+
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<!-- for: key_pem_existing -->\n<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Please enter a value</span></div></div>"""
+            in res2.text
+        )
+
+        form["key_pem_existing"] = focus_item.acme_account_key.key_pem_md5
+        res3 = form.submit()
+        assert res3.status_code == 303
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:key_change.json")
+    def test_key_change_json(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_key_change_json
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "form_fields" in res.json
+        assert "key_pem_existing" in res.json["form_fields"]
+
+        form = {}
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            form,
+        )
+        assert res2.json["result"] == "error"
+        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        form["key_pem_existing"] = "foo"
+        res3 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            form,
+        )
+        assert res3.json["result"] == "error"
+        assert (
+            res3.json["form_errors"]["key_pem_existing"]
+            == "This does not match the active account key"
+        )
+
+        form["key_pem_existing"] = focus_item.acme_account_key.key_pem_md5
+        res4 = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            form,
+        )
+        assert res4.json["result"] == "success"
 
     @routes_tested(
         (
@@ -6722,10 +6888,10 @@ class FunctionalTests_AcmeServer(AppTest):
             "admin:acme_account:focus:acme_server:deactivate_pending_authorizations",  # real test
         )
     )
-    def test_AcmeAccount_deactivate_pending_authorizations_html(self):
+    def test_deactivate_pending_authorizations_html(self):
         """
         # this hits Pebble via http
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_deactivate_pending_authorizations_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_deactivate_pending_authorizations_html
         """
         acme_account_id = self._prep__AcmeAccount_deactivate_pending_authorizations()
 
@@ -6785,10 +6951,10 @@ class FunctionalTests_AcmeServer(AppTest):
             "admin:acme_account:focus:acme_server:deactivate_pending_authorizations|json",  # real test
         )
     )
-    def test_AcmeAccount_deactivate_pending_authorizations_json(self):
+    def test_deactivate_pending_authorizations_json(self):
         """
         # this hits Pebble via http
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_AcmeAccount_deactivate_pending_authorizations_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_deactivate_pending_authorizations_json
         """
         acme_account_id = self._prep__AcmeAccount_deactivate_pending_authorizations()
 
@@ -6839,6 +7005,8 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
         assert len(acme_authorization_ids_2) == 0
 
+
+class FunctionalTests_AcmeServer(AppTest):
     @routes_tested(("admin:acme_order:new:freeform",))
     def _prep_AcmeOrder_html(self, processing_strategy=None):
         """

@@ -20,15 +20,16 @@ asap tasks
 ---------------
 
 [x] Account Key Rollover https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
-	[] Tests
+	[x] Tests
 [x] Account Key Deactivation https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
-	[] Tests
-[ ] refactor acme actions to not require the account_key_path unless necessary
+	[x] Tests
+[x] refactor acme actions to not require the account_key_path unless necessary
     this is a legacy overhead from the openssl fallback
 [ ] audit usage of `ctx.pyramid_transaction_commit()`
+[ ] audit further usage of `account_key_path`, which remains in some places
 
 
-
+----
 
 	* shortcut to creating an order from a domain
 

@@ -15,6 +15,7 @@ import subprocess
 import unittest
 import traceback
 import time
+import uuid
 from io import open  # overwrite `open` in Python2
 from functools import wraps
 
@@ -810,11 +811,24 @@ KEY_SETS = {
 # ==============================================================================
 
 
+class FakeAccountKeyData(cert_utils.AccountKeyData):
+    """
+    implements minimum amount of `cert_utils.AccountKeyData`
+    """
+
+    def __init__(self, thumbprint=None):
+        self.thumbprint = thumbprint
+
+
 class FakeAuthenticatedUser(object):
-    accountkey_thumbprint = None
+    """
+    implements minimum amount of `acme_v2.AuthenticatedUser`
+    """
+
+    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
 
     def __init__(self, accountkey_thumbprint=None):
-        self.accountkey_thumbprint = accountkey_thumbprint
+        self.accountKeyData = FakeAccountKeyData(thumbprint=accountkey_thumbprint)
 
 
 class _Mixin_filedata(object):
@@ -1616,3 +1630,7 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
 
 
 # ==============================================================================
+
+
+def generate_random_emailaddress(template="%s@example.com"):
+    return template % uuid.uuid4()

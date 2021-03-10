@@ -85,6 +85,7 @@
                         <td>
                             <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/key-change"
                                   method="POST"
+                                  id="form-acme_account-key_change"
                                   >
                                 <% form = request.pyramid_formencode_classic.get_form() %>
                                 ${form.html_error_main_fillable()|n}

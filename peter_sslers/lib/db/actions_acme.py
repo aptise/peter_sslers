@@ -9,15 +9,11 @@ import pdb
 import pprint
 
 # pypi
-from dateutil import parser as dateutil_parser
-import sqlalchemy
-import transaction
 
 # localapp
 from ... import lib
 from .. import acme_v2
 from .. import cert_utils
-from .. import events
 from .. import errors
 from .. import utils
 from ...model import utils as model_utils
@@ -29,7 +25,8 @@ from ..exceptions import ReassignedPrivateKey
 # local
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
-from .logger import _log_object_event
+
+# from .logger import _log_object_event
 from .update import update_AcmeAuthorization_from_payload
 from .get import get__AcmeAccount__by_account_url
 
@@ -62,16 +59,9 @@ def do__AcmeAccount_AcmeV2_register(
     If `account_key_path` is not provided, the ACME library will be unable to
     perform any operations after authentication.
     """
-    _tmpfile = None
     try:
         if not dbAcmeAccount.contact:
             raise ValueError("no `contact`")
-
-        if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(
-                dbAcmeAccount.acme_account_key.key_pem
-            )
-            account_key_path = _tmpfile.name
 
         acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
@@ -143,33 +133,20 @@ def do__AcmeAccount_AcmeV2_authenticate(
     If `account_key_path` is not provided, the ACME library will be unable to
     perform any operations after authentication.
     """
-    _tmpfile = None
-    try:
-        if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(
-                dbAcmeAccount.acme_account_key.key_pem
-            )
-            account_key_path = _tmpfile.name
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
-
-        # create account, update contact details (if any), and set
-        # the global key identifier
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        authenticatedUser = acme_v2.AuthenticatedUser(
-            acmeLogger=acmeLogger,
-            acmeAccount=dbAcmeAccount,
-            account_key_path=account_key_path,
-            log__OperationsEvent=log__OperationsEvent,
-        )
-        authenticatedUser.authenticate(ctx)
-
-        return authenticatedUser
-
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
+    # create account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        account_key_path=account_key_path,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx)
+    return authenticatedUser
 
 
 def do__AcmeV2_AcmeAccount__deactivate(
@@ -186,31 +163,22 @@ def do__AcmeV2_AcmeAccount__deactivate(
         ctx,
         model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
     )
-    _tmpfile = None
-    try:
-        _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccount.acme_account_key.key_pem)
-        account_key_path = _tmpfile.name
 
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-        # create account, update contact details (if any), and set
-        # the global key identifier
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        authenticatedUser = acme_v2.AuthenticatedUser(
-            acmeLogger=acmeLogger,
-            acmeAccount=dbAcmeAccount,
-            account_key_path=account_key_path,
-            log__OperationsEvent=log__OperationsEvent,
-        )
-        authenticatedUser.authenticate(ctx)
-        authenticatedUser.deactivate(ctx, transaction_commit=True)
+    # create account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx)
+    authenticatedUser.deactivate(ctx, transaction_commit=True)
 
-        return authenticatedUser
-
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
+    return authenticatedUser
 
 
 def do__AcmeV2_AcmeAccount__key_change(
@@ -251,6 +219,8 @@ def do__AcmeV2_AcmeAccount__key_change(
     # scoping
     key_technology = None
     acckey__spki_sha256 = None
+
+    # TODO: predict if we need the tempfiles
     _tmpfile_new = None
     try:
         _tmpfile_new = cert_utils.new_pem_tempfile(key_pem_new)
@@ -302,33 +272,21 @@ def do__AcmeV2_AcmeAccount__key_change(
     # this is kind of janky but commit this for now...
     ctx.pyramid_transaction_commit()
 
-    _tmpfile_old = None
-    try:
-        _tmpfile_old = cert_utils.new_pem_tempfile(
-            dbAcmeAccount.acme_account_key.key_pem
-        )
-        account_key_path = _tmpfile_old.name
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+    # create account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx)
+    authenticatedUser.key_change(ctx, dbAcmeAccountKey_new, transaction_commit=True)
 
-        # create account, update contact details (if any), and set
-        # the global key identifier
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        authenticatedUser = acme_v2.AuthenticatedUser(
-            acmeLogger=acmeLogger,
-            acmeAccount=dbAcmeAccount,
-            account_key_path=account_key_path,
-            log__OperationsEvent=log__OperationsEvent,
-        )
-        authenticatedUser.authenticate(ctx)
-        authenticatedUser.key_change(ctx, dbAcmeAccountKey_new, transaction_commit=True)
-
-        return authenticatedUser
-
-    finally:
-        if _tmpfile_old:
-            _tmpfile_old.close()
+    return authenticatedUser
 
 
 def new_Authenticated_user(ctx, dbAcmeAccount):
@@ -339,26 +297,20 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
-    tmpfile_account = None
-    try:
-        account_key_pem = dbAcmeAccount.acme_account_key.key_pem
-        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-        account_key_path = tmpfile_account.name
+    account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
-        # register the account / ensure that it is registered
-        # the authenticatedUser will have a `logger.AcmeLogger` object as the
-        # `.acmeLogger` attribtue
-        # the `acmeLogger` may need to have the `AcmeOrder` registered
-        authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
-            ctx,
-            dbAcmeAccount,
-            account_key_path=account_key_path,
-        )
-        return (authenticatedUser, tmpfile_account)
-    except:
-        if tmpfile_account:
-            tmpfile_account.close()
-        raise
+    # TODO: predict if we need the tempfiles
+    tmpfile_account = None
+
+    # register the account / ensure that it is registered
+    # the authenticatedUser will have a `logger.AcmeLogger` object as the
+    # `.acmeLogger` attribtue
+    # the `acmeLogger` may need to have the `AcmeOrder` registered
+    authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
+        ctx,
+        dbAcmeAccount,
+    )
+    return (authenticatedUser, tmpfile_account)
 
 
 def update_AcmeAuthorization_status(
@@ -809,6 +761,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
         raise ValueError("Can not deactivate this `AcmeAuthorization`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -917,6 +870,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization.is_can_acme_server_sync:
         raise ValueError("Can not sync this `AcmeAuthorization`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -1019,6 +973,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeChallenge`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # this is used a bit
@@ -1160,6 +1115,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge.is_can_acme_server_sync:
         raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # this is used a bit
@@ -1269,6 +1225,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1338,6 +1295,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1443,6 +1401,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     if not dbAcmeAccount:
         raise ValueError("Must submit `dbAcmeAccount`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1523,6 +1482,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -1643,6 +1603,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
     Finalizing an order means signing the CertificateSigningRequest.
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
+
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
 
@@ -2095,6 +2057,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
         if active_challenges:
             raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     dbAcmeOrder = None
     dbCertificateSigned = None
@@ -2272,6 +2235,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     if not dbAcmeOrder.is_can_acme_finalize:
         raise ValueError("Can not finalize this `dbAcmeOrder`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -2320,6 +2284,7 @@ def do__AcmeV2_AcmeOrder__process(
     if not dbAcmeOrder.is_can_acme_process:
         raise ValueError("Can not process this `dbAcmeOrder`")
 
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         if authenticatedUser is None:
@@ -2485,6 +2450,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         raise errors.InvalidRequest(
             "this AcmeOrder is not eligible for a certificate download"
         )
+
+    # TODO: predict if we need the tempfiles
     tmpfiles = []
     try:
         # we need to use tmpfiles on the disk

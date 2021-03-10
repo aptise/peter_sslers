@@ -610,9 +610,10 @@ def getcreate__AcmeChallenges_via_payload(
         _is_created_AcmeChallenge = False
         if not _dbAcmeChallenge:
             challenge_token = acme_challenge["token"]
+            # TODO: should we build an authenticatedUser here?
             keyauthorization = (
                 lib.acme_v2.create_challenge_keyauthorization(
-                    challenge_token, authenticatedUser.accountkey_thumbprint
+                    challenge_token, authenticatedUser.accountKeyData
                 )
                 if authenticatedUser
                 else None

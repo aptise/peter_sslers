@@ -1128,12 +1128,11 @@ class View_Focus_Manipulate(View_Focus):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "results": results,
                     "AcmeAccount": dbAcmeAccount.as_json,
                 }
 
             return HTTPSeeOther(
-                "%s?&result=success&operation=acme-server--deactivate"
+                "%s?result=success&operation=acme-server--deactivate"
                 % (self._focus_url,)
             )
         except formhandling.FormInvalid as exc:
@@ -1178,7 +1177,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "form_fields": {
-                    "key_pem": "the active key as md5(PEM) or PEM",
+                    "key_pem_existing": "the active key as md5(PEM) or PEM",
                 },
                 "instructions": [
                     """curl -X POST %s/acme-server/key-change.json""" % self._focus_url
@@ -1223,7 +1222,6 @@ class View_Focus_Manipulate(View_Focus):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "results": results,
                     "AcmeAccount": dbAcmeAccount.as_json,
                 }
 

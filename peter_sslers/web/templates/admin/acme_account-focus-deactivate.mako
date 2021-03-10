@@ -36,6 +36,7 @@
 
             <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/deactivate"
                   method="POST"
+                  id="form-acme_account-deactivate"
                   >
             <% form = request.pyramid_formencode_classic.get_form() %>
             ${form.html_error_main_fillable()|n}
@@ -83,7 +84,7 @@
                     </tr>
                     <tr>
                         <th>key_pem_md5</th>
-                        <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code>
+                        <td><code data-key_id="${AcmeAccount.acme_account_key.id}" data-key_pem_md5="${AcmeAccount.acme_account_key.key_pem_md5}">${AcmeAccount.acme_account_key.key_pem_md5}</code>
                         </td>
                     </tr>
                     <tr>

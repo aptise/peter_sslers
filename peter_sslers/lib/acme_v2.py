@@ -422,14 +422,13 @@ class AuthenticatedUser(object):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
         :param acmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-        :param account_key_path: (optional) The filepath of a PEM encoded RSA key
+        :param account_key_path: (optional) The filepath of a PEM encoded RSA key.
+            This is only needed for openssl fallback, but it will be created if necessary.
         :param acme_directory: (optional) The ACME Directory's url for a "directory"
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
-        if not all((acmeLogger, acmeAccount, account_key_path)):
-            raise ValueError(
-                "all elements are required: (acmeLogger, acmeAccount, account_key_path)"
-            )
+        if not all((acmeLogger, acmeAccount)):
+            raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         # do we need to load this?
         if acme_directory is None:

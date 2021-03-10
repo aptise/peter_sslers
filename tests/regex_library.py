@@ -11,6 +11,12 @@ RE_AcmeAccount_new = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)\?result=success&operation=new&is_created=1$"""
 )
 
+
+RE_AcmeAccount_deactivate = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)\?result=success&operation=acme-server--deactivate$"""
+)
+
+
 RE_AcmeAccount_deactivate_pending_post_required = re.compile(
     r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)/acme-authorizations\?status=active&result=error&error=post\+required&operation=acme-server--deactivate-pending-authorizations"""
 )

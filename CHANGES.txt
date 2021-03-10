@@ -159,7 +159,7 @@
 		* `acme-account/{}/key-rollover`
 		* `acme-account/{}/key-rollover.json`
 	* AcmeAccount now supports:
-		* deactivate	
+		* deactivate
 		* keyChange (key rollover)
 	+ other fixes and improvements
 
