@@ -742,35 +742,42 @@ class AuthenticatedUser(object):
         if not _account_url:
             raise ValueError("Account URL unknown")
 
-        _payload_deactivate = {"status": "deactivated"}
-        (
-            acme_account_object,
-            status_code,
-            acme_account_headers,
-        ) = self._send_signed_request(
-            _account_url,
-            payload=_payload_deactivate,
-        )
+        is_did_deactivate = None
+        try:
+            _payload_deactivate = {"status": "deactivated"}
+            (
+                acme_account_object,
+                status_code,
+                acme_account_headers,
+            ) = self._send_signed_request(
+                _account_url,
+                payload=_payload_deactivate,
+            )
 
-        log.debug(") deactivate | acme_account_object: %s" % acme_account_object)
-        log.debug(") deactivate | acme_account_headers: %s" % acme_account_headers)
-        log.info(
-            ") deactivate = %s"
-            % ("acme_v2 DEACTIVATED!" if status_code == 200 else "ERROR")
-        )
+            # this is a flag
+            is_did_deactivate = True
 
-        # this would raise if we couldn't authenticate
-        db_update.update_AcmeAccount__set_deactivated(ctx, self.acmeAccount)
-        ctx.dbSession.flush(objects=[self.acmeAccount])
+            log.debug(") deactivate | acme_account_object: %s" % acme_account_object)
+            log.debug(") deactivate | acme_account_headers: %s" % acme_account_headers)
+            log.info(
+                ") deactivate = %s"
+                % ("acme_v2 DEACTIVATED!" if status_code == 200 else "ERROR")
+            )
 
-        # log this
-        event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict["acme_account.id"] = self.acmeAccount.id
-        dbOperationsEvent = self.log__OperationsEvent(
-            ctx,
-            model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
-            event_payload_dict,
-        )
+            # this would raise if we couldn't authenticate
+            db_update.update_AcmeAccount__set_deactivated(ctx, self.acmeAccount)
+            ctx.dbSession.flush(objects=[self.acmeAccount])
+
+            # log this
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["acme_account.id"] = self.acmeAccount.id
+            dbOperationsEvent = self.log__OperationsEvent(
+                ctx,
+                model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
+                event_payload_dict,
+            )
+        finally:
+            return is_did_deactivate
 
     def key_change(self, ctx, dbAcmeAccountKey_new, transaction_commit=None):
         """
@@ -825,60 +832,65 @@ class AuthenticatedUser(object):
         if not _account_url:
             raise ValueError("Account URL unknown")
 
-        # quickref and toggle these, so we generate the correct payloads
-        accountKeyData_old = self.accountKeyData
-        accountKeyData_new = cert_utils.AccountKeyData(
-            key_pem=dbAcmeAccountKey_new.key_pem,
-        )
+        is_did_keychange = None
+        try:
+            # quickref and toggle these, so we generate the correct payloads
+            accountKeyData_old = self.accountKeyData
+            accountKeyData_new = cert_utils.AccountKeyData(
+                key_pem=dbAcmeAccountKey_new.key_pem,
+            )
 
-        _key_change_url = self.acme_directory["keyChange"]
+            _key_change_url = self.acme_directory["keyChange"]
 
-        _payload_inner = {
-            "account": _account_url,
-            "oldKey": accountKeyData_old.jwk,
-        }
-        payload_inner = sign_payload_inner(
-            url=_key_change_url,
-            payload=_payload_inner,
-            accountKeyData=accountKeyData_new,
-        )
-        (acme_response, status_code, acme_headers,) = self._send_signed_request(
-            _key_change_url,
-            payload=payload_inner,
-        )
+            _payload_inner = {
+                "account": _account_url,
+                "oldKey": accountKeyData_old.jwk,
+            }
+            payload_inner = sign_payload_inner(
+                url=_key_change_url,
+                payload=_payload_inner,
+                accountKeyData=accountKeyData_new,
+            )
+            (acme_response, status_code, acme_headers,) = self._send_signed_request(
+                _key_change_url,
+                payload=payload_inner,
+            )
 
-        log.debug(") key_change | acme_response: %s" % acme_response)
-        log.debug(") key_change | acme_headers: %s" % acme_headers)
+            is_did_keychange = True
 
-        # assuming things worked...
-        self.accountKeyData = accountKeyData_new
-        # turn off the old and flush, so the index is maintained
-        dbAcmeAccountKey_old = self.acmeAccount.acme_account_key
-        dbAcmeAccountKey_old.is_active = None
-        dbAcmeAccountKey_old.timestamp_deactivated = ctx.timestamp
-        ctx.dbSession.flush(objects=[dbAcmeAccountKey_old])
-        # turn on the new and flush
-        self.acmeAccount.acme_account_key = dbAcmeAccountKey_new
-        dbAcmeAccountKey_new.is_active = True
-        ctx.dbSession.flush(
-            objects=[
-                dbAcmeAccountKey_new,
-                self.acmeAccount,
-            ]
-        )
+            log.debug(") key_change | acme_response: %s" % acme_response)
+            log.debug(") key_change | acme_headers: %s" % acme_headers)
 
-        # log this
-        event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict["acme_account.id"] = self.acmeAccount.id
-        event_payload_dict["acme_account_key-old.id"] = dbAcmeAccountKey_old.id
-        event_payload_dict["acme_account_key-new.id"] = dbAcmeAccountKey_new.id
-        dbOperationsEvent = self.log__OperationsEvent(
-            ctx,
-            model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
-            event_payload_dict,
-        )
+            # assuming things worked...
+            self.accountKeyData = accountKeyData_new
+            # turn off the old and flush, so the index is maintained
+            dbAcmeAccountKey_old = self.acmeAccount.acme_account_key
+            dbAcmeAccountKey_old.is_active = None
+            dbAcmeAccountKey_old.timestamp_deactivated = ctx.timestamp
+            ctx.dbSession.flush(objects=[dbAcmeAccountKey_old])
+            # turn on the new and flush
+            self.acmeAccount.acme_account_key = dbAcmeAccountKey_new
+            dbAcmeAccountKey_new.is_active = True
+            ctx.dbSession.flush(
+                objects=[
+                    dbAcmeAccountKey_new,
+                    self.acmeAccount,
+                ]
+            )
 
-        # ctx.pyramid_transaction_commit()
+            # log this
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["acme_account.id"] = self.acmeAccount.id
+            event_payload_dict["acme_account_key-old.id"] = dbAcmeAccountKey_old.id
+            event_payload_dict["acme_account_key-new.id"] = dbAcmeAccountKey_new.id
+            dbOperationsEvent = self.log__OperationsEvent(
+                ctx,
+                model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
+                event_payload_dict,
+            )
+
+        finally:
+            return is_did_keychange
 
     def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
         """

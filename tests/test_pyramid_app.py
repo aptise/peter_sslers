@@ -265,6 +265,8 @@ class FunctionalTests_AcmeAccount(AppTest):
     @routes_tested(
         (
             "admin:acme_account:focus",
+            "admin:acme_account:focus:acme_account_keys",
+            "admin:acme_account:focus:acme_account_keys_paginated",
             "admin:acme_account:focus:acme_authorizations",
             "admin:acme_account:focus:acme_authorizations_paginated",
             "admin:acme_account:focus:acme_orders",
@@ -282,6 +284,15 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-account-keys" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-account-keys/1" % focus_id,
+            status=200,
         )
 
         res = self.testapp.get(
@@ -332,8 +343,9 @@ class FunctionalTests_AcmeAccount(AppTest):
     @routes_tested(
         (
             "admin:acme_account:focus|json",
-            "admin:acme_account:focus:config|json",
             "admin:acme_account:focus:parse|json",
+            "admin:acme_account:focus:acme_account_keys|json",
+            "admin:acme_account:focus:acme_account_keys_paginated|json",
             "admin:acme_account:focus:acme_authorizations|json",
             "admin:acme_account:focus:acme_authorizations_paginated|json",
         )
@@ -348,16 +360,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res.json["AcmeAccount"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/config.json" % focus_id, status=200
-        )
-        assert "AcmeAccount" in res.json
-        assert res.json["AcmeAccount"]["id"] == focus_id
-        assert "is_active" in res.json["AcmeAccount"]
-        assert "private_key_cycle" in res.json["AcmeAccount"]
-        assert "id" in res.json["AcmeAccount"]
-        assert "is_global_default" in res.json["AcmeAccount"]
-
-        res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/parse.json" % focus_id, status=200
         )
         assert "AcmeAccount" in res.json
@@ -365,6 +367,20 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "AcmeAccountKey" in res.json["AcmeAccount"]
         assert "id" in res.json["AcmeAccount"]["AcmeAccountKey"]
         assert "parsed" in res.json["AcmeAccount"]["AcmeAccountKey"]
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-account-keys.json" % focus_id,
+            status=200,
+        )
+        assert "AcmeAccountKeys" in res.json
+        assert "pagination" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-account-keys/1.json" % focus_id,
+            status=200,
+        )
+        assert "AcmeAccountKeys" in res.json
+        assert "pagination" in res.json
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/acme-authorizations.json" % focus_id,
@@ -6707,7 +6723,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
-    @routes_tested("admin:acme_account:focus:acme_server:deactivate.json")
+    @routes_tested("admin:acme_account:focus:acme_server:deactivate|json")
     def test_deactivate_json(self):
         """
         # this hits Pebble via http
@@ -6779,7 +6795,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
-    @routes_tested("admin:acme_account:focus:acme_server:key_change.json")
+    @routes_tested("admin:acme_account:focus:acme_server:key_change|json")
     def test_key_change_json(self):
         """
         # this hits Pebble via http

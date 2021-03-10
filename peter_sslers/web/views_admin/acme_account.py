@@ -1116,6 +1116,7 @@ class View_Focus_Manipulate(View_Focus):
                 results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(
                     self.request.api_context,
                     dbAcmeAccount=dbAcmeAccount,
+                    transaction_commit=True,
                 )
             except errors.AcmeServerError as exc:
                 if self._handle_potentially_deactivated(exc):
@@ -1211,6 +1212,7 @@ class View_Focus_Manipulate(View_Focus):
                     self.request.api_context,
                     dbAcmeAccount=dbAcmeAccount,
                     key_pem_new=None,
+                    transaction_commit=True,
                 )
             except errors.ConflictingObject as exc:
                 # args[0] = tuple(conflicting_object, error_message_string)
