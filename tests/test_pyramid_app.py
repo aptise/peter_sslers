@@ -9649,9 +9649,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 print("===================== AcmeAuthorization/")
                 for _auth in _auths:
                     print(
-                        auth.acme_status_authorization_id,
-                        auth.id,
-                        auth.domain.domain_name,
+                        _auth.acme_status_authorization_id,
+                        _auth.id,
+                        _auth.domain.domain_name,
                     )
                 print("===================== /AcmeAuthorization")
                 raise
