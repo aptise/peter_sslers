@@ -366,7 +366,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res.json["AcmeAccount"]["id"] == focus_id
         assert "AcmeAccountKey" in res.json["AcmeAccount"]
         assert "id" in res.json["AcmeAccount"]["AcmeAccountKey"]
-        assert "parsed" in res.json["AcmeAccount"]["AcmeAccountKey"]
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/acme-account-keys.json" % focus_id,

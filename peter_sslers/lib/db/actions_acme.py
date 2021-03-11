@@ -1740,7 +1740,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             csr_pem = lib.cert_utils.make_csr(
                 domain_names,
                 key_pem=private_key_pem,
-                key_pem_filepath=tmpfile_pkey.name,
+                key_pem_filepath=tmpfile_pkey.name if tmpfile_pkey else None,
             )
             if lib.cert_utils.NEEDS_TEMPFILES:
                 tmpfile_csr = lib.cert_utils.new_pem_tempfile(csr_pem)
