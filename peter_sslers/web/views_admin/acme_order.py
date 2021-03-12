@@ -1149,6 +1149,10 @@ class View_New(Handler):
             {
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "domain_names_http01": self.request.params.get(
+                    "domain_names_http01", ""
+                ),
+                "domain_names_dns01": self.request.params.get("domain_names_dns01", ""),
             },
             self.request,
         )

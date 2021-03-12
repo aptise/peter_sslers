@@ -163,6 +163,7 @@
 		* Account Key Rollover (keyChange) https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
 	* refactor acme actions to not require the account_key_path unless necessary
 		* this is a legacy overhead from the openssl fallback
+	* shortcut to creating an order from a domain
 
 
 	+ other fixes and improvements

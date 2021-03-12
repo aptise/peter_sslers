@@ -192,10 +192,10 @@
                         <th>New Certificate</th>
                         <td>
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
+                                href="${admin_prefix}/acme-order/new/freeform?domain_names_http01=${Domain.domain_name}"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                AcmeDnsServers - New</a>
+                                ACME Order - New</a>
                         </td>
                     </tr>
                 </tbody>

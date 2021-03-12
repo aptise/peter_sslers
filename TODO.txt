@@ -24,7 +24,6 @@ asap tasks
 
 ----
 
-	* shortcut to creating an order from a domain
 
 	UNDECIDED
 	* CertificateCAPreferences -> CertificateCAChainPreference
