@@ -16,8 +16,9 @@ import sqlalchemy
 
 # localapp
 from .. import lib
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
-from ..lib.handler import json_pagination
 from ..lib import configuration_options
 from ...model import objects as model_objects
 

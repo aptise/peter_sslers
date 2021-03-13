@@ -8,6 +8,8 @@ from pyramid.httpexceptions import HTTPSeeOther
 # pypi
 
 # localapp
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -34,6 +36,24 @@ class View_List(Handler):
     @view_config(
         route_name="admin:acme_authorizations_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-authorizations.json",
+            "section": "acme-authorization",
+            "about": """list AcmeAuthorization(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-authorizations.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-authorizations/{PAGE}.json",
+            "section": "acme-authorization",
+            "example": "curl {ADMIN_PREFIX}/acme-authorizations/1.json",
+            "variant_of": "/acme-authorizations.json",
+        }
     )
     def list(self):
         url_status = self.request.params.get("status")
@@ -84,19 +104,23 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeAuthorization = None
+
     def _focus(self, eagerload_web=False):
-        dbAcmeAuthorization = lib_db.get.get__AcmeAuthorization__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-            eagerload_web=eagerload_web,
-        )
-        if not dbAcmeAuthorization:
-            raise HTTPNotFound("The AcmeAuthorization was not found")
-        self._focus_url = "%s/acme-authorization/%s" % (
-            self.request.admin_url,
-            dbAcmeAuthorization.id,
-        )
-        return dbAcmeAuthorization
+        if self.dbAcmeAuthorization is None:
+            dbAcmeAuthorization = lib_db.get.get__AcmeAuthorization__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+                eagerload_web=eagerload_web,
+            )
+            if not dbAcmeAuthorization:
+                raise HTTPNotFound("The AcmeAuthorization was not found")
+            self.dbAcmeAuthorization = dbAcmeAuthorization
+            self._focus_url = "%s/acme-authorization/%s" % (
+                self.request.admin_url,
+                self.dbAcmeAuthorization.id,
+            )
+        return self.dbAcmeAuthorization
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -107,6 +131,16 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_authorization:focus|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-authorization/{ID}.json",
+            "section": "acme-authorization",
+            "about": """AcmeAuthorization focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-authorization/1.json",
+        }
     )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
@@ -215,6 +249,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_authorization:focus:acme_server:sync|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-authorization/{ID}/acme-server/sync.json",
+            "section": "acme-authorization",
+            "about": """AcmeAuthorization focus: sync""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-authorization/1/acme-server/sync.json",
+        }
+    )
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
@@ -222,11 +266,9 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self.request, "/acme-authorization/{ID}/acme-server/sync.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % self._focus_url
@@ -275,6 +317,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_authorization:focus:acme_server:deactivate|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-authorization/{ID}/acme-server/deactivate.json",
+            "section": "acme-authorization",
+            "about": """AcmeAuthorization focus: deactivate""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-authorization/1/acme-server/deactivate.json",
+        }
+    )
     def acme_server_deactivate(self):
         """
         Acme Deactivate
@@ -282,11 +334,9 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self.request, "/acme-authorization/{ID}/acme-server/deacticate.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
                 % self._focus_url

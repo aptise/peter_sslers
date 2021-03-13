@@ -15,6 +15,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CertificateCAChain_Upload__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -38,6 +40,24 @@ class View_List(Handler):
     @view_config(route_name="admin:certificate_ca_chains|json", renderer="json")
     @view_config(
         route_name="admin:certificate_ca_chains_paginated|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chains.json",
+            "section": "certificate-ca-chain",
+            "about": """list CertificateCAChain(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca-chains.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chains/{PAGE}.json",
+            "section": "certificate-ca-chain",
+            "example": "curl {ADMIN_PREFIX}/certificate-ca-chains/1.json",
+            "variant_of": "/certificate-ca-chains.json",
+        }
     )
     def list(self):
         items_count = lib_db.get.get__CertificateCAChain__count(
@@ -68,18 +88,22 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbCertificateCAChain = None
+
     def _focus(self):
-        dbCertificateCAChain = lib_db.get.get__CertificateCAChain__by_id(
-            self.request.api_context, self.request.matchdict["id"]
-        )
-        if not dbCertificateCAChain:
-            raise HTTPNotFound("the chain was not found")
-        self.focus_item = dbCertificateCAChain
-        self.focus_url = "%s/certificate-ca-chain/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            self.focus_item.id,
-        )
-        return dbCertificateCAChain
+        if self.dbCertificateCAChain is None:
+            dbCertificateCAChain = lib_db.get.get__CertificateCAChain__by_id(
+                self.request.api_context, self.request.matchdict["id"]
+            )
+            if not dbCertificateCAChain:
+                raise HTTPNotFound("the chain was not found")
+            self.dbCertificateCAChain = dbCertificateCAChain
+            self.focus_item = dbCertificateCAChain
+            self.focus_url = "%s/certificate-ca-chain/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbCertificateCAChain.id,
+            )
+        return self.dbCertificateCAChain
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -88,6 +112,16 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca_chain-focus.mako",
     )
     @view_config(route_name="admin:certificate_ca_chain:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chain/{ID}.json",
+            "section": "certificate-ca-chain",
+            "about": """CertificateCAChain focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1.json",
+        }
+    )
     def focus(self):
         dbCertificateCAChain = self._focus()
         if self.request.wants_json:
@@ -102,6 +136,26 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_ca_chain:focus:raw", renderer="string")
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chain/{ID}/chain.pem",
+            "section": "certificate-ca-chain",
+            "about": """CertificateCAChain focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1/chain.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chain/{ID}/chain.pem.txt",
+            "section": "certificate-ca-chain",
+            "about": """CertificateCAChain focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1/chain.pem.txt",
+        }
+    )
     def focus_raw(self):
         """
         for extensions, see `cert_utils.EXTENSION_TO_MIME`
@@ -124,6 +178,17 @@ class View_New(Handler):
     @view_config(
         route_name="admin:certificate_ca_chain:upload_chain|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-ca-chain/upload.json",
+            "section": "certificate-ca-chain",
+            "about": """upload a CertificateCAChain""",
+            "POST": True,
+            "GET": None,
+            "instructions": """curl --form 'chain_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "form_fields": {"chain_file": "required"},
+        }
+    )
     def upload_chain(self):
         if self.request.method == "POST":
             return self._upload_chain__submit()
@@ -131,11 +196,7 @@ class View_New(Handler):
 
     def _upload_chain__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/certificate-ca-chain/upload-chain.json"""
-                % self.request.admin_url,
-                "form_fields": {"chain_file": "required"},
-            }
+            return formatted_get_docs(self.request, "/certificate-ca-chain/upload.json")
         return render_to_response(
             "/admin/certificate_ca_chain-upload_chain.mako", {}, self.request
         )

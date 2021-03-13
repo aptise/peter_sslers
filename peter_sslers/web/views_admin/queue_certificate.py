@@ -24,8 +24,9 @@ import transaction
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_QueueCertificate_mark
-
 from ..lib.forms import Form_QueueCertificate_new_freeform
 from ..lib.forms import Form_QueueCertificate_new_structured
 from ..lib.handler import Handler, items_per_page
@@ -118,6 +119,78 @@ class View_List(Handler):
     @view_config(
         route_name="admin:queue_certificates:unprocessed_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/all.json",
+            "section": "queue-certificate",
+            "about": """list QueueCertificate(s): All""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/all/{PAGE}.json",
+            "section": "queue-certificate",
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/all/1.json",
+            "variant_of": "/queue-certificates/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/failures.json",
+            "section": "queue-certificate",
+            "about": """list QueueCertificate(s): Failures""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/failures.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/failures/{PAGE}.json",
+            "section": "queue-certificate",
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/failures/1.json",
+            "variant_of": "/queue-certificates/failures.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/successes.json",
+            "section": "queue-certificate",
+            "about": """list QueueCertificate(s): successes""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/successes.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/successes/{PAGE}.json",
+            "section": "queue-certificate",
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/successes/1.json",
+            "variant_of": "/queue-certificates/successes.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/unprocessed.json",
+            "section": "queue-certificate",
+            "about": """list QueueCertificate(s): Unprocessed""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/unprocessed.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-certificates/unprocessed/{PAGE}.json",
+            "section": "queue-certificate",
+            "example": "curl {ADMIN_PREFIX}/queue-certificates/unprocessed/1.json",
+            "variant_of": "/queue-certificates/unprocessed.json",
+        }
     )
     def list(self):
         get_kwargs = {}
@@ -261,6 +334,57 @@ class View_New(Handler):
     @view_config(
         route_name="admin:queue_certificate:new_structured|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/queue-certificate/new/structured.json",
+            "section": "queue-certificate",
+            "about": """QueueCertificate: New Structured""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-certificate/new/structured.json",
+            "form_fields": {
+                "queue_source": "what is the source of the queue item?",
+                "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
+                "certificate_signed": "If queue_source is `AcmeOrder`, the corresponding id",
+                "unique_fqdn_set": "If queue_source is `AcmeOrder`, the corresponding id",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_reuse": "pem_md5 of existing key",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+            },
+            "form_fields_related": [
+                [
+                    "acme_order",
+                    "certificate_signed",
+                    "unique_fqdn_set",
+                ],
+            ],
+            "valid_options": {
+                "queue_source": (
+                    "AcmeOrder",
+                    "CertificateSigned",
+                    "UniqueFQDNSet",
+                ),
+                # TODO: reintegrate
+                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
+                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "private_key_option": model_utils.PrivateKey_options_b,
+                # TODO: reintegrate
+                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+            },
+        }
+    )
     def new_structured(self):
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
@@ -280,55 +404,7 @@ class View_New(Handler):
 
     def _new_structured__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {
-                    "queue_source": "what is the source of the queue item?",
-                    "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
-                    "certificate_signed": "If queue_source is `AcmeOrder`, the corresponding id",
-                    "unique_fqdn_set": "If queue_source is `AcmeOrder`, the corresponding id",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                    "private_key_option": "How is the PrivateKey being specified?",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                },
-                "form_fields_related": [
-                    [
-                        "acme_order",
-                        "certificate_signed",
-                        "unique_fqdn_set",
-                    ],
-                ],
-                "valid_options": {
-                    "queue_source": (
-                        "AcmeOrder",
-                        "CertificateSigned",
-                        "UniqueFQDNSet",
-                    ),
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_b,
-                    "private_key_option": model_utils.PrivateKey_options_b,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-                },
-            }
+            return formatted_get_docs(self.request, "/queue-certificate/new/structured")
         return render_to_response(
             "/admin/queue_certificate-new-structured.mako",
             {
@@ -413,6 +489,43 @@ class View_New(Handler):
     @view_config(
         route_name="admin:queue_certificate:new_freeform|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/queue-certificate/new/freeform.json",
+            "section": "queue-certificate",
+            "about": """QueueCertificate: New Structured""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-certificate/new/freeform.json",
+            "form_fields": {
+                "domain_names_http01": "comma separated list of domain names for http01 validation",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_reuse": "pem_md5 of existing key",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+            },
+            "form_fields_related": [],
+            "valid_options": {
+                # TODO: reintegrate
+                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "private_key_option": model_utils.PrivateKey_options_b,
+                # TODO: reintegrate
+                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+            },
+        }
+    )
     def new_freeform(self):
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
@@ -422,41 +535,7 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {
-                    "domain_names_http01": "comma separated list of domain names for http01 validation",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                    "private_key_option": "How is the PrivateKey being specified?",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                },
-                "form_fields_related": [],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_b,
-                    "private_key_option": model_utils.PrivateKey_options_b,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-                },
-            }
+            return formatted_get_docs(self.request, "/queue-certificate/new/freeform")
         return render_to_response(
             "/admin/queue_certificate-new-freeform.mako",
             {
@@ -540,18 +619,22 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+    dbQueueCertificate = None
+
     def _focus(self):
-        dbQueueCertificate = lib_db.get.get__QueueCertificate__by_id(
-            self.request.api_context, self.request.matchdict["id"], load_events=True
-        )
-        if not dbQueueCertificate:
-            raise HTTPNotFound("the item was not found")
-        self._focus_item = dbQueueCertificate
-        self._focus_url = "%s/queue-certificate/%s" % (
-            self.request.admin_url,
-            dbQueueCertificate.id,
-        )
-        return dbQueueCertificate
+        if self.dbQueueCertificate is None:
+            dbQueueCertificate = lib_db.get.get__QueueCertificate__by_id(
+                self.request.api_context, self.request.matchdict["id"], load_events=True
+            )
+            if not dbQueueCertificate:
+                raise HTTPNotFound("the item was not found")
+            self.dbQueueCertificate = dbQueueCertificate
+            self._focus_item = dbQueueCertificate
+            self._focus_url = "%s/queue-certificate/%s" % (
+                self.request.admin_url,
+                self.dbQueueCertificate.id,
+            )
+        return self.dbQueueCertificate
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -560,6 +643,16 @@ class View_Focus(Handler):
         renderer="/admin/queue_certificate-focus.mako",
     )
     @view_config(route_name="admin:queue_certificate:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-certificate/{ID}.json",
+            "section": "queue-certificate",
+            "about": """queue-certificate focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-certificate/1.json",
+        }
+    )
     def focus(self):
         dbQueueCertificate = self._focus()
         if self.request.wants_json:
@@ -570,6 +663,21 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:queue_certificate:focus:mark")
     @view_config(route_name="admin:queue_certificate:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-certificate/{ID}/mark.json",
+            "section": "queue-certificate",
+            "about": """QueueCertificate focus: mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-certificate/1/mark.json",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/queue-certificate/1/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {"action": ["cancel"]},
+        }
+    )
     def focus_mark(self):
         dbQueueCertificate = self._focus()
         if self.request.method == "POST":
@@ -578,14 +686,7 @@ class View_Focus(Handler):
 
     def _focus_mark__print(self, dbQueueCertificate):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["cancel"]},
-            }
+            return formatted_get_docs(self.request, "/queue-certificate/{ID}/mark.json")
         url_huh = "%s?&result=error&error=post+required&operation=mark" % (
             self._focus_url
         )

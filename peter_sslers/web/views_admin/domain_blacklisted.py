@@ -14,6 +14,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
@@ -43,6 +45,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:domains_blocklisted|json", renderer="json")
     @view_config(route_name="admin:domains_blocklisted_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain-blocklisteds.json",
+            "section": "domain-blocklisted",
+            "about": """list DomainBlocklisted(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain-blocklisteds.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain-blocklisteds/{PAGE}.json",
+            "section": "domain-blocklisted",
+            "example": "curl {ADMIN_PREFIX}/domain-blocklisteds/1.json",
+            "variant_of": "/domain-blocklisteds.json",
+        }
+    )
     def list(self):
         url_template = (
             "%s/domains-blocklisted/{0}"

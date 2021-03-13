@@ -18,6 +18,8 @@ from six.moves.urllib.parse import quote_plus
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_QueueDomain_mark
 from ..lib.forms import Form_QueueDomains_add
 from ..lib.forms import Form_QueueDomains_process
@@ -48,6 +50,42 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:queue_domains:all|json", renderer="json")
     @view_config(route_name="admin:queue_domains:all_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domains.json",
+            "section": "queue-domain",
+            "about": """list QueueDomain(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-domains.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-domains/{PAGE}.json",
+            "section": "queue-domain",
+            "example": "curl {ADMIN_PREFIX}/queue-domains/1.json",
+            "variant_of": "/queue-domains.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-domains/all.json",
+            "section": "queue-domain",
+            "about": """list QueueDomain(s): All""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-domains/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/queue-domains/all/{PAGE}.json",
+            "section": "queue-domain",
+            "example": "curl {ADMIN_PREFIX}/queue-domains/all/1.json",
+            "variant_of": "/queue-domains/all.json",
+        }
+    )
     def list(self):
         wants_all = (
             True
@@ -111,6 +149,18 @@ class View_List(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:queue_domains:add")
     @view_config(route_name="admin:queue_domains:add|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domains/add.json",
+            "section": "queue-domain",
+            "about": """Add QueueDomain(s)""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-domains/add.json",
+            "instructions": """POST `domain_names_http01""",
+            "form_fields": {"domain_names_http01": "required"},
+        }
+    )
     def add(self):
         if self.request.method == "POST":
             return self._add__submit()
@@ -118,10 +168,7 @@ class View_New(Handler):
 
     def _add__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": """POST `domain_names_http01""",
-                "form_fields": {"domain_names_http01": "required"},
-            }
+            return formatted_get_docs(self.request, "/queue-domains/add.json")
         return render_to_response("/admin/queue_domains-add.mako", {}, self.request)
 
     def _add__submit(self):
@@ -162,6 +209,57 @@ class View_New(Handler):
 class View_Process(Handler):
     @view_config(route_name="admin:queue_domains:process", renderer=None)
     @view_config(route_name="admin:queue_domains:process|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domains/process.json",
+            "section": "queue-domain",
+            "about": """Process QueueDomain(s)""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-domains/process.json",
+            "form_fields": {
+                "processing_strategy": "How should the order be processed?",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+            },
+            "form_fields_related": [
+                ["account_key_file_pem", "acme_account_provider_id"],
+                [
+                    "account_key_file_le_meta",
+                    "account_key_file_le_pkey",
+                    "account_key_file_le_reg",
+                ],
+            ],
+            "valid_options": {
+                # TODO: reintegrate
+                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "account_key_option": model_utils.AcmeAccontKey_options_a,
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                "private_key_option": model_utils.PrivateKey_options_a,
+                # TODO: reintegrate
+                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+            },
+            "requirements": [
+                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+            ],
+            # TODO: reintegrate - may need to be a new route
+            # "extra": {
+            #    "queue.count": self.QueueDomains_count,
+            #    "queue.items_100": queue_items,
+            # },
+        }
+    )
     def process(self):
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
@@ -188,55 +286,7 @@ class View_Process(Handler):
             )
 
         if self.request.wants_json:
-            queue_items = [q.domain_name for q in queue_items]
-            return {
-                "form_fields": {
-                    "processing_strategy": "How should the order be processed?",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                    "private_key_option": "How is the PrivateKey being specified?",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_a,
-                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                    "private_key_option": model_utils.PrivateKey_options_a,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-                },
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
-                ],
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "extra": {
-                    "queue.count": self.QueueDomains_count,
-                    "queue.items_100": queue_items,
-                },
-            }
+            return formatted_get_docs(self.request, "/queue-domains/process.json")
 
         return render_to_response(
             "/admin/queue_domains-process.mako",
@@ -322,23 +372,39 @@ class View_Process(Handler):
 
 
 class View_Focus(Handler):
+    dbQueueDomain = None
+
     def _focus(self):
-        dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
-            self.request.api_context, self.request.matchdict["id"], eagerload_log=True
-        )
-        if not dbQueueDomain:
-            raise HTTPNotFound("the item was not found")
-        self._focus_item = dbQueueDomain
-        self._focus_url = "%s/queue-domain/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbQueueDomain.id,
-        )
-        return dbQueueDomain
+        if self.dbQueueDomain is None:
+            dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+                eagerload_log=True,
+            )
+            if not dbQueueDomain:
+                raise HTTPNotFound("the item was not found")
+            self.dbQueueDomain = dbQueueDomain
+            self._focus_item = dbQueueDomain
+            self._focus_url = "%s/queue-domain/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbQueueDomain.id,
+            )
+        return self.dbQueueDomain
 
     @view_config(
         route_name="admin:queue_domain:focus", renderer="/admin/queue_domain-focus.mako"
     )
     @view_config(route_name="admin:queue_domain:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domain/{ID}.json",
+            "section": "queue-domain",
+            "about": """queue-domain focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/queue-domain/1.json",
+        }
+    )
     def focus(self):
         dbQueueDomain = self._focus()
         if self.request.wants_json:
@@ -349,6 +415,21 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:queue_domain:focus:mark", renderer=None)
     @view_config(route_name="admin:queue_domain:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domain/{ID}/mark.json",
+            "section": "queue-domain",
+            "about": """QueueDomain focus: mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-domain/1/mark.json",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/queue-domain/1/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {"action": ["cancel"]},
+        }
+    )
     def focus_mark(self):
         dbQueueDomain = self._focus()
         if self.request.method == "POST":
@@ -357,14 +438,7 @@ class View_Focus(Handler):
 
     def _focus_mark__print(self, dbQueueDomain):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["cancel"]},
-            }
+            return formatted_get_docs(self.request, "/queue-domain/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url
         )

@@ -2135,7 +2135,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         (
             "admin:acme_orderless:new",
             "admin:acme_orderless:focus",
-            "admin:acme_orderless:focus:add",
+            "admin:acme_orderless:focus:add_challenge",
             "admin:acme_orderless:focus:update",
             "admin:acme_orderless:focus:deactivate",
             "admin:acme_orderless:focus:acme_challenge",
@@ -2262,7 +2262,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         (
             "admin:acme_orderless:new|json",
             "admin:acme_orderless:focus|json",
-            "admin:acme_orderless:focus:add|json",
+            "admin:acme_orderless:focus:add_challenge|json",
             "admin:acme_orderless:focus:update|json",
             "admin:acme_orderless:focus:deactivate|json",
             "admin:acme_orderless:focus:acme_challenge|json",
@@ -2360,7 +2360,8 @@ class FunctionalTests_AcmeOrderless(AppTest):
         add_fields["acme_challenge_type"] = "http-01"
 
         res6 = self.testapp.post(
-            "/.well-known/admin/acme-orderless/%s/add.json" % obj_id, add_fields
+            "/.well-known/admin/acme-orderless/%s/add-challenge.json" % obj_id,
+            add_fields,
         )
         assert res6.status_code == 200
         assert "AcmeOrderless" in res6.json

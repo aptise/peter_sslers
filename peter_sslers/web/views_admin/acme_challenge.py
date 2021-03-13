@@ -14,11 +14,13 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
-from ...lib import errors
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
 
@@ -42,6 +44,31 @@ class View_List(Handler):
     @view_config(
         route_name="admin:acme_challenges_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-challenges.json",
+            "section": "acme-challenges",
+            "about": """list AcmeChallenge(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-challenges.json",
+            "params": {
+                "status": [
+                    "active",
+                    "resolved",
+                    "processing",
+                ],
+            },
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-challenges/{PAGE}.json",
+            "section": "acme-challenges",
+            "example": "curl {ADMIN_PREFIX}/acme-challenges/1.json",
+            "variant_of": "/acme-challenges.json",
+        }
     )
     def list(self):
         wants_active = True if self.request.params.get("status") == "active" else False
@@ -113,18 +140,22 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeChallenge = None
+
     def _focus(self, eagerload_web=False):
-        dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbAcmeChallenge:
-            raise HTTPNotFound("the order was not found")
-        self._focus_url = "%s/acme-challenge/%s" % (
-            self.request.admin_url,
-            dbAcmeChallenge.id,
-        )
-        return dbAcmeChallenge
+        if self.dbAcmeChallenge is None:
+            dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbAcmeChallenge:
+                raise HTTPNotFound("the order was not found")
+            self.dbAcmeChallenge = dbAcmeChallenge
+            self._focus_url = "%s/acme-challenge/%s" % (
+                self.request.admin_url,
+                self.dbAcmeChallenge.id,
+            )
+        return self.dbAcmeChallenge
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -135,6 +166,16 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_challenge:focus|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-challenge/{ID}.json",
+            "section": "acme-challenge",
+            "about": """AcmeChallenge Focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-challenge/1.json",
+        }
     )
     def focus(self):
         dbAcmeChallenge = self._focus(eagerload_web=True)
@@ -152,6 +193,16 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_challenge:focus:acme_server:sync|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-challenge/{ID}/acme-server/sync.json",
+            "section": "acme-challenge",
+            "about": """AcmeChallenge focus: AcmeServer sync""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-challenge/1/acme-server/sync.json",
+        }
+    )
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
@@ -159,11 +210,9 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeChallenge = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self.request, "/acme-challenge/{ID}/acme-server/sync.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % self._focus_url
@@ -213,6 +262,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_challenge:focus:acme_server:trigger|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-challenge/{ID}/acme-server/trigger.json",
+            "section": "acme-challenge",
+            "about": """AcmeChallenge focus: AcmeServer trigger""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-challenge/1/acme-server/trigger.json",
+        }
+    )
     def acme_server_trigger(self):
         """
         Acme Trigger
@@ -220,11 +279,9 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeChallenge = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self.request, "/acme-challenge/{ID}/acme-server/trigger.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
                 % self._focus_url

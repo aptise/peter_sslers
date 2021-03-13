@@ -14,6 +14,8 @@ import transaction
 
 # localapp
 from .. import lib
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ..lib import formhandling
@@ -39,6 +41,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:unique_fqdn_sets|json", renderer="json")
     @view_config(route_name="admin:unique_fqdn_sets_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/unique-fqdn-sets.json",
+            "section": "unique-fqdn-set",
+            "about": """list UniqueFQDNSet(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-sets.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/unique-fqdn-sets/{PAGE}.json",
+            "section": "unique-fqdn-set",
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-sets/1.json",
+            "variant_of": "/unique-fqdn-sets.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
         url_template = (
@@ -69,18 +89,22 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbUniqueFQDNSet = None
+
     def _focus(self):
-        dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
-            self.request.api_context, self.request.matchdict["id"]
-        )
-        if not dbUniqueFQDNSet:
-            raise HTTPNotFound("the Unique FQDN Set was not found")
-        self._focus_item = dbUniqueFQDNSet
-        self._focus_url = "%s/unique-fqdn-set/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbUniqueFQDNSet.id,
-        )
-        return dbUniqueFQDNSet
+        if self.dbUniqueFQDNSet is None:
+            dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
+                self.request.api_context, self.request.matchdict["id"]
+            )
+            if not dbUniqueFQDNSet:
+                raise HTTPNotFound("the Unique FQDN Set was not found")
+            self.dbUniqueFQDNSet = dbUniqueFQDNSet
+            self._focus_item = dbUniqueFQDNSet
+            self._focus_url = "%s/unique-fqdn-set/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbUniqueFQDNSet.id,
+            )
+        return self.dbUniqueFQDNSet
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -89,6 +113,16 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus.mako",
     )
     @view_config(route_name="admin:unique_fqdn_set:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/unique-fqdn-set/{ID}.json",
+            "section": "unique-fqdn-set",
+            "about": """unique-fqdn-set focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1.json",
+        }
+    )
     def focus(self):
         dbUniqueFQDNSet = self._focus()
         if self.request.wants_json:
@@ -100,6 +134,16 @@ class View_Focus(Handler):
 
     @view_config(
         route_name="admin:unique_fqdn_set:focus:calendar|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/unique-fqdn-set/{ID}/calendar.json",
+            "section": "unique-fqdn-set",
+            "about": """unique-fqdn-set focus: calendar""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/calendar.json",
+        }
     )
     def calendar(self):
         rval = {}
@@ -129,18 +173,23 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:unique_fqdn_set:focus:update_recents|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/unique-fqdn-set/{ID}/update-recents.json",
+            "section": "unique-fqdn-set",
+            "about": """unique-fqdn-set focus: update-recents""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
+        }
+    )
     def update_recents(self):
         dbUniqueFQDNSet = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                    "form_fields": {},
-                    "notes": [],
-                    "valid_options": {},
-                }
+                return formatted_get_docs(
+                    self.request, "/unique-fqdn-set/{ID}/update-recents.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=update-recents&message=POST+required"
                 % (self._focus_url,)
@@ -295,6 +344,23 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-modify.mako",
     )
     @view_config(route_name="admin:unique_fqdn_set:focus:modify|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domain/{ID}/modify.json",
+            "section": "queue-domain",
+            "about": """QueueDomain focus: modify""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-domain/1/modify.json",
+            "instructions": [
+                """curl --form 'domains_add=[]' --form 'domains_del=[]' {ADMIN_PREFIX}/modify.json"""
+            ],
+            "form_fields": {
+                "domain_names_add": "a comma separated list of domains to add",
+                "domain_names_del": "a comma separated list of domains to delete",
+            },
+        }
+    )
     def modify(self):
         if self.request.method != "POST":
             return self._modify__print()
@@ -306,17 +372,7 @@ class View_Focus(Handler):
         """
         dbUniqueFQDNSet = self._focus()
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'domains_add=[]' --form 'domains_del=[]' %s/modify.json"""
-                    % self._focus_url,
-                ],
-                "form_fields": {
-                    "domain_names_add": "a comma separated list of domains to add",
-                    "domain_names_del": "a comma separated list of domains to delete",
-                },
-            }
+            return formatted_get_docs(self.request, "/unique-fqdn-set/{ID}/modify.json")
         params = {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
@@ -441,6 +497,22 @@ class View_Focus(Handler):
 class ViewNew(Handler):
     @view_config(route_name="admin:unique_fqdn_set:new")
     @view_config(route_name="admin:unique_fqdn_set:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/queue-domain/new.json",
+            "section": "queue-domain",
+            "about": """QueueDomain focus: new""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/queue-domain/new.json",
+            "instructions": [
+                """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/unique-fqdn-set/new.json"""
+            ],
+            "form_fields": {
+                "domain_names": "required; a comma separated list of domain names",
+            },
+        }
+    )
     def new(self):
         if self.request.method == "POST":
             return self._new__submit()
@@ -448,16 +520,7 @@ class ViewNew(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return {
-                "form_fields": {
-                    "domain_names": "required; a comma separated list of domain names",
-                },
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'domain_names=domain_names' %s/unique-fqdn-set/new.json"""
-                    % self.request.admin_url,
-                ],
-            }
+            return formatted_get_docs(self.request, "/unique-fqdn-set/new.json")
         return render_to_response(
             "/admin/unique_fqdn_set-new.mako",
             {},

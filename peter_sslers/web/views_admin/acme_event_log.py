@@ -12,6 +12,8 @@ import datetime
 import sqlalchemy
 
 # localapp
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -30,6 +32,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_event_log|json", renderer="json")
     @view_config(route_name="admin:acme_event_log_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-event-logs.json",
+            "section": "acme-event-log",
+            "about": """list AcmeEventLog(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-event-logs.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-event-logs/{PAGE}.json",
+            "section": "acme-event-log",
+            "example": "curl {ADMIN_PREFIX}/acme-event-logs/1.json",
+            "variant_of": "/acme-event-logs.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__AcmeEventLog__count(self.request.api_context)
         url_template = (
@@ -71,6 +91,16 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_event_log:focus|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-event-log/{ID}.json",
+            "section": "acme-event-log",
+            "about": """AcmeEventLog""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-event-log/1.json",
+        }
     )
     def focus(self):
         item = self._acme_event_log_focus()

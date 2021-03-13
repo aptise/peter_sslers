@@ -1,3 +1,15 @@
+* CertificateSigned__deactivate_expired
+	do not deactive expired certs that do not have an active replacement
+
+
+* These sections still need to be audited and streamlined.
+	They work and are tested, but the UX could potentially be cleaner
+	- queue certificates - process
+	- automatic renewal - update to create queues
+	- creating queue-certificates/freeform (domains)
+
+
+
 Not Finished Yet
 ===============
 
@@ -5,14 +17,19 @@ Not Finished Yet
 [ ] Endpoint Docs for the CA Preference
 
 
+Should the json endpoint be removed?
+    @view_config(
+        route_name="admin:acme_dns_server:focus:ensure_domains_results|json",
+        renderer="json",
+    )
+
+# TODO: reintegrate
+    
+
+
 Almost done:
 ------------
 
-These sections still need to be audited and streamlined.
-	They work and are tested, but the UX could potentially be cleaner
-	- queue certificates - process
-	- automatic renewal - update to create queues
-	- creating queue-certificates/freeform (domains)
 
 Audit/Remove "todo" markers
 

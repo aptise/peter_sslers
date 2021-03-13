@@ -164,8 +164,9 @@
 	* refactor acme actions to not require the account_key_path unless necessary
 		* this is a legacy overhead from the openssl fallback
 	* shortcut to creating an order from a domain
-
-
+	* migrated API documentation into a `docify` decorator for routes.
+	  * this is an interim solution to handle consolidating and updating the api endpoint information
+	  * this will likely be migrated out into something like pyramid_openapi3 in the future
 	+ other fixes and improvements
 
 0.4.0

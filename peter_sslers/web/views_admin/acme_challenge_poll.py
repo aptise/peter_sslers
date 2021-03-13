@@ -14,6 +14,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
@@ -41,6 +43,24 @@ class View_List(Handler):
     @view_config(
         route_name="admin:acme_challenge_polls_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-challenge-polls.json",
+            "section": "acme-challenge-poll",
+            "about": """list AcmeChallengePolls(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-challenge-polls.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-challenge-polls/{PAGE}.json",
+            "section": "acme-challenge-poll",
+            "example": "curl {ADMIN_PREFIX}/acme-challenge-polls/1.json",
+            "variant_of": "/acme-challenge-polls.json",
+        }
     )
     def list(self):
         items_count = lib_db.get.get__AcmeChallengePoll__count(self.request.api_context)

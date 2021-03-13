@@ -22,6 +22,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import docs
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib import formhandling
 from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
@@ -50,19 +52,28 @@ class ViewAdminApi(Handler):
     def index(self):
         return {
             "project": "peter_sslers",
-            "api_endpoints": docs.api_endpoints,
-            "json_capable": docs.json_capable,
+            "API_DOCS": docs.API_DOCS,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:deactivate_expired", renderer=None)
     @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/deactivate-expired.json",
+            "section": "api",
+            "about": """deactivates expired certificates; runs update-recents""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def deactivate_expired(self):
-        if self.request.wants_json:
-            if self.request.method != "POST":
-                return docs.json_docs_post_only
-
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/deactivate-expired.json")
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
         operations_event = lib_db.actions.operations_deactivate_expired(
             self.request.api_context
         )
@@ -90,10 +101,21 @@ class ViewAdminApi(Handler):
 
     @view_config(route_name="admin:api:update_recents", renderer=None)
     @view_config(route_name="admin:api:update_recents|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/update-recents.json",
+            "section": "api",
+            "about": """updates the database to reflect the most recent Certificate for each Domain""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def update_recents(self):
-        if self.request.wants_json:
-            if self.request.method != "POST":
-                return docs.json_docs_post_only
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/update-recents.json")
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
         operations_event = lib_db.actions.operations_update_recents__global(
             self.request.api_context
         )
@@ -111,10 +133,21 @@ class ViewAdminApi(Handler):
 
     @view_config(route_name="admin:api:reconcile_cas", renderer=None)
     @view_config(route_name="admin:api:reconcile_cas|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/reconcile-cas.json",
+            "section": "api",
+            "about": """Reconcile outstanding CertificateCA records by downloading and enrolling the CertificateCA presented in their "AuthorityKeyIdentifier".""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def reconcile_cas(self):
-        if self.request.wants_json:
-            if self.request.method != "POST":
-                return docs.json_docs_post_only
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/reconcile-cas.json")
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
         operations_event = lib_db.actions.operations_reconcile_cas(
             self.request.api_context
         )
@@ -131,20 +164,25 @@ class ViewAdminApi(Handler):
 
 class ViewAdminApi_Domain(Handler):
     @view_config(route_name="admin:api:domain:enable", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/domain/enable.json",
+            "section": "api",
+            "about": """Enables Domain(s) for management.""",
+            "POST": True,
+            "GET": None,
+            "form_fields": {
+                "domain_names": "[required] a comma separated list of fully qualified domain names."
+            },
+        }
+    )
     def enable(self):
         if self.request.method == "POST":
             return self._enable__submit()
         return self._enable__print()
 
     def _enable__print(self):
-        return {
-            "instructions": [
-                "HTTP POST required",
-            ],
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
+        return formatted_get_docs(self.request, "/api/domain/enable.json")
 
     def _enable__submit(self):
         try:
@@ -172,20 +210,25 @@ class ViewAdminApi_Domain(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:disable", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/domain/disable.json",
+            "section": "api",
+            "about": """Disables Domain(s) for management.""",
+            "POST": True,
+            "GET": None,
+            "form_fields": {
+                "domain_names": "[required] a comma separated list of fully qualified domain names."
+            },
+        }
+    )
     def disable(self):
         if self.request.method == "POST":
             return self._disable__submit()
         return self._disable__print()
 
     def _disable__print(self):
-        return {
-            "instructions": [
-                "HTTP POST required",
-            ],
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
+        return formatted_get_docs(self.request, "/api/domain/disable.json")
 
     def _disable__submit(self):
         try:
@@ -214,19 +257,16 @@ class ViewAdminApi_Domain(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:certificate-if-needed", renderer="json")
-    def certificate_if_needed(self):
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeAccountProviders()
-        if self.request.method == "POST":
-            return self._certificate_if_needed__submit()
-        return self._certificate_if_needed__print()
-
-    def _certificate_if_needed__print(self):
-        return {
+    @docify(
+        {
+            "endpoint": "/api/domain/certificate-if-needed.json",
+            "section": "api",
+            "about": """Initiates a new Certificate provisioning if needed. Supports full control of acme-order properties.""",
+            "POST": True,
+            "GET": None,
             "instructions": [
                 """POST domain_name for certificates.""",
-                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
-                % self.request.admin_url,
+                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
             ],
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -256,19 +296,28 @@ class ViewAdminApi_Domain(Handler):
                 ],
             ],
             "valid_options": {
-                "acme_account_provider_id": {
-                    i.id: "%s (%s)" % (i.name, i.url)
-                    for i in self.dbAcmeAccountProviders
-                },
+                # TODO: reintegrate
+                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
                 "account_key_option": model_utils.AcmeAccontKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
-                "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                if self.dbAcmeAccount_GlobalDefault
-                else None,
+                # TODO: reintegrate
+                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
         }
+    )
+    def certificate_if_needed(self):
+        self._load_AcmeAccount_GlobalDefault()
+        self._load_AcmeAccountProviders()
+        if self.request.method == "POST":
+            return self._certificate_if_needed__submit()
+        return self._certificate_if_needed__print()
+
+    def _certificate_if_needed__print(self):
+        return formatted_get_docs(
+            self.request, "/api/domain/certificate-if-needed.json"
+        )
 
     def _certificate_if_needed__submit(self):
         """
@@ -372,6 +421,24 @@ class ViewAdminApi_Domain(Handler):
         }
 
     @view_config(route_name="admin:api:domain:autocert|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/domain/autocert.json",
+            "section": "api",
+            "about": """Initiates a new certificate if needed. only accepts a domain name, uses system defaults""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                "POST `domain_name` to automatically attempt a certificate provisioning",
+                """curl --form 'domain_name=example.com' {ADMIN_PREFIX}/api/domain/autocert.json""",
+                # TODO: reintegrate
+                # """IMPORTANT: No global AcmeAccount is configured yet.""" if not self.dbAcmeAccount_GlobalDefault else """The global AcmeAccount is configured""",
+            ],
+            "form_fields": {
+                "domain_name": "required; a single domain name to process",
+            },
+        }
+    )
     def autocert(self):
         self._load_AcmeAccount_GlobalDefault()
         if self.request.method == "POST":
@@ -379,20 +446,7 @@ class ViewAdminApi_Domain(Handler):
         return self._autocert__print()
 
     def _autocert__print(self):
-        return {
-            "instructions": [
-                "HTTP POST required",
-                "POST `domain_name` to automatically attempt a certificate provisioning",
-                """curl --form 'domain_name=example.com' %s/api/domain/autocert.json"""
-                % self.request.admin_url,
-                """IMPORTANT: No global AcmeAccount is configured yet."""
-                if not self.dbAcmeAccount_GlobalDefault
-                else """The global AcmeAccount is configured""",
-            ],
-            "form_fields": {
-                "domain_name": "required; a single domain name to process",
-            },
-        }
+        return formatted_get_docs(self.request, "/api/domain/autocert.json")
 
     def _autocert__submit(self):
         """
@@ -611,10 +665,21 @@ class ViewAdminApi_Domain(Handler):
 class ViewAdminApi_Redis(Handler):
     @view_config(route_name="admin:api:redis:prime", renderer=None)
     @view_config(route_name="admin:api:redis:prime|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/redis/prime.json",
+            "section": "api",
+            "about": """Primes the Redis cache""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def prime(self):
-        if self.request.wants_json:
-            if self.request.method != "POST":
-                return docs.json_docs_post_only
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/redis/prime.json")
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
 
         self._ensure_redis()
 
@@ -798,8 +863,21 @@ class ViewAdminApi_Redis(Handler):
 class ViewAdminApi_Nginx(Handler):
     @view_config(route_name="admin:api:nginx:cache_flush", renderer=None)
     @view_config(route_name="admin:api:nginx:cache_flush|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/nginx/cache-flush.json",
+            "section": "api",
+            "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
+            "POST": True,
+            "GET": None,
+        }
+    )
     def cache_flush(self):
-        # ???: This endpoint will allow JSON GET ?
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/nginx/cache-flush.json")
+            # TODO: reintegrate
+            raise ValueError("DISALLOW GET")
         self._ensure_nginx()
         success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
             self.request, self.request.api_context
@@ -822,8 +900,22 @@ class ViewAdminApi_Nginx(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:nginx:status|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/nginx/status.json",
+            "section": "api",
+            "about": """Checks Nginx servers for status via background requests""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def status(self):
-        # ???: This endpoint will allow JSON GET ?
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self.request, "/api/nginx/status.json")
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
+
         self._ensure_nginx()
         servers_status = utils_nginx.nginx_status(
             self.request, self.request.api_context
@@ -834,13 +926,30 @@ class ViewAdminApi_Nginx(Handler):
 class ViewAdminApi_QueueCertificate(Handler):
     @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
     @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/api/queue-certificates/update.json",
+            "section": "api",
+            "about": """Updates the certificates queue by inspecting active certificates for pending expiries.""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def update(self):
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self.request, "/api/queue-certificates/update.json"
+                )
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
+
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
-                    return {
-                        "instructions": ["HTTP POST required"],
-                    }
+                    return formatted_get_docs(
+                        self.request, "/api/queue-certificates/update.json"
+                    )
             queue_results = lib_db.queues.queue_certificates__update(
                 self.request.api_context
             )
@@ -872,15 +981,29 @@ class ViewAdminApi_QueueCertificate(Handler):
     @view_config(
         route_name="admin:api:queue_certificates:process|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/api/queue-certificates/process.json",
+            "section": "api",
+            "about": """Processes the QueueCertificates.""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def process(self):
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self.request, "/api/queue-certificates/process.json"
+                )
+            # TODO: reintegrate
+            raise ValueError("POST ONLY")
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
-                    return {
-                        "instructions": [
-                            "HTTP POST required",
-                        ],
-                    }
+                    return formatted_get_docs(
+                        self.request, "/api/queue-certificates/process.json"
+                    )
             queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context
             )

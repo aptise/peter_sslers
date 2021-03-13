@@ -389,14 +389,6 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders:active", "/acme-orders/active")
     config.add_route_7("admin:acme_orders:active|json", "/acme-orders/active.json")
     config.add_route_7(
-        "admin:acme_orders:active:acme_server:sync",
-        "/acme-orders/active/acme-server/sync",
-    )
-    config.add_route_7(
-        "admin:acme_orders:active:acme_server:sync|json",
-        "/acme-orders/active/acme-server/sync.json",
-    )
-    config.add_route_7(
         "admin:acme_orders:active_paginated", "/acme-orders/active/{@page}"
     )
     config.add_route_7(
@@ -410,6 +402,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_orders:finished_paginated|json",
         "/acme-orders/finished/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync",
+        "/acme-orders/active/acme-server/sync",
+    )
+    config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync|json",
+        "/acme-orders/active/acme-server/sync.json",
     )
     config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
@@ -519,12 +519,12 @@ def _admin_views(config):
     )
     config.add_route_7("admin:acme_orderless:focus|json", "/acme-orderless/{@id}.json")
     config.add_route_7(
-        "admin:acme_orderless:focus:add",
-        "/acme-orderless/{@id}/add",
+        "admin:acme_orderless:focus:add_challenge",
+        "/acme-orderless/{@id}/add-challenge",
     )
     config.add_route_7(
-        "admin:acme_orderless:focus:add|json",
-        "/acme-orderless/{@id}/add.json",
+        "admin:acme_orderless:focus:add_challenge|json",
+        "/acme-orderless/{@id}/add-challenge.json",
     )
     config.add_route_7(
         "admin:acme_orderless:focus:update",

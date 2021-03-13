@@ -13,16 +13,18 @@ import requests
 import sqlalchemy
 
 # localapp
-from ...lib import db as lib_db
-from ...model import utils as model_utils
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.forms import Form_AcmeDnsServer_mark
 from ..lib.forms import Form_AcmeDnsServer_edit
 from ..lib.handler import Handler
 from ..lib.handler import json_pagination
-from ...lib import utils
+from ...lib import db as lib_db
 from ...lib import errors
+from ...lib import utils
+from ...model import utils as model_utils
 
 # ==============================================================================
 
@@ -39,6 +41,24 @@ class View_List(Handler):
     )
     @view_config(
         route_name="admin:acme_dns_server_accounts_paginated|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server-accounts.json",
+            "section": "acme-dns-server-account",
+            "about": """list AcmeDnsServerAccounts(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server-accounts.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server-accounts/{PAGE}.json",
+            "section": "acme-dns-server-account",
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server-accounts/1.json",
+            "variant_of": "/acme-dns-server-accounts.json",
+        }
     )
     def list(self):
         items_count = lib_db.get.get__AcmeDnsServerAccount__count(
@@ -60,18 +80,22 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeDnsServerAccount = None
+
     def _focus(self, eagerload_web=False):
-        dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbAcmeDnsServerAccount:
-            raise HTTPNotFound("the acme-dns server account was not found")
-        self._focus_url = "%s/acme-dns-server-account/%s" % (
-            self.request.admin_url,
-            dbAcmeDnsServerAccount.id,
-        )
-        return dbAcmeDnsServerAccount
+        if self.dbAcmeDnsServerAccount is None:
+            dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbAcmeDnsServerAccount:
+                raise HTTPNotFound("the acme-dns server account was not found")
+            self.dbAcmeDnsServerAccount = dbAcmeDnsServerAccount
+            self._focus_url = "%s/acme-dns-server-account/%s" % (
+                self.request.admin_url,
+                self.dbAcmeDnsServerAccount.id,
+            )
+        return self.dbAcmeDnsServerAccount
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -80,6 +104,16 @@ class View_Focus(Handler):
         renderer="/admin/acme_dns_server_account-focus.mako",
     )
     @view_config(route_name="admin:acme_dns_server_account:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server-account/{ID}.json",
+            "section": "acme-dns-server-account",
+            "about": """AcmeDnsServerAccount""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server-account/1.json",
+        }
+    )
     def focus(self):
         dbAcmeDnsServerAccount = self._focus(eagerload_web=True)
         if self.request.wants_json:
