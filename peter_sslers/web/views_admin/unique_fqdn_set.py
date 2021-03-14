@@ -188,7 +188,7 @@ class View_Focus(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/unique-fqdn-set/{ID}/update-recents.json"
+                    self, "/unique-fqdn-set/{ID}/update-recents.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=update-recents&message=POST+required"
@@ -372,7 +372,7 @@ class View_Focus(Handler):
         """
         dbUniqueFQDNSet = self._focus()
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/unique-fqdn-set/{ID}/modify.json")
+            return formatted_get_docs(self, "/unique-fqdn-set/{ID}/modify.json")
         params = {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
@@ -520,7 +520,7 @@ class ViewNew(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/unique-fqdn-set/new.json")
+            return formatted_get_docs(self, "/unique-fqdn-set/new.json")
         return render_to_response(
             "/admin/unique_fqdn_set-new.mako",
             {},

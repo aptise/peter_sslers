@@ -267,7 +267,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-authorization/{ID}/acme-server/sync.json"
+                    self, "/acme-authorization/{ID}/acme-server/sync.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -335,7 +335,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-authorization/{ID}/acme-server/deacticate.json"
+                    self, "/acme-authorization/{ID}/acme-server/deacticate.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"

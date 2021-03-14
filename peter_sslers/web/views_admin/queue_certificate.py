@@ -375,12 +375,10 @@ class View_New(Handler):
                     "CertificateSigned",
                     "UniqueFQDNSet",
                 ),
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_b,
                 "private_key_option": model_utils.PrivateKey_options_b,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
         }
@@ -404,7 +402,7 @@ class View_New(Handler):
 
     def _new_structured__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-certificate/new/structured")
+            return formatted_get_docs(self, "/queue-certificate/new/structured")
         return render_to_response(
             "/admin/queue_certificate-new-structured.mako",
             {
@@ -516,12 +514,10 @@ class View_New(Handler):
             },
             "form_fields_related": [],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_b,
                 "private_key_option": model_utils.PrivateKey_options_b,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
         }
@@ -535,7 +531,7 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-certificate/new/freeform")
+            return formatted_get_docs(self, "/queue-certificate/new/freeform")
         return render_to_response(
             "/admin/queue_certificate-new-freeform.mako",
             {
@@ -686,7 +682,7 @@ class View_Focus(Handler):
 
     def _focus_mark__print(self, dbQueueCertificate):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-certificate/{ID}/mark.json")
+            return formatted_get_docs(self, "/queue-certificate/{ID}/mark.json")
         url_huh = "%s?&result=error&error=post+required&operation=mark" % (
             self._focus_url
         )

@@ -348,7 +348,7 @@ class View_New(Handler):
 
     def _upload__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/certificate-signed/upload.json")
+            return formatted_get_docs(self, "/certificate-signed/upload.json")
         return render_to_response(
             "/admin/certificate_signed-upload.mako", {}, self.request
         )
@@ -1042,13 +1042,18 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/certificate-signed/{ID}/nginx-cache-expire.json"
+                    self, "/certificate-signed/{ID}/nginx-cache-expire.json"
                 )
-            # TODO: reintegrate
-            raise ValueError("DISALLOW GET")
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&message=POST+required"
+                % self._focus_url
+            )
         dbCertificateSigned = self._focus()
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
-            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                % self._focus_url
+            )
         dbDomains = [
             c2d.domain for c2d in dbCertificateSigned.unique_fqdn_set.to_domains
         ]
@@ -1100,9 +1105,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbCertificateSigned):
         if self.request.wants_json:
-            return formatted_get_docs(
-                self.request, "/certificate-signed/{ID}/mark.json"
-            )
+            return formatted_get_docs(self, "/certificate-signed/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )

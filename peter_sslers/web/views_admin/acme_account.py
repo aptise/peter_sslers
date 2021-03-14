@@ -111,8 +111,7 @@ class View_New(Handler):
                 "You must submit ALL items from Group A or Group B",
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
             },
         }
@@ -125,7 +124,7 @@ class View_New(Handler):
     def _upload__print(self):
         self._load_AcmeAccountProviders()
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-account/upload.json")
+            return formatted_get_docs(self, "/acme-account/upload.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-upload.mako",
@@ -213,8 +212,7 @@ class View_New(Handler):
                 "account__private_key_technology": "what is the key technology preference for this account?",
             },
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
                 "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
             },
@@ -228,7 +226,7 @@ class View_New(Handler):
     def _new__print(self):
         self._load_AcmeAccountProviders()
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-account/new.json")
+            return formatted_get_docs(self, "/acme-account/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-new.mako",
@@ -809,7 +807,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus_edit__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-account/{ID}/edit.json")
+            return formatted_get_docs(self, "/acme-account/{ID}/edit.json")
         return render_to_response(
             "/admin/acme_account-focus-edit.mako",
             {"AcmeAccount": self.dbAcmeAccount},
@@ -972,7 +970,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return formatted_get_docs(
-                self.request, "/acme-account/{ID}/acme-server/authenticate.json"
+                self, "/acme-account/{ID}/acme-server/authenticate.json"
             )
         url_post_required = (
             "%s?result=error&error=post+required&operation=acme-server--authenticate"
@@ -1023,7 +1021,7 @@ class View_Focus_Manipulate(View_Focus):
     def _focus_mark__print(self):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-account/{ID}/mark.json")
+            return formatted_get_docs(self, "/acme-account/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url
         )
@@ -1173,7 +1171,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return formatted_get_docs(
-                self.request,
+                self,
                 "/acme-account/{ID}/acme-server/deactivate-pending-authorizations.json",
             )
         url_post_required = (
@@ -1278,7 +1276,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return formatted_get_docs(
-                self.request, "/acme-account/{ID}/acme-server/deactivate.json"
+                self, "/acme-account/{ID}/acme-server/deactivate.json"
             )
         return render_to_response(
             "/admin/acme_account-focus-deactivate.mako",
@@ -1385,7 +1383,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
             return formatted_get_docs(
-                self.request, "/acme-account/{ID}/acme-server/key-change.json"
+                self, "/acme-account/{ID}/acme-server/key-change.json"
             )
         return render_to_response(
             "/admin/acme_account-focus-key_change.mako",

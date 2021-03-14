@@ -117,7 +117,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-dns-server/new.json")
+            return formatted_get_docs(self, "/acme-dns-server/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-new.mako",
@@ -221,7 +221,7 @@ class View_Focus(Handler):
 
     def _check__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-dns-server/{ID}/check.json")
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/check.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -323,9 +323,7 @@ class View_Focus(Handler):
     def _ensure_domains__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return formatted_get_docs(
-                self.request, "/acme-dns-server/{ID}/ensure-domains.json"
-            )
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/ensure-domains.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-focus-ensure_domains.mako",
@@ -503,9 +501,7 @@ class View_Focus(Handler):
     def _import_domain__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return formatted_get_docs(
-                self.request, "/acme-dns-server/{ID}/import-domain.json"
-            )
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/import-domain.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-focus-import_domain.mako",
@@ -631,7 +627,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-dns-server/{ID}/mark.json")
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -750,7 +746,7 @@ class View_Focus_Manipulate(View_Focus):
     def _edit__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-dns-server/{ID}/edit.json")
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/edit.json")
         return render_to_response(
             "/admin/acme_dns_server-focus-edit.mako",
             {

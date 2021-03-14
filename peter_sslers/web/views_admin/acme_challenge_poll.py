@@ -15,7 +15,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib.docs import docify
-from ..lib.docs import formatted_get_docs
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils

@@ -7,7 +7,8 @@ from pyramid.view import view_config
 
 # localapp
 from ..lib.docs import docify
-from ..lib.docs import formatted_get_docs
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler
 from ...lib import db as lib_db
 

@@ -178,7 +178,7 @@ class View_Preferred(Handler):
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return formatted_get_docs(
-                        self.request, "/certificate-cas/preferred/add.json"
+                        self, "/certificate-cas/preferred/add.json"
                     )
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -280,7 +280,7 @@ class View_Preferred(Handler):
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return formatted_get_docs(
-                        self.request, "/certificate-cas/preferred/delete.json"
+                        self, "/certificate-cas/preferred/delete.json"
                     )
             data_formencode_form = "delete"
             (result, formStash) = formhandling.form_validate(
@@ -353,7 +353,7 @@ class View_Preferred(Handler):
         if self.request.wants_json:
             if self.request.method != "POST":
                 return formatted_get_docs(
-                    self.request, "/certificate-cas/preferred/delete.json"
+                    self, "/certificate-cas/preferred/delete.json"
                 )
         try:
             (result, formStash) = formhandling.form_validate(
@@ -715,7 +715,7 @@ class View_New(Handler):
 
     def _upload_cert__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/certificate-ca/upload-cert.json")
+            return formatted_get_docs(self, "/certificate-ca/upload-cert.json")
         return render_to_response(
             "/admin/certificate_ca-upload_cert.mako", {}, self.request
         )

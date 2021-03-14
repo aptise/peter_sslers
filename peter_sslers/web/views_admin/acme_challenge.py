@@ -211,7 +211,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-challenge/{ID}/acme-server/sync.json"
+                    self, "/acme-challenge/{ID}/acme-server/sync.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -280,7 +280,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-challenge/{ID}/acme-server/trigger.json"
+                    self, "/acme-challenge/{ID}/acme-server/trigger.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"

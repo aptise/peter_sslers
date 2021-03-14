@@ -168,7 +168,7 @@ class View_New(Handler):
 
     def _add__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-domains/add.json")
+            return formatted_get_docs(self, "/queue-domains/add.json")
         return render_to_response("/admin/queue_domains-add.mako", {}, self.request)
 
     def _add__submit(self):
@@ -241,13 +241,11 @@ class View_Process(Handler):
                 ],
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_a,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
@@ -286,7 +284,7 @@ class View_Process(Handler):
             )
 
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-domains/process.json")
+            return formatted_get_docs(self, "/queue-domains/process.json")
 
         return render_to_response(
             "/admin/queue_domains-process.mako",
@@ -438,7 +436,7 @@ class View_Focus(Handler):
 
     def _focus_mark__print(self, dbQueueDomain):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/queue-domain/{ID}/mark.json")
+            return formatted_get_docs(self, "/queue-domain/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url
         )

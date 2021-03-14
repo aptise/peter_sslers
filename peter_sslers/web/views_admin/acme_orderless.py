@@ -134,11 +134,9 @@ class View_New(Handler):
                 ],
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_c,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
             },
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -161,7 +159,7 @@ class View_New(Handler):
 
     def _new_AcmeOrderless__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/api/deactivate-expired.json")
+            return formatted_get_docs(self, "/api/deactivate-expired.json")
         return render_to_response(
             "/admin/acme_orderless-new.mako",
             {
@@ -360,9 +358,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/acme-orderless/{ID}/update.json"
-                )
+                return formatted_get_docs(self, "/acme-orderless/{ID}/update.json")
             return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         _changes = []
@@ -426,9 +422,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/acme-orderless/{ID}/deactivate.json"
-                )
+                return formatted_get_docs(self, "/acme-orderless/{ID}/deactivate.json")
             return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         if not dbAcmeOrderless.is_processing:
@@ -477,7 +471,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-orderless/{ID}/add-challenge.json"
+                    self, "/acme-orderless/{ID}/add-challenge.json"
                 )
         try:
             (result, formStash) = formhandling.form_validate(

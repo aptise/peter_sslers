@@ -306,7 +306,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus_mark__print(self, dbPrivateKey):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/private-key/{ID}/mark.json")
+            return formatted_get_docs(self, "/private-key/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -423,7 +423,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/private-key/new.json")
+            return formatted_get_docs(self, "/private-key/new.json")
         return render_to_response("/admin/private_key-new.mako", {}, self.request)
 
     def _new__submit(self):
@@ -493,7 +493,7 @@ class View_New(Handler):
 
     def _upload__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/private-key/upload.json")
+            return formatted_get_docs(self, "/private-key/upload.json")
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
     def _upload__submit(self):

@@ -214,7 +214,7 @@ class View_Search(Handler):
 
     def _search__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/domains/search.json")
+            return formatted_get_docs(self, "/domains/search.json")
         return render_to_response(
             "/admin/domains-search.mako",
             {"search_results": self.search_results, "sidenav_option": "search"},
@@ -297,7 +297,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/domain/new.json")
+            return formatted_get_docs(self, "/domain/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/domain-new.mako",
@@ -429,14 +429,17 @@ class View_Focus(Handler):
     def nginx_expire(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/domain/{ID}/nginx-cache-expire.json"
-                )
-            # todo: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/domain/{ID}/nginx-cache-expire.json")
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&message=POST+required"
+                % self._focus_url
+            )
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
-            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                % self._focus_url
+            )
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )
@@ -525,9 +528,7 @@ class View_Focus(Handler):
         dbDomain = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/domain/{ID}/update-recents.json"
-                )
+                return formatted_get_docs(self, "/domain/{ID}/update-recents.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=update-recents&message=POST+required"
                 % (self._focus_url,)
@@ -832,7 +833,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbDomain):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/domain/{ID}/mark.json")
+            return formatted_get_docs(self, "/domain/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url,
         )
@@ -970,8 +971,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             ],
             "form_fields": {"acme_dns_server_id": "the AcmeDNS Server"},
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_dns_server_id": [i.id for i in self.dbAcmeDnsServers]
+                "acme_dns_server_id": "{RENDER_ON_REQUEST}",
             },
         }
     )
@@ -1004,7 +1004,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
     def _new_print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/domain/new.json")
+            return formatted_get_docs(self, "/domain/new.json")
         return render_to_response(
             "/admin/domain-focus-acme_dns_server-new.mako",
             {

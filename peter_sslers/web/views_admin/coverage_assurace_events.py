@@ -19,7 +19,8 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib.docs import docify
-from ..lib.docs import formatted_get_docs
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CoverageAssuranceEvent_mark
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination

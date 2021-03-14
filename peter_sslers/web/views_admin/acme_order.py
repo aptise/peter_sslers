@@ -230,7 +230,7 @@ class View_List(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-orders/active/acme-server/sync.json"
+                    self, "/acme-orders/active/acme-server/sync.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -464,7 +464,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request, "/acme-order/{ID}/acme-server/sync.json"
+                    self, "/acme-order/{ID}/acme-server/sync.json"
                 )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
@@ -531,7 +531,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request,
+                    self,
                     "/acme-order/{ID}/acme-server/sync-authorizations.json",
                 )
             return HTTPSeeOther(
@@ -600,7 +600,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request,
+                    self,
                     "/acme-order/{ID}/acme-server/deactivate-authorizations.json",
                 )
             return HTTPSeeOther(
@@ -669,7 +669,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
-                    self.request,
+                    self,
                     "/acme-order/{ID}/acme-server/download-certificate.json",
                 )
             return HTTPSeeOther(
@@ -729,9 +729,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/acme-order/{ID}/acme-process.json"
-                )
+                return formatted_get_docs(self, "/acme-order/{ID}/acme-process.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+process&message=HTTP+POST+required"
                 % self._focus_url
@@ -790,9 +788,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/acme-order/{ID}/acme-finalize.json"
-                )
+                return formatted_get_docs(self, "/acme-order/{ID}/acme-finalize.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
                 % self._focus_url
@@ -862,7 +858,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/acme-order/{ID}/mark.json")
+                return formatted_get_docs(self, "/acme-order/{ID}/mark.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=mark&message=HTTP+POST+required"
                 % self._focus_url
@@ -950,9 +946,7 @@ class View_Focus_Manipulate(View_Focus):
         try:
             if self.request.method != "POST":
                 if self.request.wants_json:
-                    return formatted_get_docs(
-                        self.request, "/acme-order/{ID}/retry.json"
-                    )
+                    return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
@@ -1041,13 +1035,11 @@ class View_Focus_Manipulate(View_Focus):
                 ],
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_b,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
@@ -1072,9 +1064,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus()
 
         if self.request.wants_json:
-            return formatted_get_docs(
-                self.request, "/acme-order/{ID}/renew/custom.json"
-            )
+            return formatted_get_docs(self, "/acme-order/{ID}/renew/custom.json")
 
         if not dbAcmeOrder.is_renewable_custom:
             raise errors.DisplayableError("This AcmeOrder can not use Renew Custom")
@@ -1196,7 +1186,7 @@ class View_Focus_Manipulate(View_Focus):
     def _renew_quick__print(self):
         dbAcmeOrder = self._focus()
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/acme-order/{ID}/renew/quick.json")
+            return formatted_get_docs(self, "/acme-order/{ID}/renew/quick.json")
             return rval
 
         if not dbAcmeOrder.is_renewable_quick:
@@ -1315,13 +1305,11 @@ class View_New(Handler):
                 ],
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_b,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
@@ -1342,9 +1330,7 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(
-                self.request, "/acme-order/{ID}/new/freeform.json"
-            )
+            return formatted_get_docs(self, "/acme-order/{ID}/new/freeform.json")
         return render_to_response(
             "/admin/acme_order-new-freeform.mako",
             {

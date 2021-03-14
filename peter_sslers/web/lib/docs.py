@@ -18,11 +18,17 @@ _elements_optional = [
 ]
 
 
-def formatted_get_docs(request, endpoint):
+def formatted_get_docs(view_instance, endpoint):
     _endpoint_docs = API_DOCS.get(endpoint)
     if not _endpoint_docs:
         raise ValueError("could not find docs for: %s" % endpoint)
     docs = {}
+
+    def _instructions_append(_msg):
+        if "instructions" not in docs:
+            docs["instructions"] = []
+        docs["instructions"].append(_msg)
+
     for field in ("instructions", "example", "examples"):
         if field in _endpoint_docs:
             docs[field] = []
@@ -31,16 +37,51 @@ def formatted_get_docs(request, endpoint):
                     _endpoint_docs[field],
                 ]
             for line in _endpoint_docs[field]:
-                docs[field].append(line.replace("{ADMIN_PREFIX}", request.admin_url))
+                docs[field].append(
+                    line.replace("{ADMIN_PREFIX}", view_instance.request.admin_url)
+                )
                 if "%s" in line:
                     raise ValueError("malformed input")
     if "form_fields" in _endpoint_docs:
         docs["form_fields"] = _endpoint_docs["form_fields"]
 
+    if "valid_options" in docs:
+        # define these with a placeholder like "{RENDER_ON_REQUEST}"
+        try:
+            if "acme_account_provider_id" in docs["valid_options"]:
+                docs["valid_options"]["acme_account_provider_id"] = {
+                    i.id: "%s (%s)" % (i.name, i.url)
+                    for i in view_instance.dbAcmeAccountProviders
+                }
+        except:
+            pass
+        try:
+            if "acme_dns_server_id" in docs["valid_options"]:
+                docs["valid_options"]["acme_dns_server_id"] = [
+                    i.id for i in view_instance.dbAcmeDnsServers
+                ]
+        except:
+            pass
+        try:
+            if "AcmeAccount_GlobalDefault" in docs["valid_options"]:
+                docs["valid_options"]["AcmeAccount_GlobalDefault"] = (
+                    view_instance.dbAcmeAccount_GlobalDefault.as_json
+                    if view_instance.dbAcmeAccount_GlobalDefault
+                    else None
+                )
+        except:
+            pass
+
     if _endpoint_docs.get("POST") is True:
-        if "instructions" not in docs:
-            docs["instructions"] = []
-        docs["instructions"].append("HTTP POST required")
+        _instructions_append("HTTP POST required")
+    system_requires = _endpoint_docs.get("system.requires")
+    if system_requires:
+        if "dbAcmeAccount_GlobalDefault" in system_requires:
+            if view_instance.dbAcmeAccount_GlobalDefault is None:
+                _instructions_append(
+                    "IMPORTANT: No global AcmeAccount is configured yet."
+                )
+
     return docs
 
 

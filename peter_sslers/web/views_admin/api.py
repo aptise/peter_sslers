@@ -71,9 +71,11 @@ class ViewAdminApi(Handler):
     def deactivate_expired(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/deactivate-expired.json")
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/api/deactivate-expired.json")
+            return HTTPSeeOther(
+                "%s/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         operations_event = lib_db.actions.operations_deactivate_expired(
             self.request.api_context
         )
@@ -113,9 +115,11 @@ class ViewAdminApi(Handler):
     def update_recents(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/update-recents.json")
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/api/update-recents.json")
+            return HTTPSeeOther(
+                "%s/operations/log?result=error&operation=api--update-recents&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         operations_event = lib_db.actions.operations_update_recents__global(
             self.request.api_context
         )
@@ -145,9 +149,11 @@ class ViewAdminApi(Handler):
     def reconcile_cas(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/reconcile-cas.json")
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/api/reconcile-cas.json")
+            return HTTPSeeOther(
+                "%s/operations/log?result=error&operation=api--reconcile-cas&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         operations_event = lib_db.actions.operations_reconcile_cas(
             self.request.api_context
         )
@@ -182,7 +188,7 @@ class ViewAdminApi_Domain(Handler):
         return self._enable__print()
 
     def _enable__print(self):
-        return formatted_get_docs(self.request, "/api/domain/enable.json")
+        return formatted_get_docs(self, "/api/domain/enable.json")
 
     def _enable__submit(self):
         try:
@@ -228,7 +234,7 @@ class ViewAdminApi_Domain(Handler):
         return self._disable__print()
 
     def _disable__print(self):
-        return formatted_get_docs(self.request, "/api/domain/disable.json")
+        return formatted_get_docs(self, "/api/domain/disable.json")
 
     def _disable__submit(self):
         try:
@@ -296,13 +302,11 @@ class ViewAdminApi_Domain(Handler):
                 ],
             ],
             "valid_options": {
-                # TODO: reintegrate
-                # "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url)for i in self.dbAcmeAccountProviders},
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
-                # TODO: reintegrate
-                # "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json if self.dbAcmeAccount_GlobalDefault else None,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
         }
@@ -315,9 +319,7 @@ class ViewAdminApi_Domain(Handler):
         return self._certificate_if_needed__print()
 
     def _certificate_if_needed__print(self):
-        return formatted_get_docs(
-            self.request, "/api/domain/certificate-if-needed.json"
-        )
+        return formatted_get_docs(self, "/api/domain/certificate-if-needed.json")
 
     def _certificate_if_needed__submit(self):
         """
@@ -428,11 +430,12 @@ class ViewAdminApi_Domain(Handler):
             "about": """Initiates a new certificate if needed. only accepts a domain name, uses system defaults""",
             "POST": True,
             "GET": None,
+            "system.requires": [
+                "dbAcmeAccount_GlobalDefault",
+            ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
                 """curl --form 'domain_name=example.com' {ADMIN_PREFIX}/api/domain/autocert.json""",
-                # TODO: reintegrate
-                # """IMPORTANT: No global AcmeAccount is configured yet.""" if not self.dbAcmeAccount_GlobalDefault else """The global AcmeAccount is configured""",
             ],
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
@@ -446,7 +449,7 @@ class ViewAdminApi_Domain(Handler):
         return self._autocert__print()
 
     def _autocert__print(self):
-        return formatted_get_docs(self.request, "/api/domain/autocert.json")
+        return formatted_get_docs(self, "/api/domain/autocert.json")
 
     def _autocert__submit(self):
         """
@@ -677,9 +680,11 @@ class ViewAdminApi_Redis(Handler):
     def prime(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/redis/prime.json")
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/api/redis/prime.json")
+            return HTTPSeeOther(
+                "%s/operations/redis?result=error&operation=api--redis--prime&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
 
         self._ensure_redis()
 
@@ -875,9 +880,11 @@ class ViewAdminApi_Nginx(Handler):
     def cache_flush(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/nginx/cache-flush.json")
-            # TODO: reintegrate
-            raise ValueError("DISALLOW GET")
+                return formatted_get_docs(self, "/api/nginx/cache-flush.json")
+            return HTTPSeeOther(
+                "%s/operations/nginx?result=error&operation=api--nginx--cache-flush&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         self._ensure_nginx()
         success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
             self.request, self.request.api_context
@@ -912,10 +919,11 @@ class ViewAdminApi_Nginx(Handler):
     def status(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(self.request, "/api/nginx/status.json")
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
-
+                return formatted_get_docs(self, "/api/nginx/status.json")
+            return HTTPSeeOther(
+                "%s/operations/nginx?result=error&operation=api--nginx--status&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         self._ensure_nginx()
         servers_status = utils_nginx.nginx_status(
             self.request, self.request.api_context
@@ -938,17 +946,16 @@ class ViewAdminApi_QueueCertificate(Handler):
     def update(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/api/queue-certificates/update.json"
-                )
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
-
+                return formatted_get_docs(self, "/api/queue-certificates/update.json")
+            return HTTPSeeOther(
+                "%s/queue-certificates?result=error&operation=api--queue-certificates--update&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return formatted_get_docs(
-                        self.request, "/api/queue-certificates/update.json"
+                        self, "/api/queue-certificates/update.json"
                     )
             queue_results = lib_db.queues.queue_certificates__update(
                 self.request.api_context
@@ -993,16 +1000,16 @@ class ViewAdminApi_QueueCertificate(Handler):
     def process(self):
         if self.request.method != "POST":
             if self.request.wants_json:
-                return formatted_get_docs(
-                    self.request, "/api/queue-certificates/process.json"
-                )
-            # TODO: reintegrate
-            raise ValueError("POST ONLY")
+                return formatted_get_docs(self, "/api/queue-certificates/process.json")
+            return HTTPSeeOther(
+                "%s/queue-certificates?result=error&operation=api--queue-certificates--process&error=POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return formatted_get_docs(
-                        self.request, "/api/queue-certificates/process.json"
+                        self, "/api/queue-certificates/process.json"
                     )
             queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context

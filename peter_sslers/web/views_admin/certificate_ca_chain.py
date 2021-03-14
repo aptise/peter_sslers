@@ -196,7 +196,7 @@ class View_New(Handler):
 
     def _upload_chain__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self.request, "/certificate-ca-chain/upload.json")
+            return formatted_get_docs(self, "/certificate-ca-chain/upload.json")
         return render_to_response(
             "/admin/certificate_ca_chain-upload_chain.mako", {}, self.request
         )
