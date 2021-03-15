@@ -512,7 +512,6 @@ class View_New(Handler):
                 "private_key_file_pem": "pem to upload",
                 "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
             },
-            "form_fields_related": [],
             "valid_options": {
                 "acme_account_provider_id": "{RENDER_ON_REQUEST}",
                 "account_key_option": model_utils.AcmeAccontKey_options_b,

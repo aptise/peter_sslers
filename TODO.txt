@@ -9,26 +9,11 @@
 	- creating queue-certificates/freeform (domains)
 
 
-[ ] migrate index "actions" to POST forms
-
-
-
-
 Not Finished Yet
 ===============
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
 
-
-Should the json endpoint be removed?
-    @view_config(
-        route_name="admin:acme_dns_server:focus:ensure_domains_results|json",
-        renderer="json",
-    )
-
-# TODO: reintegrate
-## TODO: POST
-    
 
 
 Almost done:

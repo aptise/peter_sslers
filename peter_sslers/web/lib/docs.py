@@ -1,4 +1,11 @@
+# logging
+import logging
+
+log = logging.getLogger(__name__)
+
+
 # ==============================================================================
+
 
 API_DOCS = {}
 
@@ -18,12 +25,14 @@ _elements_optional = [
     "notes",
     "variant_of",
 ]
-_elements_list = [
+_elements_dict = [
     "form_fields",
+    "valid_options",
+]
+_elements_list = [
     "form_fields_related",
     "notes",
     "requirements",
-    "valid_options",
 ]
 _elements_disallowed = ["extra"]
 
@@ -53,9 +62,13 @@ def formatted_get_docs(view_instance, endpoint):
                 if "%s" in line:
                     raise ValueError("malformed input")
 
-    for _field in _elements_list:
+    for _field in _elements_dict:
         if _field in _endpoint_docs:
             docs[_field] = _endpoint_docs[_field].copy()
+
+    for _field in _elements_list:
+        if _field in _endpoint_docs:
+            docs[_field] = _endpoint_docs[_field][:]
 
     if "valid_options" in docs:
         # define these with a placeholder like "{RENDER_ON_REQUEST}"
@@ -65,14 +78,18 @@ def formatted_get_docs(view_instance, endpoint):
                     i.id: "%s (%s)" % (i.name, i.url)
                     for i in view_instance.dbAcmeAccountProviders
                 }
-        except:
+        except Exception as exc:
+            log.critical(
+                "@docify error: valid_options:acme_account_provider_id %s", endpoint
+            )
             pass
         try:
             if "acme_dns_server_id" in docs["valid_options"]:
                 docs["valid_options"]["acme_dns_server_id"] = [
                     i.id for i in view_instance.dbAcmeDnsServers
                 ]
-        except:
+        except Exception as exc:
+            log.critical("@docify error: valid_options:acme_dns_server_id %s", endpoint)
             pass
         try:
             if "AcmeAccount_GlobalDefault" in docs["valid_options"]:
@@ -81,7 +98,10 @@ def formatted_get_docs(view_instance, endpoint):
                     if view_instance.dbAcmeAccount_GlobalDefault
                     else None
                 )
-        except:
+        except Exception as exc:
+            log.critical(
+                "@docify error: valid_options:AcmeAccount_GlobalDefault %s", endpoint
+            )
             pass
 
     if _endpoint_docs.get("POST") is True:
