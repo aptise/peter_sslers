@@ -436,6 +436,19 @@ class View_Focus(Handler):
         route_name="admin:acme_dns_server:focus:ensure_domains_results|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/ensure-domains-results.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer ensure domains - results""",
+            "POST": None,
+            "GET": True,
+            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
+            "form_fields": {
+                "acme-dns-server-accounts": "A comma separated list of acme-dns-server-accounts. these are returned by `/acme-dns-server/{ID}/ensure-domains.json`"
+            },
+        }
+    )
     def ensure_domains_results(self):
         try:
             dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()

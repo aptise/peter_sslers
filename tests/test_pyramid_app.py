@@ -1551,6 +1551,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "/.well-known/admin/acme-dns-server/%s/ensure-domains-results.json?acme-dns-server-accounts=%s"
             % (focus_id, ",".join(_account_ids))
         )
+        assert res.json["result"] == "success"
+        assert "result_matrix" in res.json
 
         # import-domain
         # use ._get_one() so the real server is used

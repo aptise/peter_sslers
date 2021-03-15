@@ -25,6 +25,7 @@ _elements_list = [
     "requirements",
     "valid_options",
 ]
+_elements_disallowed = ["extra"]
 
 
 def formatted_get_docs(view_instance, endpoint):
@@ -107,6 +108,9 @@ def docify(endpoint_data):
         for _elem in _elements_required:
             if _elem not in endpoint_data:
                 raise ValueError("missing endpoint_data element: %s" % _elem)
+    for _elem in _elements_disallowed:
+        if _elem in endpoint_data:
+            raise ValueError("found invalid endpoint_data element: %s" % _elem)
     API_DOCS[endpoint] = endpoint_data
 
     def wrap(wrapped):

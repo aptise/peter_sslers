@@ -251,11 +251,9 @@ class View_Process(Handler):
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
             ],
-            # TODO: reintegrate - may need to be a new route
-            # "extra": {
-            #    "queue.count": self.QueueDomains_count,
-            #    "queue.items_100": queue_items,
-            # },
+            "notes": [
+                "`extra` will contain a dict with the current count and next 100 items",
+            ],
         }
     )
     def process(self):
@@ -282,9 +280,13 @@ class View_Process(Handler):
                 limit=100,
                 offset=0,
             )
-
         if self.request.wants_json:
-            return formatted_get_docs(self, "/queue-domains/process.json")
+            docs = formatted_get_docs(self, "/queue-domains/process.json")
+            docs["extra"] = {
+                "queue.count": self.QueueDomains_count,
+                "queue.items_100": queue_items,
+            }
+            return docs
 
         return render_to_response(
             "/admin/queue_domains-process.mako",
