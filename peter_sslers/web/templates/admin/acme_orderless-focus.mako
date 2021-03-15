@@ -199,7 +199,7 @@
                     <hr/>
                     <h5>Add a New Challenge</h5>
                     <form
-                        action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/add"
+                        action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/add-challenge"
                         method="POST"
                         enctype="multipart/form-data"
                         id="acmeorderless-add_challenge"

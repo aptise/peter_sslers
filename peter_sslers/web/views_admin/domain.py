@@ -421,12 +421,13 @@ class View_Focus(Handler):
             "endpoint": "/domain/{ID}/nginx-cache-expire.json",
             "section": "domain",
             "about": """Domain focus: nginx-cache-expire""",
-            "POST": None,
-            "GET": True,
+            "POST": True,
+            "GET": None,
             "example": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
         }
     )
-    def nginx_expire(self):
+    def nginx_cache_expire(self):
+        dbDomain = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(self, "/domain/{ID}/nginx-cache-expire.json")
@@ -434,7 +435,6 @@ class View_Focus(Handler):
                 "%s?result=error&operation=nginx-cache-expire&message=POST+required"
                 % self._focus_url
             )
-        dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
             raise HTTPSeeOther(
                 "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
@@ -446,7 +446,7 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
+            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 

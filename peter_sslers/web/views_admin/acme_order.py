@@ -1330,7 +1330,7 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/acme-order/{ID}/new/freeform.json")
+            return formatted_get_docs(self, "/acme-order/new/freeform.json")
         return render_to_response(
             "/admin/acme_order-new-freeform.mako",
             {

@@ -402,7 +402,7 @@ class View_New(Handler):
 
     def _new_structured__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/queue-certificate/new/structured")
+            return formatted_get_docs(self, "/queue-certificate/new/structured.json")
         return render_to_response(
             "/admin/queue_certificate-new-structured.mako",
             {
@@ -531,7 +531,7 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/queue-certificate/new/freeform")
+            return formatted_get_docs(self, "/queue-certificate/new/freeform.json")
         return render_to_response(
             "/admin/queue_certificate-new-freeform.mako",
             {

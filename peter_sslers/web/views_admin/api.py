@@ -963,7 +963,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return {"result": "success", "results": queue_results}
             return HTTPSeeOther(
-                "%s/queue-certificates?result=success&operation=update&results=%s"
+                "%s/queue-certificates?result=success&operation=api--queue-certificates--update&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     json.dumps(queue_results, sort_keys=True),
@@ -975,7 +975,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=update"
+                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--update"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     str(exc),
@@ -1019,7 +1019,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
-                "%s/queue-certificates?result=success&operation=process&results=%s"
+                "%s/queue-certificates?result=success&operation=api--queue-certificates--process&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     json.dumps(queue_results, sort_keys=True),
@@ -1031,7 +1031,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=process"
+                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--process"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     str(exc),

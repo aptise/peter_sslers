@@ -1039,6 +1039,7 @@ class View_Focus_Manipulate(View_Focus):
         }
     )
     def nginx_expire(self):
+        dbCertificateSigned = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
                 return formatted_get_docs(
@@ -1048,7 +1049,6 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=error&operation=nginx-cache-expire&message=POST+required"
                 % self._focus_url
             )
-        dbCertificateSigned = self._focus()
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
             raise HTTPSeeOther(
                 "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
@@ -1065,7 +1065,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
+            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 

@@ -153,6 +153,7 @@
                             <th>Nginx cache</th>
                             <td>
                                 <span class="btn-group">
+                                    ## TODO: POST
                                     <a  class="btn btn-xs btn-primary"
                                         href="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire"
                                     >

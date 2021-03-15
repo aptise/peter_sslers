@@ -180,8 +180,13 @@ RE_CertificateSigned_main = re.compile(
 )
 
 RE_CertificateSigned_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
 )
+
+RE_CertificateSigned_operation_nginx_expire__GET = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
+)
+
 
 # note: CoverageAssuranceEvent
 
@@ -204,7 +209,11 @@ RE_Domain_new_AcmeDnsServerAccount = re.compile(
 )
 
 RE_Domain_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
+)
+
+RE_Domain_operation_nginx_expire__GET = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
 )
 
 # note: QueueCertificate

@@ -14,7 +14,16 @@ _elements_optional = [
     "example",
     "instructions",
     "form_fields",
+    "requirements",
+    "notes",
     "variant_of",
+]
+_elements_list = [
+    "form_fields",
+    "form_fields_related",
+    "notes",
+    "requirements",
+    "valid_options",
 ]
 
 
@@ -42,8 +51,10 @@ def formatted_get_docs(view_instance, endpoint):
                 )
                 if "%s" in line:
                     raise ValueError("malformed input")
-    if "form_fields" in _endpoint_docs:
-        docs["form_fields"] = _endpoint_docs["form_fields"]
+
+    for _field in _elements_list:
+        if _field in _endpoint_docs:
+            docs[_field] = _endpoint_docs[_field].copy()
 
     if "valid_options" in docs:
         # define these with a placeholder like "{RENDER_ON_REQUEST}"

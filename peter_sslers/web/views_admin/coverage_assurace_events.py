@@ -19,6 +19,7 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 
 # from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CoverageAssuranceEvent_mark
@@ -70,6 +71,42 @@ class View_List(Handler):
     @view_config(
         route_name="admin:coverage_assurance_events:unresolved_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/all.json",
+            "section": "coverage-assurance-event",
+            "about": """list CoverageAssuranceEvent(s): All""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/all/{PAGE}.json",
+            "section": "coverage-assurance-event",
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/all/1.json",
+            "variant_of": "/coverage-assurance-events/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/unresolved.json",
+            "section": "coverage-assurance-event",
+            "about": """list CoverageAssuranceEvent(s): Unresolved""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/unresolved.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/unresolved/{PAGE}.json",
+            "section": "coverage-assurance-event",
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/unresolved/1.json",
+            "variant_of": "/coverage-assurance-events/unresolved.json",
+        }
     )
     def list(self):
         sidenav_option = None
@@ -222,7 +259,7 @@ class View_Focus(Handler):
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/coverage-assurance-event/1/mark.json",
             "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/mark.json""",
+                """curl --form 'action=active' {ADMIN_PREFIX}/coverage-assurance-event/1/mark.json""",
             ],
             "form_fields": {
                 "action": "the action",
@@ -242,7 +279,7 @@ class View_Focus(Handler):
 
     def _mark__print(self, dbCoverageAssuranceEvent):
         if self.request.wants_json:
-            return {}
+            return formatted_get_docs(self, "/coverage-assurance-event/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )

@@ -346,12 +346,12 @@ class View_Focus(Handler):
     @view_config(route_name="admin:unique_fqdn_set:focus:modify|json", renderer="json")
     @docify(
         {
-            "endpoint": "/queue-domain/{ID}/modify.json",
-            "section": "queue-domain",
-            "about": """QueueDomain focus: modify""",
+            "endpoint": "/unique-fqdn-set/{ID}/modify.json",
+            "section": "unique-fqdn-set",
+            "about": """UniqueFQDNSet focus: modify""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/queue-domain/1/modify.json",
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/modify.json",
             "instructions": [
                 """curl --form 'domains_add=[]' --form 'domains_del=[]' {ADMIN_PREFIX}/modify.json"""
             ],
@@ -499,12 +499,12 @@ class ViewNew(Handler):
     @view_config(route_name="admin:unique_fqdn_set:new|json", renderer="json")
     @docify(
         {
-            "endpoint": "/queue-domain/new.json",
-            "section": "queue-domain",
-            "about": """QueueDomain focus: new""",
+            "endpoint": "/unique-fqdn-set/new.json",
+            "section": "unique-fqdn-set",
+            "about": """UniqueFQDNSet focus: new""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/queue-domain/new.json",
+            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/new.json",
             "instructions": [
                 """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/unique-fqdn-set/new.json"""
             ],

@@ -1352,7 +1352,7 @@ class View_Focus_Manipulate(View_Focus):
                 """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/key-change.json""",
             ],
             "form_fields": {
-                "key_pem": "the active key as md5(PEM) or PEM",
+                "key_pem_existing": "the active key as md5(PEM) or PEM",
             },
             "instructions": [
                 """curl -X POST {ADMIN_PREFIX}/acme-server/key-change.json""",
@@ -1364,6 +1364,8 @@ class View_Focus_Manipulate(View_Focus):
         this just hits the api, hoping we authenticate correctly.
         """
         dbAcmeAccount = self._focus()
+        if self.request.method == "POST":
+            return self._focus__acme_server_key_change__submit()
         if not dbAcmeAccount.is_can_key_change:
             error_message = "This AcmeAccount can not be key changed"
             if self.request.wants_json:
@@ -1375,8 +1377,6 @@ class View_Focus_Manipulate(View_Focus):
                 error_message.replace(" ", "+"),
             )
             return HTTPSeeOther(url_error)
-        if self.request.method == "POST":
-            return self._focus__acme_server_key_change__submit()
         return self._focus__acme_server_key_change__print()
 
     def _focus__acme_server_key_change__print(self):

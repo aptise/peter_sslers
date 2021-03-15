@@ -159,7 +159,7 @@ class View_New(Handler):
 
     def _new_AcmeOrderless__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/api/deactivate-expired.json")
+            return formatted_get_docs(self, "/acme-orderless/new.json")
         return render_to_response(
             "/admin/acme_orderless-new.mako",
             {

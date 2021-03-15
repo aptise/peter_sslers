@@ -353,7 +353,7 @@ class View_Preferred(Handler):
         if self.request.wants_json:
             if self.request.method != "POST":
                 return formatted_get_docs(
-                    self, "/certificate-cas/preferred/delete.json"
+                    self, "/certificate-cas/preferred/prioritize.json"
                 )
         try:
             (result, formStash) = formhandling.form_validate(
