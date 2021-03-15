@@ -6408,12 +6408,11 @@ class FunctionalTests_QueueDomains(AppTest):
         # !!!: test `POST required` `queue-domain/mark.json`
         res = self.testapp.get(
             "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
-            {"action": "cancel"},
             status=200,
         )
-        assert "form_fields" in res.json
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
+        assert "form_fields" in res.json
 
 
 class FunctionalTests_AlternateChains(AppTest):

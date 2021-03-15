@@ -1,13 +1,25 @@
 * CertificateSigned__deactivate_expired
 	do not deactive expired certs that do not have an active replacement
 
-
 * These sections still need to be audited and streamlined.
 	They work and are tested, but the UX could potentially be cleaner
 	- queue certificates - process
 	- automatic renewal - update to create queues
 	- creating queue-certificates/freeform (domains)
 
+* Tests Needed:
+	UNIT Tests
+		* add a test to ensure chains/fullchains do not have blank lines
+		* add a test to ensure chain direction
+
+	AcmeAccount
+		* upload: a duplicate key
+		* new: submit a different key for an existing contact on the acme server
+		* new: submit a new key for an existing contact on the acme server
+
+	NGINX
+		* Test to ensure we have the expected peter_sslers API version loaded
+		
 
 Not Finished Yet
 ===============
@@ -17,39 +29,35 @@ Not Finished Yet
 
 
 Almost done:
-------------
-
+===============
 
 Audit/Remove "todo" markers
 
-asap tasks
----------------
-[-] audit usage of `ctx.pyramid_transaction_commit()`
-	- some work done
 
-
-----
-
-
-	UNDECIDED
-	* CertificateCAPreferences -> CertificateCAChainPreference
-	  This would pin the chain, which is possibly not something we want to do
-	  It may be best to keep this as-is, then try to find the shortest compatible chain
+UNDECIDED
+===============
+* CertificateCAPreferences -> CertificateCAChainPreference
+  This would pin the chain, which is possibly not something we want to do
+  It may be best to keep this as-is, then try to find the shortest compatible chain
 			
-* Correctly support writing these formats
-	pkcs8
-	pkcs10
+
+Deferred
+===============
+
+[ ] Correctly support writing these formats:
+	* pkcs8
+	* pkcs10
+	
+	They are not necessarily written to RFC right now, but lax rules by parsers
+	just seem to work.
+
+[-] audit usage of `ctx.pyramid_transaction_commit()`
+	- some work done. remaining work can be deferred.
+
+
 
 
 TESTS:
-	unit
-		* add a test to ensure chains/fullchains do not have blank lines
-		* add a test to ensure chain direction
-
-	AcmeAccount
-		* upload: a duplicate key
-		* new: submit a different key for an existing contact on the acme server
-		* new: submit a new key for an existing contact on the acme server
 
 	api/domain/autocert
 		test against different strategies to ensure correct behavior
@@ -116,24 +124,6 @@ ensure_chain
 		/.well-known/admin/acme-order/{ID}/renew/custom
 			list the challenge types
 
-* AcmeAccountKey
-	- letsencrypt_data - audit. refresh? log?
-
-* UniqueFQDNSet
-	- allow a set to be decomposed into one or more sets
-	- for example:
-		- original set: [a.example.com, b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]
-
-
-* cert_utils
-	figure out how to emulate openssl's `--text` with crypto in `parse_key`
-* search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
-* log full actual results; if a queue fails log that data too
-	this happens to standard python logging
-* associate all objects to one another when imported; only some objects are currently associated
-* limit pending request search to 7 days
 
 deferred tasks
 ---------------
@@ -147,10 +137,33 @@ deferred tasks
 * `account__private_key_cycle` is required on all forms but often unused
 	it should be conditional, based on the presences of uploading a new account-key
 
+* AcmeAccountKey
+	- letsencrypt_data - audit. refresh? log?
+
+* UniqueFQDNSet
+	- allow a set to be decomposed into one or more sets
+	- for example:
+		- original set: [a.example.com, b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]
+
+* cert_utils
+	figure out how to emulate openssl's `--text` with crypto in `parse_key`
+
+* search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
+
+* log full actual results; if a queue fails log that data too
+	this happens to standard python logging
+
+* associate all objects to one another when imported; only some objects are currently associated
+
+* limit pending request search to 7 days
+
 
 Long Term Questions:
 ==================================
 * remove pyramidtm? migrate to autocommit?
+	is this necessary with our `ctx.pyramid_transaction_commit` hook?
 
 
 Test Cases to Write

@@ -284,7 +284,7 @@ class View_Process(Handler):
             docs = formatted_get_docs(self, "/queue-domains/process.json")
             docs["extra"] = {
                 "queue.count": self.QueueDomains_count,
-                "queue.items_100": queue_items,
+                "queue.items_100": [i.as_json for i in queue_items],
             }
             return docs
 
@@ -409,7 +409,7 @@ class View_Focus(Handler):
         dbQueueDomain = self._focus()
         if self.request.wants_json:
             return {"result": "success", "QueueDomain": dbQueueDomain.as_json}
-        return {"project": "peter_sslers", "QueueDomainItem": dbQueueDomain}
+        return {"project": "peter_sslers", "QueueDomain": dbQueueDomain}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
