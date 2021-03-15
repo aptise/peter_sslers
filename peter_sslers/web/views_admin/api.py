@@ -948,7 +948,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return formatted_get_docs(self, "/api/queue-certificates/update.json")
             return HTTPSeeOther(
-                "%s/queue-certificates?result=error&operation=api--queue-certificates--update&error=POST+required"
+                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
                 % (self.request.registry.settings["app_settings"]["admin_prefix"],)
             )
         try:
@@ -963,7 +963,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return {"result": "success", "results": queue_results}
             return HTTPSeeOther(
-                "%s/queue-certificates?result=success&operation=api--queue-certificates--update&results=%s"
+                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     json.dumps(queue_results, sort_keys=True),
@@ -1002,7 +1002,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 return formatted_get_docs(self, "/api/queue-certificates/process.json")
             return HTTPSeeOther(
-                "%s/queue-certificates?result=error&operation=api--queue-certificates--process&error=POST+required"
+                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
                 % (self.request.registry.settings["app_settings"]["admin_prefix"],)
             )
         try:
@@ -1019,7 +1019,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
-                "%s/queue-certificates?result=success&operation=api--queue-certificates--process&results=%s"
+                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--process&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     json.dumps(queue_results, sort_keys=True),

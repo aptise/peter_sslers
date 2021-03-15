@@ -9021,7 +9021,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&operation=api--queue-certificates--update&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
         )
 
         res = self.testapp.post(
@@ -9029,7 +9029,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=success&operation=api--queue-certificates--update&results=true"""
+            == """http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=true"""
         )
         # TODO - populate the database so it will actually update the queue, retest
 
@@ -9062,14 +9062,14 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&operation=api--queue-certificates--process&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
         )
 
         res = self.testapp.post(
             "/.well-known/admin/api/queue-certificates/process", status=303
         )
         assert res.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=success&operation=api--queue-certificates--process&results="""
+            """http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=success&operation=api--queue-certificates--process&results="""
         )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")

@@ -1029,7 +1029,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
             )
             .filter(
-                model_objects.Domain.domain_name.notin_(
+                model_objects.Domain.domain_name.not_in(
                     ("selfsigned-1.example.com", "acme-orderless.example.com")
                 ),
                 sqlalchemy.or_(

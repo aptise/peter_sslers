@@ -46,21 +46,30 @@
       <li role="presentation" class="${'active' if sidenav_option == 'failures' else ''}"><a href="${admin_prefix}/queue-certificates/failures">Failures</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'successes' else ''}"><a href="${admin_prefix}/queue-certificates/successes">Successes</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-certificates/unprocessed">Unprocessed Items</a></li>
-      <li role="presentation" class="">
-        <a href="${admin_prefix}/api/queue-certificates/update">
-        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-        Update Queue (30 days or less)</a>
-      </li>
+       <li role="presentation" class="">
+         <form action="${admin_prefix}/api/queue-certificates/update" method="POST">
+             <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                 Update Queue (30 days or less)
+             </button>
+         </form>
+       </li>
       % if QueueCertificates:
           <li role="presentation" class="">
-            <a href="${admin_prefix}/api/queue-certificates/process">
-            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-            Process Queue Items</a>
+            <form action="${admin_prefix}/api/queue-certificates/process" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Process Queue Items
+                </button>
+            </form>
           </li>
           <li role="presentation" class="">
-            <a href="${admin_prefix}/api/queue-certificates/process.json">
-            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-            Process Queue Items - JSON</a>
+            <form action="${admin_prefix}/api/queue-certificates/process.json" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Process Queue Items - JSON
+                </button>
+            </form>
           </li>
         % endif
     </ul>

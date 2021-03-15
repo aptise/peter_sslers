@@ -24,7 +24,7 @@ requires = [
     "python-dateutil",
     "requests",
     "six ",
-    "SQLAlchemy<1.4.0",  # scalar_subquery API change
+    "SQLAlchemy>=1.4",  # scalar_subquery API change
     "transaction",
     "waitress",
     "zope.sqlalchemy",

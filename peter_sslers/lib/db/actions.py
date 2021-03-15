@@ -159,8 +159,8 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
                 .filter(
                     model_objects.CertificateSigned.is_active.is_(True),
                     model_objects.UniqueFQDNSet2Domain.domain_id == _domain_id,
-                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_single),
-                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_multi),
+                    model_objects.CertificateSigned.id.not_in(_q_ids__latest_single),
+                    model_objects.CertificateSigned.id.not_in(_q_ids__latest_multi),
                 )
                 .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
                 .all()
@@ -198,8 +198,8 @@ def operations_reconcile_cas(ctx):
     dbCertificateCAs = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
-            model_objects.CertificateCA.cert_issuer_uri.isnot(None),
-            model_objects.CertificateCA.cert_issuer__reconciled.isnot(True),
+            model_objects.CertificateCA.cert_issuer_uri.is_not(None),
+            model_objects.CertificateCA.cert_issuer__reconciled.is_not(True),
         )
         .all()
     )
@@ -307,8 +307,7 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
@@ -334,8 +333,7 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
@@ -382,8 +380,7 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
@@ -409,8 +406,7 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
@@ -473,8 +469,7 @@ def operations_update_recents__global(ctx):
                 == CertificateCAChain2.certificate_ca_0_id,
             )
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.CertificateCA.__table__.update().values(
@@ -494,8 +489,7 @@ def operations_update_recents__global(ctx):
         .filter(
             model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
@@ -509,8 +503,7 @@ def operations_update_recents__global(ctx):
             model_objects.CertificateSigned.private_key_id
             == model_objects.PrivateKey.id,
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
@@ -529,8 +522,7 @@ def operations_update_recents__global(ctx):
         .filter(
             model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
@@ -544,8 +536,7 @@ def operations_update_recents__global(ctx):
             model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
             model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
