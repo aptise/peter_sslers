@@ -9247,7 +9247,8 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.post("/.well-known/admin/api/deactivate-expired", status=303)
         assert (
-            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+            "/.well-known/admin/operations/log?result=success&operation=api--deactivate-expired&event.id="
+            in res.location
         )
 
         # update-recents
@@ -9259,7 +9260,8 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.post("/.well-known/admin/api/update-recents", status=303)
         assert (
-            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+            "/.well-known/admin/operations/log?result=success&operation=api--update-recents&event.id="
+            in res.location
         )
 
         # reconcile-cas
@@ -9271,7 +9273,8 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.post("/.well-known/admin/api/reconcile-cas", status=303)
         assert (
-            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+            "/.well-known/admin/operations/log?result=success&operation=api--reconcile-cas&event.id="
+            in res.location
         )
 
     @routes_tested(

@@ -14,6 +14,7 @@
 
 <%block name="page_header_col">
     <h2>Nginx Operations</h2>
+    ${admin_partials.handle_querystring_result()}
 </%block>
 
 
@@ -114,18 +115,18 @@
 
             <p>
                 <span class="btn btn-group">
-                    <a  href="${admin_prefix}/api/nginx/cache-flush"
-                        class="btn btn-xs btn-primary"
-                    >
-                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                        Flush Nginx Cache
-                    </a>
-                    <a  href="${admin_prefix}/api/nginx/cache-flush.json"
-                        class="btn btn-xs btn-primary"
-                    >
-                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                        JSON
-                    </a>
+                    <form action="${admin_prefix}/api/nginx/cache-flush" method="POST">
+                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                            Flush Nginx Cache
+                        </button>
+                    </form>
+                    <form action="${admin_prefix}/api/nginx/cache-flush.json" method="POST">
+                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                            JSON
+                        </button>
+                    </form>
                 </span>
                 <br/>
                 <em>
@@ -142,11 +143,12 @@
                     </a>
                 </li>
                 <li>
-                    <a  href="${admin_prefix}/api/nginx/status.json"
-                    >
-                        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                        Nginx Status (JSON)
-                    </a>
+                    <form action="${admin_prefix}/api/nginx/status.json" method="POST">
+                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                            Nginx Status (JSON)
+                        </button>
+                    </form>
                 </li>
                 <li>
                     <a  href="${admin_prefix}/operations/log"

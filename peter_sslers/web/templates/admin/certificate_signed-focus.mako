@@ -525,12 +525,12 @@
                             <th>Nginx cache</th>
                             <td>
                                 <span class="btn-group">
-                                    ## TODO: POST
-                                    <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire"
-                                    >
-                                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                        nginx-cache-expire</a>
+                                    <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire" method="POST">
+                                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                            nginx-cache-expire
+                                        </button>
+                                    </form>
                                     <a  class="btn btn-xs btn-primary"
                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire.json"
                                         target="_blank"

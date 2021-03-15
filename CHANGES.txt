@@ -168,6 +168,9 @@
 	  * this is an interim solution to handle consolidating and updating the api endpoint information
 	  * this will likely be migrated out into something like pyramid_openapi3 in the future
 	* nginx operations now make requests through a context manager
+	* querystring results now in operations logs
+	* operation name now in redirects
+	* operation links now forms
 	+ other fixes and improvements
 
 0.4.0

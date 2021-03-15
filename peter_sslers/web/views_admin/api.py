@@ -92,7 +92,7 @@ class ViewAdminApi(Handler):
             return rval
 
         return HTTPSeeOther(
-            "%s/operations/log?result=success&event.id=%s"
+            "%s/operations/log?result=success&operation=api--deactivate-expired&event.id=%s"
             % (
                 self.request.registry.settings["app_settings"]["admin_prefix"],
                 operations_event.id,
@@ -126,7 +126,7 @@ class ViewAdminApi(Handler):
         if self.request.wants_json:
             return {"result": "success", "operations_event": operations_event.id}
         return HTTPSeeOther(
-            "%s/operations/log?result=success&event.id=%s"
+            "%s/operations/log?result=success&operation=api--update-recents&event.id=%s"
             % (
                 self.request.registry.settings["app_settings"]["admin_prefix"],
                 operations_event.id,
@@ -160,7 +160,7 @@ class ViewAdminApi(Handler):
         if self.request.wants_json:
             return {"result": "success", "operations_event": operations_event.id}
         return HTTPSeeOther(
-            "%s/operations/log?result=success&event.id=%s"
+            "%s/operations/log?result=success&operation=api--reconcile-cas&event.id=%s"
             % (
                 self.request.registry.settings["app_settings"]["admin_prefix"],
                 operations_event.id,

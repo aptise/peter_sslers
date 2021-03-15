@@ -1891,50 +1891,63 @@
     <h4>Actions</h4>
     <ul class="nav nav-pills nav-stacked">
         <li class="${'active' if active =='/api/deactivate-expired' else ''}">
-            <a  href="${admin_prefix}/api/deactivate-expired"
-            >
-             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Deactivate Expired CertificateSigneds</a></li>
+            <form action="${admin_prefix}/api/deactivate-expired" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Deactivate Expired CertificateSigneds
+                </button>
+            </form>
+        </li>
         <li class="${'active' if active =='/api/update-recents' else ''}">
-            <a  href="${admin_prefix}/api/update-recents"
-            >
-             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Update Recents</a></li>
+            <form action="${admin_prefix}/api/update-recents" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Update Recents
+                </button>
+            </form>
+        </li>
         <li class="${'active' if active =='/api/reconcile-ca' else ''}">
-            <a  href="${admin_prefix}/api/reconcile-cas"
-            >
-             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Reconcile CAs</a></li>
+            <form action="${admin_prefix}/api/reconcile-cas" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Reconcile CAs
+                </button>
+            </form>
+        </li>
         % if enable_redis:
             <li>
-                <a  href="${admin_prefix}/api/redis/prime"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache
-                </a>
+                <form action="${admin_prefix}/api/redis/prime" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache
+                    </button>
+                </form>
             </li>
             <li>
-                <a  href="${admin_prefix}/api/redis/prime.json"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache - JSON
-                </a>
+                <form action="${admin_prefix}/api/redis/prime.json" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache - JSON
+                    </button>
+                </form>
             </li>
         % endif
         % if enable_nginx:
             <li>
-                <a  href="${admin_prefix}/api/nginx/cache-flush"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Flush Nginx Cache
-                </a>
+                <form action="${admin_prefix}/api/nginx/cache-flush" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Flush Nginx Cache
+                    </button>
+                </form>
             </li>
             <li>
-                <a  href="${admin_prefix}/api/nginx/cache-flush.json"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Flush Nginx Cache - JSON
-                </a>
+                <form action="${admin_prefix}/api/nginx/cache-flush.json" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Flush Nginx Cache - JSON
+                    </button>
+                </form>
             </li>
         % endif
     </ul>

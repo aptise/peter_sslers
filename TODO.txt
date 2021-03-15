@@ -9,12 +9,15 @@
 	- creating queue-certificates/freeform (domains)
 
 
+[ ] migrate index "actions" to POST forms
+
+
+
 
 Not Finished Yet
 ===============
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
-[ ] Endpoint Docs for the CA Preference
 
 
 Should the json endpoint be removed?
