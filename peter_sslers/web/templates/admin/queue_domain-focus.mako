@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/queue-domains">Queue: Domains</a></li>
-        <li class="active">Focus [${QueueDomainItem.id}]</li>
+        <li class="active">Focus [${QueueDomain.id}]</li>
     </ol>
 </%block>
 

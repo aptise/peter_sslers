@@ -38,6 +38,7 @@ log.setLevel(logging.CRITICAL)
 URL_STATUS = "%s/.peter_sslers/nginx/shared_cache/status"
 URL_EXPIRE_ALL = "%s/.peter_sslers/nginx/shared_cache/expire/all"
 URL_EXPIRE_DOMAIN = "%s/.peter_sslers/nginx/shared_cache/expire/domain/%s"
+MINIMUM_VERSION = "0.4.3"
 
 
 class FunctionalTests_Main(unittest.TestCase):
