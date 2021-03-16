@@ -212,6 +212,7 @@ def process_pebble_roots():
                 "This should not be possible"
             )
     dbSession.commit()
+    dbSession.close()
     return True
 
 
@@ -255,6 +256,7 @@ def archive_pebble_data():
                     _dbAcmeAccount.account_url,
                 )
     dbSession.commit()
+    dbSession.close()
     return True
 
 
@@ -1029,7 +1031,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
             )
             .filter(
-                model_objects.Domain.domain_name.not_in(
+                model_objects.Domain.domain_name.notin_(
                     ("selfsigned-1.example.com", "acme-orderless.example.com")
                 ),
                 sqlalchemy.or_(

@@ -2,6 +2,7 @@
 import logging
 
 log = logging.getLogger(__name__)
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # stdlib
 import datetime
@@ -12,8 +13,6 @@ from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 
-
-# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

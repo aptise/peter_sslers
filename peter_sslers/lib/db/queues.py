@@ -370,7 +370,7 @@ def queue_certificates__update(ctx):
                 == model_objects.CertificateSigned.id,
             )
             .filter(
-                model_objects.AcmeOrder.id.not_in(_subquery_already_queued),
+                model_objects.AcmeOrder.id.notin_(_subquery_already_queued),
                 model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
                 model_objects.AcmeOrder.is_auto_renew.op("IS")(True),
                 model_objects.AcmeOrder.is_renewed.op("IS NOT")(True),

@@ -30,6 +30,30 @@ from .logger import _log_object_event
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+"""
+TODO: sqlalchemy 1.4 rename
+* ``isnot`` is now ``is_not``
+* ``notin_`` is now ``not_in``
+"""
+
+
+_SA_VERSION = None  # parsed version
+_SA_1_4 = None  # Boolean
+
+
+def scalar_subquery(query):
+    global _SA_VERSION
+    global _SA_1_4
+    if _SA_VERSION is None:
+        _SA_VERSION = tuple(int(i) for i in sqlalchemy.__version__.split("."))
+        if _SA_VERSION >= (1, 4, 0):
+            _SA_1_4 = True
+        else:
+            _SA_1_4 = False
+    if _SA_1_4:
+        return query.scalar_subquery()
+    return query.subquery().as_scalar()
+
 
 def operations_deactivate_expired(ctx):
     """
@@ -159,8 +183,8 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
                 .filter(
                     model_objects.CertificateSigned.is_active.is_(True),
                     model_objects.UniqueFQDNSet2Domain.domain_id == _domain_id,
-                    model_objects.CertificateSigned.id.not_in(_q_ids__latest_single),
-                    model_objects.CertificateSigned.id.not_in(_q_ids__latest_multi),
+                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_single),
+                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_multi),
                 )
                 .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
                 .all()
@@ -198,8 +222,8 @@ def operations_reconcile_cas(ctx):
     dbCertificateCAs = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
-            model_objects.CertificateCA.cert_issuer_uri.is_not(None),
-            model_objects.CertificateCA.cert_issuer__reconciled.is_not(True),
+            model_objects.CertificateCA.cert_issuer_uri.isnot(None),
+            model_objects.CertificateCA.cert_issuer__reconciled.isnot(True),
         )
         .all()
     )
@@ -307,8 +331,8 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .scalar_subquery()
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_single=_q_sub)
@@ -333,8 +357,8 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .scalar_subquery()
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_multi=_q_sub)
@@ -380,8 +404,8 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .scalar_subquery()
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_single=_q_sub
@@ -406,8 +430,8 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .scalar_subquery()
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_multi=_q_sub
@@ -469,8 +493,8 @@ def operations_update_recents__global(ctx):
                 == CertificateCAChain2.certificate_ca_0_id,
             )
         )
-        .scalar_subquery()
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.CertificateCA.__table__.update().values(
             count_active_certificates=_q_sub
@@ -482,29 +506,22 @@ def operations_update_recents__global(ctx):
     # update the count of certificates/orders for each PrivateKey
     # this is done automatically, but a periodic update is a good idea
     # 4.A - PrivateKey.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
-        )
-        .scalar_subquery()
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
+    ).filter(
+        model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 4.b - PrivateKey.count_certificate_signeds
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
-        )
-        .filter(
-            model_objects.CertificateSigned.private_key_id
-            == model_objects.PrivateKey.id,
-        )
-        .scalar_subquery()
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
+    ).filter(
+        model_objects.CertificateSigned.private_key_id == model_objects.PrivateKey.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
             count_certificate_signeds=_q_sub
@@ -515,29 +532,23 @@ def operations_update_recents__global(ctx):
     # Step5:
     # update the counts for each AcmeAccount
     # 5.a - AcmeAccount.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-        )
-        .scalar_subquery()
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
+    ).filter(
+        model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 5.b - AcmeAccount.count_certificate_signeds
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
-        )
-        .scalar_subquery()
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
+    ).filter(
+        model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
+        model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
             count_certificate_signeds=_q_sub

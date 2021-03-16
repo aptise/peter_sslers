@@ -2583,7 +2583,7 @@ def _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id):
             == model_objects.CertificateCAChain.id,
         )
         .filter(model_objects.CertificateCAChain.certificate_ca_0_id == cert_ca_id)
-        .filter(model_objects.CertificateSignedChain.is_upstream_default.is_not(True))
+        .filter(model_objects.CertificateSignedChain.is_upstream_default.isnot(True))
     )
     return query_core
 

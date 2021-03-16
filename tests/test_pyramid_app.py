@@ -9139,7 +9139,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 dbDomainBlocklisted,
             ]
         )
-        self.ctx.dbSession.commit()
+        self.ctx.pyramid_transaction_commit()
         res = self.testapp.post(
             "/.well-known/admin/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-2.example.com"},
@@ -9912,8 +9912,10 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
     @under_redis
     @routes_tested(
         (
-            "admin:api:redis:prime",
+            # "admin:api:redis:prime",
             "admin:api:redis:prime|json",
+            "admin:api:domain:certificate-if-needed",  # used to prep
+            "admin:api:update_recents|json",  # used to prep
         )
     )
     def test_redis(self):
