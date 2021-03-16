@@ -151,7 +151,7 @@ if RUN_API_TESTS__ACME_DNS_API:
         raise ValueError("Must invoke with env vars for acme-dns services")
 
 
-OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.1"
+OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.3"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
 
 

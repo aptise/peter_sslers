@@ -4,10 +4,7 @@ import logging
 
 
 log = logging.getLogger(__name__)
-# use when debugging
-if False:
-    log.addHandler(logging.StreamHandler())
-    log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 # stdlib
