@@ -20,7 +20,7 @@ requires = [
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
-    "pyramid",
+    "pyramid<2",
     "python-dateutil",
     "requests",
     "six ",
