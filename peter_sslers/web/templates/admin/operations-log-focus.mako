@@ -14,6 +14,7 @@
 
 <%block name="page_header_col">
     <h2>Operations Log</h2>
+    ${admin_partials.handle_querystring_result()}
 </%block>
 
 

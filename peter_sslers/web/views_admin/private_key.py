@@ -1,7 +1,6 @@
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 
@@ -22,6 +21,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.forms import Form_PrivateKey_new__autogenerate
@@ -45,6 +46,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:private_keys|json", renderer="json")
     @view_config(route_name="admin:private_keys_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-keys.json",
+            "section": "private-key",
+            "about": """list PrivateKey(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/private-keys.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/private-keys/{PAGE}.json",
+            "section": "private-key",
+            "example": "curl {ADMIN_PREFIX}/private-keys/1.json",
+            "variant_of": "/private-keys.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__PrivateKey__count(self.request.api_context)
         url_template = (
@@ -72,20 +91,24 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbPrivateKey = None
+
     def _focus(self, eagerload_web=False):
-        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-            eagerload_web=eagerload_web,
-        )
-        if not dbPrivateKey:
-            raise HTTPNotFound("the key was not found")
-        self._focus_item = dbPrivateKey
-        self._focus_url = "%s/private-key/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbPrivateKey.id,
-        )
-        return dbPrivateKey
+        if self.dbPrivateKey is None:
+            dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+                eagerload_web=eagerload_web,
+            )
+            if not dbPrivateKey:
+                raise HTTPNotFound("the key was not found")
+            self.dbPrivateKey = dbPrivateKey
+            self._focus_item = dbPrivateKey
+            self._focus_url = "%s/private-key/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbPrivateKey.id,
+            )
+        return self.dbPrivateKey
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -93,6 +116,16 @@ class View_Focus(Handler):
         route_name="admin:private_key:focus", renderer="/admin/private_key-focus.mako"
     )
     @view_config(route_name="admin:private_key:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-key/{ID}.json",
+            "section": "private-key",
+            "about": """PrivateKey focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/private-key/1.json",
+        }
+    )
     def focus(self):
         dbPrivateKey = self._focus(eagerload_web=True)
         if self.request.wants_json:
@@ -110,6 +143,9 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:private_key:focus:raw", renderer="string")
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbPrivateKey = self._focus()
         if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.from_string(
             "placeholder"
@@ -128,6 +164,16 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:private_key:focus:parse|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-key/{ID}/parse.json",
+            "section": "private-key",
+            "about": """PrivateKey focus. parsed""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/private-key/1/parse.json",
+        }
+    )
     def focus_parse_json(self):
         dbPrivateKey = self._focus()
         return {
@@ -231,6 +277,27 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)
     @view_config(route_name="admin:private_key:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-key/{ID}/mark.json",
+            "section": "private-key",
+            "about": """PrivateKey focus: mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/private-key/1/mark.json",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/private-key/1/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {
+                "action": [
+                    "compromised",
+                    "active",
+                    "inactive",
+                ]
+            },
+        }
+    )
     def focus_mark(self):
         dbPrivateKey = self._focus()
         if self.request.method == "POST":
@@ -239,20 +306,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus_mark__print(self, dbPrivateKey):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {
-                    "action": [
-                        "compromised",
-                        "active",
-                        "inactive",
-                    ]
-                },
-            }
+            return formatted_get_docs(self, "/private-key/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -348,6 +402,20 @@ class View_Focus_Manipulate(View_Focus):
 class View_New(Handler):
     @view_config(route_name="admin:private_key:new")
     @view_config(route_name="admin:private_key:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-key/new.json",
+            "section": "private-key",
+            "about": """Create a new PrivateKey""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl --form "bits=4096" {ADMIN_PREFIX}/private-key/new.json""",
+            ],
+            "form_fields": {"bits": "bits for the PrivateKey"},
+            "valid_options": {"bits": ["4096"]},
+        }
+    )
     def new(self):
         if self.request.method == "POST":
             return self._new__submit()
@@ -355,15 +423,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    '''curl %s/private-key/new.json --form "bits=????"'''
-                    % (self.request.registry.settings["app_settings"]["admin_prefix"]),
-                ],
-                "form_fields": {"bits": "bits for the PrivateKey"},
-                "valid_options": {"bits": ["4096"]},
-            }
+            return formatted_get_docs(self, "/private-key/new.json")
         return render_to_response("/admin/private_key-new.mako", {}, self.request)
 
     def _new__submit(self):
@@ -413,6 +473,19 @@ class View_New(Handler):
 
     @view_config(route_name="admin:private_key:upload")
     @view_config(route_name="admin:private_key:upload|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/private-key/upload.json",
+            "section": "private-key",
+            "about": """upload a PrivateKey""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl --form "private_key_file_pem=@privkey1.pem" {ADMIN_PREFIX}/private-key/new.json""",
+            ],
+            "form_fields": {"private_key_file_pem": "required"},
+        }
+    )
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -420,15 +493,7 @@ class View_New(Handler):
 
     def _upload__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
-                    % (self.request.registry.settings["app_settings"]["admin_prefix"]),
-                ],
-                "form_fields": {"private_key_file_pem": "required"},
-            }
-
+            return formatted_get_docs(self, "/private-key/upload.json")
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
     def _upload__submit(self):

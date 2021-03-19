@@ -3,30 +3,33 @@ from __future__ import print_function
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 
 # stdlib
-import base64
-import binascii
-import datetime
+# import base64
+# import binascii
+# import datetime
 import hashlib
 import json
 import pdb
 import pprint
 import re
-import six
+
+# import six
 import ssl
-import subprocess
+
+# import subprocess
 import time
 
 try:
     from urllib.request import urlopen, Request  # Python 3
-    from urllib.error import URLError
+
+    # from urllib.error import URLError
 except ImportError:
     from urllib2 import urlopen, Request  # Python 2
-    from urllib2 import URLError
+
+    # from urllib2 import URLError
 
 # pypi
 from requests.utils import parse_header_links
@@ -38,13 +41,8 @@ from . import acmedns as lib_acmedns
 from . import cert_utils
 from . import errors
 from . import utils
+from .db import update as db_update
 from ..model import utils as model_utils
-
-
-# ==============================================================================
-
-
-TESTING_ENVIRONMENT = False
 
 
 # ==============================================================================
@@ -77,7 +75,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             "Content-Type": "application/jose+json",
             "User-Agent": "peter_sslers",
         }
-        if TESTING_ENVIRONMENT:
+        if cert_utils.TESTING_ENVIRONMENT:
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
@@ -98,7 +96,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
         # that is caught below
     except Exception as exc:
         # TODO: log this error to the database
-        if TESTING_ENVIRONMENT:
+        if cert_utils.TESTING_ENVIRONMENT:
             raise ValueError("LOG THIS EXCEPTION?")
         raise errors.AcmeCommunicationError(str(exc))
     try:
@@ -177,13 +175,14 @@ def filter_specific_challenge(
     return acme_challenges_payload[acme_challenge_type]
 
 
-def create_challenge_keyauthorization(token, accountkey_thumbprint):
+def create_challenge_keyauthorization(token, accountKeyData):
     """
     :param str token: (required) A string `token` entry from a server Challenge object
-    :param str accountkey_thumbprint: (required) The thumbprint of an Authenticated Account
+    :param str accountKeyData: (required) an instance conforming to `cert_utils.AccountKeyData`
+        in that it at-least has a `.thumbprint` attribute of an Authenticated Account
     """
     token = re.sub(r"[^A-Za-z0-9_\-]", "_", token)
-    keyauthorization = "{0}.{1}".format(token, accountkey_thumbprint)
+    keyauthorization = "{0}.{1}".format(token, accountKeyData.thumbprint)
     return keyauthorization
 
 
@@ -297,6 +296,101 @@ def get_header_links(response_headers, relation_type):
     ]
 
 
+def b64_payload(payload=None):
+    if payload is None:
+        return ""
+    return cert_utils.jose_b64(json.dumps(payload).encode("utf8"))
+
+
+def sign_payload(url=None, payload=None, accountKeyData=None, kid=None, nonce=None):
+    """
+    This format is used by core operations
+    """
+    protected = {
+        "url": url,
+        "alg": accountKeyData.alg,
+        "nonce": nonce,
+    }
+    if kid:
+        protected.update({"kid": kid})
+    else:
+        protected.update({"jwk": accountKeyData.jwk})
+    protected64 = b64_payload(protected)
+    payload64 = b64_payload(payload)
+    protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
+    signature = cert_utils.account_key__sign(
+        protected_input,
+        key_pem=accountKeyData.key_pem,
+        key_pem_filepath=accountKeyData.key_pem_filepath,
+    )
+    _signed_payload = json.dumps(
+        {
+            "protected": protected64,
+            "payload": payload64,
+            "signature": cert_utils.jose_b64(signature),
+        }
+    )
+    return _signed_payload
+
+
+def sign_payload_inner(
+    url=None,
+    payload=None,
+    accountKeyData=None,
+):
+    """
+    This format is used by the `keyChange` rollover endpoint's inner payload.
+
+    :param payload: the payload to sign
+    :param url: the url in the protected section
+    :param accountKeyData: instance of `cert_utils.AccountKeyData` used to sign
+        this should be the NEW key
+
+    Notes:
+
+    1. This format does not use a Nonce
+    2. This does not invoke `json.dumps()`
+
+    Reference:
+
+        https://tools.ietf.org/html/rfc8555#section-7.3.5
+        https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
+
+    Example:
+              "payload": base64url({
+                "protected": base64url({
+                  "alg": "ES256",
+                  "jwk": /* new key */,
+                  "url": "https://example.com/acme/key-change"
+                }),
+                "payload": base64url({
+                  "account": "https://example.com/acme/acct/1",
+                  "oldKey": /* old key */
+                }),
+                "signature": "Xe8B94RD30Azj2ea...8BmZIRtcSKPSd8gU"
+              }),
+    """
+    protected = {
+        "url": url,
+        "alg": accountKeyData.alg,
+        "jwk": accountKeyData.jwk,
+    }
+    protected64 = b64_payload(protected)
+    payload64 = b64_payload(payload)
+    protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
+    signature = cert_utils.account_key__sign(
+        protected_input,
+        key_pem=accountKeyData.key_pem,
+        key_pem_filepath=accountKeyData.key_pem_filepath,
+    )
+    _signed_payload = {
+        "protected": protected64,
+        "payload": payload64,
+        "signature": cert_utils.jose_b64(signature),
+    }
+    return _signed_payload
+
+
 # ------------------------------------------------------------------------------
 
 
@@ -304,14 +398,11 @@ class AuthenticatedUser(object):
 
     # our API guarantees these items
     acmeLogger = None
-    account_key_path = None
     acmeAccount = None
     acme_directory = None
-    accountkey_pem = None
-    accountkey_jwk = None
-    accountkey_thumbprint = None
-    alg = None
     log__OperationsEvent = None
+
+    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
 
     _api_account_object = None  # api server native/json object
     _api_account_headers = None  # api server native/json object
@@ -327,34 +418,28 @@ class AuthenticatedUser(object):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
         :param acmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-        :param account_key_path: (optional) The filepath of a PEM encoded RSA key
+        :param account_key_path: (optional) The filepath of a PEM encoded RSA key.
+            This is only needed for openssl fallback, but it will be created if necessary.
         :param acme_directory: (optional) The ACME Directory's url for a "directory"
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
-        if not all((acmeLogger, acmeAccount, account_key_path)):
-            raise ValueError(
-                "all elements are required: (acmeLogger, acmeAccount, account_key_path)"
-            )
+        if not all((acmeLogger, acmeAccount)):
+            raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         # do we need to load this?
         if acme_directory is None:
             acme_directory = acme_directory_get(acmeAccount)
 
         # parse account key to get public key
-        (accountkey_jwk, accountkey_thumbprint, alg) = cert_utils.account_key__parse(
+        self.accountKeyData = cert_utils.AccountKeyData(
             key_pem=acmeAccount.acme_account_key.key_pem,
             key_pem_filepath=account_key_path,
         )
 
         # configure the object!
         self.acmeLogger = acmeLogger
-        self.account_key_path = account_key_path
         self.acmeAccount = acmeAccount
         self.acme_directory = acme_directory
-        self.accountkey_pem = acmeAccount.acme_account_key.key_pem
-        self.accountkey_jwk = accountkey_jwk
-        self.accountkey_thumbprint = accountkey_thumbprint
-        self.alg = alg
         self.log__OperationsEvent = log__OperationsEvent
         self._next_nonce = None
 
@@ -368,45 +453,30 @@ class AuthenticatedUser(object):
         This proxies `url_request` with a signed payload
         returns (resp_data, status_code, headers)
         """
-        payload64 = (
-            ""
-            if payload is None
-            else cert_utils._b64(json.dumps(payload).encode("utf8"))
-        )
         if self._next_nonce:
             nonce = self._next_nonce
         else:
             self._next_nonce = nonce = url_request(self.acme_directory["newNonce"])[2][
                 "Replay-Nonce"
             ]
-        protected = {"url": url, "alg": self.alg, "nonce": nonce}
-        protected.update(
-            {"jwk": self.accountkey_jwk}
-            if self._api_account_headers is None
-            else {"kid": self._api_account_headers["Location"]}
-        )
-        protected64 = cert_utils._b64(json.dumps(protected).encode("utf8"))
-        protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
+        kid = None
+        if self._api_account_headers is not None:
+            kid = self._api_account_headers["Location"]
         try:
-            signature = cert_utils.account_key__sign(
-                protected_input,
-                key_pem=self.accountkey_pem,
-                key_pem_filepath=self.account_key_path,
+            _signed_payload = sign_payload(
+                url=url,
+                payload=payload,
+                accountKeyData=self.accountKeyData,
+                kid=kid,
+                nonce=nonce,
             )
         except IOError as exc:
             self._next_nonce = None
             raise
-        signature = json.dumps(
-            {
-                "protected": protected64,
-                "payload": payload64,
-                "signature": cert_utils._b64(signature),
-            }
-        )
         try:
             result = url_request(
                 url,
-                post_data=signature.encode("utf8"),
+                post_data=_signed_payload.encode("utf8"),
                 err_msg="_send_signed_request",
                 depth=depth,
             )
@@ -593,7 +663,8 @@ class AuthenticatedUser(object):
                 status_code,
                 acme_account_headers,
             ) = self._send_signed_request(
-                self.acme_directory["newAccount"], payload=payload_registration
+                self.acme_directory["newAccount"],
+                payload=payload_registration,
             )
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
@@ -627,11 +698,205 @@ class AuthenticatedUser(object):
         except Exception as exc:
             raise
 
+    def deactivate(self, ctx, transaction_commit=None):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+
+        Deactivates the authenticated user against the Acme directory
+
+        https://tools.ietf.org/html/rfc8555#section-7.3.6
+        https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
+
+            A client can deactivate an account by posting a signed update to the
+            account URL with a status field of "deactivated".
+
+                POST /acme/acct/evOfKhNU60wg HTTP/1.1
+                Host: example.com
+                Content-Type: application/jose+json
+
+                {
+                  "protected": base64url({
+                    "alg": "ES256",
+                    "kid": "https://example.com/acme/acct/evOfKhNU60wg",
+                    "nonce": "ntuJWWSic4WVNSqeUmshgg",
+                    "url": "https://example.com/acme/acct/evOfKhNU60wg"
+                  }),
+                  "payload": base64url({
+                    "status": "deactivated"
+                  }),
+                  "signature": "earzVLd3m5M4xJzR...bVTqn7R08AKOVf3Y"
+                }
+
+        https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
+        """
+        log.info("acme_v2.AuthenticatedUser.deactivate(")
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if self.acme_directory is None:
+            raise ValueError("`acme_directory` is required")
+
+        _account_url = self._api_account_headers["Location"]
+        if not _account_url:
+            raise ValueError("Account URL unknown")
+
+        is_did_deactivate = None
+        try:
+            _payload_deactivate = {"status": "deactivated"}
+            (
+                acme_account_object,
+                status_code,
+                acme_account_headers,
+            ) = self._send_signed_request(
+                _account_url,
+                payload=_payload_deactivate,
+            )
+
+            # this is a flag
+            is_did_deactivate = True
+
+            log.debug(") deactivate | acme_account_object: %s" % acme_account_object)
+            log.debug(") deactivate | acme_account_headers: %s" % acme_account_headers)
+            log.info(
+                ") deactivate = %s"
+                % ("acme_v2 DEACTIVATED!" if status_code == 200 else "ERROR")
+            )
+
+            # this would raise if we couldn't authenticate
+            db_update.update_AcmeAccount__set_deactivated(ctx, self.acmeAccount)
+            ctx.dbSession.flush(objects=[self.acmeAccount])
+
+            # log this
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["acme_account.id"] = self.acmeAccount.id
+            dbOperationsEvent = self.log__OperationsEvent(
+                ctx,
+                model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
+                event_payload_dict,
+            )
+        finally:
+            return is_did_deactivate
+
+    def key_change(self, ctx, dbAcmeAccountKey_new, transaction_commit=None):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+        :param dbAcmeAccountKey_new: (required) a :class:`model.objects.AcmeAccountKey` instance
+
+        Performs a key change rollover
+
+        https://tools.ietf.org/html/rfc8555#section-7.3.5
+        https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
+
+
+            POST /acme/key-change HTTP/1.1
+            Host: example.com
+            Content-Type: application/jose+json
+
+            {
+              "protected": base64url({
+                "alg": "ES256",
+                "kid": "https://example.com/acme/acct/1",
+                "nonce": "K60BWPrMQG9SDxBDS_xtSw",
+                "url": "https://example.com/acme/key-change"
+              }),
+              "payload": base64url({
+                "protected": base64url({
+                  "alg": "ES256",
+                  "jwk": /* new key */,
+                  "url": "https://example.com/acme/key-change"
+                }),
+                "payload": base64url({
+                  "account": "https://example.com/acme/acct/1",
+                  "oldKey": /* old key */
+                }),
+                "signature": "Xe8B94RD30Azj2ea...8BmZIRtcSKPSd8gU"
+              }),
+              "signature": "5TWiqIYQfIDfALQv...x9C2mg8JGPxl5bI4"
+            }
+
+        """
+        log.info("acme_v2.AuthenticatedUser.key_change(")
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if self.acme_directory is None:
+            raise ValueError("`acme_directory` is required")
+
+        if "keyChange" not in self.acme_directory:
+            raise ValueError("directory does not support `keyChange`")
+
+        _account_url = self._api_account_headers["Location"]
+        if not _account_url:
+            raise ValueError("Account URL unknown")
+
+        is_did_keychange = None
+        try:
+            # quickref and toggle these, so we generate the correct payloads
+            accountKeyData_old = self.accountKeyData
+            accountKeyData_new = cert_utils.AccountKeyData(
+                key_pem=dbAcmeAccountKey_new.key_pem,
+            )
+
+            _key_change_url = self.acme_directory["keyChange"]
+
+            _payload_inner = {
+                "account": _account_url,
+                "oldKey": accountKeyData_old.jwk,
+            }
+            payload_inner = sign_payload_inner(
+                url=_key_change_url,
+                payload=_payload_inner,
+                accountKeyData=accountKeyData_new,
+            )
+            (acme_response, status_code, acme_headers,) = self._send_signed_request(
+                _key_change_url,
+                payload=payload_inner,
+            )
+
+            is_did_keychange = True
+
+            log.debug(") key_change | acme_response: %s" % acme_response)
+            log.debug(") key_change | acme_headers: %s" % acme_headers)
+
+            # assuming things worked...
+            self.accountKeyData = accountKeyData_new
+            # turn off the old and flush, so the index is maintained
+            dbAcmeAccountKey_old = self.acmeAccount.acme_account_key
+            dbAcmeAccountKey_old.is_active = None
+            dbAcmeAccountKey_old.timestamp_deactivated = ctx.timestamp
+            ctx.dbSession.flush(objects=[dbAcmeAccountKey_old])
+            # turn on the new and flush
+            self.acmeAccount.acme_account_key = dbAcmeAccountKey_new
+            dbAcmeAccountKey_new.is_active = True
+            ctx.dbSession.flush(
+                objects=[
+                    dbAcmeAccountKey_new,
+                    self.acmeAccount,
+                ]
+            )
+
+            # log this
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["acme_account.id"] = self.acmeAccount.id
+            event_payload_dict["acme_account_key-old.id"] = dbAcmeAccountKey_old.id
+            event_payload_dict["acme_account_key-new.id"] = dbAcmeAccountKey_new.id
+            dbOperationsEvent = self.log__OperationsEvent(
+                ctx,
+                model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
+                event_payload_dict,
+            )
+
+        finally:
+            return is_did_keychange
+
     def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
+        log.info("acme_v2.AuthenticatedUser.acme_order_load(")
         if transaction_commit is not True:
             # required for the `AcmeLogger`
             raise ValueError("we must invoke this knowing it will commit")
@@ -640,7 +905,6 @@ class AuthenticatedUser(object):
             raise ValueError("the order does not have a `order_url`")
 
         try:
-            log.info("acme_v2.AuthenticatedUser.acme_order_load(")
             (
                 acme_order_object,
                 _status_code,
@@ -682,7 +946,6 @@ class AuthenticatedUser(object):
         returns
             acmeOrderRfcObject, dbEventLogged
         """
-        # create a new order
         log.info("acme_v2.AuthenticatedUser.acme_order_new(")
         if transaction_commit is not True:
             # required for the `AcmeLogger`
@@ -773,7 +1036,7 @@ class AuthenticatedUser(object):
         # acme_challenge_response
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
-            self.accountkey_thumbprint,
+            self.accountKeyData,
         )
         if dbAcmeChallenge.keyauthorization != keyauthorization:
             raise ValueError("This should never happen!")
@@ -786,8 +1049,10 @@ class AuthenticatedUser(object):
 
         # check that the file is in place
         try:
-            if TESTING_ENVIRONMENT:
-                log.debug("TESTING_ENVIRONMENT, not ensuring the challenge is readable")
+            if cert_utils.TESTING_ENVIRONMENT:
+                log.debug(
+                    "cert_utils.TESTING_ENVIRONMENT, not ensuring the challenge is readable"
+                )
             else:
                 try:
                     resp = urlopen(wellknown_url)
@@ -856,7 +1121,7 @@ class AuthenticatedUser(object):
         # acme_challenge_response
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
-            self.accountkey_thumbprint,
+            self.accountKeyData,
         )
         if dbAcmeChallenge.keyauthorization != keyauthorization:
             raise ValueError("This should never happen!")
@@ -975,10 +1240,10 @@ class AuthenticatedUser(object):
         :param csr_pem: (required) The CertitificateSigningRequest as PEM
 
         :returns fullchain_pems: an array of the fullchain pems
-        """
-        # get the new certificate
-        log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
 
+        # get the new certificate
+        """
+        log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
         if transaction_commit is not True:
             # required for the `update_order_status`
             raise ValueError("we must invoke this knowing it will commit")
@@ -995,7 +1260,7 @@ class AuthenticatedUser(object):
             "v2", transaction_commit=True
         )  # log this to the db
 
-        payload_finalize = {"csr": cert_utils._b64(csr_der)}
+        payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
             (
                 finalize_response,

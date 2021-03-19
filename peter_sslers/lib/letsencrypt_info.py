@@ -1,6 +1,16 @@
+"""
+This file contains the following:
+
+* LetsEncrypt Rate Limits in JSON form
+* Information on the LetsEncrypt Trust Chain
+* A routine to load the LetsEncrypt Certificates into Python
+
+Because this loads Certificates into memory for some operations, it should
+generally not be imported.
+"""
+
 # stdlib
 import copy
-import datetime
 import os
 
 # pypi
@@ -104,7 +114,7 @@ LIMITS = {
 # * tests.test_unit.UnitTest_LetsEncrypt_Data
 
 
-CERT_CAS_VERSION = 2  # update when the information below changes
+CERT_CAS_VERSION = 3  # update when the information below changes
 """
 format details:
 
@@ -116,6 +126,10 @@ the payload can have one of these two values, which reference another key:
     
 Special Values
     ".enddate": the args to datetime.datetime()
+
+Compatibility Info
+    via https://letsencrypt.org/docs/certificate-compatibility/
+    Last updated: Jan 21, 2021
 
 """
 CERT_CAS_DATA = {
@@ -131,6 +145,24 @@ CERT_CAS_DATA = {
             "sha1": "DAC9024F54D8F6DF94935FB1732638CA6AD77C13",
         },
         ".enddate": (2021, 9, 30, 14, 1, 15),
+        "compatibility": {
+            "Windows": ">= XP SP3",
+            "macOS": "(most versions)",
+            "iOS": "(most versions)",
+            "Android": ">= v2.3.6",
+            "Mozilla Firefox": ">= v2.0",
+            "Ubuntu": ">= precise / 12.04",
+            "Debian": ">= squeee / 6",
+            "Java 8": ">= 8u101",
+            "Java 7": ">= 7u111",
+            "NSS": ">= v3.11.9",
+            "Amazon FireOS (Silk Browser)": "?",
+            "Cyanogen": "> v10",
+            "Jolla Sailfish OS": "> v1.1.2.16",
+            "Kindle": "> v3.4.1",
+            "Blackberry": ">= 10.3.3",
+            "PS4 game console": "with firmware >= 5.00",
+        },
     },
     "isrg_root_x1": {
         "display_name": "ISRG Root X1",
@@ -145,6 +177,18 @@ CERT_CAS_DATA = {
             "sha1": "CABD2A79A1076A31F21D253635CB039D4329A5E8",
         },
         ".enddate": (2035, 6, 4, 11, 4, 38),
+        "compatibility": {
+            "Windows": ">= XP SP3 (assuming Automatic Root Certificate Update isn't manually disabled)",
+            "macOS": ">= 10.12.1",
+            "iOS": ">= 10 (iOS 9 does not include it)",
+            "Android": ">= 7.1.1",
+            "Mozilla Firefox": ">= 50.0",
+            "Ubuntu": ">= xenial / 16.04 (with updates applied)",
+            "Debian": ">= jessie / 8 (with updates applied)",
+            "Java 8": ">= 8u141",
+            "Java 7": ">= 7u151",
+            "NSS": ">= 3.26",
+        },
     },
     "isrg_root_x1_cross": {
         # x1 this is cross signed by x1 to act as an intermediate!

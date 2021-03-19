@@ -153,11 +153,12 @@
                             <th>Nginx cache</th>
                             <td>
                                 <span class="btn-group">
-                                    <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire"
-                                    >
-                                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                        nginx-cache-expire</a>
+                                    <form action="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire" method="POST">
+                                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                            nginx-cache-expire
+                                        </button>
+                                    </form>
                                     <a  class="btn btn-xs btn-primary"
                                         href="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire.json"
                                         target="_blank"
@@ -192,10 +193,10 @@
                         <th>New Certificate</th>
                         <td>
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
+                                href="${admin_prefix}/acme-order/new/freeform?domain_names_http01=${Domain.domain_name}"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                AcmeDnsServers - New</a>
+                                ACME Order - New</a>
                         </td>
                     </tr>
                 </tbody>

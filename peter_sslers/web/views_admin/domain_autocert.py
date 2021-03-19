@@ -14,6 +14,9 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
@@ -43,6 +46,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:domain_autocerts|json", renderer="json")
     @view_config(route_name="admin:domain_autocerts_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain-autocerts.json",
+            "section": "domain-autocert",
+            "about": """list DomainAutocert(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain-autocerts.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain-autocerts/{PAGE}.json",
+            "section": "domain-autocert",
+            "example": "curl {ADMIN_PREFIX}/domain-autocerts/1.json",
+            "variant_of": "/domain-autocerts.json",
+        }
+    )
     def list(self):
         url_template = (
             "%s/domain-autocerts/{0}"

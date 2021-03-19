@@ -15,6 +15,8 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CertificateCAPreference__add
 from ..lib.forms import Form_CertificateCAPreference__delete
 from ..lib.forms import Form_CertificateCAPreference__prioritize
@@ -24,7 +26,6 @@ from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import letsencrypt_info
 
 
 # ==============================================================================
@@ -40,6 +41,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:certificate_cas|json", renderer="json")
     @view_config(route_name="admin:certificate_cas_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-cas.json",
+            "section": "certificate-ca",
+            "about": """list CertificateCA(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-cas.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-cas/{PAGE}.json",
+            "section": "certificate-ca",
+            "example": "curl {ADMIN_PREFIX}/certificate-cas/1.json",
+            "variant_of": "/certificate-cas.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__CertificateCA__count(self.request.api_context)
         url_template = (
@@ -122,26 +141,45 @@ class View_Preferred(Handler):
 
     @view_config(route_name="admin:certificate_cas:preferred")
     @view_config(route_name="admin:certificate_cas:preferred|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-cas/preferred.json",
+            "section": "certificate-ca",
+            "about": """list preferred CertificateCA(s)""",
+            "POST": None,
+            "GET": True,
+        }
+    )
     def preferred(self):
         # just invoke the shared printing function
         return self._preferred__print()
 
     @view_config(route_name="admin:certificate_cas:preferred:add")
     @view_config(route_name="admin:certificate_cas:preferred:add|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-cas/preferred/add.json",
+            "section": "certificate-ca",
+            "about": """add preferred CertificateCA""",
+            "POST": True,
+            "GET": False,
+            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/add.json",
+            # -----
+            "instructions": [
+                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/add.json""",
+            ],
+            "form_fields": {
+                "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+            },
+        }
+    )
     def add(self):
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
-                    return {
-                        "instructions": [
-                            """HTTP POST required""",
-                            """curl --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/add.json"""
-                            % self.request.admin_url,
-                        ],
-                        "form_fields": {
-                            "fingerprint_sha1": "the fingerprint_sha1 of the current record",
-                        },
-                    }
+                    return formatted_get_docs(
+                        self, "/certificate-cas/preferred/add.json"
+                    )
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_CertificateCAPreference__add,
@@ -219,21 +257,31 @@ class View_Preferred(Handler):
     @view_config(
         route_name="admin:certificate_cas:preferred:delete|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-cas/preferred/delete.json",
+            "section": "certificate-ca",
+            "about": """delete preferred CertificateCA""",
+            "POST": True,
+            "GET": False,
+            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/delete.json",
+            # -----
+            "instructions": [
+                """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/delete.json""",
+            ],
+            "form_fields": {
+                "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+                "slot": "the slot of the current record",
+            },
+        }
+    )
     def delete(self):
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
-                    return {
-                        "instructions": [
-                            """HTTP POST required""",
-                            """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/delete.json"""
-                            % self.request.admin_url,
-                        ],
-                        "form_fields": {
-                            "slot": "the slot of the current record",
-                            "fingerprint_sha1": "the fingerprint_sha1 of the current record",
-                        },
-                    }
+                    return formatted_get_docs(
+                        self, "/certificate-cas/preferred/delete.json"
+                    )
             data_formencode_form = "delete"
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -276,27 +324,37 @@ class View_Preferred(Handler):
     @view_config(
         route_name="admin:certificate_cas:preferred:prioritize|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-cas/preferred/prioritize.json",
+            "section": "certificate-ca",
+            "about": """prioritize preferred CertificateCA""",
+            "POST": True,
+            "GET": False,
+            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json",
+            # -----
+            "instructions": [
+                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json""",
+            ],
+            "form_fields": {
+                "fingerprint_sha1": "the fingerprint_sha1 of the current record",
+                "slot": "the slot of the current record",
+                "priority": "the new priority for the current record",
+            },
+            "valid_options": {
+                "priority": [
+                    "increase",
+                    "decrease",
+                ]
+            },
+        }
+    )
     def prioritize(self):
         if self.request.wants_json:
             if self.request.method != "POST":
-                return {
-                    "instructions": [
-                        """HTTP POST required""",
-                        """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' --form 'fingerprint_sha1=fingerprint_sha1' %s/certificate-cas/preferred/prioritize.json"""
-                        % self.request.admin_url,
-                    ],
-                    "form_fields": {
-                        "slot": "the slot of the current record",
-                        "fingerprint_sha1": "the fingerprint_sha1 of the current record",
-                        "priority": "the new priority for the current record",
-                    },
-                    "valid_options": {
-                        "priority": [
-                            "increase",
-                            "decrease",
-                        ]
-                    },
-                }
+                return formatted_get_docs(
+                    self, "/certificate-cas/preferred/prioritize.json"
+                )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -337,18 +395,22 @@ class View_Preferred(Handler):
 
 
 class View_Focus(Handler):
+    dbCertificateCA = None
+
     def _focus(self):
-        dbCertificateCA = lib_db.get.get__CertificateCA__by_id(
-            self.request.api_context, self.request.matchdict["id"]
-        )
-        if not dbCertificateCA:
-            raise HTTPNotFound("the cert was not found")
-        self.focus_item = dbCertificateCA
-        self.focus_url = "%s/certificate-ca/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            self.focus_item.id,
-        )
-        return dbCertificateCA
+        if self.dbCertificateCA is None:
+            dbCertificateCA = lib_db.get.get__CertificateCA__by_id(
+                self.request.api_context, self.request.matchdict["id"]
+            )
+            if not dbCertificateCA:
+                raise HTTPNotFound("the cert was not found")
+            self.dbCertificateCA = dbCertificateCA
+            self.focus_item = dbCertificateCA
+            self.focus_url = "%s/certificate-ca/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbCertificateCA.id,
+            )
+        return self.dbCertificateCA
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -357,6 +419,16 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus.mako",
     )
     @view_config(route_name="admin:certificate_ca:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}.json",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1.json",
+        }
+    )
     def focus(self):
         dbCertificateCA = self._focus()
         items_count = (
@@ -397,7 +469,60 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_ca:focus:raw", renderer="string")
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/cert.pem",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: cert.pem""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/cert.pem.txt",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: cert.pem.txt""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem.txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/cert.cer",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: cert.cer""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.cer",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/cert.crt",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: cert.crt""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.crt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/cert.der",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: cert.der""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
+        }
+    )
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbCertificateCA = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -418,6 +543,16 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_ca:focus:parse|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-ca/{ID}/parse.json",
+            "section": "certificate-ca",
+            "about": """CertificateCA focus: parse""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/parse.json",
+        }
+    )
     def focus_parse_json(self):
         dbCertificateCA = self._focus()
         return {
@@ -556,6 +691,23 @@ class View_Focus(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:certificate_ca:upload_cert")
     @view_config(route_name="admin:certificate_ca:upload_cert|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-ca/upload-cert.json",
+            "section": "certificate-ca",
+            "about": """CertificateCA upload certificate""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
+            # -----
+            "instructions": [
+                """curl --form 'cert_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
+            ],
+            "form_fields": {
+                "cert_file": "required",
+            },
+        }
+    )
     def upload_cert(self):
         if self.request.method == "POST":
             return self._upload_cert__submit()
@@ -563,11 +715,7 @@ class View_New(Handler):
 
     def _upload_cert__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": """curl --form 'cert_file=@chain1.pem' --form %s/certificate-ca/upload-cert.json"""
-                % self.request.admin_url,
-                "form_fields": {"cert_file": "required"},
-            }
+            return formatted_get_docs(self, "/certificate-ca/upload-cert.json")
         return render_to_response(
             "/admin/certificate_ca-upload_cert.mako", {}, self.request
         )

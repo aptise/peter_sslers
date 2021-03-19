@@ -3,7 +3,6 @@ from __future__ import print_function
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 # stdlib
@@ -15,6 +14,7 @@ import subprocess
 import unittest
 import traceback
 import time
+import uuid
 from io import open  # overwrite `open` in Python2
 from functools import wraps
 
@@ -151,7 +151,7 @@ if RUN_API_TESTS__ACME_DNS_API:
         raise ValueError("Must invoke with env vars for acme-dns services")
 
 
-OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.4.1"
+OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.5.0"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
 
 
@@ -212,7 +212,63 @@ def process_pebble_roots():
                 "This should not be possible"
             )
     dbSession.commit()
+    dbSession.close()
     return True
+
+
+def archive_pebble_data():
+    """
+    pebble account urls have a serial that restarts on each load
+    this causes issues with tests
+    """
+    log.info("`pebble`: archive_pebble_data")
+    settings = get_appsettings(
+        TEST_INI, name="main"
+    )  # this can cause an unclosed resource
+    session_factory = get_session_factory(get_engine(settings))
+    dbSession = session_factory()
+    ctx = utils.ApiContext(
+        request=FakeRequest(),
+        dbSession=dbSession,
+        timestamp=datetime.datetime.utcnow(),
+    )
+    # model_objects.AcmeAccount
+    # migration strategy - append a `@{UUID}` to the url, so it will not match
+    dbAcmeAccounts = db.get.get__AcmeAccount__paginated(ctx)
+    for _dbAcmeAccount in dbAcmeAccounts:
+        if _dbAcmeAccount.account_url:
+            if "@" not in _dbAcmeAccount.account_url:
+                log.debug(
+                    "archive_pebble_data: migrating _dbAcmeAccount %s %s",
+                    _dbAcmeAccount.id,
+                    _dbAcmeAccount.account_url,
+                )
+                account_url = _dbAcmeAccount.account_url
+                _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
+                dbSession.flush(
+                    objects=[
+                        _dbAcmeAccount,
+                    ]
+                )
+                log.debug(
+                    "archive_pebble_data: migrated _dbAcmeAccount %s %s",
+                    _dbAcmeAccount.id,
+                    _dbAcmeAccount.account_url,
+                )
+    dbSession.commit()
+    dbSession.close()
+    return True
+
+
+def handle_new_pebble():
+    """
+    When pebble starts:
+        * we must inspect the new pebble roots
+    When pebble restarts
+        * the database may have old pebble data
+    """
+    process_pebble_roots()
+    archive_pebble_data()
 
 
 def under_pebble(_function):
@@ -248,7 +304,7 @@ def under_pebble(_function):
                     raise ValueError("`pebble`: ERROR spinning up")
                 time.sleep(1)
             try:
-                process_pebble_roots()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -293,7 +349,7 @@ def under_pebble_strict(_function):
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
                 time.sleep(1)
             try:
-                process_pebble_roots()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -810,11 +866,24 @@ KEY_SETS = {
 # ==============================================================================
 
 
+class FakeAccountKeyData(cert_utils.AccountKeyData):
+    """
+    implements minimum amount of `cert_utils.AccountKeyData`
+    """
+
+    def __init__(self, thumbprint=None):
+        self.thumbprint = thumbprint
+
+
 class FakeAuthenticatedUser(object):
-    accountkey_thumbprint = None
+    """
+    implements minimum amount of `acme_v2.AuthenticatedUser`
+    """
+
+    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
 
     def __init__(self, accountkey_thumbprint=None):
-        self.accountkey_thumbprint = accountkey_thumbprint
+        self.accountKeyData = FakeAccountKeyData(thumbprint=accountkey_thumbprint)
 
 
 class _Mixin_filedata(object):
@@ -831,13 +900,17 @@ class _Mixin_filedata(object):
             return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
-    def _filedata_testfile(self, filename):
+    def _filedata_testfile(self, filename, is_binary=False):
         _data_root = self._data_root
         if filename.startswith("letsencrypt-certs/"):
             filename = filename[18:]
             _data_root = self._data_root_letsencrypt
-        with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
-            data = f.read()
+        if is_binary:
+            with open(os.path.join(_data_root, filename), "rb") as f:
+                data = f.read()
+        else:
+            with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
+                data = f.read()
         return data
 
 
@@ -1612,3 +1685,7 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
 
 
 # ==============================================================================
+
+
+def generate_random_emailaddress(template="%s@example.com"):
+    return template % uuid.uuid4()

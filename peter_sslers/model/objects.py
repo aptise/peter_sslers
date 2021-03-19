@@ -7,7 +7,8 @@ import pdb
 from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
-from sqlalchemy import inspect as sa_inspect
+
+# from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.session import Session as sa_Session
 
 # localapp
@@ -193,6 +194,8 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
+    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
+
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -265,6 +268,18 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
+    def is_can_deactivate(self):
+        if self.is_active:
+            return True
+        return False
+
+    @property
+    def is_can_key_change(self):
+        if self.is_active:
+            return True
+        return False
+
+    @property
     def is_global_default_candidate(self):
         if self.is_global_default:
             return False
@@ -302,28 +317,19 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         return {
             "is_active": True if self.is_active else False,
+            "is_deactivated": self.timestamp_deactivated or False,
             "is_global_default": True if self.is_global_default else False,
             "acme_account_provider_id": self.acme_account_provider_id,
             "acme_account_provider_name": self.acme_account_provider.name,
             "acme_account_provider_url": self.acme_account_provider.url,
             "acme_account_provider_protocol": self.acme_account_provider.protocol,
-            "AcmeAccountKey": {
-                "id": self.acme_account_key.id if self.acme_account_key else None,
-                "key_pem": self.acme_account_key.key_pem
-                if self.acme_account_key
-                else None,
-                "key_pem_md5": self.acme_account_key.key_pem_md5
-                if self.acme_account_key
-                else None,
-                "spki_sha256": self.acme_account_key.spki_sha256
-                if self.acme_account_key
-                else None,
-                "acme_account_key_source": self.acme_account_key.acme_account_key_source
-                if self.acme_account_key
-                else None,
-            },
+            "AcmeAccountKey": self.acme_account_key.as_json
+            if self.acme_account_key
+            else None,
             "id": self.id,
             "private_key_cycle": self.private_key_cycle,
+            "contact": self.contact,
+            "account_url": self.account_url,
         }
 
 
@@ -334,13 +340,23 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "acme_account_key"
+    __table_args__ = (
+        sa.Index(
+            "idx_acme_account_key_active",
+            "acme_account_id",
+            "is_active",
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     acme_account_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_active = sa.Column(sa.Boolean, nullable=True, default=None)
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
     key_technology_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
@@ -403,6 +419,17 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "key_pem": self.key_pem,
+            "key_pem_md5": self.key_pem_md5,
+            "spki_sha256": self.spki_sha256,
+            "acme_account_key_source": self.acme_account_key_source,
+            "is_active": self.is_active,
+        }
 
 
 # ==============================================================================
@@ -2137,19 +2164,26 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # these are not guaranteed
     cert_issuer_uri = sa.Column(sa.Text, nullable=True)
     cert_authority_key_identifier = sa.Column(sa.Text, nullable=True)
+    cert_issuer__reconciled = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # status, True or False
+    cert_issuer__certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    )  # who did we reconcile this to/
+    reconciled_uris = sa.Column(sa.Text, nullable=True)
 
-    # internal tracking
-    count_active_certificates = sa.Column(sa.Integer, nullable=True)
-
+    count_active_certificates = sa.Column(
+        sa.Integer, nullable=True
+    )  # internal tracking
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    id_signed_by = sa.Column(
+    )  # internal tracking
+    signed_by__certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )
-    id_cross_signed_by = sa.Column(
+    )  # internal tracking
+    cross_signed_by__certificate_ca_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )
+    )  # internal tracking
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
@@ -2165,6 +2199,11 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_n_id",
         back_populates="certificate_ca_n",
     )
+    cert_issuer__certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="CertificateCA.cert_issuer__certificate_ca_id==remote(CertificateCA.id)",
+        uselist=False,
+    )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="CertificateCA.operations_event_id__created==OperationsEvent.id",
@@ -2173,6 +2212,12 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="CertificateCA.id==OperationsObjectEvent.certificate_ca_id",
+        back_populates="certificate_ca",
+    )
+
+    to_root_store_versions = sa_orm_relationship(
+        "RootStoreVersion_2_CertificateCA",
+        primaryjoin="CertificateCA.id==RootStoreVersion_2_CertificateCA.certificate_ca_id",
         back_populates="certificate_ca",
     )
 
@@ -2429,6 +2474,24 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
         "CertificateCA",
         primaryjoin="CertificateCAPreference.certificate_ca_id==CertificateCA.id",
         uselist=False,
+    )
+
+
+# ==============================================================================
+
+
+class CertificateCAReconciliation(Base):
+    __tablename__ = "certificate_ca_reconciliation"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_operation = sa.Column(sa.DateTime, nullable=False)
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+    result = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # True - success; False - failure
+    certificate_ca_id__issuer__reconciled = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
 
 
@@ -4111,20 +4174,131 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class RootStore(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store"
+    __table_args__ = (
+        sa.Index(
+            "idx_root_store_name",
+            model_utils.indexable_lower(sa.text("name")),
+            unique=True,
+        ),
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.Text, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    root_store_versions = sa_orm_relationship(
+        "RootStoreVersion",
+        primaryjoin="RootStore.id==RootStoreVersion.root_store_id",
+        back_populates="root_store",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "versions": [i.as_json for i in self.root_store_versions],
+        }
+
+
+class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_version"
+    __table_args__ = (
+        sa.Index(
+            "idx_root_store_version",
+            "root_store_id",
+            model_utils.indexable_lower(sa.text("version_string")),
+            unique=True,
+        ),
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    root_store_id = sa.Column(
+        sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
+    )
+    version_string = sa.Column(sa.Integer, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    root_store = sa_orm_relationship(
+        "RootStore",
+        primaryjoin="RootStoreVersion.root_store_id==RootStore.id",
+        uselist=False,
+        back_populates="root_store_versions",
+    )
+    to_certificate_cas = sa_orm_relationship(
+        "RootStoreVersion_2_CertificateCA",
+        primaryjoin="RootStoreVersion.id==RootStoreVersion_2_CertificateCA.root_store_version_id",
+        back_populates="root_store_version",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "name": self.root_store.name,
+            "version_string": self.version_string,
+        }
+
+
+class RootStoreVersion_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_version_2_certificate_ca"
+    id = sa.Column(sa.Integer, primary_key=True)
+    root_store_version_id = sa.Column(
+        sa.Integer, sa.ForeignKey("root_store_version.id"), nullable=False
+    )
+    certificate_ca_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    root_store_version = sa_orm_relationship(
+        "RootStoreVersion",
+        primaryjoin="RootStoreVersion_2_CertificateCA.root_store_version_id==RootStoreVersion.id",
+        uselist=False,
+        back_populates="to_certificate_cas",
+    )
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="RootStoreVersion_2_CertificateCA.certificate_ca_id==CertificateCA.id",
+        uselist=False,
+        back_populates="to_root_store_versions",
+    )
+
+
+# ==============================================================================
+
+
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
-    There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
+    UniqueFQDNSets are used for two reasons:
 
-    * `domain_ids_string` should be a unique list of ordered ids, separated by commas.
-    * the association table is used to actually join domains to Certificates and CSRs
+    1. They simplify tracking Lineage of Certificates vs Certbot's approach.
+    2. There is a ratelimit in effect from LetsEncrypt for unique sets of
+       fully-qualified domain names
 
+    Domains are actually associated to the UniqueFQDNSet by the table:
+    `UniqueFQDNSet2Domain`.
+
+    The column `domain_ids_string` is a unique list of ordered ids, separated by
+    commas. This is used as a fingerprint for searching and deduplication.
     """
 
     # note: RATELIMIT.FQDN
 
     __tablename__ = "unique_fqdn_set"
     id = sa.Column(sa.Integer, primary_key=True)
-    domain_ids_string = sa.Column(sa.Text, nullable=False)
+    domain_ids_string = sa.Column(sa.Text, nullable=False, unique=True)
     count_domains = sa.Column(sa.Integer, nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     operations_event_id__created = sa.Column(

@@ -1,8 +1,6 @@
 # stdlib
-import os
 
 # local
-from . import acme_v2
 from . import cert_utils
 from ..model import objects as model_objects
 from ..model import utils as model_utils
@@ -160,7 +158,7 @@ class ApplicationSettings(dict):
             settings, "certificate_authority_testing"
         )
         if self["certificate_authority_testing"]:
-            acme_v2.TESTING_ENVIRONMENT = True
+            cert_utils.TESTING_ENVIRONMENT = True
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")

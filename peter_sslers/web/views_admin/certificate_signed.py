@@ -20,6 +20,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CertificateSigned_mark
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
@@ -28,7 +30,6 @@ from ...lib import errors
 from ...lib import events
 from ...lib import db as lib_db
 from ...lib import cert_utils
-from ...lib import letsencrypt_info
 from ...lib import utils
 from ...lib import utils_nginx
 from ...model import utils as model_utils
@@ -144,6 +145,78 @@ class View_List(Handler):
     @view_config(
         route_name="admin:certificate_signeds:inactive_paginated|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/all.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/all/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/all/1.json",
+            "variant_of": "/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/active.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/active/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active/1.json",
+            "variant_of": "/certificate-signeds/active.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/expiring.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/expiring.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/expiring/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/expiring/1.json",
+            "variant_of": "/certificate-signeds/expiring.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive/1.json",
+            "variant_of": "/certificate-signeds/expiring.json",
+        }
+    )
     def list(self):
         expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
         if self.request.matched_route.name in (
@@ -253,6 +326,21 @@ class View_List(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:certificate_signed:upload")
     @view_config(route_name="admin:certificate_signed:upload|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-signed/upload.json",
+            "section": "certificate-signed",
+            "about": """upload a CertificateSigned""",
+            "POST": True,
+            "GET": None,
+            "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate-signed/upload.json""",
+            "form_fields": {
+                "private_key_file_pem": "required",
+                "chain_file": "required",
+                "certificate_file": "required",
+            },
+        }
+    )
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -260,15 +348,7 @@ class View_New(Handler):
 
     def _upload__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate-signed/upload.json"""
-                % self.request.admin_url,
-                "form_fields": {
-                    "private_key_file_pem": "required",
-                    "chain_file": "required",
-                    "certificate_file": "required",
-                },
-            }
+            return formatted_get_docs(self, "/certificate-signed/upload.json")
         return render_to_response(
             "/admin/certificate_signed-upload.mako", {}, self.request
         )
@@ -318,10 +398,11 @@ class View_New(Handler):
 
             _tmpfileCert = None
             try:
-                _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
+                if cert_utils.NEEDS_TEMPFILES:
+                    _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
                 _certificate_domain_names = cert_utils.parse_cert__domains(
                     cert_pem=certificate_pem,
-                    cert_pem_filepath=_tmpfileCert.name,
+                    cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
                 )
                 if not _certificate_domain_names:
                     raise ValueError(
@@ -386,18 +467,22 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+    dbCertificateSigned = None
+
     def _focus(self):
-        dbCertificateSigned = lib_db.get.get__CertificateSigned__by_id(
-            self.request.api_context, self.request.matchdict["id"]
-        )
-        if not dbCertificateSigned:
-            raise HTTPNotFound("invalid CertificateSigned")
-        self._focus_item = dbCertificateSigned
-        self._focus_url = "%s/certificate-signed/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbCertificateSigned.id,
-        )
-        return dbCertificateSigned
+        if self.dbCertificateSigned is None:
+            dbCertificateSigned = lib_db.get.get__CertificateSigned__by_id(
+                self.request.api_context, self.request.matchdict["id"]
+            )
+            if not dbCertificateSigned:
+                raise HTTPNotFound("invalid CertificateSigned")
+            self.dbCertificateSigned = dbCertificateSigned
+            self._focus_item = dbCertificateSigned
+            self._focus_url = "%s/certificate-signed/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbCertificateSigned.id,
+            )
+        return self.dbCertificateSigned
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -406,6 +491,16 @@ class View_Focus(Handler):
         renderer="/admin/certificate_signed-focus.mako",
     )
     @view_config(route_name="admin:certificate_signed:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}.json",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1.json",
+        }
+    )
     def focus(self):
         dbCertificateSigned = self._focus()
         if self.request.wants_json:
@@ -418,7 +513,60 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:certificate_signed:focus:cert:raw", renderer="string"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/cert.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/cert.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/cert.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/cert.pem.txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/cert.cer",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. as DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/cert.cer",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/cert.crt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. as DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/cert.crt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/cert.der",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. as DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/cert.der",
+        }
+    )
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbCertificateSigned = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -443,6 +591,16 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:certificate_signed:focus:parse|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/parse.json",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. parsed""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/parse.json",
+        }
+    )
     def parse_json(self):
         dbCertificateSigned = self._focus()
         return {
@@ -456,6 +614,26 @@ class View_Focus(Handler):
 
     @view_config(
         route_name="admin:certificate_signed:focus:chain:raw", renderer="string"
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/chain.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. Chain PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/chain.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/chain.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. chain PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/chain.pem.txt",
+        }
     )
     def chain(self):
         dbCertificateSigned = self._focus()
@@ -471,6 +649,26 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:certificate_signed:focus:fullchain:raw", renderer="string"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/fullchain.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. FullChain PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/fullchain.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/fullchain.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. FullChain PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/fullchain.pem.txt",
+        }
+    )
     def fullchain(self):
         dbCertificateSigned = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -484,6 +682,36 @@ class View_Focus(Handler):
 
     @view_config(
         route_name="admin:certificate_signed:focus:privatekey:raw", renderer="string"
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/privkey.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. PrivateKey PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/privkey.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/privkey.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. PrivateKey PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/privkey.pem.txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/privkey.key",
+            "section": "certificate-signed",
+            "about": """CertificateSigned focus. PrivateKey DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/privkey.key",
+        }
     )
     def privatekey(self):
         dbCertificateSigned = self._focus()
@@ -507,6 +735,16 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:certificate_signed:focus:config|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/config.json",
+            "section": "certificate-signed",
+            "about": """CertificateSigned Config""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/config.json",
+        }
+    )
     def config_json(self):
         dbCertificateSigned = self._focus()
         if self.request.params.get("idonly", None):
@@ -518,6 +756,16 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_signed:focus:config|zip")
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/config.zip",
+            "section": "certificate-signed",
+            "about": """CertificateSigned Config.zip""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/config.zip",
+        }
+    )
     def config_zip(self):
         """
         generates a certbot style configuration
@@ -585,6 +833,16 @@ class View_Focus_via_CertificateCAChain(View_Focus):
         route_name="admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.json",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Config.json""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/config.json",
+        }
+    )
     def config_json(self):
         (
             dbCertificateSigned,
@@ -604,6 +862,16 @@ class View_Focus_via_CertificateCAChain(View_Focus):
 
     @view_config(
         route_name="admin:certificate_signed:focus:via_certificate_ca_chain:config|zip"
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.zip",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Config.zip""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/config.zip",
+        }
     )
     def config_zip(self):
         (
@@ -636,6 +904,56 @@ class View_Focus_via_CertificateCAChain(View_Focus):
         route_name="admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
         renderer="string",
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Chain-PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/chain.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Chain-PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/chain.pem.txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.cer",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Chain-DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/chain.cer",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.crt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Chain-DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/chain.crt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.der",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain Chain-DER""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/chain.der",
+        }
+    )
     def chain(self):
         (
             dbCertificateSigned,
@@ -666,6 +984,26 @@ class View_Focus_via_CertificateCAChain(View_Focus):
         route_name="admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
         renderer="string",
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain FullChain-PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/fullchain.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem.txt",
+            "section": "certificate-signed",
+            "about": """CertificateSigned via CertificateCAChain FullChain-PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/via-certificate-ca-chain/2/fullchain.pem.txt",
+        }
+    )
     def fullchain(self):
         (
             dbCertificateSigned,
@@ -690,10 +1028,32 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:certificate_signed:focus:nginx_cache_expire|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/nginx-cache-expire.json",
+            "section": "certificate-signed",
+            "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
+        }
+    )
     def nginx_expire(self):
         dbCertificateSigned = self._focus()
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self, "/certificate-signed/{ID}/nginx-cache-expire.json"
+                )
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&message=POST+required"
+                % self._focus_url
+            )
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
-            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                % self._focus_url
+            )
         dbDomains = [
             c2d.domain for c2d in dbCertificateSigned.unique_fqdn_set.to_domains
         ]
@@ -705,7 +1065,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
+            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 
@@ -713,6 +1073,30 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:certificate_signed:focus:mark", renderer=None)
     @view_config(route_name="admin:certificate_signed:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/mark.json",
+            "section": "certificate-signed",
+            "about": """Mark""",
+            "POST": True,
+            "GET": None,
+            "examples": [
+                "curl {ADMIN_PREFIX}/certificate-signed/1/mark.json",
+                """curl --form 'action=active' {ADMIN_PREFIX}/certificate-signed/1/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {
+                "action": [
+                    "active",
+                    "inactive",
+                    "revoked",
+                    # "renew_manual",
+                    # "renew_auto",
+                    "unrevoke",
+                ]
+            },
+        }
+    )
     def mark(self):
         dbCertificateSigned = self._focus()
         if self.request.method == "POST":
@@ -721,24 +1105,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbCertificateSigned):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'action=active' %s/certificate-signed/1/mark.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {
-                    "action": [
-                        "active",
-                        "inactive",
-                        "revoked",
-                        # "renew_manual",
-                        # "renew_auto",
-                        "unrevoke",
-                    ]
-                },
-            }
+            return formatted_get_docs(self, "/certificate-signed/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )

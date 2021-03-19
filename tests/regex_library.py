@@ -11,6 +11,12 @@ RE_AcmeAccount_new = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)\?result=success&operation=new&is_created=1$"""
 )
 
+
+RE_AcmeAccount_deactivate = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)\?result=success&operation=acme-server--deactivate$"""
+)
+
+
 RE_AcmeAccount_deactivate_pending_post_required = re.compile(
     r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)/acme-authorizations\?status=active&result=error&error=post\+required&operation=acme-server--deactivate-pending-authorizations"""
 )
@@ -167,6 +173,21 @@ RE_CertificateCAChain_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
 )
 
+# note: CertificateSigned
+
+RE_CertificateSigned_main = re.compile(
+    r"""href="/\.well-known/admin/certificate-signed/(\d+)"""
+)
+
+RE_CertificateSigned_operation_nginx_expire = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
+)
+
+RE_CertificateSigned_operation_nginx_expire__GET = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
+)
+
+
 # note: CoverageAssuranceEvent
 
 RE_CoverageAssuranceEvent_mark = re.compile(
@@ -188,9 +209,12 @@ RE_Domain_new_AcmeDnsServerAccount = re.compile(
 )
 
 RE_Domain_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
 )
 
+RE_Domain_operation_nginx_expire__GET = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
+)
 
 # note: QueueCertificate
 
@@ -198,20 +222,18 @@ RE_QueueCertificate = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-certificate/(\d+)$"""
 )
 
-
 # note: QueueDomain
 
 RE_QueueDomain_process_success = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
 )
 
+# note: UniqueFQDNSet
 
-# note: CertificateSigned
-
-RE_CertificateSigned_main = re.compile(
-    r"""href="/\.well-known/admin/certificate-signed/(\d+)"""
+RE_UniqueFQDNSet_new = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/unique-fqdn-set/(\d+)\?result=success&operation=new&is_created=(\w+)"""
 )
 
-RE_CertificateSigned_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/certificate-signed/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"""
+RE_UniqueFQDNSet_modify = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/unique-fqdn-set/(\d+)\?result=success&operation=modify&is_created=(\w+)"""
 )

@@ -10,7 +10,7 @@ import datetime
 import sqlalchemy
 
 # localapp
-from .. import cert_utils
+from ... import lib
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
@@ -148,6 +148,32 @@ def get__AcmeAccount__by_account_url(ctx, account_url):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeAccountKey__by_AcmeAccountId__count(ctx, acme_account_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeAccountKey)
+        .filter(model_objects.AcmeAccountKey.acme_account_id == acme_account_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeAccountKey__by_AcmeAccountId__paginated(
+    ctx,
+    acme_account_id,
+    limit=None,
+    offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeAccountKey)
+        .filter(model_objects.AcmeAccountKey.acme_account_id == acme_account_id)
+        .order_by(model_objects.AcmeAccountKey.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeAccountKeys = query.all()
+    return dbAcmeAccountKeys
+
+
 def get__AcmeAccountKey__count(ctx):
     counted = ctx.dbSession.query(model_objects.AcmeAccountKey).count()
     return counted
@@ -191,6 +217,14 @@ def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
     )
     if is_active:
         q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+    item = q.first()
+    return item
+
+
+def get__AcmeAccountKey__by_key_pem(ctx, key_pem):
+    q = ctx.dbSession.query(model_objects.AcmeAccountKey).filter(
+        model_objects.AcmeAccountKey.key_pem == key_pem
+    )
     item = q.first()
     return item
 
@@ -1156,7 +1190,7 @@ def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
 
 
 def get__CertificateCA__by_pem_text(ctx, cert_pem):
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem = lib.cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     dbCertificateCA = (
         ctx.dbSession.query(model_objects.CertificateCA)
@@ -1204,7 +1238,7 @@ def get__CertificateCAChain__by_id(ctx, chain_id):
 
 
 def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
-    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_pem = lib.cert_utils.cleanup_pem_text(chain_pem)
     chain_pem_md5 = utils.md5_text(chain_pem)
     dbCertificateCAChain = (
         ctx.dbSession.query(model_objects.CertificateCAChain)
@@ -1319,7 +1353,7 @@ def get__CertificateRequest__by_id(ctx, certificate_request_id):
 
 
 def get__CertificateRequest__by_pem_text(ctx, csr_pem):
-    csr_pem = cert_utils.cleanup_pem_text(csr_pem)
+    csr_pem = lib.cert_utils.cleanup_pem_text(csr_pem)
     csr_pem_md5 = utils.md5_text(csr_pem)
     dbCertificateRequest = (
         ctx.dbSession.query(model_objects.CertificateRequest)
@@ -2703,6 +2737,44 @@ def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(ctx, unique_fqdn_s
         )
         .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+        .first()
+    )
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__RootStore__count(ctx):
+    q = ctx.dbSession.query(model_objects.RootStore)
+    counted = q.count()
+    return counted
+
+
+def get__RootStore__paginated(ctx, limit=None, offset=0):
+    q = (
+        ctx.dbSession.query(model_objects.RootStore)
+        .order_by(sqlalchemy.func.lower(model_objects.RootStore.name).asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__RootStore__by_id(ctx, root_store_id):
+    item = (
+        ctx.dbSession.query(model_objects.RootStore)
+        .filter(model_objects.RootStore.id == root_store_id)
+        .first()
+    )
+    return item
+
+
+def get__RootStoreVersion__by_id(ctx, root_store_version_id):
+    item = (
+        ctx.dbSession.query(model_objects.RootStoreVersion)
+        .filter(model_objects.RootStoreVersion.id == root_store_version_id)
         .first()
     )
     return item

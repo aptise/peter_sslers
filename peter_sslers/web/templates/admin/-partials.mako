@@ -40,6 +40,8 @@
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
+                        % elif account.timestamp_deactivated:
+                            <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
                     <td>
@@ -74,7 +76,9 @@
                 <th>acme_account_id</th>
                 <th><!-- active --></th>
                 <th>source</th>
-                <th>provider</th>
+                % if perspective != "AcmeAccount":
+                    <th>provider</th>
+                % endif
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
             </tr>
@@ -91,10 +95,14 @@
                     <td>
                         % if key.is_active:
                             <span class="label label-success">active</span>
+                        % elif key.timestamp_deactivated:
+                            <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
                     <td><span class="label label-default">${key.acme_account_key_source}</span></td>
-                    <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                    % if perspective != "AcmeAccount":
+                        <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                    % endif
                     <td><timestamp>${key.timestamp_created}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                 </tr>
@@ -1183,6 +1191,33 @@
 </%def>
 
 
+<%def name="table_RootStores(root_stores)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in root_stores:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/root-store/${i.id}"
+                    >
+                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                     RootStore-${i.id}
+                    </a>
+                </td>
+                <td><code>${i.name}</code></td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -1634,17 +1669,17 @@
 </%def>
 
 
-<%def name="formgroup__domain_names(specify_challenge=None, http01_only=False)">
+<%def name="formgroup__domain_names(specify_challenge=None, http01_only=False, domain_names_http01='', domain_names_dns01='')">
     <div class="form-group clearfix">
         % if specify_challenge:
             <label for="f1-domain_names_http01">Domain Names - HTTP-01</label>
-            <textarea class="form-control" rows="4" name="domain_names_http01" id="f1-domain_names_http01"></textarea>
+            <textarea class="form-control" rows="4" name="domain_names_http01" id="f1-domain_names_http01">${domain_names_http01}</textarea>
             <p class="help-block">
                 A comma(,) separated list of domain names to use the default HTTP-01 challenge.
             </p>
             % if not http01_only:
                 <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
-                <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01"></textarea>
+                <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01">${domain_names_dns01}</textarea>
                 <p class="help-block">
                     A comma(,) separated list of domain names to use the DNS-01 challenge. These domains must be registered with an ACME-DNS system known to this installation.
                 </p>
@@ -1856,45 +1891,63 @@
     <h4>Actions</h4>
     <ul class="nav nav-pills nav-stacked">
         <li class="${'active' if active =='/api/deactivate-expired' else ''}">
-            <a  href="${admin_prefix}/api/deactivate-expired"
-            >
-             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Deactivate Expired CertificateSigneds</a></li>
+            <form action="${admin_prefix}/api/deactivate-expired" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Deactivate Expired CertificateSigneds
+                </button>
+            </form>
+        </li>
         <li class="${'active' if active =='/api/update-recents' else ''}">
-            <a  href="${admin_prefix}/api/update-recents"
-            >
-             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Update Recents</a></li>
+            <form action="${admin_prefix}/api/update-recents" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Update Recents
+                </button>
+            </form>
+        </li>
+        <li class="${'active' if active =='/api/reconcile-ca' else ''}">
+            <form action="${admin_prefix}/api/reconcile-cas" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Reconcile CAs
+                </button>
+            </form>
+        </li>
         % if enable_redis:
             <li>
-                <a  href="${admin_prefix}/api/redis/prime"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache
-                </a>
+                <form action="${admin_prefix}/api/redis/prime" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache
+                    </button>
+                </form>
             </li>
             <li>
-                <a  href="${admin_prefix}/api/redis/prime.json"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache - JSON
-                </a>
+                <form action="${admin_prefix}/api/redis/prime.json" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache - JSON
+                    </button>
+                </form>
             </li>
         % endif
         % if enable_nginx:
             <li>
-                <a  href="${admin_prefix}/api/nginx/cache-flush"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Flush Nginx Cache
-                </a>
+                <form action="${admin_prefix}/api/nginx/cache-flush" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Flush Nginx Cache
+                    </button>
+                </form>
             </li>
             <li>
-                <a  href="${admin_prefix}/api/nginx/cache-flush.json"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Flush Nginx Cache - JSON
-                </a>
+                <form action="${admin_prefix}/api/nginx/cache-flush.json" method="POST">
+                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Flush Nginx Cache - JSON
+                    </button>
+                </form>
             </li>
         % endif
     </ul>

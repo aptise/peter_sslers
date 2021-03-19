@@ -37,6 +37,7 @@ from peter_sslers.lib.db import getcreate as lib_db_getcreate
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 
+
 from ._utils import AppTestCore
 from ._utils import AppTest
 from ._utils import CERT_CA_SETS
@@ -1056,7 +1057,7 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
             signature = cert_utils.account_key__sign(
                 input, key_pem=key_pem, key_pem_filepath=key_pem_filepath
             )
-            signature = cert_utils._b64(signature)
+            signature = cert_utils.jose_b64(signature)
             self.assertEqual(signature, expected)
 
     def test__private_key__new(self):
@@ -1088,6 +1089,41 @@ class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
                 self.assertEqual(
                     "-----BEGIN EC PRIVATE KEY-----", key_pem.split("\n")[0]
                 )
+
+    def test_convert_pkcs7_to_pems(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test_convert_pkcs7_to_pems
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test_convert_pkcs7_to_pems
+        """
+        fname_pkcs7 = "letsencrypt-certs/trustid-x3-root.p7c"
+        fpath_pkcs7 = self._filepath_testfile(fname_pkcs7)
+        fdata_pkcs7 = self._filedata_testfile(fname_pkcs7, is_binary=True)
+        pkcs7_pems = cert_utils.convert_pkcs7_to_pems(fdata_pkcs7)
+
+        fname_pem = "letsencrypt-certs/trustid-x3-root.pem"
+        fpath_pem = self._filedata_testfile(fname_pem)
+        fdata_pem = self._filedata_testfile(fname_pem)
+        pem_pem = cert_utils.cleanup_pem_text(fdata_pem)
+
+        self.assertEqual(len(pkcs7_pems), 1)
+        self.assertEqual(pkcs7_pems[0], pem_pem)
+
+    def test_convert_pkix_to_pem(self):
+        """
+        python -m unittest tests.test_unit.UnitTest_CertUtils.test_convert_pkix_to_pem
+        python -m unittest tests.test_unit.UnitTest_CertUtils_fallback.test_convert_pkix_to_pem
+        """
+        fname_pkix = "letsencrypt-certs/isrgrootx1.pkix"
+        fpath_pkix = self._filepath_testfile(fname_pkix)
+        fdata_pkix = self._filedata_testfile(fname_pkix, is_binary=True)
+        pkix_pem = cert_utils.convert_der_to_pem(fdata_pkix)
+
+        fname_pem = "letsencrypt-certs/isrgrootx1.pem"
+        fpath_pem = self._filedata_testfile(fname_pem)
+        fdata_pem = self._filedata_testfile(fname_pem)
+        pem_pem = cert_utils.cleanup_pem_text(fdata_pem)
+
+        self.assertEqual(pkix_pem, pem_pem)
 
 
 class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
@@ -1128,6 +1164,42 @@ class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_OpenSSL):
     """python -m unittest tests.test_unit.UnitTest_OpenSSL_fallback"""
 
     pass
+
+
+class UnitTest_utils(unittest.TestCase):
+    """python -m unittest tests.test_unit.UnitTest_utils"""
+
+    def test_validate_domains__valid(self):
+        domains = (
+            "EXAMPLE.com",
+            "example.com",
+            "foo.example.com",
+            "test-1.example.com",
+        )
+        for d in domains:
+            # validate domains expects a list
+            utils.validate_domains(
+                [
+                    d,
+                ]
+            )
+
+    def test_validate_domains__invalid(self):
+        domains = (
+            "-EXAMPLE.com",
+            "example.com-",
+            "example.com.",
+            ".example.com.",
+            "test_1.example.com",
+        )
+        for d in domains:
+            # validate domains expects a list
+            with self.assertRaises(ValueError) as cm:
+                utils.validate_domains(
+                    [
+                        d,
+                    ]
+                )
 
 
 class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):

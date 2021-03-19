@@ -15,6 +15,11 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
+from ..lib.docs import docify
+
+# from ..lib.docs import formatted_get_docs
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -39,6 +44,24 @@ class View_List(Handler):
     @view_config(route_name="admin:certificate_requests|json", renderer="json")
     @view_config(
         route_name="admin:certificate_requests_paginated|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-requests.json",
+            "section": "certificate-request",
+            "about": """list CertificateRequest(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-requests.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-requests/{PAGE}.json",
+            "section": "certificate-request",
+            "example": "curl {ADMIN_PREFIX}/certificate-requests/1.json",
+            "variant_of": "/certificate-requests.json",
+        }
     )
     def list(self):
         items_count = lib_db.get.get__CertificateRequest__count(
@@ -69,18 +92,22 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbCertificateRequest = None
+
     def _focus(self):
-        dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
-            self.request.api_context, self.request.matchdict["id"]
-        )
-        if not dbCertificateRequest:
-            raise HTTPNotFound("invalid CertificateRequest")
-        self._focus_item = dbCertificateRequest
-        self._focus_url = "%s/certificate-request/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbCertificateRequest.id,
-        )
-        return dbCertificateRequest
+        if self.dbCertificateRequest is None:
+            dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
+                self.request.api_context, self.request.matchdict["id"]
+            )
+            if not dbCertificateRequest:
+                raise HTTPNotFound("invalid CertificateRequest")
+            self.dbCertificateRequest = dbCertificateRequest
+            self._focus_item = dbCertificateRequest
+            self._focus_url = "%s/certificate-request/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbCertificateRequest.id,
+            )
+        return self.dbCertificateRequest
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -89,6 +116,16 @@ class View_Focus(Handler):
         renderer="/admin/certificate_request-focus.mako",
     )
     @view_config(route_name="admin:certificate_request:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/certificate-request/{ID}.json",
+            "section": "certificate-request",
+            "about": """CertificateRequest focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-request/1.json",
+        }
+    )
     def focus(self):
         dbCertificateRequest = self._focus()
         if self.request.wants_json:
@@ -101,15 +138,48 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_request:focus:raw", renderer="string")
+    @docify(
+        {
+            "endpoint": "/certificate-request/{ID}/csr.pem",
+            "section": "certificate-request",
+            "about": """CertificateRequest focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-request/1/csr.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-request/{ID}/csr.pem.txt",
+            "section": "certificate-request",
+            "about": """CertificateRequest focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-request/1/csr..txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-request/{ID}/csr.csr",
+            "section": "certificate-request",
+            "about": """CertificateRequest focus. as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-request/1/csr.csr",
+        }
+    )
     def focus_raw(self):
+        """
+        for extensions, see `cert_utils.EXTENSION_TO_MIME`
+        """
         dbCertificateRequest = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return dbCertificateRequest.csr_pem
-        if self.request.matchdict["format"] == "csr":
-            self.request.response.content_type = "application/pkcs10"
-            return dbCertificateRequest.csr_pem
         elif self.request.matchdict["format"] == "pem.txt":
+            return dbCertificateRequest.csr_pem
+        elif self.request.matchdict["format"] == "csr":
+            self.request.response.content_type = "application/pkcs10"
             return dbCertificateRequest.csr_pem
         return "cert.pem"
 

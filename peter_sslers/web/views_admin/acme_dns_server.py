@@ -13,10 +13,9 @@ import requests
 import sqlalchemy
 
 # localapp
-from ...lib import acmedns as lib_acmedns
-from ...lib import db as lib_db
-from ...model import utils as model_utils
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.forms import Form_AcmeDnsServer_mark
 from ..lib.forms import Form_AcmeDnsServer_edit
@@ -24,8 +23,11 @@ from ..lib.forms import Form_AcmeDnsServer_ensure_domains
 from ..lib.forms import Form_AcmeDnsServer_import_domain
 from ..lib.handler import Handler
 from ..lib.handler import json_pagination
-from ...lib import utils
+from ...lib import acmedns as lib_acmedns
+from ...lib import db as lib_db
 from ...lib import errors
+from ...lib import utils
+from ...model import utils as model_utils
 
 # ==============================================================================
 
@@ -59,6 +61,24 @@ class View_List(Handler):
         renderer="/admin/acme_dns_servers.mako",
     )
     @view_config(route_name="admin:acme_dns_servers_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-servers.json",
+            "section": "acme-dns-server",
+            "about": """list AcmeDns Servers(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-servers.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-servers/{PAGE}.json",
+            "section": "acme-dns-server",
+            "example": "curl {ADMIN_PREFIX}/acme-dns-servers/1.json",
+            "variant_of": "/acme-dns-servers.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__AcmeDnsServer__count(self.request.api_context)
         items_paged = lib_db.get.get__AcmeDnsServer__paginated(self.request.api_context)
@@ -79,6 +99,17 @@ class View_List(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:acme_dns_server:new")
     @view_config(route_name="admin:acme_dns_server:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/new.json",
+            "section": "acme-dns-server",
+            "about": """new AcmeDns Servers""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server/new.json",
+            "form_fields": {"root_url": "The root url of the api"},
+        }
+    )
     def new(self):
         if self.request.method == "POST":
             return self._new__submit()
@@ -86,14 +117,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {"root_url": "The root url of the api"},
-                "notes": [],
-                "valid_options": {},
-            }
+            return formatted_get_docs(self, "/acme-dns-server/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-new.mako",
@@ -135,18 +159,22 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeDnsServer = None
+
     def _focus(self, eagerload_web=False):
-        dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbAcmeDnsServer:
-            raise HTTPNotFound("the acme-dns server was not found")
-        self._focus_url = "%s/acme-dns-server/%s" % (
-            self.request.admin_url,
-            dbAcmeDnsServer.id,
-        )
-        return dbAcmeDnsServer
+        if self.dbAcmeDnsServer is None:
+            dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbAcmeDnsServer:
+                raise HTTPNotFound("the acme-dns server was not found")
+            self.dbAcmeDnsServer = dbAcmeDnsServer
+            self._focus_url = "%s/acme-dns-server/%s" % (
+                self.request.admin_url,
+                self.dbAcmeDnsServer.id,
+            )
+        return self.dbAcmeDnsServer
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -155,6 +183,16 @@ class View_Focus(Handler):
         renderer="/admin/acme_dns_server-focus.mako",
     )
     @view_config(route_name="admin:acme_dns_server:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server/1.json",
+        }
+    )
     def focus(self):
         dbAcmeDnsServer = self._focus(eagerload_web=True)
         if self.request.wants_json:
@@ -165,6 +203,16 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:acme_dns_server:focus:check", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:check|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/check.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer check""",
+            "POST": True,
+            "GET": None,
+            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/check.json""",
+        }
+    )
     def check(self):
         dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
@@ -173,12 +221,7 @@ class View_Focus(Handler):
 
     def _check__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'action=active' %s/check.json""" % self._focus_url,
-                ],
-            }
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/check.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -215,6 +258,24 @@ class View_Focus(Handler):
         route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/acme-dns-server-accounts.json",
+            "section": "acme-dns-server",
+            "about": """list AcmeDns Servers - accounts(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server/{ID}/acme-dns-server-accounts.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/acme-dns-server-accounts/{PAGE}.json",
+            "section": "acme-dns-server",
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server/{ID}/acme-dns-server-accounts/1.json",
+            "variant_of": "/acme-dns-server/{ID}/acme-dns-server-accounts.json",
+        }
+    )
     def list_accounts(self):
         dbAcmeDnsServer = self._focus(eagerload_web=True)
         items_count = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(
@@ -242,6 +303,17 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_dns_server:focus:ensure_domains|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/ensure-domains.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer ensure domains""",
+            "POST": True,
+            "GET": None,
+            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains.json""",
+            "form_fields": {"domain_names": "A comma separated list of domain names"},
+        }
+    )
     def ensure_domains(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
@@ -251,16 +323,7 @@ class View_Focus(Handler):
     def _ensure_domains__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {
-                    "domain_names": "A comma separated list of domain names"
-                },
-                "notes": [],
-                "valid_options": {},
-            }
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/ensure-domains.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-focus-ensure_domains.mako",
@@ -373,6 +436,19 @@ class View_Focus(Handler):
         route_name="admin:acme_dns_server:focus:ensure_domains_results|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/ensure-domains-results.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer ensure domains - results""",
+            "POST": None,
+            "GET": True,
+            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
+            "form_fields": {
+                "acme-dns-server-accounts": "A comma separated list of acme-dns-server-accounts. these are returned by `/acme-dns-server/{ID}/ensure-domains.json`"
+            },
+        }
+    )
     def ensure_domains_results(self):
         try:
             dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
@@ -411,6 +487,24 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_dns_server:focus:import_domain|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/import-domain.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer import domain""",
+            "POST": True,
+            "GET": None,
+            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/import-domain.json""",
+            "form_fields": {
+                "domain_name": "The domain name",
+                "username": "The acme-dns username",
+                "password": "The acme-dns password",
+                "fulldomain": "The acme-dns fulldomain",
+                "subdomain": "The acme-dns subdomain",
+                "allowfrom": "The acme-dns allowfrom",
+            },
+        }
+    )
     def import_domain(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
@@ -420,21 +514,7 @@ class View_Focus(Handler):
     def _import_domain__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {
-                    "domain_name": "The domain name",
-                    "username": "The acme-dns username",
-                    "password": "The acme-dns password",
-                    "fulldomain": "The acme-dns fulldomain",
-                    "subdomain": "The acme-dns subdomain",
-                    "allowfrom": "The acme-dns allowfrom",
-                },
-                "notes": [],
-                "valid_options": {},
-            }
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/import-domain.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_dns_server-focus-import_domain.mako",
@@ -537,6 +617,21 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_dns_server:focus:mark", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/mark.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer mark""",
+            "POST": True,
+            "GET": None,
+            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {"action": ["active", "inactive", "global_default"]},
+        }
+    )
     def mark(self):
         dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
@@ -545,13 +640,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["active", "inactive", "global_default"]},
-            }
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )
@@ -647,6 +736,20 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_dns_server:focus:edit", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:edit|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/edit.json",
+            "section": "acme-dns-server",
+            "about": """AcmeDnsServer edit""",
+            "POST": True,
+            "GET": None,
+            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
+            ],
+            "form_fields": {"root_url": "the url"},
+        }
+    )
     def edit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
@@ -656,12 +759,7 @@ class View_Focus_Manipulate(View_Focus):
     def _edit__print(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'action=active' %s/edit.json""" % self._focus_url
-                ],
-                "form_fields": {"root_url": "the url"},
-            }
+            return formatted_get_docs(self, "/acme-dns-server/{ID}/edit.json")
         return render_to_response(
             "/admin/acme_dns_server-focus-edit.mako",
             {

@@ -18,6 +18,10 @@ from six.moves.urllib.parse import quote_plus
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_CoverageAssuranceEvent_mark
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -68,6 +72,42 @@ class View_List(Handler):
         route_name="admin:coverage_assurance_events:unresolved_paginated|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/all.json",
+            "section": "coverage-assurance-event",
+            "about": """list CoverageAssuranceEvent(s): All""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/all/{PAGE}.json",
+            "section": "coverage-assurance-event",
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/all/1.json",
+            "variant_of": "/coverage-assurance-events/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/unresolved.json",
+            "section": "coverage-assurance-event",
+            "about": """list CoverageAssuranceEvent(s): Unresolved""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/unresolved.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-events/unresolved/{PAGE}.json",
+            "section": "coverage-assurance-event",
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-events/unresolved/1.json",
+            "variant_of": "/coverage-assurance-events/unresolved.json",
+        }
+    )
     def list(self):
         sidenav_option = None
         unresolved_only = None
@@ -115,19 +155,23 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbCoverageAssuranceEvent = None
+
     def _focus(self):
-        dbCoverageAssuranceEvent = lib_db.get.get__CoverageAssuranceEvent__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbCoverageAssuranceEvent:
-            raise HTTPNotFound("the item was not found")
-        self._focus_item = dbCoverageAssuranceEvent
-        self._focus_url = "%s/coverage-assurance-event/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbCoverageAssuranceEvent.id,
-        )
-        return dbCoverageAssuranceEvent
+        if self.dbCoverageAssuranceEvent is None:
+            dbCoverageAssuranceEvent = lib_db.get.get__CoverageAssuranceEvent__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbCoverageAssuranceEvent:
+                raise HTTPNotFound("the item was not found")
+            self.dbCoverageAssuranceEvent = dbCoverageAssuranceEvent
+            self._focus_item = dbCoverageAssuranceEvent
+            self._focus_url = "%s/coverage-assurance-event/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbCoverageAssuranceEvent.id,
+            )
+        return self.dbCoverageAssuranceEvent
 
     @view_config(
         route_name="admin:coverage_assurance_event:focus",
@@ -135,6 +179,16 @@ class View_Focus(Handler):
     )
     @view_config(
         route_name="admin:coverage_assurance_event:focus|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-event/{ID}.json",
+            "section": "coverage-assurance-event",
+            "about": """CoverageAssuranceEvent focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-event/1.json",
+        }
     )
     def focus(self):
         dbCoverageAssuranceEvent = self._focus()
@@ -153,6 +207,16 @@ class View_Focus(Handler):
     )
     @view_config(
         route_name="admin:coverage_assurance_event:focus:children|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-event/{ID}/children.json",
+            "section": "coverage-assurance-event",
+            "about": """CoverageAssuranceEvent focus: children""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-event/1/children.json",
+        }
     )
     def children(self):
         dbCoverageAssuranceEvent = self._focus()
@@ -186,6 +250,27 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:coverage_assurance_event:focus:mark|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/coverage-assurance-event/{ID}/mark.json",
+            "section": "coverage-assurance-event",
+            "about": """CoverageAssuranceEvent focus: mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/coverage-assurance-event/1/mark.json",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/coverage-assurance-event/1/mark.json""",
+            ],
+            "form_fields": {
+                "action": "the action",
+                "resolution": "the intended resolution",
+            },
+            "valid_options": {
+                "resolution": model_utils.CoverageAssuranceResolution.OPTIONS_ALL,
+                "action": "resolved",
+            },
+        }
+    )
     def mark(self):
         dbCoverageAssuranceEvent = self._focus()
         if self.request.method == "POST":
@@ -194,19 +279,7 @@ class View_Focus(Handler):
 
     def _mark__print(self, dbCoverageAssuranceEvent):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url
-                ],
-                "form_fields": {
-                    "action": "the action",
-                    "resolution": "the intended resolution",
-                },
-                "valid_options": {
-                    "resolution": model_utils.CoverageAssuranceResolution.OPTIONS_ALL,
-                    "action": "resolved",
-                },
-            }
+            return formatted_get_docs(self, "/coverage-assurance-event/{ID}/mark.json")
         url_post_required = (
             "%s?result=error&error=post+required&operation=mark" % self._focus_url
         )

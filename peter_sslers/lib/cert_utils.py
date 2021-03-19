@@ -4,10 +4,7 @@ import logging
 
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
-# use when debugging
-if False:
-    log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 # stdlib
@@ -20,7 +17,6 @@ import hashlib
 import os
 import pdb
 import subprocess
-import sys
 import tempfile
 import textwrap
 
@@ -42,6 +38,11 @@ try:
     )
     from cryptography.hazmat.primitives.asymmetric import ec as crypto_ec
     from cryptography.hazmat.primitives.asymmetric import rsa as crypto_rsa
+
+    try:
+        from cryptography.hazmat.primitives.serialization import pkcs7 as crypto_pkcs7
+    except:
+        crypto_pkcs7 = None
     import josepy
 
 except ImportError as exc:
@@ -54,16 +55,62 @@ except ImportError as exc:
     cryptography_serialization = None
     crypto_ec = None
     crypto_rsa = None
+    crypto_pkcs7 = None
     josepy = None
 
 # localapp
 from . import errors
-from . import utils
-from .. import (
-    lib,
-)  # only here to access `lib.letsencrypt_info` without a circular import
 from ..lib import utils as lib_utils
 from ..model.utils import KeyTechnology
+
+NEEDS_TEMPFILES = True
+if (
+    acme_crypto_util
+    and cryptography_serialization
+    and certbot_crypto_util
+    and josepy
+    and openssl_crypto
+):
+    """
+    acme_crypto_util
+        make_csr
+    cryptography_serialization
+        convert_pkcs7_to_pems
+        convert_lejson_to_pem
+    certbot_crypto_util
+        parse_cert__domains
+        validate_key
+        validate_csr
+        cert_and_chain_from_fullchain
+    josepy:
+        account_key__parse
+    openssl_crypto and certbot_crypto_util
+        parse_csr_domains
+        parse_cert__spki_sha256
+        parse_csr__spki_sha256
+        parse_key__spki_sha256
+        parse_key__technology
+        parse_key
+    openssl_crypto:
+        validate_cert
+        fingerprint_cert
+        modulus_md5_key
+        modulus_md5_csr
+        modulus_md5_cert
+        parse_cert__enddate
+        parse_cert__startdate
+        parse_cert__key_technology
+        parse_cert
+        parse_csr__key_technology
+        parse_csr
+        new_key_ec
+        new_key_rsa
+        decompose_chain
+        ensure_chain
+        ensure_chain_order
+        account_key__sign
+    """
+    NEEDS_TEMPFILES = False
 
 
 # ==============================================================================
@@ -83,6 +130,12 @@ openssl_version = None
 _RE_openssl_version = re.compile(r"OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
 _RE_rn = re.compile(r"\r\n")
 _openssl_behavior = None  # 'a' or 'b'
+
+
+# If True, will:
+# * disable SSL Verification
+# * disable HTTP Challenge pre-Read
+TESTING_ENVIRONMENT = False
 
 
 def update_from_appsettings(appsettings):
@@ -174,6 +227,33 @@ ALLOWED_BITS_ECDSA = [256, 384]
 
 # ==============================================================================
 
+
+EXTENSION_TO_MIME = {
+    "pem": {
+        "*": "application/x-pem-file",
+    },
+    "cer": {
+        "*": "application/pkix-cert",
+    },
+    "crt": {
+        "CertificateCA": "application/x-x509-ca-cert",
+        "CertificateSigned": "application/x-x509-server-cert",
+    },
+    "p7c": {
+        "*": "application/pkcs7-mime",
+    },
+    "der": {
+        "CertificateCA": "application/x-x509-ca-cert",
+        "CertificateSigned": "application/x-x509-server-cert",
+    },
+    "key": {
+        "*": "application/pkcs8",
+    },
+}
+
+
+# ==============================================================================
+
 # General Utility Functions
 
 
@@ -186,6 +266,14 @@ def new_pem_tempfile(pem_data):
     tmpfile_pem.write(pem_data)
     tmpfile_pem.seek(0)
     return tmpfile_pem
+
+
+def new_der_tempfile(der_data):
+    """this is just a convenience wrapper to create a tempfile and seek(0)"""
+    tmpfile_der = tempfile.NamedTemporaryFile()
+    tmpfile_der.write(der_data)
+    tmpfile_der.seek(0)
+    return tmpfile_der
 
 
 def cleanup_pem_text(pem_text):
@@ -276,6 +364,52 @@ def convert_pem_to_der(pem_data=None):
     lines = "".join(lines)
     result = base64.b64decode(lines)
     return result
+
+
+def convert_pkcs7_to_pems(pkcs7_data=None):
+    log.info("convert_pkcs7_to_pems >")
+    if cryptography_serialization:
+        certs = crypto_pkcs7.load_der_pkcs7_certificates(pkcs7_data)
+        certs = [
+            cert.public_bytes(cryptography_serialization.Encoding.PEM) for cert in certs
+        ]
+        if six.PY3:
+            certs = [cert.decode("utf8") for cert in certs]
+        certs = [cleanup_pem_text(cert) for cert in certs]
+        return certs
+    log.debug(".convert_pkcs7_to_pems > openssl fallback")
+    _tmpfile_der = new_der_tempfile(pkcs7_data)
+    try:
+        cert_der_filepath = _tmpfile_der.name
+        with psutil.Popen(
+            [
+                openssl_path,
+                "pkcs7",
+                "-inform",
+                "DER",
+                "-in",
+                cert_der_filepath,
+                "-print_certs",
+                "-outform",
+                "PEM",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode()
+            # OpenSSL might return extra info
+            # for example: "subject=/O=Digital Signature Trust Co./CN=DST Root CA X3\nissuer=/O=Digital Signature Trust Co./CN=DST Root CA X3\n-----BEGIN CERTIFICATE---[...]"
+            # split_pem_chain works perfectly with this payload!
+            certs = split_pem_chain(data)
+        return certs
+    except Exception as exc:
+        raise
+    finally:
+        _tmpfile_der.close()
 
 
 def san_domains_from_text(input):
@@ -699,7 +833,8 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
     If not, openssl is used via subprocesses
     """
     log.info("make_csr >")
-    max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
+    # keep synced with: lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
+    max_domains_certificate = 100
     if len(domain_names) > max_domains_certificate:
         raise errors.OpenSslError_CsrGeneration(
             "LetsEncrypt can only allow `%s` domains per certificate"
@@ -970,6 +1105,7 @@ def validate_key(key_pem=None, key_pem_filepath=None):
         except Exception as exc:
             raise errors.OpenSslError_InvalidKey(exc)
     else:
+        log.debug(".validate_key > openssl fallback")
 
         def _check_fallback(_technology):
             log.debug(".validate_key > openssl fallback", _technology)
@@ -1366,18 +1502,18 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
     return data
 
 
-def cert_single_op__pem(cert_pem, single_op):
+def _openssl_cert_single_op__pem(cert_pem, single_op):
     _tmpfile_pem = new_pem_tempfile(cert_pem)
     try:
         cert_pem_filepath = _tmpfile_pem.name
-        return cert_single_op__pem_filepath(cert_pem_filepath, single_op)
+        return _openssl_cert_single_op__pem_filepath(cert_pem_filepath, single_op)
     except Exception as exc:
         raise
     finally:
         _tmpfile_pem.close()
 
 
-def cert_single_op__pem_filepath(pem_filepath, single_op):
+def _openssl_cert_single_op__pem_filepath(pem_filepath, single_op):
     """handles a single pem operation to `openssl x509`
 
     openssl x509 -noout -issuer -in cert.pem
@@ -1524,7 +1660,7 @@ def parse_cert__enddate(cert_pem=None, cert_pem_filepath=None):
     else:
         log.debug(".parse_cert__enddate > openssl fallback")
         # openssl x509 -enddate -noout -in {CERT}
-        data = cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
+        data = _openssl_cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
         if data[:9] != "notAfter=":
             raise errors.OpenSslError_InvalidCertificate("unexpected format")
         data_date = data[9:]
@@ -1543,9 +1679,9 @@ def parse_cert__startdate(cert_pem=None, cert_pem_filepath=None):
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
         date = cert.to_cryptography().not_valid_before
     else:
-        log.debug(".parse_cert__enddate > openssl fallback")
+        log.debug(".parse_cert__startdate > openssl fallback")
         # openssl x509 -startdate -noout -in {CERT}
-        data = cert_single_op__pem_filepath(cert_pem_filepath, "-startdate")
+        data = _openssl_cert_single_op__pem_filepath(cert_pem_filepath, "-startdate")
         if data[:10] != "notBefore=":
             raise errors.OpenSslError_InvalidCertificate("unexpected format")
         data_date = data[10:]
@@ -1716,8 +1852,8 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
             tmpfile_pem = new_pem_tempfile(cert_pem)
             cert_pem_filepath = tmpfile_pem.name
 
-        _issuer = cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
-        _subject = cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
+        _issuer = _openssl_cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
+        _subject = _openssl_cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
         rval["issuer"] = _format_openssl_components(_issuer, fieldset="issuer")
         rval["subject"] = _format_openssl_components(_subject, fieldset="subject")
         rval["startdate"] = parse_cert__startdate(
@@ -2177,40 +2313,39 @@ def new_key_ec(bits=384):
         if six.PY3:
             key_pem = key_pem.decode("utf8")
         key_pem = cleanup_pem_text(key_pem)
-    else:
-        log.debug(".new_key_ec > openssl fallback")
-        # openssl ecparam -list_curves
-        curve = None
-        if 256 == bits:
-            curve = "secp256k1"
-        elif 384 == bits:
-            curve = "secp384r1"
-        # openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
-        # -noout will suppress printing the EC Param (see https://security.stackexchange.com/questions/29778/why-does-openssl-writes-ec-parameters-when-generating-private-key)
-        bits = str(bits)
-        with psutil.Popen(
-            [openssl_path, "ecparam", "-name", curve, "-genkey", "-noout"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            data, err = proc.communicate()
-            if not data:
-                raise errors.OpenSslError_InvalidKey(err)
-            if six.PY3:
-                data = data.decode("utf8")
-            key_pem = data
-            key_pem = cleanup_pem_text(key_pem)
+        return key_pem
 
-            try:
-                # we need a tmpfile to validate it
-                tmpfile_pem = new_pem_tempfile(key_pem)
-                # this will raise an error on fails
-                key_technology = validate_key(
-                    key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
-                )
-            finally:
-                tmpfile_pem.close()
-
+    log.debug(".new_key_ec > openssl fallback")
+    # openssl ecparam -list_curves
+    curve = None
+    if 256 == bits:
+        curve = "secp256k1"
+    elif 384 == bits:
+        curve = "secp384r1"
+    # openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+    # -noout will suppress printing the EC Param (see https://security.stackexchange.com/questions/29778/why-does-openssl-writes-ec-parameters-when-generating-private-key)
+    bits = str(bits)
+    with psutil.Popen(
+        [openssl_path, "ecparam", "-name", curve, "-genkey", "-noout"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        data, err = proc.communicate()
+        if not data:
+            raise errors.OpenSslError_InvalidKey(err)
+        if six.PY3:
+            data = data.decode("utf8")
+        key_pem = data
+        key_pem = cleanup_pem_text(key_pem)
+        try:
+            # we need a tmpfile to validate it
+            tmpfile_pem = new_pem_tempfile(key_pem)
+            # this will raise an error on fails
+            key_technology = validate_key(
+                key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
+            )
+        finally:
+            tmpfile_pem.close()
     return key_pem
 
 
@@ -2231,32 +2366,31 @@ def new_key_rsa(bits=4096):
         if six.PY3:
             key_pem = key_pem.decode("utf8")
         key_pem = cleanup_pem_text(key_pem)
-    else:
-        log.debug(".new_key_rsa > openssl fallback")
-        # openssl genrsa 4096 > domain.key
-        bits = str(bits)
-        with psutil.Popen(
-            [openssl_path, "genrsa", bits],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            data, err = proc.communicate()
-            if not data:
-                raise errors.OpenSslError_InvalidKey(err)
-            if six.PY3:
-                data = data.decode("utf8")
-            key_pem = data
-            key_pem = cleanup_pem_text(key_pem)
-
-            try:
-                # we need a tmpfile to validate it
-                tmpfile_pem = new_pem_tempfile(key_pem)
-                # this will raise an error on fails
-                key_technology = validate_key(
-                    key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
-                )
-            finally:
-                tmpfile_pem.close()
+        return key_pem
+    log.debug(".new_key_rsa > openssl fallback")
+    # openssl genrsa 4096 > domain.key
+    bits = str(bits)
+    with psutil.Popen(
+        [openssl_path, "genrsa", bits],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        data, err = proc.communicate()
+        if not data:
+            raise errors.OpenSslError_InvalidKey(err)
+        if six.PY3:
+            data = data.decode("utf8")
+        key_pem = data
+        key_pem = cleanup_pem_text(key_pem)
+        try:
+            # we need a tmpfile to validate it
+            tmpfile_pem = new_pem_tempfile(key_pem)
+            # this will raise an error on fails
+            key_technology = validate_key(
+                key_pem=key_pem, key_pem_filepath=tmpfile_pem.name
+            )
+        finally:
+            tmpfile_pem.close()
     return key_pem
 
 
@@ -2440,14 +2574,13 @@ def decompose_chain(fullchain_pem):
             ).decode("utf8")
             for cert in certs
         ]
-    else:
-        log.debug(".decompose_chain > openssl fallback")
-        certs_normalized = []
-        for _cert_pem in certs:
-            _cert_pem = _openssl_cert__normalize_pem(_cert_pem)
-            _cert_pem = cleanup_pem_text(_cert_pem)
-            certs_normalized.append(_cert_pem)
-
+        return certs_normalized
+    log.debug(".decompose_chain > openssl fallback")
+    certs_normalized = []
+    for _cert_pem in certs:
+        _cert_pem = _openssl_cert__normalize_pem(_cert_pem)
+        _cert_pem = cleanup_pem_text(_cert_pem)
+        certs_normalized.append(_cert_pem)
     return certs_normalized
 
 
@@ -2670,14 +2803,43 @@ def ensure_chain_order(chain_certs, cert_pem=None):
 # ------------------------------------------------------------------------------
 
 
-def _b64(b):
+def jose_b64(b):
     # helper function base64 encode for jose spec
     return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
 
 
+class AccountKeyData(object):
+    """
+    An object encapsulating Account Key data
+    """
+
+    key_pem = None
+    key_pem_filepath = None  # if used
+    jwk = None
+    thumbprint = None
+    alg = None
+
+    def __init__(self, key_pem, key_pem_filepath=None):
+        """
+        :param key_pem: (required) A PEM encoded RSA key
+        :param key_pem_filepath: (optional) The filepath of a PEM encoded RSA key
+        """
+        self.key_pem = key_pem
+        self.key_pem_filepath = key_pem_filepath
+
+        (_jwk, _thumbprint, _alg) = account_key__parse(
+            key_pem=key_pem,
+            key_pem_filepath=key_pem_filepath,
+        )
+        self.jwk = _jwk
+        self.thumbprint = _thumbprint
+        self.alg = _alg
+
+
 def account_key__parse(key_pem=None, key_pem_filepath=None):
     """
-    :param key_pem_filepath: (required) the filepath to a PEM encoded RSA account key file.
+    :param key_pem: (required) the RSA Key in PEM format
+    :param key_pem_filepath: (optional) the filepath to a PEM encoded RSA account key file.
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
@@ -2688,15 +2850,17 @@ def account_key__parse(key_pem=None, key_pem_filepath=None):
     log.info("account_key__parse >")
     alg = "RS256"
     if josepy:
-        if not key_pem:
-            raise ValueError("submit key_pem!!!")
-            key_pem = open(key_pem_filepath).read()
         _jwk = josepy.JWKRSA.load(key_pem.encode("utf8"))
         jwk = _jwk.public_key().fields_to_partial_json()
         jwk["kty"] = "RSA"
-        thumbprint = _b64(_jwk.thumbprint())
-    else:
-        log.debug(".account_key__parse > openssl fallback")
+        thumbprint = jose_b64(_jwk.thumbprint())
+        return jwk, thumbprint, alg
+    log.debug(".account_key__parse > openssl fallback")
+    _tmpfile = None
+    try:
+        if key_pem_filepath is None:
+            _tmpfile = new_pem_tempfile(key_pem)
+            key_pem_filepath = _tmpfile.name
         with psutil.Popen(
             [
                 openssl_path,
@@ -2720,21 +2884,27 @@ def account_key__parse(key_pem=None, key_pem_filepath=None):
         pub_exp = "{0:x}".format(int(pub_exp))
         pub_exp = "0{0}".format(pub_exp) if len(pub_exp) % 2 else pub_exp
         jwk = {
-            "e": _b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
+            "e": jose_b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
             "kty": "RSA",
-            "n": _b64(
+            "n": jose_b64(
                 binascii.unhexlify(re.sub(r"(\s|:)", "", pub_hex).encode("utf-8"))
             ),
         }
         _accountkey_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
-        thumbprint = _b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
-    return jwk, thumbprint, alg
+        thumbprint = jose_b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
+        return jwk, thumbprint, alg
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
 
 
 def account_key__sign(data, key_pem=None, key_pem_filepath=None):
     """
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
+
+    :param key_pem: (required) the RSA Key in PEM format
+    :param key_pem_filepath: (optional) the filepath to a PEM encoded RSA account key file.
     """
     log.info("account_key__sign >")
     if openssl_crypto:
@@ -2748,21 +2918,28 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
             cryptography.hazmat.primitives.hashes.SHA256(),
         )
         return signature
-
     log.debug(".account_key__sign > openssl fallback")
-    with psutil.Popen(
-        [openssl_path, "dgst", "-sha256", "-sign", key_pem_filepath],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        if six.PY3:
-            if not isinstance(data, bytes):
-                data = data.encode()
-        signature, err = proc.communicate(data)
-        if proc.returncode != 0:
-            raise IOError("account_key__sign\n{1}".format(err))
-        return signature
+    _tmpfile = None
+    try:
+        if key_pem_filepath is None:
+            _tmpfile = new_pem_tempfile(key_pem)
+            key_pem_filepath = _tmpfile.name
+        with psutil.Popen(
+            [openssl_path, "dgst", "-sha256", "-sign", key_pem_filepath],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            if six.PY3:
+                if not isinstance(data, bytes):
+                    data = data.encode()
+            signature, err = proc.communicate(data)
+            if proc.returncode != 0:
+                raise IOError("account_key__sign\n{1}".format(err))
+            return signature
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
 
 
 # ------------------------------------------------------------------------------

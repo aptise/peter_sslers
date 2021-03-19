@@ -1,19 +1,16 @@
 # pyramid
-from pyramid.response import Response
 from pyramid.view import view_config
-from pyramid.renderers import render, render_to_response
 
 # stdlib
-import datetime
 
 # pypi
-import sqlalchemy
 
 # localapp
+from ..lib.docs import docify
+
+# from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler
-from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -25,6 +22,16 @@ class ViewAdmin(Handler):
         renderer="/admin/acme_account_providers.mako",
     )
     @view_config(route_name="admin:acme_account_providers|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account-providers.json",
+            "section": "acme-account-provider",
+            "about": """list AcmeAccountProvider(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account-providers.json",
+        }
+    )
     def list(self):
         items_paged = lib_db.get.get__AcmeAccountProviders__paginated(
             self.request.api_context

@@ -1,24 +1,24 @@
 # pyramid
-from pyramid.response import Response
 from pyramid.view import view_config
-from pyramid.renderers import render, render_to_response
+from pyramid.renderers import render_to_response
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
-import json
 
 # pypi
-import sqlalchemy
 
 # localapp
-from .. import lib
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeAccount_new__file
 from ..lib.forms import Form_AcmeAccount_mark
 from ..lib.forms import Form_AcmeAccount_edit
 from ..lib.forms import Form_AcmeAccount_deactivate_authorizations
+from ..lib.forms import Form_AcmeAccount_deactivate
+from ..lib.forms import Form_AcmeAccount_key_change
 from ..lib.form_utils import AcmeAccountUploadParser
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -40,6 +40,24 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_accounts|json", renderer="json")
     @view_config(route_name="admin:acme_accounts_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-accounts.json",
+            "section": "acme-account",
+            "about": """list AcmeAccount(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-accounts.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-accounts/{PAGE}.json",
+            "section": "acme-account",
+            "example": "curl {ADMIN_PREFIX}/acme-accounts/1.json",
+            "variant_of": "/acme-accounts.json",
+        }
+    )
     def list(self):
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
@@ -69,6 +87,35 @@ class View_List(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:acme_account:upload")
     @view_config(route_name="admin:acme_account:upload|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/upload.json",
+            "section": "acme-account",
+            "about": """upload an AcmeAccount and AcmeAccountKey""",
+            "POST": True,
+            "GET": None,
+            "examples": [
+                "curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' {ADMIN_PREFIX}/acme-account/upload.json",
+                "curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' {ADMIN_PREFIX}/acme-account/upload.json",
+            ],
+            "form_fields": {
+                "account_key_file_pem": "Group A",
+                "acme_account_provider_id": "Group A",
+                "account_key_file_le_meta": "Group B",
+                "account_key_file_le_pkey": "Group B",
+                "account_key_file_le_reg": "Group B",
+                "account__contact": "the contact's email address for the ACME Server",
+                "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
+            },
+            "notes": [
+                "You must submit ALL items from Group A or Group B",
+            ],
+            "valid_options": {
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
+                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+            },
+        }
+    )
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -77,32 +124,7 @@ class View_New(Handler):
     def _upload__print(self):
         self._load_AcmeAccountProviders()
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account/upload.json"""
-                    % self.request.admin_url,
-                    """curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' %s/acme-account/upload.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {
-                    "account_key_file_pem": "Group A",
-                    "acme_account_provider_id": "Group A",
-                    "account_key_file_le_meta": "Group B",
-                    "account_key_file_le_pkey": "Group B",
-                    "account_key_file_le_reg": "Group B",
-                    "account__contact": "the contact's email address for the ACME Server",
-                    "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
-                },
-                "notes": ["You must submit ALL items from Group A or Group B"],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-                },
-            }
+            return formatted_get_docs(self, "/acme-account/upload.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-upload.mako",
@@ -173,6 +195,29 @@ class View_New(Handler):
 
     @view_config(route_name="admin:acme_account:new")
     @view_config(route_name="admin:acme_account:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/new.json",
+            "section": "acme-account",
+            "about": """Create a new AcmeAccount""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' {ADMIN_PREFIX}/acme-account/new.json""",
+            ],
+            "form_fields": {
+                "acme_account_provider_id": "which provider",
+                "account__contact": "the contact's email address for the ACME Server",
+                "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
+                "account__private_key_technology": "what is the key technology preference for this account?",
+            },
+            "valid_options": {
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
+                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+                "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+            },
+        }
+    )
     def new(self):
         if self.request.method == "POST":
             return self._new__submit()
@@ -181,28 +226,7 @@ class View_New(Handler):
     def _new__print(self):
         self._load_AcmeAccountProviders()
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account/new.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {
-                    "acme_account_provider_id": "which provider",
-                    "account__contact": "the contact's email address for the ACME Server",
-                    "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
-                    "account__private_key_technology": "what is the key technology preference for this account?",
-                },
-                "notes": [""],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-                    "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-                },
-            }
+            return formatted_get_docs(self, "/acme-account/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-new.mako",
@@ -319,19 +343,22 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeAccount = None
+
     def _focus(self):
-        dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-        )
-        if not dbAcmeAccount:
-            raise HTTPNotFound("the key was not found")
-        self._focus_url = "%s/acme-account/%s" % (
-            self.request.admin_url,
-            dbAcmeAccount.id,
-        )
-        self.dbAcmeAccount = dbAcmeAccount
-        return dbAcmeAccount
+        if self.dbAcmeAccount is None:
+            dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+            )
+            if not dbAcmeAccount:
+                raise HTTPNotFound("the key was not found")
+            self.dbAcmeAccount = dbAcmeAccount
+            self._focus_url = "%s/acme-account/%s" % (
+                self.request.admin_url,
+                self.dbAcmeAccount.id,
+            )
+        return self.dbAcmeAccount
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -340,6 +367,16 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus.mako",
     )
     @view_config(route_name="admin:acme_account:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}.json",
+            "section": "acme-account",
+            "about": """AcmeAccount record""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1.json",
+        }
+    )
     def focus(self):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
@@ -357,6 +394,36 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_account:focus:raw", renderer="string")
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/key.pem",
+            "section": "acme-account",
+            "about": """AcmeAccount focus. Active key as PEM""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/key.pem",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/key.pem.txt",
+            "section": "acme-account",
+            "about": """AcmeAccount focus. Active key as PEM.txt""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/key.pem.txt",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/key.key",
+            "section": "acme-account",
+            "about": """AcmeAccount focus. Active key as pkcs8 (DER)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/key.key",
+        }
+    )
     def focus_raw(self):
         dbAcmeAccount = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -374,36 +441,20 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_account:focus:parse|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/parse.json",
+            "section": "acme-account",
+            "about": """AcmeAccount focus. Active key, parsed""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/parse.json",
+        }
+    )
     def focus_parse_json(self):
         dbAcmeAccount = self._focus()
         return {
-            "AcmeAccount": {
-                "id": dbAcmeAccount.id,
-                "AcmeAccountKey": {
-                    "id": dbAcmeAccount.acme_account_key.id
-                    if dbAcmeAccount.acme_account_key
-                    else None,
-                    "parsed": cert_utils.parse_key(
-                        key_pem=dbAcmeAccount.acme_account_key.key_pem
-                    )
-                    if dbAcmeAccount.acme_account_key
-                    else None,
-                },
-            }
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:acme_account:focus:config|json", renderer="json")
-    def focus_config_json(self):
-        dbAcmeAccount = self._focus()
-        return {
-            "AcmeAccount": {
-                "id": dbAcmeAccount.id,
-                "is_active": dbAcmeAccount.is_active,
-                "is_global_default": dbAcmeAccount.is_global_default,
-                "private_key_cycle": dbAcmeAccount.private_key_cycle,
-            },
+            "AcmeAccount": dbAcmeAccount.as_json,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -423,6 +474,24 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_account:focus:acme_authorizations_paginated|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-authorizations.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. list AcmeAuthorizations(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-authorizations.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-authorizations/{PAGE}.json",
+            "section": "acme-account",
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-authorizations/1.json",
+            "variant_of": "/acme-account/{ID}/acme-authorizations.json",
+        }
     )
     def related__AcmeAuthorizations(self):
         dbAcmeAccount = self._focus()
@@ -477,6 +546,74 @@ class View_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys",
+        renderer="/admin/acme_account-focus-acme_account_keys.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys_paginated",
+        renderer="/admin/acme_account-focus-acme_account_keys.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_account_keys_paginated|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-account-keys.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. list AcmeAccountKeys(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-account-keys.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-account-keys/{PAGE}.json",
+            "section": "acme-account",
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-account-keys/1.json",
+            "variant_of": "/acme-account/{ID}/acme-account-keys.json",
+        }
+    )
+    def related__AcmeAccountKeys(self):
+        dbAcmeAccount = self._focus()
+        items_count = lib_db.get.get__AcmeAccountKey__by_AcmeAccountId__count(
+            self.request.api_context,
+            dbAcmeAccount.id,
+        )
+        url_template = "%s/acme-account-keys/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AcmeAccountKey__by_AcmeAccountId__paginated(
+            self.request.api_context,
+            dbAcmeAccount.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        if self.request.wants_json:
+            _acme_account_keys = [k.as_json for k in items_paged]
+            return {
+                "AcmeAccountKeys": _acme_account_keys,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount": dbAcmeAccount,
+            "AcmeAccountKeys_count": items_count,
+            "AcmeAccountKeys": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_account:focus:acme_orders",
         renderer="/admin/acme_account-focus-acme_orders.mako",
@@ -484,6 +621,24 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_account:focus:acme_orders_paginated",
         renderer="/admin/acme_account-focus-acme_orders.mako",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-orders.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. list AcmeOrder(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-orders.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-orders/{PAGE}.json",
+            "section": "acme-account",
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/acme-orders/1.json",
+            "variant_of": "/acme-account/{ID}/acme-orders.json",
+        }
     )
     def related__AcmeOrders(self):
         dbAcmeAccount = self._focus()
@@ -515,6 +670,24 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:acme_account:focus:private_keys_paginated",
         renderer="/admin/acme_account-focus-private_keys.mako",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/private-keys.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. list PrivateKeys(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/private-keys.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/private-keys/{PAGE}.json",
+            "section": "acme-account",
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/private-keys/1.json",
+            "variant_of": "/acme-account/{ID}/private-keys.json",
+        }
     )
     def related__PrivateKeys(self):
         dbAcmeAccount = self._focus()
@@ -603,6 +776,29 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_account:focus:edit")
     @view_config(route_name="admin:acme_account:focus:edit|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/edit.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Edit""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-account/1/edit.json",
+            "instructions": [
+                """curl --form 'account__private_key_cycle=certificate'"""
+                """ --form 'account__private_key_technology=rsa'"""
+                """ {ADMIN_PREFIX}/acme-account/{ID}/edit.json""",
+            ],
+            "form_fields": {
+                "account__private_key_cycle": "option for cycling the PrivateKey on renewals",
+                "account__private_key_technology": "what is the key technology preference for this account?",
+            },
+            "valid_options": {
+                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
+                "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+            },
+        }
+    )
     def focus_edit(self):
         dbAcmeAccount = self._focus()
         if self.request.method == "POST":
@@ -611,23 +807,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus_edit__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'account__private_key_cycle=certificate'"""
-                    """ --form 'account__private_key_technology=rsa'"""
-                    """ %s/acme-account/{ID}/edit.json""" % self.request.admin_url,
-                ],
-                "form_fields": {
-                    "account__private_key_cycle": "option for cycling the PrivateKey on renewals",
-                    "account__private_key_technology": "what is the key technology preference for this account?",
-                },
-                "notes": [""],
-                "valid_options": {
-                    "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-                    "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-                },
-            }
+            return formatted_get_docs(self, "/acme-account/{ID}/edit.json")
         return render_to_response(
             "/admin/acme_account-focus-edit.mako",
             {"AcmeAccount": self.dbAcmeAccount},
@@ -720,6 +900,28 @@ class View_Focus_Manipulate(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def _handle_potentially_deactivated(self, exc):
+        if exc.args[0] == 403:
+            if isinstance(exc.args[1], dict):
+                info = exc.args[1]
+                # pebble and bounder use the same strings
+                if info.get("type") == "urn:ietf:params:acme:error:unauthorized":
+                    if (
+                        info.get("detail")
+                        == "An account with the provided public key exists but is deactivated"
+                    ):
+                        if not self.dbAcmeAccount.timestamp_deactivated:
+                            lib_db.update.update_AcmeAccount__set_deactivated(
+                                self.request.api_context, self.dbAcmeAccount
+                            )
+                            self.request.api_context.dbSession.flush(
+                                objects=[self.dbAcmeAccount]
+                            )
+                        return True
+        return False
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_account:focus:acme_server:authenticate",
         renderer=None,
@@ -727,6 +929,19 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_account:focus:acme_server:authenticate|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-server/authenticate.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. ACME Server - Authenticate""",
+            "summary": """Authenticate the key against the provider's new-reg endpoint""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/authenticate.json""",
+            ],
+        }
     )
     def focus__acme_server_authenticate(self):
         """
@@ -748,30 +963,32 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
-            return self._focus__authenticate__submit(dbAcmeAccount)
-        return self._focus__authenticate__print(dbAcmeAccount)
+            return self._focus__authenticate__submit()
+        return self._focus__authenticate__print()
 
-    def _focus__authenticate__print(self, dbAcmeAccount):
+    def _focus__authenticate__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl -X POST %s/acme-server/authenticate.json"""
-                    % self._focus_url,
-                ]
-            }
+            return formatted_get_docs(
+                self, "/acme-account/{ID}/acme-server/authenticate.json"
+            )
         url_post_required = (
             "%s?result=error&error=post+required&operation=acme-server--authenticate"
             % (self._focus_url,)
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus__authenticate__submit(self, dbAcmeAccount):
+    def _focus__authenticate__submit(self):
+        dbAcmeAccount = self._focus()
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
-            self.request.api_context, dbAcmeAccount
-        )
+        try:
+            authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                self.request.api_context, dbAcmeAccount
+            )
+        except errors.AcmeServerError as exc:
+            if not self._handle_potentially_deactivated(exc):
+                raise
         if self.request.wants_json:
             return {"AcmeAccount": dbAcmeAccount.as_json}
         return HTTPSeeOther(
@@ -783,28 +1000,35 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_account:focus:mark", renderer=None)
     @view_config(route_name="admin:acme_account:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/mark.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. Mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl --form 'action=active' {ADMIN_PREFIX}/acme-account/1/mark.json",
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {"action": ["global_default", "active", "inactive"]},
+        }
+    )
     def focus_mark(self):
         dbAcmeAccount = self._focus()
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbAcmeAccount)
-        return self._focus_mark__print(dbAcmeAccount)
+            return self._focus_mark__submit()
+        return self._focus_mark__print()
 
-    def _focus_mark__print(self, dbAcmeAccount):
+    def _focus_mark__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """HTTP POST required""",
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["global_default", "active", "inactive"]},
-            }
+            return formatted_get_docs(self, "/acme-account/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus_mark__submit(self, dbAcmeAccount):
+    def _focus_mark__submit(self):
+        dbAcmeAccount = self._focus()
         action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
@@ -907,6 +1131,22 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_account:focus:acme_server:deactivate_pending_authorizations|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-server/deactivate-pending-authorizations.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. ACME Server - Deactivate Pending Authorizations""",
+            "summary": """deactivate pending authorizations on the acme server, must supply the authorization_ids""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl --form 'acme_authorization_id=1' --form 'acme_authorization_id=2'  {ADMIN_PREFIX}/acme-account/1/acme-server/deactivate-pending-authorizations.json""",
+            ],
+            "form_fields": {
+                "authorization_id": "the pending authorization id to delete ",
+            },
+        }
+    )
     def focus__acme_server_deactivate_pending_authorizations(self):
         """
         this just hits the api, hoping we authenticate correctly.
@@ -924,35 +1164,24 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
-            return self._focus__acme_server_deactivate_pending_authorizations__submit(
-                dbAcmeAccount
-            )
-        return self._focus__acme_server_deactivate_pending_authorizations__print(
-            dbAcmeAccount
-        )
+            return self._focus__acme_server_deactivate_pending_authorizations__submit()
+        return self._focus__acme_server_deactivate_pending_authorizations__print()
 
-    def _focus__acme_server_deactivate_pending_authorizations__print(
-        self, dbAcmeAccount
-    ):
+    def _focus__acme_server_deactivate_pending_authorizations__print(self):
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
-            return {
-                "form_fields": {
-                    "authorization_id": "the pending authorization id to delete ",
-                },
-                "instructions": [
-                    """curl -X POST %s/acme-server/deactivate-pending-authorizations.json"""
-                    % self._focus_url
-                ],
-            }
+            return formatted_get_docs(
+                self,
+                "/acme-account/{ID}/acme-server/deactivate-pending-authorizations.json",
+            )
         url_post_required = (
             "%s/acme-authorizations?status=active&result=error&error=post+required&operation=acme-server--deactivate-pending-authorizations"
             % (self._focus_url,)
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus__acme_server_deactivate_pending_authorizations__submit(
-        self, dbAcmeAccount
-    ):
+    def _focus__acme_server_deactivate_pending_authorizations__submit(self):
+        dbAcmeAccount = self._focus()
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -968,7 +1197,6 @@ class View_Focus_Manipulate(View_Focus):
                     "You must supply at least one `acme_authorization_id` to deactivate."
                 )
 
-            dbAcmeAccount = self._focus()
             results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                 self.request.api_context,
                 dbAcmeAccount=dbAcmeAccount,
@@ -994,4 +1222,219 @@ class View_Focus_Manipulate(View_Focus):
                     self._focus_url,
                     errors.formstash_to_querystring(formStash),
                 )
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:deactivate",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:deactivate|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-server/deactivate.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. ACME Server - Deactivate""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/authenticate.json""",
+            ],
+            "form_fields": {
+                "key_pem": "the active key as md5(PEM) or PEM",
+            },
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-server/deactivate.json""",
+            ],
+        }
+    )
+    def focus__acme_server_deactivate(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccount = self._focus()
+        if not dbAcmeAccount.is_can_deactivate:
+            error_message = "This AcmeAccount can not be deactivated"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=acme-server--deactivate" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
+            )
+            return HTTPSeeOther(url_error)
+        if self.request.method == "POST":
+            return self._focus__acme_server_deactivate__submit()
+        return self._focus__acme_server_deactivate__print()
+
+    def _focus__acme_server_deactivate__print(self):
+        dbAcmeAccount = self._focus()
+        if self.request.wants_json:
+            return formatted_get_docs(
+                self, "/acme-account/{ID}/acme-server/deactivate.json"
+            )
+        return render_to_response(
+            "/admin/acme_account-focus-deactivate.mako",
+            {"AcmeAccount": dbAcmeAccount},
+            self.request,
+        )
+
+    def _focus__acme_server_deactivate__submit(self):
+        dbAcmeAccount = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeAccount_deactivate,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # `key_pem` can match the full or md5
+            _key_pem = formStash.results["key_pem"]
+            if _key_pem != dbAcmeAccount.acme_account_key.key_pem_md5:
+                _key_pem = cert_utils.cleanup_pem_text(_key_pem)
+                if _key_pem != dbAcmeAccount.acme_account_key.key_pem:
+                    formStash.fatal_field(
+                        field="key_pem",
+                        message="This does not match the active account key",
+                    )
+            try:
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(
+                    self.request.api_context,
+                    dbAcmeAccount=dbAcmeAccount,
+                    transaction_commit=True,
+                )
+            except errors.AcmeServerError as exc:
+                if self._handle_potentially_deactivated(exc):
+                    formStash.fatal_form(message=str(exc.args[1]))
+                raise
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                }
+
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme-server--deactivate"
+                % (self._focus_url,)
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(
+                self.request, self._focus__acme_server_deactivate__print
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:key_change",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:key_change|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-server/key-change.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. ACME Server - KeyChange""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/key-change.json""",
+            ],
+            "form_fields": {
+                "key_pem_existing": "the active key as md5(PEM) or PEM",
+            },
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-server/key-change.json""",
+            ],
+        }
+    )
+    def focus__acme_server_key_change(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccount = self._focus()
+        if self.request.method == "POST":
+            return self._focus__acme_server_key_change__submit()
+        if not dbAcmeAccount.is_can_key_change:
+            error_message = "This AcmeAccount can not be key changed"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=acme-server--key-change" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
+            )
+            return HTTPSeeOther(url_error)
+        return self._focus__acme_server_key_change__print()
+
+    def _focus__acme_server_key_change__print(self):
+        dbAcmeAccount = self._focus()
+        if self.request.wants_json:
+            return formatted_get_docs(
+                self, "/acme-account/{ID}/acme-server/key-change.json"
+            )
+        return render_to_response(
+            "/admin/acme_account-focus-key_change.mako",
+            {"AcmeAccount": dbAcmeAccount},
+            self.request,
+        )
+
+    def _focus__acme_server_key_change__submit(self):
+        dbAcmeAccount = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeAccount_key_change,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # `key_pem` can match the full or md5
+            _key_pem_old = formStash.results["key_pem_existing"]
+            if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem_md5:
+                _key_pem_old = cert_utils.cleanup_pem_text(_key_pem_old)
+                if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem:
+                    formStash.fatal_field(
+                        field="key_pem_existing",
+                        message="This does not match the active account key",
+                    )
+
+            try:
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(
+                    self.request.api_context,
+                    dbAcmeAccount=dbAcmeAccount,
+                    key_pem_new=None,
+                    transaction_commit=True,
+                )
+            except errors.ConflictingObject as exc:
+                # args[0] = tuple(conflicting_object, error_message_string)
+                formStash.fatal_form(message=str(exc.args[0][1]))
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                }
+
+            return HTTPSeeOther(
+                "%s?&result=success&operation=acme-server--key-change"
+                % (self._focus_url,)
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(
+                self.request, self._focus__acme_server_key_change__print
             )

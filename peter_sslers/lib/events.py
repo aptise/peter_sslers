@@ -5,7 +5,6 @@ import math
 
 # setup logging
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 
@@ -13,7 +12,8 @@ log.setLevel(logging.INFO)
 from .. import lib
 from ..model import utils as model_utils
 from .db import create as db_create
-from .db import get as db_get
+
+# from .db import get as db_get
 from .db import update as db_update
 
 

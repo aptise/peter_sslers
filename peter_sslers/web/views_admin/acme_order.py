@@ -16,6 +16,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeOrder_new_freeform
 from ..lib.forms import Form_AcmeOrder_renew_custom
 from ..lib.forms import Form_AcmeOrder_renew_quick
@@ -73,6 +75,78 @@ class View_List(Handler):
     @view_config(route_name="admin:acme_orders:active_paginated|json", renderer="json")
     @view_config(
         route_name="admin:acme_orders:finished_paginated|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders.json",
+            "section": "acme-order",
+            "about": """list AcmeOrder(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orders.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/{PAGE}.json",
+            "section": "acme-order",
+            "example": "curl {ADMIN_PREFIX}/acme-orders/1.json",
+            "variant_of": "/acme-orders.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/all.json",
+            "section": "acme-order",
+            "about": """list AcmeOrder(s) ALL""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orders/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/all/{PAGE}.json",
+            "section": "acme-order",
+            "example": "curl {ADMIN_PREFIX}/acme-orders/all/1.json",
+            "variant_of": "/acme-orders/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/active.json",
+            "section": "acme-order",
+            "about": """list AcmeOrder(s) Active""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orders/active.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/active/{PAGE}.json",
+            "section": "acme-order",
+            "example": "curl {ADMIN_PREFIX}/acme-orders/active/1.json",
+            "variant_of": "/acme-orders/active.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/finished.json",
+            "section": "acme-order",
+            "about": """list AcmeOrder(s) Finished""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orders/finished.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orders/finished/{PAGE}.json",
+            "section": "acme-order",
+            "example": "curl {ADMIN_PREFIX}/acme-orders/finished/1.json",
+            "variant_of": "/acme-orders/finished.json",
+        }
     )
     def list(self):
         sidenav_option = None
@@ -139,6 +213,15 @@ class View_List(Handler):
     @view_config(
         route_name="admin:acme_orders:active:acme_server:sync|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-orders/active/acme-server/sync.json",
+            "section": "acme-order",
+            "about": """sync AcmeOrders to AcmeServers""",
+            "POST": True,
+            "GET": None,
+        }
+    )
     def active_acme_server_sync(self):
         base_url = (
             "%s/acme-orders/active"
@@ -146,11 +229,9 @@ class View_List(Handler):
         )
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self, "/acme-orders/active/acme-server/sync.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % base_url
@@ -197,19 +278,23 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
+    dbAcmeOrder = None
+
     def _focus(self, eagerload_web=False):
-        dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-            eagerload_web=eagerload_web,
-        )
-        if not dbAcmeOrder:
-            raise HTTPNotFound("the order was not found")
-        self._focus_url = "%s/acme-order/%s" % (
-            self.request.admin_url,
-            dbAcmeOrder.id,
-        )
-        return dbAcmeOrder
+        if self.dbAcmeOrder is None:
+            dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+                eagerload_web=eagerload_web,
+            )
+            if not dbAcmeOrder:
+                raise HTTPNotFound("the order was not found")
+            self.dbAcmeOrder = dbAcmeOrder
+            self._focus_url = "%s/acme-order/%s" % (
+                self.request.admin_url,
+                self.dbAcmeOrder.id,
+            )
+        return self.dbAcmeOrder
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -217,6 +302,16 @@ class View_Focus(Handler):
         route_name="admin:acme_order:focus", renderer="/admin/acme_order-focus.mako"
     )
     @view_config(route_name="admin:acme_order:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1.json",
+        }
+    )
     def focus(self):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.wants_json:
@@ -232,6 +327,16 @@ class View_Focus(Handler):
         renderer="/admin/acme_order-focus-audit.mako",
     )
     @view_config(route_name="admin:acme_order:focus:audit|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{@id}/audit.json",
+            "section": "acme-order",
+            "about": """AcmeOrder - audit""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/audit.json",
+        }
+    )
     def audit(self):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.wants_json:
@@ -341,6 +446,16 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_order:focus:acme_server:sync|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-server/sync.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: AcmeServer sync""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/sync.json",
+        }
+    )
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
@@ -348,11 +463,9 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self, "/acme-order/{ID}/acme-server/sync.json"
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
                 % self._focus_url
@@ -400,6 +513,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_order:focus:acme_server:sync_authorizations|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-server/sync-authorizations.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: AcmeServer sync-authorizations""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/sync-authorizations.json",
+        }
+    )
     def acme_server_sync_authorizations(self):
         """
         sync any auths on the server.
@@ -407,11 +530,10 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self,
+                    "/acme-order/{ID}/acme-server/sync-authorizations.json",
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
                 % self._focus_url
@@ -460,6 +582,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_order:focus:acme_server:deactivate_authorizations|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-server/deactivate-authorizations.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: AcmeServer deactivate-authorizations""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/deactivate-authorizations.json",
+        }
+    )
     def acme_server_deactivate_authorizations(self):
         """
         deactivate any auths on the server.
@@ -467,11 +599,10 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self,
+                    "/acme-order/{ID}/acme-server/deactivate-authorizations.json",
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
                 % self._focus_url
@@ -520,6 +651,16 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_order:focus:acme_server:download_certificate|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-server/download-certificate.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: AcmeServer download-certificate""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/download-certificate.json",
+        }
+    )
     def acme_server_download_certificate(self):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
@@ -527,11 +668,10 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(
+                    self,
+                    "/acme-order/{ID}/acme-server/download-certificate.json",
+                )
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+server+download+certificate&message=HTTP+POST+required"
                 % self._focus_url
@@ -572,6 +712,16 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_order:focus:acme_process", renderer=None)
     @view_config(route_name="admin:acme_order:focus:acme_process|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-process.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: AcmeServer acme-process""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-process.json",
+        }
+    )
     def process_order(self):
         """
         only certain orders can be processed
@@ -579,11 +729,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(self, "/acme-order/{ID}/acme-process.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+process&message=HTTP+POST+required"
                 % self._focus_url
@@ -625,6 +771,16 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_order:focus:acme_finalize|json", renderer="json"
     )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-finalize.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: acme-finalize""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-finalize.json",
+        }
+    )
     def finalize_order(self):
         """
         only certain orders can be finalized
@@ -632,11 +788,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(self, "/acme-order/{ID}/acme-finalize.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
                 % self._focus_url
@@ -678,6 +830,27 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_order:focus:mark", renderer=None)
     @view_config(route_name="admin:acme_order:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/mark.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: Mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/mark.json",
+            "form_fields": {
+                "action": "The action",
+            },
+            "valid_options": {
+                "action": [
+                    "invalid",
+                    "deactivate",
+                    "renew_auto",
+                    "renew_manual",
+                ]
+            },
+        }
+    )
     def mark_order(self):
         """
         Mark an order
@@ -685,11 +858,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                }
+                return formatted_get_docs(self, "/acme-order/{ID}/mark.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=mark&message=HTTP+POST+required"
                 % self._focus_url
@@ -759,6 +928,16 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
     @view_config(route_name="admin:acme_order:focus:retry|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/retry.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: Retry""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/retry.json",
+        }
+    )
     def retry_order(self):
         """
         Retry should create a new order
@@ -766,7 +945,8 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":
-                raise errors.InvalidRequest("HTTP POST required")
+                if self.request.wants_json:
+                    return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
@@ -821,6 +1001,55 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_order:focus:renew:custom", renderer=None)
     @view_config(route_name="admin:acme_order:focus:renew:custom|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/renew/custom.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: Renew Custom""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/renew/custom.json",
+            "form_fields": {
+                "processing_strategy": "How should the order be processed?",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_reuse": "pem_md5 of existing key",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+            },
+            "form_fields_related": [
+                ["account_key_file_pem", "acme_account_provider_id"],
+                [
+                    "account_key_file_le_meta",
+                    "account_key_file_le_pkey",
+                    "account_key_file_le_reg",
+                ],
+            ],
+            "valid_options": {
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
+                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                "private_key_option": model_utils.PrivateKey_options_b,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+            },
+            "requirements": [
+                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+            ],
+            "instructions": [
+                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/acme-order/1/renew/custom.json""",
+            ],
+        }
+    )
     def renew_custom(self):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
@@ -835,61 +1064,10 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeOrder = self._focus()
 
         if self.request.wants_json:
-            rval = {
-                "form_fields": {
-                    "processing_strategy": "How should the order be processed?",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                    "private_key_option": "How is the PrivateKey being specified?",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_b,
-                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                    "private_key_option": model_utils.PrivateKey_options_b,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-                },
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
-                ],
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/1/renew/custom.json"""
-                    % self.request.admin_url,
-                ],
-                "notes": [],
-            }
-            if not dbAcmeOrder.is_renewable_custom:
-                rval["notes"].append("This AcmeOrder can not use RenewCustom")
-            return rval
+            return formatted_get_docs(self, "/acme-order/{ID}/renew/custom.json")
 
         if not dbAcmeOrder.is_renewable_custom:
-            raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
+            raise errors.DisplayableError("This AcmeOrder can not use Renew Custom")
 
         return render_to_response(
             "/admin/acme_order-focus-renew-custom.mako",
@@ -904,9 +1082,6 @@ class View_Focus_Manipulate(View_Focus):
     def _renew_custom__submit(self):
         dbAcmeOrder = self._focus()
         try:
-            if not dbAcmeOrder.is_renewable_custom:
-                raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
-
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeOrder_renew_custom,
@@ -914,6 +1089,10 @@ class View_Focus_Manipulate(View_Focus):
             )
             if not result:
                 raise formhandling.FormInvalid()
+
+            if not dbAcmeOrder.is_renewable_custom:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form("This AcmeOrder can not use RenewCustom")
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
                 self.request,
@@ -977,6 +1156,25 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_order:focus:renew:quick", renderer=None)
     @view_config(route_name="admin:acme_order:focus:renew:quick|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/renew/quick.json",
+            "section": "acme-order",
+            "about": """AcmeOrder focus: Renew Quick""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/renew/quick.json",
+            "form_fields": {
+                "processing_strategy": "How should the order be processed?",
+            },
+            "valid_options": {
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+            },
+            "instructions": [
+                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/acme-order/1/renew/quick.json""",
+            ],
+        }
+    )
     def renew_quick(self):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with this same Account .
@@ -988,22 +1186,7 @@ class View_Focus_Manipulate(View_Focus):
     def _renew_quick__print(self):
         dbAcmeOrder = self._focus()
         if self.request.wants_json:
-            rval = {
-                "form_fields": {
-                    "processing_strategy": "How should the order be processed?",
-                },
-                "valid_options": {
-                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                },
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'processing_strategy=create_order' %s/acme-order/1/renew/quick.json"""
-                    % self.request.admin_url,
-                ],
-                "notes": [],
-            }
-            if not dbAcmeOrder.is_renewable_quick:
-                rval["notes"].append("This AcmeOrder can not use Quick Renew")
+            return formatted_get_docs(self, "/acme-order/{ID}/renew/quick.json")
             return rval
 
         if not dbAcmeOrder.is_renewable_quick:
@@ -1020,9 +1203,6 @@ class View_Focus_Manipulate(View_Focus):
     def _renew_quick__submit(self):
         dbAcmeOrder = self._focus()
         try:
-            if not dbAcmeOrder.is_renewable_quick:
-                raise errors.DisplayableError("This AcmeOrder can not use QuickRenew")
-
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeOrder_renew_quick,
@@ -1030,6 +1210,11 @@ class View_Focus_Manipulate(View_Focus):
             )
             if not result:
                 raise formhandling.FormInvalid()
+
+            if not dbAcmeOrder.is_renewable_quick:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form("This AcmeOrder can not use Renew Quick")
+
             processing_strategy = formStash.results["processing_strategy"]
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
@@ -1083,6 +1268,59 @@ class View_Focus_Manipulate(View_Focus):
 class View_New(Handler):
     @view_config(route_name="admin:acme_order:new:freeform")
     @view_config(route_name="admin:acme_order:new:freeform|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-order/new/freeform.json",
+            "section": "acme-order",
+            "about": """AcmeOrder: New Freeform""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
+            "form_fields": {
+                "domain_names_http01": "required; a comma separated list of domain names to process",
+                "domain_names_dns01": "required; a comma separated list of domain names to process",
+                "processing_strategy": "How should the order be processed?",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_reuse": "pem_md5 of existing key",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+            },
+            "form_fields_related": [
+                ["account_key_file_pem", "acme_account_provider_id"],
+                ["domain_names_http01", "domain_names_dns01"],
+                [
+                    "account_key_file_le_meta",
+                    "account_key_file_le_pkey",
+                    "account_key_file_le_reg",
+                ],
+            ],
+            "valid_options": {
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
+                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                "private_key_option": model_utils.PrivateKey_options_b,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+            },
+            "requirements": [
+                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
+                "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
+            ],
+            "instructions": [
+                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/acme-order/new/freeform.json""",
+            ],
+        }
+    )
     def new_freeform(self):
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
@@ -1092,63 +1330,16 @@ class View_New(Handler):
 
     def _new_freeform__print(self):
         if self.request.wants_json:
-            return {
-                "form_fields": {
-                    "domain_names_http01": "required; a comma separated list of domain names to process",
-                    "domain_names_dns01": "required; a comma separated list of domain names to process",
-                    "processing_strategy": "How should the order be processed?",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                    "private_key_option": "How is the PrivateKey being specified?",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    ["domain_names_http01", "domain_names_dns01"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_b,
-                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                    "private_key_option": model_utils.PrivateKey_options_b,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-                },
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
-                    "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
-                ],
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/freeform.json"""
-                    % self.request.admin_url,
-                ],
-            }
+            return formatted_get_docs(self, "/acme-order/new/freeform.json")
         return render_to_response(
             "/admin/acme_order-new-freeform.mako",
             {
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "domain_names_http01": self.request.params.get(
+                    "domain_names_http01", ""
+                ),
+                "domain_names_dns01": self.request.params.get("domain_names_dns01", ""),
             },
             self.request,
         )

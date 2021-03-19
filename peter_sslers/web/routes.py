@@ -1,10 +1,3 @@
-from ..lib.config_utils import set_bool_setting
-from ..lib.config_utils import set_int_setting
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def includeme(config):
 
     enable_views_admin = config.registry.settings["app_settings"]["enable_views_admin"]
@@ -68,17 +61,12 @@ def _admin_views(config):
         "admin:acme_account:focus:edit|json", "/acme-account/{@id}/edit.json"
     )
     config.add_route_7(
-        "admin:acme_account:focus:config|json",
-        "/acme-account/{@id}/config.json",
-    )
-    config.add_route_7(
         "admin:acme_account:focus:parse|json", "/acme-account/{@id}/parse.json"
     )
     config.add_route_7(
         "admin:acme_account:focus:raw",
         "/acme-account/{@id}/key.{format:(key|pem|pem.txt)}",
     )
-
     config.add_route_7(
         "admin:acme_account:focus:acme_authorizations",
         "/acme-account/{@id}/acme-authorizations",
@@ -95,7 +83,22 @@ def _admin_views(config):
         "admin:acme_account:focus:acme_authorizations_paginated|json",
         "/acme-account/{@id}/acme-authorizations/{@page}.json",
     )
-
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys",
+        "/acme-account/{@id}/acme-account-keys",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys_paginated",
+        "/acme-account/{@id}/acme-account-keys/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys|json",
+        "/acme-account/{@id}/acme-account-keys.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_account_keys_paginated|json",
+        "/acme-account/{@id}/acme-account-keys/{@page}.json",
+    )
     config.add_route_7(
         "admin:acme_account:focus:acme_orders",
         "/acme-account/{@id}/acme-orders",
@@ -105,20 +108,20 @@ def _admin_views(config):
         "/acme-account/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account:focus:private_keys",
-        "/acme-account/{@id}/private-keys",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:private_keys_paginated",
-        "/acme-account/{@id}/private-keys/{@page}",
-    )
-    config.add_route_7(
         "admin:acme_account:focus:certificate_signeds",
         "/acme-account/{@id}/certificate-signeds",
     )
     config.add_route_7(
         "admin:acme_account:focus:certificate_signeds_paginated",
         "/acme-account/{@id}/certificate-signeds/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:private_keys",
+        "/acme-account/{@id}/private-keys",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:private_keys_paginated",
+        "/acme-account/{@id}/private-keys/{@page}",
     )
     config.add_route_7(
         "admin:acme_account:focus:queue_certificates",
@@ -148,6 +151,22 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_account:focus:acme_server:deactivate_pending_authorizations|json",
         "/acme-account/{@id}/acme-server/deactivate-pending-authorizations.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:deactivate",
+        "/acme-account/{@id}/acme-server/deactivate",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:deactivate|json",
+        "/acme-account/{@id}/acme-server/deactivate.json",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:key_change",
+        "/acme-account/{@id}/acme-server/key-change",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:key_change|json",
+        "/acme-account/{@id}/acme-server/key-change.json",
     )
 
     # !!!: AcmeAuthorizations
@@ -370,14 +389,6 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders:active", "/acme-orders/active")
     config.add_route_7("admin:acme_orders:active|json", "/acme-orders/active.json")
     config.add_route_7(
-        "admin:acme_orders:active:acme_server:sync",
-        "/acme-orders/active/acme-server/sync",
-    )
-    config.add_route_7(
-        "admin:acme_orders:active:acme_server:sync|json",
-        "/acme-orders/active/acme-server/sync.json",
-    )
-    config.add_route_7(
         "admin:acme_orders:active_paginated", "/acme-orders/active/{@page}"
     )
     config.add_route_7(
@@ -391,6 +402,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_orders:finished_paginated|json",
         "/acme-orders/finished/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync",
+        "/acme-orders/active/acme-server/sync",
+    )
+    config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync|json",
+        "/acme-orders/active/acme-server/sync.json",
     )
     config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
@@ -500,12 +519,12 @@ def _admin_views(config):
     )
     config.add_route_7("admin:acme_orderless:focus|json", "/acme-orderless/{@id}.json")
     config.add_route_7(
-        "admin:acme_orderless:focus:add",
-        "/acme-orderless/{@id}/add",
+        "admin:acme_orderless:focus:add_challenge",
+        "/acme-orderless/{@id}/add-challenge",
     )
     config.add_route_7(
-        "admin:acme_orderless:focus:add|json",
-        "/acme-orderless/{@id}/add.json",
+        "admin:acme_orderless:focus:add_challenge|json",
+        "/acme-orderless/{@id}/add-challenge.json",
     )
     config.add_route_7(
         "admin:acme_orderless:focus:update",
@@ -565,6 +584,9 @@ def _admin_views(config):
 
     config.add_route_7("admin:api:update_recents", "/api/update-recents")
     config.add_route_7("admin:api:update_recents|json", "/api/update-recents.json")
+
+    config.add_route_7("admin:api:reconcile_cas", "/api/reconcile-cas")
+    config.add_route_7("admin:api:reconcile_cas|json", "/api/reconcile-cas.json")
 
     # !!!: Admin API Items - QueueCertificates
     config.add_route_7(
@@ -1280,6 +1302,22 @@ def _admin_views(config):
         "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
     )
 
+    # !!!: Root Stores
+    config.add_route_7("admin:root_stores", "/root-stores")
+    config.add_route_7("admin:root_stores_paginated", "/root-stores/{@page}")
+    config.add_route_7("admin:root_stores|json", "/root-stores.json")
+    config.add_route_7("admin:root_stores_paginated|json", "/root-stores/{@page}.json")
+
+    # !!!: Root Store - Focus
+    config.add_route_7("admin:root_store:focus", "/root-store/{@id}")
+    config.add_route_7("admin:root_store:focus|json", "/root-store/{@id}.json")
+
+    # !!!: Root Store Version - Focus
+    config.add_route_7("admin:root_store_version:focus", "/root-store-version/{@id}")
+    config.add_route_7(
+        "admin:root_store_version:focus|json", "/root-store-version/{@id}.json"
+    )
+
     # !!!: Unique FQDN Sets
     # tied to Certs and Ratelimits
     config.add_route_7("admin:unique_fqdn_sets", "/unique-fqdn-sets")
@@ -1338,5 +1376,13 @@ def _admin_views(config):
         "admin:unique_fqdn_set:focus:queue_certificates_paginated",
         "/unique-fqdn-set/{@id}/queue-certificates/{@page}",
     )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:modify", "/unique-fqdn-set/{@id}/modify"
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:modify|json", "/unique-fqdn-set/{@id}/modify.json"
+    )
+    config.add_route_7("admin:unique_fqdn_set:new", "/unique-fqdn-set/new")
+    config.add_route_7("admin:unique_fqdn_set:new|json", "/unique-fqdn-set/new.json")
 
     config.scan("peter_sslers.web.views_admin")

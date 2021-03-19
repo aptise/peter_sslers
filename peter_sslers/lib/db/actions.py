@@ -4,26 +4,22 @@ import logging
 log = logging.getLogger(__name__)
 
 # stdlib
-import datetime
 import pdb
 
 # pypi
-from dateutil import parser as dateutil_parser
+import requests
 import sqlalchemy
-import transaction
-from zope.sqlalchemy import mark_changed
+
+# from zope.sqlalchemy import mark_changed
 
 # localapp
-from ... import lib  # here for `lib.db`
+from ... import lib
+from .. import errors
+from .. import events
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-from .. import acme_v2
-from .. import cert_utils
-from .. import letsencrypt_info
-from .. import events
-from .. import errors
-from .. import utils
 from . import actions_acme
+from . import getcreate
 from . import update
 
 # local
@@ -34,6 +30,30 @@ from .logger import _log_object_event
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+"""
+TODO: sqlalchemy 1.4 rename
+* ``isnot`` is now ``is_not``
+* ``notin_`` is now ``not_in``
+"""
+
+
+_SA_VERSION = None  # parsed version
+_SA_1_4 = None  # Boolean
+
+
+def scalar_subquery(query):
+    global _SA_VERSION
+    global _SA_1_4
+    if _SA_VERSION is None:
+        _SA_VERSION = tuple(int(i) for i in sqlalchemy.__version__.split("."))
+        if _SA_VERSION >= (1, 4, 0):
+            _SA_1_4 = True
+        else:
+            _SA_1_4 = False
+    if _SA_1_4:
+        return query.scalar_subquery()
+    return query.subquery().as_scalar()
+
 
 def operations_deactivate_expired(ctx):
     """
@@ -42,7 +62,7 @@ def operations_deactivate_expired(ctx):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # create an event first
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__OperationsEvent(
         ctx,
@@ -104,7 +124,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
         raise ValueError("MUST run `operations_update_recents__global` first")
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__OperationsEvent(
         ctx,
@@ -187,6 +207,91 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+_header_2_format = {
+    "application/pkcs7-mime": "pkcs7",
+    "application/pkix-cert": "pkix-cert",
+}
+
+
+def operations_reconcile_cas(ctx):
+    """
+    tries to reconcile CAs
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    """
+    dbCertificateCAs = (
+        ctx.dbSession.query(model_objects.CertificateCA)
+        .filter(
+            model_objects.CertificateCA.cert_issuer_uri.isnot(None),
+            model_objects.CertificateCA.cert_issuer__reconciled.isnot(True),
+        )
+        .all()
+    )
+    _certificate_ca_ids = []
+    for dbCertificateCA in dbCertificateCAs:
+        print("Reconciling...")
+        _certificate_ca_ids.append(dbCertificateCA.id)
+        cert_issuer_uri = dbCertificateCA.cert_issuer_uri
+        print(dbCertificateCA.cert_subject)
+        print(cert_issuer_uri)
+        resp = requests.get(cert_issuer_uri)
+        if resp.status_code != 200:
+            raise ValueError("Could not load certificate")
+        content_type = resp.headers.get("content-type")
+        filetype = _header_2_format.get(content_type) if content_type else None
+        cert_pems = None
+        if filetype == "pkcs7":
+            cert_pems = lib.cert_utils.convert_pkcs7_to_pems(resp.content)
+        elif filetype == "pkix-cert":
+            cert_pem = lib.cert_utils.convert_der_to_pem(resp.content)
+            cert_pems = [
+                cert_pem,
+            ]
+        else:
+            raise ValueError("Not Implemented: %s" % content_type)
+
+        for cert_pem in cert_pems:
+            cert_parsed = lib.cert_utils.parse_cert(cert_pem)
+            (
+                _dbCertificateCAReconciled,
+                _is_created,
+            ) = getcreate.getcreate__CertificateCA__by_pem_text(ctx, cert_pem)
+            # mark the first item as reconciled
+            dbCertificateCA.cert_issuer__reconciled = True
+            if not dbCertificateCA.cert_issuer__certificate_ca_id:
+                dbCertificateCA.cert_issuer__certificate_ca_id = (
+                    _dbCertificateCAReconciled.id
+                )
+            else:
+                raise ValueError("Not Implemented: multiple reconciles")
+            # mark the second item
+            reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
+            reconciled_uris = reconciled_uris.split(" ") if reconciled_uris else []
+            if cert_issuer_uri not in reconciled_uris:
+                reconciled_uris.append(cert_issuer_uri)
+                reconciled_uris = " ".join(reconciled_uris)
+                _dbCertificateCAReconciled.reconciled_uris = reconciled_uris
+
+            dbCertificateCAReconciliation = model_objects.CertificateCAReconciliation()
+            dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
+            dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
+            dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
+                _dbCertificateCAReconciled.id
+            )
+            dbCertificateCAReconciliation.result = True
+            ctx.dbSession.add(dbCertificateCAReconciliation)
+
+    event_payload_dict = lib.utils.new_event_payload_dict()
+    event_payload_dict["certificate_ca.ids"] = _certificate_ca_ids
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("operations__reconcile_cas"),
+        event_payload_dict,
+    )
+
+    return dbOperationsEvent
+
+
 def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=None):
     """
     updates A SINGLE dbDomain record with recent values
@@ -226,9 +331,8 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_single=_q_sub)
@@ -253,9 +357,8 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_multi=_q_sub)
@@ -263,7 +366,7 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
     )
 
     # bookkeeping, doing this will mark the session as changed!
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["domain.ids"] = _domain_ids
     event_payload_dict["unique_fqdn_set.ids"] = _unique_fqdn_set_ids
     dbOperationsEvent = log__OperationsEvent(
@@ -301,9 +404,8 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_single=_q_sub
@@ -328,9 +430,8 @@ def operations_update_recents__global(ctx):
         )
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_multi=_q_sub
@@ -392,9 +493,8 @@ def operations_update_recents__global(ctx):
                 == CertificateCAChain2.certificate_ca_0_id,
             )
         )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.CertificateCA.__table__.update().values(
             count_active_certificates=_q_sub
@@ -406,31 +506,22 @@ def operations_update_recents__global(ctx):
     # update the count of certificates/orders for each PrivateKey
     # this is done automatically, but a periodic update is a good idea
     # 4.A - PrivateKey.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
-        )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
+    ).filter(
+        model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 4.b - PrivateKey.count_certificate_signeds
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
-        )
-        .filter(
-            model_objects.CertificateSigned.private_key_id
-            == model_objects.PrivateKey.id,
-        )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
+    ).filter(
+        model_objects.CertificateSigned.private_key_id == model_objects.PrivateKey.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
             count_certificate_signeds=_q_sub
@@ -441,31 +532,23 @@ def operations_update_recents__global(ctx):
     # Step5:
     # update the counts for each AcmeAccount
     # 5.a - AcmeAccount.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-        )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
+    ).filter(
+        model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 5.b - AcmeAccount.count_certificate_signeds
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
-        )
-        .subquery()
-        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    _q_sub = ctx.dbSession.query(
+        sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
+    ).filter(
+        model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
+        model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
     )
+    _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
             count_certificate_signeds=_q_sub
@@ -514,7 +597,7 @@ def api_domains__enable(ctx, domain_names):
     """
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ApiDomains__enable"),
@@ -538,11 +621,11 @@ def api_domains__disable(ctx, domain_names):
     :param domain_names: (required) a list of domain names
     """
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = lib.utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ApiDomains__disable"),
@@ -639,7 +722,7 @@ def api_domains__certificate_if_needed(
     )
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib.utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(

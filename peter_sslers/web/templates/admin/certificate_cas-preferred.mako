@@ -36,6 +36,9 @@
         <div class="col-sm-12">
 
             <ul class="list-styled">
+                <%
+                    idx_n = len(CertificateCAPreferences) - 1
+                %>
                 % for idx, dbPreference in enumerate(CertificateCAPreferences):
                     <li>
                         <form
@@ -60,7 +63,7 @@
                             <input type="hidden" name="slot" value="${dbPreference.id}" data-formencode-ignore="1"/>
                             <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="increase" data-formencode-ignore="1"/>
-                            <button class="btn btn-xs btn-primary" type="submit">
+                            <button class="btn btn-xs btn-primary ${"disabled" if idx == 0 else ""}" type="submit">
                                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                                 Move Up
                             </button>
@@ -74,7 +77,7 @@
                             <input type="hidden" name="slot" value="${dbPreference.id}" data-formencode-ignore="1"/>
                             <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="decrease" data-formencode-ignore="1"/>
-                            <button class="btn btn-xs btn-primary" type="submit">
+                            <button class="btn btn-xs btn-primary ${"disabled" if idx == idx_n else ""}" type="submit">
                                 <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
                                 Move Down
                             </button>

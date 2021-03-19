@@ -234,7 +234,7 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: AcmeAccount</a></li>
                 <li>
-                    <a  href="${admin_prefix}/certificate-ca/upload"
+                    <a  href="${admin_prefix}/certificate-ca/upload-cert"
                         title="CertificateCA - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

@@ -3,16 +3,17 @@ from __future__ import print_function
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 # stdlib
 import datetime
 
+# pypi
+import sqlalchemy
+
 # local
 from ...model import objects as model_objects
 from ...model import utils as model_utils
-from ...lib import letsencrypt_info
 from ...lib import utils
 from .logger import log__OperationsEvent
 from . import create as db_create
@@ -135,6 +136,9 @@ def initialize_AcmeAccountProviders(ctx):
 
 def initialize_CertificateCAs(ctx):
 
+    # nestle this import, so we do not load it on every run
+    from ...lib import letsencrypt_info
+
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
@@ -195,6 +199,78 @@ def initialize_CertificateCAs(ctx):
                     setattr(dbCertificateCA, _k, cert_data[_k])
                     if dbCertificateCA not in certs_discovered:
                         certs_modified.append(dbCertificateCA)
+
+        if "compatibility" in cert_data:
+            # TODO: migrate to getcreate
+            # TODO: log creation
+            for platform_info in cert_data["compatibility"].items():
+                dbRootStore = (
+                    ctx.dbSession.query(model_objects.RootStore)
+                    .filter(
+                        sqlalchemy.func.lower(model_objects.RootStore.name)
+                        == platform_info[0].lower(),
+                    )
+                    .first()
+                )
+                if not dbRootStore:
+                    dbRootStore = model_objects.RootStore()
+                    dbRootStore.name = platform_info[0]
+                    dbRootStore.timestamp_created = ctx.timestamp
+                    ctx.dbSession.add(dbRootStore)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStore,
+                        ]
+                    )
+                dbRootStoreVersion = (
+                    ctx.dbSession.query(model_objects.RootStoreVersion)
+                    .filter(
+                        model_objects.RootStoreVersion.root_store_id == dbRootStore.id,
+                        sqlalchemy.func.lower(
+                            model_objects.RootStoreVersion.version_string
+                        )
+                        == platform_info[1].lower(),
+                    )
+                    .first()
+                )
+                if not dbRootStoreVersion:
+                    dbRootStoreVersion = model_objects.RootStoreVersion()
+                    dbRootStoreVersion.root_store_id = dbRootStore.id
+                    dbRootStoreVersion.version_string = platform_info[1]
+                    dbRootStoreVersion.timestamp_created = ctx.timestamp
+                    ctx.dbSession.add(dbRootStoreVersion)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStoreVersion,
+                        ]
+                    )
+
+                dbRootStoreVersion2CertificateCA = (
+                    ctx.dbSession.query(model_objects.RootStoreVersion_2_CertificateCA)
+                    .filter(
+                        model_objects.RootStoreVersion_2_CertificateCA.root_store_version_id
+                        == dbRootStoreVersion.id,
+                        model_objects.RootStoreVersion_2_CertificateCA.certificate_ca_id
+                        == dbCertificateCA.id,
+                    )
+                    .first()
+                )
+                if not dbRootStoreVersion2CertificateCA:
+                    dbRootStoreVersion2CertificateCA = (
+                        model_objects.RootStoreVersion_2_CertificateCA()
+                    )
+                    dbRootStoreVersion2CertificateCA.root_store_version_id = (
+                        dbRootStoreVersion.id
+                    )
+                    dbRootStoreVersion2CertificateCA.certificate_ca_id = (
+                        dbCertificateCA.id
+                    )
+                    ctx.dbSession.add(dbRootStoreVersion2CertificateCA)
+                    ctx.dbSession.flush(
+                        objects=[
+                            dbRootStoreVersion2CertificateCA,
+                        ]
+                    )
         certs_lookup[cert_id] = dbCertificateCA
 
     # bookkeeping update

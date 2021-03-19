@@ -15,6 +15,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search
@@ -40,20 +42,74 @@ class View_List(Handler):
 
     @view_config(route_name="admin:domains", renderer="/admin/domains.mako")
     @view_config(route_name="admin:domains_paginated", renderer="/admin/domains.mako")
-    @view_config(route_name="admin:domains:expiring", renderer="/admin/domains.mako")
-    @view_config(
-        route_name="admin:domains:expiring_paginated", renderer="/admin/domains.mako"
-    )
     @view_config(route_name="admin:domains:challenged", renderer="/admin/domains.mako")
     @view_config(
         route_name="admin:domains:challenged_paginated", renderer="/admin/domains.mako"
     )
+    @view_config(route_name="admin:domains:expiring", renderer="/admin/domains.mako")
+    @view_config(
+        route_name="admin:domains:expiring_paginated", renderer="/admin/domains.mako"
+    )
     @view_config(route_name="admin:domains|json", renderer="json")
     @view_config(route_name="admin:domains_paginated|json", renderer="json")
-    @view_config(route_name="admin:domains:expiring|json", renderer="json")
-    @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
     @view_config(route_name="admin:domains:challenged|json", renderer="json")
     @view_config(route_name="admin:domains:challenged_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:expiring|json", renderer="json")
+    @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domains.json",
+            "section": "domain",
+            "about": """list Domain(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domains.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/{PAGE}.json",
+            "section": "domain",
+            "example": "curl {ADMIN_PREFIX}/domains/1.json",
+            "variant_of": "/domains.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/challenged.json",
+            "section": "domain",
+            "about": """list Domain(s)- Challenged""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domains/challenged.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/challenged/{PAGE}.json",
+            "section": "domain",
+            "example": "curl {ADMIN_PREFIX}/domains/challenged/1.json",
+            "variant_of": "/domains/challenged.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/expiring.json",
+            "section": "domain",
+            "about": """list Domain(s)- Expiring""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domains/expiring.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/expiring/{PAGE}.json",
+            "section": "domain",
+            "example": "curl {ADMIN_PREFIX}/domains/expiring/1.json",
+            "variant_of": "/domains/expiring.json",
+        }
+    )
     def list(self):
         expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
         if self.request.matched_route.name in (
@@ -138,6 +194,17 @@ class View_Search(Handler):
     @view_config(
         route_name="admin:domains:search", renderer="/admin/domains-search.mako"
     )
+    @docify(
+        {
+            "endpoint": "/domains/search.json",
+            "section": "domain",
+            "about": """Search Domain(s)""",
+            "POST": True,
+            "GET": None,
+            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domains/search.json",
+            "form_fields": {"domain": "the domain"},
+        }
+    )
     @view_config(route_name="admin:domains:search|json", renderer="json")
     def search(self):
         self.search_results = None
@@ -147,13 +214,7 @@ class View_Search(Handler):
 
     def _search__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'domain=example.com' %s/domains/search.json"""
-                    % self.request.admin_url
-                ],
-                "form_fields": {"domain": "the domain"},
-            }
+            return formatted_get_docs(self, "/domains/search.json")
         return render_to_response(
             "/admin/domains-search.mako",
             {"search_results": self.search_results, "sidenav_option": "search"},
@@ -218,6 +279,17 @@ class View_Search(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:domain:new")
     @view_config(route_name="admin:domain:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/new.json",
+            "section": "domain",
+            "about": """New Domain""",
+            "POST": True,
+            "GET": None,
+            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domain/new.json",
+            "form_fields": {"domain_name": "the domain"},
+        }
+    )
     def new(self):
         if self.request.method == "POST":
             return self._new__submit()
@@ -225,18 +297,7 @@ class View_New(Handler):
 
     def _new__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'domain_name=example.com' %s/domain/new.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {
-                    "domain_name": "domain name",
-                },
-                "notes": [],
-                "valid_options": {},
-            }
+            return formatted_get_docs(self, "/domain/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/domain-new.mako",
@@ -287,35 +348,49 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
+    dbDomain = None
+
     def _focus(self, eagerload_web=False):
-        domain_identifier = self.request.matchdict["domain_identifier"].strip()
-        if domain_identifier.isdigit():
-            dbDomain = lib_db.get.get__Domain__by_id(
-                self.request.api_context,
-                domain_identifier,
-                preload=True,
-                eagerload_web=eagerload_web,
+        if self.dbDomain is None:
+            domain_identifier = self.request.matchdict["domain_identifier"].strip()
+            if domain_identifier.isdigit():
+                dbDomain = lib_db.get.get__Domain__by_id(
+                    self.request.api_context,
+                    domain_identifier,
+                    preload=True,
+                    eagerload_web=eagerload_web,
+                )
+            else:
+                dbDomain = lib_db.get.get__Domain__by_name(
+                    self.request.api_context,
+                    domain_identifier,
+                    preload=True,
+                    eagerload_web=eagerload_web,
+                )
+            if not dbDomain:
+                raise HTTPNotFound("the domain was not found")
+            self.dbDomain = dbDomain
+            self._focus_item = dbDomain
+            self._focus_url = "%s/domain/%s" % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.dbDomain.id,
             )
-        else:
-            dbDomain = lib_db.get.get__Domain__by_name(
-                self.request.api_context,
-                domain_identifier,
-                preload=True,
-                eagerload_web=eagerload_web,
-            )
-        if not dbDomain:
-            raise HTTPNotFound("the domain was not found")
-        self._focus_item = dbDomain
-        self._focus_url = "%s/domain/%s" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
-            dbDomain.id,
-        )
-        return dbDomain
+        return self.dbDomain
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus", renderer="/admin/domain-focus.mako")
     @view_config(route_name="admin:domain:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/{ID}.json",
+            "section": "domain",
+            "about": """Domain focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/1.json",
+        }
+    )
     def focus(self):
         dbDomain = self._focus(eagerload_web=True)
         dbAcmeChallenges = lib_db.get.get__AcmeChallenges__by_DomainId__active(
@@ -341,23 +416,53 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:domain:focus:nginx_cache_expire|json", renderer="json"
     )
-    def nginx_expire(self):
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/nginx-cache-expire.json",
+            "section": "domain",
+            "about": """Domain focus: nginx-cache-expire""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
+        }
+    )
+    def nginx_cache_expire(self):
         dbDomain = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self, "/domain/{ID}/nginx-cache-expire.json")
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&message=POST+required"
+                % self._focus_url
+            )
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
-            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther(
+                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                % self._focus_url
+            )
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
+            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:config|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/config.json",
+            "section": "domain",
+            "about": """Domain focus: config""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/1/config.json",
+        }
+    )
     def config_json(self):
         dbDomain = self._focus()
         rval = dbDomain.as_json_config(
@@ -370,6 +475,16 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:calendar|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/calendar.json",
+            "section": "domain",
+            "about": """Domain focus: calendar""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/1/calendar.json",
+        }
+    )
     def calendar(self):
         rval = {}
         dbDomain = self._focus()
@@ -399,18 +514,21 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:domain:focus:update_recents", renderer=None)
     @view_config(route_name="admin:domain:focus:update_recents|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/update-recents.json",
+            "section": "domain",
+            "about": """Domain focus: update-recents""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/domain/1/update-recents.json",
+        }
+    )
     def update_recents(self):
         dbDomain = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {
-                    "instructions": [
-                        "HTTP POST required",
-                    ],
-                    "form_fields": {},
-                    "notes": [],
-                    "valid_options": {},
-                }
+                return formatted_get_docs(self, "/domain/{ID}/update-recents.json")
             return HTTPSeeOther(
                 "%s?result=error&operation=update-recents&message=POST+required"
                 % (self._focus_url,)
@@ -692,6 +810,21 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:domain:focus:mark", renderer=None)
     @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/mark.json",
+            "section": "domain",
+            "about": """Domain focus: mark""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/domain/1/mark.json",
+            "instructions": [
+                """curl --form 'action=active' {ADMIN_PREFIX}/domain/1/mark.json""",
+            ],
+            "form_fields": {"action": "the intended action"},
+            "valid_options": {"action": ["active", "inactive"]},
+        }
+    )
     def mark(self):
         dbDomain = self._focus()
         if self.request.method == "POST":
@@ -700,15 +833,7 @@ class View_Focus_Manipulate(View_Focus):
 
     def _mark__print(self, dbDomain):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                    """curl --form 'action=active' %s/domain/1/mark.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["active", "inactive"]},
-            }
+            return formatted_get_docs(self, "/domain/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url,
         )
@@ -798,6 +923,16 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         route_name="admin:domain:focus:acme_dns_server_accounts|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/acme-dns-server-accounts.json",
+            "section": "domain",
+            "about": """list Domain Acme-DNS Server accounts(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/acme-dns-server-accounts.json",
+        }
+    )
     def list(self):
         dbDomain = self._focus()
         if self.request.wants_json:
@@ -822,6 +957,23 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
     @view_config(
         route_name="admin:domain:focus:acme_dns_server:new|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/acme-dns-server/new.json",
+            "section": "domain",
+            "about": """Domain focus: acme-dns-server/new""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json",
+            "instructions": [
+                """curl --form 'acme_dns_server_id=act1ive' {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json""",
+            ],
+            "form_fields": {"acme_dns_server_id": "the AcmeDNS Server"},
+            "valid_options": {
+                "acme_dns_server_id": "{RENDER_ON_REQUEST}",
+            },
+        }
     )
     def new(self):
         self.dbDomain = dbDomain = self._focus()
@@ -852,15 +1004,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
     def _new_print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    "HTTP POST required",
-                ],
-                "form_fields": {},
-                "valid_options": {
-                    "acme_dns_server_id": [i.id for i in self.dbAcmeDnsServers]
-                },
-            }
+            return formatted_get_docs(self, "/domain/new.json")
         return render_to_response(
             "/admin/domain-focus-acme_dns_server-new.mako",
             {

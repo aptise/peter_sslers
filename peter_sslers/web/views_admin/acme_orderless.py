@@ -1,7 +1,6 @@
 import logging
 
 log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
 
 
@@ -22,6 +21,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
+from ..lib.docs import docify
+from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeOrderless_manage_domain
 from ..lib.forms import Form_AcmeOrderless_AcmeChallenge_add
 from ..lib.forms import Form_AcmeOrderless_new
@@ -54,6 +55,24 @@ class View_List(Handler):
         route_name="admin:acme_orderlesss_paginated|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-orderlesss.json",
+            "section": "acme-orderlesss",
+            "about": """list AcmeOrderless(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orderlesss.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/acme-orderlesss/{PAGE}.json",
+            "section": "acme-orderless",
+            "example": "curl {ADMIN_PREFIX}/acme-orderlesss/1.json",
+            "variant_of": "/acme-orderless.json",
+        }
+    )
     def list(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
@@ -83,6 +102,50 @@ class View_List(Handler):
 class View_New(Handler):
     @view_config(route_name="admin:acme_orderless:new")
     @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-orderless/new.json",
+            "section": "acme-orderless",
+            "about": """create a new acme-orderless""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-orderless/new.json",
+            "instructions": [
+                """curl --form 'domain_names_http01=@domain_names' 'account_key_option=none' {ADMIN_PREFIX}/acme-orderless/new.json""",
+            ],
+            "form_fields": {
+                "domain_names_http01": "a comma separated list of domain names for http01 challenge",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+            },
+            "form_fields_related": [
+                ["account_key_file_pem", "acme_account_provider_id"],
+                [
+                    "account_key_file_le_meta",
+                    "account_key_file_le_pkey",
+                    "account_key_file_le_reg",
+                ],
+            ],
+            "valid_options": {
+                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
+                "account_key_option": model_utils.AcmeAccontKey_options_c,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+            },
+            "requirements": [
+                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+            ],
+            "notes": [
+                "You can configure the challenges and add domain names to an existing AcmeOrderless"
+            ],
+        }
+    )
     def new_AcmeOrderless(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
@@ -96,48 +159,7 @@ class View_New(Handler):
 
     def _new_AcmeOrderless__print(self):
         if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'domain_names_http01=@domain_names' 'account_key_option=none' %s/acme-orderless/new.json"""
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                ],
-                "form_fields": {
-                    "domain_names_http01": "a comma separated list of domain names for http01 challenge",
-                    "account_key_option": "How is the AcmeAccount specified?",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "valid_options": {
-                    "acme_account_provider_id": {
-                        i.id: "%s (%s)" % (i.name, i.url)
-                        for i in self.dbAcmeAccountProviders
-                    },
-                    "account_key_option": model_utils.AcmeAccontKey_options_c,
-                    "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
-                    if self.dbAcmeAccount_GlobalDefault
-                    else None,
-                },
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
-                ],
-                "notes": [
-                    "You can configure the challenges and add domain names to an existing AcmeOrderless"
-                ],
-            }
+            return formatted_get_docs(self, "/acme-orderless/new.json")
         return render_to_response(
             "/admin/acme_orderless-new.mako",
             {
@@ -224,43 +246,43 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-
-    _dbAcmeOrderless = None
+    dbAcmeOrderless = None
 
     def _focus(self, eagerload_web=False):
-        self._dbAcmeOrderless = dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-            eagerload_web=eagerload_web,
-        )
-        if not dbAcmeOrderless:
-            raise HTTPNotFound("the item was not found")
-        self._focus_url = "%s/acme-orderless/%s" % (
-            self.request.admin_url,
-            dbAcmeOrderless.id,
-        )
-        return dbAcmeOrderless
+        if self.dbAcmeOrderless is None:
+            _dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
+                self.request.api_context,
+                self.request.matchdict["id"],
+                eagerload_web=eagerload_web,
+            )
+            if not _dbAcmeOrderless:
+                raise HTTPNotFound("the item was not found")
+            self.dbAcmeOrderless = _dbAcmeOrderless
+            self._focus_url = "%s/acme-orderless/%s" % (
+                self.request.admin_url,
+                self.dbAcmeOrderless.id,
+            )
+        return self.dbAcmeOrderless
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _focus_print(self):
-        if self._dbAcmeOrderless is None:
-            self._focus()
+        self._focus()
         if self.request.wants_json:
             resp = {
-                "AcmeOrderless": self._dbAcmeOrderless.as_json,
+                "AcmeOrderless": self.dbAcmeOrderless.as_json,
                 "forms": {},
             }
-            if self._dbAcmeOrderless.is_processing:
+            if self.dbAcmeOrderless.is_processing:
                 resp["forms"]["acmeorderless-update"] = {
                     "_url": "%s/update.json" % self._focus_url,
                     "_challenges": [],
                 }
-                for challenge in self._dbAcmeOrderless.acme_challenges:
+                for challenge in self.dbAcmeOrderless.acme_challenges:
                     resp["forms"]["acmeorderless-update"]["_challenges"].append(
                         str(challenge.id)
                     )
-                    if self._dbAcmeOrderless.acme_account_id:
+                    if self.dbAcmeOrderless.acme_account_id:
                         resp["forms"]["acmeorderless-update"][
                             "%s_url" % challenge.id
                         ] = (challenge.challenge_url or "")
@@ -277,7 +299,7 @@ class View_Focus(Handler):
                     resp["forms"]["acmeorderless-update"]["_challenges"]
                 )
                 resp["forms"]["acmeorderless-add_challenge"] = {
-                    "_url": "%s/add.json" % self._focus_url,
+                    "_url": "%s/add-challenge.json" % self._focus_url,
                     "acme_challenge_type": "",
                     "keyauthorization": "",
                     "domain": "",
@@ -290,7 +312,7 @@ class View_Focus(Handler):
         return render_to_response(
             "/admin/acme_orderless-focus.mako",
             {
-                "AcmeOrderless": self._dbAcmeOrderless,
+                "AcmeOrderless": self.dbAcmeOrderless,
             },
             self.request,
         )
@@ -302,21 +324,41 @@ class View_Focus(Handler):
         renderer="/admin/acme_orderless-focus.mako",
     )
     @view_config(route_name="admin:acme_orderless:focus|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-orderless/{ID}.json",
+            "section": "acme-orderless",
+            "about": """AcmeOrderless focus""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-orderless/1.json",
+        }
+    )
     def focus(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
-        dbAcmeOrderless = self._focus()
+        self._focus()
         return self._focus_print()
 
 
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")
+    @docify(
+        {
+            "endpoint": "/acme-orderless/{ID}/update.json",
+            "section": "acme-orderless",
+            "about": """AcmeOrderless focus: update""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-orderless/1/update.json",
+        }
+    )
     def update(self):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {"error": "This route requires a POST"}
+                return formatted_get_docs(self, "/acme-orderless/{ID}/update.json")
             return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         _changes = []
@@ -366,11 +408,21 @@ class View_Focus_Manipulate(View_Focus):
         route_name="admin:acme_orderless:focus:deactivate|json",
         renderer="json",
     )
+    @docify(
+        {
+            "endpoint": "/acme-orderless/{ID}/deactivate.json",
+            "section": "acme-orderless",
+            "about": """AcmeOrderless focus: deactivate""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-orderless/1/deactivate.json",
+        }
+    )
     def deactivate(self):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
-                return {"error": "This route requires a POST"}
+                return formatted_get_docs(self, "/acme-orderless/{ID}/deactivate.json")
             return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         if not dbAcmeOrderless.is_processing:
@@ -398,9 +450,29 @@ class View_Focus_Manipulate(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_orderless:focus:add")
-    @view_config(route_name="admin:acme_orderless:focus:add|json", renderer="json")
+    @view_config(route_name="admin:acme_orderless:focus:add_challenge")
+    @view_config(
+        route_name="admin:acme_orderless:focus:add_challenge|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/add-challenge.json",
+            "section": "acme-orderless",
+            "about": """AcmeOrder focus: add-challenge""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/add-challenge.json",
+        }
+    )
     def add_challenge(self):
+        dbAcmeOrderless = self._focus()
+
+        # handle the html in the next block
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self, "/acme-orderless/{ID}/add-challenge.json"
+                )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -410,7 +482,6 @@ class View_Focus_Manipulate(View_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
-            dbAcmeOrderless = self._focus()
             if self.request.method != "POST":
                 # `formStash.fatal_form()` will raise `FormInvalid()`
                 formStash.fatal_form("This route requires a POST")
@@ -496,6 +567,16 @@ class View_Focus_Challenge(View_Focus):
     @view_config(
         route_name="admin:acme_orderless:focus:acme_challenge|json",
         renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-order/{ID}/acme-challenge/{ID_CHALLENGE}.json",
+            "section": "acme-orderless",
+            "about": """AcmeOrder focus: acme-challenge""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-challenge/2.json",
+        }
     )
     def focus(self):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:

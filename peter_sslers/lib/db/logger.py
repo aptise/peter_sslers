@@ -2,6 +2,7 @@
 import logging
 
 log = logging.getLogger(__name__)
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # stdlib
 import datetime
@@ -12,8 +13,6 @@ from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 
-
-# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -60,6 +59,31 @@ class AcmeLogger(object):
             raise ValueError("invalid `acme_version``: %s" % acme_version)
 
         acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.acme_event_id = acme_event_id
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_deactivateAccount(self, acme_version, transaction_commit=None):
+        """
+        Logs a call for the ACME Deactivation event
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        # ???: update with result?
+        if acme_version != "v2":
+            raise ValueError("invalid `acme_version``: %s" % acme_version)
+
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|Account-deactivate")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()

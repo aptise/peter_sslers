@@ -20,11 +20,11 @@ requires = [
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
-    "pyramid",
+    "pyramid<2",
     "python-dateutil",
     "requests",
     "six ",
-    "SQLAlchemy<1.4.0",  # scalar_subquery API change
+    "SQLAlchemy<1.4",  # zope.sqlalchemy is not happy with 1.4's
     "transaction",
     "waitress",
     "zope.sqlalchemy",
@@ -46,7 +46,7 @@ testing_extras = tests_require + []
 
 setup(
     name="peter_sslers",
-    version="0.4.1.dev0",
+    version="0.5.0.dev0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -68,7 +68,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite="tests",
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
     install_requires=requires,
     tests_require=tests_require,
     extras_require={

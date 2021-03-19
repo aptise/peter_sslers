@@ -7,11 +7,9 @@ log = logging.getLogger(__name__)
 from pyramid.view import view_config
 
 # stdlib
-import datetime
-import pdb
 
 # localapp
-from ..lib.handler import Handler, items_per_page
+from ..lib.handler import Handler
 from ...lib import db as lib_db
 
 

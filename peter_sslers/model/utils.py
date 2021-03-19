@@ -142,6 +142,7 @@ def min_date__sqlite(element, compiler, **kw):
 
 class utcnow(expression.FunctionElement):
     type = sqlalchemy.types.DateTime()
+    name = "utcnow"
 
 
 @compiles(utcnow)
@@ -153,6 +154,29 @@ def utcnow__default(element, compiler, **kw):
 @compiles(utcnow, "postgresql")
 def utcnow__postgresql(element, compiler, **kw):
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+class indexable_lower(expression.FunctionElement):
+    type = sqlalchemy.types.String()
+    name = "indexable_lower"
+
+
+@compiles(indexable_lower)
+def indexable_lower__default(element, compiler, **kw):
+    args = list(element.clauses)
+    return "LOWER(%s)" % (compiler.process(args[0], **kw))
+
+
+@compiles(indexable_lower, "sqlite")
+def indexable_lower__sqlite(element, compiler, **kw):
+    args = list(element.clauses)
+    if compiler.dialect.dbapi.sqlite_version_info < (3, 9, 0):
+        return compiler.process(args[0], **kw)
+    else:
+        return "LOWER(%s)" % (compiler.process(args[0], **kw))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -189,6 +213,8 @@ class _OperationsUnified(_mixin_mapping):
         1: "_DatabaseInitialization",
         110: "AcmeAccount__insert",
         111: "AcmeAccount__create",
+        112: "AcmeAccount__deactivate",
+        113: "AcmeAccount__key_change",
         120: "AcmeAccount__authenticate",
         130: "AcmeAccount__mark",
         131: "AcmeAccount__mark__active",
@@ -199,6 +225,7 @@ class _OperationsUnified(_mixin_mapping):
         136: "AcmeAccount__edit__private_key_cycle",
         137: "AcmeAccount__edit_AcmeAccountKey",
         138: "AcmeAccount__edit__private_key_technology",
+        139: "AcmeAccount__mark__deactivated",
         150: "AcmeAccountKey__insert",
         151: "AcmeAccountKey__create",
         152: "AcmeAccountKey__mark__inactive",
@@ -287,6 +314,7 @@ class _OperationsUnified(_mixin_mapping):
         1005: "operations__redis_prime",
         1006: "operations__nginx_cache_expire",
         1007: "operations__nginx_cache_flush",
+        1008: "operations__reconcile_cas",
     }
 
 
@@ -641,6 +669,8 @@ class AcmeEvent(_mixin_mapping):
         12: "v2|Certificate-procured",  # we downloaded and enrolled the certificate
         13: "v2|-challenge-PostAsGet",
         14: "v2|-authorization-deactivate",
+        15: "v2|Account-deactivate",
+        16: "v2|keyChange",
     }
 
 

@@ -56,11 +56,23 @@
                             % if CertificateCA.is_trusted_root:
                                 <label class="label label-success">Y</label>
                             % endif
+                            % if CertificateCA.to_root_store_versions:
+                                <ul class="list list-unstyled">
+                                    % for to_root_store_version in CertificateCA.to_root_store_versions:
+                                        <li>
+                                            <a href="${admin_prefix}/root-store-version/${to_root_store_version.root_store_version.id}"
+                                               class="label label-info"
+                                            >
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                RootStoreVersion-${to_root_store_version.root_store_version.id}
+                                            </a>
+                                            <code>${to_root_store_version.root_store_version.root_store.name}</code>&nbsp;
+                                            <code>${to_root_store_version.root_store_version.version_string}</code>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
                         </td>
-                    </tr>
-                    <tr>
-                        <th>id_cross_signed_by</th>
-                        <td>${CertificateCA.id_cross_signed_by or ''}</td>
                     </tr>
                     <tr>
                         <th>timestamp_not_before</th>
@@ -125,6 +137,30 @@
                         <td><samp>${CertificateCA.cert_issuer}</samp>
                             </td>
                     </tr>
+                    <tr>
+                        <th>Reconciliation</th>
+                        <td>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th>cert_issuer__reconciled</th>
+                                    <td>Has a reconciliation been attempted?<br/> ${CertificateCA.cert_issuer__reconciled or ""}</td>
+                                </tr>
+                                <tr>
+                                    <th>cert_issuer__certificate_ca_id</th>
+                                    <td>via reconciliation:
+                                        % if CertificateCA.cert_issuer__certificate_ca_id:
+                                            ${CertificateCA.cert_issuer__certificate_ca.button_view|n}
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>reconciled_uris</th>
+                                    <td>This certificate was served by the following urls during reconciliation processes: ${CertificateCA.reconciled_uris or ""}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
                     ${admin_partials.table_tr_OperationsEventCreated(CertificateCA)}
                 </tbody>
                 <thead>

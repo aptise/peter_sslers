@@ -26,9 +26,9 @@
                 <ul>
                     <li>PrivateKey</li>
                     <li>CertificateSigned</li>
-                    <li>CertificateCA</li>
+                    <li>CertificateCAChain</li>
                 </ul>
-                Some webservers require the CertificateSigned and CertificateCA be joined in PEM format as a "fullchain" certificate.
+                Some webservers require the CertificateSigned and CertificateCAChain be joined in PEM format as a "fullchain" certificate.
             </p>
 
              <p>Most pages have documentation on them</p>
@@ -74,6 +74,12 @@
                     <th>CertificateCA</th>
                     <td>A trusted Certificate Authority Certificate, used to sign your <em>CertificateSigned</em>.
                         It must be installed on your webserver in order to serve https content.
+                    </td>
+                </tr>
+                <tr>
+                    <th>CertificateCAChain</th>
+                    <td>A collection of or more <em>CertificateCA</em> Certificates that provide a path from the EndEntity
+                        <em>CertificateSigned</em> to a Trusted Root Certificate..
                     </td>
                 </tr>
 

@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # localapp
-from ...lib import errors
+from .. import errors
 
 from .get import get__AcmeDnsServerAccount__by_DomainId
 from .get import get__Domain__by_name
