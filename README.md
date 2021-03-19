@@ -92,7 +92,7 @@ Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the
 * Expose routes to flush the worker shared memory or expire select keys.
 
 The `OpenResty` module is available in a separate project,
-https://github.com/aptise/peter_sslers-lua-resty and can be installed into your
+https://github.com/aptise/lua-resty-peter_sslers and can be installed into your
 `OpenResty`/`Nginx` server via the `opm` package installer. It has been used in
 production for several years.
 
@@ -229,7 +229,7 @@ Available via the opm package manager:
 
 The source and docs are available on a separate github repository:
 
-* https://github.com/aptise/peter_sslers-lua-resty
+* https://github.com/aptise/lua-resty-peter_sslers
 
 
 ## "Tools"
@@ -852,7 +852,7 @@ You can interact with this project via a commandline interface in several ways.
 The `OpenResty`/`Nginx` implementation was migrated to a dedicated sibling repository,
 handled by `opm` distribution.
 
-https://github.com/aptise/peter_sslers-lua-resty
+https://github.com/aptise/lua-resty-peter_sslers
 
     opm get lua-resty-peter_sslers
 
