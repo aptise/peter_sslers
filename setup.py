@@ -46,7 +46,7 @@ testing_extras = tests_require + []
 
 setup(
     name="peter_sslers",
-    version="0.4.1.dev0",
+    version="0.5.0.dev0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
