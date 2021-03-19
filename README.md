@@ -46,7 +46,7 @@ is companies that offer whitelabel services, like: SAAS, PAAS, hosting user
 domains, and other infrastructure oriented systems.
 
 If you can use Certbot or another consumer friendly client to solve your needs,
-YOU ALMOST ABSOLUTELY WANT TO USE THAT CLIENT. 
+YOU ALMOST ABSOLUTELY WANT TO USE THAT CLIENT.
 
 Peter, as we fondly call this package, offers lightweight tools to centrally manage
 SSL Certificate data in a SQL database of your choice. PostgreSQL is recommended;
@@ -59,6 +59,8 @@ SSL Certificates.
 
 The client supported ACME v1 until version `0.4.0`.
 **As of 0.4.0, Only ACME V2 is supported.**
+**As of 0.5.0, Only lua-resty-peter_sslers >0.5.0 is supported.**
+
 
 It is highly likely that PeterSSLers will work with most, if not all, ACME Servers.
 However, **only LetsEncrypt is supported as a target ACME Server.**
@@ -87,7 +89,7 @@ Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the
 
 * Dynamically request Certificates from a primed `Redis` cache
 * Store data in shared `Nginx` worker and main memory and
-* Expose routes to flush the worker shared memory or expire select keys. 
+* Expose routes to flush the worker shared memory or expire select keys.
 
 The `OpenResty` module is available in a separate project,
 https://github.com/aptise/peter_sslers-lua-resty and can be installed into your
@@ -278,7 +280,7 @@ The normalized data structure used by the backend and object hierarchy is as fol
 * `CertificateCA`
   * A root or intermediate Certificate
 
-When Alternate Chains are offered by the ACME server, the system will download 
+When Alternate Chains are offered by the ACME server, the system will download
 all chains and associate them to the Certificate.
 
 PeterSSLers also has a tool/endpoint to handle CertificateCA "Reconciliation".
@@ -333,14 +335,14 @@ When provisioning a certificate, there are 3 options available:
 
 * _Create an ACME Order_ This option will internally validate the information
   required for generating an ACME Order, and submit it to the ACME Server. To
-  complete the Order and obtain a Certificate, you must manually or 
+  complete the Order and obtain a Certificate, you must manually or
   programmatically complete the required steps.
 
 * _Process in a Single Request_ This option will create an ACME Order, submit it
   to the ACME Server, and then attempt to complete every ACME Challenge, finalize
   the order, and download the certificate.
 
-* _Process in Multiple Requests_ This option will create an ACME Order, 
+* _Process in Multiple Requests_ This option will create an ACME Order,
   submit it to the ACME Server, and then invoke some additional synchronization
   operations that do not happen on within the "Create an ACME Order" flow. You
   may then manually or programmatically complete the required steps.
@@ -366,7 +368,7 @@ which allows users to invoke web requests from the commandline.
 
 Using `prequest`, long-running processes can be easily triggered off the commandline,
 so a persistent web server is not required, and the "server" aspect of this package
-is only needed to complete the HTTP-01 challenges. 
+is only needed to complete the HTTP-01 challenges.
 
 If challenges are being completed with the DNS-01 method, the web server aspect of
 this package is not needed.
@@ -403,7 +405,7 @@ in an "autocert" functionality to nginx:
   serve existing Certificate. this is designed for automatically handling the
   Certificate process from within nginx, has some throttle protections, and
   relies on configurable system default values.
-  
+
 While several webservers offer "autocert" functionality, PeterSSLers is different
 because our integration handles the "autocert" from a secondary service that multiple
 webservers can interact with.
@@ -454,7 +456,7 @@ PeterSSLers handles several types of CertificateRequests
 * "Admin" and "Public" functions are isolated from each other. By changing the
   config, you can run a public-only "validation" interface or enable the admin
   tools that broadcast Certificate information.
-* the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
+* the `Pyramid` server can query `Nginx` locations to clear out the shared cache
 
 
 ## PrivateKey Cycling
@@ -520,7 +522,7 @@ default upstream from ACME will be used.
 This only affects the "default" endpoints, which are used as shortcuts for Nginx
 and other system integrations. Every signing chain is always available for a
 given Certificate. Certificates also list the possible signing chains by their
-system identifier AND SHA1 fingerprint. 
+system identifier AND SHA1 fingerprint.
 
 
 # Installation
@@ -549,9 +551,9 @@ Here we go...
     git clone https://github.com/aptise/peter_sslers.git
     cd peter_sslers
     python setup.py develop
-    initialize_peter_sslers_db example_development.ini  
+    initialize_peter_sslers_db example_development.ini
     pserve --reload example_development.ini
-    
+
 Then you can visit `http://127.0.0.1:7201`
 
 Editing the `example_development.ini` file will let you specify how the package
@@ -581,15 +583,15 @@ It is recommended to open up a new terminal and do the following commands
     cd peter_sslers
     pserve example_development.ini
 
-then in another terminal window:    
+then in another terminal window:
 
     cd certificate_admin
     source peter_sslers-venv/bin/activate
     cd peter_sslers/tools
     invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
-    invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
+    invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive'
     invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
-    
+
 Alternately, you can use shell variables to make this more readable:
 
     cd certificate_admin
@@ -597,7 +599,7 @@ Alternately, you can use shell variables to make this more readable:
     cd peter_sslers/tools
     export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
     invoke import-certbot-certs-live --live-path='/etc/letsencrypt/live'
-    invoke import-certbot-certs-archive --live-path='/etc/letsencrypt/archive' 
+    invoke import-certbot-certs-archive --live-path='/etc/letsencrypt/archive'
     invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts'
 
 The `prequest` command above will import the current LetsEncrypt Certificates to
@@ -626,7 +628,7 @@ The server will respond to requests with the following header to identify it:
 THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the `example_production.ini` file won't even run the admin tools. 
+By default, the `example_production.ini` file won't even run the admin tools.
 That is how serious we are about telling you to be careful!
 
 
@@ -711,14 +713,14 @@ The Certificate Itself:
     cert.cer            DER     application/pkix-cert
     cert.crt            DER     application/x-x509-server-cert
     cert.der            DER     application/x-x509-server-cert
-    
+
 The Certificate Chain:
 
     chain.pem           PEM     application/x-pem-file
     chain.pem.txt       PEM     text/plain
-    
+
 The Certificate Fullchain
-    
+
     fullchain.pem       PEM     application/x-pem-file
     fullchain.pem.txt   PEM     text/plain
 
@@ -852,7 +854,7 @@ handled by `opm` distribution.
 
 https://github.com/aptise/peter_sslers-lua-resty
 
-    opm get peter_sslers-lua-resty
+    opm get lua-resty-peter_sslers
 
 
 ## prequest
@@ -901,7 +903,7 @@ This can be used used to directly import Certificates already issued by LetsEncr
          --form "certificate_file=@cert2.pem" \
          --form "chain_file=@chain2.pem" \
          http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
-    
+
 Note the url is not `/upload` like the html form but `/upload.json`.
 
 Both URLS accept the same form data, but `/upload.json` returns json data which
@@ -916,7 +918,7 @@ There is an `invoke` script to automate these imports:
     invoke import-certbot-certs-archive \
            --archive-path='/path/to/archive' \
            --server-url-root='http://127.0.0.1:7201/.well-known/admin'
-    
+
     invoke import-certbot-cert-version \
            --domain-certs-path="/path/to/ssl/archive/example.com" \
            --certificate-version=3 \
@@ -1037,7 +1039,7 @@ renewal queue. If `False`, renewals must be manual.
 
 #### `is_active`
 
-If a Certificate is "active" (`True` by default) then it is actively managed and 
+If a Certificate is "active" (`True` by default) then it is actively managed and
 should be included in generating `Nginx` configuration.
 
 #### `is_deactivated` and `is_revoked`
@@ -1207,7 +1209,7 @@ The `Redis` datastore might look something like this:
     r['c2'] = CERT.PEM
     r['p2'] = PKEY.PEM  # (p)rivate
     r['i99'] = CHAIN.PEM  # (i)ntermediate certs
-    
+
 to assemble the data for `foo.example.com`:
 
 * (c, p, i) = r.hmget('d:foo.example.com', 'c', 'p', 'i')
@@ -1327,7 +1329,7 @@ keys are being set. Assuming `Redis` is configured to use 127.0.0.1:6379:9
     127.0.0.1:6379> select 9
     OK
     127.0.0.1:6379[9]> keys *
-    
+
 This should then show a bunch of keys. If not, you have a problem.
 
 You can also query nginx directly for status. Please note, the status route is
@@ -1387,6 +1389,24 @@ Alternate Chains are fully supported by PeterSSLers
 * Default UX, payloads and endpoints are optimized for the Primary Chain
 * Default payloads may be configured to enforce a chain preference, so alternate
   chains can override the default chain
+
+
+Versioning
+----------
+
+This project uses Major.Minor.Path semantic versioning.
+
+Major.Minor version releases are pegged to the same Major.Minor releases as
+`lua-resty-peter_slers`.
+
+For example:
+
+| peter_sslers | lua-resty-peter_sslers | compatible ? |
+| --- | --- | --- |
+| 0.5.1 | 0.5.1 | YES |
+| 0.5.1 | 0.5.0 | YES. Patch version mismatch ok! |
+| 0.5.1 | 0.4.2 | NO. Minor version mismatch. |
+
 
 
 What does it look like?

@@ -491,6 +491,7 @@ class ViewAdminApi_Domain(Handler):
                     # exit early
                     rval = dbDomain.as_json_config(id_only=False, active_only=True)
                     rval["result"] = "success"
+                    rval["notes"] = "existing certificate(s)"
                     log.debug("autocert - domain known - active certs")
                     return rval
                 else:
@@ -510,6 +511,7 @@ class ViewAdminApi_Domain(Handler):
                         # exit early
                         rval = dbDomain.as_json_config(id_only=False, active_only=True)
                         rval["result"] = "success"
+                        rval["notes"] = "existing certificate(s), updated recents"
                         log.debug("autocert - domain known - active certs")
                         return rval
 
@@ -595,6 +597,7 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context.pyramid_transaction_commit()
                     rval = dbDomain.as_json_config(id_only=False, active_only=True)
                     rval["result"] = "success"
+                    rval["notes"] = "new AcmeOrder, valid"
                     rval["AcmeOrder"] = {
                         "id": dbAcmeOrder.id,
                     }
@@ -606,12 +609,13 @@ class ViewAdminApi_Domain(Handler):
                     return rval
                 rval = {
                     "result": "error",
-                }
-                rval["domain"] = None
-                rval["certificate_signed__latest_single"] = None
-                rval["certificate_signed__latest_multi"] = None
-                rval["AcmeOrder"] = {
-                    "id": dbAcmeOrder.id,
+                    "notes": "new AcmeOrder, invalid",
+                    "domain": None,
+                    "certificate_signed__latest_single": None,
+                    "certificate_signed__latest_multi": None,
+                    "AcmeOrder": {
+                        "id": dbAcmeOrder.id,
+                    },
                 }
                 log.debug("autocert - order invalid")
                 return rval

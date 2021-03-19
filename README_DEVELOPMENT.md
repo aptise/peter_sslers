@@ -88,7 +88,7 @@ Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
 The tools directory has a list of nginx files (`tools/nginx_conf`) .
 
 The `/tools/lazy.conf` configuration file has a catch-all route to proxy everything
-to the Pyramid app. 
+to the Pyramid app.
 
 If you set up some domains pointing to localhost (such as `dev.aptise.com` which
 has a public dns record to `127.0.0.1` you don't need to do any fancy iptables stuff.
@@ -149,8 +149,8 @@ Instead of editing this file, you can overwrite it with an environment variable:
 
 First check two general-purpose routes:
 
-    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status -k 
-    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/all -k 
+    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status -k
+    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/all -k
 
 The payloads should contain:
 
@@ -159,7 +159,7 @@ The payloads should contain:
 
 Then check the expire route:
 
-    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire -k 
+    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire -k
 
 Tt should error:
 
@@ -168,7 +168,7 @@ Tt should error:
 
 But change it to a Domain:
 
-    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/domain/example.com -k 
+    curl https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/expire/domain/example.com -k
 
 It should succeed:
 
@@ -207,7 +207,7 @@ Go is already installed, however if we need to do a new version...
 * snap 15s
 
     sudo snap install --classic go
-    
+
 * ubuntu packages 32s
 
     sudo add-apt-repository ppa:longsleep/golang-backports
@@ -219,8 +219,8 @@ Go is already installed, however if we need to do a new version...
 
 ## grab acme-dns info
 
-    select d.id, d.domain_name, a.username, a.password, a.fulldomain, a.subdomain 
-    from acme_dns_server_account a 
+    select d.id, d.domain_name, a.username, a.password, a.fulldomain, a.subdomain
+    from acme_dns_server_account a
     join domain d on a.domain_id = d.id
     ;
 

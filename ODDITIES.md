@@ -31,10 +31,3 @@
 	server than the default AcmeServer (as specified by the
 	``certificate_authority`` setting in the ``.ini`` file), the AcmeAccount
 	will be unset as  default.
-
-
-
-
-	
-	
-		

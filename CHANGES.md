@@ -1,179 +1,184 @@
-0.4.1-dev
+0.5.0-dev
     unreleased
+    
+    This release will require lua-resty-peter_sslers v0.5.0
 
     Changes:
-	* The following now accepts a dict-like object ``utils.DomainsChallenged``
-	  in a `domains_challeged` kwarg, instead of `domains`
-		`do__AcmeV2_AcmeOrder__new()`
-		`api_domains__certificate_if_needed()`
-	* Added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
-	* Migrated LetsEncrypt Certificates from test data to library
-	* Tracking the Modulus was removed, in favor of a SHA256 of the SPKI.
-	  This does essentially the same thing, but works on EC keys too!
+    * The following now accepts a dict-like object ``utils.DomainsChallenged``
+      in a `domains_challeged` kwarg, instead of `domains`
+        `do__AcmeV2_AcmeOrder__new()`
+        `api_domains__certificate_if_needed()`
+    * Added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+    * Migrated LetsEncrypt Certificates from test data to library
+    * Tracking the Modulus was removed, in favor of a SHA256 of the SPKI.
+      This does essentially the same thing, but works on EC keys too!
 
-	New Functionality:
-	* Added "import-domain" to acme-dns-server
-		
+    New Functionality:
+    * Added "import-domain" to acme-dns-server
+
     Model Changes:
-		Support for specifying the AcmeChallenge on orders:
-			new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
-			new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
-			new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
-	        new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`
-        	new rel: `model.objects.AcmeChallenge.acme_order_2_acme_challenge_type_specifics`
+        Support for specifying the AcmeChallenge on orders:
+            new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+            new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
+            new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
+            new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`
+            new rel: `model.objects.AcmeChallenge.acme_order_2_acme_challenge_type_specifics`
 
-		Added:
-			acme_account_key.key_technology_id (required)
-			certificate_ca.key_technology_id (required)
-			certificate_request.key_technology_id (optional)
-			private_key.key_technology_id (required)
-			server_certificate.key_technology_id (required)
-			`CertificateCA.is_trusted_root`
+        Added:
+            acme_account_key.key_technology_id (required)
+            certificate_ca.key_technology_id (required)
+            certificate_request.key_technology_id (optional)
+            private_key.key_technology_id (required)
+            server_certificate.key_technology_id (required)
+            `CertificateCA.is_trusted_root`
 
-		Removed:
-			acme_account_key.key_pem_modulus_md5
-			certificate_ca.cert_pem_modulus_md5
-			certificate_request.csr_pem_modulus_md5
-			private_key.key_pem_modulus_md5
-			server_certificate.cert_pem_modulus_md5
+        Removed:
+            acme_account_key.key_pem_modulus_md5
+            certificate_ca.cert_pem_modulus_md5
+            certificate_request.csr_pem_modulus_md5
+            private_key.key_pem_modulus_md5
+            server_certificate.cert_pem_modulus_md5
 
-		Added:
-			acme_account_key.spki_sha256
-			certificate_ca.spki_sha256
-			certificate_request.spki_sha256
-			certificate_signed.spki_sha256
-			private_key.spki_sha256
+        Added:
+            acme_account_key.spki_sha256
+            certificate_ca.spki_sha256
+            certificate_request.spki_sha256
+            certificate_signed.spki_sha256
+            private_key.spki_sha256
 
-		Renamed
-			`ca_certificate` to `certificate_ca`
-			`CertificateCA` to `CertificateCA`
-			`server_certificate` to `certificate_signed`
-			`ServerCertificate` to `CertificateSigned`
-			`id_cross_signed_of` to `cross_signed_by__certificate_ca_id`
-			xxx "letsencrypt-download" to "letsencrypt-sync"  xxx removed
-		
-		Renamed
-			CertificateSignedAlternateChain -> CertificateSignedChain 
-			certificate_upchain_alternates -> certificate_signed_chains
+        Renamed
+            `ca_certificate` to `certificate_ca`
+            `CertificateCA` to `CertificateCA`
+            `server_certificate` to `certificate_signed`
+            `ServerCertificate` to `CertificateSigned`
+            `id_cross_signed_of` to `cross_signed_by__certificate_ca_id`
+            xxx "letsencrypt-download" to "letsencrypt-sync"  xxx removed
 
-		Removed
-			CertificateSigned.certificate_ca_id__upchain
-			CertificateSigned.certificate_upchain
+        Renamed
+            CertificateSignedAlternateChain -> CertificateSignedChain
+            certificate_upchain_alternates -> certificate_signed_chains
 
-		Removed:
-			`CertificateCA.is_authority_certificate`
-			`CertificateCA.is_ca_certificate`	
+        Removed
+            CertificateSigned.certificate_ca_id__upchain
+            CertificateSigned.certificate_upchain
+
+        Removed:
+            `CertificateCA.is_authority_certificate`
+            `CertificateCA.is_ca_certificate`
 
 
     Bugfixes:
-	* Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
-	* There were several undocumented differences between the Pebble and Boulder servers.
-		This library was developed against the Pebble ACME test server from LetsEncrypt.
-		Boulder is the ACME production server from LetsEncrypt.
+    * Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
+    * There were several undocumented differences between the Pebble and Boulder servers.
+        This library was developed against the Pebble ACME test server from LetsEncrypt.
+        Boulder is the ACME production server from LetsEncrypt.
 
     Improvements:
     * /admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be
       submitted if the server can not answer the challenge
-	  This will never be needed for http-01;
-	  it is only needed for:
-		  * dns-01 for a domain without an acme-dns account
-		  * tls-alpn-01
-	* Removed "Trigger" action from Authorization
-	  A Challenge should be triggered, as an order may want a specific challenge type
-	  Removals:
-		  lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
-		  web.views_admin.acme_authorization.acme_server_trigger
-		  route_name="admin:acme_authorization:focus:acme_server:trigger"
-		  route_name="admin:acme_authorization:focus:acme_server:trigger|json"
-		  "/acme-authorization/{@id}/acme-server/trigger"
-		  "/acme-authorization/{@id}/acme-server/trigger.json"
-	* Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
-	  This is because Boulder may reuse identical orders:
-		  1. duplicate pending
-		  2. transitioning "invalid" back to "valid"
-	  This is likely handled by the AcmeEvents log and may be removed in the future
-	* Added a 'deduplication' routine to AcmeAccounts.
-	  It is possible we try to register a new account with information already
-	  known to the acme server. In this situation, the "new" account key we
-	  submitted should be merged onto the existing acme account.
-	* Display/Faceting of AcmeOrder by active/pending status is improved
-	* Order "mark invalid" button was not a form
-	* Added route to sync all pending orders
-	* upgraded black; 20.8b1
-	* integrated pre-commit
-	* requires pyramid_formencode_classic>=0.4.3
-	* DNS-01 challenge via acme-dns supported
-	* integration of parse_header_links corrected
-	* changed letsencrypt certs dataset from list to dict
-	* if openssl set in ini+env:
-		raise an exception
-	* updated `getcreate__CertificateCA__by_pem_text` to now track "is_trusted_root"
-	  This should be redone with an association table that tracks which trusted root
-	  stores a given certificate is in; however this is good for now
-	* updated index to show "Welcome! setup!" instructions
-	* updated AcmeAccount New form logic, better handles exceptions
-	* updated AcmeAccount Upload form logic, better handles exceptions, such as duplicate AcmeAccount registration
-	* added `AcmeOrder.acme_process_steps` to list how many loops/process are needed to complete an order
-	  acme_order-focus.mako is updated to show this information in human and machine-readable form
-	  acme-order/{ID}.json endpoint is updated to show this information
-	* removed `iter_certificates_upchain`, in favor of `certificates_upchain`
-	* fixed display and query of CertificatesSigned and CertificatesSignedAlt
-	* tests now inspect and enroll Pebble CA roots
-	* getcreate__CertificateCA__by_pem_text now inspects and ensures submitted key_technology is correct
-	* added `cert_utils.ensure_chain()`
-	* introduced a new first-order "CertificateCAChain" object
-		* introduced routes
-	* tracking CertificateCA fields:
-		* issuer_uri
-		* authority key identifier
-	* CertificateSigneds now map to CertificateCAChains
-	* cleaning up docs
-	* fullchains no longer have blank lines
-	* remove the "letsencrypt/cert-ca-bundle" concept; these certificates are
-	  now distributed with the library
-	* renamed Form_CertificateCA_Upload_Chain__file  to Form_CertificateCAChain_Upload__file
-	* removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
-	* removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
-	* restricted formats for chain certs
-	* spki computation is stored as not-b64 encoded, but there are render helpers
-	* ensure_chain_order on getcreate chains. this should aid in deduplication and misc integrity errors
-	* hex data is now saved WITHOUT colons. they can be added in on render.
-	* CertificateSigned - added
-		* presented certificate cas - the first item in each chain
-		* "compatible certificate cas" search
-	* CertificateCA
-		* added exploration of chains
-		* tracking reconcilation of cert_issuer_uri
-		* deprecated "signed_by__certificate_ca_id" and "cross_signed_by__certificate_ca_id" into information
-		* added "reconciliation" concept:
-			* if a CertificateCA has a `cert_issuer_uri` attribute, that will be loaded and processed
-	* UniqueFQDNSet
-		* new routes to modify a set by add/remove domains
-		* with tests!
-	* added openssl fallback routines, and tests, for pkcs7 conversion
-	* tracking root stores
-	* removed `acme-account/{}/config.json`; the same data is in `acme-account/{}.json`
-	* added routes
-		* `acme-account/{}/deactivate`
-		* `acme-account/{}/deactivate.json`
-		* `acme-account/{}/key-rollover`
-		* `acme-account/{}/key-rollover.json`
-	* AcmeAccount now supports:
-		* Account Key Deactivation https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
-		* Account Key Rollover (keyChange) https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
-	* refactor acme actions to not require the account_key_path unless necessary
-		* this is a legacy overhead from the openssl fallback
-	* shortcut to creating an order from a domain
-	* migrated API documentation into a `docify` decorator for routes.
-	  * this is an interim solution to handle consolidating and updating the api endpoint information
-	  * this will likely be migrated out into something like pyramid_openapi3 in the future
-	* nginx operations now make requests through a context manager
-	* querystring results now in operations logs
-	* operation name now in redirects
-	* operation links now forms
-	* SQLAlchemy v1.4
-	  * dropped Python-3.5 as SQLAlchemy1.4 is not compatible with that release
-	+ other fixes and improvements
+      This will never be needed for http-01;
+      it is only needed for:
+          * dns-01 for a domain without an acme-dns account
+          * tls-alpn-01
+    * Removed "Trigger" action from Authorization
+      A Challenge should be triggered, as an order may want a specific challenge type
+      Removals:
+          lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
+          web.views_admin.acme_authorization.acme_server_trigger
+          route_name="admin:acme_authorization:focus:acme_server:trigger"
+          route_name="admin:acme_authorization:focus:acme_server:trigger|json"
+          "/acme-authorization/{@id}/acme-server/trigger"
+          "/acme-authorization/{@id}/acme-server/trigger.json"
+    * Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
+      This is because Boulder may reuse identical orders:
+          1. duplicate pending
+          2. transitioning "invalid" back to "valid"
+      This is likely handled by the AcmeEvents log and may be removed in the future
+    * Added a 'deduplication' routine to AcmeAccounts.
+      It is possible we try to register a new account with information already
+      known to the acme server. In this situation, the "new" account key we
+      submitted should be merged onto the existing acme account.
+    * Display/Faceting of AcmeOrder by active/pending status is improved
+    * Order "mark invalid" button was not a form
+    * Added route to sync all pending orders
+    * upgraded black; 20.8b1
+    * integrated pre-commit
+    * requires pyramid_formencode_classic>=0.4.3
+    * DNS-01 challenge via acme-dns supported
+    * integration of parse_header_links corrected
+    * changed letsencrypt certs dataset from list to dict
+    * if openssl set in ini+env:
+        raise an exception
+    * updated `getcreate__CertificateCA__by_pem_text` to now track "is_trusted_root"
+      This should be redone with an association table that tracks which trusted root
+      stores a given certificate is in; however this is good for now
+    * updated index to show "Welcome! setup!" instructions
+    * updated AcmeAccount New form logic, better handles exceptions
+    * updated AcmeAccount Upload form logic, better handles exceptions, such as duplicate AcmeAccount registration
+    * added `AcmeOrder.acme_process_steps` to list how many loops/process are needed to complete an order
+      acme_order-focus.mako is updated to show this information in human and machine-readable form
+      acme-order/{ID}.json endpoint is updated to show this information
+    * removed `iter_certificates_upchain`, in favor of `certificates_upchain`
+    * fixed display and query of CertificatesSigned and CertificatesSignedAlt
+    * tests now inspect and enroll Pebble CA roots
+    * getcreate__CertificateCA__by_pem_text now inspects and ensures submitted key_technology is correct
+    * added `cert_utils.ensure_chain()`
+    * introduced a new first-order "CertificateCAChain" object
+        * introduced routes
+    * tracking CertificateCA fields:
+        * issuer_uri
+        * authority key identifier
+    * CertificateSigneds now map to CertificateCAChains
+    * cleaning up docs
+    * fullchains no longer have blank lines
+    * remove the "letsencrypt/cert-ca-bundle" concept; these certificates are
+      now distributed with the library
+    * renamed Form_CertificateCA_Upload_Chain__file  to Form_CertificateCAChain_Upload__file
+    * removed certificate_ca_download -  We now bundle the LetsEncrypt certificates.
+    * removed letsencrypt_sync -  We now bundle the LetsEncrypt certificates.
+    * restricted formats for chain certs
+    * spki computation is stored as not-b64 encoded, but there are render helpers
+    * ensure_chain_order on getcreate chains. this should aid in deduplication and misc integrity errors
+    * hex data is now saved WITHOUT colons. they can be added in on render.
+    * CertificateSigned - added
+        * presented certificate cas - the first item in each chain
+        * "compatible certificate cas" search
+    * CertificateCA
+        * added exploration of chains
+        * tracking reconcilation of cert_issuer_uri
+        * deprecated "signed_by__certificate_ca_id" and "cross_signed_by__certificate_ca_id" into information
+        * added "reconciliation" concept:
+            * if a CertificateCA has a `cert_issuer_uri` attribute, that will be loaded and processed
+    * UniqueFQDNSet
+        * new routes to modify a set by add/remove domains
+        * with tests!
+    * added openssl fallback routines, and tests, for pkcs7 conversion
+    * tracking root stores
+    * removed `acme-account/{}/config.json`; the same data is in `acme-account/{}.json`
+    * added routes
+        * `acme-account/{}/deactivate`
+        * `acme-account/{}/deactivate.json`
+        * `acme-account/{}/key-rollover`
+        * `acme-account/{}/key-rollover.json`
+    * AcmeAccount now supports:
+        * Account Key Deactivation https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
+        * Account Key Rollover (keyChange) https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.6
+    * refactor acme actions to not require the account_key_path unless necessary
+        * this is a legacy overhead from the openssl fallback
+    * shortcut to creating an order from a domain
+    * migrated API documentation into a `docify` decorator for routes.
+      * this is an interim solution to handle consolidating and updating the api endpoint information
+      * this will likely be migrated out into something like pyramid_openapi3 in the future
+    * nginx operations now make requests through a context manager
+    * querystring results now in operations logs
+    * operation name now in redirects
+    * operation links now forms
+    * SQLAlchemy v1.4
+      * dropped Python-3.5 as SQLAlchemy1.4 is not compatible with that release
+    * adjusted some keys for redis priming
+    * requires lua-resty-peter_sslers >= 0.5.0
+    + other fixes and improvements
+
 
 0.4.0
 - 2020/08/06
@@ -383,7 +388,7 @@ unreleased (2020-01-23)
 * fqdn renewal in addition to certificate renewal
 * the queue-renewals works on fqdns, not just certificates
 * account-key auth can happen at any time; also via json
-* tests - api_events    
+* tests - api_events
 * search for pending validations
 
 

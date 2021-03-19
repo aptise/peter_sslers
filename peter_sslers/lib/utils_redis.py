@@ -154,10 +154,17 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     :param dbDomain: The :class:`model.objects.Domain` to be primed
     :param redis_timeouts:
 
-    r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
-    r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
-    r['c1'] = CERT.PEM  # (c)ert
-    r['c2'] = CERT.PEM
+    REDIS KEY PREFIXES:
+
+        d1: domain
+        c: certificate
+        p: private key
+        i: chain
+
+    r['d1:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+    r['d1:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+    r['c:1'] = CERT.PEM  # (c)ert
+    r['c:2'] = CERT.PEM
     """
     dbCertificateSigned = None
     if dbDomain.certificate_signed_id__latest_multi:
@@ -170,7 +177,7 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
         )
 
     # first do the domain
-    key_redis = "d:%s" % dbDomain.domain_name
+    key_redis = "d1:%s" % dbDomain.domain_name
     value_redis = {
         "c": "%s" % dbCertificateSigned.id,
         "p": "%s" % dbCertificateSigned.private_key_id,
@@ -179,7 +186,7 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     redis_client.hmset(key_redis, value_redis)
 
     # then do the cert
-    key_redis = "c%s" % dbCertificateSigned.id
+    key_redis = "c:%s" % dbCertificateSigned.id
     # only send over the wire if it doesn't exist
     if not redis_client.exists(key_redis):
         value_redis = dbCertificateSigned.cert_pem
@@ -196,7 +203,7 @@ def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_time
 
     r['p2'] = PKEY.PEM  # (p)rivate
     """
-    key_redis = "p%s" % dbPrivateKey.id
+    key_redis = "p:%s" % dbPrivateKey.id
     redis_client.set(key_redis, dbPrivateKey.key_pem, redis_timeouts["pkey"])
     return True
 
@@ -211,7 +218,7 @@ def redis_prime_logic__style_1_CertificateCAChain(
 
     r['i99'] = CHAIN.PEM  # (i)ntermediate certs
     """
-    key_redis = "i%s" % dbCertificateCAChain.id
+    key_redis = "i:%s" % dbCertificateCAChain.id
     redis_client.set(
         key_redis, dbCertificateCAChain.chain_pem, redis_timeouts["certcachain"]
     )
@@ -225,6 +232,10 @@ def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
     :param redis_client:
     :param dbDomain: A :class:`model.objects.Domain`
     :param redis_timeouts:
+
+    REDIS KEY PREFIXES:
+
+        d2: domain
     """
     dbCertificateSigned = None
     if dbDomain.certificate_signed_id__latest_multi:
@@ -235,7 +246,7 @@ def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
 
     # the domain will hold the fullchain and private key
-    key_redis = "%s" % dbDomain.domain_name
+    key_redis = "d2:%s" % dbDomain.domain_name
     value_redis = {
         "f": "%s" % dbCertificateSigned.cert_fullchain_pem,
         "p": "%s" % dbCertificateSigned.private_key.key_pem,
