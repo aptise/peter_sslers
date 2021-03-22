@@ -177,6 +177,9 @@
       * dropped Python-3.5 as SQLAlchemy1.4 is not compatible with that release
     * adjusted some keys for redis priming
     * requires lua-resty-peter_sslers >= 0.5.0
+	* CertificateSigned__deactivate_expired
+		* do not deactive expired certs that do not have an active replacement
+
     + other fixes and improvements
 
 
