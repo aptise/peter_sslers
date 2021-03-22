@@ -57,7 +57,7 @@ def scalar_subquery(query):
 
 def operations_deactivate_expired(ctx):
     """
-    deactivates expired certificates automatically
+    deactivates expired Certificates automatically
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
@@ -73,28 +73,67 @@ def operations_deactivate_expired(ctx):
     )
 
     # update the recents, this will automatically create a subevent
+    # this is required, because the following logic depends upon every
+    # Domain record being hinted with the id(s) of the latest corresponding
+    # Certificate(s)
     subevent = operations_update_recents__global(ctx)
 
-    # okay, go!
+    # Start the Deactivate Logic
 
-    # deactivate expired certificates
+    # placeholder
+    deactivated_cert_ids = []
+
+    # Step 1: load all the Expired Certificates
+    # order them by newest-first
     expired_certs = (
         ctx.dbSession.query(model_objects.CertificateSigned)
         .filter(
             model_objects.CertificateSigned.is_active.is_(True),
             model_objects.CertificateSigned.timestamp_not_after < ctx.timestamp,
         )
+        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .all()
     )
-    for c in expired_certs:
-        c.is_active = False
-        ctx.dbSession.flush(objects=[c])
-        events.Certificate_expired(ctx, c)
+    # Step 2: Analyze
+    for cert in expired_certs:
+        # the domains for each Certificate require a query
+        # Certificate > [[UniqueFQDNSet > UniqueFQDNSet2Domain]] > Domain
+        cert_domains = (
+            ctx.dbSession.query(model_objects.Domain)
+            .join(
+                model_objects.UniqueFQDNSet2Domain,
+                model_objects.Domain.id == model_objects.UniqueFQDNSet2Domain.domain_id,
+                isouter=True,
+            )
+            .join(
+                model_objects.CertificateSigned,
+                model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id
+                == model_objects.CertificateSigned.unique_fqdn_set_id,
+                isouter=True,
+            )
+            .filter(
+                model_objects.CertificateSigned.id == cert.id,
+            )
+            .all()
+        )
+        cert_ok = True
+        for cert_domain in cert_domains:
+            # if this Certificate is the latest Certificate for the domain, we can not turn it off
+            if cert.id in (
+                cert_domain.certificate_signed_id__latest_single,
+                cert_domain.certificate_signed_id__latest_multi,
+            ):
+                cert_ok = False
+        if cert_ok:
+            deactivated_cert_ids.append(cert.id)
+            cert.is_active = False
+            ctx.dbSession.flush(objects=[cert])
+            events.Certificate_expired(ctx, cert)
 
     # update the event
-    if len(expired_certs):
-        event_payload_dict["count_deactivated"] = len(expired_certs)
-        event_payload_dict["certificate_signed.ids"] = [c.id for c in expired_certs]
+    if len(deactivated_cert_ids):
+        event_payload_dict["count_deactivated"] = len(deactivated_cert_ids)
+        event_payload_dict["certificate_signed.ids"] = deactivated_cert_ids
         operationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[operationsEvent])
 

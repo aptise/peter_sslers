@@ -1,6 +1,3 @@
-* CertificateSigned__deactivate_expired
-	do not deactive expired certs that do not have an active replacement
-
 * These sections still need to be audited and streamlined.
 	They work and are tested, but the UX could potentially be cleaner
 	- queue certificates - process
