@@ -1,3 +1,8 @@
+# logging
+import logging
+
+log = logging.getLogger(__name__)
+
 # pyramid
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -435,20 +440,30 @@ class View_Focus(Handler):
                 "%s?result=error&operation=nginx-cache-expire&message=POST+required"
                 % self._focus_url
             )
-        if not self.request.registry.settings["app_settings"]["enable_nginx"]:
+        try:
+            # could raise `InvalidRequest("nginx is not enabled")`
+            self._ensure_nginx()
+
+            success, dbEvent = utils_nginx.nginx_expire_cache(
+                self.request, self.request.api_context, dbDomains=[dbDomain]
+            )
+            if self.request.wants_json:
+                return {"result": "success", "operations_event": {"id": dbEvent.id}}
+            return HTTPSeeOther(
+                "%s?result=success&operation=nginx-cache-expire&event.id=%s"
+                % (self._focus_url, dbEvent.id)
+            )
+
+        except errors.InvalidRequest as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": exc.args[0],
+                }
             raise HTTPSeeOther(
-                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                "%s?result=error&operation=nginx-cache-expire&error=nginx+is+not+enabled"
                 % self._focus_url
             )
-        success, dbEvent = utils_nginx.nginx_expire_cache(
-            self.request, self.request.api_context, dbDomains=[dbDomain]
-        )
-        if self.request.wants_json:
-            return {"result": "success", "operations_event": {"id": dbEvent.id}}
-        return HTTPSeeOther(
-            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
-            % (self._focus_url, dbEvent.id)
-        )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -469,7 +484,10 @@ class View_Focus(Handler):
             id_only=self.request.params.get("id_only", None), active_only=True
         )
         if self.request.params.get("openresty", None):
-            utils_redis.prime_redis_domain(self.request, dbDomain)
+            try:
+                utils_redis.prime_redis_domain(self.request, dbDomain)
+            except utils_redis.RedisError as exc:
+                log.debug("domain config.json - could not prime redis > %s", str(exc))
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

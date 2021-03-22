@@ -24,7 +24,6 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
-from ...lib import utils_nginx
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 

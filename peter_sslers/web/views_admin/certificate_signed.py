@@ -1049,25 +1049,35 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=error&operation=nginx-cache-expire&message=POST+required"
                 % self._focus_url
             )
-        if not self.request.registry.settings["app_settings"]["enable_nginx"]:
+        try:
+            # could raise `InvalidRequest("nginx is not enabled")`
+            self._ensure_nginx()
+
+            dbDomains = [
+                c2d.domain for c2d in dbCertificateSigned.unique_fqdn_set.to_domains
+            ]
+
+            # this will generate it's own log__OperationsEvent
+            success, dbEvent = utils_nginx.nginx_expire_cache(
+                self.request, self.request.api_context, dbDomains=dbDomains
+            )
+            if self.request.wants_json:
+                return {"result": "success", "operations_event": {"id": dbEvent.id}}
+            return HTTPSeeOther(
+                "%s?result=success&operation=nginx-cache-expire&event.id=%s"
+                % (self._focus_url, dbEvent.id)
+            )
+
+        except errors.InvalidRequest as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": exc.args[0],
+                }
             raise HTTPSeeOther(
-                "%s?result=error&operation=nginx-cache-expire&error=no+nginx"
+                "%s?result=error&operation=nginx-cache-expire&error=nginx+is+not+enabled"
                 % self._focus_url
             )
-        dbDomains = [
-            c2d.domain for c2d in dbCertificateSigned.unique_fqdn_set.to_domains
-        ]
-
-        # this will generate it's own log__OperationsEvent
-        success, dbEvent = utils_nginx.nginx_expire_cache(
-            self.request, self.request.api_context, dbDomains=dbDomains
-        )
-        if self.request.wants_json:
-            return {"result": "success", "operations_event": {"id": dbEvent.id}}
-        return HTTPSeeOther(
-            "%s?result=success&operation=nginx-cache-expire&event.id=%s"
-            % (self._focus_url, dbEvent.id)
-        )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

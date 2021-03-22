@@ -187,6 +187,15 @@ The following features are being reworked:
   DO NOT USE THIS.
 
 
+# ACME2 Features
+
+| Feature | Supported? |
+| --- | --- |
+| New Certificate | Yes |
+| Deactivate Account | Yes |
+| Account Key Rollover | Yes |
+
+
 # The Components
 
 ## "Peter SSLers" - a `Pyramid` Application

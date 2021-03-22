@@ -6,6 +6,7 @@ import pypages
 
 # localapp
 from ...lib import db
+from ...lib.errors import InvalidRequest
 
 
 # ==============================================================================
@@ -80,20 +81,14 @@ class Handler(object):
         if nginx is not enabled, raise a HTTPFound to the admin dashboard
         """
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
-            raise HTTPFound(
-                "%s?result=error&error=no+nginx"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
+            raise InvalidRequest("nginx is not enabled")
 
     def _ensure_redis(self):
         """
         if redis is not enabled, raise a HTTPFound to the admin dashboard
         """
         if not self.request.registry.settings["app_settings"]["enable_redis"]:
-            raise HTTPFound(
-                "%s?result=error&error=no+redis"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
+            raise InvalidRequest("redis is not enabled")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

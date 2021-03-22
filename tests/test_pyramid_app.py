@@ -4828,13 +4828,13 @@ class FunctionalTests_Operations(AppTest):
             res = self.testapp.get("/.well-known/admin/operations/nginx", status=302)
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
             )
 
             res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=302)
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
             )
 
         res = self.testapp.get("/.well-known/admin/operations/redis", status=200)

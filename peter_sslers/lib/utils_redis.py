@@ -5,8 +5,16 @@ import warnings
 # pypi
 try:
     from redis import Redis
+    from redis.exceptions import RedisError
+
 except ImportError:
-    pass
+
+    class _FakeRedisError(object):
+        pass
+
+    Redis = None
+    RedisError = _FakeRedisError
+
 
 # local
 

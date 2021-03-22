@@ -18,6 +18,7 @@ from ..lib.docs import docify
 # from ..lib.docs import formatted_get_docs
 from ..lib.handler import Handler, items_per_page
 from ...lib import db as lib_db
+from ...lib import errors
 from ...model import utils as model_utils
 
 
@@ -142,41 +143,60 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-redis.mako",
     )
     def admin_redis(self):
-        self._ensure_redis()
-
-        _items_per_page = 25
-        items_count = lib_db.get.get__OperationsEvent__count(
-            self.request.api_context,
-            event_type_ids=(
-                model_utils.OperationsEventType.from_string("operations__redis_prime"),
-            ),
-        )
-        url_template = (
-            "%s/operations/redis/log/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
-        )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template=url_template,
-            items_per_page=_items_per_page,
-        )
-        items_paged = lib_db.get.get__OperationsEvent__paginated(
-            self.request.api_context,
-            event_type_ids=(
-                model_utils.OperationsEventType.from_string("operations__redis_prime"),
-            ),
-            limit=_items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "OperationsEvent__count": items_count,
-            "OperationsEvents": items_paged,
-            "pager": pager,
-            "enable_redis": self.request.registry.settings["app_settings"][
-                "enable_redis"
-            ],
-        }
+        try:
+            # could raise `lib.errors.InvalidRequest`
+            # is this needed for viewing logs though?
+            # self._ensure_redis()
+            _items_per_page = 25
+            items_count = lib_db.get.get__OperationsEvent__count(
+                self.request.api_context,
+                event_type_ids=(
+                    model_utils.OperationsEventType.from_string(
+                        "operations__redis_prime"
+                    ),
+                ),
+            )
+            url_template = (
+                "%s/operations/redis/log/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+            (pager, offset) = self._paginate(
+                items_count,
+                url_template=url_template,
+                items_per_page=_items_per_page,
+            )
+            items_paged = lib_db.get.get__OperationsEvent__paginated(
+                self.request.api_context,
+                event_type_ids=(
+                    model_utils.OperationsEventType.from_string(
+                        "operations__redis_prime"
+                    ),
+                ),
+                limit=_items_per_page,
+                offset=offset,
+            )
+            return {
+                "project": "peter_sslers",
+                "OperationsEvent__count": items_count,
+                "OperationsEvents": items_paged,
+                "pager": pager,
+                "enable_redis": self.request.registry.settings["app_settings"][
+                    "enable_redis"
+                ],
+            }
+        except errors.InvalidRequest as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": exc.args[0],
+                }
+            raise HTTPFound(
+                "%s?result=error&error=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    exc.as_querystring,
+                )
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -189,44 +209,60 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-nginx.mako",
     )
     def admin_nginx(self):
-        self._ensure_nginx()
+        try:
+            # could raise `lib.errors.InvalidRequest`
+            # is this needed for viewing logs though?
+            # self._ensure_nginx()
 
-        _items_per_page = 25
-        _event_type_ids = (
-            model_utils.OperationsEventType.from_string(
-                "operations__nginx_cache_expire"
-            ),
-            model_utils.OperationsEventType.from_string(
-                "operations__nginx_cache_flush"
-            ),
-        )
-        items_count = lib_db.get.get__OperationsEvent__count(
-            self.request.api_context, event_type_ids=_event_type_ids
-        )
-        url_template = (
-            "%s/operations/nginx/log/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
-        )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template=url_template,
-            items_per_page=_items_per_page,
-        )
-        items_paged = lib_db.get.get__OperationsEvent__paginated(
-            self.request.api_context,
-            event_type_ids=_event_type_ids,
-            limit=_items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "OperationsEvent__count": items_count,
-            "OperationsEvents": items_paged,
-            "pager": pager,
-            "enable_nginx": self.request.registry.settings["app_settings"][
-                "enable_nginx"
-            ],
-        }
+            _items_per_page = 25
+            _event_type_ids = (
+                model_utils.OperationsEventType.from_string(
+                    "operations__nginx_cache_expire"
+                ),
+                model_utils.OperationsEventType.from_string(
+                    "operations__nginx_cache_flush"
+                ),
+            )
+            items_count = lib_db.get.get__OperationsEvent__count(
+                self.request.api_context, event_type_ids=_event_type_ids
+            )
+            url_template = (
+                "%s/operations/nginx/log/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+            (pager, offset) = self._paginate(
+                items_count,
+                url_template=url_template,
+                items_per_page=_items_per_page,
+            )
+            items_paged = lib_db.get.get__OperationsEvent__paginated(
+                self.request.api_context,
+                event_type_ids=_event_type_ids,
+                limit=_items_per_page,
+                offset=offset,
+            )
+            return {
+                "project": "peter_sslers",
+                "OperationsEvent__count": items_count,
+                "OperationsEvents": items_paged,
+                "pager": pager,
+                "enable_nginx": self.request.registry.settings["app_settings"][
+                    "enable_nginx"
+                ],
+            }
+        except errors.InvalidRequest as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": exc.args[0],
+                }
+            raise HTTPFound(
+                "%s/?result=error&&error=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    exc.as_querystring,
+                )
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
