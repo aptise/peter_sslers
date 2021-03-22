@@ -1085,6 +1085,31 @@ the queue. Refresh tags are used to continue processing until finished.
 
 # FAQ
 
+## Is this secure?
+
+Nothing is truly secure, is it?
+
+PeterSSLers stores Certificates and PrivateKeys in plaintext - just like Certbot
+and most LetsEncrypt clients store their assets.
+
+The project splits the web-based views into two concepts: Public and Admin.
+
+The
+[Public Views](https://github.com/aptise/peter_sslers/tree/main/peter_sslers/web/views_public)
+are isolated to the '/.well-known/acme-challenge` directory, and expose the same
+information as every other LetsEncrypt client. These routes are generally safe.
+
+The
+[Admin Views](https://github.com/aptise/peter_sslers/tree/main/peter_sslers/web/views_admin)
+are isolated to the '/.well-known/admin` directory; while these routes can be
+extremely dangerous, a reasonably competent security policy can be implemented to
+make this section of the application suite password protected and/or available
+only to local network traffic.
+
+The [SQLAlchemy Project](https://sqlalchemy.org) is used to handle database activity.
+SQLAlchemy's ORM uses bind parameters and is inherently safe from SQL Injection Attacks.
+
+
 ## Does this reformat Certificates?
 
 Yes. PEM certs are reformatted to have a single trailing newline (via stripping
