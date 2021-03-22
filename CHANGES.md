@@ -179,7 +179,7 @@
     * requires lua-resty-peter_sslers >= 0.5.0
 	* CertificateSigned__deactivate_expired
 		* do not deactive expired certs that do not have an active replacement
-
+	* remove long-deprecated `operations_deactivate_duplicates`
     + other fixes and improvements
 
 
