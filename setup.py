@@ -24,8 +24,8 @@ requires = [
     "python-dateutil",
     "requests",
     "six ",
-    "SQLAlchemy<1.4",  # zope.sqlalchemy is not happy with 1.4's
-    "transaction",
+    "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
+    "transaction>=1.5",
     "waitress",
     "zope.sqlalchemy",
 ]

@@ -180,6 +180,8 @@
 	* CertificateSigned__deactivate_expired
 		* do not deactive expired certs that do not have an active replacement
 	* remove long-deprecated `operations_deactivate_duplicates`
+	* require 1.4.7 or greater or sqlalchemy so zope.transaction can correctly handle `flush`
+	* added "check" url for acme-accounts, which will not authenticate/register the account
     + other fixes and improvements
 
 

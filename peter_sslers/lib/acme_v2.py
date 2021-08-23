@@ -544,14 +544,16 @@ class AuthenticatedUser(object):
             )
         )
 
-    def authenticate(self, ctx, contact=None):
+    def authenticate(self, ctx, contact=None, onlyReturnExisting=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param contact: (optional) The contact info
+        :param onlyReturnExisting: bool. Default None. see ACME-spec (docs below)
 
         returns:
-            acme_account_object - ACME Directory account object
-            acme_account_headers - ACME Directory account response headers
+            False - no matching account
+        or
+            True - matching account
 
         https://tools.ietf.org/html/rfc8555#section-7.3
 
@@ -657,15 +659,42 @@ class AuthenticatedUser(object):
                     contact = "mailto:%s" % contact
                 payload_registration["contact"] = [
                     contact,
-                ]
-            (
-                acme_account_object,
-                status_code,
-                acme_account_headers,
-            ) = self._send_signed_request(
-                self.acme_directory["newAccount"],
-                payload=payload_registration,
-            )
+                ]  # spec wants a list
+            if onlyReturnExisting is not None:
+                payload_registration["onlyReturnExisting"] = onlyReturnExisting
+
+            try:
+                (
+                    acme_account_object,
+                    status_code,
+                    acme_account_headers,
+                ) = self._send_signed_request(
+                    self.acme_directory["newAccount"],
+                    payload=payload_registration,
+                )
+            except errors.AcmeServerError as exc:
+                # only catch this if `onlyReturnExisting` and there is an DNE error
+                if onlyReturnExisting:
+                    if exc.args[0] == 400:
+                        if (
+                            exc.args[1]["type"]
+                            == "urn:ietf:params:acme:error:accountDoesNotExist"
+                        ):
+                            log.debug(
+                                ") authenticate | check failed. key is unknown to server"
+                            )
+                            event_payload_dict = utils.new_event_payload_dict()
+                            event_payload_dict["acme_account.id"] = self.acmeAccount.id
+                            event_payload_dict["acme_account.check"] = False
+                            dbOperationsEvent = self.log__OperationsEvent(
+                                ctx,
+                                model_utils.OperationsEventType.from_string(
+                                    "AcmeAccount__check"
+                                ),
+                                event_payload_dict,
+                            )
+                raise exc
+
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
             log.debug(") authenticate | acme_account_object: %s" % acme_account_object)
@@ -695,6 +724,7 @@ class AuthenticatedUser(object):
                 ),
                 event_payload_dict,
             )
+            return True
         except Exception as exc:
             raise
 

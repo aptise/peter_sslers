@@ -216,6 +216,7 @@ class _OperationsUnified(_mixin_mapping):
         112: "AcmeAccount__deactivate",
         113: "AcmeAccount__key_change",
         120: "AcmeAccount__authenticate",
+        121: "AcmeAccount__check",
         130: "AcmeAccount__mark",
         131: "AcmeAccount__mark__active",
         132: "AcmeAccount__mark__inactive",

@@ -36,6 +36,16 @@ Almost done:
 Audit/Remove "todo" markers
 
 
+TODO:
+======
+
+* ECDSA Support
+  * notes:
+    * https://community.letsencrypt.org/t/issue-with-ssl-coms-acme-implementation/158189/13
+      * Key Encipherment is not valid for ECDSA certificates. This is for "when the subject public key is used for enciphering private or secret keys, i.e., for key transport." (RFC 5280).
+
+
+
 UNDECIDED
 ===============
 * CertificateCAPreferences -> CertificateCAChainPreference

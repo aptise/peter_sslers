@@ -52,6 +52,7 @@
                     <tr>
                         <th>timestamp_last_authenticated</th>
                         <td><timestamp>${AcmeAccount.timestamp_last_authenticated or ''}</timestamp>
+                            ## is_can_authenticate only ensures an acme-v2 endpoint
                             % if AcmeAccount.is_can_authenticate:
                                 <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/authenticate" method="POST">
                                     <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
@@ -59,6 +60,15 @@
                                         Authenticate Against ACME Server
                                     </button>
                                 </form>
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/check" method="POST">
+                                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                        Check Against ACME Server
+                                    </button>
+                                </form>
+                                <em>`Authenticate` will register the account if it does not already exist on the server. 
+                                    `Check` will not register a new account if it does not already exist.
+                                    </em>
                             % endif
                         </td>
                     </tr>
