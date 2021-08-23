@@ -25,9 +25,9 @@ requires = [
     "requests",
     "six ",
     "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
-    "transaction>=1.5",
     "waitress",
-    "zope.sqlalchemy",
+    'zope.sqlalchemy>=1.5; python_version >= "3.6"',
+    "zope.sqlalchemy<1.4; python_version < '3.6'",
 ]
 tests_require = [
     "certbot",
