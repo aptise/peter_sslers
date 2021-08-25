@@ -117,9 +117,9 @@ SQL so you can easily find the answers to burning questions like:
 All communication to the upstream ACME server is logged using Python's standard
 `logging` module.
 
-    module: peter_sslers.lib.acme_v2
-    log level: logging.info will show the raw data received
-    log level: logging.debug will show the response parsed to json, when applicable
+module: `peter_sslers.lib.acme_v2`
+* log level: `logging.info` will show the raw data received
+* log level: `logging.debug` will show the response parsed to json, when applicable
 
 THIS PACKAGE IS EXTREME TO THE MAX!!!
 
@@ -150,7 +150,8 @@ Although Python2 is no longer supported by Python itself, both Python2 and Pytho
 are targeted platforms for this library because we all have to deal legacy systems.
 
 
-## Why?
+Why?
+-----
 
 Most of us hate having to spend time on DevOps tasks. Personally, I would rather
 spend time working on the core product or consumer products. This tool was designed
@@ -167,7 +168,8 @@ Peter is originally designed for systems that offer whitelabel services in the c
 PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
-## Status
+Status
+------
 
 Peter SSLers is fully functional and deployed in production environments for:
 
@@ -181,7 +183,8 @@ The following features are being reworked:
 * Automatic renewal
 
 
-# An important WARNING:
+WARNING (Important)
+===================
 
 * This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
 * This package manages PRIVATE SSL KEYS and makes them readable.
@@ -189,7 +192,8 @@ The following features are being reworked:
   DO NOT USE THIS.
 
 
-# ACME2 Features
+ACME2 Features
+==============
 
 | Feature | Supported? |
 | --- | --- |
@@ -198,16 +202,19 @@ The following features are being reworked:
 | Account Key Rollover | Yes |
 
 
-# The Components
+The Components
+==============
 
-## "Peter SSLers" - a `Pyramid` Application
+"Peter SSLers" - a `Pyramid` Application
+----------------------------------------
 
 "Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be
 spun up as a webserver or used via a commandline interface. Peter is your friend
 and handles all of the Certificate Management and translation functions for you.
 He's a bit eccentric, but basically a good guy.
 
-## "SSL Minnow" - The Datastore
+"SSL Minnow" - The Datastore
+----------------------------------------
 
 By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the
 backing datastore for SSL Certificates and the operations log. Your data is ONLY
@@ -217,7 +224,8 @@ Be a good skipper, or your three hour tour could end up taking many years and mi
 involve the Harlem Globetrotters, who are great to watch but do you want to be stuck
 on a remote desert island with them?!?! No.
 
-## "SSLX" - The `OpenResty` package
+"SSLX" - The `OpenResty` package
+----------------------------------------
 
 OpenResty is a fork of the nginx webserver which offers a lot of programmatic hooks
 (similar to Apache's mod_perl). One of the many hooks allows for programmatic
@@ -243,7 +251,8 @@ The source and docs are available on a separate github repository:
 * https://github.com/aptise/lua-resty-peter_sslers
 
 
-## "Tools"
+"Tools"
+----------------------------------------
 
 The "/tools" directory contains scripts useful for Certificate operations.
 Currently this includes:
@@ -256,13 +265,13 @@ Currently this includes:
 
 
 ToDo
-----
+=====
 
 See `TODO.txt`
 
 
 Getting Started
----------------
+===============
 
 Please read the
 [Full Installation Instructions](https://github.com/aptise/peter_sslers/docs/Installation.md)
@@ -282,7 +291,8 @@ The abridged version:
 
 
 
-# Full Documentation
+Full Documentation
+==================
 
 * [Installation](https://github.com/aptise/peter_sslers/docs/Installation.md)
 * [Configuration Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
@@ -294,7 +304,3 @@ The abridged version:
 * [Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
 * [Tests](https://github.com/aptise/peter_sslers/docs/Tests.md)
 * [Versioning](https://github.com/aptise/peter_sslers/docs/Versioning.md)
-
-
-
-
