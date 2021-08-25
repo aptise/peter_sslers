@@ -26,11 +26,12 @@ lots of Domains and/or Nodes and/or Networks).
 
 What's in the "box" ?
 
-* `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx`
-  webserver
+* [OpenResty](https://github.com/openresty/openresty) Lua module to enable
+  Dynamic SSL Certificate Handling on the `Nginx` webserver
 * A robust SSL Certificate Manager and Explorer, with Admin Dashboard and a
   full programmatic API
-* An integrated ACME V2 Client for the LetsEncrypt CertificateAuthority
+* An integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
+  CertificateAuthority
 
 THIS LIBRARY CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE
 MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
@@ -68,7 +69,8 @@ LetsEncrypt implementation of the ACME RFC,
 regarding RFC spec-compliant implementation details, and this system was written
 to support those first and foremost.
 
-Peter's core tool is a lightweight database-backed `Pyramid` application that can:
+Peter's core tool is a lightweight database-backed
+[Pyramid](https://github.com/pylons/pyramid) application that can:
 
 * Act as a client for the entire "LetsEncrypt" Certificate provisioning process,
   operating behind a proxied webserver.
@@ -80,30 +82,34 @@ Peter's core tool is a lightweight database-backed `Pyramid` application that ca
 * Browse Certificate data and easily see what needs to be renewed
 * Interact with the upstream ACME Servers to deal with accounts, pending
   AcmeAuthorizations, and all that mess.
-* Communicate with a properly configured `OpenResty` enabled `Nginx` web server
+* Communicate with a properly configured
+  [OpenResty](https://github.com/openresty/openresty) enabled `Nginx` web server
   (see next section)
 * Prime a Redis cache with Certificate data
 * Translate Certificates into different formats
 * Be the source of lots of puns!
 
-Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the
-`Nginx` server which will:
+Peter ships alongside a `Lua` `opm` module for the
+[OpenResty](https://github.com/openresty/openresty) framework on the `Nginx`
+server which will:
 
 * Dynamically request Certificates from a primed `Redis` cache
 * Store data in shared `Nginx` worker and main memory and
 * Expose routes to flush the worker shared memory or expire select keys.
 
-The `OpenResty` module is available in a separate project,
-https://github.com/aptise/lua-resty-peter_sslers and can be installed into your
-`OpenResty`/`Nginx` server via the `opm` package installer. It has been used in
-production for several years.
+The [Peter_SSLers OpenResty Module](https://github.com/aptise/lua-resty-peter_sslers)
+module is available in a separate project,
+[lua-resty-peter_sslers](https://github.com/aptise/lua-resty-peter_sslers) and can
+be installed into your [OpenResty](https://github.com/openresty/openresty) / `Nginx`
+server via the `opm` package installer. It has been used in production for several
+years.
 
-The `Pyramid` based application can function as a daemon for Admin or API access,
-or even a commandline script. Most web pages offer `.json` endpoints, so you can
-easily issue commands via `curl` and have human-readable data in a terminal window.
-Don't want to do things manually? Ok - everything was built to be readable on
-commandline browsers... yes, this is actually developed-for and tested-with Lynx.
-I shit you not, Lynx.
+The [Pyramid](https://github.com/pylons/pyramid) based application can function
+as a daemon for Admin or API access, or even a commandline script. Most web pages
+offer `.json` endpoints, so you can easily issue commands via `curl` and have
+human-readable data in a terminal window. Don't want to do things manually? Ok -
+everything was built to be readable on commandline browsers... yes, this is
+actually developed-for and tested-with Lynx.  I shit you not, Lynx.
 
 Do you like book-keeping and logging?  Peter's ACME Client logs everything into
 SQL so you can easily find the answers to burning questions like:
@@ -208,10 +214,11 @@ The Components
 "Peter SSLers" - a `Pyramid` Application
 ----------------------------------------
 
-"Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be
-spun up as a webserver or used via a commandline interface. Peter is your friend
-and handles all of the Certificate Management and translation functions for you.
-He's a bit eccentric, but basically a good guy.
+"Peter SSLers" is the core toolkit. It is a
+[Pyramid](https://github.com/pylons/pyramid) application that can be spun up as a
+webserver or used via a commandline interface. Peter is your friend and handles all
+of the Certificate Management and translation functions for you.  He's a bit
+eccentric, but basically a good guy.
 
 "SSL Minnow" - The Datastore
 ----------------------------------------
@@ -227,9 +234,10 @@ on a remote desert island with them?!?! No.
 "SSLX" - The `OpenResty` package
 ----------------------------------------
 
-OpenResty is a fork of the nginx webserver which offers a lot of programmatic hooks
-(similar to Apache's mod_perl). One of the many hooks allows for programmatic
-determination and loading of SSL Certificates based on the hostname.
+[OpenResty](https://github.com/openresty/openresty) is a fork of the nginx
+webserver which offers a lot of programmatic hooks (similar to Apache's mod_perl).
+One of the many hooks allows for programmatic determination and loading of SSL
+Certificates based on the hostname.
 
 A tiered waterfall approach is used to aggressively cache Certificates:
 
@@ -238,7 +246,8 @@ A tiered waterfall approach is used to aggressively cache Certificates:
 * failover 2: centralized `redis` server
 * failover 3: querying the `Peter SSLers` `Pyramid` application
 
-The `Pyramid` application can be used to prime and clear each cache level.
+The [Pyramid](https://github.com/pylons/pyramid) application can be used to prime
+and clear each cache level.
 
 SSLX, I'm your only friend. SSLX, Your love will sing for you.
 
@@ -261,7 +270,6 @@ Currently this includes:
 * A sample `fake_server.py` that will spin up a web server with routes which you can
   test against. This will allow you to setup your proxy integration without running
   peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
-
 
 
 ToDo
