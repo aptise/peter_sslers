@@ -181,7 +181,10 @@
 		* do not deactive expired certs that do not have an active replacement
 	* remove long-deprecated `operations_deactivate_duplicates`
 	* require 1.4.7 or greater or sqlalchemy so zope.transaction can correctly handle `flush`
+	  * hopefully temporary fix- drop to zope.sqlalchemy 1.3 on earlier versions	  
 	* added "check" url for acme-accounts, which will not authenticate/register the account
+	* dropped py3.5 tests; ensured tests on py3.9
+	* split README into /docs; merged Oddities.md into that.
     + other fixes and improvements
 
 
