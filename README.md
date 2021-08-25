@@ -26,12 +26,15 @@ lots of Domains and/or Nodes and/or Networks).
 
 What's in the "box" ?
 
-* [OpenResty](https://github.com/openresty/openresty) Lua module to enable
-  Dynamic SSL Certificate Handling on the `Nginx` webserver
-* A robust SSL Certificate Manager and Explorer, with Admin Dashboard and a
-  full programmatic API
-* An integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
-  CertificateAuthority
+* This project is a Python/[Pyramid](https://github.com/pylons/pyramid) based
+  robust SSL Certificate Manager and Explorer, complete with Admin Dashboard and
+  a full programmatic API.
+  * An integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
+    CertificateAuthority.
+* The paired project
+  [Lua-Resty Peter_SSLers](https://github.com/aptise/lua-resty-peter_sslers)
+  is an [OpenResty](https://github.com/openresty/openresty) Lua module to enable
+  Dynamic SSL Certificate Handling on the `Nginx` webserver.
 
 THIS LIBRARY CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE
 MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
@@ -312,3 +315,14 @@ Full Documentation
 * [Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
 * [Tests](https://github.com/aptise/peter_sslers/docs/Tests.md)
 * [Versioning](https://github.com/aptise/peter_sslers/docs/Versioning.md)
+
+
+Related Projects
+==================
+* [aptise/lura-resty_peter_sslers](https://github.com/aptise/lua-resty-peter_sslers)
+* OpenResty
+  * [Github Source](https://github.com/openresty/openresty)
+  * [Project Homepage](https://openresty.org)
+* Pyramid
+  * [Github Source](https://github.com/pylons/pyramid)
+  * [Project Homepage](https://trypyramid.com)
