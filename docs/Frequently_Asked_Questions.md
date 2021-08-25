@@ -99,3 +99,115 @@ When generated via the ACME protocol, Certificate data is provided in the header
 Useful fields are duplicated from the cCrtificate into SQL to allow for better
 searching. Certificates are not changed in any way, aside from the cleanup of
 whitespace and/or other formatting concerns.
+
+
+## Import LetsEncrypt Data?
+
+After running the server, in another window...
+
+- $VENV/bin/pip install invoke
+- cd tools
+- $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+
+
+There is also a button under "operations" to sync LetsEncrypt's public website
+and update your certs with data, however the current codebase ships with these
+CA Certificates pre-loaded.
+
+
+## How to check if it's working?
+
+The Lua script for SSL certificate handling makes a handful of `DEBUG` and `NOTICE`
+calls during certain actions. `Nginx` typically ignores `DEBUG` unless you enable
+it at configuration/build time.
+
+After querying the server, you can check the `Redis` server directly to see if
+keys are being set. Assuming `Redis` is configured to use 127.0.0.1:6379:9
+
+    workstation username$ redis-cli
+    127.0.0.1:6379> select 9
+    OK
+    127.0.0.1:6379[9]> keys *
+
+This should then show a bunch of keys. If not, you have a problem.
+
+You can also query nginx directly for status. Please note, the status route is
+configurable:
+
+    https://example.com/.peter_sslers/nginx/shared_cache/status
+
+The payload might look like:
+
+    {
+        "servers_status": {
+            "errors": [],
+            "success": [
+                "http://127.0.0.1"
+            ],
+            "servers": {
+                "http://127.0.0.1": {
+                    "note": "This is a max(1024) listening of keys in the ngx.shared.DICT `cert_cache`. This does not show the worker's own LRU cache, or Redis.",
+                    "keys": {
+                        "valid": [
+                            "example.com"
+                        ],
+                        "invalid": [
+                            "127.0.0.1"
+                        ]
+                    },
+                    "config": {
+                        "expiries": {
+                            "resty.lrucache": 15,
+                            "ngx.shared.cert_cache": 45
+                        },
+                        "maxitems": {
+                            "resty.lrucache": 200
+                        }
+                    },
+                    "result": "success"
+                }
+            }
+        },
+        "result": "success"
+    }
+
+If you start to see valid/invalid keys disappear it is often because the `expiries`
+or `maxitems` have removed them from the cache.
+
+
+## Are Alternate Chains Supported?
+
+LetsEncrypt and other ACME Certificate Authorities may support "Alternate Chains"
+of their signed Certificates that lead to different trusted roots.
+
+Alternate Chains are fully supported by PeterSSLers
+
+* Alternate CertificateCAChains are downloaded and tracked
+* Machine-readable Endpoints are available to detect and utilize the Alternate Chains
+* Default UX, payloads and endpoints are optimized for the Primary Chain
+* Default payloads may be configured to enforce a chain preference, so alternate
+  chains can override the default chain
+
+
+## What does it look like?
+
+PeterSSLers was designed to be used on terminals, so it looks great on Lynx...
+
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/main/docs/images/lynx_01-admin_index.png)
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/main/docs/images/lynx_02-api_docs.png)
+
+And most endpoints over JSON versions, so you can process everything that way
+
+But... This project uses bootstrap, so it looks fine on browsers!
+
+![Admin Index](https://raw.github.com/aptise/peter_sslers/main/docs/images/01-admin_index.png)
+![CSR: Automate 'manual': Enter Domains](https://raw.github.com/aptise/peter_sslers/main/docs/images/02-enter_domains.png)
+![CSR: Automate 'manual': Enter  AcmeChallenges](https://raw.github.com/aptise/peter_sslers/main/docs/images/03-enter_challenge.png)
+![CSR: Check Verification Status](https://raw.github.com/aptise/peter_sslers/main/docs/images/04-view_status.png)
+![CSR: New FULL](https://raw.github.com/aptise/peter_sslers/main/docs/images/09-new_csr.png)
+![Operations Log](https://raw.github.com/aptise/peter_sslers/main/docs/images/05-operations_log.png)
+![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/06-certificate_cas.png)
+![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/main/docs/images/07-certificate_cas_focus.png)
+![Upload Existing Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/10-upload_cert.png)
+![List Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/11-certificates_list.png)
+![List Domains](https://raw.github.com/aptise/peter_sslers/main/docs/images/12-domains_list.png)

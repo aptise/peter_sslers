@@ -43,7 +43,7 @@ You can run this on SQLite or switch to PosgtreSQL by adjusting the SQLAlchemy u
 If you run via PosgtreSQL, you will need to setup the database BEFORE running
 `initialize_peter_sslers_db`.
 
-roughly, that entails...
+Roughly, that entails...
 
     $ psql -Upostgres
     psql> create user ssl_minnow with password '{PASSWORD}';
@@ -52,14 +52,14 @@ roughly, that entails...
 Some tools are provided to automatically import existing Certificates and Chains
 (see below).
 
-It is recommended to open up a new terminal and do the following commands
+It is recommended to open up a new terminal and do the following commands:
 
     cd certificate_admin
     source peter_sslers-venv/bin/activate
     cd peter_sslers
     pserve example_development.ini
 
-then in another terminal window:
+Then, in another terminal window:
 
     cd certificate_admin
     source peter_sslers-venv/bin/activate

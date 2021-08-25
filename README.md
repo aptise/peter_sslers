@@ -27,9 +27,10 @@ lots of Domains and/or Nodes and/or Networks).
 What's in the "box" ?
 
 * This project is a Python/[Pyramid](https://github.com/pylons/pyramid) based
-  robust SSL Certificate Manager and Explorer, complete with Admin Dashboard and
-  a full programmatic API.
-  * An integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
+  robust SSL Certificate Manager and Explorer, complete with:
+  * an Admin Dashboard,
+  * a fullly programmatic API,
+  * an integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
     CertificateAuthority.
 * The paired project
   [Lua-Resty Peter_SSLers](https://github.com/aptise/lua-resty-peter_sslers)

@@ -3,6 +3,7 @@
 
 # General Management Concepts
 
+
 ## Intuitive Hierarchy of Related Objects
 
 * With a migration to ACME-2, this project shifted the "core" object from a
@@ -53,6 +54,7 @@ Reconciliation is designed to help ensure PeterSSLers can provide downstream too
 with all the necessary Certificates in a chain -- including the Trusted Roots if
 necessary.
 
+
 ### Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
 With PeterSSLers, Certificates are not associated to "Domains" but to "UniqueFQDNSets",
@@ -87,7 +89,6 @@ servers.
 * You may choose a `PrivateKey` Technology and Cycling Strategy
 
 
-
 ## Single or Multi-Step Operations
 
 When provisioning a certificate, there are 3 options available:
@@ -111,7 +112,7 @@ explicitly invoke the next step, or to let the system "autodetect" the next step
 When processing orders programmatically, "json" endpoints can be leveraged.
 
 
-## A single web application?
+## A single web application?
 
 In a perfect world we could deploy the combination of a web application (enter data,
 serve responses) and a task runner (process ACME Server interactions) - but that
@@ -131,6 +132,7 @@ is only needed to complete the HTTP-01 challenges.
 
 If challenges are being completed with the DNS-01 method, the web server aspect of
 this package is not needed.
+
 
 ## Cryptography: Python vs OpenSSL
 
@@ -265,6 +267,7 @@ subdomain (either the wildcard `*` or `www`):
 | 1 Certificate | 1 | 1 |
 | 50 Certificates, No PrivateKey resuse | 50 | 50 |
 | 50 Certificates + PrivateKey resuse | 50 | 1 |
+
 
 ## Certificate Pinning and Alternate Chains
 

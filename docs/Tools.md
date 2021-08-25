@@ -36,7 +36,9 @@ You can interact with this project via a commandline interface in several ways.
 The `OpenResty`/`Nginx` implementation was migrated to a dedicated sibling repository,
 handled by `opm` distribution.
 
-https://github.com/aptise/lua-resty-peter_sslers
+* Github Source: https://github.com/aptise/lua-resty-peter_sslers
+
+Installation Instructions:
 
     opm get lua-resty-peter_sslers
 
