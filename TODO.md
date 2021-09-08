@@ -39,6 +39,10 @@ Audit/Remove "todo" markers
 TODO:
 ======
 
+* "# TODO: reintegrate"
+  * the setup routine did not add soon-to-expire ca certificates
+    however, our tests do not account for this and expect them to be loaded in the database
+
 * ECDSA Support
   * notes:
     * https://community.letsencrypt.org/t/issue-with-ssl-coms-acme-implementation/158189/13

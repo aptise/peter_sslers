@@ -2842,13 +2842,6 @@ class FunctionalTests_CertificateCA(AppTest):
             """
             # load our database backed info
             _dbCertificateCAPreferences = self._load__CertificateCAPreferences()
-            for _i in _dbCertificateCAPreferences:
-                print(
-                    _i,
-                    _i.certificate_ca.id,
-                    _i.certificate_ca.fingerprint_sha1[:8],
-                    _i.certificate_ca.display_name,
-                )
             assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
 
             # check our payload
