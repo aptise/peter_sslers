@@ -617,6 +617,15 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
+        # !!!: test `POST required` `acme-account/%s/acme-server/check.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/check.json" % focus_id,
+            status=200,
+        )
+        assert res.location is None  # no redirect
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
 
 class FunctionalTests_AcmeAuthorization(AppTest):
     """
@@ -4828,13 +4837,13 @@ class FunctionalTests_Operations(AppTest):
             res = self.testapp.get("/.well-known/admin/operations/nginx", status=302)
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
             )
 
             res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=302)
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
             )
 
         res = self.testapp.get("/.well-known/admin/operations/redis", status=200)
@@ -6720,6 +6729,57 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert res.status_code == 200
         assert res.location is None  # no redirect
         assert "AcmeAccount" in res.json
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:check")
+    def test_check_html(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_check_html
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/check" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=error&error=post+required&operation=acme-server--check"
+            % focus_id
+        )
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/check" % focus_id,
+            {},
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&result=success&message="""
+            % focus_id
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested("admin:acme_account:focus:acme_server:check|json")
+    def test_check_json(self):
+        """
+        # this hits Pebble via http
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_check_json
+        """
+        (focus_item, focus_id) = self._make_one_AcmeAccount()
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account/%s/acme-server/check.json" % focus_id,
+            {},
+        )
+        assert res.status_code == 200
+        assert res.location is None  # no redirect
+        assert "AcmeAccount" in res.json
+        assert res.json["is_checked"] is True
+        assert res.json["result"] == "success"
+        assert res.json["message"] is None
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble

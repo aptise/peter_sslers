@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 # stdlib
 
 # pypi
+from six.moves.urllib.parse import quote_plus
 
 # localapp
 from ..lib import formhandling
@@ -994,6 +995,94 @@ class View_Focus_Manipulate(View_Focus):
         return HTTPSeeOther(
             "%s?result=success&operation=acme-server--authenticate&is_authenticated=%s"
             % (self._focus_url, True)
+        )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:check",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:acme_server:check|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-account/{ID}/acme-server/check.json",
+            "section": "acme-account",
+            "about": """AcmeAccount: Focus. ACME Server - Check""",
+            "summary": """Check the key against the provider's new-reg endpoint""",
+            "POST": True,
+            "GET": None,
+            "instructions": [
+                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/check.json""",
+            ],
+        }
+    )
+    def focus__acme_server_check(self):
+        """
+        this just hits the api, hoping we check correctly.
+        """
+        dbAcmeAccount = self._focus()
+        if not dbAcmeAccount.is_can_authenticate:
+            error_message = "This AcmeAccount can not Check"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=acme-server--check" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
+            )
+            return HTTPSeeOther(url_error)
+        if self.request.method == "POST":
+            return self._focus__check__submit()
+        return self._focus__check__print()
+
+    def _focus__check__print(self):
+        dbAcmeAccount = self._focus()
+        if self.request.wants_json:
+            return formatted_get_docs(self, "/acme-account/{ID}/acme-server/check.json")
+        url_post_required = (
+            "%s?result=error&error=post+required&operation=acme-server--check"
+            % (self._focus_url,)
+        )
+        return HTTPSeeOther(url_post_required)
+
+    def _focus__check__submit(self):
+        dbAcmeAccount = self._focus()
+        # result is either: `existing-account` or ERROR
+        # failing will raise an exception
+        # passing in `onlyReturnExisting` will log the "check"
+        _result = None
+        _message = None
+        try:
+            checkedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                self.request.api_context, dbAcmeAccount, onlyReturnExisting=True
+            )
+            _result = "success"
+        except errors.AcmeServerError as exc:
+            # only catch this if `onlyReturnExisting` and there is an DNE error
+            if (exc.args[0] == 400) and (
+                exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
+            ):
+                _result = "error"
+                if "detail" in exc.args[1]:
+                    _message = exc.args[1]["detail"]
+            else:
+                raise
+        if self.request.wants_json:
+            return {
+                "AcmeAccount": dbAcmeAccount.as_json,
+                "is_checked": True,
+                "result": _result,
+                "message": _message,
+            }
+        _message = quote_plus(_message) if _message else ""
+        return HTTPSeeOther(
+            "%s?result=success&operation=acme-server--check&is_checked=%s&result=%s&message=%s"
+            % (self._focus_url, True, _result, _message)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

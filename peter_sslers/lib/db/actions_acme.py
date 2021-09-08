@@ -115,6 +115,7 @@ def do__AcmeAccount_AcmeV2_authenticate(
     ctx,
     dbAcmeAccount,
     account_key_path=None,
+    onlyReturnExisting=None,
 ):
     """
     Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
@@ -123,6 +124,7 @@ def do__AcmeAccount_AcmeV2_authenticate(
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param account_key_path: (optional) If there is a tempfile for the
         `dbAcmeAccount`
+    :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
 
     !!! WARNING !!!
 
@@ -131,17 +133,20 @@ def do__AcmeAccount_AcmeV2_authenticate(
     """
     acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
-    # create account, update contact details (if any), and set
+    # unless `onlyReturnExisting` is True, this will
+    # create an account, update contact details (if any), and set
     # the global key identifier
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
+    #
+    # if `onlyReturnExisting` is True,
     authenticatedUser = lib.acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         account_key_path=account_key_path,
         log__OperationsEvent=log__OperationsEvent,
     )
-    authenticatedUser.authenticate(ctx)
+    authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
     return authenticatedUser
 
 

@@ -1563,11 +1563,11 @@
                     </tr>
                     <tr>
                         <th>
-                            <label for="contact">contact</label>
+                            <label for="account__contact">contact</label>
                         </th>
                         <td>
                             <div class="form-group">
-                                <input class="form-control" type="text" name="account__contact" value=""/>
+                                <input class="form-control" type="text" id="f1-account__contact" name="account__contact" value=""/>
                             </div>
                         </td>
                     </tr>

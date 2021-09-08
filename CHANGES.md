@@ -177,9 +177,14 @@
       * dropped Python-3.5 as SQLAlchemy1.4 is not compatible with that release
     * adjusted some keys for redis priming
     * requires lua-resty-peter_sslers >= 0.5.0
-	* CertificateSigned__deactivate_expired
-		* do not deactive expired certs that do not have an active replacement
-
+    * CertificateSigned__deactivate_expired
+        * do not deactive expired certs that do not have an active replacement
+    * remove long-deprecated `operations_deactivate_duplicates`
+    * require 1.4.7 or greater or sqlalchemy so zope.transaction can correctly handle `flush`
+    * require zope.sqlalchemy>=1.6 to provide support for python2+sqlalchemy1.4
+    * added "check" url for acme-accounts, which will not authenticate/register the account
+    * dropped py3.5 tests; ensured tests on py3.9
+    * split README into /docs; merged Oddities.md into that.
     + other fixes and improvements
 
 

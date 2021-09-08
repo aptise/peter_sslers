@@ -36,6 +36,20 @@ Almost done:
 Audit/Remove "todo" markers
 
 
+TODO:
+======
+
+* "# TODO: reintegrate"
+  * the setup routine did not add soon-to-expire ca certificates
+    however, our tests do not account for this and expect them to be loaded in the database
+
+* ECDSA Support
+  * notes:
+    * https://community.letsencrypt.org/t/issue-with-ssl-coms-acme-implementation/158189/13
+      * Key Encipherment is not valid for ECDSA certificates. This is for "when the subject public key is used for enciphering private or secret keys, i.e., for key transport." (RFC 5280).
+
+
+
 UNDECIDED
 ===============
 * CertificateCAPreferences -> CertificateCAChainPreference

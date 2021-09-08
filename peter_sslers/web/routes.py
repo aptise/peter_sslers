@@ -145,6 +145,14 @@ def _admin_views(config):
         "/acme-account/{@id}/acme-server/authenticate.json",
     )
     config.add_route_7(
+        "admin:acme_account:focus:acme_server:check",
+        "/acme-account/{@id}/acme-server/check",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:acme_server:check|json",
+        "/acme-account/{@id}/acme-server/check.json",
+    )
+    config.add_route_7(
         "admin:acme_account:focus:acme_server:deactivate_pending_authorizations",
         "/acme-account/{@id}/acme-server/deactivate-pending-authorizations",
     )

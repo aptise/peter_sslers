@@ -1,0 +1,154 @@
+* [Previous - Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
+* [Next - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
+
+# Automation
+
+## Routes Designed for JSON Automation
+
+
+### `/.well-known/admin/api/deactivate-expired.json`
+
+Deactivate expired Certificates.
+
+### `/.well-known/admin/api/redis/prime.json`
+
+Prime a `Redis` cache with Domain data.
+
+### `/.well-known/admin/api/update-recents.json`
+
+Updates Domain records to list the most recent Certificates for the Domain.
+
+
+## Routes with JSON support
+
+Most routes have support for JSON requests via a `.json` suffix.
+
+These are usually documented on the html version, and via "GET" requests to the
+json version.
+
+### `/.well-known/admin/certificate-signed/upload.json`
+
+This can be used used to directly import Certificates already issued by LetsEncrypt
+
+    curl --form "private_key_file=@privkey1.pem" \
+         --form "certificate_file=@cert1.pem" \
+         --form "chain_file=@chain1.pem" \
+         http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
+
+    curl --form "private_key_file=@privkey2.pem" \
+         --form "certificate_file=@cert2.pem" \
+         --form "chain_file=@chain2.pem" \
+         http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
+
+Note the url is not `/upload` like the html form but `/upload.json`.
+
+Both URLS accept the same form data, but `/upload.json` returns json data which
+is probably more readable from the commandline.
+
+Errors will appear in JSON if encountered.
+
+If data is not POSTed to the form, instructions are returned in the json.
+
+There is an `invoke` script to automate these imports:
+
+    invoke import-certbot-certs-archive \
+           --archive-path='/path/to/archive' \
+           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+
+    invoke import-certbot-cert-version \
+           --domain-certs-path="/path/to/ssl/archive/example.com" \
+           --certificate-version=3 \
+           --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+
+    invoke import-certbot-certs-live \
+           --live-path='/etc/letsencrypt/live' \
+           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+
+    invoke import-certbot-cert-plain \
+           --cert-path='/etc/letsencrypt/live/example.com' \
+           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+
+
+### `/.well-known/admin/certificate-ca/upload-cert.json`
+
+Upload a new CertificateAuthority (LetsEncrypt) Certificate.
+
+### `/.well-known/admin/certificate-ca-chain/upload-chain.json`
+
+Upload a new CertificateAuthority (LetsEncrypt) Chain.  A chain are the
+intermediate certificates.
+
+### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
+
+`{DOMAIN|ID}` can be the internal numeric id or the Domain name.
+
+Will return a JSON document:
+
+    {"domain": {"id": "1",
+                "domain_name": "a",
+                },
+     "certificate_signed__latest_single": null,
+     "certificate_signed__latest_multi": {"id": "1",
+                                  "private_key": {"id": "1",
+                                                  "pem": "a",
+                                                  },
+                                  "certificate": {"id": "1",
+                                                  "pem": "a",
+                                                  },
+                                  "chain": {"id": "1",
+                                            "pem": "a",
+                                            },
+                                  "fullchain": {"id": "1",
+                                                "pem": "a",
+                                                },
+                                  }
+     }
+
+If you pass in the querystring '?idonly=1', the PEMs will not be returned.
+
+Notice that the numeric ids are returned as strings. This is by design.
+
+If you pass in the querystring '?openresty=1' to identify the request as coming
+from `OpenResty` (as an API request), this will function as a write-through cache
+for `Redis` and load the Domain's info into `Redis` (if `Redis` is configured).
+
+This is the route use by the `OpenResty` Lua script to query Domain data.
+
+### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
+
+The certificate JSON payload is what is nested in the Domain payload
+
+    {"id": "1",
+     "private_key": {"id": "1",
+                     "pem": "a",
+                     },
+     "certificate": {"id": "1",
+                     "pem": "a",
+                     },
+     "chain": {"id": "1",
+               "pem": "a",
+               },
+     "fullchain": {"id": "1",
+                   "pem": "a",
+                   },
+     }
+
+Notice that the numeric ids are returned as strings. This is by design.
+
+Need to get the Certificate data directly? NO SWEAT. Peter transforms this for you
+on the server, and sends it to you with the appropriate headers.
+
+* /.well-known/admin/certificate-signed/{ID}/cert.crt
+* /.well-known/admin/certificate-signed/{ID}/cert.pem
+* /.well-known/admin/certificate-signed/{ID}/cert.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/chain.cer
+* /.well-known/admin/certificate-signed/{ID}/chain.crt
+* /.well-known/admin/certificate-signed/{ID}/chain.der
+* /.well-known/admin/certificate-signed/{ID}/chain.pem
+* /.well-known/admin/certificate-signed/{ID}/chain.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/fullchain.pem
+* /.well-known/admin/certificate-signed/{ID}/fullchain.pem.txt
+* /.well-known/admin/certificate-signed/{ID}/privkey.key
+* /.well-known/admin/certificate-signed/{ID}/privkey.pem
+* /.well-known/admin/certificate-signed/{ID}/privkey.pem.txt
+

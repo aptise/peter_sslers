@@ -143,109 +143,6 @@ def operations_deactivate_expired(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=None):
-    """
-    this is kind of weird.
-    because we have multiple domains, it is hard to figure out which certs we should use
-    the simplest approach is this:
-
-    1. cache the most recent certs via `operations_update_recents__global`
-    2. find domains that have multiple active certs
-    3. don't turn off any certs that are a latest_single or latest_multi
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param ran_operations_update_recents__global: (optional) Default = `None`
-    """
-    raise ValueError("Don't run this. It's not needed anymore")
-    raise errors.InvalidRequest("Not Compliant")
-
-    if ran_operations_update_recents__global is not True:
-        raise ValueError("MUST run `operations_update_recents__global` first")
-
-    # bookkeeping
-    event_payload_dict = lib.utils.new_event_payload_dict()
-    event_payload_dict["count_deactivated"] = 0
-    operationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("deactivate_duplicate"),
-        event_payload_dict,
-    )
-
-    _q_ids__latest_single = (
-        ctx.dbSession.query(model_objects.Domain.certificate_signed_id__latest_single)
-        .distinct()
-        .filter(
-            model_objects.Domain.certificate_signed_id__latest_single != None  # noqa
-        )
-        .subquery()
-    )
-    _q_ids__latest_multi = (
-        ctx.dbSession.query(model_objects.Domain.certificate_signed_id__latest_multi)
-        .distinct()
-        .filter(
-            model_objects.Domain.certificate_signed_id__latest_single != None  # noqa
-        )
-        .subquery()
-    )
-
-    # now grab the domains with many certs...
-    q_inner = (
-        ctx.dbSession.query(
-            model_objects.UniqueFQDNSet2Domain.domain_id,
-            sqlalchemy.func.count(model_objects.UniqueFQDNSet2Domain.domain_id).label(
-                "counted"
-            ),
-        )
-        .join(
-            model_objects.CertificateSigned,
-            model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id
-            == model_objects.CertificateSigned.unique_fqdn_set_id,
-        )
-        .filter(model_objects.CertificateSigned.is_active.is_(True))
-        .group_by(model_objects.UniqueFQDNSet2Domain.domain_id)
-    )
-    q_inner = q_inner.subquery()
-    q_domains = ctx.dbSession.query(q_inner).filter(q_inner.c.counted >= 2)
-    result = q_domains.all()
-    domain_ids_with_multiple_active_certs = [i.domain_id for i in result]
-
-    if False:
-        _turned_off = []
-        for _domain_id in domain_ids_with_multiple_active_certs:
-            domain_certs = (
-                ctx.dbSession.query(model_objects.CertificateSigned)
-                .join(
-                    model_objects.UniqueFQDNSet2Domain,
-                    model_objects.CertificateSigned.unique_fqdn_set_id
-                    == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-                )
-                .filter(
-                    model_objects.CertificateSigned.is_active.is_(True),
-                    model_objects.UniqueFQDNSet2Domain.domain_id == _domain_id,
-                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_single),
-                    model_objects.CertificateSigned.id.notin_(_q_ids__latest_multi),
-                )
-                .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
-                .all()
-            )
-            if len(domain_certs) > 1:
-                for cert in domain_certs[1:]:
-                    cert.is_active = False
-                    _turned_off.append(cert)
-                    events.Certificate_unactivated(ctx, cert)
-
-    # update the event
-    if len(_turned_off):
-        event_payload_dict["count_deactivated"] = len(_turned_off)
-        operationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[operationsEvent])
-
-    return operationsEvent
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 _header_2_format = {
     "application/pkcs7-mime": "pkcs7",
     "application/pkix-cert": "pkix-cert",
@@ -268,11 +165,11 @@ def operations_reconcile_cas(ctx):
     )
     _certificate_ca_ids = []
     for dbCertificateCA in dbCertificateCAs:
-        print("Reconciling...")
+        log.debug("Reconciling CA...")
         _certificate_ca_ids.append(dbCertificateCA.id)
         cert_issuer_uri = dbCertificateCA.cert_issuer_uri
-        print(dbCertificateCA.cert_subject)
-        print(cert_issuer_uri)
+        log.debug(dbCertificateCA.cert_subject)
+        log.debug(cert_issuer_uri)
         resp = requests.get(cert_issuer_uri)
         if resp.status_code != 200:
             raise ValueError("Could not load certificate")
@@ -594,7 +491,7 @@ def operations_update_recents__global(ctx):
         )
     )
 
-    # should we do the timestamps?
+    # TODO: should we do the timestamps?
     """
     UPDATE acme_account SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_created) FROM certificate_request
