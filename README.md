@@ -183,14 +183,16 @@ Status
 
 Peter SSLers is fully functional and deployed in production environments for:
 
-* Certificate management
-* Manual renewal
-* Interrogating and syncing with ACME Servers
+* Certificate Management
+* Certificate Procurement
+* Manual Renewal
+* Programmatic Renewal
+* Interrogating and syncing against ACME Servers
 
-The following features are being reworked:
+The following features are being actively reworked and semi-functional:
 
-* Queuing new Domains for Certificate provisioning
-* Automatic renewal
+* Queuing new Domains for Certificate Provisioning
+* Automatic Renewal
 
 
 WARNING (Important)
