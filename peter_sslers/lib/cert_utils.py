@@ -2685,6 +2685,8 @@ def ensure_chain(
             [
                 openssl_path,
                 "verify",
+                "-purpose",
+                "sslserver",
                 "-CAfile",
                 _tmpfile_root.name,
                 "-untrusted",
@@ -2779,6 +2781,8 @@ def ensure_chain_order(chain_certs, cert_pem=None):
                 [
                     openssl_path,
                     "verify",
+                    "-purpose",
+                    "sslserver",
                     "-partial_chain",
                     "-trusted",
                     file_a.name,
