@@ -186,6 +186,9 @@
     * dropped py3.5 tests; ensured tests on py3.9
     * split README into /docs; merged Oddities.md into that.
     + other fixes and improvements
+    
+    - 2021/11/05
+    * chain verification via openssl now uses `-purpose sslserver`
 
 
 0.4.0
