@@ -1,7 +1,11 @@
+# stdlib
 import os
-import sys
 
-from setuptools import setup, find_packages
+# pypi
+from setuptools import find_packages
+from setuptools import setup
+
+# ==============================================================================
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,6 +18,7 @@ with open(os.path.join(HERE, "README.md")) as f:
 requires = [
     "formencode>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
+    "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
     "pyramid_formencode_classic >=0.4.3, <0.5.0",

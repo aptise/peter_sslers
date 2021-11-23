@@ -39,6 +39,12 @@ Audit/Remove "todo" markers
 TODO:
 ======
 
+* DomainAutocert
+	as_json payload was not tested
+* acme_account: sidenav_option is unused?
+* Form_AcmeOrderless_manage_domain - unused
+
+
 * "# TODO: reintegrate"
   * the setup routine did not add soon-to-expire ca certificates
     however, our tests do not account for this and expect them to be loaded in the database

@@ -1,4 +1,4 @@
 *.sqlite
-*.egg-info
-peter_sslers/scripts/update_foo.py
+src/peter_sslers.egg-info
+src/peter_sslers/web/scripts/update_foo.py
 

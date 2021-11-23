@@ -1,20 +1,27 @@
 from __future__ import print_function
 
-from invoke import Collection, task
-
+# stdlib
+# import json
 import os
 import os.path
-import subprocess
-import json
-import pprint
 
+# import pprint
+# import subprocess
+
+# pypi
+from invoke import Collection
+from invoke import task
+
+# local
 import peter_sslers.commandline
 
+
+# ==============================================================================
 
 # export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
 DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
 
-# ==============================================================================
+# ------------------------------------------------------------------------------
 
 
 @task(
