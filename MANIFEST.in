@@ -1,2 +1,19 @@
-include *.txt *.ini *.cfg *.rst
-recursive-include peter_sslers *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml
+graft docs
+graft src
+graft tests
+graft tools
+
+include setup.cfg pyproject.toml
+include tox.ini
+include CHANGES.md
+include LICENSE.txt
+include README.md
+include TODO.md
+
+include example_development.ini
+include example_production.ini
+include example_staging.ini
+include test_local.ini
+include test.ini
+
+recursive-exclude * __pycache__ *.py[cod] .DS_Store
