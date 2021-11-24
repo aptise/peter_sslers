@@ -1,42 +1,29 @@
 from __future__ import print_function
 
-import logging
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
 # stdlib
 import datetime
-import os
-import packaging.version
-import pdb
-import subprocess
-import unittest
-import traceback
-import time
-import uuid
-from io import open  # overwrite `open` in Python2
 from functools import wraps
-
-# pyramid
-from pyramid import testing
-from pyramid.paster import get_appsettings
+from io import open  # overwrite `open` in Python2
+import logging
+import os
+import subprocess
+import time
+import traceback
+import unittest
+import uuid
 
 # pypi
+import packaging.version
 import psutil
-import transaction
+from pyramid import testing
+from pyramid.paster import get_appsettings
 import requests
 import sqlalchemy
+import transaction
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 # local
-from peter_sslers.web import main
-from peter_sslers.web.models import get_engine
-from peter_sslers.web.models import get_session_factory
-from peter_sslers.model import objects as model_objects
-from peter_sslers.model import utils as model_utils
-from peter_sslers.model import meta as model_meta
 import peter_sslers.lib
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import cert_utils
@@ -44,9 +31,18 @@ from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
+from peter_sslers.model import meta as model_meta
+from peter_sslers.model import objects as model_objects
+from peter_sslers.model import utils as model_utils
+from peter_sslers.web import main
+from peter_sslers.web.models import get_engine
+from peter_sslers.web.models import get_session_factory
 
 
 # ==============================================================================
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 """
 export SSL_RUN_NGINX_TESTS=1
@@ -1037,9 +1033,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 sqlalchemy.or_(
                     # Path1 - Order Based Authorizations
                     sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
-                            None
-                        ),
+                        model_objects.AcmeChallenge.acme_authorization_id.is_not(None),
                         model_objects.AcmeChallenge.acme_status_challenge_id.in_(
                             model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
                         ),
@@ -1052,10 +1046,8 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                     ),
                     # Path2 - Orderless
                     sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(
-                            None
-                        ),
-                        model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                        model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
+                        model_objects.AcmeOrderless.is_processing.is_(True),
                     ),
                 ),
             )

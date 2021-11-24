@@ -1,5 +1,8 @@
-from OpenSSL import crypto as openssl_crypto
+# stdlib
 import re
+
+# pypi
+from OpenSSL import crypto as openssl_crypto
 
 # ==============================================================================
 

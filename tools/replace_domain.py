@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 """
-
 This is an EXPERIMENTAL tool for manipulating an acme-dns database.
 
 An early attempt to use acme-dns for PAAS/SAAS clients was to pre-generate a large
@@ -13,7 +12,7 @@ The flow:
     Client reads docs on how to get a SSL Certificate from Vendor
     Client asks Vendor for HTTPS Certificate
     Vendor creates acme-dns account
-    Vendor provides Client with acme-dns Account 
+    Vendor provides Client with acme-dns Account
     Client CNAMES _acme-challenge onto Vendor identified subdomain
     Client notifies Vendor
     Vendor provisions SSL Certificate
@@ -50,16 +49,15 @@ For example:
 
     # acme-dns generates a subdomain with a random uuid
     domain = "8e5700ea-a4bf-41c7-8a77-e990661dcc6a.auth.acme-dns.io"
-    
+
     # the customer's domain is "customer1.example.com"
     python replace_domain("8e5700ea-a4bf-41c7-8a77-e990661dcc6a", "customer1.example.com")
-    
+
     # the new domain in acme-dns is now
     domain = "customer1.example.com.auth.acme-dns.io"
-    
+
 Because the domains are predictable, there is not back-and-forth between
 the participants in this process.
-        
 
 To use:
 
@@ -67,10 +65,13 @@ To use:
     python replace_domain.py {OLD_DOMAIN} {NEW_DOMAIN}
 """
 
+# stdlib
 import os
+import re
 import sqlite3
 import sys
-import re
+
+# ==============================================================================
 
 _args = sys.argv
 try:
@@ -80,14 +81,14 @@ try:
     if not all((_subdomain_old, _subdomain_new)):
         raise ValueError("Missing old or new subdomain")
     # validate the domain inputs
-    _regex_subdomain = re.compile("^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$")
+    _regex_subdomain = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$")
     if not _regex_subdomain.match(_subdomain_old):
         raise ValueError("Invalid domain: old")
     if not _regex_subdomain.match(_subdomain_new):
         raise ValueError("Invalid domain: new")
 
-except Exception as exc:
-    print("Please invoke this as `replace_domain.py {OLD_DOMAIN} {NEW_DOMAIN}`")
+except Exception as exc:  # noqa: F841
+    print(r"Please invoke this as `replace_domain.py {OLD_DOMAIN} {NEW_DOMAIN}`")
     raise
 
 _database_path = os.environ.get("ACMEDNS_DB", "acme-dns.db")

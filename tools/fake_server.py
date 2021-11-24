@@ -22,11 +22,12 @@ The server will respond to requests with the following header to identify it:
     X-Peter-SSLers: fakeserver
 """
 
-
+# stlib
 from wsgiref.simple_server import make_server
+
+# pypi
 from pyramid.config import Configurator
 from pyramid.response import Response
-
 
 # ==============================================================================
 

@@ -1,64 +1,97 @@
 from __future__ import print_function
 
 # stdlib
-import datetime
+from functools import wraps
+from io import open  # overwrite `open` in Python2
 import json
-import os
-import packaging.version
-import pdb
+import logging
 import pprint
-import re
 import unittest
 import zipfile
-from functools import wraps
-import sys
-from io import open  # overwrite `open` in Python2
-import six
-
-if six.PY3:
-    from io import StringIO
-    from io import BytesIO
-else:
-    from StringIO import StringIO
 
 # pypi
-from webtest import Upload
-from webtest.http import StopableWSGIServer
+from flaky import flaky
+import packaging.version
 import requests
 import sqlalchemy
+from webtest import Upload
 
 # local
-from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import cert_utils
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
-
-from ._utils import FakeRequest
-from ._utils import TEST_FILES
+from ._compat import BytesIO
+from ._compat import PY2
+from ._compat import StringIO
 from ._utils import AppTest
 from ._utils import AppTestWSGI
+from ._utils import generate_random_emailaddress
+from ._utils import OPENRESTY_PLUGIN_MINIMUM
+from ._utils import RUN_API_TESTS__ACME_DNS_API
+from ._utils import RUN_API_TESTS__PEBBLE
+from ._utils import RUN_NGINX_TESTS
+from ._utils import RUN_REDIS_TESTS
+from ._utils import TEST_FILES
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
 from ._utils import under_redis
-from ._utils import generate_random_emailaddress
-
-# local, flags
-from .regex_library import *
-from ._utils import LETSENCRYPT_API_VALIDATES
-from ._utils import RUN_API_TESTS__PEBBLE
-from ._utils import RUN_API_TESTS__ACME_DNS_API
-from ._utils import RUN_NGINX_TESTS
-from ._utils import RUN_REDIS_TESTS
-from ._utils import SSL_TEST_PORT
-from ._utils import OPENRESTY_PLUGIN_MINIMUM
+from .regex_library import RE_AcmeAccount_deactivate_pending_post_required
+from .regex_library import RE_AcmeAccount_deactivate_pending_success
+from .regex_library import RE_AcmeAccount_new
+from .regex_library import RE_AcmeAuthorization_deactivate_btn
+from .regex_library import RE_AcmeAuthorization_deactivate_fail
+from .regex_library import RE_AcmeAuthorization_deactivated
+from .regex_library import RE_AcmeAuthorization_sync_btn
+from .regex_library import RE_AcmeAuthorization_synced
+from .regex_library import RE_AcmeChallenge_sync_btn
+from .regex_library import RE_AcmeChallenge_synced
+from .regex_library import RE_AcmeChallenge_trigger_btn
+from .regex_library import RE_AcmeChallenge_trigger_fail
+from .regex_library import RE_AcmeChallenge_triggered
+from .regex_library import RE_AcmeDnsServer_checked
+from .regex_library import RE_AcmeDnsServer_created
+from .regex_library import RE_AcmeDnsServer_edited
+from .regex_library import RE_AcmeDnsServer_ensure_domains_results
+from .regex_library import RE_AcmeDnsServer_import_domain_existing
+from .regex_library import RE_AcmeDnsServer_import_domain_success
+from .regex_library import RE_AcmeDnsServer_marked_active
+from .regex_library import RE_AcmeDnsServer_marked_global_default
+from .regex_library import RE_AcmeDnsServer_marked_inactive
+from .regex_library import RE_AcmeOrder
+from .regex_library import RE_AcmeOrder_btn_acme_process__can
+from .regex_library import RE_AcmeOrder_btn_deactive_authorizations
+from .regex_library import RE_AcmeOrder_btn_deactive_authorizations__off
+from .regex_library import RE_AcmeOrder_deactivated
+from .regex_library import RE_AcmeOrder_downloaded_certificate
+from .regex_library import RE_AcmeOrder_invalidated
+from .regex_library import RE_AcmeOrder_invalidated_error
+from .regex_library import RE_AcmeOrder_processed
+from .regex_library import RE_AcmeOrder_renew_custom
+from .regex_library import RE_AcmeOrder_renew_quick
+from .regex_library import RE_AcmeOrder_retry
+from .regex_library import RE_AcmeOrderless
+from .regex_library import RE_CertificateCA_uploaded
+from .regex_library import RE_CertificateCAChain_uploaded
+from .regex_library import RE_CertificateSigned_main
+from .regex_library import RE_CertificateSigned_operation_nginx_expire
+from .regex_library import RE_CertificateSigned_operation_nginx_expire__GET
+from .regex_library import RE_CoverageAssuranceEvent_mark
+from .regex_library import RE_CoverageAssuranceEvent_mark_nochange
+from .regex_library import RE_Domain_new
+from .regex_library import RE_Domain_new_AcmeDnsServerAccount
+from .regex_library import RE_Domain_operation_nginx_expire
+from .regex_library import RE_Domain_operation_nginx_expire__GET
+from .regex_library import RE_QueueCertificate
+from .regex_library import RE_QueueDomain_process_success
+from .regex_library import RE_UniqueFQDNSet_modify
+from .regex_library import RE_UniqueFQDNSet_new
 
 
 # ==============================================================================
 #
 # essentially disable logging for tests
 #
-import logging
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
@@ -170,8 +203,8 @@ class FunctionalTests_AcmeAccount(AppTest):
         # grab a Key
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
-            .filter(model_objects.AcmeAccount.is_global_default.op("IS NOT")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
+            .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
         )
@@ -1411,7 +1444,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             status=200,
         )
         assert res.json["result"] == "success"
-        assert res.json["health"] == True
+        assert res.json["health"] is True
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
@@ -2618,7 +2651,7 @@ class FunctionalTests_CertificateCA(AppTest):
                 model_objects.CertificateCA.id
                 == model_objects.CertificateCAPreference.certificate_ca_id,
             )
-            .filter(model_objects.CertificateCAPreference.id.op("IS")(None))
+            .filter(model_objects.CertificateCAPreference.id.is_(None))
             .all()
         )
         return dbCertificateCA_unused
@@ -3336,7 +3369,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         # iterate backwards
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateSigned)
-            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .filter(model_objects.CertificateSigned.is_active.is_(True))
             .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
@@ -3531,7 +3564,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             res.headers["Content-Disposition"]
             == "attachment; filename= cert%s.zip" % focus_id
         )
-        if six.PY2:
+        if PY2:
             z = zipfile.ZipFile(StringIO(res.body))
         else:
             z = zipfile.ZipFile(BytesIO(res.body))
@@ -4045,7 +4078,7 @@ class FunctionalTests_Domain(AppTest):
         # grab a Domain
         focus_item = (
             self.ctx.dbSession.query(model_objects.Domain)
-            .filter(model_objects.Domain.is_active.op("IS")(True))
+            .filter(model_objects.Domain.is_active.is_(True))
             .order_by(model_objects.Domain.id.asc())
             .first()
         )
@@ -4861,7 +4894,7 @@ class FunctionalTests_PrivateKey(AppTest):
         focus_item = (
             self.ctx.dbSession.query(model_objects.PrivateKey)
             .filter(
-                model_objects.PrivateKey.is_active.op("IS")(True),
+                model_objects.PrivateKey.is_active.is_(True),
                 model_objects.PrivateKey.private_key_type_id
                 != model_utils.PrivateKeyType.from_string("placeholder"),
             )
@@ -6261,7 +6294,7 @@ class FunctionalTests_QueueDomains(AppTest):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.QueueDomain)
-            .filter(model_objects.QueueDomain.is_active.op("IS")(True))
+            .filter(model_objects.QueueDomain.is_active.is_(True))
             .order_by(model_objects.QueueDomain.id.asc())
             .first()
         )
@@ -6438,7 +6471,7 @@ class FunctionalTests_AlternateChains(AppTest):
         # iterate backwards because we just added the AlternateChains
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateSigned)
-            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .filter(model_objects.CertificateSigned.is_active.is_(True))
             .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
@@ -6561,7 +6594,7 @@ class FunctionalTests_AlternateChains(AppTest):
                 res.headers["Content-Disposition"]
                 == "attachment; filename= cert%s-chain%s.zip" % focus_ids
             )
-            if six.PY2:
+            if PY2:
                 z = zipfile.ZipFile(StringIO(res.body))
             else:
                 z = zipfile.ZipFile(BytesIO(res.body))
@@ -6652,7 +6685,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
@@ -6674,7 +6707,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
             .first()
         )
@@ -9720,6 +9753,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             == stats_og["count-AcmeAuthorization-pending"]
         )
 
+    @flaky(max_runs=3, min_passes=1)
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_nocleanup(self):
@@ -9816,12 +9850,21 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     ),
                 )
                 print("===================== AcmeAuthorization/")
+                print("_expected_max:", _expected_max)
+                print("coun_expected_min:", _expected_min)
+                print(
+                    "count-AcmeAuthorization-pending:",
+                    stats_b["count-AcmeAuthorization-pending"],
+                )
+                print("---------------------------------------------")
+                print("acme_status_authorization_id, id, domain_name")
                 for _auth in _auths:
                     print(
                         _auth.acme_status_authorization_id,
                         _auth.id,
                         _auth.domain.domain_name,
                     )
+                print("---------------------------------------------")
                 print("===================== /AcmeAuthorization")
                 raise
 

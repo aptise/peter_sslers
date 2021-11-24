@@ -1,24 +1,23 @@
 from __future__ import print_function
 
 # stdlib
-import packaging.version
+import logging
 import unittest
 
 # pypi
+import packaging.version
 from pyramid.paster import get_appsettings
 import requests
 from requests.auth import HTTPBasicAuth
 
 # local
-from peter_sslers.lib import acme_v2
-from peter_sslers.lib import cert_utils
-
+# from peter_sslers.lib import acme_v2
+# from peter_sslers.lib import cert_utils
 from peter_sslers.lib.config_utils import ApplicationSettings
-from ._utils import AppTest
 
-# local, flags
-from ._utils import RUN_NGINX_TESTS
+# from ._utils import AppTest
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
+from ._utils import RUN_NGINX_TESTS
 from ._utils import TEST_INI
 
 
@@ -26,12 +25,10 @@ from ._utils import TEST_INI
 #
 # essentially disable logging for tests
 #
-import logging
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.CRITICAL)
-
 
 # ==============================================================================
 

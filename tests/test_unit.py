@@ -2,29 +2,17 @@ from __future__ import print_function
 
 # stdlib
 import json
-import os
-import os.path
-import pdb
-import pprint
-import tempfile
 import test
 import test.test_httplib
 import unittest
-from io import open  # overwrite `open` in Python2
-
 
 # pypi
 from acme import crypto_util as acme_crypto_util
 from certbot import crypto_util as certbot_crypto_util
-import six
-from six.moves import http_client
-from six.moves.urllib.response import addinfourl
-
-# from Crypto.Util import asn1 as crypto_util_asn1
-from OpenSSL import crypto as openssl_crypto
+import cryptography
 from cryptography.hazmat.primitives import serialization as cryptography_serialization
 import josepy
-import cryptography
+from OpenSSL import crypto as openssl_crypto
 
 # local
 from peter_sslers.lib import acme_v2
@@ -32,19 +20,16 @@ from peter_sslers.lib import cert_utils
 from peter_sslers.lib import errors
 from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
-from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import getcreate as lib_db_getcreate
-from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
-
-
-from ._utils import AppTestCore
+from ._compat import addinfourl
+from ._compat import http_client
+from ._utils import _Mixin_filedata
 from ._utils import AppTest
 from ._utils import CERT_CA_SETS
 from ._utils import CSR_SETS
 from ._utils import KEY_SETS
 from ._utils import TEST_FILES
-from ._utils import _Mixin_filedata
 
 
 # ==============================================================================
@@ -53,6 +38,8 @@ from ._utils import _Mixin_filedata
 class _MixinNoCrypto(object):
     def setUp(self):
         # print("_MixinNoCrypto.setUp")
+        global cert_utils
+        global cryptography
         cert_utils.acme_crypto_util = None
         cert_utils.openssl_crypto = None
         cert_utils.certbot_crypto_util = None
@@ -63,6 +50,7 @@ class _MixinNoCrypto(object):
 
     def tearDown(self):
         # print("_MixinNoCrypto.tearDown")
+        global cert_utils
         cert_utils.acme_crypto_util = acme_crypto_util
         cert_utils.openssl_crypto = openssl_crypto
         cert_utils.certbot_crypto_util = certbot_crypto_util

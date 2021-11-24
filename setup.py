@@ -1,7 +1,11 @@
+# stdlib
 import os
-import sys
 
-from setuptools import setup, find_packages
+# pypi
+from setuptools import find_packages
+from setuptools import setup
+
+# ==============================================================================
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,6 +18,7 @@ with open(os.path.join(HERE, "README.md")) as f:
 requires = [
     "formencode>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
+    "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
     "pyramid_formencode_classic >=0.4.3, <0.5.0",
@@ -31,6 +36,7 @@ requires = [
 tests_require = [
     "certbot",
     "cryptography",
+    "flaky",
     "josepy",
     "pre-commit",
     "pycrypto",
@@ -63,10 +69,13 @@ setup(
     url="https://github.com/aptise/peter_sslers",
     keywords="web pyramid letsencrypt ssl",
     license="MIT",
-    packages=find_packages(),
-    include_package_data=True,
     zip_safe=False,
     test_suite="tests",
+    packages=find_packages(
+        where="src",
+    ),
+    package_dir={"": "src"},
+    include_package_data=True,
     python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
     install_requires=requires,
     tests_require=tests_require,

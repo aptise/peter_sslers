@@ -21,20 +21,23 @@ usage:
 
 # stdlib
 import base64
-import binascii
+
+# import binascii
 import datetime
 import json
 import os
-import pdb
+
+# import pdb
 import subprocess
 import tempfile
-import textwrap
+
+# import textwrap
+from wsgiref.simple_server import make_server
 
 # pypi
-from wsgiref.simple_server import make_server
+# import psutil
 from pyramid.config import Configurator
 from pyramid.response import Response
-import psutil
 
 # local
 from peter_sslers.lib import cert_utils
@@ -70,7 +73,7 @@ def decrypt_acme_newcert(post_data):
     csr_der = _unb64(csr_der_b64)
 
     _tmpfile_der = None
-    csr_decoded = None
+    # csr_decoded = None
     try:
         # store some data in a tempfile
         _tmpfile_der = tempfile.NamedTemporaryFile()
@@ -291,7 +294,7 @@ def acme_newreg(request):
             },
             sort_keys=True,
         )
-    except:
+    except Exception as exc:  # noqa: F841
         raise ValueError("invalid input")
     return Response(
         body=body,
