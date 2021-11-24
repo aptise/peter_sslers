@@ -7,6 +7,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import relationship as sa_orm_relationship
 
 # local
+from .aliases import AcmeOrderAlt
+from .aliases import CoverageAssuranceEventAlt
 from .objects import AcmeAccount
 from .objects import AcmeAuthorization
 from .objects import AcmeChallenge
@@ -16,12 +18,10 @@ from .objects import AcmeEventLog
 from .objects import AcmeOrder
 from .objects import AcmeOrder2AcmeAuthorization
 from .objects import AcmeOrder2AcmeChallengeTypeSpecific
-from .objects import AcmeOrderAlt
 from .objects import AcmeOrderless
 from .objects import CertificateRequest
 from .objects import CertificateSigned
 from .objects import CoverageAssuranceEvent
-from .objects import CoverageAssuranceEventAlt
 from .objects import Domain
 from .objects import DomainAutocert
 from .objects import PrivateKey
