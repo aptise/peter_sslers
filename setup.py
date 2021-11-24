@@ -36,7 +36,6 @@ requires = [
 tests_require = [
     "certbot",
     "cryptography",
-    "flaky",
     "josepy",
     "pre-commit",
     "pycrypto",
