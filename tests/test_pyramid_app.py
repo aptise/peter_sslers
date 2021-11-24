@@ -9891,7 +9891,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 _debug_flaky(fatal=True)
                 raise
 
-            if stats_b["count-AcmeAuthorization-pending"] == _expected_min():
+            if stats_b["count-AcmeAuthorization-pending"] == _expected_min:
                 # early tests reliably had this 1 higher
                 # just debug this
                 _debug_flaky(fatal=False)
