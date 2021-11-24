@@ -1,6 +1,8 @@
 # pypi
 import formencode.rewritingparser
 import pyramid_formencode_classic
+from pyramid_formencode_classic.exceptions import FormFieldInvalid  # noqa: F401
+from pyramid_formencode_classic.exceptions import FormInvalid  # noqa: F401
 
 # local
 from ...lib._compat import PY2
