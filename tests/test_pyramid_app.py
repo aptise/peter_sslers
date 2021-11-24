@@ -10,6 +10,7 @@ import unittest
 import zipfile
 
 # pypi
+from flaky import flaky
 import packaging.version
 import requests
 import sqlalchemy
@@ -202,8 +203,8 @@ class FunctionalTests_AcmeAccount(AppTest):
         # grab a Key
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
-            .filter(model_objects.AcmeAccount.is_global_default.op("IS NOT")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
+            .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
         )
@@ -2650,7 +2651,7 @@ class FunctionalTests_CertificateCA(AppTest):
                 model_objects.CertificateCA.id
                 == model_objects.CertificateCAPreference.certificate_ca_id,
             )
-            .filter(model_objects.CertificateCAPreference.id.op("IS")(None))
+            .filter(model_objects.CertificateCAPreference.id.is_(None))
             .all()
         )
         return dbCertificateCA_unused
@@ -3368,7 +3369,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         # iterate backwards
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateSigned)
-            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .filter(model_objects.CertificateSigned.is_active.is_(True))
             .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
@@ -4077,7 +4078,7 @@ class FunctionalTests_Domain(AppTest):
         # grab a Domain
         focus_item = (
             self.ctx.dbSession.query(model_objects.Domain)
-            .filter(model_objects.Domain.is_active.op("IS")(True))
+            .filter(model_objects.Domain.is_active.is_(True))
             .order_by(model_objects.Domain.id.asc())
             .first()
         )
@@ -4893,7 +4894,7 @@ class FunctionalTests_PrivateKey(AppTest):
         focus_item = (
             self.ctx.dbSession.query(model_objects.PrivateKey)
             .filter(
-                model_objects.PrivateKey.is_active.op("IS")(True),
+                model_objects.PrivateKey.is_active.is_(True),
                 model_objects.PrivateKey.private_key_type_id
                 != model_utils.PrivateKeyType.from_string("placeholder"),
             )
@@ -6293,7 +6294,7 @@ class FunctionalTests_QueueDomains(AppTest):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.QueueDomain)
-            .filter(model_objects.QueueDomain.is_active.op("IS")(True))
+            .filter(model_objects.QueueDomain.is_active.is_(True))
             .order_by(model_objects.QueueDomain.id.asc())
             .first()
         )
@@ -6470,7 +6471,7 @@ class FunctionalTests_AlternateChains(AppTest):
         # iterate backwards because we just added the AlternateChains
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateSigned)
-            .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+            .filter(model_objects.CertificateSigned.is_active.is_(True))
             .order_by(model_objects.CertificateSigned.id.desc())
             .first()
         )
@@ -6684,7 +6685,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
@@ -6706,7 +6707,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
-            .filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
             .first()
         )
@@ -9752,6 +9753,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             == stats_og["count-AcmeAuthorization-pending"]
         )
 
+    @flaky(max_runs=3, min_passes=1)
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_nocleanup(self):
@@ -9848,12 +9850,21 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     ),
                 )
                 print("===================== AcmeAuthorization/")
+                print("_expected_max:", _expected_max)
+                print("coun_expected_min:", _expected_min)
+                print(
+                    "count-AcmeAuthorization-pending:",
+                    stats_b["count-AcmeAuthorization-pending"],
+                )
+                print("---------------------------------------------")
+                print("acme_status_authorization_id, id, domain_name")
                 for _auth in _auths:
                     print(
                         _auth.acme_status_authorization_id,
                         _auth.id,
                         _auth.domain.domain_name,
                     )
+                print("---------------------------------------------")
                 print("===================== /AcmeAuthorization")
                 raise
 

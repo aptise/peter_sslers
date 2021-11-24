@@ -204,7 +204,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     # active
     acme_account_key = sa_orm_relationship(
         "AcmeAccountKey",
-        primaryjoin="and_(AcmeAccount.id==AcmeAccountKey.acme_account_id, AcmeAccountKey.is_active.is_(True))",
+        primaryjoin=(
+            "and_("
+            "AcmeAccount.id==AcmeAccountKey.acme_account_id,"
+            "AcmeAccountKey.is_active.is_(True)"
+            ")"
+        ),
         uselist=False,
         viewonly=True,  # the `AcmeAccountKey.is_active` join complicates things
     )
@@ -212,10 +217,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         "AcmeAccountKey",
         primaryjoin="AcmeAccount.id==AcmeAccountKey.acme_account_id",
         uselist=True,
+        back_populates="acme_account",
     )
     acme_account_provider = sa_orm_relationship(
         "AcmeAccountProvider",
-        primaryjoin="AcmeAccount.acme_account_provider_id==AcmeAccountProvider.id",
+        primaryjoin=("AcmeAccount.acme_account_provider_id==AcmeAccountProvider.id"),
         uselist=False,
         back_populates="acme_accounts",
     )
@@ -239,7 +245,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
-        primaryjoin="AcmeAccount.operations_event_id__created==OperationsEvent.id",
+        primaryjoin=("AcmeAccount.operations_event_id__created==OperationsEvent.id"),
         uselist=False,
     )
     private_keys__owned = sa_orm_relationship(
@@ -378,16 +384,17 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         "AcmeAccount",
         primaryjoin="AcmeAccountKey.acme_account_id==AcmeAccount.id",
         uselist=False,
+        back_populates="acme_account_keys_all",
     )
 
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
-        primaryjoin="AcmeAccountKey.id==OperationsObjectEvent.acme_account_key_id",
+        primaryjoin=("AcmeAccountKey.id==OperationsObjectEvent.acme_account_key_id"),
         back_populates="acme_account_key",
     )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
-        primaryjoin="AcmeAccountKey.operations_event_id__created==OperationsEvent.id",
+        primaryjoin=("AcmeAccountKey.operations_event_id__created==OperationsEvent.id"),
         uselist=False,
     )
 
@@ -409,7 +416,8 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def key_pem_sample(self):
-        # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
+        # strip the pem, because the last line is whitespace after
+        # "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
@@ -466,7 +474,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
 
     acme_accounts = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="AcmeAccountProvider.id==AcmeAccount.acme_account_provider_id",
+        primaryjoin=("AcmeAccountProvider.id==AcmeAccount.acme_account_provider_id"),
         order_by="AcmeAccount.id.desc()",
         uselist=True,
         back_populates="acme_account_provider",
@@ -635,21 +643,36 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     acme_challenge_http_01 = sa_orm_relationship(
         "AcmeChallenge",
-        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
-        % model_utils.AcmeChallengeType.from_string("http-01"),
+        primaryjoin=(
+            "and_("
+            "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
+            "AcmeChallenge.acme_challenge_type_id==%s"
+            ")" % model_utils.AcmeChallengeType.from_string("http-01")
+        ),
         uselist=False,
+        overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
     )
     acme_challenge_dns_01 = sa_orm_relationship(
         "AcmeChallenge",
-        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
-        % model_utils.AcmeChallengeType.from_string("dns-01"),
+        primaryjoin=(
+            "and_("
+            "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
+            "AcmeChallenge.acme_challenge_type_id==%s"
+            ")" % model_utils.AcmeChallengeType.from_string("dns-01")
+        ),
         uselist=False,
+        overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
     )
     acme_challenge_tls_alpn_01 = sa_orm_relationship(
         "AcmeChallenge",
-        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
-        % model_utils.AcmeChallengeType.from_string("tls-alpn-01"),
+        primaryjoin=(
+            "and_("
+            "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
+            "AcmeChallenge.acme_challenge_type_id==%s"
+            ")" % model_utils.AcmeChallengeType.from_string("tls-alpn-01")
+        ),
         uselist=False,
+        overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
     )
     # this is only used to easily grab an AcmeAccount
     acme_order_created = sa_orm_relationship(
@@ -659,7 +682,9 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     )
     to_acme_orders = sa_orm_relationship(
         "AcmeOrder2AcmeAuthorization",
-        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+        primaryjoin=(
+            "AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id"
+        ),
         uselist=True,
         back_populates="acme_authorization",
     )
@@ -926,6 +951,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
         uselist=False,
         back_populates="acme_challenges",
+        overlaps="acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
     )
     acme_orderless = sa_orm_relationship(
         "AcmeOrderless",
@@ -1051,7 +1077,9 @@ class AcmeChallengeCompeting(Base, _Mixin_Timestamps_Pretty):
 
     acme_challenge_competing_2_acme_challenge = sa_orm_relationship(
         "AcmeChallengeCompeting2AcmeChallenge",
-        primaryjoin="AcmeChallengeCompeting.id==AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id",
+        primaryjoin=(
+            "AcmeChallengeCompeting.id==AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id"
+        ),
         uselist=True,
         back_populates="acme_challenge_competing",
     )
@@ -1071,14 +1099,18 @@ class AcmeChallengeCompeting2AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 
     acme_challenge_competing = sa_orm_relationship(
         "AcmeChallengeCompeting",
-        primaryjoin="AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id==AcmeChallengeCompeting.id",
+        primaryjoin=(
+            "AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id==AcmeChallengeCompeting.id"
+        ),
         uselist=False,
         back_populates="acme_challenge_competing_2_acme_challenge",
     )
 
     acme_challenge = sa_orm_relationship(
         "AcmeChallenge",
-        primaryjoin="AcmeChallengeCompeting2AcmeChallenge.acme_challenge_id==AcmeChallenge.id",
+        primaryjoin=(
+            "AcmeChallengeCompeting2AcmeChallenge.acme_challenge_id==AcmeChallenge.id"
+        ),
         uselist=False,
     )
 
@@ -2705,13 +2737,14 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         AcmeAccount,
         primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
         secondary=(
-            """join(AcmeOrder,
-                    AcmeAccount,
-                    AcmeOrder.acme_account_id == AcmeAccount.id
-                    )"""
+            "join("
+            "AcmeOrder, "
+            "AcmeAccount, "
+            "AcmeOrder.acme_account_id==AcmeAccount.id"
+            ")"
         ),
-        # back_populates="certificate_signeds__issued",
         uselist=False,
+        viewonly=True,
     )
     acme_order = sa_orm_relationship(
         "AcmeOrder",
@@ -2725,11 +2758,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_signeds",
         uselist=False,
     )
-
     certificate_signed_chains = sa_orm_relationship(
         "CertificateSignedChain",
         primaryjoin="CertificateSigned.id==CertificateSignedChain.certificate_signed_id",
         uselist=True,
+        back_populates="certificate_signed",
     )
     coverage_assurance_events = sa_orm_relationship(
         "CoverageAssuranceEvent",
@@ -3106,15 +3139,16 @@ class CertificateSignedChain(Base):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="CertificateSignedChain.certificate_signed_id==CertificateSigned.id",
-        uselist=False,
-    )
     certificate_ca_chain = sa_orm_relationship(
         "CertificateCAChain",
         primaryjoin="CertificateSignedChain.certificate_ca_chain_id==CertificateCAChain.id",
         uselist=False,
+    )
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="CertificateSignedChain.certificate_signed_id==CertificateSigned.id",
+        uselist=False,
+        back_populates="certificate_signed_chains",
     )
 
 
@@ -3276,8 +3310,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     )
     acme_dns_server_account__active = sa_orm_relationship(
         "AcmeDnsServerAccount",
-        primaryjoin="and_(Domain.id==AcmeDnsServerAccount.domain_id, AcmeDnsServerAccount.is_active.op('is')(True))",
+        primaryjoin=(
+            "and_("
+            "Domain.id==AcmeDnsServerAccount.domain_id,"
+            "AcmeDnsServerAccount.is_active.is_(True)"
+            ")"
+        ),
         uselist=False,
+        overlaps="acme_dns_server_accounts,domain",
     )
     acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
         "AcmeOrder2AcmeChallengeTypeSpecific",
@@ -4014,6 +4054,8 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         "UniqueFQDNSet",
         primaryjoin="QueueCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
+        back_populates="queue_certificates",
+        overlaps="queue_certificates__active",
     )
     unique_fqdn_set__source = sa.orm.relationship(
         "UniqueFQDNSet",
@@ -4334,8 +4376,13 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     )
     queue_certificates__active = sa_orm_relationship(
         "QueueCertificate",
-        primaryjoin="and_(UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id, QueueCertificate.is_active==True)",
-        back_populates="unique_fqdn_set",
+        primaryjoin=(
+            "and_("
+            "UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id,"
+            "QueueCertificate.is_active==True"
+            ")"
+        ),
+        overlaps="queue_certificates",
     )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
@@ -4431,10 +4478,13 @@ CoverageAssuranceEventAlt = sa.orm.aliased(CoverageAssuranceEvent)
 AcmeAccount.acme_authorizations__5 = sa_orm_relationship(
     AcmeAuthorization,
     primaryjoin="""AcmeAccount.id == AcmeOrder.acme_account_id""",
-    secondary="""join(AcmeOrder,
-                      AcmeOrder2AcmeAuthorization,
-                      AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
-                      )""",
+    secondary=(
+        "join("
+        "AcmeOrder, "
+        "AcmeOrder2AcmeAuthorization, "
+        "AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id"
+        ")"
+    ),
     secondaryjoin=(
         sa.and_(
             AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
@@ -4831,7 +4881,7 @@ CertificateRequest.certificate_signed__latest = sa_orm_relationship(
                 .where(
                     CertificateSigned.certificate_request_id == CertificateRequest.id
                 )
-                .where(CertificateSigned.is_active.op("IS")(True))
+                .where(CertificateSigned.is_active.is_(True))
                 .offset(0)
                 .limit(1)
                 .correlate()
@@ -4989,12 +5039,18 @@ Domain.acme_orders__5 = sa_orm_relationship(
 # note: Domain.acme_orderlesss__5
 Domain.acme_orderlesss__5 = sa_orm_relationship(
     AcmeOrderless,
-    primaryjoin="and_(Domain.id == AcmeChallenge.domain_id, AcmeChallenge.acme_orderless_id.op('IS NOT')(None))",
+    primaryjoin=(
+        "and_("
+        "Domain.id==AcmeChallenge.domain_id,"
+        "AcmeChallenge.acme_orderless_id.is_not(None)"
+        ")"
+    ),
     secondary=(
-        """join(AcmeChallenge,
-                AcmeOrderless,
-                AcmeChallenge.acme_orderless_id == AcmeOrderless.id
-                )"""
+        "join("
+        "AcmeChallenge, "
+        "AcmeOrderless, "
+        "AcmeChallenge.acme_orderless_id==AcmeOrderless.id"
+        ")"
     ),
     secondaryjoin=(
         sa.and_(
@@ -5349,7 +5405,7 @@ UniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
             CertificateSigned.id.in_(
                 sa.select([sa.func.max(CertificateSigned.id)])
                 .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
-                .where(CertificateSigned.is_active.op("IS")(True))
+                .where(CertificateSigned.is_active.is_(True))
                 .correlate()
             ),
         )

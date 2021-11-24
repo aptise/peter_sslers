@@ -47,7 +47,7 @@ def get__AcmeAccountProvider__default(ctx):
     dbAcmeAccountProvider_default = (
         ctx.dbSession.query(model_objects.AcmeAccountProvider)
         .filter(
-            model_objects.AcmeAccountProvider.is_default.op("IS")(True),
+            model_objects.AcmeAccountProvider.is_default.is_(True),
         )
         .first()
     )
@@ -71,9 +71,7 @@ def get__AcmeAccountProvider__by_server(ctx, server):
 def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
     query = ctx.dbSession.query(model_objects.AcmeAccountProvider)
     if is_enabled is True:
-        query = query.filter(
-            model_objects.AcmeAccountProvider.is_enabled.op("IS")(True)
-        )
+        query = query.filter(model_objects.AcmeAccountProvider.is_enabled.is_(True))
     query = (
         query.order_by(model_objects.AcmeAccountProvider.id.desc())
         .limit(limit)
@@ -93,7 +91,7 @@ def get__AcmeAccount__count(ctx):
 def get__AcmeAccount__paginated(ctx, limit=None, offset=0, active_only=False):
     query = ctx.dbSession.query(model_objects.AcmeAccount)
     if active_only:
-        query = query.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+        query = query.filter(model_objects.AcmeAccount.is_active.is_(True))
     query = (
         query.order_by(model_objects.AcmeAccount.id.desc()).limit(limit).offset(offset)
     )
@@ -121,18 +119,18 @@ def get__AcmeAccount__by_pemMd5(ctx, pem_md5, is_active=True):
         .options(sqlalchemy.orm.contains_eager("acme_account_key"))
     )
     if is_active:
-        q = q.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
-        q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+        q = q.filter(model_objects.AcmeAccount.is_active.is_(True))
+        q = q.filter(model_objects.AcmeAccountKey.is_active.is_(True))
     item = q.first()
     return item
 
 
 def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
     q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
-        model_objects.AcmeAccount.is_global_default.op("IS")(True)
+        model_objects.AcmeAccount.is_global_default.is_(True)
     )
     if active_only:
-        q = q.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+        q = q.filter(model_objects.AcmeAccount.is_active.is_(True))
     item = q.first()
     return item
 
@@ -182,7 +180,7 @@ def get__AcmeAccountKey__count(ctx):
 def get__AcmeAccountKey__paginated(ctx, limit=None, offset=0, active_only=False):
     query = ctx.dbSession.query(model_objects.AcmeAccountKey)
     if active_only:
-        query = query.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+        query = query.filter(model_objects.AcmeAccountKey.is_active.is_(True))
     query = (
         query.order_by(model_objects.AcmeAccountKey.id.desc())
         .limit(limit)
@@ -216,7 +214,7 @@ def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
         model_objects.AcmeAccountKey.key_pem_md5 == pem_md5
     )
     if is_active:
-        q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+        q = q.filter(model_objects.AcmeAccountKey.is_active.is_(True))
     item = q.first()
     return item
 
@@ -244,7 +242,7 @@ def _get__AcmeAuthorization__core(ctx, active_only=False, expired_only=False):
         )
     if expired_only:
         query = query.filter(
-            model_objects.AcmeAuthorization.timestamp_expires.op("IS NOT")(None),
+            model_objects.AcmeAuthorization.timestamp_expires.is_not(None),
             model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
         )
     return query
@@ -334,7 +332,7 @@ def _get__AcmeAuthorization__by_AcmeAccountId__core(
         )
     if expired_only:
         query = query.filter(
-            model_objects.AcmeAuthorization.timestamp_expires.op("IS NOT")(None),
+            model_objects.AcmeAuthorization.timestamp_expires.is_not(None),
             model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
         )
     return query
@@ -571,9 +569,7 @@ def get__AcmeChallenges__by_DomainId__active(
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
-                    model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
-                        None
-                    ),
+                    model_objects.AcmeChallenge.acme_authorization_id.is_not(None),
                     model_objects.AcmeChallenge.acme_status_challenge_id.in_(
                         model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
                     ),
@@ -583,12 +579,12 @@ def get__AcmeChallenges__by_DomainId__active(
                     model_objects.AcmeOrder.acme_status_order_id.in_(
                         model_utils.Acme_Status_Order.IDS_BLOCKING
                     ),
-                    # TOO LAX: model_objects.AcmeOrder.is_processing.op("IS")(True),
+                    # TOO LAX: model_objects.AcmeOrder.is_processing.is_(True),
                 ),
                 # Path2 - Orderless
                 sqlalchemy.and_(
-                    model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(None),
-                    model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                    model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
+                    model_objects.AcmeOrderless.is_processing.is_(True),
                 ),
             ),
         )
@@ -697,7 +693,7 @@ def get__AcmeDnsServer__by_root_url(ctx, root_url):
 
 def get__AcmeDnsServer__GlobalDefault(ctx):
     q = ctx.dbSession.query(model_objects.AcmeDnsServer).filter(
-        model_objects.AcmeDnsServer.is_global_default.op("IS")(True)
+        model_objects.AcmeDnsServer.is_global_default.is_(True)
     )
     return q.first()
 
@@ -919,9 +915,7 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 def get__AcmeOrder__count(ctx, active_only=None):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
     if active_only is not None:
-        query = query.filter(
-            model_objects.AcmeOrder.is_processing.op("IS")(active_only)
-        )
+        query = query.filter(model_objects.AcmeOrder.is_processing.is_(active_only))
     return query.count()
 
 
@@ -1570,12 +1564,8 @@ def get__Domain__count(ctx, expiring_days=None, active_only=False):
     if active_only and not expiring_days:
         q = q.filter(
             sqlalchemy.or_(
-                model_objects.Domain.certificate_signed_id__latest_single.op("IS NOT")(
-                    None
-                ),
-                model_objects.Domain.certificate_signed_id__latest_multi.op("IS NOT")(
-                    None
-                ),
+                model_objects.Domain.certificate_signed_id__latest_single.is_not(None),
+                model_objects.Domain.certificate_signed_id__latest_multi.is_not(None),
             )
         )
     if expiring_days:
@@ -1596,12 +1586,8 @@ def get__Domain__paginated(
     if active_certs_only and not expiring_days:
         q = q.filter(
             sqlalchemy.or_(
-                model_objects.Domain.certificate_signed_id__latest_single.op("IS NOT")(
-                    None
-                ),
-                model_objects.Domain.certificate_signed_id__latest_multi.op("IS NOT")(
-                    None
-                ),
+                model_objects.Domain.certificate_signed_id__latest_single.is_not(None),
+                model_objects.Domain.certificate_signed_id__latest_multi.is_not(None),
             )
         )
     if eagerload_web:
@@ -1732,9 +1718,7 @@ def _get__Domains_challenged__core(ctx):
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
-                    model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
-                        None
-                    ),
+                    model_objects.AcmeChallenge.acme_authorization_id.is_not(None),
                     model_objects.AcmeChallenge.acme_status_challenge_id.in_(
                         model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
                     ),
@@ -1744,12 +1728,12 @@ def _get__Domains_challenged__core(ctx):
                     model_objects.AcmeOrder.acme_status_order_id.in_(
                         model_utils.Acme_Status_Order.IDS_BLOCKING
                     ),
-                    # TOO LAX: model_objects.AcmeOrder.is_processing.op("IS")(True),
+                    # TOO LAX: model_objects.AcmeOrder.is_processing.is_(True),
                 ),
                 # Path2 - Orderless
                 sqlalchemy.and_(
-                    model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(None),
-                    model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                    model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
+                    model_objects.AcmeOrderless.is_processing.is_(True),
                 ),
             ),
         )
@@ -1783,9 +1767,9 @@ def get__DomainAutocert__by_blockingDomainId(ctx, domain_id):
     q = ctx.dbSession.query(model_objects.DomainAutocert).filter(
         model_objects.DomainAutocert.id == domain_id,
         sqlalchemy.or_(
-            model_objects.DomainAutocert.is_successful.op("IS")(None),
+            model_objects.DomainAutocert.is_successful.is_(None),
             sqlalchemy.and_(
-                model_objects.DomainAutocert.is_successful.op("IS NOT")(None),
+                model_objects.DomainAutocert.is_successful.is_not(None),
                 model_objects.DomainAutocert.timestamp_created
                 <= (ctx.timestamp - datetime.timedelta(minutes=10)),
             ),
@@ -1994,8 +1978,8 @@ def get__PrivateKey_CurrentWeek_Global(ctx):
         == model_utils.PrivateKeyType.from_string("global_weekly"),
         model_utils.year_week(model_objects.PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
-        model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
-        model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.is_compromised.is_not(True),
+        model_objects.PrivateKey.is_active.is_(True),
     )
     item = q.first()
     return item
@@ -2007,8 +1991,8 @@ def get__PrivateKey_CurrentDay_Global(ctx):
         == model_utils.PrivateKeyType.from_string("global_daily"),
         model_utils.year_day(model_objects.PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
-        model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
-        model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.is_compromised.is_not(True),
+        model_objects.PrivateKey.is_active.is_(True),
     )
     item = q.first()
     return item
@@ -2020,8 +2004,8 @@ def get__PrivateKey_CurrentWeek_AcmeAccount(ctx, acme_account_id):
         == model_utils.PrivateKeyType.from_string("account_weekly"),
         model_utils.year_week(model_objects.PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
-        model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
-        model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.is_compromised.is_not(True),
+        model_objects.PrivateKey.is_active.is_(True),
         model_objects.PrivateKey.acme_account_id__owner == acme_account_id,
     )
     item = q.first()
@@ -2034,8 +2018,8 @@ def get__PrivateKey_CurrentDay_AcmeAccount(ctx, acme_account_id):
         == model_utils.PrivateKeyType.from_string("account_daily"),
         model_utils.year_day(model_objects.PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
-        model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
-        model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.is_compromised.is_not(True),
+        model_objects.PrivateKey.is_active.is_(True),
         model_objects.PrivateKey.acme_account_id__owner == acme_account_id,
     )
     item = q.first()
@@ -2047,7 +2031,7 @@ def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
         model_objects.PrivateKey.key_pem_md5 == pem_md5
     )
     if is_active:
-        q = q.filter(model_objects.PrivateKey.is_active.op("IS")(True))
+        q = q.filter(model_objects.PrivateKey.is_active.is_(True))
     item = q.first()
     return item
 
@@ -2086,9 +2070,7 @@ def get__QueueDomain__count(ctx, show_all=None, unprocessed_only=None):
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
     if unprocessed_only:
-        q = q.filter(
-            model_objects.QueueDomain.timestamp_processed.op("IS")(None)
-        )  # noqa
+        q = q.filter(model_objects.QueueDomain.timestamp_processed.is_(None))
     counted = q.count()
     return counted
 
@@ -2100,9 +2082,7 @@ def get__QueueDomain__paginated(
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
     if unprocessed_only:
-        q = q.filter(
-            model_objects.QueueDomain.timestamp_processed.op("IS")(None)
-        )  # noqa
+        q = q.filter(model_objects.QueueDomain.timestamp_processed.is_(None))
     q = q.order_by(model_objects.QueueDomain.id.desc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()
@@ -2129,7 +2109,7 @@ def get__QueueDomain__by_name__single(ctx, domain_name, active_only=True):
         == sqlalchemy.func.lower(domain_name)
     )
     if active_only:
-        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(True))
+        q = q.filter(model_objects.QueueDomain.is_active.is_(True))
     item = q.first()
     return item
 
@@ -2142,9 +2122,9 @@ def get__QueueDomain__by_name__many(
         == sqlalchemy.func.lower(domain_name)
     )
     if active_only:
-        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(True))
+        q = q.filter(model_objects.QueueDomain.is_active.is_(True))
     elif inactive_only:
-        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(False))
+        q = q.filter(model_objects.QueueDomain.is_active.is_(False))
     items = q.all()
     return items
 
@@ -2197,28 +2177,18 @@ def _get__QueueCertificate__core(
     q = ctx.dbSession.query(model_objects.QueueCertificate)
     if failures_only:
         q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS NOT")(
-                None
-            ),  # noqa
-            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
-                None
-            ),  # noqa
-            model_objects.QueueCertificate.process_result.op("IS")(False),  # noqa
+            model_objects.QueueCertificate.timestamp_processed.is_not(None),
+            model_objects.QueueCertificate.timestamp_process_attempt.is_not(None),
+            model_objects.QueueCertificate.process_result.is_(False),
         )
     elif successes_only:
         q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS NOT")(
-                None
-            ),  # noqa
-            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
-                None
-            ),  # noqa
-            model_objects.QueueCertificate.process_result.op("IS")(True),  # noqa
+            model_objects.QueueCertificate.timestamp_processed.is_not(None),
+            model_objects.QueueCertificate.timestamp_process_attempt.is_not(None),
+            model_objects.QueueCertificate.process_result.is_(True),
         )
     elif unprocessed_only:
-        q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS")(None)
-        )  # noqa
+        q = q.filter(model_objects.QueueCertificate.timestamp_processed.is_(None))
     return q
 
 
@@ -2381,7 +2351,7 @@ def get__QueueCertificate__by_PrivateKeyId__paginated(
 def get__QueueCertificate__by_UniqueFQDNSetId__active(ctx, set_id):
     q = ctx.dbSession.query(model_objects.QueueCertificate).filter(
         model_objects.QueueCertificate.unique_fqdn_set_id == set_id,
-        model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
+        model_objects.QueueCertificate.timestamp_processed.is_(None),
     )
     items_paged = q.all()
     return items_paged
@@ -2667,7 +2637,7 @@ def get__CertificateSigned__by_DomainId__latest(ctx, domain_id):
         )
         .filter(
             model_objects.UniqueFQDNSet2Domain.domain_id == domain_id,
-            model_objects.CertificateSigned.is_active.op("IS")(True),
+            model_objects.CertificateSigned.is_active.is_(True),
         )
         .order_by(model_objects.CertificateSigned.id.desc())
         .first()
@@ -2734,7 +2704,7 @@ def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(ctx, unique_fqdn_s
         .filter(
             model_objects.CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id
         )
-        .filter(model_objects.CertificateSigned.is_active.op("IS")(True))
+        .filter(model_objects.CertificateSigned.is_active.is_(True))
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .first()
     )

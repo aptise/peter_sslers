@@ -1,7 +1,6 @@
 # pypi
 import formencode.rewritingparser
 import pyramid_formencode_classic
-from pyramid_formencode_classic.exceptions import *  # noqa
 
 # local
 from ...lib._compat import PY2
@@ -10,7 +9,11 @@ from ...lib._compat import PY2
 # ==============================================================================
 
 
-TEMPLATE_FORMSTASH_ERRORS = """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">%(error)s</span></div></div>"""
+TEMPLATE_FORMSTASH_ERRORS = (
+    """<div class="alert alert-danger"><div class="control-group error">"""
+    """<span class="help-inline">%(error)s</span>"""
+    """</div></div>"""
+)
 
 
 def formatter_error(error):

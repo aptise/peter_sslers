@@ -480,7 +480,7 @@ def operations_update_recents__global(ctx):
         sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
     ).filter(
         model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-        model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
+        model_objects.AcmeOrder.certificate_signed_id.is_not(None),
     )
     _q_sub = scalar_subquery(_q_sub)
     ctx.dbSession.execute(

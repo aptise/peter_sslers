@@ -101,7 +101,7 @@ class ApplicationSettings(dict):
         self["enable_redis"] = set_bool_setting(settings, "enable_redis")
         if self["enable_redis"]:
             # try to load, otherwise error out
-            import redis  # noqa
+            import redis  # noqa: F401
 
             if "redis.url" not in settings:
                 raise ValueError("No `redis.url` is configured")

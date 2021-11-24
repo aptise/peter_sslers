@@ -348,9 +348,9 @@ def queue_certificates__update(ctx):
         _subquery_already_queued = (
             ctx.dbSession.query(model_objects.QueueCertificate.acme_order_id__source)
             .filter(
-                model_objects.QueueCertificate.acme_order_id__source.op("IS NOT")(None),
-                model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
-                model_objects.QueueCertificate.process_result.op("IS NOT")(
+                model_objects.QueueCertificate.acme_order_id__source.is_not(None),
+                model_objects.QueueCertificate.timestamp_processed.is_(None),
+                model_objects.QueueCertificate.process_result.is_not(
                     None
                 ),  # True/False were attempted
             )
@@ -365,9 +365,9 @@ def queue_certificates__update(ctx):
             )
             .filter(
                 model_objects.AcmeOrder.id.notin_(_subquery_already_queued),
-                model_objects.AcmeOrder.certificate_signed_id.op("IS NOT")(None),
-                model_objects.AcmeOrder.is_auto_renew.op("IS")(True),
-                model_objects.AcmeOrder.is_renewed.op("IS NOT")(True),
+                model_objects.AcmeOrder.certificate_signed_id.is_not(None),
+                model_objects.AcmeOrder.is_auto_renew.is_(True),
+                model_objects.AcmeOrder.is_renewed.is_not(True),
                 model_objects.CertificateSigned.timestamp_not_after <= _until,
             )
         )

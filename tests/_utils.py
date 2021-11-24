@@ -6,8 +6,6 @@ from functools import wraps
 from io import open  # overwrite `open` in Python2
 import logging
 import os
-
-# import pdb
 import subprocess
 import time
 import traceback
@@ -1035,9 +1033,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 sqlalchemy.or_(
                     # Path1 - Order Based Authorizations
                     sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
-                            None
-                        ),
+                        model_objects.AcmeChallenge.acme_authorization_id.is_not(None),
                         model_objects.AcmeChallenge.acme_status_challenge_id.in_(
                             model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
                         ),
@@ -1050,10 +1046,8 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                     ),
                     # Path2 - Orderless
                     sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(
-                            None
-                        ),
-                        model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                        model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
+                        model_objects.AcmeOrderless.is_processing.is_(True),
                     ),
                 ),
             )
