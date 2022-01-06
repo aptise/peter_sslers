@@ -29,7 +29,7 @@ requires = [
     "python-dateutil",
     "requests",
     "six ",
-    "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
+    "SQLAlchemy @ git+https://gerrit.sqlalchemy.org/a/sqlalchemy/sqlalchemy@refs/changes/21/3421/1#egg=sqlalchemy",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]
