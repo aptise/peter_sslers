@@ -29,7 +29,7 @@ requires = [
     "python-dateutil",
     "requests",
     "six ",
-    "SQLAlchemy @ git+https://gerrit.sqlalchemy.org/a/sqlalchemy/sqlalchemy@refs/changes/21/3421/1#egg=sqlalchemy",
+    "SQLAlchemy @ git+https://gerrit.sqlalchemy.org/sqlalchemy/sqlalchemy@refs/changes/21/3421/1#egg=sqlalchemy",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]
