@@ -45,8 +45,7 @@ jobs:
       # several tests require a Pebble instance (ACME Server)
       run: |
         export GOPATH=$HOME/go
-        go get -u github.com/letsencrypt/pebble/...
-        cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...
+        go install github.com/letsencrypt/pebble/cmd/pebble@HEAD
     - name: Install OpenResty
       # several tests require an OpenResty server
       run: |
