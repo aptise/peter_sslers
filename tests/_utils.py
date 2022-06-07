@@ -349,7 +349,7 @@ def under_pebble_strict(_function):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=PEBBLE_DIR,
+            cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV_STRICT,
         ) as proc:
             # ensure the `pebble` server is running
