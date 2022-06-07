@@ -108,10 +108,18 @@ if not os.path.exists(SSL_CONF_REDIS_SERVER):
 
 GOPATH = os.environ.get("GOPATH")
 
-PEBBLE_CONFIG = (
-    "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json" % GOPATH
+PEBBLE_CONFIG = "/".join(
+    __file__.split("/")[:-1]
+    + [
+        "test_configuration",
+        "pebble",
+        "test",
+        "config",
+        "pebble-config.json",
+    ]
 )
-PEBBLE_DIR = "%s/src/github.com/letsencrypt/pebble" % GOPATH
+
+PEBBLE_DIR = "%s/bin" % GOPATH
 
 if RUN_API_TESTS__PEBBLE:
     if not GOPATH:

@@ -10,6 +10,10 @@ pryramid_redis_sessions is released under the FreeBSD license and Copyright (c) 
 This also includes the bootstrap library [http://getbootstrap.com]
 bootstrap is Licensed under the MIT license and Copyright 2011-2015 Twitter, Inc.
 
+This includes certificates and configuration files from pebble [https://github.com/letsencrypt/pebble]
+pebble is released under the Mozilla Public License and Copyright ISRG/LetsEncrypt
+https://github.com/letsencrypt/pebble/blob/main/LICENSE
+
 
 --------------------------------------------------------------------------------
 

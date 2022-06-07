@@ -3,6 +3,11 @@
     
     This release will require lua-resty-peter_sslers v0.5.0
 
+	Testing:
+	* `go get` no longer supports the checkout+install method used by pebble
+	  * updated the installation to `go install` of the cmd
+	  * updated how we check for pebble and the config file
+
     Changes:
     * The following now accepts a dict-like object ``utils.DomainsChallenged``
       in a `domains_challeged` kwarg, instead of `domains`
