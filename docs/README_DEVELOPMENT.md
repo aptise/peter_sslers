@@ -1,6 +1,28 @@
 README DEVELOPMENT
 ================================
 
+## install with testing extras
+
+Instead of a normal pip install...
+
+    pip install -e .
+
+Make sure to install the testing extras
+
+    pip install -e .[testing]
+    
+## Server Configuration
+
+Edit your hosts
+
+    vi /etc/hosts
+
+Ensure we can reach ourselves
+
+    127.0.0.1   peter-sslers.example.com
+
+## Testing Configuration
+
 For (most) testing and (all) development you need to follow a few initial steps.
 
 1. Configure the `environment.ini` to use a custom CA
@@ -74,11 +96,11 @@ To have all challenge POST requests succeed without performing any validation ru
 
     cd $GOPATH/src/github.com/letsencrypt/pebble
     PEBBLE_VA_ALWAYS_VALID=1 \
-		PEBBLE_AUTHZREUSE=100 \
-		PEBBLE_VA_NOSLEEP=1 \
-		PEBBLE_ALTERNATE_ROOTS=2 \
-		PEBBLE_CHAIN_LENGTH=3 \
-		pebble -config ./test/config/pebble-config.json
+        PEBBLE_AUTHZREUSE=100 \
+        PEBBLE_VA_NOSLEEP=1 \
+        PEBBLE_ALTERNATE_ROOTS=2 \
+        PEBBLE_CHAIN_LENGTH=3 \
+        pebble -config ./test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
 
@@ -195,7 +217,7 @@ run after editing:
 
 The following domains are also recommended for development testing:
 
-	a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
+    a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
 
 
 # CI Setup Benchmarks

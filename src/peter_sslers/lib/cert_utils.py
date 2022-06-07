@@ -1712,7 +1712,7 @@ def parse_cert__spki_sha256(
         return _cryptography__public_key_spki_sha256(
             cryptography_publickey, as_b64=as_b64
         )
-    log.debug(".parse_cert__spki_sha256 > openssl fallback")
+    log.debug("parse_cert__spki_sha256 > openssl fallback")
     tmpfile_pem = None
     try:
         if key_technology is None:
