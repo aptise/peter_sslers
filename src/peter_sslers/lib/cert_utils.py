@@ -481,7 +481,11 @@ def check_openssl_version(replace=False):
         # but... regex!
         m = _RE_openssl_version.search(version_text)
         if not m:
-            raise ValueError("could not regex OpenSSL version")
+            raise ValueError(
+                "Could not regex OpenSSL",
+                "openssl_path: %s" % openssl_path,
+                "version: %s" % version_text,
+            )
         # m.groups == ('1.0.2g', '1.0.2')
         v = m.groups()[1]
         v = [int(i) for i in v.split(".")]
