@@ -10,7 +10,6 @@ import unittest
 import zipfile
 
 # pypi
-from flaky import flaky
 import packaging.version
 import requests
 import sqlalchemy
@@ -9609,6 +9608,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         stats["count-AcmeAuthorization"] = self.ctx.dbSession.query(
             model_objects.AcmeAuthorization
         ).count()
+        stats["count-AcmeAuthorization-all"] = self.ctx.dbSession.query(
+            model_objects.AcmeAuthorization
+        ).count()
         stats["count-AcmeAuthorization-pending"] = (
             self.ctx.dbSession.query(model_objects.AcmeAuthorization)
             .filter(
@@ -9753,7 +9755,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             == stats_og["count-AcmeAuthorization-pending"]
         )
 
-    @flaky(max_runs=3, min_passes=1)
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_nocleanup(self):
@@ -9791,6 +9792,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _fail_domain = "test-AcmeOrder-nocleanup-fail.example.com"
             domain_names.insert(0, _fail_domain)
 
+            # 1 fail + 19 integer-based attempts
+            # just here to raise an error if the above numbers fail,
+            # as that will fail the rest of the tests
+            assert len(domain_names) == 20
+            _order_domains_len = 20
+
             stats_og = self._calculate_stats()
             resp = self._place_order(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"],
@@ -9815,25 +9822,31 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             stats_b = self._calculate_stats()
 
             # compare backend stats
-            assert stats_b["count-Domain"] == stats_og["count-Domain"] + 20
-            assert stats_b["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
             assert stats_b["count-AcmeOrder"] == stats_og["count-AcmeOrder"] + 1
             assert (
                 stats_b["count-AcmeAuthorization"]
-                == stats_og["count-AcmeAuthorization"] + 20
+                == stats_og["count-AcmeAuthorization"] + _order_domains_len
             )
+            assert (
+                stats_b["count-Domain"] == stats_og["count-Domain"] + _order_domains_len
+            )
+            assert stats_b["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
             # this one is hard to figure out
             # because we could have failed on any of the 20 authorizations
             # start with 20 auths
-            _expected_max = stats_og["count-AcmeAuthorization-pending"] + 20
+            _expected_max = (
+                stats_og["count-AcmeAuthorization-pending"] + _order_domains_len
+            )
             # no need to assume one for the failed auth
-            _expected_min = stats_og["count-AcmeAuthorization-pending"] + 1
-            try:
-                assert stats_b["count-AcmeAuthorization-pending"] <= _expected_max
-                assert stats_b["count-AcmeAuthorization-pending"] >= _expected_min
-            except:
-                # this sometimes doesn't work. it's a flaky test.
-                # this is here to help debug it
+            _expected_min = stats_og["count-AcmeAuthorization-pending"]
+
+            def _debug_flaky(fatal=None):
+                """
+                this test sometimes doesn't work. it's a flaky test.
+                this debugger is here to help debug it
+
+                :param fatal: boolean. True if this was a fatal test error
+                """
                 _auths = []
                 _auths_all = self.ctx.dbSession.query(
                     model_objects.AcmeAuthorization
@@ -9850,8 +9863,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     ),
                 )
                 print("===================== AcmeAuthorization/")
+                print("_expected_min:", _expected_min)
                 print("_expected_max:", _expected_max)
-                print("coun_expected_min:", _expected_min)
+                print(
+                    "count-AcmeAuthorization-all:",
+                    stats_b["count-AcmeAuthorization-all"],
+                )
                 print(
                     "count-AcmeAuthorization-pending:",
                     stats_b["count-AcmeAuthorization-pending"],
@@ -9866,7 +9883,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     )
                 print("---------------------------------------------")
                 print("===================== /AcmeAuthorization")
+
+            try:
+                assert stats_b["count-AcmeAuthorization-pending"] <= _expected_max
+                assert stats_b["count-AcmeAuthorization-pending"] >= _expected_min
+            except:
+                _debug_flaky(fatal=True)
                 raise
+
+            if stats_b["count-AcmeAuthorization-pending"] == _expected_min:
+                # early tests reliably had this 1 higher
+                # just debug this
+                _debug_flaky(fatal=False)
 
         finally:
             # reset
