@@ -1,6 +1,19 @@
 README DEVELOPMENT
 ================================
 
+## install with testing extras
+
+Instead of a normal pip install...
+
+	pip install -e .
+
+Make sure to install the testing extras
+
+
+	pip install -e .[testing]
+
+## Configuration
+
 For (most) testing and (all) development you need to follow a few initial steps.
 
 1. Configure the `environment.ini` to use a custom CA

@@ -107,25 +107,34 @@ if not os.path.exists(SSL_CONF_REDIS_SERVER):
 
 
 GOPATH = os.environ.get("GOPATH")
-
-PEBBLE_CONFIG = "/".join(
+PEBBLE_DIR = "%s/bin" % GOPATH
+PEBBLE_BIN = None
+PEBBLE_CONFIG_DIR = "/".join(
     __file__.split("/")[:-1]
     + [
         "test_configuration",
         "pebble",
+    ]
+)
+PEBBLE_CONFIG_FILE = "/".join(
+    PEBBLE_CONFIG_DIR.split("/")
+    + [
         "test",
         "config",
         "pebble-config.json",
     ]
 )
 
-PEBBLE_DIR = "%s/bin" % GOPATH
 
 if RUN_API_TESTS__PEBBLE:
     if not GOPATH:
         raise ValueError("GOPATH not defined in environment")
     if not os.path.exists(PEBBLE_DIR):
         raise ValueError("PEBBLE_DIR (%s) does not exist" % PEBBLE_DIR)
+    PEBBLE_BIN = "/".join((PEBBLE_DIR, "pebble"))
+    if not os.path.exists(PEBBLE_BIN):
+        raise ValueError("PEBBLE_BIN (%s) does not exist" % PEBBLE_BIN)
+
 
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
@@ -283,14 +292,18 @@ def under_pebble(_function):
     @wraps(_function)
     def _wrapper(*args, **kwargs):
         log.info("`pebble`: spinning up")
-        log.info("`pebble`: PEBBLE_CONFIG : %s", PEBBLE_CONFIG)
+        log.info("`pebble`: PEBBLE_BIN : %s", PEBBLE_BIN)
+        log.info("`pebble`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
+        # log.info("`pebble`: PEBBLE_DIR : %s", PEBBLE_DIR)
+        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
+        # log.info("`pebble`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
         res = None  # scoping
         with psutil.Popen(
-            ["pebble", "-config", PEBBLE_CONFIG],
+            [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=PEBBLE_DIR,
+            cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV,
         ) as proc:
             # ensure the `pebble` server is running
@@ -328,10 +341,11 @@ def under_pebble_strict(_function):
     @wraps(_function)
     def _wrapper(*args, **kwargs):
         log.info("`pebble[strict]`: spinning up")
-        log.info("`pebble[strict]`: PEBBLE_CONFIG : %s", PEBBLE_CONFIG)
+        log.info("`pebble[strict]`: PEBBLE_BIN : %s", PEBBLE_BIN)
+        log.info("`pebble[strict]`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
         res = None  # scoping
         with psutil.Popen(
-            ["pebble", "-config", PEBBLE_CONFIG],
+            [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

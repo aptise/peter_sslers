@@ -11,15 +11,14 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 # local
-# from peter_sslers.lib import acme_v2
-# from peter_sslers.lib import cert_utils
 from peter_sslers.lib.config_utils import ApplicationSettings
-
-# from ._utils import AppTest
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import RUN_NGINX_TESTS
 from ._utils import TEST_INI
 
+# from peter_sslers.lib import acme_v2
+# from peter_sslers.lib import cert_utils
+# from ._utils import AppTest
 
 # ==============================================================================
 #
