@@ -91,17 +91,21 @@
                                     % if ep.get('example') or ep.get('examples'):
                                         <b>Examples:</b>
                                         <br/>
-                                        % if ep.get('example'):
-                                            <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
-                                        % endif
-                                        % if ep.get('examples'):
-                                            % for idx, example in enumerate(ep.get('examples')):
-                                                % if idx >= 1:
-                                                    <hr/>
-                                                % endif
-                                                <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
-                                            % endfor
-                                        % endif
+                                        % try:
+                                            % if ep.get('example'):
+                                                <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                            % endif
+                                            % if ep.get('examples'):
+                                                % for idx, example in enumerate(ep.get('examples')):
+                                                    % if idx >= 1:
+                                                        <hr/>
+                                                    % endif
+                                                    <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                                % endfor
+                                            % endif
+                                        % except Exception as exc:
+                                            <% raise ValueError(exc, ep) %>
+                                        % endtry
                                     % endif
                                 </td>
                             </tr>
