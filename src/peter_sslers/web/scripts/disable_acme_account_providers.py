@@ -14,6 +14,7 @@ import transaction
 from ..models import get_engine
 from ..models import get_session_factory
 from ..models import get_tm_session
+from ...lib.config_utils import ApplicationSettings
 from ...model.meta import Base
 from ...model.objects import AcmeAccountProvider
 
@@ -41,6 +42,9 @@ def main(argv=sys.argv):
     engine = get_engine(settings)
     Base.metadata.create_all(engine)
     session_factory = get_session_factory(engine)
+
+    app_settings = ApplicationSettings()
+    app_settings.from_settings_dict(settings)
 
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)

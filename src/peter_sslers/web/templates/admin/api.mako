@@ -92,12 +92,7 @@
                                         <b>Examples:</b>
                                         <br/>
                                         % if ep.get('example'):
-                                            % for idx, example in enumerate(ep.get('example')):
-                                                % if idx >= 1:
-                                                    <hr/>
-                                                % endif
-                                                <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
-                                            % endfor
+                                            <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
                                         % endif
                                         % if ep.get('examples'):
                                             % for idx, example in enumerate(ep.get('examples')):

@@ -11,19 +11,19 @@ log = logging.getLogger(__name__)
 API_DOCS = {}
 
 _elements_required = [
-    "endpoint",
-    "section",
     "about",
-    "POST",  # if True, then POST is required
+    "endpoint",
     "GET",  # if None, will generate docs on GET
+    "POST",  # if True, then POST is required
+    "section",
 ]
 _elements_optional = [
     "args",
     "example",
-    "instructions",
     "form_fields",
-    "requirements",
+    "instructions",
     "notes",
+    "requirements",
     "variant_of",
 ]
 _elements_dict = [
@@ -31,37 +31,41 @@ _elements_dict = [
     "valid_options",
 ]
 _elements_list = [
+    "examples",
     "form_fields_related",
+    "instructions",
     "notes",
     "requirements",
 ]
-_elements_disallowed = ["extra"]
+_elements_disallowed = [
+    "extra",
+]
 
 
 def formatted_get_docs(view_instance, endpoint):
+    """
+    :param view_instance: a Pyramid view instance
+    :param endpoint: the route name of the endpoint
+    :type endpoint: str
+    """
     _endpoint_docs = API_DOCS.get(endpoint)
     if not _endpoint_docs:
         raise ValueError("could not find docs for: %s" % endpoint)
-    docs = {}
 
     def _instructions_append(_msg):
         if "instructions" not in docs:
             docs["instructions"] = []
         docs["instructions"].append(_msg)
 
-    for field in ("instructions", "example", "examples"):
-        if field in _endpoint_docs:
-            docs[field] = []
-            if not isinstance(_endpoint_docs[field], list):
-                _endpoint_docs[field] = [
-                    _endpoint_docs[field],
-                ]
-            for line in _endpoint_docs[field]:
-                docs[field].append(
-                    line.replace("{ADMIN_PREFIX}", view_instance.request.admin_url)
-                )
-                if "%s" in line:
-                    raise ValueError("malformed input")
+    def _process_line(_line):
+        "this is a microtemplating routine"
+        _line = _line.replace("{ADMIN_PREFIX}", view_instance.request.admin_url)
+        if "%s" in _line:
+            raise ValueError("malformed input")
+        return _line
+
+    # what we're generating...
+    docs = {}
 
     for _field in _elements_dict:
         if _field in _endpoint_docs:
@@ -69,7 +73,18 @@ def formatted_get_docs(view_instance, endpoint):
 
     for _field in _elements_list:
         if _field in _endpoint_docs:
+            if not isinstance(_endpoint_docs[_field], list):
+                _endpoint_docs[_field] = [
+                    _endpoint_docs[_field],
+                ]
             docs[_field] = _endpoint_docs[_field][:]
+
+    for field in ("instructions", "example", "examples"):
+        if field in _endpoint_docs:
+            if isinstance(_endpoint_docs[field], list):
+                docs[field] = [_process_line(line) for line in _endpoint_docs[field]]
+            else:
+                docs[field] = _endpoint_docs[field]
 
     if "valid_options" in docs:
         # define these with a placeholder like "{RENDER_ON_REQUEST}"
@@ -119,7 +134,15 @@ def formatted_get_docs(view_instance, endpoint):
 
 
 def docify(endpoint_data):
-    """A class :term:`decorator` which, when applied to a class, will"""
+    """
+    A class :term:`decorator` which, when applied to a class,
+    will register a dict of documentation for an "endpoint" into the
+    centralized API_DOCS variable
+
+    :param endpoint_data: a dict of structured data providing documentation for
+        the endpoint.
+    :type endpoint_data: dict
+    """
     endpoint = endpoint_data.get("endpoint")
     if not endpoint:
         raise ValueError("missing 'endpoint'")
