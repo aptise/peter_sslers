@@ -286,8 +286,10 @@ class View_New(Handler):
 
                 # result is either: `new-account` or `existing-account`
                 # failing will raise an exception
-                authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_register(
-                    self.request.api_context, _dbAcmeAccount
+                authenticatedUser = (  # noqa: F841
+                    lib_db.actions_acme.do__AcmeAccount_AcmeV2_register(
+                        self.request.api_context, _dbAcmeAccount
+                    )
                 )
                 dbAcmeAccount = _dbAcmeAccount
 
@@ -497,6 +499,7 @@ class View_Focus(Handler):
         url_status = self.request.params.get("status")
         if url_status not in ("active", "active-expired"):
             url_status = ""
+
         if url_status == "active":
             sidenav_option = "active"
         elif url_status == "active-expired":
@@ -541,6 +544,7 @@ class View_Focus(Handler):
             "AcmeAuthorizations_count": items_count,
             "AcmeAuthorizations": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -798,7 +802,7 @@ class View_Focus_Manipulate(View_Focus):
         }
     )
     def focus_edit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._focus_edit__submit()
         return self._focus_edit__print()
@@ -965,7 +969,7 @@ class View_Focus_Manipulate(View_Focus):
         return self._focus__authenticate__print()
 
     def _focus__authenticate__print(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.wants_json:
             return formatted_get_docs(
                 self, "/acme-account/{ID}/acme-server/authenticate.json"
@@ -977,12 +981,14 @@ class View_Focus_Manipulate(View_Focus):
         return HTTPSeeOther(url_post_required)
 
     def _focus__authenticate__submit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         try:
-            authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
-                self.request.api_context, dbAcmeAccount
+            authenticatedUser = (  # noqa: F841
+                lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                    self.request.api_context, dbAcmeAccount
+                )
             )
         except errors.AcmeServerError as exc:
             if not self._handle_potentially_deactivated(exc):
@@ -1021,7 +1027,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         this just hits the api, hoping we check correctly.
         """
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_authenticate:
             error_message = "This AcmeAccount can not Check"
             if self.request.wants_json:
@@ -1038,7 +1044,7 @@ class View_Focus_Manipulate(View_Focus):
         return self._focus__check__print()
 
     def _focus__check__print(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/{ID}/acme-server/check.json")
         url_post_required = (
@@ -1048,15 +1054,17 @@ class View_Focus_Manipulate(View_Focus):
         return HTTPSeeOther(url_post_required)
 
     def _focus__check__submit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         # result is either: `existing-account` or ERROR
         # failing will raise an exception
         # passing in `onlyReturnExisting` will log the "check"
         _result = None
         _message = None
         try:
-            checkedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
-                self.request.api_context, dbAcmeAccount, onlyReturnExisting=True
+            checkedUser = (  # noqa: F841
+                lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                    self.request.api_context, dbAcmeAccount, onlyReturnExisting=True
+                )
             )
             _result = "success"
         except errors.AcmeServerError as exc:
@@ -1099,13 +1107,13 @@ class View_Focus_Manipulate(View_Focus):
         }
     )
     def focus_mark(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._focus_mark__submit()
         return self._focus_mark__print()
 
     def _focus_mark__print(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/{ID}/mark.json")
         url_post_required = "%s?result=error&error=post+required&operation=mark" % (
@@ -1114,7 +1122,7 @@ class View_Focus_Manipulate(View_Focus):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
@@ -1237,7 +1245,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         this just hits the api, hoping we authenticate correctly.
         """
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_authenticate:
             error_message = "This AcmeAccount can not Authenticate"
             if self.request.wants_json:
@@ -1254,7 +1262,7 @@ class View_Focus_Manipulate(View_Focus):
         return self._focus__acme_server_deactivate_pending_authorizations__print()
 
     def _focus__acme_server_deactivate_pending_authorizations__print(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.wants_json:
             return formatted_get_docs(
                 self,
@@ -1267,7 +1275,7 @@ class View_Focus_Manipulate(View_Focus):
         return HTTPSeeOther(url_post_required)
 
     def _focus__acme_server_deactivate_pending_authorizations__submit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -1339,7 +1347,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         this just hits the api, hoping we authenticate correctly.
         """
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_deactivate:
             error_message = "This AcmeAccount can not be deactivated"
             if self.request.wants_json:
@@ -1356,7 +1364,7 @@ class View_Focus_Manipulate(View_Focus):
         return self._focus__acme_server_deactivate__print()
 
     def _focus__acme_server_deactivate__print(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.wants_json:
             return formatted_get_docs(
                 self, "/acme-account/{ID}/acme-server/deactivate.json"
@@ -1368,7 +1376,7 @@ class View_Focus_Manipulate(View_Focus):
         )
 
     def _focus__acme_server_deactivate__submit(self):
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -1388,7 +1396,7 @@ class View_Focus_Manipulate(View_Focus):
                         message="This does not match the active account key",
                     )
             try:
-                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(  # noqa: F841
                     self.request.api_context,
                     dbAcmeAccount=dbAcmeAccount,
                     transaction_commit=True,
@@ -1443,7 +1451,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         this just hits the api, hoping we authenticate correctly.
         """
-        dbAcmeAccount = self._focus()
+        dbAcmeAccount = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._focus__acme_server_key_change__submit()
         if not dbAcmeAccount.is_can_key_change:
@@ -1493,7 +1501,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
 
             try:
-                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
                     self.request.api_context,
                     dbAcmeAccount=dbAcmeAccount,
                     key_pem_new=None,

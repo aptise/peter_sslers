@@ -601,7 +601,7 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
             )
@@ -879,9 +879,11 @@ class View_Focus_Manipulate(View_Focus):
                 )
 
             elif action == "renew_manual":
-                event_status = lib_db.update.update_AcmeOrder_set_renew_manual(
-                    self.request.api_context,
-                    dbAcmeOrder,
+                event_status = (  # noqa: F841
+                    lib_db.update.update_AcmeOrder_set_renew_manual(
+                        self.request.api_context,
+                        dbAcmeOrder,
+                    )
                 )
 
             else:

@@ -115,12 +115,12 @@ def create__AcmeOrderless(
     ctx.dbSession.flush(objects=[dbAcmeOrderless])
 
     for (domain_name, dbDomain) in domain_objects.items():
-        dbAcmeChallenge = create__AcmeChallenge(
+        dbAcmeChallenge = create__AcmeChallenge(  # noqa: F841
             ctx,
             dbAcmeOrderless=dbAcmeOrderless,
             dbDomain=dbDomain,
             acme_challenge_type_id=model_utils.AcmeChallengeType.from_string("http-01"),
-        )  # noqa: F841
+        )
 
     return dbAcmeOrderless
 

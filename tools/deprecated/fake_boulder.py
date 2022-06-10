@@ -21,21 +21,14 @@ usage:
 
 # stdlib
 import base64
-
-# import binascii
 import datetime
 import json
 import os
-
-# import pdb
 import subprocess
 import tempfile
-
-# import textwrap
 from wsgiref.simple_server import make_server
 
 # pypi
-# import psutil
 from pyramid.config import Configurator
 from pyramid.response import Response
 

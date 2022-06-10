@@ -139,9 +139,9 @@ def prime_redis_domain(request, dbDomain):
                 warnings.warn(str(exc))
                 return False
         elif prime_style == "2":
-            is_primed = redis_prime_logic__style_2_domain(
+            is_primed = redis_prime_logic__style_2_domain(  # noqa: F841
                 redis_client, dbDomain, redis_timeouts
-            )  # noqa: F841
+            )
 
     except Exception as exc:  # noqa: F841
         raise

@@ -548,11 +548,13 @@ class View_Focus(Handler):
                 % (self._focus_url,)
             )
         try:
-            operations_event = lib_db.actions.operations_update_recents__domains(
-                self.request.api_context,
-                dbDomains=[
-                    dbDomain,
-                ],
+            operations_event = (  # noqa: F841
+                lib_db.actions.operations_update_recents__domains(
+                    self.request.api_context,
+                    dbDomains=[
+                        dbDomain,
+                    ],
+                )
             )
             if self.request.wants_json:
                 return {
@@ -1009,9 +1011,9 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             )
             return HTTPSeeOther(_url)
 
-        self.dbAcmeDnsServers = (
-            dbAcmeDnsServers
-        ) = lib_db.get.get__AcmeDnsServer__paginated(self.request.api_context)
+        self.dbAcmeDnsServers = lib_db.get.get__AcmeDnsServer__paginated(
+            self.request.api_context
+        )
         if self.request.method == "POST":
             return self._new_submit()
         return self._new_print()

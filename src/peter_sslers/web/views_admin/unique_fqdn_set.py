@@ -187,11 +187,13 @@ class View_Focus(Handler):
                 % (self._focus_url,)
             )
         try:
-            operations_event = lib_db.actions.operations_update_recents__domains(
-                self.request.api_context,
-                dbUniqueFQDNSets=[
-                    dbUniqueFQDNSet,
-                ],
+            operations_event = (  # noqa: F841
+                lib_db.actions.operations_update_recents__domains(
+                    self.request.api_context,
+                    dbUniqueFQDNSets=[
+                        dbUniqueFQDNSet,
+                    ],
+                )
             )
             if self.request.wants_json:
                 return {

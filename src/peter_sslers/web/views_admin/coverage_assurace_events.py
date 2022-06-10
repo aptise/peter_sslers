@@ -298,7 +298,7 @@ class View_Focus(Handler):
             event_payload_dict["resolution"] = resolution
 
             try:
-                _result = lib_db.update.update_CoverageAssuranceEvent__set_resolution(
+                _result = lib_db.update.update_CoverageAssuranceEvent__set_resolution(  # noqa: F841
                     self.request.api_context, dbCoverageAssuranceEvent, resolution
                 )
             except errors.InvalidTransition as exc:

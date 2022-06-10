@@ -95,7 +95,7 @@ def getcreate__AcmeAccount(
             "Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`."
         )
     # how are we submitting this data?
-    _strategy = None
+    # _strategy = None
 
     _event_type_key = None
     if event_type == "AcmeAccount__create":
@@ -129,7 +129,7 @@ def getcreate__AcmeAccount(
 
     # quickly audit args/derive info
     if key_pem:
-        _strategy = "key_pem"
+        # _strategy = "key_pem"
         if not contact:
             raise ValueError("must supply `contact` when submitting `key_pem`")
         if not acme_account_provider_id:
@@ -148,7 +148,7 @@ def getcreate__AcmeAccount(
         key_pem_md5 = utils.md5_text(key_pem)
 
     elif not key_pem:
-        _strategy = "LetsEncrypt payload"
+        # _strategy = "LetsEncrypt payload"
         if contact:
             raise ValueError("do not submit `contact` with LetsEncrypt payload")
         if acme_account_provider_id:
@@ -480,9 +480,9 @@ def getcreate__AcmeAuthorization(
                 dbOrder2Auth,
             ]
         )
-        is_created__AcmeAuthorization2Order = True
+        # is_created__AcmeAuthorization2Order = True
 
-    _result = process__AcmeAuthorization_payload(
+    _result = process__AcmeAuthorization_payload(  # noqa: F841
         ctx,
         authorization_payload=authorization_payload,
         authenticatedUser=authenticatedUser,
@@ -515,7 +515,7 @@ def process__AcmeAuthorization_payload(
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
     log.info("process__AcmeAuthorization_payload")
-    is_created__AcmeAuthorization2Order = None
+    # is_created__AcmeAuthorization2Order = None
 
     # is this associated?
     dbOrder2Auth = (
@@ -538,7 +538,7 @@ def process__AcmeAuthorization_payload(
                 dbOrder2Auth,
             ]
         )
-        is_created__AcmeAuthorization2Order = True
+        # is_created__AcmeAuthorization2Order = True
 
     # no matter what, update
     # this will set the following:
@@ -546,13 +546,13 @@ def process__AcmeAuthorization_payload(
     # `dbAcmeAuthorization.domain_id`
     # `dbAcmeAuthorization.acme_status_authorization_id`
     # `dbAcmeAuthorization.timestamp_updated`
-    _updated = update_AcmeAuthorization_from_payload(
+    _updated = update_AcmeAuthorization_from_payload(  # noqa: F841
         ctx, dbAcmeAuthorization, authorization_payload
     )
 
     # parse the payload for our http01 challenge
     try:
-        dbAcmeChallenges = getcreate__AcmeChallenges_via_payload(
+        dbAcmeChallenges = getcreate__AcmeChallenges_via_payload(  # noqa: F841
             ctx,
             authenticatedUser=authenticatedUser,
             dbAcmeAuthorization=dbAcmeAuthorization,
@@ -682,9 +682,9 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
         )
 
     if is_global_default:
-        _res = update_AcmeDnsServer__set_global_default(
+        _res = update_AcmeDnsServer__set_global_default(  # noqa: F841
             ctx, dbAcmeDnsServer
-        )  # noqa: F841
+        )
 
     return (dbAcmeDnsServer, is_created)
 

@@ -1,3 +1,6 @@
+* Build a tool that can generate/save/load a new testdb, so it does not need to
+  be continually rebuilt for local tests.
+
 * These sections still need to be audited and streamlined.
 	They work and are tested, but the UX could potentially be cleaner
 	- queue certificates - process
@@ -22,13 +25,7 @@ Not Finished Yet
 ===============
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
-[ ] Support SQLAlchemy 1.4
-	[x] Support 1.4 syntax
-	[ ] Remove 1.3 syntax
-	[ ] Remove <1.4 Version Peg
-		This is required for now. `zope.sqlalchemy` does not work with
-		`keep_session` correctly under 1.4
-
+[ ] Full Support for EC Certificates
 
 Almost done:
 ===============
