@@ -3086,7 +3086,7 @@ def ensure_chain(
 
         openssl verify -purpose sslserver -CAfile root.pem -untrusted intermediate.pem cert.pem
 
-    To get around this, put all the intermediates into a sinlgle file.
+    To get around this, put all the intermediates into a single file.
 
     This is a stopgap solution and needs to be refactored.
 
@@ -3196,7 +3196,7 @@ def ensure_chain_order(chain_certs, cert_pem=None):
 
     The OpenSSL Equivalent / Fallback is::
 
-        /usr/local/bin/openssl verify -purpose sslserver -partial_chain -trusted chain_0_1.pem chain_0_0.pem
+        /usr/local/bin/openssl verify -purpose sslserver -partial_chain -trusted {ROOT.pem} {CHAINREVERSED.pem}
     """
     log.debug(".ensure_chain_order >")
     if cert_pem:
