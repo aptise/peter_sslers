@@ -362,7 +362,7 @@ def convert_der_to_pem__rsakey(der_data=None):
     :returns: PEM encoded version of the RSA Key
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl rsa -in {FILEPATH} -inform der -outform pem
     """
@@ -380,7 +380,7 @@ def convert_pem_to_der(pem_data=None):
     :returns: DER encoded version of the PEM data
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl req -in {FILEPATH} -outform DER
 
@@ -416,7 +416,7 @@ def convert_pkcs7_to_pems(pkcs7_data=None):
     :returns: list of PEM encoded Certificates in the pkcs7_data
     :rtype: list
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl pkcs7 -inform DER -in {FILEPATH} -print_certs -outform PEM
     """
@@ -636,7 +636,7 @@ def _openssl_spki_hash_cert(key_technology=None, cert_pem_filepath=None, as_b64=
     :returns: spki_hash
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -pubkey -noout -in {CERT_FILEPATH} | \
         openssl {key_technology} -pubout -outform DER -pubin | \
@@ -744,7 +744,7 @@ def _openssl_spki_hash_csr(key_technology=None, csr_pem_filepath=None, as_b64=No
     :returns: spki_hash
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl REQ -pubkey -noout -in {CSR_FILEPATH} | \
         openssl {key_technology} -pubout -outform DER -pubin | \
@@ -851,7 +851,7 @@ def _openssl_spki_hash_pkey(key_technology=None, key_pem_filepath=None, as_b64=N
     :returns: spki_hash
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl rsa -in {KEY_FILEPATH} -pubout -outform der | \
         openssl dgst -sha256 -binary | \
@@ -995,7 +995,7 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None):
     :returns: CSR, likely PEM encoded
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl req -new -sha256 -k {FILEPATH_KEY} -subj "/CN=example.com"
         ===
@@ -1174,7 +1174,7 @@ def parse_cert__domains(cert_pem=None, cert_pem_filepath=None):
     :returns: List of Fully Qualified Domain Names (str) in the Certificate
     :rtype: list
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -in {FILEPATH} -noout -text
     """
@@ -1231,7 +1231,7 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
     :returns: List of Fully Qualified Domain Names (str) in the CSR
     :rtype: list
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl req -in {FILEPATH} -noout -text
     """
@@ -1294,7 +1294,7 @@ def validate_key(key_pem=None, key_pem_filepath=None):
       If the key is not valid, an exception will be raised.
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl EC -in {FILEPATH}
         openssl RSA -in {FILEPATH}
@@ -1361,7 +1361,7 @@ def validate_csr(csr_pem=None, csr_pem_filepath=None):
     :returns: True
     :rtype: bool
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl req -text -noout -verify -in {FILEPATH}
     """
@@ -1401,7 +1401,7 @@ def validate_cert(cert_pem=None, cert_pem_filepath=None):
     :returns: True
     :rtype: bool
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -in {FILEPATH} -inform PEM -noout -text
     """
@@ -1481,7 +1481,7 @@ def fingerprint_cert(cert_pem=None, cert_pem_filepath=None, algorithm="sha1"):
     :returns: Raw fingerprint data (e.g. without notation to separate pairs with colons)
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -noout -fingerprint -{algorithm} -inform PEM -in {CERTIFICATE}
     """
@@ -1649,7 +1649,7 @@ def modulus_md5_key(key_pem=None, key_pem_filepath=None):
     :returns: md5 digest of key's modulus
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         md5(openssl rsa -noout -modulus -in {FILEPATH})
     """
@@ -1696,7 +1696,7 @@ def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
     :returns: md5 digest of CSR's modulus
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         md5(openssl req -noout -modulus -in {FILEPATH})
     """
@@ -1746,7 +1746,7 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
     :returns: md5 digest of Certificate's modulus
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         md5(openssl x509 -noout -modulus -in {FILEPATH})
     """
@@ -1811,7 +1811,7 @@ def _openssl_cert_single_op__pem_filepath(pem_filepath, single_op):
            X509v3 Subject Key Identifier:
                {VALUE}
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -noout {OPERATION} -in {FILEPATH})
     """
@@ -1852,7 +1852,7 @@ def cert_ext__pem_filepath(pem_filepath, ext):
     :returns: openssl output value
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -noout -ext {EXT} -in {FILEPATH})
     """
@@ -1885,7 +1885,7 @@ def csr_single_op__pem_filepath(pem_filepath, single_op):
     :returns: openssl output value
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl req -noout {OPERATION} -in {FILEPATH})
     """
@@ -1928,7 +1928,7 @@ def key_single_op__pem_filepath(keytype="RSA", pem_filepath=None, single_op=None
     earlier versions of openssl DO NOT HAVE `ec --check`
     current versions do
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl {KEYTYPE} -noout {OPERATION} -in {FILEPATH})
 
@@ -1977,7 +1977,7 @@ def parse_cert__enddate(cert_pem=None, cert_pem_filepath=None):
     :returns: end date
     :rtype: datetime.datetime
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -noout -enddate -in {FILEPATH})
     """
@@ -2009,7 +2009,7 @@ def parse_cert__startdate(cert_pem=None, cert_pem_filepath=None):
     :returns: start date
     :rtype: datetime.datetime
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         openssl x509 -noout -startdate -in {FILEPATH})
     """
@@ -2046,7 +2046,7 @@ def parse_cert__spki_sha256(
     :returns: spki sha256
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         :function :_openssl_spki_hash_cert
     """
@@ -2090,7 +2090,8 @@ def parse_cert__key_technology(cert_pem=None, cert_pem_filepath=None):
     :returns: key technology type
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is to regex the output of:
+    The OpenSSL Equivalent / Fallback is::
+    Regex the output of::
 
         openssl x509 -in {FILEPATH} -noout -text
     """
@@ -2301,7 +2302,8 @@ def parse_csr__key_technology(csr_pem=None, csr_pem_filepath=None, crypto_csr=No
     :returns: key technology type
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is to regex the output of:
+    The OpenSSL Equivalent / Fallback is::
+    Regex the output of::
 
         openssl req -in {FILEPATH} -noout -text
     """
@@ -2343,7 +2345,7 @@ def parse_csr__spki_sha256(
     :returns: spki sha256
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         :_see:_openssl_spki_hash_csr
     """
@@ -2481,10 +2483,9 @@ def parse_key__spki_sha256(
     :returns: spki sha256
     :rtype: str
 
-    This OpenSSL Equivalent / Fallback is:
+    The OpenSSL Equivalent / Fallback is::
 
         :_see:_openssl_spki_hash_pkey
-
     """
     log.info("parse_key__spki_sha256 >")
     if openssl_crypto and certbot_crypto_util:
@@ -3073,6 +3074,25 @@ def ensure_chain(
        PEM encoding; currently unused.
     :returns: True
     :rtype: bool
+
+
+    The OpenSSL Equivalent / Fallback is::
+
+    Modern versions of openssl accept multiple `-untrusted` arguments::
+
+        openssl verify -purpose sslserver -CAfile root.pem [[-untrusted intermediate.pem],[-untrusted intermediate.pem],] cert.pem
+
+    However older ones only want to see a single `-untrusted`::
+
+        openssl verify -purpose sslserver -CAfile root.pem -untrusted intermediate.pem cert.pem
+
+    To get around this, put all the intermediates into a sinlgle file.
+
+    This is a stopgap solution and needs to be refactored.
+
+    NOTE:
+        openssl does not care about the order of intermediates, so this should
+        be iteratively built up like the pure-python example
     """
     log.debug(".ensure_chain >")
     if fullchain_pem:
@@ -3123,19 +3143,6 @@ def ensure_chain(
         return True
 
     log.debug(".ensure_chain > openssl fallback")
-    """
-    modern versions of openssl accept multiple -untrusted
-        openssl verify -CAfile root.pem [[-untrusted intermediate.pem],[-untrusted intermediate.pem],] cert.pem
-    however older ones only want to see a single one
-        openssl verify -CAfile root.pem -untrusted intermediate.pem cert.pem
-
-    to get around this, put all the intermediates into a file
-
-    this is a stopgap solution and needs to be refactored:
-
-        openssl does not care about the order of intermediates, so this should
-        be iteratively built up like the pure-python example
-    """
     _tempfiles = []
     try:
         _tmpfile_root = new_pem_tempfile(root_pem)
@@ -3186,6 +3193,10 @@ def ensure_chain_order(chain_certs, cert_pem=None):
     :type cert_pem: str
     :returns: True
     :rtype: bool
+
+    The OpenSSL Equivalent / Fallback is::
+
+        /usr/local/bin/openssl verify -purpose sslserver -partial_chain -trusted chain_0_1.pem chain_0_0.pem
     """
     log.debug(".ensure_chain_order >")
     if cert_pem:
@@ -3236,9 +3247,6 @@ def ensure_chain_order(chain_certs, cert_pem=None):
                 )
         return True
     log.debug(".ensure_chain_order > openssl fallback")
-    """
-    /usr/local/bin/openssl verify -partial_chain -trusted chain_0_1.pem chain_0_0.pem
-    """
     _tempfiles = {}
     _last_idx = len(r_chain_certs) - 1
     try:
