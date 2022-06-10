@@ -572,7 +572,7 @@ class ViewAdminApi_Domain(Handler):
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
-                    operations_event = (
+                    operations_event = (  # noqa: F841
                         lib_db.actions.operations_update_recents__domains(
                             self.request.api_context,
                             dbDomains=[
@@ -828,8 +828,10 @@ class ViewAdminApi_Redis(Handler):
                         # favor the multi:
                         total_primed["domain"] += 1
                         total_primed["cert"] += 1
-                        is_primed = utils_redis.redis_prime_logic__style_2_domain(
-                            redis_client, dbDomain, redis_timeouts
+                        is_primed = (  # noqa: F841
+                            utils_redis.redis_prime_logic__style_2_domain(
+                                redis_client, dbDomain, redis_timeouts
+                            )
                         )
 
                     if len(active_domains) < limit:

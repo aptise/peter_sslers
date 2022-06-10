@@ -2545,9 +2545,9 @@ def parse_key__technology(key_pem=None, key_pem_filepath=None, crypto_privatekey
             tmpfile_pem = new_pem_tempfile(key_pem)
             key_pem_filepath = tmpfile_pem.name
         try:
-            _checked = key_single_op__pem_filepath(
+            _checked = key_single_op__pem_filepath(  # noqa: F841
                 "RSA", key_pem_filepath, "-check"
-            )  # noqa: F841
+            )
             return "RSA"
         except errors.OpenSslError_InvalidKey as exc1:  # noqa: F841
             try:

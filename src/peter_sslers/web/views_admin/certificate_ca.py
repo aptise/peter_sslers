@@ -227,7 +227,7 @@ class View_Preferred(Handler):
                     )
 
             # okay , add a new preference
-            dbPreference = lib_db.create.create__CertificateCAPreference(
+            dbPreference = lib_db.create.create__CertificateCAPreference(  # noqa: F841
                 self.request.api_context,
                 dbCertificateCA=dbCertificateCA,
             )

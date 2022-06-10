@@ -41,14 +41,14 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
         else:
             requeue = False
     if requeue:
-        dbQueue = lib.db.create.create__QueueCertificate(
+        dbQueue = lib.db.create.create__QueueCertificate(  # noqa: F841
             ctx,
             dbAcmeAccount=serverCertificate.acme_account,
             dbPrivateKey=serverCertificate.private_key,
             dbCertificateSigned=serverCertificate,
             private_key_cycle_id__renewal=serverCertificate.renewal__private_key_cycle_id,
             private_key_strategy_id__requested=serverCertificate.renewal__private_key_strategy_id,
-        )  # noqa: F841
+        )
     return requeue
 
 

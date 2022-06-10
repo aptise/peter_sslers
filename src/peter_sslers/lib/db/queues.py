@@ -461,12 +461,13 @@ def queue_certificates__process(ctx):
                 )
                 if not _dbAcmeAccount:
                     raise errors.QueueProcessingError("QueueCertificate_no_account_key")
-                _dbPrivateKey = dbQueueCertificate.private_key  # this can auto-heal
+                # this can auto-heal
+                _dbPrivateKey = dbQueueCertificate.private_key  # noqa: F841
 
             except errors.QueueProcessingError as exc:  # noqa: F841
                 # create a CoverageAssuranceEvent
                 rval["count_fail"] += 1
-                dbCoverageAssuranceEvent = lib.db.create.create__CoverageAssuranceEvent(
+                _dbCoverageAssuranceEvent = lib.db.create.create__CoverageAssuranceEvent(  # noqa: F841
                     ctx,
                     coverage_assurance_event_type_id=model_utils.CoverageAssuranceEventType.from_string(
                         "QueueCertificate_no_account_key"
@@ -478,7 +479,7 @@ def queue_certificates__process(ctx):
                 )
                 continue
             try:
-                dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                _dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(  # noqa: F841
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.QUEUE_CERTIFICATE,
                     processing_strategy="create_order",
@@ -501,7 +502,7 @@ def queue_certificates__process(ctx):
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
                 if isinstance(exc, errors.AcmeOrderCreatedError):
                     # this is technically a success, at least for now
-                    dbAcmeOrder = exc.acme_order
+                    # _dbAcmeOrder = exc.acme_order
                     exc = exc.original_exception
                     _log_object_event(
                         ctx,

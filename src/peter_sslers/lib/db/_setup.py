@@ -284,13 +284,13 @@ def initialize_CertificateCAs(ctx):
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     # now install the default preference chain
-    _now = datetime.datetime.utcnow()
-    _buffer = datetime.timedelta(90)
+    # _now = datetime.datetime.utcnow()
+    # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
 
     slot_id = 1
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
-        cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
+        # cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
         # cert_enddate = datetime.datetime(*cert_payload[".enddate"])
         # TODO: reintegrate
         # 2021.09.08 - Disable this so tests pass
@@ -301,9 +301,9 @@ def initialize_CertificateCAs(ctx):
         if cert_id not in certs_lookup:
             raise ValueError("Certificate `%s` is unknown" % cert_id)
         dbCertificateCA = certs_lookup[cert_id]
-        dbPref = db_create.create__CertificateCAPreference(
+        dbPref = db_create.create__CertificateCAPreference(  # noqa: F841
             ctx, slot_id=slot_id, dbCertificateCA=dbCertificateCA
-        )  # noqa: F841
+        )
         slot_id += 1  # increment the slot
 
     return True
@@ -377,8 +377,10 @@ def startup_AcmeAccountProviders(ctx, app_settings):
                     % ca_name
                 )
             if not dbAcmeAccountProvider.is_enabled:
-                _event_status = db_update.update_AcmeAccountProvider__set_is_enabled(
-                    ctx, dbAcmeAccountProvider
-                )  # noqa: F841
+                _event_status = (  # noqa: F841
+                    db_update.update_AcmeAccountProvider__set_is_enabled(
+                        ctx, dbAcmeAccountProvider
+                    )
+                )
 
     return True

@@ -209,7 +209,7 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeChallenge"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(  # noqa: F841
                 self.request.api_context,
                 dbAcmeChallenge=dbAcmeChallenge,
             )
@@ -284,7 +284,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidRequest(
                         "This installation is NOT configured to answer this challenge. You must submit the challenge token to trigger."
                     )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(  # noqa: F841
                 self.request.api_context,
                 dbAcmeChallenge=dbAcmeChallenge,
             )

@@ -97,6 +97,7 @@ class View_List(Handler):
             "AcmeAuthorizations_count": items_count,
             "AcmeAuthorizations": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
 
@@ -275,7 +276,7 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(  # noqa: F841
                 self.request.api_context,
                 dbAcmeAuthorization=dbAcmeAuthorization,
             )
@@ -343,7 +344,7 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(  # noqa: F841
                 self.request.api_context,
                 dbAcmeAuthorization=dbAcmeAuthorization,
             )

@@ -2810,7 +2810,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
 
         # invoke this to trigger a invalid error
-        dbCertificateCAChain = self.valid_certificate_ca_chain(
+        dbCertificateCAChain = self.valid_certificate_ca_chain(  # noqa: F841
             certificate_ca_chain_id=certificate_ca_chain_id
         )
 

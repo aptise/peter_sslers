@@ -535,7 +535,7 @@ class View_Focus_Manipulate(View_Focus):
             if dbAcmeOrderless.acme_account_id:
                 create_kwargs["challenge_url"] = formStash.results["challenge_url"]
 
-            dbChallenge = lib_db.create.create__AcmeChallenge(
+            dbChallenge = lib_db.create.create__AcmeChallenge(  # noqa: F841
                 self.request.api_context, **create_kwargs
             )
 

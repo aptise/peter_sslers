@@ -67,7 +67,7 @@ def upload_fileset(server_url_root, fset):
                 raise ValueError("error!")
             else:
                 print("success | %s" % json_response)
-    except Exception as exc:
+    except Exception as exc:  # noqa: F841
         raise
 
 
@@ -118,7 +118,7 @@ def upload_account(server_url_root, fset):
                 raise ValueError("error!")
             else:
                 print("success | %s" % json_response)
-    except Exception as exc:
+    except Exception as exc:  # noqa: F841
         raise
 
 
@@ -316,7 +316,7 @@ def import_certbot_certs_live(live_path, server_url_root):
                     )
                 fset[ftype] = fpath
             filesets.append(fset)
-        except Exception as exc:
+        except Exception as exc:  # noqa: F841
             print("Encountered errors in `%s`; skipping." % dpath)
 
     if not filesets:

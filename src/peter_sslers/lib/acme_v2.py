@@ -707,13 +707,13 @@ class AuthenticatedUser(object):
             # log this
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
-            dbOperationsEvent = self.log__OperationsEvent(
+            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
                 ctx,
                 model_utils.OperationsEventType.from_string(
                     "AcmeAccount__authenticate"
                 ),
                 event_payload_dict,
-            )  # noqa: F841
+            )
             return True
         except Exception as exc:  # noqa: F841
             raise
@@ -790,11 +790,11 @@ class AuthenticatedUser(object):
             # log this
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
-            dbOperationsEvent = self.log__OperationsEvent(
+            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
                 ctx,
                 model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
                 event_payload_dict,
-            )  # noqa: F841
+            )
         finally:
             return is_did_deactivate
 
@@ -902,7 +902,7 @@ class AuthenticatedUser(object):
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
             event_payload_dict["acme_account_key-old.id"] = dbAcmeAccountKey_old.id
             event_payload_dict["acme_account_key-new.id"] = dbAcmeAccountKey_new.id
-            dbOperationsEvent = self.log__OperationsEvent(
+            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
                 ctx,
                 model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
                 event_payload_dict,
@@ -1220,7 +1220,7 @@ class AuthenticatedUser(object):
         # verify each domain
         domains_challenged = dbAcmeOrder.domains_challenged
         for authorization_url in acmeOrderRfcObject.rfc_object["authorizations"]:
-            auth_result = self.acme_authorization_process_url(
+            auth_result = self.acme_authorization_process_url(  # noqa: F841
                 ctx,
                 authorization_url,
                 acme_challenge_type_id__preferred=None,
@@ -1230,7 +1230,7 @@ class AuthenticatedUser(object):
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                 transaction_commit=transaction_commit,
-            )  # noqa: F841
+            )
 
         if (
             dbAcmeOrder.acme_order_processing_status_id
@@ -1276,9 +1276,9 @@ class AuthenticatedUser(object):
         csr_der = cert_utils.convert_pem_to_der(csr_pem)
 
         # log this to the db
-        acmeLoggedEvent = self.acmeLogger.log_order_finalize(
+        acmeLoggedEvent = self.acmeLogger.log_order_finalize(  # noqa: F841
             "v2", transaction_commit=True
-        )  # noqa: F841
+        )
 
         payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
@@ -1452,11 +1452,13 @@ class AuthenticatedUser(object):
         log.info(") handle_authorization_payload")
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2",
-            dbAcmeAuthorization=dbAcmeAuthorization,
-            transaction_commit=True,
-        )  # noqa: F841
+        dbAcmeEventLog_authorization_fetch = (  # noqa: F841
+            self.acmeLogger.log_authorization_request(
+                "v2",
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
+            )
+        )
 
         _response_domain = authorization_response["identifier"]["value"]
         if dbAcmeAuthorization.domain.domain_name != _response_domain:

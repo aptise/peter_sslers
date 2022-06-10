@@ -307,7 +307,7 @@ class View_Focus(Handler):
         }
     )
     def ensure_domains(self):
-        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._ensure_domains__submit()
         return self._ensure_domains__print()
@@ -365,7 +365,7 @@ class View_Focus(Handler):
             dbAcmeDnsServerAccounts = []
             for _domain_name in domain_names:
                 _dbAcmeDnsServerAccount = None
-                _is_created__account = None
+                # _is_created__account = None
                 (
                     _dbDomain,
                     _is_created__domain,
@@ -395,7 +395,6 @@ class View_Focus(Handler):
                             allowfrom=account["allowfrom"],
                         )
                     )
-                    _is_created__account = True
 
                 dbAcmeDnsServerAccounts.append(_dbAcmeDnsServerAccount)
 
@@ -498,7 +497,7 @@ class View_Focus(Handler):
         }
     )
     def import_domain(self):
-        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._import_domain__submit()
         return self._import_domain__print()
@@ -743,7 +742,7 @@ class View_Focus_Manipulate(View_Focus):
         }
     )
     def edit(self):
-        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._edit__submit()
         return self._edit__print()

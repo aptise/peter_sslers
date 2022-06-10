@@ -169,12 +169,12 @@ def main(global_config, **settings):
     config.add_subscriber(add_renderer_globals, BeforeRender)
 
     # handle this before including the routes
-    enable_views_admin = set_bool_setting(
+    enable_views_admin = set_bool_setting(  # noqa: F841
         config.registry.settings, "enable_views_admin"
-    )  # noqa: F841
-    enable_views_public = set_bool_setting(
+    )
+    enable_views_public = set_bool_setting(  # noqa: F841
         config.registry.settings, "enable_views_public"
-    )  # noqa: F841
+    )
     config.include(".routes")
     config.include(".models")
     config.scan(".views")  # shared views, currently just exception handling
