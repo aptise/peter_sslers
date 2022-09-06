@@ -212,7 +212,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     __tablename__ = "acme_account_key"
     __table_args__ = (
         sa.Index(
-            "idx_acme_account_key_active",
+            "uidx_acme_account_key_active",
             "acme_account_id",
             "is_active",
             unique=True,
@@ -3134,6 +3134,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "domain"
+    __table_args__ = (
+        sa.Index(
+            "uidx_domain",
+            model_utils.indexable_lower(sa.text("domain_name")),
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
@@ -3355,6 +3363,14 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "domain_blocklisted"
+    __table_args__ = (
+        sa.Index(
+            "uidx_domain_blocklisted",
+            model_utils.indexable_lower(sa.text("domain_name")),
+            unique=True,
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
 
@@ -4084,7 +4100,7 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store"
     __table_args__ = (
         sa.Index(
-            "idx_root_store_name",
+            "uidx_root_store_name",
             model_utils.indexable_lower(sa.text("name")),
             unique=True,
         ),
@@ -4117,7 +4133,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store_version"
     __table_args__ = (
         sa.Index(
-            "idx_root_store_version",
+            "uidx_root_store_version",
             "root_store_id",
             model_utils.indexable_lower(sa.text("version_string")),
             unique=True,
