@@ -23,6 +23,7 @@ The server will respond to requests with the following header to identify it:
 """
 
 # stlib
+import sys
 from wsgiref.simple_server import make_server
 
 # pypi
@@ -67,6 +68,14 @@ def admin(request):
 
 if __name__ == "__main__":
     print("running test server...")
+
+    PORT = 7201
+    if len(sys.argv) == 2:
+        PORT = int(sys.argv[1])
+        print("... on CUSTOM port %s" % PORT)
+    else:
+        print("... on DEFAULT port %s" % PORT)
+
     config = Configurator()
     config.add_tween(".header_tween_factory")
     config.add_route("hello", "/")
@@ -86,5 +95,5 @@ if __name__ == "__main__":
     )
 
     app = config.make_wsgi_app()
-    server = make_server("127.0.0.1", 7201, app)
+    server = make_server("127.0.0.1", PORT, app)
     server.serve_forever()
