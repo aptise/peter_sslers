@@ -92,6 +92,10 @@ jobs:
         echo ">>>>"
         ps aux
         echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+    - name: Check Versions
+      run: |
+        openssl version
+        openresty -version
     - name: Test with tox/pytest
       # tox is used to run pytest
       run: |
