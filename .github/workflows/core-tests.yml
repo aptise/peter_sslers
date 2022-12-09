@@ -130,6 +130,7 @@ jobs:
         sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests
         sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests
         # check the password can be read
+        sudo whoami
         ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         sudo -u nobody htpasswd -v -b /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
