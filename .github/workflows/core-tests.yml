@@ -54,6 +54,7 @@ jobs:
     - name: Install Redis
       # several tests require Redis
       # note: if tests hang, it could be because the Redis version has changed
+      # set owner to `runner`
       run: |
         sudo apt-get install redis
         # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
@@ -158,6 +159,7 @@ jobs:
         ps aux | grep openresty
         echo "-----"
         
+        sudo whoami
         sudo ls -alh  /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
