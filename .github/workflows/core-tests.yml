@@ -113,6 +113,8 @@ jobs:
         # show a quick status:
         curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
 
+        # this is defined in ./tests/test_configureation/openresty.conf
+        tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
     - name: Check Versions
       run: |
         openssl version
