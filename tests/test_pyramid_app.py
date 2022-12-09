@@ -9492,15 +9492,7 @@ class FunctionalTests_API(AppTest):
         assert res.json["result"] == "success"
         assert "servers_status" in res.json
         assert "errors" in res.json["servers_status"]
-        try:
-            assert not res.json["servers_status"]["errors"]
-        except:
-            _debug = self.testapp.post(
-                "/.well-known/admin/api/nginx/status.json", {}, status=200
-            )
-            import pprint
-
-            print(pprint.pformat(_debug))
+        assert not res.json["servers_status"]["errors"]
 
         for server in self.testapp.app.registry.settings["app_settings"][
             "nginx.servers_pool"

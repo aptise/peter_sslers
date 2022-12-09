@@ -92,6 +92,8 @@ jobs:
         echo ">>>>"
         ps aux
         echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        # show a quick status:
+        curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
     - name: Check Versions
       run: |
         openssl version
