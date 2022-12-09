@@ -110,8 +110,6 @@ jobs:
         # ubuntu[20.04] does not
         # echo $GITHUB_WORKSPACE
         # sudo whoami
-        # sudo ls -alh .
-        # sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         # sudo chown nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
@@ -124,6 +122,12 @@ jobs:
         echo ">>>>"
         sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
+        
+    - name: Check Permissions
+      run: |
+        sudo ls -alh /home/runner/work/peter_sslers/logs
+        sudo ls -alh /home/runner/work/peter_sslers/logs/openresty
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
 
     - name: Check Install
       run: |
@@ -153,4 +157,4 @@ jobs:
         export SSL_RUN_REDIS_TESTS=1
         export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
-        tox -e py -- ${{ matrix.pytest-args }}
+        # tox -e py -- ${{ matrix.pytest-args }}
