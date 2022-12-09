@@ -22,15 +22,15 @@ jobs:
           - "ubuntu-latest"
         python-version: 
             - "3.7"
-            - "3.8"
-            - "3.9"
-            - "3.10"
-        include:
-          # ubuntu-latest does not have: py27, py36
-          - os: "ubuntu-20.04"
-            python-version: "2.7"
-          - os: "ubuntu-20.04"
-            python-version: "3.6"
+        #    - "3.8"
+        #    - "3.9"
+        #    - "3.10"
+        # include:
+        #  # ubuntu-latest does not have: py27, py36
+        #  - os: "ubuntu-20.04"
+        #    python-version: "2.7"
+        #  - os: "ubuntu-20.04"
+        #    python-version: "3.6"
 
     steps:
     - uses: actions/checkout@v2
