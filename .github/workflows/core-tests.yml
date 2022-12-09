@@ -132,6 +132,12 @@ jobs:
         # check the password can be read
         sudo whoami
         ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        sudo htpasswd -v -b /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
+
+        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        sudo -u runner htpasswd -v -b /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
+
         sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         sudo -u nobody htpasswd -v -b /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
 
