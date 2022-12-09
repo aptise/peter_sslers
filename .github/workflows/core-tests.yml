@@ -21,16 +21,16 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version: 
-            - "3.7"
-        #    - "3.8"
-        #    - "3.9"
-        #    - "3.10"
-        # include:
-        #  # ubuntu-latest does not have: py27, py36
-        #  - os: "ubuntu-20.04"
-        #    python-version: "2.7"
-        #  - os: "ubuntu-20.04"
-        #    python-version: "3.6"
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+        include:
+          # ubuntu-latest does not have: py27, py36
+          - os: "ubuntu-20.04"
+            python-version: "2.7"
+          - os: "ubuntu-20.04"
+            python-version: "3.6"
 
     steps:
     - uses: actions/checkout@v2
@@ -106,7 +106,8 @@ jobs:
         sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
         sudo chown -R runner /home/runner/work/peter_sslers/logs
 
-        # the ubuntu-latest testrunner doesn't have privs for this...; 20.04 did
+        # the ubuntu-latest[22.04] environment requires a privs reset...;
+        # ubuntu[20.04] does not
         # echo $GITHUB_WORKSPACE
         # sudo whoami
         # sudo ls -alh .
@@ -152,4 +153,4 @@ jobs:
         export SSL_RUN_REDIS_TESTS=1
         export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
-        # tox -e py -- ${{ matrix.pytest-args }}
+        tox -e py -- ${{ matrix.pytest-args }}
