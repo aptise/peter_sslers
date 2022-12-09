@@ -110,26 +110,24 @@ jobs:
         # sudo whoami
         # sudo ls -alh .
         # sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
-        sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        # sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
-        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd"
-        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/"
-        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/"
-        ls -alh "/home/runner/work/peter_sslers/peter_sslers/"
-        ls -alh "/home/runner/work/peter_sslers/"
-        ls -alh "/home/runner/work/"
 
-        #
+    - name: Check Install
+      run: |
         # print our current services, in case we need to debug later
-        echo ">>>>"
+        echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
         ps aux
         echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-        # show a quick status:
+        
+        # there have been some issues on ubuntu-22.04
+        # show a quick status page:
         curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
 
         # this is defined in ./tests/test_configureation/openresty.conf
         tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
+
     - name: Check Versions
       run: |
         openssl version
