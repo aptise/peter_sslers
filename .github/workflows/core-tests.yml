@@ -113,6 +113,12 @@ jobs:
         sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
+        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd"
+        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/"
+        ls -alh "/home/runner/work/peter_sslers/peter_sslers/tests/"
+        ls -alh "/home/runner/work/peter_sslers/peter_sslers/"
+        ls -alh "/home/runner/work/peter_sslers/"
+        ls -alh "/home/runner/work/"
 
         #
         # print our current services, in case we need to debug later
