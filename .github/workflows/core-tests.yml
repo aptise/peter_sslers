@@ -108,7 +108,7 @@ jobs:
         # list some config info, in case we need to debug later
         sudo ls -alh /etc/openresty
         sudo ls -alh /usr/local/openresty/nginx
-        #        
+
         # make our log dirs
         # note that OpenResty runs as:
         # * ubuntu[22.04] - nobody
@@ -117,19 +117,19 @@ jobs:
         sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
         sudo chown -R nobody /home/runner/work/peter_sslers/logs
 
-        # the ubuntu-latest[22.04] environment requires a privs reset...;
-        # ubuntu[20.04] does not
+        # the ubuntu-latest[22.04] environment requires a privs reset...; ubuntu[20.04] does not
         # echo $GITHUB_WORKSPACE
         # sudo whoami
         # sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         # sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        # ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         # ensure `nobody` can reat this
         sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests
         sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests
-        ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
+        # check the password can be read
+        sudo -u nobody htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
 
     - name: Start OpenResty
       run: |
@@ -139,13 +139,14 @@ jobs:
         sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         
-    - name: Check Permissions
+    - name: Debug Permissions
       run: |
         sudo ls -alh /home/runner/work/peter_sslers/logs
         sudo ls -alh /home/runner/work/peter_sslers/logs/openresty
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests
         sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
 
-    - name: Check Installed Services
+    - name: Debug Installed Services
       run: |
         # print our current services, in case we need to debug later
         echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
@@ -154,24 +155,25 @@ jobs:
         
     - name: Check API Endpoints
       run: |
-        # there have been some issues on ubuntu-22.04
-        # show a quick status page:
+        # ubuntu-22.04 encountered issues reading the .htpasswd file
+        # show a quick status page.
+        # the result should be a "{success}" json payload
+        # if the result is a 500 error, we have a permissions issue
         curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
 
+        # check the debug log, just to be safe
         # this is defined in ./tests/test_configureation/openresty.conf
         tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
         
-        echo "-----"
-        ps aux | grep nginx
-        echo "======"
-        ps aux | grep openresty
-        echo "-----"
-        
-        sudo whoami
-        sudo ls -alh  /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
-
+        # echo "-----"
+        # ps aux | grep nginx
+        # echo "======"
+        # ps aux | grep openresty
+        # echo "-----"
+        # sudo whoami
+        # these should be readable
+        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
 
     - name: Check Versions
       run: |
