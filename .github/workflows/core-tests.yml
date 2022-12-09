@@ -110,9 +110,9 @@ jobs:
         # ubuntu[20.04] does not
         # echo $GITHUB_WORKSPACE
         # sudo whoami
-        # sudo chown nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        # sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
-        sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
