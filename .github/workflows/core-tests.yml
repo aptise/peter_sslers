@@ -35,6 +35,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Check Permissions FIRST
+      run: |
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo ls -alh /home/runner/work/peter_sslers/
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
