@@ -151,6 +151,12 @@ jobs:
 
         # this is defined in ./tests/test_configureation/openresty.conf
         tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
+        
+        echo "-----"
+        ps aux | grep nginx
+        echo "======"
+        ps aux | grep openresty
+        echo "-----"
 
     - name: Check Versions
       run: |
