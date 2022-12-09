@@ -105,6 +105,9 @@ jobs:
         sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
 
+        # the ubuntu-latest testrunner doesn't have privs for this...; 20.04 did
+        sudo chmod +R /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+
         #
         # print our current services, in case we need to debug later
         echo ">>>>"
