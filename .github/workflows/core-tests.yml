@@ -111,10 +111,11 @@ jobs:
         #        
         # make our log dirs
         # note that OpenResty runs as:
-        # ubuntu[22.04] - nobody
-        # ubuntu[20.04] - nobody
+        # * ubuntu[22.04] - nobody
+        # * ubuntu[20.04] - nobody
+        # these are set as the default users in the nginx/openresty source distro
         sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
-        sudo chown -R runner /home/runner/work/peter_sslers/logs
+        sudo chown -R nobody /home/runner/work/peter_sslers/logs
 
         # the ubuntu-latest[22.04] environment requires a privs reset...;
         # ubuntu[20.04] does not
@@ -124,7 +125,8 @@ jobs:
         # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         # sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests
+        # ensure `nobody` can reat this
+        sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests
         sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests
         ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
