@@ -103,6 +103,9 @@ jobs:
         # start our system
         echo ">>>>"
         echo $GITHUB_WORKSPACE
+        sudo whoami
+        sudo ls -alh .
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
 
