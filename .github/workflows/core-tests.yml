@@ -35,10 +35,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Check Permissions FIRST
-      run: |
-        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo ls -alh /home/runner/work/peter_sslers/
+    # ubuntu-22.04: runner:docker
+    # ubuntu-20.04: runner:docker
+    # - name: Check Permissions FIRST
+    #  run: |
+    #    sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -113,17 +114,17 @@ jobs:
         # ubuntu[22.04] - nobody
         # ubuntu[20.04] - nobody
         sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
-        sudo chown -R nobody /home/runner/work/peter_sslers/logs
+        sudo chown -R runner /home/runner/work/peter_sslers/logs
 
         # the ubuntu-latest[22.04] environment requires a privs reset...;
         # ubuntu[20.04] does not
         # echo $GITHUB_WORKSPACE
         # sudo whoami
-        # sudo chown nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        # sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         # sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
-        # sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        # sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         # sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo chown -R nobody /home/runner/work/peter_sslers/peter_sslers/tests
+        sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests
         sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests
         ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         htpasswd -vb /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
@@ -166,8 +167,8 @@ jobs:
         
         sudo whoami
         sudo ls -alh  /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
-        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
 
 
     - name: Check Versions
