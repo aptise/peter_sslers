@@ -102,10 +102,12 @@ jobs:
         #
         # start our system
         echo ">>>>"
+        echo $GITHUB_WORKSPACE
         sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
         sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
 
         # the ubuntu-latest testrunner doesn't have privs for this...; 20.04 did
+        sudo chown runner /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
         sudo chmod +r /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
 
         #
