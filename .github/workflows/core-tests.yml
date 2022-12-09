@@ -158,8 +158,9 @@ jobs:
         ps aux | grep openresty
         echo "-----"
         
-        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        sudo ls -alh  /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
         sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo -u nobody stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
 
 
     - name: Check Versions
