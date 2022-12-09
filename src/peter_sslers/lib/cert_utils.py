@@ -181,8 +181,10 @@ RE_openssl_x509_san = re.compile(
 )
 
 
+# openssl 3 does not have "keyid:" as a prefix
 RE_openssl_x509_authority_key_identifier = re.compile(
-    r"X509v3 Authority Key Identifier: ?\n +keyid:([^\n]+)\n?", re.MULTILINE | re.DOTALL
+    r"X509v3 Authority Key Identifier: ?\n +(?:keyid:)?([^\n]+)\n?",
+    re.MULTILINE | re.DOTALL,
 )
 # we have a potential line in there for the OSCP or something else.
 RE_openssl_x509_issuer_uri = re.compile(
@@ -586,6 +588,9 @@ def check_openssl_version(replace=False):
         _openssl_behavior = "a"  # default to old behavior
         # OpenSSL 1.1.1 doesn't need a tempfile for SANs
         if (v[0] >= 1) and (v[1] >= 1) and (v[2] >= 1):
+            _openssl_behavior = "b"
+        elif v[0] == 3:
+            # some regex are different, but the behavior should be the same
             _openssl_behavior = "b"
     return openssl_version
 
@@ -1775,6 +1780,10 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
                 data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
             if "Wrong Algorithm type" in data:
+                # openssl 1.1.x
+                return None
+            if "No modulus for this public key type" in data:
+                # openssl 3.0.x
                 return None
     if PY3:
         data = data.encode()

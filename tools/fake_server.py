@@ -1,28 +1,48 @@
 from __future__ import print_function
 
 """
-fake_server
+`fake_serverpy`
 
 usage:
     python fake_server.py
+    python fake_server.py 8080
 
 purpose:
-    this spins up a server with some simple routes for testing purposes with your webserver/proxy
+    this spins up a server with some simple routes for testing purposes with
+    your webserver/proxy:
     * /
     * /.well-known/acme-challenge/{challenge}
     * /.well-known/public/whoami
     * /.well-known/admin
 
-This is intended as a lightweight tool that can be used to setup your integration, without exposing peter_sselers
+By default, the server will run on 127.0.0.1:7201, which is the default port
+used by the peter_sslers Pyramid application.
 
-You may need to edit this to change your proxy ports location
+    python fake_server.py
 
-The server will respond to requests with the following header to identify it:
+To run on an alternate port, you can invoke this script with a single argument
+to identify the port. For example, to run on 127.0.0.1:8080 :
+
+    python fake_server.py 8080
+
+requirements:
+
+    This script requires the Pyramid framework. To install it:
+
+        pip install pyramid
+
+This script is intended as a lightweight tool that can be used to setup your
+integration, without exposing peter_sslers.  It is also useful to troubleshoot
+proxy issues with Certbot and other ACME clients.
+
+The server will respond to requests with the following header to more easily
+identify responses that it generates.
 
     X-Peter-SSLers: fakeserver
 """
 
 # stlib
+import sys
 from wsgiref.simple_server import make_server
 
 # pypi
@@ -67,6 +87,14 @@ def admin(request):
 
 if __name__ == "__main__":
     print("running test server...")
+
+    PORT = 7201
+    if len(sys.argv) == 2:
+        PORT = int(sys.argv[1])
+        print("... on CUSTOM port %s" % PORT)
+    else:
+        print("... on DEFAULT port %s" % PORT)
+
     config = Configurator()
     config.add_tween(".header_tween_factory")
     config.add_route("hello", "/")
@@ -86,5 +114,5 @@ if __name__ == "__main__":
     )
 
     app = config.make_wsgi_app()
-    server = make_server("127.0.0.1", 7201, app)
+    server = make_server("127.0.0.1", PORT, app)
     server.serve_forever()

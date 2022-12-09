@@ -9493,6 +9493,7 @@ class FunctionalTests_API(AppTest):
         assert "servers_status" in res.json
         assert "errors" in res.json["servers_status"]
         assert not res.json["servers_status"]["errors"]
+
         for server in self.testapp.app.registry.settings["app_settings"][
             "nginx.servers_pool"
         ]:

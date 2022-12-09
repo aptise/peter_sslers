@@ -1,0 +1,189 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python Current
+
+on:
+  push:
+    branches: 
+      - main
+      # branches used to test the workflow
+      - "workflow_test_*"
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run-core-tests:
+    name: core-tests-${{ matrix.python-version }}-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+        python-version: 
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+        include:
+          # ubuntu-latest does not have: py27, py36
+          - os: "ubuntu-20.04"
+            python-version: "2.7"
+          - os: "ubuntu-20.04"
+            python-version: "3.6"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install core Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade tox setuptools flake8 pytest
+        pip list
+
+    - name: Setup Hosts
+      # several tests require custom domains to point back to 127.0.0.1
+      run: |
+        sudo cat tests/test_configuration/hosts.txt | sudo tee -a /etc/hosts
+
+    - name: Install Redis
+      # several tests require Redis
+      # note: if tests hang, it could be because the Redis version has changed
+      # set owner to `runner`, which is what GitHub actions uses
+      run: |
+        sudo apt-get install redis
+        # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
+        sudo mkdir -p /var/lib/redis/peter_sslers_test
+        sudo chown -R runner /var/lib/redis/peter_sslers_test
+        sudo chown -R runner /var/lib/redis
+
+    - name: Install Pebble
+      # several tests require a Pebble instance (ACME Server)
+      run: |
+        export GOPATH=$HOME/go
+        go install github.com/letsencrypt/pebble/cmd/pebble@HEAD
+
+    - name: Install OpenResty - Prep
+      # several tests require an OpenResty server
+      run: |
+        # install OpenResty - Prep
+        sudo apt-get -y install --no-install-recommends wget gnupg ca-certificates
+
+    - name: Install OpenResty - ubuntu-20.04
+      if: matrix.os == 'ubuntu-20.04'
+      run: |
+        # Install OpenResty - ubuntu-20.04
+        wget -O - https://openresty.org/package/pubkey.gpg | sudo apt-key add -
+        echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list
+
+    - name: Install OpenResty - ubuntu-latest
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # Install OpenResty - ubuntu-latest
+        wget -O - https://openresty.org/package/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/openresty.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list > /dev/null
+
+    - name: Install OpenResty - Install & Configure
+      run: |
+        # ubuntu runs OpenResty differently in 22.04 vs 20.04
+        # i can't figure out exactly how, as they both checkout files as this user/grou[]:
+        # * ubuntu-22.04: nobody:docker
+        # * ubuntu-20.04: nobody:docker
+        
+        # however, in `ps aux` nginx runs as:
+        # * ubuntu-22.04: nobody
+        # * ubuntu-20.04: nobody
+        
+        # but `runner` is the test evironment/owner
+
+        # to get around this, tell the OpenResty config file
+        #    /tests/test_configuration/openresty.conf
+        # to drop privileges from root and run as `runner`
+
+        # actual installation
+        sudo apt-get update
+        sudo apt-get -y install openresty
+        sudo systemctl stop openresty
+
+        #
+        # install PeterSSlers OpenResty Plugin
+        #
+        sudo /usr/local/openresty/bin/opm get aptise/lua-resty-peter_sslers
+        # list some config info, in case we need to debug later
+        sudo ls -alh /etc/openresty
+        sudo ls -alh /usr/local/openresty/nginx
+
+        # make our log dirs
+        # note that OpenResty runs as:
+        # * ubuntu[22.04] - nobody
+        # * ubuntu[20.04] - nobody
+        # these are set as the default users in the nginx/openresty source distro
+        sudo whoami
+        sudo mkdir -p /home/runner/work/peter_sslers/logs/openresty/default-server
+        sudo chown -R runner /home/runner/work/peter_sslers/logs
+
+        # ensure `runner` can read the `tests` data
+        # OpenResty must read those files after dropping privileges
+        sudo chown -R runner /home/runner/work/peter_sslers/peter_sslers/tests
+        sudo chmod -R +rx /home/runner/work/peter_sslers/peter_sslers/tests
+
+        # ensure the password can be read
+        ls -alh /home/runner/work/peter_sslers/peter_sslers/tests
+        ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+        sudo -u runner stat /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd
+        sudo -u runner htpasswd -v -b /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/peter_sslers.htpasswd peter sslers
+
+    - name: Start OpenResty
+      run: |
+        # start our system
+        # do this AFTER changing the filesystem permissions above
+        echo ">>>>"
+        sudo openresty -t -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
+        sudo openresty -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/openresty.conf
+        
+    - name: Debug Permissions
+      run: |
+        sudo ls -alh /home/runner/work/peter_sslers/logs
+        sudo ls -alh /home/runner/work/peter_sslers/logs/openresty
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests
+        sudo ls -alh /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration
+
+    - name: Debug Installed Services
+      run: |
+        # print our current services, in case we need to debug later
+        echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+        ps aux
+        echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+        
+    - name: Check API Endpoints
+      run: |
+        # ubuntu-22.04 encountered issues reading the .htpasswd file
+        # show a quick status page.
+        # the result should be a "{success}" json payload
+        # if the result is a 500 error, we have a permissions issue
+        curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
+
+        # check the debug log, just to be safe
+        # this is defined in ./tests/test_configureation/openresty.conf
+        tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
+
+    - name: Check Versions
+      run: |
+        openssl version
+        openresty -version
+
+    - name: Test with tox/pytest
+      # tox is used to run pytest
+      run: |
+        export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
+        export SSL_RUN_API_TESTS__PEBBLE=1
+        export SSL_RUN_NGINX_TESTS=1
+        export SSL_RUN_REDIS_TESTS=1
+        export GOPATH=$HOME/go
+        export PATH=$GOPATH/bin:$PATH
+        tox -e py -- ${{ matrix.pytest-args }}

@@ -102,17 +102,17 @@ def nginx_status(request, ctx):
     with NginxSession(request) as sess:
         rval = {"errors": [], "success": [], "servers": {}}
         for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
-            status = None
+            _status = None
             try:
                 status_url = _server + status_path
                 response = sess.get(status_url, timeout=timeout, verify=False)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
-                    status = response_json
+                    _status = response_json
                     rval["success"].append(_server)
                 else:
                     rval["errors"].append(_server)
-                    status = {
+                    _status = {
                         "status": "error",
                         "error": "response",
                         "response": {
@@ -122,12 +122,12 @@ def nginx_status(request, ctx):
                     }
             except Exception as exc:
                 rval["errors"].append(_server)
-                status = {
+                _status = {
                     "status": "error",
                     "error": "Exception",
                     "Exception": "%s" % str(exc),  # this could be an object
                 }
-            rval["servers"][_server] = status
+            rval["servers"][_server] = _status
     return rval
 
 

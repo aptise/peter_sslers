@@ -195,6 +195,10 @@
     - 2021/11/05
     * chain verification via openssl now uses `-purpose sslserver`
 
+    - 2022/11/30
+    * update port on fakeserver to be customizable
+    * change test matrix to support py27
+    * support openssl 3.0.x; some changes were needed
 
 0.4.0
 - 2020/08/06

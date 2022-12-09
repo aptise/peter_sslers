@@ -1,5 +1,6 @@
 # stdlib
 import os
+import sys
 
 # pypi
 from setuptools import find_packages
@@ -47,6 +48,9 @@ tests_require = [
 ]
 testing_extras = tests_require + []
 
+if sys.version_info.major == 2:
+    # pastedeploy3.0 should be yanked; it does not support Python2.7
+    requires.insert(0, "pastedeploy<3.0")
 
 setup(
     name="peter_sslers",
