@@ -199,6 +199,10 @@
     * update port on fakeserver to be customizable
     * change test matrix to support py27
     * support openssl 3.0.x; some changes were needed
+    
+    - 2023/01/06
+    * fix comment typo in workflow file
+    * pastedeploy 3.0 was yanked, removed workaround code
 
 0.4.0
 - 2020/08/06
