@@ -91,7 +91,7 @@ jobs:
     - name: Install OpenResty - Install & Configure
       run: |
         # ubuntu runs OpenResty differently in 22.04 vs 20.04
-        # i can't figure out exactly how, as they both checkout files as this user/grou[]:
+        # i can't figure out exactly how, as they both checkout files as this user/group:
         # * ubuntu-22.04: nobody:docker
         # * ubuntu-20.04: nobody:docker
         
