@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """
 This is an EXPERIMENTAL tool for manipulating an acme-dns database.
 

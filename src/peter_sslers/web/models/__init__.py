@@ -1,4 +1,7 @@
-from __future__ import print_function
+# stdlib
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 from sqlalchemy import engine_from_config
@@ -11,21 +14,33 @@ import zope.sqlalchemy
 # import the SqlAlchemy model, which will call `sqlalchemy.orm.configure_mappers`
 from ... import model  # noqa: F401
 
+if TYPE_CHECKING:
+    from pyramid.config import Configurator
+    from pyramid.request import Request
+    from sqlalchemy.engine.base import Engine
+    from sqlalchemy.orm import scoped_session
+    from sqlalchemy.orm.session import Session
+    import transaction
+
+    _TYPES_SESSION = Union[Session, scoped_session[Any]]
 
 # ==============================================================================
 
 
 # standard decorator style
 # @event.listens_for(SomeSessionOrFactory, 'persistent_to_detached')
-def receive_persistent_to_detached(session, instance):
+def receive_persistent_to_detached(session: "_TYPES_SESSION", instance) -> None:
     print("persistent_to_detached", id(session), instance.__class__)
 
 
-def get_engine(settings, prefix="sqlalchemy."):
+def get_engine(
+    settings: "Configurator",
+    prefix: str = "sqlalchemy.",
+) -> "Engine":
     return engine_from_config(settings, prefix)
 
 
-def get_session_factory(engine):
+def get_session_factory(engine: "Engine") -> "_TYPES_SESSION":
     factory = sessionmaker()
     factory.configure(bind=engine)
     # factory.configure(expire_on_commit=False)
@@ -33,7 +48,11 @@ def get_session_factory(engine):
     return factory
 
 
-def get_tm_session(request, session_factory, transaction_manager):
+def get_tm_session(
+    request: "Request",
+    session_factory: "_TYPES_SESSION",
+    transaction_manager: "transaction.manager",
+):
     """
     Get a ``sqlalchemy.orm.Session`` instance backed by a transaction.
 
@@ -71,7 +90,7 @@ def get_tm_session(request, session_factory, transaction_manager):
     return dbSession
 
 
-def includeme(config):
+def includeme(config: "Configurator") -> None:
     """
     Initialize the model for a Pyramid app.
 

@@ -3443,7 +3443,7 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
             self._event_payload_json = json.loads(self.event_payload)
         return self._event_payload_json
 
-    def set_event_payload(self, payload_dict):
+    def set_event_payload(self, payload_dict) -> None:
         self.event_payload = json.dumps(payload_dict, sort_keys=True)
 
 

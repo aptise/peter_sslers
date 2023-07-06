@@ -1,6 +1,3 @@
-from __future__ import print_function
-
-
 # stdlib
 # import base64
 # import binascii

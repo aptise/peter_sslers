@@ -1,16 +1,26 @@
+# stdlib
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
+
 # pypi
 import cert_utils
+from pyramid_formencode_classic import FormStash
 
 # local
 from . import formhandling
 from ...lib import db as lib_db
 from ...model import utils as model_utils
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
 
 # ==============================================================================
 
 
-def decode_args(getcreate_args):
+def decode_args(getcreate_args: Dict) -> Dict:
     """
     support for Python2/3
     """
@@ -36,24 +46,29 @@ class AcmeAccountUploadParser(object):
     This parser operates on a validated FormEncode results object (via `pyramid_formencode_classic`)
     """
 
-    # overwritten in __init__
-    getcreate_args = None
-    formStash = None
+    # set in __init__
+    getcreate_args: Dict
+    formStash: FormStash
+
     # tracked
-    acme_account_provider_id = None
+    acme_account_provider_id: Optional[int] = None
     account_key_pem = None
     le_meta_jsons = None
     le_pkey_jsons = None
     le_reg_jsons = None
     private_key_cycle_id = None
-    private_key_technology_id = None
+    private_key_technology_id: Optional[int] = None
     upload_type = None  # pem OR letsencrypt
 
-    def __init__(self, formStash):
+    def __init__(self, formStash: FormStash):
         self.formStash = formStash
         self.getcreate_args = {}
 
-    def require_new(self, require_contact=None, require_technology=True):
+    def require_new(
+        self,
+        require_contact: Optional[bool] = None,
+        require_technology: Optional[bool] = True,
+    ) -> None:
         """
         routine for creating a NEW AcmeAccount (peter_sslers generates the credentials)
 
@@ -118,7 +133,11 @@ class AcmeAccountUploadParser(object):
         ] = private_key_technology_id
         self.getcreate_args = decode_args(getcreate_args)
 
-    def require_upload(self, require_contact=None, require_technology=None):
+    def require_upload(
+        self,
+        require_contact: Optional[bool] = None,
+        require_technology: Optional[bool] = None,
+    ) -> None:
         """
         routine for uploading an exiting AcmeAccount+AcmeAccountKey
 
@@ -253,18 +272,18 @@ class _PrivateKeyUploadParser(object):
     """
 
     # overwritten in __init__
-    getcreate_args = None
-    formStash = None
+    getcreate_args: Dict
+    formStash: FormStash
 
     # tracked
     private_key_pem = None
     upload_type = None  # pem
 
-    def __init__(self, formStash):
+    def __init__(self, formStash: FormStash):
         self.formStash = formStash
         self.getcreate_args = {}
 
-    def require_upload(self):
+    def require_upload(self) -> None:
         """
         routine for uploading an exiting PrivateKey
         """
@@ -286,19 +305,19 @@ class _AcmeAccountSelection(object):
     Class used to manage an uploaded AcmeAccount
     """
 
-    selection = None
-    upload_parsed = None  # instance of AcmeAccountUploadParser or None
+    selection: Optional[str] = None
+    upload_parsed: Optional["AcmeAccountUploadParser"] = None
     AcmeAccount = None
 
 
 class _PrivateKeySelection(object):
-    selection = None
-    upload_parsed = None  # instance of AcmeAccountUploadParser or None
-    private_key_strategy__requested = None
+    selection: Optional[str] = None
+    upload_parsed: Optional["_PrivateKeyUploadParser"] = None
+    private_key_strategy__requested: str
     PrivateKey = None
 
     @property
-    def private_key_strategy_id__requested(self):
+    def private_key_strategy_id__requested(self) -> int:
         return model_utils.PrivateKeyStrategy.from_string(
             self.private_key_strategy__requested
         )
@@ -306,11 +325,11 @@ class _PrivateKeySelection(object):
 
 def parse_AcmeAccountSelection(
     request,
-    formStash,
-    account_key_option=None,
-    allow_none=None,
-    require_contact=None,
-):
+    formStash: FormStash,
+    account_key_option: Optional[str] = None,
+    allow_none: Optional[bool] = None,
+    require_contact: Optional[bool] = None,
+) -> _AcmeAccountSelection:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param account_key_option:
@@ -387,7 +406,11 @@ def parse_AcmeAccountSelection(
     formStash.fatal_form("There was an error validating your form.")
 
 
-def parse_PrivateKeySelection(request, formStash, private_key_option=None):
+def parse_PrivateKeySelection(
+    request: "Request",
+    formStash: FormStash,
+    private_key_option: Optional[str] = None,
+) -> _PrivateKeySelection:
     private_key_pem_md5 = None
     # PrivateKey = None  # :class:`model.objects.PrivateKey`
 
@@ -469,7 +492,11 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
     formStash.fatal_form("There was an error validating your form.")
 
 
-def form_key_selection(request, formStash, require_contact=None):
+def form_key_selection(
+    request: "Request",
+    formStash: FormStash,
+    require_contact: Optional[bool] = None,
+) -> Tuple:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
@@ -481,6 +508,7 @@ def form_key_selection(request, formStash, require_contact=None):
         require_contact=require_contact,
     )
     if acmeAccountSelection.selection == "upload":
+        assert acmeAccountSelection.upload_parsed
         key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
         key_create_args["event_type"] = "AcmeAccount__insert"
         key_create_args[
@@ -501,6 +529,7 @@ def form_key_selection(request, formStash, require_contact=None):
     )
 
     if privateKeySelection.selection == "upload":
+        assert privateKeySelection.upload_parsed
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
         key_create_args["event_type"] = "PrivateKey__insert"
         key_create_args[
@@ -529,7 +558,11 @@ def form_key_selection(request, formStash, require_contact=None):
     return (acmeAccountSelection, privateKeySelection)
 
 
-def form_domains_challenge_typed(request, formStash, http01_only=False):
+def form_domains_challenge_typed(
+    request: "Request",
+    formStash: FormStash,
+    http01_only: bool = False,
+) -> model_utils.DomainsChallenged:
     domains_challenged = model_utils.DomainsChallenged()
     domain_names_all = []
     try:
@@ -582,7 +615,11 @@ def form_domains_challenge_typed(request, formStash, http01_only=False):
     return domains_challenged
 
 
-def form_single_domain_challenge_typed(request, formStash, challenge_type="http-01"):
+def form_single_domain_challenge_typed(
+    request: "Request",
+    formStash: FormStash,
+    challenge_type: str = "http-01",
+) -> model_utils.DomainsChallenged:
     domains_challenged = model_utils.DomainsChallenged()
 
     # this function checks the domain names match a simple regex
