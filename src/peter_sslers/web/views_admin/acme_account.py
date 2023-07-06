@@ -1,4 +1,8 @@
+# stlib
+from urllib.parse import quote_plus
+
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -19,11 +23,9 @@ from ..lib.forms import Form_AcmeAccount_new__file
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
-from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
-from ...lib._compat import quote_plus
 from ...model import utils as model_utils
 
 
@@ -160,7 +162,10 @@ class View_New(Handler):
                 "acme_account_key_source_id"
             ] = model_utils.AcmeAccountKeySource.from_string("imported")
             try:
-                (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
+                (
+                    dbAcmeAccount,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__AcmeAccount(
                     self.request.api_context, **key_create_args
                 )
             except errors.ConflictingObject as exc:
@@ -1164,7 +1169,7 @@ class View_Focus_Manipulate(View_Focus):
                         self.request.api_context, dbAcmeAccount
                     )
                     if alt_info:
-                        for (k, v) in alt_info["event_payload_dict"].items():
+                        for k, v in alt_info["event_payload_dict"].items():
                             event_payload_dict[k] = v
                         event_alt = alt_info["event_alt"]
                 else:
@@ -1252,9 +1257,12 @@ class View_Focus_Manipulate(View_Focus):
                 return {
                     "error": error_message,
                 }
-            url_error = "%s?result=error&error=%s&operation=acme-server--deactivate-pending-authorizations" % (
-                self._focus_url,
-                error_message.replace(" ", "+"),
+            url_error = (
+                "%s?result=error&error=%s&operation=acme-server--deactivate-pending-authorizations"
+                % (
+                    self._focus_url,
+                    error_message.replace(" ", "+"),
+                )
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":

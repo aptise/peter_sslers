@@ -2,7 +2,10 @@ from __future__ import print_function
 
 # stdlib
 from functools import wraps
-from io import open  # overwrite `open` in Python2
+
+# from io import open  # overwrite `open` in Python2
+from io import BytesIO  # noqa: F401
+from io import StringIO  # noqa: F401
 import json
 import logging
 import pprint
@@ -10,19 +13,16 @@ import unittest
 import zipfile
 
 # pypi
+import cert_utils
 import packaging.version
 import requests
 import sqlalchemy
 from webtest import Upload
 
 # local
-from peter_sslers.lib import cert_utils
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
-from ._compat import BytesIO
-from ._compat import PY2
-from ._compat import StringIO
 from ._utils import AppTest
 from ._utils import AppTestWSGI
 from ._utils import generate_random_emailaddress
@@ -1536,7 +1536,6 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         )
     )
     def test_new_json(self):
-
         res = self.testapp.post(
             "/.well-known/admin/acme-dns-server/new.json", {}, status=200
         )
@@ -3563,10 +3562,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             res.headers["Content-Disposition"]
             == "attachment; filename= cert%s.zip" % focus_id
         )
-        if PY2:
-            z = zipfile.ZipFile(StringIO(res.body))
-        else:
-            z = zipfile.ZipFile(BytesIO(res.body))
+        z = zipfile.ZipFile(BytesIO(res.body))
         assert len(z.infolist()) == 4
         expectations = [
             file_template % focus_id
@@ -4735,7 +4731,6 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
     def test_AcmeOrderless_new_fails(self):
-
         res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
         form = res.form
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
@@ -4749,7 +4744,6 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
     def test_AcmeOrderless_add_fails(self):
-
         res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
         form = res.form
         form["domain_names_http01"] = "example.com"
@@ -6593,10 +6587,7 @@ class FunctionalTests_AlternateChains(AppTest):
                 res.headers["Content-Disposition"]
                 == "attachment; filename= cert%s-chain%s.zip" % focus_ids
             )
-            if PY2:
-                z = zipfile.ZipFile(StringIO(res.body))
-            else:
-                z = zipfile.ZipFile(BytesIO(res.body))
+            z = zipfile.ZipFile(BytesIO(res.body))
             assert len(z.infolist()) == 4
             expectations = [
                 file_template % certificate_signed_id
@@ -8567,8 +8558,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert len(acme_authorization_ids) == 2
 
         # loop these as an enumeration
-        for (idx, authorization_id) in enumerate(acme_authorization_ids):
-
+        for idx, authorization_id in enumerate(acme_authorization_ids):
             # Auth1
             res_auth = self.testapp.get(
                 "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
@@ -8644,7 +8634,6 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert RE_AcmeChallenge_trigger_fail.match(res_trigger.location)
 
             else:
-
                 # iteration 2: trigger then sync
 
                 # Get/Audit Main Record
@@ -8709,8 +8698,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert len(acme_authorization_ids) == 2
 
         # loop these as an enumeration
-        for (idx, authorization_id) in enumerate(acme_authorization_ids):
-
+        for idx, authorization_id in enumerate(acme_authorization_ids):
             # Auth1
             res_auth = self.testapp.get(
                 "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
@@ -8813,7 +8801,6 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
             else:
-
                 # iteration 2: trigger then sync
 
                 # Get/Audit Main Record
@@ -9378,7 +9365,6 @@ class FunctionalTests_API(AppTest):
         )
     )
     def test_manipulate_json(self):
-
         # deactivate-expired
         res = self.testapp.get(
             "/.well-known/admin/api/deactivate-expired.json", {}, status=200
@@ -9627,7 +9613,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         return stats
 
     def _place_order(self, account_key_file_pem, account__contact, domain_names):
-
         resp = requests.get(
             "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/freeform.json"
         )

@@ -1,6 +1,6 @@
 def formstash_to_querystring(formStash):
     err = []
-    for (k, v) in formStash.errors.items():
+    for k, v in formStash.errors.items():
         err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
     err = sorted(err)
     err = "---".join(err)

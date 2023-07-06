@@ -559,7 +559,6 @@ class View_New(Handler):
                 private_key_cycle__renewal
             )
             try:
-
                 # this may raise errors.AcmeDomainsBlocklisted
                 (
                     dbUniqueFQDNSet,

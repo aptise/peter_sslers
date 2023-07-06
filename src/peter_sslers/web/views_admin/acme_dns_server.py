@@ -1,4 +1,5 @@
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -125,7 +126,10 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            (dbAcmeDnsServer, _is_created,) = lib_db.getcreate.getcreate__AcmeDnsServer(
+            (
+                dbAcmeDnsServer,
+                _is_created,
+            ) = lib_db.getcreate.getcreate__AcmeDnsServer(
                 self.request.api_context, root_url=formStash.results["root_url"]
             )
 
@@ -338,7 +342,7 @@ class View_Focus(Handler):
 
             try:
                 # this function checks the domain names match a simple regex
-                domain_names = utils.domains_from_string(
+                domain_names = cert_utils.utils.domains_from_string(
                     formStash.results["domain_names"]
                 )
             except ValueError as exc:  # noqa: F841
@@ -529,7 +533,7 @@ class View_Focus(Handler):
             for test_domain in ("domain_name", "fulldomain"):
                 try:
                     # this function checks the domain names match a simple regex
-                    domain_name = utils.domains_from_string(
+                    domain_name = cert_utils.utils.domains_from_string(
                         formStash.results[test_domain]
                     )
                 except ValueError as exc:  # noqa: F841
@@ -675,7 +679,7 @@ class View_Focus_Manipulate(View_Focus):
                         self.request.api_context, dbAcmeDnsServer
                     )
                     if alt_info:
-                        for (k, v) in alt_info["event_payload_dict"].items():
+                        for k, v in alt_info["event_payload_dict"].items():
                             event_payload_dict[k] = v
                         event_alt = alt_info["event_alt"]
 

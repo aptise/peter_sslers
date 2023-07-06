@@ -3,6 +3,7 @@ import json
 import logging
 
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
@@ -33,7 +34,6 @@ log = logging.getLogger(__name__)
 
 
 class ViewAdminApi(Handler):
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api", renderer="/admin/api.mako")
@@ -187,7 +187,9 @@ class ViewAdminApi_Domain(Handler):
                 raise formhandling.FormInvalid()
 
             # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_names"])
+            domain_names = cert_utils.utils.domains_from_string(
+                formStash.results["domain_names"]
+            )
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -233,7 +235,9 @@ class ViewAdminApi_Domain(Handler):
                 raise formhandling.FormInvalid()
 
             # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_names"])
+            domain_names = cert_utils.utils.domains_from_string(
+                formStash.results["domain_names"]
+            )
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -339,7 +343,10 @@ class ViewAdminApi_Domain(Handler):
                 key_create_args[
                     "acme_account_key_source_id"
                 ] = model_utils.AcmeAccountKeySource.from_string("imported")
-                (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
+                (
+                    dbAcmeAccount,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__AcmeAccount(
                     self.request.api_context, **key_create_args
                 )
                 acmeAccountSelection.AcmeAccount = dbAcmeAccount
@@ -612,7 +619,6 @@ class ViewAdminApi_Domain(Handler):
                 log.debug("autocert - order invalid")
                 return rval
             except Exception as exc:
-
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
                 if isinstance(exc, errors.AcmeOrderCreatedError):
                     rval = {

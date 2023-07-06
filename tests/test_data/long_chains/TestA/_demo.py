@@ -6,7 +6,7 @@ from OpenSSL import crypto as openssl_crypto
 
 # ==============================================================================
 
-# see `peter_sslers.lib.cert_utils.CERT_PEM_REGEX`, via certbot
+# see `cert_utils.CERT_PEM_REGEX`, via certbot
 CERT_PEM_REGEX = re.compile(
     b"""-----BEGIN CERTIFICATE-----\r?.+?\r?-----END CERTIFICATE-----\r?""", re.DOTALL
 )

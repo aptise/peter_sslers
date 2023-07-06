@@ -10,9 +10,6 @@ import subprocess
 # pypi
 import psutil
 
-# local
-from .lib._compat import PY3
-
 
 # ==============================================================================
 
@@ -57,8 +54,7 @@ def upload_fileset(server_url_root, fset):
             json_response, err = proc.communicate()
             if not json_response:
                 raise ValueError("error")
-            if PY3:
-                json_response = json_response.decode("utf8")
+            json_response = json_response.decode("utf8")
             json_response = json.loads(json_response)
             if ("result" not in json_response) or (
                 json_response["result"] != "success"
@@ -108,8 +104,7 @@ def upload_account(server_url_root, fset):
             if not json_response:
                 print(err)
                 raise ValueError("error")
-            if PY3:
-                json_response = json_response.decode("utf8")
+            json_response = json_response.decode("utf8")
             json_response = json.loads(json_response)
             if ("result" not in json_response) or (
                 json_response["result"] != "success"
@@ -160,7 +155,7 @@ def import_certbot_certs_archive(archive_path, server_url_root):
         total_sets = len(dfiles) / 4
         for i in range(1, total_sets + 1):
             fset = {}
-            for (ftype, ftemplate) in _le_archive_filename_templates.items():
+            for ftype, ftemplate in _le_archive_filename_templates.items():
                 fpath = os.path.join(dpath, ftemplate % i)
                 if not os.path.exists(fpath):
                     raise ValueError(
@@ -213,7 +208,7 @@ def import_certbot_cert_version(
 
     _missing_files = []
     _fileset = {}
-    for (ftype, ftemplate) in _le_archive_filename_templates.items():
+    for ftype, ftemplate in _le_archive_filename_templates.items():
         flocal = ftemplate % certificate_version
         fpath = os.path.join(domain_certs_path, flocal)
         if not os.path.exists(fpath):
@@ -255,7 +250,7 @@ def import_certbot_cert_plain(cert_path, server_url_root):
 
     _missing_files = []
     _fileset = {}
-    for (ftype, fname) in _le_live_filenames.items():
+    for ftype, fname in _le_live_filenames.items():
         fpath = os.path.join(cert_path, fname)
         if not os.path.exists(fpath):
             _missing_files.append(fname)
@@ -308,7 +303,7 @@ def import_certbot_certs_live(live_path, server_url_root):
 
         fset = {}
         try:
-            for (ftype, fname) in _le_live_filenames.items():
+            for ftype, fname in _le_live_filenames.items():
                 fpath = os.path.join(dpath, fname)
                 if not os.path.exists(fpath):
                     raise ValueError(

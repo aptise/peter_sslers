@@ -1,14 +1,24 @@
 # stdlib
 import json
+from typing import Dict
+from typing import List
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 import requests
 
 # local
 from . import utils
-from .. import lib  # for `lib.db.logger`
+from ..lib.db.logger import log__OperationsEvent
 from ..model import utils as model_utils
 
+
+if TYPE_CHECKING:
+    from .utils import ApiContext
+    from ..model.objects import Domain
+    from pyramid.request import Request
 
 # ==============================================================================
 
@@ -16,14 +26,14 @@ from ..model import utils as model_utils
 class NginxSession(object):
     session = None
 
-    def __init__(self, request):
+    def __init__(self, request: "Request"):
         """
         :param request: The current Pyramid `request` object
         """
         sess = requests.Session()
         _auth = request.registry.settings["app_settings"].get("nginx.userpass")
         if _auth:
-            sess.auth = tuple(_auth.split(":"))
+            sess.auth = tuple(_auth.split(":"))  # type: ignore[assignment]
         servers_allow_invalid = request.registry.settings["app_settings"].get(
             "nginx.servers_pool_allow_invalid"
         )
@@ -44,7 +54,10 @@ class NginxSession(object):
         return self.session.post(*args, **kwargs)
 
 
-def nginx_flush_cache(request, ctx):
+def nginx_flush_cache(
+    request: "Request",
+    ctx: "ApiContext",
+) -> Tuple:
     """
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -52,7 +65,11 @@ def nginx_flush_cache(request, ctx):
     _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
     timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     with NginxSession(request) as sess:
-        rval = {"errors": [], "success": [], "servers": {}}
+        rval: Dict[str, Union[List, Dict]] = {
+            "errors": [],
+            "success": [],
+            "servers": {},
+        }
         for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
             status = None
             try:
@@ -62,11 +79,11 @@ def nginx_flush_cache(request, ctx):
                     response_json = json.loads(response.text)
                     status = response_json
                     if response_json["result"] != "success":
-                        rval["errors"].append(_server)
+                        rval["errors"].append(_server)  # type: ignore[union-attr]
                     else:
-                        rval["success"].append(_server)
+                        rval["success"].append(_server)  # type: ignore[union-attr]
                 else:
-                    rval["errors"].append(_server)
+                    rval["errors"].append(_server)  # type: ignore[union-attr]
                     status = {
                         "status": "error",
                         "error": "response",
@@ -76,21 +93,24 @@ def nginx_flush_cache(request, ctx):
                         },
                     }
             except Exception as exc:
-                rval["errors"].append(_server)
+                rval["errors"].append(_server)  # type: ignore[union-attr]
                 status = {
                     "status": "error",
                     "error": "Exception",
                     "Exception": "%s" % str(exc),  # this could be an object
                 }
             rval["servers"][_server] = status
-    dbEvent = lib.db.logger.log__OperationsEvent(
+    dbEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__nginx_cache_flush"),
     )
     return True, dbEvent, rval
 
 
-def nginx_status(request, ctx):
+def nginx_status(
+    request: "Request",
+    ctx: "ApiContext",
+) -> Dict:
     """
     returns the status document for each server
 
@@ -100,7 +120,11 @@ def nginx_status(request, ctx):
     status_path = request.registry.settings["app_settings"]["nginx.status_path"]
     timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     with NginxSession(request) as sess:
-        rval = {"errors": [], "success": [], "servers": {}}
+        rval: Dict[str, Union[List, Dict]] = {
+            "errors": [],
+            "success": [],
+            "servers": {},
+        }
         for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
             _status = None
             try:
@@ -109,9 +133,9 @@ def nginx_status(request, ctx):
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     _status = response_json
-                    rval["success"].append(_server)
+                    rval["success"].append(_server)  # type: ignore[union-attr]
                 else:
-                    rval["errors"].append(_server)
+                    rval["errors"].append(_server)  # type: ignore[union-attr]
                     _status = {
                         "status": "error",
                         "error": "response",
@@ -121,7 +145,7 @@ def nginx_status(request, ctx):
                         },
                     }
             except Exception as exc:
-                rval["errors"].append(_server)
+                rval["errors"].append(_server)  # type: ignore[union-attr]
                 _status = {
                     "status": "error",
                     "error": "Exception",
@@ -131,7 +155,9 @@ def nginx_status(request, ctx):
     return rval
 
 
-def nginx_expire_cache(request, ctx, dbDomains=None):
+def nginx_expire_cache(
+    request: "Request", ctx: "ApiContext", dbDomains: List["Domain"]
+) -> Tuple:
     """
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -139,7 +165,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
     """
     if not dbDomains:
         raise ValueError("no domains submitted")
-    domain_ids = {"success": set([]), "failure": set([])}
+    domain_ids: Dict[str, set] = {"success": set([]), "failure": set([])}
     _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
     timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     with NginxSession(request) as sess:
@@ -169,7 +195,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
         "success": list(domain_ids["success"]),
         "failure": list(domain_ids["failure"]),
     }
-    dbEvent = lib.db.logger.log__OperationsEvent(
+    dbEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__nginx_cache_expire"),
         event_payload_dict,

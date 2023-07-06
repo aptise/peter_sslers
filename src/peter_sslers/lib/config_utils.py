@@ -1,8 +1,11 @@
 # stdlib
+from typing import Dict
+from typing import Optional
+
+# pypi
+import cert_utils
 
 # local
-from . import cert_utils
-
 # from ..model import objects as model_objects
 # from ..model import utils as model_utils
 
@@ -48,7 +51,7 @@ class ApplicationSettings(dict):
         ):
             self[_opt] = None
 
-    def from_settings_dict(self, settings):
+    def from_settings_dict(self, settings: Dict) -> None:
         """
         * parses a `settings` dict (which Pyramid would natively have in `main`)
         * invokes `self.validate()`
@@ -209,7 +212,11 @@ class ApplicationSettings(dict):
 # ------------------------------------------------------------------------------
 
 
-def set_bool_setting(settings, key, default=False):
+def set_bool_setting(
+    settings: Dict,
+    key: str,
+    default: bool = False,
+) -> bool:
     """
     originally designed to modify Pyramid's '`config.registry.settings` in-place
     modify's a setting in-place an returns it.
@@ -226,16 +233,23 @@ def set_bool_setting(settings, key, default=False):
     return _bool
 
 
-def set_int_setting(settings, key, default=None):
+def set_int_setting(
+    settings: Dict,
+    key: str,
+    default: Optional[int] = None,
+) -> Optional[int]:
     """
     originally designed to modify Pyramid's '`config.registry.settings` in-place
     modify's a setting in-place an returns it.
     """
     value = default
     if key in settings:
-        value = int(settings[key])
+        _candidate = settings[key]
+        if _candidate is not None:
+            value = int(_candidate)
     else:
-        value = int(default)
+        if default is not None:
+            value = int(default)
     settings[key] = value
     return value
 

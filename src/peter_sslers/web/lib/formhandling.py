@@ -4,9 +4,6 @@ import pyramid_formencode_classic
 from pyramid_formencode_classic.exceptions import FormFieldInvalid  # noqa: F401
 from pyramid_formencode_classic.exceptions import FormInvalid  # noqa: F401
 
-# local
-from ...lib._compat import PY2
-
 
 # ==============================================================================
 
@@ -77,13 +74,6 @@ def form_validate(request, **kwargs):
     if "error_main_text" not in kwargs:
         kwargs["error_main_text"] = "There was an error with your form."
     (result, formStash) = pyramid_formencode_classic.form_validate(request, **kwargs)
-    if not result:
-        if PY2:
-            # there is an issue in formencode under Python2
-            # see: https://github.com/formencode/formencode/issues/132
-            for (k, v) in list(formStash.errors.items()):
-                if " (not u'" in v:
-                    formStash.errors[k] = v.replace(" (not u'", " (not '")
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS
     formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
     formStash.html_error_placeholder_form_template = (

@@ -3,7 +3,7 @@ import datetime
 import logging
 
 # pypi
-# import transaction
+import cert_utils
 
 # local
 from .logger import _log_object_event
@@ -37,7 +37,7 @@ def queue_domains__add(ctx, domain_names):
     )
 
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = cert_utils.utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
@@ -293,7 +293,6 @@ def queue_domains__process(
             return dbAcmeOrder
 
         except (errors.AcmeOrderFatal, errors.DomainVerificationError) as exc:
-
             if isinstance(exc, errors.AcmeOrderFatal):
                 event_payload_dict["status"] = "error - AcmeOrderFatal"
             else:

@@ -183,7 +183,6 @@ def main(global_config, **settings):
     dbEngine = models.get_engine(settings)
     dbSession = None
     with transaction.manager:
-
         session_factory = models.get_session_factory(dbEngine)
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 

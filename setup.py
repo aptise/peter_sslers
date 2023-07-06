@@ -16,6 +16,7 @@ with open(os.path.join(HERE, "README.md")) as f:
     long_description = f.read()
 
 requires = [
+    "cert_utils",  # formerly in here
     "formencode>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
     "packaging",
@@ -25,10 +26,9 @@ requires = [
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
-    "pyramid<2",
+    "pyramid",
     "python-dateutil",
     "requests",
-    "six ",
     "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
@@ -38,18 +38,19 @@ tests_require = [
     "cryptography",
     "josepy",
     "pre-commit",
-    "pycrypto",
+    "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",
     "redis",
+    "types-urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []
 
 setup(
     name="peter_sslers",
-    version="0.5.0.dev0",
+    version="0.6.0.dev0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",

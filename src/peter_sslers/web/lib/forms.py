@@ -191,7 +191,6 @@ class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
 
 
 class Form_AcmeAccount_edit(_Form_Schema_Base):
-
     # this is the `private_key_cycle` of the AcmeAccount
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,

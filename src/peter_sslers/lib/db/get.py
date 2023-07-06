@@ -3,11 +3,10 @@ import datetime
 import logging
 
 # pypi
+import cert_utils
 import sqlalchemy
 
 # localapp
-from .. import utils
-from ... import lib
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -1183,8 +1182,8 @@ def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
 
 
 def get__CertificateCA__by_pem_text(ctx, cert_pem):
-    cert_pem = lib.cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
     dbCertificateCA = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
@@ -1231,8 +1230,8 @@ def get__CertificateCAChain__by_id(ctx, chain_id):
 
 
 def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
-    chain_pem = lib.cert_utils.cleanup_pem_text(chain_pem)
-    chain_pem_md5 = utils.md5_text(chain_pem)
+    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
     dbCertificateCAChain = (
         ctx.dbSession.query(model_objects.CertificateCAChain)
         .filter(
@@ -1346,8 +1345,8 @@ def get__CertificateRequest__by_id(ctx, certificate_request_id):
 
 
 def get__CertificateRequest__by_pem_text(ctx, csr_pem):
-    csr_pem = lib.cert_utils.cleanup_pem_text(csr_pem)
-    csr_pem_md5 = utils.md5_text(csr_pem)
+    csr_pem = cert_utils.cleanup_pem_text(csr_pem)
+    csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
     dbCertificateRequest = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .filter(

@@ -1,3 +1,6 @@
+# stlib
+from urllib.parse import urlencode
+
 # pypi
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
@@ -6,7 +9,6 @@ import sqlalchemy
 # local
 from ..lib import configuration_options
 from ..lib.handler import Handler
-from ...lib._compat import urlencode
 from ...model import objects as model_objects
 
 # ==============================================================================

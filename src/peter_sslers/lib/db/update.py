@@ -688,7 +688,6 @@ def update_CertificateSigned__mark_compromised(
 
 
 def update_CertificateSigned__set_active(ctx, dbCertificateSigned):
-
     if dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already active.")
 
@@ -716,7 +715,6 @@ def update_CertificateSigned__set_active(ctx, dbCertificateSigned):
 
 
 def update_CertificateSigned__unset_active(ctx, dbCertificateSigned):
-
     if not dbCertificateSigned.is_active:
         raise errors.InvalidTransition("Already inactive.")
 
@@ -754,7 +752,6 @@ def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned):
 
 
 def update_CertificateSigned__set_revoked(ctx, dbCertificateSigned):
-
     if dbCertificateSigned.is_revoked:
         raise errors.InvalidTransition("Certificate is already revoked")
 

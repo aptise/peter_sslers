@@ -1,9 +1,8 @@
 # stdlib
 import logging
 
-# localapp
-from ... import lib
-
+# pypi
+import cert_utils
 
 # ==============================================================================
 
@@ -33,7 +32,7 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.spki_sha256`
 
     # --------------------------------------------------------------------------
-    cert_dates = lib.cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
+    cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
 
     datetime_signed = cert_dates["startdate"]
     if not datetime_signed.startswith("notBefore="):
@@ -52,7 +51,7 @@ def _certificate_parse_to_record(
     dbCertificateSigned.timestamp_not_after = datetime_expires
     """
     # everything is in here
-    _cert_data = lib.cert_utils.parse_cert(
+    _cert_data = cert_utils.parse_cert(
         cert_pem=cert_pem,
         cert_pem_filepath=cert_pem_filepath,
     )

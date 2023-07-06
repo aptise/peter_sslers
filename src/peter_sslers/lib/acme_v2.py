@@ -11,24 +11,45 @@ import logging
 import re
 import ssl
 import time
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
+from urllib.request import Request
+from urllib.request import urlopen
 
 # import pdb
 # import pprint
 # import subprocess
 
 # pypi
+import cert_utils
 import josepy
 from requests.utils import parse_header_links
 
 # localapp
 from . import acmedns as lib_acmedns
-from . import cert_utils
 from . import errors
 from . import utils
-from ._compat import Request
-from ._compat import urlopen
 from .db import update as db_update
 from ..model import utils as model_utils
+
+if TYPE_CHECKING:
+    from ..model.objects import AcmeAccount
+    from ..model.objects import AcmeAccountKey
+    from ..model.objects import AcmeAuthorization
+    from ..model.objects import AcmeChallenge
+    from ..model.objects import AcmeOrder
+    from ..model.objects import UniqueFQDNSet
+    from ..model.utils import DomainsChallenged
+    from .db.logger import AcmeLogger
+    from .utils import ApiContext
+    from cert_utils.core import AccountKeyData
+    from http.client import HTTPMessage
 
 # ==============================================================================
 
@@ -38,15 +59,20 @@ log.setLevel(logging.INFO)
 # ------------------------------------------------------------------------------
 
 
-def new_response_404():
+def new_response_404() -> Dict:
     return {"status": "*404*"}
 
 
-def new_response_invalid():
+def new_response_invalid() -> Dict:
     return {"status": "invalid"}
 
 
-def url_request(url, post_data=None, err_msg="Error", depth=0):
+def url_request(
+    url: str,
+    post_data: Optional[Dict] = None,
+    err_msg: str = "Error",
+    depth: int = 0,
+) -> Tuple:
     """
     Originally from acme-tiny
     # helper function - make request and automatically parse json response
@@ -120,9 +146,9 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 
 
 def get_authorization_challenges(
-    authorization_response,
-    required_challenges=None,
-):
+    authorization_response: Dict,
+    required_challenges: Optional[List[str]] = None,
+) -> Dict[str, Optional[Dict]]:
     """
     :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
     :param list required_challenges: (optional) Pass in a list of required challenges
@@ -131,7 +157,7 @@ def get_authorization_challenges(
         `dict` in which keys are the challenge type and values are the challenge payload.
     """
 
-    challenges = {
+    challenges: Dict[str, Optional[Dict]] = {
         "http-01": None,
         "dns-01": None,
         "tls-alpn-01": None,
@@ -151,9 +177,9 @@ def get_authorization_challenges(
 
 
 def filter_specific_challenge(
-    acme_challenges_payload,
-    acme_challenge_type=None,
-):
+    acme_challenges_payload: Dict,
+    acme_challenge_type: Optional[str] = None,
+) -> Dict[str, Optional[Dict]]:
     """
     :param dict acme_challenges_payload: (required) A payload of acme-challenges
     :param str acme_challenge_type: (required) The selected type of acme-challenge
@@ -165,7 +191,10 @@ def filter_specific_challenge(
     return acme_challenges_payload[acme_challenge_type]
 
 
-def create_challenge_keyauthorization(token, accountKeyData):
+def create_challenge_keyauthorization(
+    token: str,
+    accountKeyData: "AccountKeyData",
+) -> str:
     """
     :param str token: (required) A string `token` entry from a server Challenge object
     :param str accountKeyData: (required) an instance conforming to `cert_utils.AccountKeyData`
@@ -176,7 +205,9 @@ def create_challenge_keyauthorization(token, accountKeyData):
     return keyauthorization
 
 
-def create_dns01_keyauthorization(keyauthorization):
+def create_dns01_keyauthorization(
+    keyauthorization: str,
+) -> str:
     """
 
     Certbot:: acme/acme/challenges.py
@@ -196,7 +227,7 @@ def create_dns01_keyauthorization(keyauthorization):
 # ------------------------------------------------------------------------------
 
 
-def acme_directory_get(acmeAccount=None):
+def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
     """
     Get the ACME directory of urls
 
@@ -229,17 +260,25 @@ class AcmeOrderRFC(object):
     :param dbUniqueFQDNSet: (required) A :class:`model.objects.UniqueFQDNSet` object
     """
 
-    rfc_object = None
-    response_headers = None
-    dbUniqueFQDNSet = None
+    rfc_object: Dict
+    response_headers: "HTTPMessage"  # Dict-like
+    dbUniqueFQDNSet: "UniqueFQDNSet"
 
-    def __init__(self, rfc_object=None, response_headers=None, dbUniqueFQDNSet=None):
+    def __init__(
+        self,
+        rfc_object: Dict,
+        response_headers: "HTTPMessage",
+        dbUniqueFQDNSet: "UniqueFQDNSet",
+    ):
         self.rfc_object = rfc_object
         self.response_headers = response_headers
         self.dbUniqueFQDNSet = dbUniqueFQDNSet
 
 
-def get_header_links(response_headers, relation_type):
+def get_header_links(
+    response_headers: "HTTPMessage",
+    relation_type: str,
+) -> List[str]:
     """
     based on certbot's `_get_links`
     https://github.com/certbot/certbot/pull/8080/files#diff-2ddf346e79198cd9bd28a8e8ee691b7b
@@ -273,12 +312,13 @@ def get_header_links(response_headers, relation_type):
     if "Link" not in response_headers:
         return []
     if hasattr(response_headers, "get_all"):
-        links = [parse_header_links(h) for h in response_headers.get_all("Link")]
+        links = response_headers.get_all("Link")
+        links = [parse_header_links(h) for h in links]  # type: ignore[union-attr]
         links = [_l[0] for _l in links if _l]
     else:
         # '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index", <https://acme-staging-v02.api.letsencrypt.org/acme/cert/123/1>;rel="alternate"'
-
-        links = parse_header_links(response_headers.get("Link"))
+        links = response_headers.get("Link")
+        links = parse_header_links(links)  # type: ignore[arg-type]
     return [
         _l["url"]
         for _l in links
@@ -286,17 +326,25 @@ def get_header_links(response_headers, relation_type):
     ]
 
 
-def b64_payload(payload=None):
+def b64_payload(payload=Any) -> str:
     if payload is None:
         return ""
+    # cert_utils.jose_b64 -> string
     return cert_utils.jose_b64(json.dumps(payload).encode("utf8"))
 
 
-def sign_payload(url=None, payload=None, accountKeyData=None, kid=None, nonce=None):
+def sign_payload(
+    url: str,
+    payload: Any,
+    accountKeyData: "AccountKeyData",
+    kid: Any,
+    nonce: str,
+):
     """
     This format is used by core operations
     """
-    protected = {
+    # TODO: type for kid
+    protected: Dict = {
         "url": url,
         "alg": accountKeyData.alg,
         "nonce": nonce,
@@ -324,10 +372,8 @@ def sign_payload(url=None, payload=None, accountKeyData=None, kid=None, nonce=No
 
 
 def sign_payload_inner(
-    url=None,
-    payload=None,
-    accountKeyData=None,
-):
+    url: str, payload: Any, accountKeyData: "AccountKeyData"
+) -> Dict:
     """
     This format is used by the `keyChange` rollover endpoint's inner payload.
 
@@ -385,38 +431,37 @@ def sign_payload_inner(
 
 
 class AuthenticatedUser(object):
-
     # our API guarantees these items
-    acmeLogger = None
-    acmeAccount = None
-    acme_directory = None
-    log__OperationsEvent = None
+    acmeLogger: "AcmeLogger"
+    acmeAccount: "AcmeAccount"
+    acme_directory: Dict  # the payload from the remote server
+    log__OperationsEvent: Optional[Callable]
 
-    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
+    accountKeyData: "AccountKeyData"  # an instance conforming to `cert_utils.AccountKeyData`
 
-    _api_account_object = None  # api server native/json object
-    _api_account_headers = None  # api server native/json object
+    _api_account_object: Dict  # api server native/json object
+    _api_account_headers: Dict  # api server native/json object
 
     def __init__(
         self,
-        acmeLogger=None,
-        acmeAccount=None,
-        account_key_path=None,
-        acme_directory=None,
-        log__OperationsEvent=None,
+        acmeLogger: "AcmeLogger",
+        acmeAccount: "AcmeAccount",
+        account_key_path: Optional[str] = None,
+        acme_directory: Optional[Dict] = None,
+        log__OperationsEvent: Optional[Callable] = None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
         :param acmeAccount: (required) A :class:`model.objects.AcmeAccount` object
         :param account_key_path: (optional) The filepath of a PEM encoded RSA key.
             This is only needed for openssl fallback, but it will be created if necessary.
-        :param acme_directory: (optional) The ACME Directory's url for a "directory"
+        :param acme_directory: (optional) The ACME Directory payload. If not supplied, this will
+            be generated.
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
         if not all((acmeLogger, acmeAccount)):
             raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
-        # do we need to load this?
         if acme_directory is None:
             acme_directory = acme_directory_get(acmeAccount)
 
@@ -433,7 +478,12 @@ class AuthenticatedUser(object):
         self.log__OperationsEvent = log__OperationsEvent
         self._next_nonce = None
 
-    def _send_signed_request(self, url, payload=None, depth=0):
+    def _send_signed_request(
+        self,
+        url: str,
+        payload: Any = None,
+        depth: int = 0,
+    ) -> Tuple:
         """
         Originally from acme-tiny
         :param url: (required) The url
@@ -488,12 +538,19 @@ class AuthenticatedUser(object):
                 depth=(depth + 1),
             )
 
-    def _poll_until_not(self, _url, _pending_statuses, _log_message):
+    def _poll_until_not(
+        self,
+        _url: str,
+        _pending_statuses: List[str],
+        _log_message: str,
+    ) -> Dict:
         """
         Originally from acme-tiny
         :param _url: (required) The url
         :param _pending_statuses: (required) The statuses we will continue polling until we lose
         :param depth: (optional) An integer nothing the depth of this function being called
+
+        The response data is a dict
         """
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         _result, _t0 = None, time.time()
@@ -507,7 +564,11 @@ class AuthenticatedUser(object):
             )
         return _result
 
-    def update_contact(self, ctx, contact=None):
+    def update_contact(
+        self,
+        ctx: "ApiContext",
+        contact: Optional[str] = None,
+    ) -> None:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param contact: (optional) The updated contact info
@@ -534,7 +595,12 @@ class AuthenticatedUser(object):
             )
         )
 
-    def authenticate(self, ctx, contact=None, onlyReturnExisting=None):
+    def authenticate(
+        self,
+        ctx: "ApiContext",
+        contact: Optional[str] = None,
+        onlyReturnExisting: Optional[bool] = None,
+    ) -> bool:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param contact: (optional) The contact info
@@ -640,7 +706,7 @@ class AuthenticatedUser(object):
              "externalAccountBinding": None,
              }
             """
-            payload_registration = {
+            payload_registration: Dict[str, Union[bool, str, List[str]]] = {
                 "termsOfServiceAgreed": True,
             }
             if contact is not None:
@@ -676,13 +742,14 @@ class AuthenticatedUser(object):
                             event_payload_dict = utils.new_event_payload_dict()
                             event_payload_dict["acme_account.id"] = self.acmeAccount.id
                             event_payload_dict["acme_account.check"] = False
-                            dbOperationsEvent = self.log__OperationsEvent(
-                                ctx,
-                                model_utils.OperationsEventType.from_string(
-                                    "AcmeAccount__check"
-                                ),
-                                event_payload_dict,
-                            )
+                            if self.log__OperationsEvent:
+                                dbOperationsEvent = self.log__OperationsEvent(
+                                    ctx,
+                                    model_utils.OperationsEventType.from_string(
+                                        "AcmeAccount__check"
+                                    ),
+                                    event_payload_dict,
+                                )
                 raise exc
 
             self._api_account_object = acme_account_object
@@ -707,18 +774,23 @@ class AuthenticatedUser(object):
             # log this
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
-            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
-                ctx,
-                model_utils.OperationsEventType.from_string(
-                    "AcmeAccount__authenticate"
-                ),
-                event_payload_dict,
-            )
+            if self.log__OperationsEvent:
+                dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
+                    ctx,
+                    model_utils.OperationsEventType.from_string(
+                        "AcmeAccount__authenticate"
+                    ),
+                    event_payload_dict,
+                )
             return True
         except Exception as exc:  # noqa: F841
             raise
 
-    def deactivate(self, ctx, transaction_commit=None):
+    def deactivate(
+        self,
+        ctx: "ApiContext",
+        transaction_commit: Optional[bool] = None,
+    ) -> Optional[bool]:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
 
@@ -790,15 +862,23 @@ class AuthenticatedUser(object):
             # log this
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
-            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
-                ctx,
-                model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
-                event_payload_dict,
-            )
+            if self.log__OperationsEvent:
+                dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
+                    ctx,
+                    model_utils.OperationsEventType.from_string(
+                        "AcmeAccount__deactivate"
+                    ),
+                    event_payload_dict,
+                )
         finally:
             return is_did_deactivate
 
-    def key_change(self, ctx, dbAcmeAccountKey_new, transaction_commit=None):
+    def key_change(
+        self,
+        ctx: "ApiContext",
+        dbAcmeAccountKey_new: "AcmeAccountKey",
+        transaction_commit: Optional[bool] = None,
+    ) -> Optional[bool]:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeAccountKey_new: (required) a :class:`model.objects.AcmeAccountKey` instance
@@ -870,7 +950,11 @@ class AuthenticatedUser(object):
                 payload=_payload_inner,
                 accountKeyData=accountKeyData_new,
             )
-            (acme_response, status_code, acme_headers,) = self._send_signed_request(
+            (
+                acme_response,
+                status_code,
+                acme_headers,
+            ) = self._send_signed_request(
                 _key_change_url,
                 payload=payload_inner,
             )
@@ -902,16 +986,24 @@ class AuthenticatedUser(object):
             event_payload_dict["acme_account.id"] = self.acmeAccount.id
             event_payload_dict["acme_account_key-old.id"] = dbAcmeAccountKey_old.id
             event_payload_dict["acme_account_key-new.id"] = dbAcmeAccountKey_new.id
-            dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
-                ctx,
-                model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
-                event_payload_dict,
-            )
+            if self.log__OperationsEvent:
+                dbOperationsEvent = self.log__OperationsEvent(  # noqa: F841
+                    ctx,
+                    model_utils.OperationsEventType.from_string(
+                        "AcmeAccount__key_change"
+                    ),
+                    event_payload_dict,
+                )
 
         finally:
             return is_did_keychange
 
-    def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
+    def acme_order_load(
+        self,
+        ctx: "ApiContext",
+        dbAcmeOrder: "AcmeOrder",
+        transaction_commit: Optional[bool] = None,
+    ) -> Tuple:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
@@ -952,11 +1044,11 @@ class AuthenticatedUser(object):
 
     def acme_order_new(
         self,
-        ctx,
-        domain_names=None,
-        dbUniqueFQDNSet=None,
-        transaction_commit=None,
-    ):
+        ctx: "ApiContext",
+        domain_names: List[str],
+        dbUniqueFQDNSet: "UniqueFQDNSet",
+        transaction_commit: bool,
+    ) -> Tuple:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param domain_names: (required) The domains for our order
@@ -1001,10 +1093,10 @@ class AuthenticatedUser(object):
 
     def prepare_acme_challenge(
         self,
-        ctx,
-        dbAcmeAuthorization=None,
-        dbAcmeChallenge=None,
-    ):
+        ctx: "ApiContext",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        dbAcmeChallenge: "AcmeChallenge",
+    ) -> bool:
         """
         This is a core routine to "prepare" an ACME Challenge for processing.
 
@@ -1035,10 +1127,10 @@ class AuthenticatedUser(object):
 
     def _prepare_acme_challenge__http01(
         self,
-        ctx,
-        dbAcmeAuthorization=None,
-        dbAcmeChallenge=None,
-    ):
+        ctx: "ApiContext",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        dbAcmeChallenge: "AcmeChallenge",
+    ) -> None:
         """
         In the current design of PeterSSLers, no additional setup is
         required for a HTTP ACME Challenge, as the system can respond to the
@@ -1112,10 +1204,10 @@ class AuthenticatedUser(object):
 
     def _prepare_acme_challenge__dns01(
         self,
-        ctx,
-        dbAcmeAuthorization=None,
-        dbAcmeChallenge=None,
-    ):
+        ctx: "ApiContext",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        dbAcmeChallenge: "AcmeChallenge",
+    ) -> None:
         """
         Prepares a DNS-01 ACME Challenge by updating the acme-dns server for
         the domain belonging to the challenge
@@ -1148,7 +1240,6 @@ class AuthenticatedUser(object):
         dns_keyauthorization = create_dns01_keyauthorization(keyauthorization)
 
         try:
-
             # initialize a client
             client = lib_acmedns.new_client(
                 dbAcmeDnsServerAccount.acme_dns_server.root_url
@@ -1164,15 +1255,15 @@ class AuthenticatedUser(object):
 
     def acme_order_process_authorizations(
         self,
-        ctx,
-        acmeOrderRfcObject=None,
-        dbAcmeOrder=None,
-        handle_authorization_payload=None,
-        update_AcmeAuthorization_status=None,
-        update_AcmeChallenge_status=None,
-        updated_AcmeOrder_ProcessingStatus=None,
-        transaction_commit=None,
-    ):
+        ctx: "ApiContext",
+        acmeOrderRfcObject: "AcmeOrderRFC",
+        dbAcmeOrder: "AcmeOrder",
+        handle_authorization_payload: Callable,
+        update_AcmeAuthorization_status: Callable,
+        update_AcmeChallenge_status: Callable,
+        updated_AcmeOrder_ProcessingStatus: Callable,
+        transaction_commit: Optional[bool] = None,
+    ) -> bool:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param acmeOrderRfcObject: (required) A :class:`AcmeOrderRFC` object representing the server's response
@@ -1223,12 +1314,13 @@ class AuthenticatedUser(object):
             auth_result = self.acme_authorization_process_url(  # noqa: F841
                 ctx,
                 authorization_url,
-                acme_challenge_type_id__preferred=None,
-                domains_challenged=domains_challenged,
                 handle_authorization_payload=handle_authorization_payload,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
+                dbAcmeAuthorization=None,  # ???: should we have this?
+                acme_challenge_type_id__preferred=None,
+                domains_challenged=domains_challenged,
                 transaction_commit=transaction_commit,
             )
 
@@ -1243,13 +1335,12 @@ class AuthenticatedUser(object):
 
     def acme_order_finalize(
         self,
-        ctx,
-        dbAcmeOrder=None,
-        update_order_status=None,
-        transaction_commit=None,
-        # function specific
-        csr_pem=None,
-    ):
+        ctx: "ApiContext",
+        dbAcmeOrder: "AcmeOrder",
+        update_order_status: Callable,
+        csr_pem: str,
+        transaction_commit: Optional[bool] = None,
+    ) -> List[str]:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
@@ -1334,7 +1425,11 @@ class AuthenticatedUser(object):
         )
         return fullchain_pems
 
-    def download_certificate(self, url_certificate, is_save_alternate_chains=None):
+    def download_certificate(
+        self,
+        url_certificate: str,
+        is_save_alternate_chains: Optional[bool] = None,
+    ) -> List[str]:
         log.info("acme_v2.AuthenticatedUser.download_certificate(")
         if not url_certificate:
             raise ValueError("Must supply a url for the certificate")
@@ -1360,17 +1455,17 @@ class AuthenticatedUser(object):
 
     def acme_authorization_process_url(
         self,
-        ctx,
-        authorization_url,
-        acme_challenge_type_id__preferred=None,
-        domains_challenged=None,
-        handle_authorization_payload=None,
-        update_AcmeAuthorization_status=None,
-        update_AcmeChallenge_status=None,
-        updated_AcmeOrder_ProcessingStatus=None,
-        dbAcmeAuthorization=None,
-        transaction_commit=None,
-    ):
+        ctx: "ApiContext",
+        authorization_url: str,
+        handle_authorization_payload: Callable,
+        update_AcmeAuthorization_status: Callable,
+        update_AcmeChallenge_status: Callable,
+        updated_AcmeOrder_ProcessingStatus: Callable,
+        dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
+        acme_challenge_type_id__preferred: Optional[int] = None,
+        domains_challenged: Optional["DomainsChallenged"] = None,
+        transaction_commit: Optional[bool] = None,
+    ) -> Optional[bool]:
         """
         Process a single Authorization URL
 
@@ -1443,7 +1538,7 @@ class AuthenticatedUser(object):
         )
         log.info(") .acme_authorization_process_url | handle_authorization_payload(")
 
-        dbAcmeAuthorization = handle_authorization_payload(
+        _dbAcmeAuthorization = handle_authorization_payload(
             authorization_url,
             authorization_response,
             dbAcmeAuthorization=dbAcmeAuthorization,
@@ -1455,16 +1550,17 @@ class AuthenticatedUser(object):
         dbAcmeEventLog_authorization_fetch = (  # noqa: F841
             self.acmeLogger.log_authorization_request(
                 "v2",
-                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeAuthorization=_dbAcmeAuthorization,
                 transaction_commit=True,
             )
         )
 
         _response_domain = authorization_response["identifier"]["value"]
-        if dbAcmeAuthorization.domain.domain_name != _response_domain:
+        if _dbAcmeAuthorization.domain.domain_name != _response_domain:
             raise ValueError("mismatch on a domain name")
 
         if not acme_challenge_type_id__preferred:
+            assert domains_challenged
             acme_challenge_type_id__preferred = (
                 domains_challenged.domain_to_challenge_type_id(_response_domain)
             )
@@ -1474,7 +1570,7 @@ class AuthenticatedUser(object):
         # but also on our `dbAcmeAuthorization` object
         log.info(
             ") acme_authorization_process_url | Handling Authorization for {0}...".format(
-                dbAcmeAuthorization.domain.domain_name
+                _dbAcmeAuthorization.domain.domain_name
             )
         )
 
@@ -1520,11 +1616,11 @@ class AuthenticatedUser(object):
 
         dbAcmeChallenge = None
         if _acme_challenge_type == "http-01":
-            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+            dbAcmeChallenge = _dbAcmeAuthorization.acme_challenge_http_01
         elif _acme_challenge_type == "dns-01":
-            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
+            dbAcmeChallenge = _dbAcmeAuthorization.acme_challenge_dns_01
         elif _acme_challenge_type == "tls-alpn-01":
-            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_tls_alpn_01
+            dbAcmeChallenge = _dbAcmeAuthorization.acme_challenge_tls_alpn_01
         if not dbAcmeChallenge:
             raise ValueError("error loading AcmeChallenge. this is unexpected.")
 
@@ -1556,7 +1652,7 @@ class AuthenticatedUser(object):
         if _task__complete_challenge:
             self.prepare_acme_challenge(
                 ctx,
-                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeAuthorization=_dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
             )
             self.acme_challenge_trigger(
@@ -1570,8 +1666,11 @@ class AuthenticatedUser(object):
         return None
 
     def acme_authorization_load(
-        self, ctx, dbAcmeAuthorization, transaction_commit=None
-    ):
+        self,
+        ctx: "ApiContext",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        transaction_commit: Optional[bool] = None,
+    ) -> Tuple:
         """
         This loads the authorization object and pulls the payload
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1615,8 +1714,11 @@ class AuthenticatedUser(object):
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
     def acme_authorization_deactivate(
-        self, ctx, dbAcmeAuthorization, transaction_commit=None
-    ):
+        self,
+        ctx: "ApiContext",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        transaction_commit: Optional[bool] = None,
+    ) -> Tuple:
         """
         This loads the authorization object and pulls the payload
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1674,7 +1776,12 @@ class AuthenticatedUser(object):
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
-    def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
+    def acme_challenge_load(
+        self,
+        ctx: "ApiContext",
+        dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
+    ) -> Tuple:
         """
         This loads the authorization object and pulls the payload
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1714,12 +1821,12 @@ class AuthenticatedUser(object):
 
     def acme_challenge_trigger(
         self,
-        ctx,
-        dbAcmeChallenge=None,
-        update_AcmeAuthorization_status=None,
-        update_AcmeChallenge_status=None,
-        transaction_commit=None,
-    ):
+        ctx: "ApiContext",
+        dbAcmeChallenge: "AcmeChallenge",
+        update_AcmeAuthorization_status: Callable,
+        update_AcmeChallenge_status: Callable,
+        transaction_commit: Optional[bool] = None,
+    ) -> Optional[Dict]:
         """
         This triggers the challenge object
 
@@ -1742,6 +1849,7 @@ class AuthenticatedUser(object):
 
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
         acme_challenge_type = dbAcmeChallenge.acme_challenge_type
+        assert acme_challenge_type
 
         # note that we are about to trigger the challenge:
         self.acmeLogger.log_challenge_trigger(
@@ -1878,7 +1986,6 @@ class AuthenticatedUser(object):
             return _acme_challenge_selected
 
         elif authorization_response["status"] != "valid":
-
             self.acmeLogger.log_challenge_error(
                 "v2",
                 dbAcmeChallenge,
@@ -1927,6 +2034,8 @@ class AuthenticatedUser(object):
                     authorization_response,
                 )
             )
+        # this should never run; mypy weirdness
+        return None
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

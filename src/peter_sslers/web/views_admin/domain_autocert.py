@@ -13,7 +13,6 @@ from ...lib import db as lib_db
 
 
 class View_List(Handler):
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(

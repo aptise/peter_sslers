@@ -1,8 +1,9 @@
+# pypi
+import cert_utils
+
 # local
 from . import formhandling
 from ...lib import db as lib_db
-from ...lib import utils
-from ...lib._compat import PY3
 from ...model import utils as model_utils
 
 
@@ -13,10 +14,9 @@ def decode_args(getcreate_args):
     """
     support for Python2/3
     """
-    if PY3:
-        for (k, v) in list(getcreate_args.items()):
-            if isinstance(v, bytes):
-                getcreate_args[k] = v.decode("utf8")
+    for k, v in list(getcreate_args.items()):
+        if isinstance(v, bytes):
+            getcreate_args[k] = v.decode("utf8")
     return getcreate_args
 
 
@@ -486,7 +486,10 @@ def form_key_selection(request, formStash, require_contact=None):
         key_create_args[
             "acme_account_key_source_id"
         ] = model_utils.AcmeAccountKeySource.from_string("imported")
-        (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
+        (
+            dbAcmeAccount,
+            _is_created,
+        ) = lib_db.getcreate.getcreate__AcmeAccount(
             request.api_context, **key_create_args
         )
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
@@ -531,12 +534,12 @@ def form_domains_challenge_typed(request, formStash, http01_only=False):
     domain_names_all = []
     try:
         # 1: iterate over the submitted domains by segment
-        for (target_, source_) in DOMAINS_CHALLENGED_FIELDS.items():
+        for target_, source_ in DOMAINS_CHALLENGED_FIELDS.items():
             submitted_ = formStash.results.get(source_)
             if submitted_:
                 # this function checks the domain names match a simple regex
                 # it will raise a `ValueError("invalid domain")` on the first invalid domain
-                submitted_ = utils.domains_from_string(submitted_)
+                submitted_ = cert_utils.utils.domains_from_string(submitted_)
                 if submitted_:
                     domain_names_all.extend(submitted_)
                     domains_challenged[target_] = submitted_
@@ -560,7 +563,7 @@ def form_domains_challenge_typed(request, formStash, http01_only=False):
 
         # 4: maybe we only want http01 domains submitted?
         if http01_only:
-            for (k, v) in domains_challenged.items():
+            for k, v in domains_challenged.items():
                 if k == "http-01":
                     continue
                 if v:
@@ -583,7 +586,9 @@ def form_single_domain_challenge_typed(request, formStash, challenge_type="http-
     domains_challenged = model_utils.DomainsChallenged()
 
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_string(formStash.results["domain_name"])
+    domain_names = cert_utils.utils.domains_from_string(
+        formStash.results["domain_name"]
+    )
     if not domain_names:
         # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(field="domain_name", message="Found no domain names")

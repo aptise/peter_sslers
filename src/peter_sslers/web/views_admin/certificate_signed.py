@@ -4,6 +4,7 @@ import time
 import zipfile
 
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -19,13 +20,11 @@ from ..lib.forms import Form_CertificateSigned_mark
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
-from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import events
 from ...lib import utils
 from ...lib import utils_nginx
-from ...lib._compat import PY3
 from ...model import utils as model_utils
 
 
@@ -358,9 +357,8 @@ class View_New(Handler):
             private_key_pem = formhandling.slurp_file_field(
                 formStash, "private_key_file_pem"
             )
-            if PY3:
-                if not isinstance(private_key_pem, str):
-                    private_key_pem = private_key_pem.decode("utf8")
+            if not isinstance(private_key_pem, str):
+                private_key_pem = private_key_pem.decode("utf8")
             (
                 dbPrivateKey,
                 pkey_is_created,
@@ -373,9 +371,8 @@ class View_New(Handler):
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
             )
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
-            if PY3:
-                if not isinstance(ca_chain_pem, str):
-                    ca_chain_pem = ca_chain_pem.decode("utf8")
+            if not isinstance(ca_chain_pem, str):
+                ca_chain_pem = ca_chain_pem.decode("utf8")
             (
                 dbCertificateCAChain,
                 chain_is_created,
@@ -386,9 +383,8 @@ class View_New(Handler):
             certificate_pem = formhandling.slurp_file_field(
                 formStash, "certificate_file"
             )
-            if PY3:
-                if not isinstance(certificate_pem, str):
-                    certificate_pem = certificate_pem.decode("utf8")
+            if not isinstance(certificate_pem, str):
+                certificate_pem = certificate_pem.decode("utf8")
 
             _tmpfileCert = None
             try:
@@ -1138,7 +1134,6 @@ class View_Focus_Manipulate(View_Focus):
             event_status = False
 
             try:
-
                 if action == "active":
                     event_status = lib_db.update.update_CertificateSigned__set_active(
                         self.request.api_context, dbCertificateSigned

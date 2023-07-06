@@ -1,3 +1,10 @@
+# stdlib
+from typing import Dict
+from typing import List
+from typing import Tuple
+
+# pypi
+from sqlalchemy import Column
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import expression
 import sqlalchemy.types
@@ -12,7 +19,7 @@ class year_week(expression.FunctionElement):
 
 
 @compiles(year_week)
-def year_week__default(element, compiler, **kw):
+def year_week__default(element, compiler, **kw) -> str:
     # return compiler.visit_function(element)
     """
     ## select extract(week from timestamp_event) from table_a;
@@ -26,7 +33,7 @@ def year_week__default(element, compiler, **kw):
 
 
 @compiles(year_week, "postgresql")
-def year_week__postgresql(element, compiler, **kw):
+def year_week__postgresql(element, compiler, **kw) -> str:
     """
     # select to_char(timestamp_event, 'YYYY.WW')  from table_a;
     week_num = sqlalchemy.func.to_char(CertificateSigned.timestamp_not_before, 'YYYY.WW')
@@ -36,7 +43,7 @@ def year_week__postgresql(element, compiler, **kw):
 
 
 @compiles(year_week, "sqlite")
-def year_week__sqlite(element, compiler, **kw):
+def year_week__sqlite(element, compiler, **kw) -> str:
     """
     # strftime('%Y.%W', cast(CertificateSigned.timestamp_not_before) as text)
     week_num = sqlalchemy.func.strftime('%Y.%W',
@@ -58,7 +65,7 @@ class year_day(expression.FunctionElement):
 
 
 @compiles(year_day)
-def year_day__default(element, compiler, **kw):
+def year_day__default(element, compiler, **kw) -> str:
     # return compiler.visit_function(element)
     # TODO: lpad with 0s, as sqlite doesn't
     """
@@ -75,7 +82,7 @@ def year_day__default(element, compiler, **kw):
 
 
 @compiles(year_day, "postgresql")
-def year_day__postgresql(element, compiler, **kw):
+def year_day__postgresql(element, compiler, **kw) -> str:
     """
     # select to_char(timestamp_event, 'YYYY.DDD')  from table_a;
     week_num = sqlalchemy.func.to_char(CertificateSigned.timestamp_not_before, 'YYYY.WW')
@@ -87,7 +94,7 @@ def year_day__postgresql(element, compiler, **kw):
 
 
 @compiles(year_day, "sqlite")
-def year_day__sqlite(element, compiler, **kw):
+def year_day__sqlite(element, compiler, **kw) -> str:
     """
     # strftime('%Y.%j', cast(CertificateSigned.timestamp_not_before) as text)
     # 2020.094
@@ -120,7 +127,7 @@ def min_date__default(element, compiler, **kw):
 
 
 @compiles(min_date, "postgresql")
-def min_date__postgresql(element, compiler, **kw):
+def min_date__postgresql(element, compiler, **kw) -> str:
     """
     # select least(col_a, col_b);
     """
@@ -129,7 +136,7 @@ def min_date__postgresql(element, compiler, **kw):
 
 
 @compiles(min_date, "sqlite")
-def min_date__sqlite(element, compiler, **kw):
+def min_date__sqlite(element, compiler, **kw) -> str:
     """
     # select min(col_a, col_b);
     """
@@ -146,13 +153,13 @@ class utcnow(expression.FunctionElement):
 
 
 @compiles(utcnow)
-def utcnow__default(element, compiler, **kw):
+def utcnow__default(element, compiler, **kw) -> str:
     # sqlite uses UTC by default
     return "CURRENT_TIMESTAMP"
 
 
 @compiles(utcnow, "postgresql")
-def utcnow__postgresql(element, compiler, **kw):
+def utcnow__postgresql(element, compiler, **kw) -> str:
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
 
 
@@ -165,13 +172,13 @@ class indexable_lower(expression.FunctionElement):
 
 
 @compiles(indexable_lower)
-def indexable_lower__default(element, compiler, **kw):
+def indexable_lower__default(element, compiler, **kw) -> str:
     args = list(element.clauses)
     return "LOWER(%s)" % (compiler.process(args[0], **kw))
 
 
 @compiles(indexable_lower, "sqlite")
-def indexable_lower__sqlite(element, compiler, **kw):
+def indexable_lower__sqlite(element, compiler, **kw) -> str:
     args = list(element.clauses)
     if compiler.dialect.dbapi.sqlite_version_info < (3, 9, 0):
         return compiler.process(args[0], **kw)
@@ -185,18 +192,18 @@ def indexable_lower__sqlite(element, compiler, **kw):
 class _mixin_mapping(object):
     """handles a mapping of db codes/constants"""
 
-    _mapping = None
-    _mapping_reverse = None
+    _mapping: Dict[int, str]
+    _mapping_reverse: Dict[str, int]
 
     @classmethod
-    def as_string(cls, mapping_id):
+    def as_string(cls, mapping_id: int) -> str:
         if mapping_id in cls._mapping:
             return cls._mapping[mapping_id]
         return "unknown"
 
     @classmethod
-    def from_string(cls, mapping_text):
-        if cls._mapping_reverse is None:
+    def from_string(cls, mapping_text: str) -> int:
+        if not hasattr(cls, "_mapping_reverse"):
             cls._mapping_reverse = {v: k for k, v in cls._mapping.items()}
         return cls._mapping_reverse[mapping_text]
 
@@ -400,7 +407,7 @@ class Acme_Status_Authorization(_Acme_Status_All):
         "pending",
         "*discovered*",
     )
-    IDS_POSSIBLY_PENDING = None  # define after declaring the class
+    IDS_POSSIBLY_PENDING: List[int]  # define after declaring the class
     OPTIONS_X_UPDATE = ("*404*",)
     OPTIONS_TRIGGER = ("pending",)
 
@@ -440,9 +447,7 @@ class Acme_Status_Challenge(_Acme_Status_All):
         "invalid",
     )
     OPTIONS_PROCESSING = ("processing",)
-    IDS_POSSIBLY_ACTIVE = None  # define after declaring the class
     OPTIONS_INACTIVE = ("valid", "invalid", "*404*", "*410*")
-    IDS_INACTIVE = None  # define after declaring the class
     OPTIONS_TRIGGER = ("pending",)
     _mapping = {
         0: "*discovered*",
@@ -454,6 +459,11 @@ class Acme_Status_Challenge(_Acme_Status_All):
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
         410: "*410*",  # "Gone"; use when the Authorization Payload no longer tracks this challenge
     }
+
+    IDS_POSSIBLY_ACTIVE: List[int]  # define after declaring the class
+    IDS_INACTIVE: List[int]  # define after declaring the class
+    IDS_RESOLVED: List[int]  # define after declaring the class
+    IDS_PROCESSING: List[int]  # define after declaring the class
 
 
 Acme_Status_Challenge.IDS_INACTIVE = [
@@ -518,12 +528,12 @@ class Acme_Status_Order(_Acme_Status_All):
         "ready",
         "*404*",
     )
-    OPTIONS_RETRY = (
+    OPTIONS_RETRY: Tuple[str, ...] = (
         "invalid",
         "*404*",
         "*406*",
     )
-    OPTIONS_UPDATE_DEACTIVATE = (
+    OPTIONS_UPDATE_DEACTIVATE: Tuple[str, ...] = (
         "valid",  # valid means we're done!
         "invalid",
         "*404*",
@@ -533,7 +543,7 @@ class Acme_Status_Order(_Acme_Status_All):
         # "valid",  # valid means we're done!
         "*404*",
     )
-    OPTIONS_X_MARK_INVALID = (
+    OPTIONS_X_MARK_INVALID: Tuple[str, ...] = (
         "invalid",
         "valid",
         "*404*",
@@ -570,8 +580,6 @@ class Acme_Status_Order(_Acme_Status_All):
         "processing",
     )
 
-    IDS_BLOCKING = None  # define after declaring the class
-
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker
         1: "pending",
@@ -583,6 +591,11 @@ class Acme_Status_Order(_Acme_Status_All):
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
         410: "*410*",  # "Gone"; use when turning off Orders during testing
     }
+
+    IDS_BLOCKING: List[int]  # define after declaring the class
+    IDS_RENEW: List[int]  # define after declaring the class
+    IDS_active: List[int]  # define after declaring the class
+    IDS_finished: List[int]  # define after declaring the class
 
 
 if True:
@@ -777,7 +790,7 @@ class CoverageAssuranceEventStatus(_mixin_mapping):
         3: "resolved-ignored",
         4: "resolved-replaced",
     }
-    OPTIONS_ALL = None
+    OPTIONS_ALL: List[str]
 
 
 CoverageAssuranceEventStatus.OPTIONS_ALL = list(
@@ -792,6 +805,7 @@ class CoverageAssuranceResolution(_mixin_mapping):
         3: "PrivateKey_replaced",
         4: "CertificateSigned_replaced",
     }
+    OPTIONS_ALL: List[str]
 
 
 CoverageAssuranceResolution.OPTIONS_ALL = list(
@@ -816,14 +830,14 @@ class DomainsChallenged(dict):
         self["tls-alpn-01"] = None
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         _domains = []
         for v in self.values():
             if v is not None:
                 _domains.extend(v)
         return sorted(_domains)
 
-    def ensure_parity(self, domains_to_test):
+    def ensure_parity(self, domains_to_test: List[str]) -> None:
         """raise a ValueError if we do not have the exact set of domains"""
         if not isinstance(domains_to_test, list):
             raise ValueError("`domains_to_test` must be a list")
@@ -833,7 +847,7 @@ class DomainsChallenged(dict):
             raise ValueError("`%s` != `%s`" % (domain_names, domains_to_test))
 
     @classmethod
-    def new_http01(cls, domains_list):
+    def new_http01(cls, domains_list: List[str]) -> "DomainsChallenged":
         _domains_challenged = DomainsChallenged()
         _domains_challenged["http-01"] = domains_list
         return _domains_challenged
@@ -843,7 +857,7 @@ class DomainsChallenged(dict):
         if self.DEFAULT != "http-01":
             raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
 
-    def domain_to_challenge_type_id(self, domain_name):
+    def domain_to_challenge_type_id(self, domain_name: str) -> int:
         for _acme_challenge_type in self.keys():
             if self[_acme_challenge_type]:
                 for _domain_name in self[_acme_challenge_type]:
@@ -872,7 +886,10 @@ class KeyTechnology(_mixin_mapping):
         2,
     )
     _DEFAULT_AcmeAccount = "RSA"
+    _DEFAULT_AcmeAccount_id: int
     _DEFAULT_GlobalKey = "RSA"
+    _DEFAULT_GlobalKey_id: int
+    _options_AcmeAccount_private_key_technology: List[str]
 
 
 KeyTechnology._options_AcmeAccount_private_key_technology = [
@@ -918,6 +935,9 @@ class PrivateKeyCycle(_mixin_mapping):
     _DEFAULT_AcmeAccount = "single_certificate"
     _DEFAULT_AcmeOrder = "account_key_default"
     _DEFAULT_system_renewal = "single_certificate"
+
+    _options_AcmeAccount_private_key_cycle: List[str]
+    _options_AcmeOrder_private_key_cycle: List[str]
 
 
 # compute this for ease of `curl` options
@@ -986,8 +1006,10 @@ class PrivateKeyType(_mixin_mapping):
 
 
 class _mixin_OperationsEventType(object):
+    operations_event_type_id: Column
+
     @property
-    def event_type_text(self):
+    def event_type_text(self) -> str:
         return OperationsEventType.as_string(self.operations_event_type_id)
 
 

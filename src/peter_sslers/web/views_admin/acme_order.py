@@ -1360,11 +1360,10 @@ class View_New(Handler):
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             try:
-
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
                 # this may raise errors.AcmeDomainsBlocklisted
-                for (challenge_, domains_) in domains_challenged.items():
+                for challenge_, domains_ in domains_challenged.items():
                     if domains_:
                         lib_db.validate.validate_domain_names(
                             self.request.api_context, domains_
@@ -1387,7 +1386,6 @@ class View_New(Handler):
                         dbPrivateKey=privateKeySelection.PrivateKey,
                     )
                 except Exception as exc:
-
                     # unpack a `errors.AcmeOrderCreatedError` to local vars
                     if isinstance(exc, errors.AcmeOrderCreatedError):
                         dbAcmeOrder = exc.acme_order

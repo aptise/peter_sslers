@@ -2,6 +2,7 @@
 import logging
 
 # pypi
+import cert_utils
 import requests
 import sqlalchemy
 
@@ -175,9 +176,9 @@ def operations_reconcile_cas(ctx):
         filetype = _header_2_format.get(content_type) if content_type else None
         cert_pems = None
         if filetype == "pkcs7":
-            cert_pems = lib.cert_utils.convert_pkcs7_to_pems(resp.content)
+            cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
         elif filetype == "pkix-cert":
-            cert_pem = lib.cert_utils.convert_der_to_pem(resp.content)
+            cert_pem = cert_utils.convert_der_to_pem(resp.content)
             cert_pems = [
                 cert_pem,
             ]
@@ -185,7 +186,7 @@ def operations_reconcile_cas(ctx):
             raise ValueError("Not Implemented: %s" % content_type)
 
         for cert_pem in cert_pems:
-            cert_parsed = lib.cert_utils.parse_cert(cert_pem)
+            cert_parsed = cert_utils.parse_cert(cert_pem)
             (
                 _dbCertificateCAReconciled,
                 _is_created,
@@ -555,7 +556,7 @@ def api_domains__disable(ctx, domain_names):
     :param domain_names: (required) a list of domain names
     """
     # this function checks the domain names match a simple regex
-    domain_names = lib.utils.domains_from_list(domain_names)
+    domain_names = cert_utils.utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
     # bookkeeping
@@ -728,7 +729,6 @@ def api_domains__certificate_if_needed(
                 _logger_args["dbDomain"] = _dbDomain
 
         elif not _dbDomain:
-
             _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
                 ctx, _domain_name
             )[
@@ -802,7 +802,6 @@ def api_domains__certificate_if_needed(
                     )
 
             except Exception as exc:
-
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
                 if isinstance(exc, errors.AcmeOrderCreatedError):
                     dbAcmeOrder = exc.acme_order
