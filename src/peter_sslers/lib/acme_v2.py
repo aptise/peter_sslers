@@ -436,8 +436,8 @@ class AuthenticatedUser(object):
 
     accountKeyData: "AccountKeyData"  # an instance conforming to `cert_utils.AccountKeyData`
 
-    _api_account_object: Dict  # api server native/json object
-    _api_account_headers: Dict  # api server native/json object
+    _api_account_object: Optional[Dict] = None  # api server native/json object
+    _api_account_headers: Optional[Dict] = None  # api server native/json object
 
     def __init__(
         self,
@@ -573,6 +573,7 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.update_contact( {0}".format(contact))
         payload_contact = {"contact": contact}
+        assert self._api_account_headers
         (
             acme_account_object,
             _status_code,
@@ -826,6 +827,7 @@ class AuthenticatedUser(object):
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
 
+        assert self._api_account_headers
         _account_url = self._api_account_headers["Location"]
         if not _account_url:
             raise ValueError("Account URL unknown")
@@ -924,6 +926,7 @@ class AuthenticatedUser(object):
         if "keyChange" not in self.acme_directory:
             raise ValueError("directory does not support `keyChange`")
 
+        assert self._api_account_headers
         _account_url = self._api_account_headers["Location"]
         if not _account_url:
             raise ValueError("Account URL unknown")
