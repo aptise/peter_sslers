@@ -1699,7 +1699,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 assert isinstance(rval["authorizations"], list)
                 rval["authorizations"].append(_auth_tuple)
                 if _pending:
-                    assert isinstance(rval["authorizations"], int)
+                    assert isinstance(rval["authorizations_remaining"], int)
                     rval["authorizations_remaining"] += 1
             if rval["authorizations_remaining"]:
                 rval["next_step"] = "challenge"

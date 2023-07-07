@@ -2097,7 +2097,7 @@ def get__QueueCertificate__paginated(
             ),
             joinedload(QueueCertificate.private_key),
             joinedload(QueueCertificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet2Domain.to_domains)
+            .joinedload(UniqueFQDNSet.to_domains)
             .joinedload(UniqueFQDNSet2Domain.domain),
         )
     elif eagerload_renewal:
@@ -2110,7 +2110,7 @@ def get__QueueCertificate__paginated(
             ),
             joinedload(QueueCertificate.private_key),
             joinedload(QueueCertificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet2Domain.to_domains)
+            .joinedload(UniqueFQDNSet.to_domains)
             .joinedload(UniqueFQDNSet2Domain.domain),
         )
     q = q.order_by(QueueCertificate.id.desc())
