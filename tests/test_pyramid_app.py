@@ -2634,7 +2634,11 @@ class FunctionalTests_CertificateCA(AppTest):
     def _load__CertificateCAPreferences(self):
         _dbCertificateCAPreferences = (
             self.ctx.dbSession.query(model_objects.CertificateCAPreference)
-            .options(sqlalchemy.orm.joinedload("certificate_ca"))
+            .options(
+                sqlalchemy.orm.joinedload(
+                    model_objects.CertificateCAPreference.certificate_ca
+                )
+            )
             .all()
         )
         return _dbCertificateCAPreferences

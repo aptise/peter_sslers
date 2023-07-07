@@ -109,7 +109,11 @@ class ViewAdminMain(Handler):
                         == model_objects.AcmeAccountKey.acme_account_id,
                     )
                     .filter(model_objects.AcmeAccountKey.spki_sha256 == search_spki)
-                    .options(sqlalchemy.orm.contains_eager("acme_account_key"))
+                    .options(
+                        sqlalchemy.orm.contains_eager(
+                            model_objects.AcmeAccount.acme_account_key
+                        )
+                    )
                 )
                 results["AcmeAccount"]["count"] = _base.count()
                 if results["AcmeAccount"]["count"]:

@@ -90,7 +90,7 @@ def form_validate(request: "Request", **kwargs) -> Tuple:
     return (result, formStash)
 
 
-def slurp_file_field(formStash: FormStash, field: str):
+def slurp_file_field(formStash: "FormStash", field: str):
     try:
         if field not in formStash.results:
             return None

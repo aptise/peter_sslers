@@ -953,9 +953,9 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             print("AppTestCore.setUp | initialize db")
             engine = self._session_factory().bind
             model_meta.Base.metadata.drop_all(engine)
-            engine.execute("VACUUM")
+            with engine.begin() as connection:
+                connection.execute(sqlalchemy.text("VACUUM"))
             model_meta.Base.metadata.create_all(engine)
-
             dbSession = self._session_factory()
             ctx = utils.ApiContext(
                 timestamp=datetime.datetime.utcnow(),
