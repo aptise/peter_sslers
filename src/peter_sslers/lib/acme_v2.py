@@ -1826,7 +1826,7 @@ class AuthenticatedUser(object):
         update_AcmeAuthorization_status: Callable,
         update_AcmeChallenge_status: Callable,
         transaction_commit: Optional[bool] = None,
-    ) -> Optional[Dict]:
+    ) -> Dict:
         """
         This triggers the challenge object
 
@@ -2034,8 +2034,7 @@ class AuthenticatedUser(object):
                     authorization_response,
                 )
             )
-        # this should never run; mypy weirdness
-        return None
+        raise ValueError("This should never run")
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

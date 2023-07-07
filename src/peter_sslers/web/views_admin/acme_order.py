@@ -1095,11 +1095,11 @@ class View_Focus_Manipulate(View_Focus):
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
                     self.request.api_context,
-                    private_key_cycle__renewal=private_key_cycle__renewal,
-                    processing_strategy=processing_strategy,
                     dbAcmeOrder=dbAcmeOrder,
                     dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                     dbPrivateKey=privateKeySelection.PrivateKey,
+                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    processing_strategy=processing_strategy,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -1209,8 +1209,8 @@ class View_Focus_Manipulate(View_Focus):
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
                     self.request.api_context,
-                    processing_strategy=processing_strategy,
                     dbAcmeOrder=dbAcmeOrder,
+                    processing_strategy=processing_strategy,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars

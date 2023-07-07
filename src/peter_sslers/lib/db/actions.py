@@ -1,5 +1,9 @@
 # stdlib
 import logging
+from typing import Dict
+from typing import Iterable
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -20,7 +24,15 @@ from ... import lib
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-# from .logger import AcmeLogger
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeAccount
+    from ...model.objects import Domain
+    from ...model.objects import OperationsEvent
+    from ...model.objects import PrivateKey
+    from ...model.objects import UniqueFQDNSet
+    from ...model.utils import DomainsChallenged
+    from ..utils import ApiContext
 
 
 # ==============================================================================
@@ -54,7 +66,9 @@ def scalar_subquery(query):
     return query.subquery().as_scalar()
 
 
-def operations_deactivate_expired(ctx):
+def operations_deactivate_expired(
+    ctx: "ApiContext",
+) -> "OperationsEvent":
     """
     deactivates expired Certificates automatically
 
@@ -148,7 +162,9 @@ _header_2_format = {
 }
 
 
-def operations_reconcile_cas(ctx):
+def operations_reconcile_cas(
+    ctx: "ApiContext",
+) -> "OperationsEvent":
     """
     tries to reconcile CAs
 
@@ -227,7 +243,11 @@ def operations_reconcile_cas(ctx):
     return dbOperationsEvent
 
 
-def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=None):
+def operations_update_recents__domains(
+    ctx: "ApiContext",
+    dbDomains: Optional[Iterable["Domain"]] = None,
+    dbUniqueFQDNSets: Optional[Iterable["UniqueFQDNSet"]] = None,
+) -> "OperationsEvent":
     """
     updates A SINGLE dbDomain record with recent values
 
@@ -239,12 +259,12 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
     _domain_ids = [i.id for i in dbDomains] if dbDomains else []
     _unique_fqdn_set_ids = [i.id for i in dbUniqueFQDNSets] if dbUniqueFQDNSets else []
 
-    domain_ids = set(_domain_ids)
+    _domain_ids_set = set(_domain_ids)
     if dbUniqueFQDNSets:
         for _dbUniqueFQDNSet in dbUniqueFQDNSets:
             for _domain in _dbUniqueFQDNSet.domains:
-                domain_ids.add(_domain.id)
-    domain_ids = list(domain_ids)
+                _domain_ids_set.add(_domain.id)
+    domain_ids = list(_domain_ids_set)
     if not domain_ids:
         raise ValueError("no Domains specified")
 
@@ -315,7 +335,9 @@ def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=Non
     return dbOperationsEvent
 
 
-def operations_update_recents__global(ctx):
+def operations_update_recents__global(
+    ctx: "ApiContext",
+) -> "OperationsEvent":
     """
     updates all the objects to their most-recent relations
 
@@ -523,7 +545,10 @@ def operations_update_recents__global(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def api_domains__enable(ctx, domain_names):
+def api_domains__enable(
+    ctx: "ApiContext",
+    domain_names: Iterable[str],
+):
     """
     this is just a proxy around queue_domains__add
 
@@ -545,7 +570,10 @@ def api_domains__enable(ctx, domain_names):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def api_domains__disable(ctx, domain_names):
+def api_domains__disable(
+    ctx: "ApiContext",
+    domain_names: Iterable[str],
+):
     """
     disables `domain_names` from the system
 
@@ -556,8 +584,8 @@ def api_domains__disable(ctx, domain_names):
     :param domain_names: (required) a list of domain names
     """
     # this function checks the domain names match a simple regex
-    domain_names = cert_utils.utils.domains_from_list(domain_names)
-    results = {d: None for d in domain_names}
+    _domain_names = cert_utils.utils.domains_from_list(domain_names)
+    results: Dict = {d: None for d in _domain_names}
 
     # bookkeeping
     event_payload_dict = lib.utils.new_event_payload_dict()
@@ -567,7 +595,7 @@ def api_domains__disable(ctx, domain_names):
         event_payload_dict,
     )
 
-    for domain_name in domain_names:
+    for domain_name in _domain_names:
         _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, domain_name, preload=False, active_only=False
         )
@@ -611,19 +639,19 @@ def api_domains__disable(ctx, domain_names):
 
 
 def api_domains__certificate_if_needed(
-    ctx,
-    domains_challenged,
-    processing_strategy=None,
-    private_key_cycle__renewal=None,
-    private_key_strategy__requested=None,
-    dbAcmeAccount=None,
-    dbPrivateKey=None,
-):
+    ctx: "ApiContext",
+    domains_challenged: "DomainsChallenged",
+    processing_strategy: str,
+    private_key_cycle__renewal: str,
+    private_key_strategy__requested: str,
+    dbAcmeAccount: "AcmeAccount",
+    dbPrivateKey: "PrivateKey",
+) -> Dict:
     """
     Adds Domains if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
@@ -676,12 +704,14 @@ def api_domains__certificate_if_needed(
 
     # this function checks the domain names match a simple regex
     domain_names = domains_challenged.domains_as_list
-    results = {d: None for d in domain_names}
+    results: Dict = {d: None for d in domain_names}
     # _timestamp = dbOperationsEvent.timestamp_event
     for _domain_name in domain_names:
         # scoping
-        _logger_args = {"event_status_id": None}
-        _result = {
+        _logger_args: Dict = {
+            "event_status_id": None,
+        }
+        _result: Dict = {
             "domain.status": None,
             "domain.id": None,
             "certificate_signed.id": None,

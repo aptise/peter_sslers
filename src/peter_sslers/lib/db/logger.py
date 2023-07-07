@@ -1,11 +1,36 @@
 # stdlib
 import datetime
 import logging
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # localapp
 from .. import utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeAccountKey
+    from ...model.objects import AcmeAuthorization
+    from ...model.objects import AcmeChallenge
+    from ...model.objects import AcmeDnsServer
+    from ...model.objects import AcmeEventLog
+    from ...model.objects import AcmeOrder
+    from ...model.objects import CertificateCA
+    from ...model.objects import CertificateCAChain
+    from ...model.objects import CertificateRequest
+    from ...model.objects import CertificateSigned
+    from ...model.objects import CoverageAssuranceEvent
+    from ...model.objects import Domain
+    from ...model.objects import OperationsEvent
+    from ...model.objects import OperationsObjectEvent
+    from ...model.objects import PrivateKey
+    from ...model.objects import QueueCertificate
+    from ...model.objects import QueueDomain
+    from ...model.objects import UniqueFQDNSet
+    from ..utils import ApiContext
 
 # ==============================================================================
 
@@ -21,11 +46,15 @@ class AcmeLogger(object):
     This is designed to monitor usage and potential throttling concerns
     """
 
-    ctx = None
-    dbAcmeAccount = None
-    dbAcmeOrder = None  # only set on orders
+    ctx: "ApiContext"
+    dbAcmeAccount: "AcmeAccount"
+    dbAcmeOrder: Optional["AcmeOrder"] = None  # only set on orders
 
-    def __init__(self, ctx, dbAcmeAccount=None):
+    def __init__(
+        self,
+        ctx: "ApiContext",
+        dbAcmeAccount: "AcmeAccount",
+    ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeAccount: (optional) The :class:`model.objects.AcmeAccount`
@@ -37,7 +66,10 @@ class AcmeLogger(object):
     def dbSession(self):
         return self.ctx.dbSession
 
-    def register_dbAcmeOrder(self, dbAcmeOrder):
+    def register_dbAcmeOrder(
+        self,
+        dbAcmeOrder: "AcmeOrder",
+    ) -> None:
         """
         Registers a :class:`model.objects.AcmeOrder` onto the event logger.
 
@@ -45,7 +77,11 @@ class AcmeLogger(object):
         """
         self.dbAcmeOrder = dbAcmeOrder
 
-    def log_newAccount(self, acme_version, transaction_commit=None):
+    def log_newAccount(
+        self,
+        acme_version: str,
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a call for the ACME Registration event
 
@@ -70,7 +106,11 @@ class AcmeLogger(object):
 
         return dbAcmeEventLog
 
-    def log_deactivateAccount(self, acme_version, transaction_commit=None):
+    def log_deactivateAccount(
+        self,
+        acme_version: str,
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a call for the ACME Deactivation event
 
@@ -95,7 +135,12 @@ class AcmeLogger(object):
 
         return dbAcmeEventLog
 
-    def log_newOrder(self, acme_version, dbUniqueFQDNSet, transaction_commit=None):
+    def log_newOrder(
+        self,
+        acme_version: str,
+        dbUniqueFQDNSet: "UniqueFQDNSet",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a call for the ACME Registration event
 
@@ -125,7 +170,12 @@ class AcmeLogger(object):
 
         return dbAcmeEventLog
 
-    def log_order_load(self, acme_version, dbAcmeOrder, transaction_commit=None):
+    def log_order_load(
+        self,
+        acme_version: str,
+        dbAcmeOrder: "AcmeOrder",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a call for the ACME order's endpint
 
@@ -137,12 +187,17 @@ class AcmeLogger(object):
 
         acme_event_id = model_utils.AcmeEvent.from_string("v2|-order-location")
 
+        # ensure we have the right order
+        if self.dbAcmeOrder:
+            if self.dbAcmeOrder.id != dbAcmeOrder.id:
+                raise ValueError("Received an unexpected AcmeOrder")
+
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
-        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id
+        dbAcmeEventLog.acme_order_id = dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -153,8 +208,11 @@ class AcmeLogger(object):
         return dbAcmeEventLog
 
     def log_authorization_request(
-        self, acme_version, dbAcmeAuthorization, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeAuthorization: "AcmeAuthorization",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a new authorization and creates a challenge object
 
@@ -186,8 +244,11 @@ class AcmeLogger(object):
         return dbAcmeEventLog
 
     def log_authorization_deactivate(
-        self, acme_version, dbAcmeAuthorization, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeAuthorization: "AcmeAuthorization",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
 
@@ -212,8 +273,11 @@ class AcmeLogger(object):
         return dbAcmeEventLog
 
     def log_challenge_PostAsGet(
-        self, acme_version, dbAcmeChallenge, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
@@ -221,6 +285,8 @@ class AcmeLogger(object):
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
+
+        assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -244,8 +310,11 @@ class AcmeLogger(object):
         return dbAcmeEventLog
 
     def log_challenge_trigger(
-        self, acme_version, dbAcmeChallenge, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a new authorization and creates a challenge object
 
@@ -255,6 +324,8 @@ class AcmeLogger(object):
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
+
+        assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -278,8 +349,12 @@ class AcmeLogger(object):
         return dbAcmeEventLog
 
     def log_challenge_error(
-        self, acme_version, dbAcmeChallenge, failtype, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeChallenge: "AcmeChallenge",
+        failtype: str,
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a challenge as error
 
@@ -302,6 +377,7 @@ class AcmeLogger(object):
             self.dbSession.flush()
         else:
             raise ValueError("unknown `failtype")
+        assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -322,9 +398,14 @@ class AcmeLogger(object):
         if transaction_commit:
             self.ctx.pyramid_transaction_commit()
 
+        return dbAcmeEventLog
+
     def log_challenge_pass(
-        self, acme_version, dbAcmeChallenge, transaction_commit=None
-    ):
+        self,
+        acme_version: str,
+        dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeEventLog":
         """
         Logs a challenge as passed
 
@@ -334,6 +415,8 @@ class AcmeLogger(object):
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
+
+        assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -354,7 +437,13 @@ class AcmeLogger(object):
         if transaction_commit:
             self.ctx.pyramid_transaction_commit()
 
-    def log_order_finalize(self, acme_version, transaction_commit=True):
+        return dbAcmeEventLog
+
+    def log_order_finalize(
+        self,
+        acme_version: str,
+        transaction_commit: bool = True,
+    ) -> "AcmeEventLog":
         """
         Logs an AcmeOrder as finalized
 
@@ -392,11 +481,11 @@ class AcmeLogger(object):
 
     def log_CertificateProcured(
         self,
-        acme_version,
-        dbCertificateSigned=None,
-        dbCertificateRequest=None,
-        transaction_commit=True,
-    ):
+        acme_version: str,
+        dbCertificateSigned: "CertificateSigned",
+        dbCertificateRequest: "CertificateRequest",
+        transaction_commit: bool = True,
+    ) -> "AcmeEventLog":
         """
         Logs an AcmeOrder as finalized
 
@@ -440,11 +529,11 @@ class AcmeLogger(object):
 
 def log__OperationsEvent(
     ctx,
-    event_type_id,
-    event_payload_dict=None,
-    dbOperationsEvent_child_of=None,
-    timestamp_event=None,
-):
+    event_type_id: int,
+    event_payload_dict: Optional[Dict] = None,
+    dbOperationsEvent_child_of: Optional["OperationsEvent"] = None,
+    timestamp_event: Optional[datetime.datetime] = None,
+) -> "OperationsEvent":
     """
     creates a OperationsEvent instance
     if needed, registers it into the ctx
@@ -480,24 +569,24 @@ def log__OperationsEvent(
 
 
 def _log_object_event(
-    ctx,
-    dbOperationsEvent=None,
-    event_status_id=None,
-    dbAcmeAccount=None,
-    dbAcmeAccountKey=None,
-    dbAcmeDnsServer=None,
-    dbAcmeOrder=None,
-    dbCertificateCA=None,
-    dbCertificateCAChain=None,
-    dbCertificateRequest=None,
-    dbCoverageAssuranceEvent=None,
-    dbDomain=None,
-    dbPrivateKey=None,
-    dbQueueCertificate=None,
-    dbQueueDomain=None,
-    dbCertificateSigned=None,
-    dbUniqueFQDNSet=None,
-):
+    ctx: "ApiContext",
+    dbOperationsEvent: "OperationsEvent",
+    event_status_id: int,
+    dbAcmeAccount: Optional["AcmeAccount"] = None,
+    dbAcmeAccountKey: Optional["AcmeAccountKey"] = None,
+    dbAcmeDnsServer: Optional["AcmeDnsServer"] = None,
+    dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbCertificateCA: Optional["CertificateCA"] = None,
+    dbCertificateCAChain: Optional["CertificateCAChain"] = None,
+    dbCertificateRequest: Optional["CertificateRequest"] = None,
+    dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
+    dbDomain: Optional["Domain"] = None,
+    dbPrivateKey: Optional["PrivateKey"] = None,
+    dbQueueCertificate: Optional["QueueCertificate"] = None,
+    dbQueueDomain: Optional["QueueDomain"] = None,
+    dbCertificateSigned: Optional["CertificateSigned"] = None,
+    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+) -> "OperationsObjectEvent":
     """additional logging for objects"""
     dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
     dbOperationsObjectEvent.operations_event_id = dbOperationsEvent.id

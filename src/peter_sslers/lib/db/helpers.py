@@ -1,8 +1,14 @@
 # stdlib
 import logging
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
+
+if TYPE_CHECKING:
+    from ...model.objects import CertificateSigned
+
 
 # ==============================================================================
 
@@ -12,16 +18,18 @@ log = logging.getLogger(__name__)
 
 
 def _certificate_parse_to_record(
-    cert_pem=None,
-    cert_pem_filepath=None,
-    dbCertificateSigned=None,
-):
+    cert_pem: str,
+    cert_pem_filepath: Optional[str],
+    dbCertificateSigned: "CertificateSigned",
+) -> "CertificateSigned":
     """
     helper utility
 
     :param cert_pem: (required) the PEM encoded certificate
     :param cert_pem_filepath: (optional) the tempfile to a PEM encoded certificate
     :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
+
+    :returns: the inbound `CertificateSigned`, updated.
 
     sets the following object attributes:
         :attr:`model.utils.CertificateSigned.timestamp_not_before`

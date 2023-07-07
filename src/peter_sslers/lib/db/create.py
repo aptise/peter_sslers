@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -16,8 +17,35 @@ from .validate import validate_domain_names
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib.db import get as _get  # noqa: F401
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+
+# from typing import Optional
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeAccountProvider
+    from ...model.objects import AcmeChallenge
+    from ...model.objects import AcmeChallengePoll
+    from ...model.objects import AcmeChallengeUnknownPoll
+    from ...model.objects import AcmeDnsServerAccount
+    from ...model.objects import AcmeOrder
+    from ...model.objects import AcmeOrderless
+    from ...model.objects import AcmeOrderSubmission
+    from ...model.objects import CertificateCAPreference
+    from ...model.objects import CertificateRequest
+    from ...model.objects import CertificateSigned
+    from ...model.objects import CoverageAssuranceEvent
+    from ...model.objects import DomainAutocert
+    from ...model.objects import PrivateKey
+    from ...model.objects import QueueCertificate
+
+    from ..utils import ApiContext
+    from ...model.utils import DomainsChallenged
+
+    # --
+
 
 # ==============================================================================
 
@@ -26,7 +54,9 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
+def create__AcmeAccountProvider(
+    ctx: "ApiContext", name=None, directory=None, protocol=None
+) -> "AcmeAccountProvider":
     """
     Create a new AcmeAccountProvider
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -63,10 +93,10 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
 
 
 def create__AcmeOrderless(
-    ctx,
-    domains_challenged=None,
-    dbAcmeAccount=None,
-):
+    ctx: "ApiContext",
+    domains_challenged: "DomainsChallenged",
+    dbAcmeAccount: "AcmeAccount",
+) -> "AcmeOrderless":
     """
     Create a new AcmeOrderless Tracker
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -96,6 +126,8 @@ def create__AcmeOrderless(
         for _domain_name in domains_challenged["http-01"]
     }
 
+    assert ctx.request
+    assert ctx.request.registry
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
         active_challenges = []
         for domain_name, dbDomain in domain_objects.items():
@@ -127,7 +159,7 @@ def create__AcmeOrderless(
 
 
 def create__AcmeOrder(
-    ctx,
+    ctx: "ApiContext",
     acme_order_response=None,
     acme_order_type_id=None,
     acme_order_processing_status_id=None,
@@ -146,7 +178,7 @@ def create__AcmeOrder(
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
     transaction_commit=None,
-):
+) -> "AcmeOrder":
     """
     Create a new ACME Order
 
@@ -332,7 +364,10 @@ def create__AcmeOrder(
     return dbAcmeOrder
 
 
-def create__AcmeOrderSubmission(ctx, dbAcmeOrder):
+def create__AcmeOrderSubmission(
+    ctx: "ApiContext",
+    dbAcmeOrder: "AcmeOrder",
+) -> "AcmeOrderSubmission":
     dbAcmeOrderSubmission = model_objects.AcmeOrderSubmission()
     dbAcmeOrderSubmission.acme_order_id = dbAcmeOrder.id
     dbAcmeOrderSubmission.timestamp_created = ctx.timestamp
@@ -346,7 +381,7 @@ def create__AcmeAuthorization(*args, **kwargs):
 
 
 def create__AcmeChallenge(
-    ctx,
+    ctx: "ApiContext",
     dbAcmeOrderless=None,
     dbAcmeAuthorization=None,
     dbDomain=None,
@@ -356,7 +391,7 @@ def create__AcmeChallenge(
     acme_challenge_type_id=None,
     acme_status_challenge_id=model_utils.Acme_Status_Challenge.ID_DEFAULT,
     is_via_sync=None,
-):
+) -> "AcmeChallenge":
     """
     Create a new Challenge
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -393,6 +428,8 @@ def create__AcmeChallenge(
         raise ValueError("invalid `acme_challenge_type_id`")
 
     _competing_challenges = None
+    assert ctx.request
+    assert ctx.request.registry
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
         _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
             ctx,
@@ -440,7 +477,11 @@ def create__AcmeChallenge(
     return dbAcmeChallenge
 
 
-def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None):
+def create__AcmeChallengePoll(
+    ctx: "ApiContext",
+    dbAcmeChallenge=None,
+    remote_ip_address=None,
+) -> "AcmeChallengePoll":
     """
     Create a new AcmeChallengePoll - this is a log
 
@@ -465,8 +506,11 @@ def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None)
 
 
 def create__AcmeChallengeUnknownPoll(
-    ctx, domain=None, challenge=None, remote_ip_address=None
-):
+    ctx: "ApiContext",
+    domain: str,
+    challenge: str,
+    remote_ip_address: str,
+) -> "AcmeChallengeUnknownPoll":
     """
     Create a new AcmeChallengeUnknownPoll - this is an unknown polling
 
@@ -493,7 +537,7 @@ def create__AcmeChallengeUnknownPoll(
 
 
 def create__AcmeDnsServerAccount(
-    ctx,
+    ctx: "ApiContext",
     dbAcmeDnsServer=None,
     dbDomain=None,
     username=None,
@@ -501,7 +545,7 @@ def create__AcmeDnsServerAccount(
     fulldomain=None,
     subdomain=None,
     allowfrom=None,
-):
+) -> "AcmeDnsServerAccount":
     """
     create wrapping an acms-dns Server and Domain (AcmeDnsServerAccount)
 
@@ -544,10 +588,10 @@ def create__AcmeDnsServerAccount(
 
 
 def create__CertificateCAPreference(
-    ctx,
+    ctx: "ApiContext",
     slot_id=None,
     dbCertificateCA=None,
-):
+) -> "CertificateCAPreference":
     """
     Create a new CertificateCAPreference entry
 
@@ -565,13 +609,13 @@ def create__CertificateCAPreference(
 
 
 def create__CertificateRequest(
-    ctx,
+    ctx: "ApiContext",
     csr_pem=None,
     certificate_request_source_id=None,
     dbPrivateKey=None,
     dbCertificateSigned__issued=None,
     domain_names=None,
-):
+) -> "CertificateRequest":
     """
     Create a new Certificate Signing Request (CSR)
 
@@ -740,7 +784,7 @@ def create__CertificateRequest(
 
 
 def create__CertificateSigned(
-    ctx,
+    ctx: "ApiContext",
     cert_pem=None,
     cert_domains_expected=None,
     is_active=None,
@@ -750,7 +794,7 @@ def create__CertificateSigned(
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
-):
+) -> "CertificateSigned":
     """
     Create a new CertificateSigned
 
@@ -965,7 +1009,7 @@ def create__CertificateSigned(
 
 
 def create__CoverageAssuranceEvent(
-    ctx,
+    ctx: "ApiContext",
     coverage_assurance_event_type_id=None,
     coverage_assurance_event_status_id=None,
     coverage_assurance_resolution_id=None,
@@ -973,7 +1017,7 @@ def create__CoverageAssuranceEvent(
     dbCertificateSigned=None,
     dbQueueCertificate=None,
     dbCoverageAssuranceEvent_parent=None,
-):
+) -> "CoverageAssuranceEvent":
     """
     Create a new Certificate Signing Request (CSR)
 
@@ -1054,9 +1098,9 @@ def create__CoverageAssuranceEvent(
 
 
 def create__DomainAutocert(
-    ctx,
+    ctx: "ApiContext",
     dbDomain=None,
-):
+) -> "DomainAutocert":
     """
     Generates a new :class:`model.objects.DomainAutocert` for the datastore
 
@@ -1075,14 +1119,14 @@ def create__DomainAutocert(
 
 
 def create__PrivateKey(
-    ctx,
+    ctx: "ApiContext",
     acme_account_id__owner=None,
     private_key_source_id=None,
     private_key_type_id=None,
     private_key_id__replaces=None,
     key_technology_id=model_utils.KeyTechnology.from_string("RSA"),
     # bits_rsa=None,
-):
+) -> "PrivateKey":
     """
     Generates a new :class:`model.objects.PrivateKey` for the datastore
 
@@ -1112,7 +1156,7 @@ def create__PrivateKey(
 
 
 def create__QueueCertificate(
-    ctx,
+    ctx: "ApiContext",
     dbAcmeAccount=None,
     dbPrivateKey=None,
     private_key_cycle_id__renewal=None,
@@ -1120,7 +1164,7 @@ def create__QueueCertificate(
     dbAcmeOrder=None,
     dbCertificateSigned=None,
     dbUniqueFQDNSet=None,
-):
+) -> "QueueCertificate":
     """
     Queues an item for renewal
 
