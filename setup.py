@@ -59,9 +59,13 @@ if (sys.version_info.major == 3) and (sys.version_info.minor == 6):
     #   v1.23.0 calls make_csr with a bad version, and does not pin PyOpenSSL
     tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
     tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+    testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+    testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
 else:
     tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0")
     tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
+    testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0")
+    testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
 
 setup(
     name="peter_sslers",
