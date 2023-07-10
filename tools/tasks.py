@@ -2,6 +2,7 @@
 # import json
 import os
 import os.path
+from typing import TYPE_CHECKING
 
 # import pprint
 # import subprocess
@@ -13,11 +14,14 @@ from invoke import task
 # local
 import peter_sslers.commandline
 
-
 # ==============================================================================
 
+if TYPE_CHECKING:
+    from invoke.context import Context
+
+
 # export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
+DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT", "")
 
 # ------------------------------------------------------------------------------
 
@@ -28,7 +32,11 @@ DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_certbot_certs_archive(c, archive_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_certs_archive(
+    c: "Context",
+    archive_path: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the entire LetEncrypt archive in `archive_path`
@@ -52,8 +60,11 @@ def import_certbot_certs_archive(c, archive_path, server_url_root=DEFAULT_SERVER
     }
 )
 def import_certbot_cert_version(
-    c, domain_certs_path, certificate_version, server_url_root=DEFAULT_SERVER_ROOT
-):
+    c: "Context",
+    domain_certs_path: str,
+    certificate_version: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports a particular version of a certificate
@@ -84,7 +95,11 @@ def import_certbot_cert_version(
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_certbot_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_cert_plain(
+    c: "Context",
+    cert_path: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the certificate for a folder, given an unversioned content structure:
@@ -111,7 +126,11 @@ def import_certbot_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_ROOT)
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_certbot_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_certs_live(
+    c: "Context",
+    live_path: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the LetsEncrypt Certbot live archive  in /etc/letsencrypt/live
@@ -136,7 +155,11 @@ def import_certbot_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT)
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_certbot_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_account(
+    c: "Context",
+    account_path: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports a specific LetsEncrypt Certbot account
@@ -159,8 +182,10 @@ def import_certbot_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT)
     }
 )
 def import_certbot_accounts_server(
-    c, accounts_path_server, server_url_root=DEFAULT_SERVER_ROOT
-):
+    c: "Context",
+    accounts_path_server: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a given LetsEncrypt server
@@ -185,8 +210,10 @@ def import_certbot_accounts_server(
     }
 )
 def import_certbot_accounts_all(
-    c, accounts_path_all, server_url_root=DEFAULT_SERVER_ROOT
-):
+    c: "Context",
+    accounts_path_all: str,
+    server_url_root: str = DEFAULT_SERVER_ROOT,
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a LetsEncrypt install
