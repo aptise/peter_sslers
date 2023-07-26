@@ -17,13 +17,13 @@ with open(os.path.join(HERE, "README.md")) as f:
     long_description = f.read()
 
 requires = [
-    "cert_utils",  # formerly in here
+    "cert_utils",  # formerly in this package, but migrated out
     "formencode>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic >=0.4.3, <0.5.0",
+    "pyramid_formencode_classic >=0.5.0",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
