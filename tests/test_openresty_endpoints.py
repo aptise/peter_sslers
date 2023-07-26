@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # stdlib
 import logging
 import unittest
@@ -16,8 +14,8 @@ from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import RUN_NGINX_TESTS
 from ._utils import TEST_INI
 
+# import cert_utils
 # from peter_sslers.lib import acme_v2
-# from peter_sslers.lib import cert_utils
 # from ._utils import AppTest
 
 # ==============================================================================

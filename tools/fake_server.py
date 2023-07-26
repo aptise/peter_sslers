@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """
 `fake_serverpy`
 
@@ -43,17 +41,22 @@ identify responses that it generates.
 
 # stlib
 import sys
+from typing import Callable
+from typing import TYPE_CHECKING
 from wsgiref.simple_server import make_server
 
 # pypi
 from pyramid.config import Configurator
 from pyramid.response import Response
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
 # ==============================================================================
 
 
-def header_tween_factory(handler, registry):
-    def header_tween(request):
+def header_tween_factory(handler: Callable, registry: Configurator) -> Callable:
+    def header_tween(request: "Request") -> Response:
         response = handler(request)
         response.headers["X-Peter-SSLers"] = "fakeserver"
         return response
@@ -61,26 +64,26 @@ def header_tween_factory(handler, registry):
     return header_tween
 
 
-def hello_world(request):
+def hello_world(request: "Request") -> Response:
     print("Incoming request")
     return Response("<body><h1>Hello World!</h1></body>")
 
 
-def public_challenge(request):
+def public_challenge(request: "Request") -> Response:
     print("Incoming request")
     return Response(
         "<body><h1>public_challenge</h1>%s</body>" % request.matchdict["challenge"]
     )
 
 
-def public_whoami(request):
+def public_whoami(request: "Request") -> Response:
     print("Incoming request - public_whoami")
     return Response(
         "<body><h1>public_whoami</h1>%s</body>" % request.active_domain_name
     )
 
 
-def admin(request):
+def admin(request: "Request") -> Response:
     print("Incoming request - admin")
     return Response("<body><h1>admin</h1>%s</body>" % request.active_domain_name)
 

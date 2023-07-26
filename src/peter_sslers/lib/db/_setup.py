@@ -1,10 +1,9 @@
-from __future__ import print_function
-
 # stdlib
 import datetime
 import logging
 
 # pypi
+import cert_utils
 import sqlalchemy
 
 # local
@@ -79,10 +78,9 @@ acme_account_providers = {
 
 
 def initialize_AcmeAccountProviders(ctx):
-
     timestamp_now = datetime.datetime.utcnow()
 
-    for (id, item) in acme_account_providers.items():
+    for id, item in acme_account_providers.items():
         dbObject = model_objects.AcmeAccountProvider()
         dbObject.id = item["id"]
         dbObject.timestamp_created = timestamp_now
@@ -112,7 +110,7 @@ def initialize_AcmeAccountProviders(ctx):
     dbObject.timestamp_created = timestamp_now
     _placeholder_text = "*placeholder-key*"
     dbObject.key_pem = _placeholder_text
-    dbObject.key_pem_md5 = utils.md5_text(_placeholder_text)
+    dbObject.key_pem_md5 = cert_utils.utils.md5_text(_placeholder_text)
     dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
@@ -134,9 +132,8 @@ def initialize_AcmeAccountProviders(ctx):
 
 
 def initialize_CertificateCAs(ctx):
-
     # nestle this import, so we do not load it on every run
-    from ...lib import letsencrypt_info
+    from cert_utils import letsencrypt_info
 
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
@@ -310,7 +307,6 @@ def initialize_CertificateCAs(ctx):
 
 
 def initialize_DomainBlocklisted(ctx):
-
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
     ctx.dbSession.add(dbDomainBlocklisted)
@@ -323,7 +319,6 @@ def initialize_DomainBlocklisted(ctx):
 
 
 def startup_AcmeAccountProviders(ctx, app_settings):
-
     # first handle the Default CertificateAuthority
 
     dbAcmeAccountProvider = db_get.get__AcmeAccountProvider__by_name(

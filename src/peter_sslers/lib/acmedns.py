@@ -7,7 +7,7 @@ except ImportError:
 # ==============================================================================
 
 
-def new_client(root_url):
+def new_client(root_url: str):
     """
     returns a pyacmedns client, or similar.
 

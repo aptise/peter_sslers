@@ -1,6 +1,9 @@
 # stdlib
 import datetime
 import json
+from typing import Dict
+from typing import List
+from typing import Optional
 
 # pypi
 from pyramid.decorator import reify
@@ -123,7 +126,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def is_usable(self):
+    def is_usable(self) -> bool:
         """check the AcmeAccount and AcmeAccountKey are both active"""
         if self.is_active:
             # `.acme_account_key` is joined on `is_active`
@@ -132,25 +135,25 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def is_can_authenticate(self):
+    def is_can_authenticate(self) -> bool:
         if self.acme_account_provider.protocol == "acme-v2":
             return True
         return False
 
     @property
-    def is_can_deactivate(self):
+    def is_can_deactivate(self) -> bool:
         if self.is_active:
             return True
         return False
 
     @property
-    def is_can_key_change(self):
+    def is_can_key_change(self) -> bool:
         if self.is_active:
             return True
         return False
 
     @property
-    def is_global_default_candidate(self):
+    def is_global_default_candidate(self) -> bool:
         if self.is_global_default:
             return False
         if not self.is_active:
@@ -164,27 +167,27 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @reify
-    def key_spki_search(self):
+    def key_spki_search(self) -> str:
         if not self.acme_account_key:
             return "type=error&error=missing-acme-account-key"
         return self.acme_account_key.key_spki_search
 
     @reify
-    def key_pem_sample(self):
+    def key_pem_sample(self) -> str:
         if not self.acme_account_key:
             return ""
         return self.acme_account_key.key_pem_sample
 
     @reify
-    def private_key_cycle(self):
+    def private_key_cycle(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
 
     @reify
-    def private_key_technology(self):
+    def private_key_technology(self) -> str:
         return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "is_active": True if self.is_active else False,
             "is_deactivated": self.timestamp_deactivated or False,
@@ -266,34 +269,37 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def acme_account_key_source(self):
+    def acme_account_key_source(self) -> str:
         return model_utils.AcmeAccountKeySource.as_string(
             self.acme_account_key_source_id
         )
 
     @reify
-    def key_spki_search(self):
-        return "type=spki&spki=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s" % (
-            self.spki_sha256,
-            self.id,
-            self.acme_account_id,
+    def key_spki_search(self) -> str:
+        return (
+            "type=spki&spki=%s&source=acme_account_key&acme_account_key.id=%s&acme_account.id=%s"
+            % (
+                self.spki_sha256,
+                self.id,
+                self.acme_account_id,
+            )
         )
 
     @reify
-    def key_pem_sample(self):
+    def key_pem_sample(self) -> str:
         # strip the pem, because the last line is whitespace after
         # "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
     @property
-    def key_technology(self):
+    def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "key_pem": self.key_pem,
@@ -347,7 +353,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _disable(self):
+    def _disable(self) -> bool:
         """
         This should only be invoked by commandline tools
         """
@@ -361,11 +367,11 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
         return True if _changed else False
 
     @property
-    def url(self):
+    def url(self) -> str:
         return self.directory or self.endpoint
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
@@ -557,13 +563,13 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def acme_status_authorization(self):
+    def acme_status_authorization(self) -> str:
         return model_utils.Acme_Status_Authorization.as_string(
             self.acme_status_authorization_id
         )
 
     @property
-    def is_acme_server_pending(self):
+    def is_acme_server_pending(self) -> bool:
         if (
             self.acme_status_authorization
             in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
@@ -572,7 +578,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def is_can_acme_server_deactivate(self):
+    def is_can_acme_server_deactivate(self) -> bool:
         # ???: is there a better way to test this?
         if not self.authorization_url:
             return False
@@ -584,7 +590,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_acme_server_process(self):
+    def is_can_acme_server_process(self) -> bool:
         """
         can the auth be triggered?
         two scenarios:
@@ -599,7 +605,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return self.is_can_acme_server_trigger
 
     @property
-    def is_can_acme_server_trigger(self):
+    def is_can_acme_server_trigger(self) -> bool:
         """
         can the auth be triggered?
         this requires a loaded auth
@@ -621,14 +627,14 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_acme_server_sync(self):
+    def is_can_acme_server_sync(self) -> bool:
         # ???: is there a better way to test this?
         if not self.authorization_url:
             return False
         return True
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
@@ -834,23 +840,23 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def acme_challenge_type(self):
+    def acme_challenge_type(self) -> Optional[str]:
         if self.acme_challenge_type_id:
             return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
         return None
 
     @property
-    def acme_status_challenge(self):
+    def acme_status_challenge(self) -> str:
         return model_utils.Acme_Status_Challenge.as_string(
             self.acme_status_challenge_id
         )
 
     @property
-    def domain_name(self):
+    def domain_name(self) -> str:
         return self.domain.domain_name
 
     @property
-    def challenge_instructions_short(self):
+    def challenge_instructions_short(self) -> str:
         if self.acme_challenge_type == "http-01":
             return "PeterSSLers is configured to answer this challenge."
         elif self.acme_challenge_type == "dns-01":
@@ -858,7 +864,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         return "PeterSSLers can not answer this challenge."
 
     @property
-    def is_can_acme_server_sync(self):
+    def is_can_acme_server_sync(self) -> bool:
         if not self.challenge_url:
             return False
         if not self.acme_authorization_id:
@@ -867,7 +873,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_acme_server_trigger(self):
+    def is_can_acme_server_trigger(self) -> bool:
         if not self.challenge_url:
             return False
         if not self.acme_authorization_id:
@@ -881,7 +887,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_configured_to_answer(self):
+    def is_configured_to_answer(self) -> bool:
         if not self.is_can_acme_server_trigger:
             return False
         if self.acme_challenge_type == "http-01":
@@ -892,7 +898,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
@@ -1017,7 +1023,7 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "AcmeChallenge": self.acme_challenge.as_json,
@@ -1059,7 +1065,7 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "domain": self.domain,
@@ -1076,7 +1082,6 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
 
 
 class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
-
     __tablename__ = "acme_dns_server"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
@@ -1104,7 +1109,7 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "root_url": self.root_url,
@@ -1169,11 +1174,11 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def password_sample(self):
+    def password_sample(self) -> str:
         return "%s...%s" % (self.password[:5], self.password[-5:])
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "AcmeDnsServer": self.acme_dns_server.as_json,
             "Domain": self.domain.as_json,
@@ -1187,7 +1192,7 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
         }
 
     @property
-    def pyacmedns_dict(self):
+    def pyacmedns_dict(self) -> Dict:
         """
         :returns: a dict of items required for a pyacmedns client
         """
@@ -1249,13 +1254,13 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def acme_event(self):
+    def acme_event(self) -> Optional[str]:
         if self.acme_event_id:
             return model_utils.AcmeEvent.as_string(self.acme_event_id)
         return None
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "timestamp_event": self.timestamp_event_isoformat,
@@ -1518,31 +1523,31 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def acme_status_order(self):
+    def acme_status_order(self) -> str:
         return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
 
     @reify
-    def acme_order_type(self):
+    def acme_order_type(self) -> str:
         return model_utils.AcmeOrderType.as_string(self.acme_order_type_id)
 
     @property
-    def acme_order_processing_strategy(self):
+    def acme_order_processing_strategy(self) -> str:
         return model_utils.AcmeOrder_ProcessingStrategy.as_string(
             self.acme_order_processing_strategy_id
         )
 
     @reify
-    def acme_order_processing_status(self):
+    def acme_order_processing_status(self) -> str:
         return model_utils.AcmeOrder_ProcessingStatus.as_string(
             self.acme_order_processing_status_id
         )
 
     @reify
-    def private_key_cycle__renewal(self):
+    def private_key_cycle__renewal(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
 
     @reify
-    def private_key_strategy__requested(self):
+    def private_key_strategy__requested(self) -> str:
         return (
             model_utils.PrivateKeyStrategy.as_string(
                 self.private_key_strategy_id__requested
@@ -1552,7 +1557,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         )
 
     @reify
-    def private_key_strategy__final(self):
+    def private_key_strategy__final(self) -> str:
         return (
             model_utils.PrivateKeyStrategy.as_string(
                 self.private_key_strategy_id__final
@@ -1562,18 +1567,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
-    def acme_authorization_ids(self):
+    def acme_authorization_ids(self) -> List[int]:
         return [i.acme_authorization_id for i in self.to_acme_authorizations]
 
     @property
-    def acme_authorizations(self):
+    def acme_authorizations(self) -> List["AcmeAuthorization"]:
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
             authorizations.append(_to_auth.acme_authorization)
         return authorizations
 
     @property
-    def acme_authorizations_pending(self):
+    def acme_authorizations_pending(self) -> List["AcmeAuthorization"]:
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
             if (
@@ -1584,7 +1589,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return authorizations
 
     @property
-    def authorizations_can_deactivate(self):
+    def authorizations_can_deactivate(self) -> List["AcmeAuthorization"]:
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
             if (
@@ -1595,7 +1600,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return authorizations
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         domain_names = [
             to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
         ]
@@ -1604,7 +1609,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return domain_names
 
     @property
-    def domains_challenged(self):
+    def domains_challenged(self) -> model_utils.DomainsChallenged:
         domain_names = self.domains_as_list
         domains_challenged = model_utils.DomainsChallenged()
         for _specified in self.acme_order_2_acme_challenge_type_specifics:
@@ -1625,7 +1630,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return domains_challenged
 
     @property
-    def is_can_acme_server_sync(self):
+    def is_can_acme_server_sync(self) -> bool:
         # note: is there a better test?
         if not self.order_url:
             return False
@@ -1634,7 +1639,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_acme_server_deactivate_authorizations(self):
+    def is_can_acme_server_deactivate_authorizations(self) -> bool:
         # note: is there a better test?
         if not self.order_url:
             return False
@@ -1652,7 +1657,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_acme_server_download_certificate(self):
+    def is_can_acme_server_download_certificate(self) -> bool:
         """
         can we download a CertificateSigned from the AcmeServer?
         only works for VALID AcmeOrder if we do not have a CertificateSigned
@@ -1664,7 +1669,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @reify
-    def acme_process_steps(self):
+    def acme_process_steps(self) -> Dict:
         """
         this is a JSON payload which can be shown to an API client or used to
         render more informative instructions on the AcmeOrder process page.
@@ -1691,8 +1696,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                     else None
                 )
                 _auth_tuple = (_pending, _to_auth.acme_authorization.as_json)
+                assert isinstance(rval["authorizations"], list)
                 rval["authorizations"].append(_auth_tuple)
                 if _pending:
+                    assert isinstance(rval["authorizations_remaining"], int)
                     rval["authorizations_remaining"] += 1
             if rval["authorizations_remaining"]:
                 rval["next_step"] = "challenge"
@@ -1708,20 +1715,20 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return rval
 
     @property
-    def is_can_acme_process(self):
+    def is_can_acme_process(self) -> bool:
         # `process` will iterate authorizations and finalize
         if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_PROCESS:
             return True
         return False
 
     @property
-    def is_can_acme_finalize(self):
+    def is_can_acme_finalize(self) -> bool:
         if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_FINALIZE:
             return True
         return False
 
     @property
-    def is_can_mark_invalid(self):
+    def is_can_mark_invalid(self) -> bool:
         if (
             self.acme_status_order
             not in model_utils.Acme_Status_Order.OPTIONS_X_MARK_INVALID
@@ -1730,13 +1737,13 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def is_can_retry(self):
+    def is_can_retry(self) -> bool:
         if self.acme_status_order not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
             return False
         return True
 
     @property
-    def is_renewable_quick(self):
+    def is_renewable_quick(self) -> bool:
         if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
             if self.acme_account.is_active:
                 if self.private_key.is_active:
@@ -1744,20 +1751,20 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def is_renewable_queue(self):
+    def is_renewable_queue(self) -> bool:
         if self.acme_account.is_active:
             return True
         return False
 
     @property
-    def is_renewable_custom(self):
+    def is_renewable_custom(self) -> bool:
         if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
             if self.acme_account.is_active:
                 return True
         return False
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
@@ -1945,7 +1952,7 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def acme_challenge_type(self):
+    def acme_challenge_type(self) -> Optional[str]:
         if self.acme_challenge_type_id:
             return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
         return None
@@ -1953,7 +1960,7 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "acme_order_id": self.acme_order_id,
             "domain_id": self.domain_id,
@@ -2000,7 +2007,7 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def domains_status(self):
+    def domains_status(self) -> Dict:
         _status = {}
         for challenge in self.acme_challenges:
             _status[challenge.domain_name] = {
@@ -2011,7 +2018,7 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
         return _status
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
@@ -2120,38 +2127,38 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def cert_spki_search(self):
+    def cert_spki_search(self) -> str:
         return "type=spki&spki=%s&source=certificate_ca&certificate_ca.id=%s" % (
             self.spki_sha256,
             self.id,
         )
 
     @reify
-    def cert_subject_search(self):
+    def cert_subject_search(self) -> str:
         return (
             "type=cert_subject&cert_subject=%s&source=certificate_ca&certificate_ca.id=%s"
             % (self.cert_subject, self.id)
         )
 
     @reify
-    def cert_issuer_search(self):
+    def cert_issuer_search(self) -> str:
         return (
             "type=cert_issuer&cert_issuer=%s&source=certificate_ca&certificate_ca.id=%s"
             % (self.cert_issuer, self.id)
         )
 
     @reify
-    def fingerprint_sha1_preview(self):
+    def fingerprint_sha1_preview(self) -> str:
         return "%s&hellip;" % (self.fingerprint_sha1__colon or "")[:8]
 
     @property
-    def key_technology(self):
+    def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
-    def button_view(self):
+    def button_view(self) -> str:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
 
@@ -2181,7 +2188,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return button
 
     @property
-    def button_search_spki(self):
+    def button_search_spki(self) -> str:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
 
@@ -2202,7 +2209,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return button
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "display_name": self.display_name,
@@ -2272,7 +2279,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def button_view(self):
+    def button_view(self) -> str:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
 
@@ -2293,7 +2300,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         return button
 
     @property
-    def button_compatible_search_view(self):
+    def button_compatible_search_view(self) -> str:
         dbSession = sa_Session.object_session(self)
         request = dbSession.info["request"]
 
@@ -2314,12 +2321,12 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         return button
 
     @reify
-    def certificate_ca_ids(self):
+    def certificate_ca_ids(self) -> str:
         _certificate_ca_ids = self.certificate_ca_ids_string.split(",")
         return _certificate_ca_ids
 
     @reify
-    def certificate_cas_all(self):
+    def certificate_cas_all(self) -> List["CertificateCA"]:
         # reify vs property, because this queries the database
         certificate_ca_ids = self.certificate_ca_ids
         dbSession = sa_Session.object_session(self)
@@ -2333,7 +2340,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "display_name": self.display_name,
@@ -2461,33 +2468,33 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def certificate_request_source(self):
+    def certificate_request_source(self) -> str:
         return model_utils.CertificateRequestSource.as_string(
             self.certificate_request_source_id
         )
 
     @property
-    def certificate_signed_id__latest(self):
+    def certificate_signed_id__latest(self) -> Optional[str]:
         if self.certificate_signed__latest:
             return self.certificate_signed__latest.id
         return None
 
     @reify
-    def csr_spki_search(self):
+    def csr_spki_search(self) -> str:
         return (
             "type=spki&spki=%s&source=certificate_request&certificate_request.id=%s"
             % (self.spki_sha256, self.id)
         )
 
     @property
-    def domains_as_string(self):
+    def domains_as_string(self) -> str:
         domains = sorted(
             [to_d.domain.domain_name for to_d in self.unique_fqdn_set.to_domains]
         )
         return ", ".join(domains)
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         domain_names = [
             to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
         ]
@@ -2496,13 +2503,13 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return domain_names
 
     @property
-    def key_technology(self):
+    def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "certificate_request_source": self.certificate_request_source,
@@ -2514,7 +2521,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         }
 
     @property
-    def as_json_extended(self):
+    def as_json_extended(self) -> Dict:
         return {
             "id": self.id,
             "certificate_request_source": self.certificate_request_source,
@@ -2680,70 +2687,70 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def cert_spki_search(self):
+    def cert_spki_search(self) -> str:
         return "type=spki&spki=%s&source=certificate&certificate.id=%s" % (
             self.spki_sha256,
             self.id,
         )
 
     @property
-    def cert_subject_search(self):
+    def cert_subject_search(self) -> str:
         return (
             "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
             % (self.cert_subject, self.id)
         )
 
     @property
-    def cert_issuer_search(self):
+    def cert_issuer_search(self) -> str:
         return (
             "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
             % (self.cert_issuer, self.id)
         )
 
     @property
-    def cert_chain_pem(self):
+    def cert_chain_pem(self) -> Optional[str]:
         if not self.certificate_ca_chain__preferred:
             return None
         return self.certificate_ca_chain__preferred.chain_pem
 
     @property
-    def cert_fullchain_pem(self):
+    def cert_fullchain_pem(self) -> Optional[str]:
         if not self.certificate_ca_chain__preferred:
             return None
         # certs are standardized to have a newline
-        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))
+        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
 
     @reify
-    def certificate_ca_ids__upchain(self):
+    def certificate_ca_ids__upchain(self) -> List[int]:
         # this loops `ORM:certificate_signed_chains`
         # this is NOT in order of preference
         _ids = set([])
         for _to_certificate_ca_chain in self.certificate_signed_chains:
             _chain = _to_certificate_ca_chain.certificate_ca_chain
             _ids.add(_chain.certificate_ca_0_id)
-        _ids = list(_ids)
-        return _ids
+        ids = list(_ids)
+        return ids
 
     @reify
-    def certificate_cas__upchain(self):
+    def certificate_cas__upchain(self) -> List["CertificateCA"]:
         # this loops `ORM:certificate_signed_chains`
         # this is NOT in order of preference
         _cas = set([])
         for _to_certificate_ca_chain in self.certificate_signed_chains:
             _chain = _to_certificate_ca_chain.certificate_ca_chain
             _cas.add(_chain.certificate_ca_0)
-        _cas = list(_cas)
-        return _cas
+        cas = list(_cas)
+        return cas
 
     @reify
-    def certificate_ca_chain_ids(self):
+    def certificate_ca_chain_ids(self) -> List[int]:
         # this loops `ORM:certificate_signed_chains`
         # this is NOT in order of preference
         _ids = [i.certificate_ca_chain_id for i in self.certificate_signed_chains]
         return _ids
 
     @reify
-    def certificate_ca_chain_id__preferred(self):
+    def certificate_ca_chain_id__preferred(self) -> Optional[int]:
         # this invokes `certificate_ca_chain__preferred`
         # which then loops `ORM:certificate_signed_chains`
         if self.certificate_ca_chain__preferred:
@@ -2751,7 +2758,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return None
 
     @reify
-    def certificate_ca_chain__preferred(self):
+    def certificate_ca_chain__preferred(self) -> Optional["CertificateCAChain"]:
         # this loops `ORM:certificate_signed_chains`
         if not self.certificate_signed_chains:
             return None
@@ -2784,7 +2791,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return None
 
     @reify
-    def expiring_days(self):
+    def expiring_days(self) -> Optional[int]:
         if self._expiring_days is None:
             self._expiring_days = (
                 self.timestamp_not_after - datetime.datetime.utcnow()
@@ -2794,7 +2801,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     _expiring_days = None
 
     @reify
-    def expiring_days_label(self):
+    def expiring_days_label(self) -> str:
         if self.is_active:
             if self.expiring_days <= 0:
                 return "danger"
@@ -2804,7 +2811,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 return "success"
         return "danger"
 
-    def custom_config_payload(self, certificate_ca_chain_id=None, id_only=False):
+    def custom_config_payload(
+        self,
+        certificate_ca_chain_id=None,
+        id_only=False,
+    ) -> Dict:
         # if there is no `certificate_ca_chain_id` specified, use the default
         if not certificate_ca_chain_id:
             certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
@@ -2847,36 +2858,36 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         }
 
     @property
-    def config_payload(self):
+    def config_payload(self) -> Dict:
         return self.custom_config_payload(certificate_ca_chain_id=None, id_only=False)
 
     @property
-    def config_payload_idonly(self):
+    def config_payload_idonly(self) -> Dict:
         return self.custom_config_payload(certificate_ca_chain_id=None, id_only=True)
 
     @property
-    def is_can_renew_letsencrypt(self):
+    def is_can_renew_letsencrypt(self) -> bool:
         """only allow renew of LE certificates"""
         # if self.acme_account_id:
         #    return True
         return False
 
     @property
-    def domains_as_string(self):
+    def domains_as_string(self) -> str:
         return self.unique_fqdn_set.domains_as_string
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
     @property
-    def key_technology(self):
+    def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
-    def renewals_managed_by(self):
+    def renewals_managed_by(self) -> str:
         if self.acme_order:
             return "AcmeOrder"
         return "CertificateSigned"
@@ -2896,7 +2907,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     @property
-    def renewal__private_key_cycle_id(self):
+    def renewal__private_key_cycle_id(self) -> int:
         if self.acme_order:
             return self.acme_order.private_key_cycle_id__renewal
         else:
@@ -2905,7 +2916,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             )
 
     @property
-    def renewal__private_key_strategy_id(self):
+    def renewal__private_key_strategy_id(self) -> int:
         if self.acme_order:
             _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
             if _private_key_cycle__renewal != "account_key_default":
@@ -2947,7 +2958,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "acme_order.is_auto_renew": self.acme_order.is_auto_renew
             if self.acme_order
@@ -3091,19 +3102,19 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def coverage_assurance_event_type(self):
+    def coverage_assurance_event_type(self) -> str:
         return model_utils.CoverageAssuranceEventType.as_string(
             self.coverage_assurance_event_type_id
         )
 
     @property
-    def coverage_assurance_event_status(self):
+    def coverage_assurance_event_status(self) -> str:
         return model_utils.CoverageAssuranceEventStatus.as_string(
             self.coverage_assurance_event_status_id
         )
 
     @property
-    def coverage_assurance_resolution(self):
+    def coverage_assurance_resolution(self) -> str:
         return model_utils.CoverageAssuranceResolution.as_string(
             self.coverage_assurance_resolution_id
         )
@@ -3111,7 +3122,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         payload = {
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
@@ -3234,7 +3245,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def has_active_certificates(self):
+    def has_active_certificates(self) -> bool:
         return (
             True
             if (
@@ -3245,7 +3256,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         payload = {
             "id": self.id,
             "is_active": True if self.is_active else False,
@@ -3339,7 +3350,7 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         payload = {
             "id": self.id,
             "Domain": {
@@ -3375,7 +3386,7 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "domain_name": self.domain_name,
@@ -3424,15 +3435,15 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    _event_payload_json: Optional[Dict] = None
+
     @property
-    def event_payload_json(self):
+    def event_payload_json(self) -> Dict:
         if self._event_payload_json is None:
             self._event_payload_json = json.loads(self.event_payload)
         return self._event_payload_json
 
-    _event_payload_json = None
-
-    def set_event_payload(self, payload_dict):
+    def set_event_payload(self, payload_dict) -> None:
         self.event_payload = json.dumps(payload_dict, sort_keys=True)
 
 
@@ -3611,7 +3622,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def event_status_text(self):
+    def event_status_text(self) -> str:
         return model_utils.OperationsObjectEventStatus.as_string(
             self.operations_object_event_status_id
         )
@@ -3707,13 +3718,13 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def is_autogenerated_calendar(self):
+    def is_autogenerated_calendar(self) -> bool:
         if self.private_key_type in model_utils.PrivateKeyType._options_calendar:
             return True
         return False
 
     @property
-    def autogenerated_calendar_repr(self):
+    def autogenerated_calendar_repr(self) -> str:
         if not self.is_autogenerated_calendar:
             return ""
         if self.private_key_type in model_utils.PrivateKeyType._options_calendar_weekly:
@@ -3722,32 +3733,32 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return "%s.%s.%s" % self.timestamp_created.isocalendar()[0:3]
 
     @property
-    def is_key_usable(self):
+    def is_key_usable(self) -> bool:
         if self.is_compromised or not self.is_active:
             return False
         return True
 
     @property
-    def can_key_sign(self):
+    def can_key_sign(self) -> bool:
         if self.is_compromised or not self.is_active or (self.id == 0):
             return False
         return True
 
     @property
-    def is_placeholder(self):
+    def is_placeholder(self) -> bool:
         if self.id == 0:
             return True
         return False
 
     @property
-    def key_spki_search(self):
+    def key_spki_search(self) -> str:
         return "type=spki&spki=%s&source=private_key&private_key.id=%s" % (
             self.spki_sha256,
             self.id,
         )
 
     @property
-    def key_pem_sample(self):
+    def key_pem_sample(self) -> str:
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         try:
             pem_lines = self.key_pem.strip().split("\n")
@@ -3757,21 +3768,21 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return "..."
 
     @property
-    def key_technology(self):
+    def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @reify
-    def private_key_source(self):
+    def private_key_source(self) -> str:
         return model_utils.PrivateKeySource.as_string(self.private_key_source_id)
 
     @reify
-    def private_key_type(self):
+    def private_key_type(self) -> str:
         return model_utils.PrivateKeyType.as_string(self.private_key_type_id)
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
@@ -3947,15 +3958,15 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
     @reify
-    def private_key_cycle__renewal(self):
+    def private_key_cycle__renewal(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
 
     @reify
-    def private_key_strategy__requested(self):
+    def private_key_strategy__requested(self) -> str:
         return (
             model_utils.PrivateKeyStrategy.as_string(
                 self.private_key_strategy_id__requested
@@ -3965,7 +3976,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         rval = {
             "id": self.id,
             "process_result": self.process_result,
@@ -4052,7 +4063,7 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "domain_name": self.domain_name,
@@ -4121,7 +4132,7 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "name": self.name,
@@ -4164,7 +4175,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "name": self.root_store.name,
@@ -4279,30 +4290,30 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def domains(self):
+    def domains(self) -> List["Domain"]:
         return [to_d.domain for to_d in self.to_domains]
 
     @property
-    def domains_as_string(self):
+    def domains_as_string(self) -> str:
         domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
         return ", ".join(domains)
 
     @property
-    def domains_as_list(self):
+    def domains_as_list(self) -> List[str]:
         domain_names = [to_d.domain.domain_name.lower() for to_d in self.to_domains]
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
 
     @property
-    def domain_objects(self):
+    def domain_objects(self) -> Dict[str, "Domain"]:
         domain_objects = {
             to_d.domain.domain_name.lower(): to_d.domain for to_d in self.to_domains
         }
         return domain_objects
 
     @property
-    def as_json(self):
+    def as_json(self) -> Dict:
         return {
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,

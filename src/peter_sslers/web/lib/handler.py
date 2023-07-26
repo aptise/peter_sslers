@@ -1,5 +1,11 @@
+# stdlib
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
+
 # pypi
-import pypages
+from pypages import Paginator
 from pyramid.httpexceptions import HTTPFound
 
 # localapp
@@ -9,12 +15,15 @@ from ...lib.errors import InvalidRequest
 
 # ==============================================================================
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
 
 # misc config options
 items_per_page = 50
 
 
-def json_pagination(items_count, pager):
+def json_pagination(items_count: int, pager: Paginator) -> Dict:
     """
     return {"pagination": json_pagination(items_count, pager),}
     """
@@ -32,20 +41,23 @@ class Handler(object):
     """core response class"""
 
     #: The active :class:`Pyramid.request.Request`
-    request = None
+    request: "Request"
 
     #: The default :class:`model.objects.AcmeAccount`
     dbAcmeAccount_GlobalDefault = None
 
-    def __init__(self, request):
+    def __init__(self, request: "Request"):
         """
         :param request: A :class:`Pyramid.request.Request` instance.
         """
         self.request = request
 
     def _paginate(
-        self, collection_count, items_per_page=items_per_page, url_template=None
-    ):
+        self,
+        collection_count: int,
+        items_per_page: int = items_per_page,
+        url_template: str = "/%s",
+    ) -> Tuple[Paginator, int]:
         """
         :param collection_count: the number of items in the collection
         :param items_per_page: the number of items per page
@@ -56,7 +68,7 @@ class Handler(object):
             if "page" not in self.request.matchdict
             else int(self.request.matchdict["page"])
         )
-        pager = pypages.Paginator(
+        pager = Paginator(
             collection_count,
             per_page=items_per_page,
             current=page_requested,

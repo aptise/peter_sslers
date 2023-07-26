@@ -2,6 +2,11 @@
 import datetime
 import logging
 import math
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 
 
 # local
@@ -11,6 +16,12 @@ from .. import lib
 from ..model import utils as model_utils
 
 # from .db import get as db_get
+
+if TYPE_CHECKING:
+    from .utils import ApiContext
+    from ..model.objects import CertificateSigned
+    from ..model.objects import OperationsEvent
+    from ..model.objects import PrivateKey
 
 # ==============================================================================
 
@@ -23,7 +34,10 @@ log.setLevel(logging.INFO)
 # issuing a cert should remove any similar fqdns from the queue
 
 
-def _handle_Certificate_unactivated(ctx, serverCertificate):
+def _handle_Certificate_unactivated(
+    ctx: "ApiContext",
+    serverCertificate: "CertificateSigned",
+) -> Optional[bool]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
@@ -52,7 +66,10 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
     return requeue
 
 
-def _handle_Certificate_new(ctx, serverCertificate):
+def _handle_Certificate_new(
+    ctx: "ApiContext",
+    serverCertificate: "CertificateSigned",
+) -> bool:
     """
     Database cleanup and reconciliation when a Certificate is issued:
     * issued directly
@@ -75,7 +92,10 @@ def _handle_Certificate_new(ctx, serverCertificate):
     return False
 
 
-def Certificate_issued(ctx, serverCertificate):
+def Certificate_issued(
+    ctx: "ApiContext",
+    serverCertificate: "CertificateSigned",
+):
     """
     Database cleanup and reconciliation when a Certificate is issued (new).
 
@@ -85,7 +105,7 @@ def Certificate_issued(ctx, serverCertificate):
     _handle_Certificate_new(ctx, serverCertificate)
 
 
-def Certificate_renewed(ctx, serverCertificate):
+def Certificate_renewed(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
     """
     Database cleanup and reconciliation when a Certificate is issued (renewal).
 
@@ -95,7 +115,7 @@ def Certificate_renewed(ctx, serverCertificate):
     _handle_Certificate_new(ctx, serverCertificate)
 
 
-def Certificate_expired(ctx, serverCertificate):
+def Certificate_expired(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
     """
     Database cleanup and reconciliation when a Certificate is expired.
 
@@ -105,7 +125,7 @@ def Certificate_expired(ctx, serverCertificate):
     _handle_Certificate_unactivated(ctx, serverCertificate)
 
 
-def Certificate_unactivated(ctx, serverCertificate):
+def Certificate_unactivated(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
     """
     Database cleanup and reconciliation when a Certificate is unactivated.
 
@@ -115,7 +135,11 @@ def Certificate_unactivated(ctx, serverCertificate):
     _handle_Certificate_unactivated(ctx, serverCertificate)
 
 
-def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
+def PrivateKey_compromised(
+    ctx: "ApiContext",
+    privateKeyCompromised: "PrivateKey",
+    dbOperationsEvent: "OperationsEvent",
+) -> Optional[bool]:
     """
     * Marks every CertificateSigned signed by this PrivateKey as compromised.
       Removes the CertificateSigneds from the pool of valid CertificateSigneds.
@@ -137,7 +161,7 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
     )
 
     # create a dict of cert_id:fqdn_set_id
-    pkey_certificates = {
+    pkey_certificates: Dict[str, Union[List, Dict]] = {
         "active": [],
         "inactive": [],
         # "not_renewable": [],
@@ -173,9 +197,9 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
                 else None,
             )
             if _dbCertificateSigned.is_active:
-                pkey_certificates["active"].append(_certificate_id)
+                pkey_certificates["active"].append(_certificate_id)  # type: ignore[union-attr]
             else:
-                pkey_certificates["inactive"].append(_certificate_id)
+                pkey_certificates["inactive"].append(_certificate_id)  # type: ignore[union-attr]
             db_update.update_CertificateSigned__mark_compromised(
                 ctx, _dbCertificateSigned, via_PrivateKey_compromised=True
             )

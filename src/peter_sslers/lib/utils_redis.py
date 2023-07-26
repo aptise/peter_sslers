@@ -1,4 +1,8 @@
 # stdlib
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 import warnings
 
 # pypi
@@ -11,14 +15,21 @@ except ImportError as exc:  # noqa: F841
     class _FakeRedisError(object):
         pass
 
-    Redis = None
-    RedisError = _FakeRedisError
+    Redis = None  # type: ignore[assignment, misc]
+    RedisError = _FakeRedisError  # type: ignore[assignment, misc]
 
+
+if TYPE_CHECKING:
+    from pyramid.request import Request
+    from ..model.objects import Domain
+    from ..model.objects import CertificateSigned
 
 # ==============================================================================
 
 
-def redis_default_connection(request, url=None, redis_client=Redis, **redis_options):
+def redis_default_connection(
+    request: "Request", url: Optional[str] = None, redis_client=Redis, **redis_options
+):
     """
     # largely from `pyramid_redis_sessions/connection.py`
 
@@ -69,17 +80,17 @@ def redis_default_connection(request, url=None, redis_client=Redis, **redis_opti
     return redis
 
 
-def redis_connection_from_registry(request):
+def redis_connection_from_registry(request: "Request"):
     """
     :param request: The current Pyramid `request` object
     """
     redis_url = request.registry.settings["app_settings"]["redis.url"]
-    redis_options = {}
+    redis_options: Dict = {}
     redis_client = redis_default_connection(request, redis_url, **redis_options)
     return redis_client
 
 
-def redis_prime_style(request):
+def redis_prime_style(request: "Request") -> Union[bool, str]:
     """
     :param request: The current Pyramid `request` object
     """
@@ -89,11 +100,16 @@ def redis_prime_style(request):
     return prime_style
 
 
-def redis_timeouts_from_registry(request):
+def redis_timeouts_from_registry(request: "Request") -> Dict[str, Optional[int]]:
     """
     :param request: The current Pyramid `request` object
     """
-    timeouts = {"certcachain": None, "cert": None, "pkey": None, "domain": None}
+    timeouts: Dict[str, Optional[int]] = {
+        "certcachain": None,
+        "cert": None,
+        "pkey": None,
+        "domain": None,
+    }
     for _t in timeouts.keys():
         key_ini = "redis.timeout.%s" % _t
         val = request.registry.settings["app_settings"].get(key_ini)
@@ -102,7 +118,10 @@ def redis_timeouts_from_registry(request):
     return timeouts
 
 
-def prime_redis_domain(request, dbDomain):
+def prime_redis_domain(
+    request: "Request",
+    dbDomain: "Domain",
+) -> bool:
     """
     prime the domain for redis
        return True if primed
@@ -150,7 +169,11 @@ def prime_redis_domain(request, dbDomain):
     return True
 
 
-def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
+def redis_prime_logic__style_1_Domain(
+    redis_client,
+    dbDomain: "Domain",
+    redis_timeouts,
+) -> "CertificateSigned":
     """
     primes the domain, returns the certificate
 
@@ -199,7 +222,9 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     return dbCertificateSigned
 
 
-def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts):
+def redis_prime_logic__style_1_PrivateKey(
+    redis_client, dbPrivateKey, redis_timeouts
+) -> bool:
     """
     :param redis_client:
     :param dbPrivateKey: A :class:`model.objects.PrivateKey`
@@ -214,7 +239,7 @@ def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_time
 
 def redis_prime_logic__style_1_CertificateCAChain(
     redis_client, dbCertificateCAChain, redis_timeouts
-):
+) -> bool:
     """
     :param redis_client:
     :param dbCertificateCAChain: A :class:`model.objects.CertificateCAChain`
@@ -229,7 +254,11 @@ def redis_prime_logic__style_1_CertificateCAChain(
     return True
 
 
-def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
+def redis_prime_logic__style_2_domain(
+    redis_client,
+    dbDomain: "Domain",
+    redis_timeouts,
+) -> "CertificateSigned":
     """
     returns the certificate
 

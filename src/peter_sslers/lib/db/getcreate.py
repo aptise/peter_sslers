@@ -1,11 +1,10 @@
-from __future__ import print_function
-
 # stdlib
 import datetime
 import json
 import logging
 
 # pypi
+import cert_utils
 import sqlalchemy
 
 # localapp
@@ -144,8 +143,8 @@ def getcreate__AcmeAccount(
             raise ValueError("invalid `acme_account_provider_id`.")
 
         # cleanup these
-        key_pem = lib.cert_utils.cleanup_pem_text(key_pem)
-        key_pem_md5 = utils.md5_text(key_pem)
+        key_pem = cert_utils.cleanup_pem_text(key_pem)
+        key_pem_md5 = cert_utils.utils.md5_text(key_pem)
 
     elif not key_pem:
         # _strategy = "LetsEncrypt payload"
@@ -202,9 +201,9 @@ def getcreate__AcmeAccount(
             )
         acme_account_provider_id = dbAcmeAccountProvider.id
 
-        key_pem = lib.cert_utils.convert_lejson_to_pem(le_pkey_jsons)
-        key_pem = lib.cert_utils.cleanup_pem_text(key_pem)
-        key_pem_md5 = utils.md5_text(key_pem)
+        key_pem = cert_utils.convert_lejson_to_pem(le_pkey_jsons)
+        key_pem = cert_utils.cleanup_pem_text(key_pem)
+        key_pem_md5 = cert_utils.utils.md5_text(key_pem)
 
     # now proceed with a single path of logic
 
@@ -254,17 +253,17 @@ def getcreate__AcmeAccount(
     acckey__spki_sha256 = None
     _tmpfile = None
     try:
-        if lib.cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
+        if cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
         # validate + grab the technology
-        key_technology = lib.cert_utils.validate_key(
+        key_technology = cert_utils.validate_key(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
 
         # grab the spki
-        acckey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
+        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
@@ -697,8 +696,8 @@ def getcreate__CertificateCAChain__by_pem_text(
     chain_pem,
     display_name=None,
 ):
-    chain_pem = lib.cert_utils.cleanup_pem_text(chain_pem)
-    chain_certs = lib.cert_utils.split_pem_chain(chain_pem)  # this will clean it
+    chain_pem = cert_utils.cleanup_pem_text(chain_pem)
+    chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
     if len(chain_certs) < 1:
         raise ValueError("Did not find at least 1 Certificate in this Chain.")
     is_created = False
@@ -707,10 +706,10 @@ def getcreate__CertificateCAChain__by_pem_text(
     # Ensure the certificate chain is structured front to back
     # this will raise an error
     if len(chain_certs) > 1:
-        lib.cert_utils.ensure_chain_order(chain_certs)
+        cert_utils.ensure_chain_order(chain_certs)
 
     if not dbCertificateCAChain:
-        chain_pem_md5 = utils.md5_text(chain_pem)
+        chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
         dbCertificateCAs = []
         for cert_pem in chain_certs:
             (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
@@ -774,8 +773,8 @@ def getcreate__CertificateCA__by_pem_text(
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
     """
-    cert_pem = lib.cert_utils.cleanup_pem_text(cert_pem)
-    _certs = lib.cert_utils.split_pem_chain(cert_pem)  # this will clean it
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    _certs = cert_utils.split_pem_chain(cert_pem)  # this will clean it
     if len(_certs) > 1:
         raise ValueError("More than 1 Certificate in this PEM.")
     elif len(_certs) != 1:
@@ -783,18 +782,18 @@ def getcreate__CertificateCA__by_pem_text(
     is_created = False
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
     if not dbCertificateCA:
-        cert_pem_md5 = utils.md5_text(cert_pem)
+        cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
         _tmpfile = None
         try:
-            if lib.cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
+            if cert_utils.NEEDS_TEMPFILES:
+                _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
 
             # validate
-            lib.cert_utils.validate_cert(
+            cert_utils.validate_cert(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 
-            _key_technology = lib.cert_utils.parse_cert__key_technology(
+            _key_technology = cert_utils.parse_cert__key_technology(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
             _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
@@ -821,7 +820,7 @@ def getcreate__CertificateCA__by_pem_text(
             dbCertificateCA.cert_pem = cert_pem
             dbCertificateCA.cert_pem_md5 = cert_pem_md5
 
-            _cert_data = lib.cert_utils.parse_cert(
+            _cert_data = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
             dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
@@ -987,17 +986,17 @@ def getcreate__CertificateSigned(
         )
 
     is_created = None
-    cert_pem = lib.cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
 
     # make sure the Certificate Elements match
     _cert_spki = None
     _tmpfile = None
     try:
-        if lib.cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = lib.cert_utils.new_pem_tempfile(cert_pem)
+        if cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
         # grab the spki
-        _cert_spki = lib.cert_utils.parse_cert__spki_sha256(
+        _cert_spki = cert_utils.parse_cert__spki_sha256(
             cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
         )
     finally:
@@ -1007,10 +1006,10 @@ def getcreate__CertificateSigned(
     _pkey_spki = None
     _tmpfile = None
     try:
-        if lib.cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = lib.cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
+        if cert_utils.NEEDS_TEMPFILES:
+            _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
         # grab the spki
-        _pkey_spki = lib.cert_utils.parse_key__spki_sha256(
+        _pkey_spki = cert_utils.parse_key__spki_sha256(
             key_pem=dbPrivateKey.key_pem,
             key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
@@ -1159,8 +1158,8 @@ def getcreate__PrivateKey__by_pem_text(
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
     """
     is_created = False
-    key_pem = lib.cert_utils.cleanup_pem_text(key_pem)
-    key_pem_md5 = utils.md5_text(key_pem)
+    key_pem = cert_utils.cleanup_pem_text(key_pem)
+    key_pem_md5 = cert_utils.utils.md5_text(key_pem)
     dbPrivateKey = (
         ctx.dbSession.query(model_objects.PrivateKey)
         .filter(
@@ -1172,15 +1171,15 @@ def getcreate__PrivateKey__by_pem_text(
     if not dbPrivateKey:
         _tmpfile = None
         try:
-            if lib.cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = lib.cert_utils.new_pem_tempfile(key_pem)
+            if cert_utils.NEEDS_TEMPFILES:
+                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
             # validate + grab the technology
-            key_technology = lib.cert_utils.validate_key(
+            key_technology = cert_utils.validate_key(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 
-            pkey__spki_sha256 = lib.cert_utils.parse_key__spki_sha256(
+            pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
             )
 

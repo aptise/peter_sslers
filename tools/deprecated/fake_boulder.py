@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """
 fake_boulder
 
@@ -29,11 +27,10 @@ import tempfile
 from wsgiref.simple_server import make_server
 
 # pypi
+import cert_utils
 from pyramid.config import Configurator
 from pyramid.response import Response
 
-# local
-from peter_sslers.lib import cert_utils
 
 # ==============================================================================
 

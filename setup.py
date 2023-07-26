@@ -1,5 +1,6 @@
 # stdlib
 import os
+import sys
 
 # pypi
 from setuptools import find_packages
@@ -16,19 +17,19 @@ with open(os.path.join(HERE, "README.md")) as f:
     long_description = f.read()
 
 requires = [
+    "cert_utils",  # formerly in this package, but migrated out
     "formencode>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic >=0.4.3, <0.5.0",
+    "pyramid_formencode_classic>=0.5.1",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
-    "pyramid<2",
+    "pyramid",
     "python-dateutil",
     "requests",
-    "six ",
     "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
@@ -38,18 +39,37 @@ tests_require = [
     "cryptography",
     "josepy",
     "pre-commit",
-    "pycrypto",
+    "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",
     "redis",
+    "types-urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []
 
+# PyOpenSSL Version Pinning
+#   23.1.0 is a bad release, see
+#   https://github.com/pyca/pyopenssl/issues/1199
+if (sys.version_info.major == 3) and (sys.version_info.minor == 6):
+    # PyOpenSSl 23.2.0 introduces a backwards incompatible change
+    #   Invalid versions are now rejected in OpenSSL.crypto.X509Req.set_version.
+    # The `acme` package (via Certbot) ends support for py3.6 on version `v1.23.0`
+    #   v1.23.0 calls make_csr with a bad version, and does not pin PyOpenSSL
+    tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+    tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+    testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+    testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0,<23.2.0")
+else:
+    tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0")
+    tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
+    testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0")
+    testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
+
 setup(
     name="peter_sslers",
-    version="0.5.0.dev0",
+    version="0.6.0",
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",

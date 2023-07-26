@@ -1,5 +1,13 @@
-def includeme(config):
+# stdlib
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from pyramid.config import Configurator
+
+# ==============================================================================
+
+
+def includeme(config: "Configurator") -> None:
     enable_views_admin = config.registry.settings["app_settings"]["enable_views_admin"]
     enable_views_public = config.registry.settings["app_settings"][
         "enable_views_public"
@@ -30,8 +38,7 @@ def includeme(config):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _admin_views(config):
-
+def _admin_views(config: "Configurator") -> None:
     config.add_static_view("/static", "static", cache_max_age=3600)
 
     config.add_route_7("admin", "")

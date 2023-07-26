@@ -1,5 +1,6 @@
-# logging
+# stdlib
 import logging
+from typing import Dict
 
 # ==============================================================================
 
@@ -8,7 +9,7 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-API_DOCS = {}
+API_DOCS: Dict = {}
 
 _elements_required = [
     "about",

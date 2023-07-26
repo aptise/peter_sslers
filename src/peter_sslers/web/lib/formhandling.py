@@ -1,12 +1,17 @@
+# stdlib
+from typing import Callable
+from typing import Tuple
+from typing import TYPE_CHECKING
+
 # pypi
 import formencode.rewritingparser
 import pyramid_formencode_classic
 from pyramid_formencode_classic.exceptions import FormFieldInvalid  # noqa: F401
 from pyramid_formencode_classic.exceptions import FormInvalid  # noqa: F401
 
-# local
-from ...lib._compat import PY2
-
+if TYPE_CHECKING:
+    from pyramid.request import Request
+    from pyramid_formencode_classic import FormStash
 
 # ==============================================================================
 
@@ -18,7 +23,7 @@ TEMPLATE_FORMSTASH_ERRORS = (
 )
 
 
-def formatter_error(error):
+def formatter_error(error: str) -> str:
     """
     custom error formatter
     """
@@ -28,7 +33,7 @@ def formatter_error(error):
     ) + "\n"
 
 
-def form_reprint(request, form_print_method, **kwargs):
+def form_reprint(request: "Request", form_print_method: Callable, **kwargs):
     """
     overwrite the `pyramid_formencode_classic` version
 
@@ -64,7 +69,7 @@ def form_reprint(request, form_print_method, **kwargs):
     return pyramid_formencode_classic.form_reprint(request, form_print_method, **kwargs)
 
 
-def form_validate(request, **kwargs):
+def form_validate(request: "Request", **kwargs) -> Tuple:
     """
     kwargs
         things of interest...
@@ -77,13 +82,6 @@ def form_validate(request, **kwargs):
     if "error_main_text" not in kwargs:
         kwargs["error_main_text"] = "There was an error with your form."
     (result, formStash) = pyramid_formencode_classic.form_validate(request, **kwargs)
-    if not result:
-        if PY2:
-            # there is an issue in formencode under Python2
-            # see: https://github.com/formencode/formencode/issues/132
-            for (k, v) in list(formStash.errors.items()):
-                if " (not u'" in v:
-                    formStash.errors[k] = v.replace(" (not u'", " (not '")
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS
     formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
     formStash.html_error_placeholder_form_template = (
@@ -92,7 +90,7 @@ def form_validate(request, **kwargs):
     return (result, formStash)
 
 
-def slurp_file_field(formStash, field):
+def slurp_file_field(formStash: "FormStash", field: str):
     try:
         if field not in formStash.results:
             return None

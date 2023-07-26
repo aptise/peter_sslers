@@ -1,20 +1,19 @@
-from __future__ import print_function
-
 # stdlib
 import json
 import os
 import os.path
 import pprint
 import subprocess
+from typing import Dict
 
 # pypi
 import psutil
 
-# local
-from .lib._compat import PY3
-
-
 # ==============================================================================
+
+
+# Custom Type Alias
+FileSet = Dict[str, str]
 
 
 _le_archive_filename_templates = {
@@ -32,7 +31,7 @@ _le_live_filenames = {
 _le_account_filenames = ["private_key.json", "meta.json", "regr.json"]
 
 
-def upload_fileset(server_url_root, fset):
+def upload_fileset(server_url_root: str, fset: FileSet) -> None:
     """actually uploads a fileset"""
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
@@ -57,8 +56,7 @@ def upload_fileset(server_url_root, fset):
             json_response, err = proc.communicate()
             if not json_response:
                 raise ValueError("error")
-            if PY3:
-                json_response = json_response.decode("utf8")
+            json_response = json_response.decode("utf8")
             json_response = json.loads(json_response)
             if ("result" not in json_response) or (
                 json_response["result"] != "success"
@@ -71,7 +69,7 @@ def upload_fileset(server_url_root, fset):
         raise
 
 
-def upload_account(server_url_root, fset):
+def upload_account(server_url_root: str, fset: FileSet) -> None:
     """
     actually uploads an account fileset
     hardcoded to RSA private key preference
@@ -108,8 +106,7 @@ def upload_account(server_url_root, fset):
             if not json_response:
                 print(err)
                 raise ValueError("error")
-            if PY3:
-                json_response = json_response.decode("utf8")
+            json_response = json_response.decode("utf8")
             json_response = json.loads(json_response)
             if ("result" not in json_response) or (
                 json_response["result"] != "success"
@@ -122,7 +119,7 @@ def upload_account(server_url_root, fset):
         raise
 
 
-def import_certbot_certs_archive(archive_path, server_url_root):
+def import_certbot_certs_archive(archive_path: str, server_url_root: str) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the entire letescrypt archive on `archive_path`
@@ -157,10 +154,10 @@ def import_certbot_certs_archive(archive_path, server_url_root):
         # we best only have sets of 4 files...
         if len(dfiles) % 4:
             raise ValueError("`%s` does not look to be a Certbot directory" % dpath)
-        total_sets = len(dfiles) / 4
+        total_sets = int(len(dfiles) / 4)
         for i in range(1, total_sets + 1):
-            fset = {}
-            for (ftype, ftemplate) in _le_archive_filename_templates.items():
+            fset: FileSet = {}
+            for ftype, ftemplate in _le_archive_filename_templates.items():
                 fpath = os.path.join(dpath, ftemplate % i)
                 if not os.path.exists(fpath):
                     raise ValueError(
@@ -179,8 +176,8 @@ def import_certbot_certs_archive(archive_path, server_url_root):
 
 
 def import_certbot_cert_version(
-    domain_certs_path, certificate_version, server_url_root
-):
+    domain_certs_path: str, certificate_version: str, server_url_root: str
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the archive path for a version
@@ -203,7 +200,7 @@ def import_certbot_cert_version(
 
     if not certificate_version.isdigit():
         raise ValueError("missing `certificate-version must be a digit`")
-    certificate_version = int(certificate_version)
+    _certificate_version = int(certificate_version)
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
@@ -212,9 +209,9 @@ def import_certbot_cert_version(
         raise ValueError("`%s` is not a directory" % domain_certs_path)
 
     _missing_files = []
-    _fileset = {}
-    for (ftype, ftemplate) in _le_archive_filename_templates.items():
-        flocal = ftemplate % certificate_version
+    _fileset: FileSet = {}
+    for ftype, ftemplate in _le_archive_filename_templates.items():
+        flocal = ftemplate % _certificate_version
         fpath = os.path.join(domain_certs_path, flocal)
         if not os.path.exists(fpath):
             _missing_files.append(flocal)
@@ -229,7 +226,7 @@ def import_certbot_cert_version(
     return
 
 
-def import_certbot_cert_plain(cert_path, server_url_root):
+def import_certbot_cert_plain(cert_path: str, server_url_root: str) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the certificate for a folder.
@@ -254,8 +251,8 @@ def import_certbot_cert_plain(cert_path, server_url_root):
         raise ValueError("`%s` is not a directory" % cert_path)
 
     _missing_files = []
-    _fileset = {}
-    for (ftype, fname) in _le_live_filenames.items():
+    _fileset: FileSet = {}
+    for ftype, fname in _le_live_filenames.items():
         fpath = os.path.join(cert_path, fname)
         if not os.path.exists(fpath):
             _missing_files.append(fname)
@@ -270,7 +267,7 @@ def import_certbot_cert_plain(cert_path, server_url_root):
     return
 
 
-def import_certbot_certs_live(live_path, server_url_root):
+def import_certbot_certs_live(live_path: str, server_url_root: str) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the letsencrypt live archive  in /etc/letsencrypt/live
@@ -306,9 +303,9 @@ def import_certbot_certs_live(live_path, server_url_root):
         if len(dfiles) != 5:
             raise ValueError("`%s` does not look to be a Certbot directory" % dpath)
 
-        fset = {}
+        fset: FileSet = {}
         try:
-            for (ftype, fname) in _le_live_filenames.items():
+            for ftype, fname in _le_live_filenames.items():
                 fpath = os.path.join(dpath, fname)
                 if not os.path.exists(fpath):
                     raise ValueError(
@@ -330,14 +327,14 @@ def import_certbot_certs_live(live_path, server_url_root):
 # ==============================================================================
 
 
-def _accountPath_to_fileSet(account_path):
+def _accountPath_to_fileSet(account_path: str) -> FileSet:
     dfiles = [f for f in os.listdir(account_path) if f[0] != "."]
     # ensure we have the right files in here...
     if len(dfiles) != 3:
         raise ValueError(
             "`%s` does not look to be a Certbot account directory" % account_path
         )
-    fset = {}
+    fset: FileSet = {}
     for fname in _le_account_filenames:
         fpath = os.path.join(account_path, fname)
         if not os.path.exists(fpath):
@@ -349,7 +346,7 @@ def _accountPath_to_fileSet(account_path):
     return fset
 
 
-def import_certbot_account(account_path, server_url_root):
+def import_certbot_account(account_path: str, server_url_root: str) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports a specific Certbot account
@@ -371,7 +368,9 @@ def import_certbot_account(account_path, server_url_root):
     return
 
 
-def import_certbot_accounts_server(accounts_path_server, server_url_root):
+def import_certbot_accounts_server(
+    accounts_path_server: str, server_url_root: str
+) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a given Certbot server
@@ -414,7 +413,7 @@ def import_certbot_accounts_server(accounts_path_server, server_url_root):
     return
 
 
-def import_certbot_accounts_all(accounts_path_all, server_url_root):
+def import_certbot_accounts_all(accounts_path_all: str, server_url_root: str) -> None:
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
 

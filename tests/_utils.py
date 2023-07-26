@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # stdlib
 import datetime
 from functools import wraps
@@ -13,6 +11,8 @@ import unittest
 import uuid
 
 # pypi
+import cert_utils
+from cert_utils import letsencrypt_info
 import packaging.version
 import psutil
 from pyramid import testing
@@ -26,10 +26,8 @@ from webtest.http import StopableWSGIServer
 # local
 import peter_sslers.lib
 from peter_sslers.lib import acme_v2
-from peter_sslers.lib import cert_utils
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
-from peter_sslers.lib import letsencrypt_info
 from peter_sslers.lib import utils
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
@@ -216,7 +214,10 @@ def process_pebble_roots():
         timestamp=datetime.datetime.utcnow(),
     )
     for _root_pem in root_pems:
-        (_dbChain, _is_created,) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+        (
+            _dbChain,
+            _is_created,
+        ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
             ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
         )
         if _is_created is not True:
@@ -905,10 +906,9 @@ class FakeAuthenticatedUser(object):
 
 
 class _Mixin_filedata(object):
-
     _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
     _data_root_letsencrypt = os.path.join(
-        os.path.dirname(os.path.realpath(peter_sslers.lib.__file__)),
+        os.path.dirname(os.path.realpath(cert_utils.__file__)),
         "letsencrypt-certs",
     )
 
@@ -953,9 +953,9 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             print("AppTestCore.setUp | initialize db")
             engine = self._session_factory().bind
             model_meta.Base.metadata.drop_all(engine)
-            engine.execute("VACUUM")
+            with engine.begin() as connection:
+                connection.execute(sqlalchemy.text("VACUUM"))
             model_meta.Base.metadata.create_all(engine)
-
             dbSession = self._session_factory()
             ctx = utils.ApiContext(
                 timestamp=datetime.datetime.utcnow(),
@@ -1082,7 +1082,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
 
 class AppTest(AppTestCore):
-
     _ctx = None
     _DB_SETUP_RECORDS = False
 
@@ -1099,7 +1098,10 @@ class AppTest(AppTestCore):
             % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["pkey"]
         )
         _pkey_pem = self._filedata_testfile(_pkey_filename)
-        (_dbPrivateKey, _is_created,) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+        (
+            _dbPrivateKey,
+            _is_created,
+        ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
             self.ctx,
             _pkey_pem,
             private_key_source_id=model_utils.PrivateKeySource.from_string("imported"),
@@ -1237,6 +1239,7 @@ class AppTest(AppTestCore):
                 _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
                     "display_name"
                 ]
+
                 cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
                 (
                     _cert_ca_1,

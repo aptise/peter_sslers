@@ -13,7 +13,6 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...lib._compat import PY3
 
 
 # ==============================================================================
@@ -203,9 +202,8 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
-            if PY3:
-                if not isinstance(chain_pem, str):
-                    chain_pem = chain_pem.decode("utf8")
+            if not isinstance(chain_pem, str):
+                chain_pem = chain_pem.decode("utf8")
 
             chain_file_name = formStash.results["chain_file_name"] or "manual upload"
             (

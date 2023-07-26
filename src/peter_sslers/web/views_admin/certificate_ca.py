@@ -1,4 +1,5 @@
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -16,10 +17,8 @@ from ..lib.forms import Form_CertificateCAPreference__prioritize
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
-from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib._compat import PY3
 
 
 # ==============================================================================
@@ -725,9 +724,8 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             cert_pem = formhandling.slurp_file_field(formStash, "cert_file")
-            if PY3:
-                if not isinstance(cert_pem, str):
-                    cert_pem = cert_pem.decode("utf8")
+            if not isinstance(cert_pem, str):
+                cert_pem = cert_pem.decode("utf8")
 
             cert_file_name = formStash.results["cert_file_name"] or "manual upload"
             (

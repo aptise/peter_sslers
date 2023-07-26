@@ -19,3 +19,4 @@ NAMING_CONVENTION = {
 # metadata = MetaData(naming_convention=NAMING_CONVENTION)
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
+Base.__allow_unmapped__ = True

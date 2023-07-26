@@ -1,3 +1,7 @@
+# stdlib
+from typing import Any
+from typing import Dict
+
 # pypi
 from formencode import Schema as _Schema
 from formencode.foreach import ForEach
@@ -29,7 +33,7 @@ class OnlyOneOf(FormValidator):
         "invalid": _("You may submit only one of these linked fields."),
     }
 
-    def _convert_to_python(self, value_dict, state):
+    def _convert_to_python(self, value_dict: Dict, state: Any):
         is_empty = self.field_is_empty
         presence = [not is_empty(value_dict.get(field)) for field in self.only_one_ofs]
         total_present = presence.count(True)
@@ -191,7 +195,6 @@ class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
 
 
 class Form_AcmeAccount_edit(_Form_Schema_Base):
-
     # this is the `private_key_cycle` of the AcmeAccount
     account__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,

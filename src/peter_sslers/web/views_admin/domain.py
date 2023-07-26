@@ -38,7 +38,6 @@ log = logging.getLogger(__name__)
 
 
 class View_List(Handler):
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domains", renderer="/admin/domains.mako")

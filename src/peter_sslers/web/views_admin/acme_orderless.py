@@ -2,6 +2,7 @@
 import logging
 
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -19,7 +20,6 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils
 from ...model import utils as model_utils
 
 # from ..lib.forms import Form_AcmeOrderless_manage_domain
@@ -486,7 +486,9 @@ class View_Focus_Manipulate(View_Focus):
                 formStash.fatal_field(field="domain", message="A Domain is required")
 
             # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain"])
+            domain_names = cert_utils.utils.domains_from_string(
+                formStash.results["domain"]
+            )
             if len(domain_names) != 1:
                 formStash.fatal_field(
                     field="domain", message="A valid Domain is required"

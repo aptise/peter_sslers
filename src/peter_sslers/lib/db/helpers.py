@@ -1,8 +1,13 @@
 # stdlib
 import logging
+from typing import Optional
+from typing import TYPE_CHECKING
 
-# localapp
-from ... import lib
+# pypi
+import cert_utils
+
+if TYPE_CHECKING:
+    from ...model.objects import CertificateSigned
 
 
 # ==============================================================================
@@ -13,16 +18,18 @@ log = logging.getLogger(__name__)
 
 
 def _certificate_parse_to_record(
-    cert_pem=None,
-    cert_pem_filepath=None,
-    dbCertificateSigned=None,
-):
+    cert_pem: str,
+    cert_pem_filepath: Optional[str],
+    dbCertificateSigned: "CertificateSigned",
+) -> "CertificateSigned":
     """
     helper utility
 
     :param cert_pem: (required) the PEM encoded certificate
     :param cert_pem_filepath: (optional) the tempfile to a PEM encoded certificate
     :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
+
+    :returns: the inbound `CertificateSigned`, updated.
 
     sets the following object attributes:
         :attr:`model.utils.CertificateSigned.timestamp_not_before`
@@ -33,7 +40,7 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.spki_sha256`
 
     # --------------------------------------------------------------------------
-    cert_dates = lib.cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
+    cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
 
     datetime_signed = cert_dates["startdate"]
     if not datetime_signed.startswith("notBefore="):
@@ -52,7 +59,7 @@ def _certificate_parse_to_record(
     dbCertificateSigned.timestamp_not_after = datetime_expires
     """
     # everything is in here
-    _cert_data = lib.cert_utils.parse_cert(
+    _cert_data = cert_utils.parse_cert(
         cert_pem=cert_pem,
         cert_pem_filepath=cert_pem_filepath,
     )

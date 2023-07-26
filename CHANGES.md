@@ -1,3 +1,9 @@
+0.6.0
+    py3 only
+    lib.cert_utils is now a pypi package, cert_utils, that is only py3
+    typing fun
+
+
 0.5.0-dev
     unreleased
     

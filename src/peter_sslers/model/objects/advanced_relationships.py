@@ -49,7 +49,7 @@ AcmeAccount.acme_authorizations__5 = sa_orm_relationship(
         sa.and_(
             AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
             AcmeAuthorization.id.in_(
-                sa.select([AcmeAuthorization.id])
+                sa.select((AcmeAuthorization.id))
                 .where(
                     AcmeAuthorization.id
                     == AcmeOrder2AcmeAuthorization.acme_authorization_id
@@ -79,7 +79,7 @@ AcmeAccount.acme_authorizations_pending__5 = sa_orm_relationship(
         sa.and_(
             AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
             AcmeAuthorization.id.in_(
-                sa.select([AcmeAuthorization.id])
+                sa.select((AcmeAuthorization.id))
                 .where(
                     AcmeAuthorization.acme_status_authorization_id.in_(
                         model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
@@ -110,7 +110,7 @@ AcmeAccount.acme_orders__5 = sa_orm_relationship(
         sa.and_(
             AcmeAccount.id == AcmeOrder.acme_account_id,
             AcmeOrder.id.in_(
-                sa.select([AcmeOrder.id])
+                sa.select((AcmeOrder.id))
                 .where(AcmeAccount.id == AcmeOrder.acme_account_id)
                 .order_by(AcmeOrder.id.desc())
                 .limit(5)
@@ -130,7 +130,7 @@ AcmeAccount.acme_orderlesss__5 = sa_orm_relationship(
         sa.and_(
             AcmeAccount.id == AcmeOrderless.acme_account_id,
             AcmeOrderless.id.in_(
-                sa.select([AcmeOrderless.id])
+                sa.select((AcmeOrderless.id))
                 .where(AcmeAccount.id == AcmeOrderless.acme_account_id)
                 .order_by(AcmeOrderless.id.desc())
                 .limit(5)
@@ -149,7 +149,7 @@ AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
         sa.and_(
             AcmeAccount.id == PrivateKey.acme_account_id__owner,
             PrivateKey.id.in_(
-                sa.select([PrivateKey.id])
+                sa.select((PrivateKey.id))
                 .where(AcmeAccount.id == PrivateKey.acme_account_id__owner)
                 .order_by(PrivateKey.id.desc())
                 .limit(5)
@@ -176,7 +176,7 @@ AcmeAccount.certificate_signeds__5 = sa_orm_relationship(
         sa.and_(
             CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
             CertificateSigned.id.in_(
-                sa.select([CertificateSigned.id])
+                sa.select((CertificateSigned.id))
                 .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
                 .where(AcmeOrder.acme_account_id == AcmeAccount.id)
                 .order_by(CertificateSigned.id.desc())
@@ -197,7 +197,7 @@ AcmeAccount.queue_certificates__5 = sa_orm_relationship(
         sa.and_(
             AcmeAccount.id == QueueCertificate.acme_account_id,
             QueueCertificate.id.in_(
-                sa.select([QueueCertificate.id])
+                sa.select((QueueCertificate.id))
                 .where(AcmeAccount.id == QueueCertificate.acme_account_id)
                 .order_by(QueueCertificate.id.desc())
                 .limit(5)
@@ -220,7 +220,7 @@ AcmeAuthorization.acme_challenges__5 = sa_orm_relationship(
         sa.and_(
             AcmeAuthorization.id == AcmeChallenge.acme_authorization_id,
             AcmeChallenge.id.in_(
-                sa.select([AcmeChallenge.id])
+                sa.select((AcmeChallenge.id))
                 .where(AcmeChallenge.acme_authorization_id == AcmeAuthorization.id)
                 .order_by(AcmeChallenge.id.desc())
                 .limit(5)
@@ -246,7 +246,7 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
         sa.and_(
             AcmeOrder.id == sa.orm.foreign(AcmeOrder2AcmeAuthorization.acme_order_id),
             AcmeOrder.id.in_(
-                sa.select([AcmeOrder.id])
+                sa.select((AcmeOrder.id))
                 .where(AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id)
                 .where(
                     AcmeOrder2AcmeAuthorization.acme_authorization_id
@@ -356,7 +356,7 @@ AcmeDnsServer.acme_dns_server_accounts__5 = sa_orm_relationship(
         sa.and_(
             AcmeDnsServer.id == AcmeDnsServerAccount.acme_dns_server_id,
             AcmeDnsServerAccount.id.in_(
-                sa.select([AcmeDnsServerAccount.id])
+                sa.select((AcmeDnsServerAccount.id))
                 .where(AcmeDnsServer.id == AcmeDnsServerAccount.acme_dns_server_id)
                 .order_by(AcmeDnsServerAccount.id.desc())
                 .limit(5)
@@ -397,7 +397,7 @@ AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
         sa.and_(
             AcmeOrder.id == AcmeEventLog.acme_order_id,
             AcmeEventLog.id.in_(
-                sa.select([AcmeEventLog.id])
+                sa.select((AcmeEventLog.id))
                 .where(AcmeEventLog.acme_order_id == AcmeOrder.id)
                 .order_by(AcmeEventLog.id.desc())
                 .limit(5)
@@ -419,7 +419,7 @@ CertificateRequest.latest_acme_order = sa_orm_relationship(
         sa.and_(
             CertificateRequest.id == AcmeOrder.certificate_request_id,
             AcmeOrder.id.in_(
-                sa.select([sa.func.max(AcmeOrder.id)])
+                sa.select((sa.func.max(AcmeOrder.id)))
                 .where(AcmeOrder.certificate_request_id == CertificateRequest.id)
                 .correlate()
             ),
@@ -437,7 +437,7 @@ CertificateRequest.certificate_signed__latest = sa_orm_relationship(
         sa.and_(
             CertificateRequest.id == CertificateSigned.certificate_request_id,
             CertificateSigned.id.in_(
-                sa.select([sa.func.max(CertificateSigned.id)])
+                sa.select((sa.func.max(CertificateSigned.id)))
                 .where(
                     CertificateSigned.certificate_request_id == CertificateRequest.id
                 )
@@ -460,7 +460,7 @@ CertificateRequest.certificate_signeds__5 = sa_orm_relationship(
         sa.and_(
             CertificateRequest.id == CertificateSigned.certificate_request_id,
             CertificateSigned.id.in_(
-                sa.select([sa.func.max(CertificateSigned.id)])
+                sa.select((sa.func.max(CertificateSigned.id)))
                 .where(
                     CertificateSigned.certificate_request_id == CertificateRequest.id
                 )
@@ -486,7 +486,7 @@ CoverageAssuranceEvent.children__5 = sa_orm_relationship(
             CoverageAssuranceEvent.id
             == CoverageAssuranceEventAlt.coverage_assurance_event_id__parent,
             CoverageAssuranceEventAlt.id.in_(
-                sa.select([sa.func.max(CoverageAssuranceEventAlt.id)])
+                sa.select((sa.func.max(CoverageAssuranceEventAlt.id)))
                 .where(
                     CoverageAssuranceEvent.id
                     == CoverageAssuranceEventAlt.coverage_assurance_event_id__parent
@@ -512,7 +512,7 @@ Domain.acme_authorizations__5 = sa_orm_relationship(
         sa.and_(
             Domain.id == AcmeAuthorization.domain_id,
             AcmeAuthorization.id.in_(
-                sa.select([AcmeAuthorization.id])
+                sa.select((AcmeAuthorization.id))
                 .where(AcmeAuthorization.domain_id == Domain.id)
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
@@ -532,7 +532,7 @@ Domain.acme_challenges__5 = sa_orm_relationship(
         sa.and_(
             Domain.id == AcmeChallenge.domain_id,
             AcmeChallenge.id.in_(
-                sa.select([AcmeChallenge.id])
+                sa.select((AcmeChallenge.id))
                 .where(Domain.id == AcmeChallenge.domain_id)
                 .order_by(AcmeChallenge.id.desc())
                 .limit(5)
@@ -552,7 +552,7 @@ Domain.acme_dns_server_accounts__5 = sa_orm_relationship(
         sa.and_(
             Domain.id == AcmeDnsServerAccount.domain_id,
             AcmeDnsServerAccount.timestamp_created.in_(
-                sa.select([AcmeDnsServerAccount.timestamp_created])
+                sa.select((AcmeDnsServerAccount.timestamp_created))
                 .where(AcmeDnsServerAccount.domain_id == Domain.id)
                 .order_by(AcmeDnsServerAccount.timestamp_created.desc())
                 .limit(5)
@@ -580,7 +580,7 @@ Domain.acme_orders__5 = sa_orm_relationship(
             AcmeOrder.unique_fqdn_set_id
             == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
             AcmeOrder.id.in_(
-                sa.select([AcmeOrder.id])
+                sa.select((AcmeOrder.id))
                 .where(
                     AcmeOrder.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
@@ -616,7 +616,7 @@ Domain.acme_orderlesss__5 = sa_orm_relationship(
         sa.and_(
             AcmeOrderless.id == sa.orm.foreign(AcmeChallenge.acme_orderless_id),
             AcmeOrderless.id.in_(
-                sa.select([AcmeOrderless.id])
+                sa.select((AcmeOrderless.id))
                 .where(AcmeOrderless.id == AcmeChallenge.acme_orderless_id)
                 .where(AcmeChallenge.domain_id == Domain.id)
                 .order_by(AcmeOrderless.id.desc())
@@ -637,7 +637,7 @@ Domain.domain_autocerts__5 = sa_orm_relationship(
         sa.and_(
             Domain.id == DomainAutocert.domain_id,
             DomainAutocert.id.in_(
-                sa.select([DomainAutocert.id])
+                sa.select((DomainAutocert.id))
                 .where(DomainAutocert.domain_id == Domain.id)
                 .order_by(DomainAutocert.id.desc())
                 .limit(5)
@@ -665,7 +665,7 @@ Domain.certificate_requests__5 = sa_orm_relationship(
             CertificateRequest.unique_fqdn_set_id
             == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
             CertificateRequest.id.in_(
-                sa.select([CertificateRequest.id])
+                sa.select((CertificateRequest.id))
                 .where(
                     CertificateRequest.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
@@ -697,7 +697,7 @@ Domain.queue_certificates__5 = sa_orm_relationship(
             QueueCertificate.unique_fqdn_set_id
             == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
             QueueCertificate.id.in_(
-                sa.select([QueueCertificate.id])
+                sa.select((QueueCertificate.id))
                 .where(
                     QueueCertificate.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
@@ -729,7 +729,7 @@ Domain.certificate_signeds__5 = sa_orm_relationship(
             CertificateSigned.unique_fqdn_set_id
             == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
             CertificateSigned.id.in_(
-                sa.select([CertificateSigned.id])
+                sa.select((CertificateSigned.id))
                 .where(
                     CertificateSigned.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
@@ -754,7 +754,7 @@ Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
         sa.and_(
             Domain.id == UniqueFQDNSet2Domain.domain_id,
             UniqueFQDNSet2Domain.unique_fqdn_set_id.in_(
-                sa.select([UniqueFQDNSet2Domain.unique_fqdn_set_id])
+                sa.select((UniqueFQDNSet2Domain.unique_fqdn_set_id))
                 .where(Domain.id == UniqueFQDNSet2Domain.domain_id)
                 .order_by(UniqueFQDNSet2Domain.unique_fqdn_set_id.desc())
                 .limit(5)
@@ -776,7 +776,7 @@ PrivateKey.certificate_requests__5 = sa_orm_relationship(
         sa.and_(
             PrivateKey.id == CertificateRequest.private_key_id,
             CertificateRequest.id.in_(
-                sa.select([CertificateRequest.id])
+                sa.select((CertificateRequest.id))
                 .where(PrivateKey.id == CertificateRequest.private_key_id)
                 .order_by(CertificateRequest.id.desc())
                 .limit(5)
@@ -796,7 +796,7 @@ PrivateKey.certificate_signeds__5 = sa_orm_relationship(
         sa.and_(
             PrivateKey.id == CertificateSigned.private_key_id,
             CertificateSigned.id.in_(
-                sa.select([CertificateSigned.id])
+                sa.select((CertificateSigned.id))
                 .where(PrivateKey.id == CertificateSigned.private_key_id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
@@ -815,7 +815,7 @@ PrivateKey.queue_certificates__5 = sa_orm_relationship(
         sa.and_(
             PrivateKey.id == QueueCertificate.private_key_id,
             QueueCertificate.id.in_(
-                sa.select([QueueCertificate.id])
+                sa.select((QueueCertificate.id))
                 .where(PrivateKey.id == QueueCertificate.private_key_id)
                 .order_by(QueueCertificate.id.desc())
                 .limit(5)
@@ -842,7 +842,7 @@ CertificateSigned.queue_certificates__5 = sa_orm_relationship(
     secondaryjoin=(
         sa.and_(
             QueueCertificate.id.in_(
-                sa.select([QueueCertificate.id])
+                sa.select((QueueCertificate.id))
                 .where(
                     CertificateSigned.unique_fqdn_set_id
                     == QueueCertificate.unique_fqdn_set_id
@@ -868,7 +868,7 @@ UniqueFQDNSet.acme_orders__5 = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == AcmeOrder.unique_fqdn_set_id,
             AcmeOrder.id.in_(
-                sa.select([AcmeOrder.id])
+                sa.select((AcmeOrder.id))
                 .where(UniqueFQDNSet.id == AcmeOrder.unique_fqdn_set_id)
                 .order_by(AcmeOrder.id.desc())
                 .limit(5)
@@ -888,7 +888,7 @@ UniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id,
             CertificateRequest.id.in_(
-                sa.select([CertificateRequest.id])
+                sa.select((CertificateRequest.id))
                 .where(UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id)
                 .order_by(CertificateRequest.id.desc())
                 .limit(5)
@@ -908,7 +908,7 @@ UniqueFQDNSet.certificate_signeds__5 = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
             CertificateSigned.id.in_(
-                sa.select([CertificateSigned.id])
+                sa.select((CertificateSigned.id))
                 .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
@@ -927,7 +927,7 @@ UniqueFQDNSet.queue_certificates__5 = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id,
             QueueCertificate.id.in_(
-                sa.select([QueueCertificate.id])
+                sa.select((QueueCertificate.id))
                 .where(UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id)
                 .order_by(QueueCertificate.id.desc())
                 .limit(5)
@@ -946,7 +946,7 @@ UniqueFQDNSet.latest_certificate = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
             CertificateSigned.id.in_(
-                sa.select([sa.func.max(CertificateSigned.id)])
+                sa.select((sa.func.max(CertificateSigned.id)))
                 .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
                 .correlate()
             ),
@@ -963,7 +963,7 @@ UniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
         sa.and_(
             UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id,
             CertificateSigned.id.in_(
-                sa.select([sa.func.max(CertificateSigned.id)])
+                sa.select((sa.func.max(CertificateSigned.id)))
                 .where(UniqueFQDNSet.id == CertificateSigned.unique_fqdn_set_id)
                 .where(CertificateSigned.is_active.is_(True))
                 .correlate()

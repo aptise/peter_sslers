@@ -1,3 +1,6 @@
+# stlib
+from urllib.parse import urlencode
+
 # pypi
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
@@ -6,7 +9,6 @@ import sqlalchemy
 # local
 from ..lib import configuration_options
 from ..lib.handler import Handler
-from ...lib._compat import urlencode
 from ...model import objects as model_objects
 
 # ==============================================================================
@@ -107,7 +109,11 @@ class ViewAdminMain(Handler):
                         == model_objects.AcmeAccountKey.acme_account_id,
                     )
                     .filter(model_objects.AcmeAccountKey.spki_sha256 == search_spki)
-                    .options(sqlalchemy.orm.contains_eager("acme_account_key"))
+                    .options(
+                        sqlalchemy.orm.contains_eager(
+                            model_objects.AcmeAccount.acme_account_key
+                        )
+                    )
                 )
                 results["AcmeAccount"]["count"] = _base.count()
                 if results["AcmeAccount"]["count"]:

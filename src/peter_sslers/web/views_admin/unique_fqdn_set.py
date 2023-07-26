@@ -1,4 +1,5 @@
 # pypi
+import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -15,7 +16,6 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...lib import utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -399,7 +399,9 @@ class View_Focus(Handler):
             # validate the domain names - add:
             try:
                 # this function checks the domain names match a simple regex
-                domain_names_add = utils.domains_from_string(domain_names_add)
+                domain_names_add = cert_utils.utils.domains_from_string(
+                    domain_names_add
+                )
             except ValueError as exc:  # noqa: F841
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -408,7 +410,9 @@ class View_Focus(Handler):
             # validate the domain names - del:
             try:
                 # this function checks the domain names match a simple regex
-                domain_names_del = utils.domains_from_string(domain_names_del)
+                domain_names_del = cert_utils.utils.domains_from_string(
+                    domain_names_del
+                )
             except ValueError as exc:  # noqa: F841
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -537,7 +541,7 @@ class ViewNew(Handler):
             # Pass 1- Validate Input
             try:
                 # this function checks the domain names match a simple regex
-                domain_names = utils.domains_from_string(domain_names)
+                domain_names = cert_utils.utils.domains_from_string(domain_names)
             except ValueError as exc:  # noqa: F841
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(

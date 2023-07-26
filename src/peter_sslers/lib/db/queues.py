@@ -1,9 +1,13 @@
 # stdlib
 import datetime
 import logging
+from typing import Dict
+from typing import Iterable
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
-# import transaction
+import cert_utils
 
 # local
 from .logger import _log_object_event
@@ -11,8 +15,15 @@ from .logger import log__OperationsEvent
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib.db import get as _get  # noqa: F401
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeOrder
+    from ...model.objects import AcmeAccount
+    from ...model.objects import PrivateKey
+    from ..utils import ApiContext
 
 # ==============================================================================
 
@@ -21,7 +32,10 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def queue_domains__add(ctx, domain_names):
+def queue_domains__add(
+    ctx: "ApiContext",
+    domain_names: Iterable[str],
+) -> Dict:
     """
     Adds domains to the queue if needed
 
@@ -37,13 +51,13 @@ def queue_domains__add(ctx, domain_names):
     )
 
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
-    results = {d: None for d in domain_names}
+    domain_names = cert_utils.utils.domains_from_list(domain_names)
+    results: Dict = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
         # scoping
         _result = None
-        _logger_args = {"event_status_id": None}
+        _logger_args: Dict = {"event_status_id": None}
 
         # step 1 - is this blocklisted?
         _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
@@ -129,14 +143,14 @@ def queue_domains__add(ctx, domain_names):
 
 
 def queue_domains__process(
-    ctx,
-    dbAcmeAccount=None,
-    dbPrivateKey=None,
-    max_domains_per_certificate=50,
-    processing_strategy=None,
-    private_key_cycle__renewal=None,
-    private_key_strategy__requested=None,
-):
+    ctx: "ApiContext",
+    dbAcmeAccount: Optional["AcmeAccount"] = None,
+    dbPrivateKey: Optional["PrivateKey"] = None,
+    max_domains_per_certificate: int = 50,
+    processing_strategy: Optional[str] = None,
+    private_key_cycle__renewal: Optional[str] = None,
+    private_key_strategy__requested: Optional[str] = None,
+) -> "AcmeOrder":
     """
     This endpoint should pull `1-100[configurable]` domains from the queue, and create a certificate for them
 
@@ -160,6 +174,8 @@ def queue_domains__process(
     if not all((dbAcmeAccount, dbPrivateKey)):
         raise ValueError("must be invoked with dbAcmeAccount, dbPrivateKey")
 
+    assert ctx.request
+    assert ctx.request.registry
     min_domains = ctx.request.registry.settings["app_settings"][
         "queue_domains_min_per_cert"
     ]
@@ -293,7 +309,6 @@ def queue_domains__process(
             return dbAcmeOrder
 
         except (errors.AcmeOrderFatal, errors.DomainVerificationError) as exc:
-
             if isinstance(exc, errors.AcmeOrderFatal):
                 event_payload_dict["status"] = "error - AcmeOrderFatal"
             else:
@@ -321,7 +336,9 @@ def queue_domains__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_certificates__update(ctx):
+def queue_certificates__update(
+    ctx: "ApiContext",
+) -> bool:
     """
     Inspects the database for expiring :class:`model.objects.AcmeOrders`
     inserts a new :class:`model.objects.QueueCertificate` for each one.
@@ -333,8 +350,6 @@ def queue_certificates__update(ctx):
         admin:api:queue_certificates:update
         admin:api:queue_certificates:update|json
     """
-    renewals = []
-    results = []
     try:
         #
         event_type = model_utils.OperationsEventType.from_string(
@@ -343,6 +358,7 @@ def queue_certificates__update(ctx):
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
 
+        assert ctx.timestamp
         _expiring_days = 28
         _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
         _subquery_already_queued = (
@@ -391,9 +407,9 @@ def queue_certificates__update(ctx):
             [str(c.id) for c in results]
         )
 
-        event_payload_dict["queue_certificates.ids"] = ",".join(
-            [str(c.id) for c in renewals]
-        )
+        # event_payload_dict["queue_certificates.ids"] = ",".join(
+        #    [str(c.id) for c in renewals]
+        # )
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -406,14 +422,16 @@ def queue_certificates__update(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_certificates__process(ctx):
+def queue_certificates__process(
+    ctx: "ApiContext",
+) -> Dict:
     """
     process the queue
     in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    rval = {
+    rval: Dict = {
         "count_total": None,
         "count_success": 0,
         "count_fail": 0,
