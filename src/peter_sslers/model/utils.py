@@ -401,6 +401,7 @@ class Acme_Status_Authorization(_Acme_Status_All):
 
     OPTIONS_DEACTIVATE = (
         "pending",
+        "valid",  # a valid auth can be deactivated to uncache it
         "*discovered*",
     )
     OPTIONS_POSSIBLY_PENDING = (
