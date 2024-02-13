@@ -19,6 +19,9 @@
 
 	NGINX
 		* Test to ensure we have the expected peter_sslers API version loaded
+	
+	MISC
+	    * deactivate a valid authorization
 		
 
 Not Finished Yet
@@ -53,8 +56,8 @@ TODO:
       * Key Encipherment is not valid for ECDSA certificates. This is for "when the subject public key is used for enciphering private or secret keys, i.e., for key transport." (RFC 5280).
 
 
-MIGRATIONS
-=============
+DATABASE MIGRATIONS
+====================
 v 0.6
     alter table acme_authorization add timestamp_deactivated datetime null;
 v 0.5
