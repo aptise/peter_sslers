@@ -487,6 +487,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
     wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # the RFC does not explicitly tie an AcmeAuthorization to a single AcmeOrder

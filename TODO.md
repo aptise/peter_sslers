@@ -36,6 +36,7 @@ Audit/Remove "todo" markers
 TODO:
 ======
 
+* Alembic
 * DomainAutocert
 	as_json payload was not tested
 * acme_account: sidenav_option is unused?
@@ -51,6 +52,13 @@ TODO:
     * https://community.letsencrypt.org/t/issue-with-ssl-coms-acme-implementation/158189/13
       * Key Encipherment is not valid for ECDSA certificates. This is for "when the subject public key is used for enciphering private or secret keys, i.e., for key transport." (RFC 5280).
 
+
+MIGRATIONS
+=============
+v 0.6
+    alter table acme_authorization add timestamp_deactivated datetime null;
+v 0.5
+    START
 
 
 UNDECIDED

@@ -399,6 +399,11 @@ def update_AcmeAuthorization_status(
         if not timestamp:
             timestamp = datetime.datetime.utcnow()
         dbAcmeAuthorization.timestamp_updated = timestamp
+        if (
+            dbAcmeAuthorization.acme_status_authorization_id
+            == model_utils.Acme_Status_Authorization.from_string("deactivated")
+        ):
+            dbAcmeAuthorization.timestamp_deactivated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
         return True

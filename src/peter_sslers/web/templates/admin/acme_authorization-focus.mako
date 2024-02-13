@@ -129,6 +129,10 @@
                         <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp></td>
                     </tr>
                     <tr>
+                        <th>timestamp_deactivated</th>
+                        <td><timestamp>${AcmeAuthorization.timestamp_deactivated or ''}</timestamp></td>
+                    </tr>
+                    <tr>
                         <th>wildcard</th>
                         <td><code>${AcmeAuthorization.wildcard or ''}</code></td>
                     </tr>
