@@ -65,13 +65,13 @@ this will require you to install `go`.
 > 3. `cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...`
 > 4. `pebble -h`
 
-As a precaution, copy the pebble config file:
+As a precaution, copy the pebble config file. On the root project directory:
 
-    cp ./test/config/pebble-config.json ./test/config/pebble-config.dist.json
+    cp ./tests/test_configuration/pebble/test/config/pebble-config.json ./tests/test_configuration/pebble/test/config/pebble-config.dist.json
 
 The edit it to see the configuration
 
-    vi ./test/config/pebble-config.json
+    vi ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 Which should look something like this...
 
@@ -89,18 +89,18 @@ Which should look something like this...
 
 Good to go?  Ok, run pebble!
 
-    cd $GOPATH/src/github.com/letsencrypt/pebble
-    PEBBLE_ALTERNATE_ROOTS=2 pebble -config ./test/config/pebble-config.json
+    cd tests/test_configuration/pebble
+    PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 PEBBLE_CHAIN_LENGTH=3 ~/go/bin/pebble --config  ./test/config/pebble-config.json
 
 To have all challenge POST requests succeed without performing any validation run:
 
-    cd $GOPATH/src/github.com/letsencrypt/pebble
+    cd tests/test_configuration/pebble
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
         PEBBLE_VA_NOSLEEP=1 \
         PEBBLE_ALTERNATE_ROOTS=2 \
         PEBBLE_CHAIN_LENGTH=3 \
-        pebble -config ./test/config/pebble-config.json
+        ~/go/bin/pebble -config ./test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
 
