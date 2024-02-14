@@ -238,6 +238,8 @@ def do__AcmeV2_AcmeAccount__key_change(
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
 
+    assert ctx.timestamp
+
     dbOperationsEvent_AcmeAccount = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
@@ -552,9 +554,15 @@ def updated_AcmeOrder_ProcessingStatus(
             if _status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
                 if dbAcmeOrder.is_processing is True:
                     dbAcmeOrder.is_processing = None
-    if dbAcmeOrder.acme_order_processing_status_id != acme_order_processing_status_id:
-        dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
-        _edited = True
+    if acme_order_processing_status_id is not None:
+        if (
+            dbAcmeOrder.acme_order_processing_status_id
+            != acme_order_processing_status_id
+        ):
+            dbAcmeOrder.acme_order_processing_status_id = (
+                acme_order_processing_status_id
+            )
+            _edited = True
     if _edited:
         if not timestamp:
             timestamp = datetime.datetime.utcnow()
@@ -2522,6 +2530,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         raise errors.InvalidRequest(
             "this AcmeOrder is not eligible for a certificate download"
         )
+    assert dbAcmeOrder.certificate_url
 
     tmpfiles = []
     try:

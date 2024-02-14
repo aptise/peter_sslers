@@ -4,8 +4,8 @@ from typing import List
 from typing import Tuple
 
 # pypi
-from sqlalchemy import Column
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import Mapped
 from sqlalchemy.sql import expression
 import sqlalchemy.types
 
@@ -1007,7 +1007,7 @@ class PrivateKeyType(_mixin_mapping):
 
 
 class _mixin_OperationsEventType(object):
-    operations_event_type_id: Column
+    operations_event_type_id: Mapped[int]
 
     @property
     def event_type_text(self) -> str:

@@ -1,20 +1,27 @@
 # stdlib
+import datetime
 from typing import Optional
 
 # pypi
 import cert_utils
-from sqlalchemy import Column
 
 # ==============================================================================
 
 
 class _Mixin_Hex_Pretty(object):
-    cert_authority_key_identifier: Column
-    fingerprint_sha1: Column
-    spki_sha256: Column
+    # While it would be nice to have `Mapped` typing on these,
+    # it can create issues as SqlAlchemy thinks all fields are columns and
+    # will try to utilize them in sql operations
+    """
+    cert_authority_key_identifier: Optional[str]
+    fingerprint_sha1: str
+    spki_sha256: str
+    """
 
     @property
     def cert_authority_key_identifier__colon(self) -> str:
+        if not self.cert_authority_key_identifier:
+            return ""
         return cert_utils.utils.hex_with_colons(self.cert_authority_key_identifier)
 
     @property
@@ -29,18 +36,23 @@ class _Mixin_Hex_Pretty(object):
 
 
 class _Mixin_Timestamps_Pretty(object):
-    timestamp_created: Column
-    timestamp_event: Column
-    timestamp_expires: Column
-    timestamp_finalized: Column
-    timestamp_finished: Column
-    timestamp_not_after: Column
-    timestamp_not_before: Column
-    timestamp_polled: Column
-    timestamp_processed: Column
-    timestamp_process_attempt: Column
-    timestamp_revoked_upstream: Column
-    timestamp_updated: Column
+    # While it would be nice to have `Mapped` typing on these,
+    # it can create issues as SqlAlchemy thinks all fields are columns and
+    # will try to utilize them in sql operations
+    """
+    timestamp_created: datetime.datetime
+    timestamp_event: Optional[datetime.datetime]
+    timestamp_expires: Optional[datetime.datetime]
+    timestamp_finalized: Optional[datetime.datetime]
+    timestamp_finished: Optional[datetime.datetime]
+    timestamp_not_after: Optional[datetime.datetime]
+    timestamp_not_before: Optional[datetime.datetime]
+    timestamp_polled: Optional[datetime.datetime]
+    timestamp_processed: Optional[datetime.datetime]
+    timestamp_process_attempt: Optional[datetime.datetime]
+    timestamp_revoked_upstream: Optional[datetime.datetime]
+    timestamp_updated: Optional[datetime.datetime]
+    """
 
     @property
     def timestamp_created_isoformat(self) -> Optional[str]:

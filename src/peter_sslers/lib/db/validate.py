@@ -35,7 +35,10 @@ def validate_domain_names(
     return True
 
 
-def ensure_domains_dns01(ctx: "ApiContext", domain_names: Iterable[str]) -> bool:
+def ensure_domains_dns01(
+    ctx: "ApiContext",
+    domain_names: Iterable[str],
+) -> bool:
     # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
     _unconfigured_domain_names = []
     for _domain_name in domain_names:

@@ -4,10 +4,13 @@ import json
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.decorator import reify
 import sqlalchemy as sa
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship as sa_orm_relationship
 from sqlalchemy.orm.session import Session as sa_Session
 
@@ -33,37 +36,57 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_account"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
-    contact = sa.Column(sa.Unicode(255), nullable=True)
-    terms_of_service = sa.Column(sa.Unicode(255), nullable=True)
-    account_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
+    contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
+    terms_of_service: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True
+    )
+    account_url: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )
 
-    count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
-    count_certificate_signeds = sa.Column(sa.Integer, nullable=True, default=0)
+    count_acme_orders: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True, default=0
+    )
+    count_certificate_signeds: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True, default=0
+    )
 
-    timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
-    timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
-    timestamp_last_authenticated = sa.Column(sa.DateTime, nullable=True)
+    timestamp_last_certificate_request: Mapped[
+        Optional[datetime.datetime]
+    ] = mapped_column(sa.DateTime, nullable=True)
+    timestamp_last_certificate_issue: Mapped[
+        Optional[datetime.datetime]
+    ] = mapped_column(sa.DateTime, nullable=True)
+    timestamp_last_authenticated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
 
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_global_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
-    acme_account_provider_id = sa.Column(
+    acme_account_provider_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account_provider.id"), nullable=False
     )
 
-    private_key_cycle_id = sa.Column(
+    private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
-    private_key_technology_id = sa.Column(
+    private_key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
 
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -222,27 +245,33 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_account_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
-    key_technology_id = sa.Column(
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    key_pem = sa.Column(sa.Text, nullable=True)
-    key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    key_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    key_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
-    acme_account_key_source_id = sa.Column(
+    acme_account_key_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.AcmeAccountKeySource
 
@@ -289,6 +318,8 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def key_pem_sample(self) -> str:
         # strip the pem, because the last line is whitespace after
         # "-----END RSA PRIVATE KEY-----"
+        if not self.key_pem:
+            return ""
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
@@ -331,15 +362,25 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
             name="check_protocol",
         ),
     )
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    name = sa.Column(sa.Unicode(32), nullable=False, unique=True)
-    endpoint = sa.Column(sa.Unicode(255), nullable=True, unique=True)  # either/or: A
-    directory = sa.Column(sa.Unicode(255), nullable=True, unique=True)  # either/or: A
-    server = sa.Column(sa.Unicode(255), nullable=False, unique=True)
-    is_default = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_enabled = sa.Column(sa.Boolean, nullable=True, default=None)
-    protocol = sa.Column(sa.Unicode(32), nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
+    endpoint: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )  # either/or: A
+    directory: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )  # either/or: A
+    server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    is_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_enabled: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -368,7 +409,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def url(self) -> str:
-        return self.directory or self.endpoint
+        return self.directory or self.endpoint or ""
 
     @property
     def as_json(self) -> Dict:
@@ -478,21 +519,35 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_authorization"
-    id = sa.Column(sa.Integer, primary_key=True)
-    authorization_url = sa.Column(sa.Unicode(255), nullable=False, unique=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    acme_status_authorization_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    authorization_url: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=False, unique=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    acme_status_authorization_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # Acme_Status_Authorization
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
-    wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    wildcard: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
     # the RFC does not explicitly tie an AcmeAuthorization to a single AcmeOrder
     # this is only used to easily grab an AcmeAccount
-    acme_order_id__created = sa.Column(
+    acme_order_id__created: Mapped[int] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id", use_alter=True),
         nullable=False,
@@ -637,6 +692,8 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
 
@@ -763,45 +820,56 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
 
     # our challenge will either be from:
     # 1) an `AcmeOrder`->`AcmeAuthorization`
-    acme_authorization_id = sa.Column(
+    acme_authorization_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_authorization.id"),
         nullable=True,
     )
     # 2) an `AcmeOrderless`
-    acme_orderless_id = sa.Column(
+    acme_orderless_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_orderless.id"),
         nullable=True,
     )
 
     # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
+    domain_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=False
+    )
 
     # in all situations, we need to track these:
-    acme_challenge_type_id = sa.Column(
+    acme_challenge_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # `model_utils.AcmeChallengeType`
-    acme_status_challenge_id = sa.Column(
+    acme_status_challenge_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # Acme_Status_Challenge
 
     # this is on the acme server
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
+    # TODO: is nullable possible on Orderless? it is not possible on AcmeOrder
+    challenge_url: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )
 
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
 
-    token = sa.Column(
+    token: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True
     )  # only nullable if this is an orderless challenge
     # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http_01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
-    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
+    keyauthorization: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -901,6 +969,8 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
 
@@ -935,9 +1005,13 @@ class AcmeChallengeCompeting(Base, _Mixin_Timestamps_Pretty):
     # This is for tracking an EdgeCase
     __tablename__ = "acme_challenge_competing"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -960,10 +1034,10 @@ class AcmeChallengeCompeting(Base, _Mixin_Timestamps_Pretty):
 class AcmeChallengeCompeting2AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_challenge_competing_2_acme_challenge"
 
-    acme_challenge_competing_id = sa.Column(
+    acme_challenge_competing_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_challenge_competing.id"), primary_key=True
     )
-    acme_challenge_id = sa.Column(
+    acme_challenge_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_challenge.id"), primary_key=True
     )
 
@@ -997,12 +1071,14 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_challenge_poll"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_challenge_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_challenge_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
     )
-    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address_id = sa.Column(
+    timestamp_polled: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    remote_ip_address_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
     )
 
@@ -1046,11 +1122,13 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_challenge_unknown_poll"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain = sa.Column(sa.Unicode(255), nullable=False)
-    challenge = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    challenge: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_polled: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    remote_ip_address_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
     )
 
@@ -1084,12 +1162,16 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
 
 class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_dns_server"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
-    root_url = sa.Column(sa.Unicode(255), nullable=False)
-    operations_event_id__created = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_global_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    root_url: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -1134,21 +1216,25 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     __tablename__ = "acme_dns_server_account"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    acme_dns_server_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    acme_dns_server_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=False
     )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
-    is_active = sa.Column(
+    domain_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=False
+    )
+    is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # allow NULL for constraint to work
-    username = sa.Column(sa.Unicode(255), nullable=False)
-    password = sa.Column(sa.Unicode(255), nullable=False)
-    fulldomain = sa.Column(sa.Unicode(255), nullable=False)
-    subdomain = sa.Column(sa.Unicode(255), nullable=False)
-    allowfrom = sa.Column(sa.Unicode(255), nullable=True)
-    operations_event_id__created = sa.Column(
+    username: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    password: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    fulldomain: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    subdomain: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    allowfrom: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -1189,7 +1275,7 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
             "password": self.password,
             "fulldomain": self.fulldomain,
             "subdomain": self.subdomain,
-            "allowfrom": json.loads(self.allowfrom),
+            "allowfrom": json.loads(self.allowfrom or ""),
         }
 
     @property
@@ -1215,29 +1301,31 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_event_log"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_event = sa.Column(sa.DateTime, nullable=False)
-    acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
-    acme_account_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_event: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    acme_event_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)  # AcmeEvent
+    acme_account_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id", use_alter=True), nullable=True
     )
-    acme_authorization_id = sa.Column(
+    acme_authorization_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_authorization.id", use_alter=True),
         nullable=True,
     )
-    acme_challenge_id = sa.Column(
+    acme_challenge_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_challenge.id", use_alter=True), nullable=True
     )
-    acme_order_id = sa.Column(
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
-    certificate_request_id = sa.Column(
+    certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    certificate_signed_id = sa.Column(
+    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("certificate_signed.id", use_alter=True),
         nullable=True,
@@ -1375,75 +1463,93 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_order"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    is_processing = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    is_processing: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # see notes above
-    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=True)
-    is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_save_alternate_chains = sa.Column(sa.Boolean, nullable=False, default=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    acme_order_type_id = sa.Column(
+    is_auto_renew: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    is_renewed: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_save_alternate_chains: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    acme_order_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `.utils.AcmeOrderType`
-    acme_status_order_id = sa.Column(
-        sa.Integer, nullable=True, default=True
-    )  # see: `.utils.Acme_Status_Order`
-    acme_order_processing_strategy_id = sa.Column(
+    acme_status_order_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
+    )  # see: `.utils.Acme_Status_Order`; 0 is `*discovered*` an internal marker
+    acme_order_processing_strategy_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStrategy`
-    acme_order_processing_status_id = sa.Column(
+    acme_order_processing_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
-    order_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
-    finalize_url = sa.Column(sa.Unicode(255), nullable=True)
-    certificate_url = sa.Column(sa.Unicode(255), nullable=True)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-    private_key_cycle_id__renewal = sa.Column(
+    order_url: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )
+    finalize_url: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
+    certificate_url: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True
+    )
+    timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    private_key_cycle_id__renewal: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle; if the order is renewed, what is the default cycle strategy?
-    private_key_strategy_id__requested = sa.Column(
+    private_key_strategy_id__requested: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyStrategy; how are we specifying the private key? NOW or deferred?
-    private_key_strategy_id__final = sa.Column(
+    private_key_strategy_id__final: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
     )  # see .utils.PrivateKeyStrategy; how did we end up choosing a private key?
-    acme_event_log_id = sa.Column(
+    acme_event_log_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
     )  # When was this created?  AcmeEvent['v2|newOrder']
 
-    timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
-    acme_account_id = sa.Column(
+    timestamp_finalized: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    certificate_request_id = sa.Column(
+    certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    certificate_signed_id = sa.Column(
+    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    private_key_id__requested = sa.Column(
+    private_key_id__requested: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
-    private_key_id = sa.Column(
+    private_key_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    acme_order_id__retry_of = sa.Column(
+    acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
-    acme_order_id__renewal_of = sa.Column(
+    acme_order_id__renewal_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
-    certificate_signed_id__renewal_of = sa.Column(
+    certificate_signed_id__renewal_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("certificate_signed.id", use_alter=True),
         nullable=True,
@@ -1767,6 +1873,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
         admin_url = request.admin_url if request else ""
 
@@ -1841,9 +1949,13 @@ class AcmeOrderSubmission(Base):
 
     __tablename__ = "acme_order_submission"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     acme_order = sa_orm_relationship(
         "AcmeOrder",
@@ -1885,13 +1997,13 @@ class AcmeOrder2AcmeAuthorization(Base):
 
     __tablename__ = "acme_order_2_acme_authorization"
 
-    acme_order_id = sa.Column(
+    acme_order_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), primary_key=True
     )
-    acme_authorization_id = sa.Column(
+    acme_authorization_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_authorization.id"), primary_key=True
     )
-    is_present_on_new_order = sa.Column(sa.Boolean, default=None)
+    is_present_on_new_order: Mapped[bool] = mapped_column(sa.Boolean, default=None)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1918,17 +2030,17 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
     """
 
     __tablename__ = "acme_order_2_acme_challenge_type_specific"
-    acme_order_id = sa.Column(
+    acme_order_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False, primary_key=True
     )
-    domain_id = sa.Column(
+    domain_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("domain.id"), nullable=False, primary_key=True
     )
-    acme_challenge_type_id = sa.Column(
+    acme_challenge_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # `model_utils.AcmeChallengeType`
     # this is just for logging and reconciliation
-    acme_challenge_id__triggered = sa.Column(
+    acme_challenge_id__triggered: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_challenge.id"),
         nullable=True,
@@ -1980,13 +2092,19 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_orderless"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-    is_processing = sa.Column(sa.Boolean, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_finalized: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    is_processing: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
 
-    acme_account_id = sa.Column(
+    acme_account_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
 
@@ -2044,52 +2162,62 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "certificate_ca"
-    id = sa.Column(sa.Integer, primary_key=True)
-    display_name = sa.Column(sa.Unicode(255), nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
 
     # TODO: migrate this to an association table that tracks different trusted root stores
-    is_trusted_root = sa.Column(
+    is_trusted_root: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # this is just used to track if we know this cert is in trusted root stores.
-    key_technology_id = sa.Column(
+    key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True, unique=True)
-    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
-    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
+    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(32), nullable=True, unique=True
+    )
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
 
-    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
-    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
-    cert_subject = sa.Column(sa.Text, nullable=False)
-    cert_issuer = sa.Column(sa.Text, nullable=False)
+    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
     # these are not guaranteed
-    cert_issuer_uri = sa.Column(sa.Text, nullable=True)
-    cert_authority_key_identifier = sa.Column(sa.Text, nullable=True)
-    cert_issuer__reconciled = sa.Column(
+    cert_issuer_uri: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    cert_authority_key_identifier: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True
+    )
+    cert_issuer__reconciled: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # status, True or False
-    cert_issuer__certificate_ca_id = sa.Column(
+    cert_issuer__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )  # who did we reconcile this to/
-    reconciled_uris = sa.Column(sa.Text, nullable=True)
+    reconciled_uris: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
-    count_active_certificates = sa.Column(
+    count_active_certificates: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
     )  # internal tracking
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )  # internal tracking
-    signed_by__certificate_ca_id = sa.Column(
+    signed_by__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )  # internal tracking
-    cross_signed_by__certificate_ca_id = sa.Column(
+    cross_signed_by__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )  # internal tracking
 
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2161,6 +2289,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @property
     def button_view(self) -> str:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
 
         if not request:
@@ -2191,6 +2321,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @property
     def button_search_spki(self) -> str:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
 
         if not request:
@@ -2233,31 +2365,37 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "certificate_ca_chain"
-    id = sa.Column(sa.Integer, primary_key=True)
-    display_name = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     # this is the PEM encoding of the ENTIRE chain, not just element 0
     # while this could be assembled, for now it is being cached here
-    chain_pem = sa.Column(sa.Text, nullable=False, unique=True)
-    chain_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
+    chain_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    chain_pem_md5: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, unique=True
+    )
 
     # how many items are in the chain?
-    chain_length = sa.Column(sa.Integer, nullable=False)
+    chain_length: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     # this is the first item in the chain; what signs the CertificateSigned
-    certificate_ca_0_id = sa.Column(
+    certificate_ca_0_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
     )
     # this is the last item in the chain; usually a leaf of a trusted root
-    certificate_ca_n_id = sa.Column(
+    certificate_ca_n_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
     )
     # this is a comma(,) separated list of the involved CertificateCA ids
     # using a string here is not a normalized data storage, but is more useful and efficient
-    certificate_ca_ids_string = sa.Column(sa.Unicode(255), nullable=False)
+    certificate_ca_ids_string: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=False
+    )
 
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -2282,6 +2420,8 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     @property
     def button_view(self) -> str:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
 
         if not request:
@@ -2303,6 +2443,8 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     @property
     def button_compatible_search_view(self) -> str:
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         request = dbSession.info["request"]
 
         if not request:
@@ -2322,7 +2464,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         return button
 
     @reify
-    def certificate_ca_ids(self) -> str:
+    def certificate_ca_ids(self) -> List[str]:
         _certificate_ca_ids = self.certificate_ca_ids_string.split(",")
         return _certificate_ca_ids
 
@@ -2331,6 +2473,8 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         # reify vs property, because this queries the database
         certificate_ca_ids = self.certificate_ca_ids
         dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
         dbCertificateCAs = (
             dbSession.query(CertificateCA)
             .filter(CertificateCA.id.in_(certificate_ca_ids))
@@ -2366,8 +2510,8 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "certificate_ca_preference"
-    id = sa.Column(sa.Integer, primary_key=True)
-    certificate_ca_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    certificate_ca_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
     )
 
@@ -2385,15 +2529,17 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
 
 class CertificateCAReconciliation(Base):
     __tablename__ = "certificate_ca_reconciliation"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_operation = sa.Column(sa.DateTime, nullable=False)
-    certificate_ca_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_operation: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    certificate_ca_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
     )
-    result = sa.Column(
+    result: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # True - success; False - failure
-    certificate_ca_id__issuer__reconciled = sa.Column(
+    certificate_ca_id__issuer__reconciled: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
 
@@ -2412,25 +2558,27 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     __tablename__ = "certificate_request"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    certificate_request_source_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    certificate_request_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.CertificateRequestSource
-    csr_pem = sa.Column(sa.Text, nullable=False)
-    csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    csr_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    csr_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
-    key_technology_id = sa.Column(
+    key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    private_key_id = sa.Column(
+    private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
 
@@ -2551,56 +2699,66 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "certificate_signed"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
-    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
-    is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
-    key_technology_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    is_single_domain_cert: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
 
-    cert_pem = sa.Column(sa.Text, nullable=False, unique=True)
-    cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, unique=True)
-    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
-    fingerprint_sha1 = sa.Column(sa.Unicode(255), nullable=False)
-    cert_subject = sa.Column(sa.Text, nullable=False)
-    cert_issuer = sa.Column(sa.Text, nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_deactivated = sa.Column(
+    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, unique=True
+    )
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_deactivated: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
-    is_revoked = sa.Column(
+    is_revoked: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    is_compromised_private_key = sa.Column(
+    is_compromised_private_key: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
-    timestamp_revoked_upstream = sa.Column(
+    timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]] = mapped_column(
         sa.DateTime, nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
     # as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
-    # is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+    # is_auto_renew: Mapped[Optional[bool]] = mapped_column(sa.Boolean, nullable=True, default=None)
 
-    # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
+    # acme_order_id__generated_by: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
 
     # this is the private key
-    private_key_id = sa.Column(
+    private_key_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
 
     # tracking
     # `use_alter=True` is needed for setup/drop
-    certificate_request_id = sa.Column(
+    certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -2765,6 +2923,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return None
         try:
             dbSession = sa_Session.object_session(self)
+            if TYPE_CHECKING:
+                assert dbSession
             request = dbSession.info["request"]
 
             # only search for a preference if they exist
@@ -2799,7 +2959,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             ).days
         return self._expiring_days
 
-    _expiring_days = None
+    _expiring_days: Optional[int] = None
 
     @reify
     def expiring_days_label(self) -> str:
@@ -3005,14 +3165,16 @@ class CertificateSignedChain(Base):
     """
 
     __tablename__ = "certificate_signed_chain"
-    id = sa.Column(sa.Integer, primary_key=True)
-    certificate_signed_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    certificate_signed_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=False
     )
-    certificate_ca_chain_id = sa.Column(
+    certificate_ca_chain_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=False
     )
-    is_upstream_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_upstream_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3045,27 +3207,29 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    private_key_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    certificate_signed_id = sa.Column(
+    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    queue_certificate_id = sa.Column(
+    queue_certificate_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
-    coverage_assurance_event_type_id = sa.Column(
+    coverage_assurance_event_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # `model_utils.CoverageAssuranceEventType`
-    coverage_assurance_event_status_id = sa.Column(
+    coverage_assurance_event_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # `model_utils.CoverageAssuranceEventStatus`
-    coverage_assurance_resolution_id = sa.Column(
+    coverage_assurance_resolution_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # `model_utils.CoverageAssuranceResolution`
-    coverage_assurance_event_id__parent = sa.Column(
+    coverage_assurance_event_id__parent: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
     )
 
@@ -3154,21 +3318,23 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_name = sa.Column(sa.Unicode(255), nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
-    is_from_queue_domain = sa.Column(
+    is_from_queue_domain: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # ???: deprecation candidate
-    certificate_signed_id__latest_single = sa.Column(
+    certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    certificate_signed_id__latest_multi = sa.Column(
+    certificate_signed_id__latest_multi: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -3326,12 +3492,22 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "domain_autocert"
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_finished = sa.Column(sa.DateTime, nullable=True)
-    is_successful = sa.Column(sa.Boolean, nullable=True, default=None)
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_finished: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    is_successful: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3383,8 +3559,8 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_name = sa.Column(sa.Unicode(255), nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
 
     @property
     def as_json(self) -> Dict:
@@ -3403,13 +3579,15 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
 
     __tablename__ = "operations_event"
-    id = sa.Column(sa.Integer, primary_key=True)
-    operations_event_type_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    operations_event_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # references OperationsEventType
-    timestamp_event = sa.Column(sa.DateTime, nullable=True)
-    event_payload = sa.Column(sa.Text, nullable=False)
-    operations_event_id__child_of = sa.Column(
+    timestamp_event: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    event_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    operations_event_id__child_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
     )
 
@@ -3490,50 +3668,54 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    operations_event_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    operations_event_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
     )
-    operations_object_event_status_id = sa.Column(
+    operations_object_event_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # references OperationsObjectEventStatus
 
-    acme_account_id = sa.Column(
+    acme_account_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
-    acme_account_key_id = sa.Column(
+    acme_account_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
-    acme_dns_server_id = sa.Column(
+    acme_dns_server_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=True
     )
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    certificate_ca_id = sa.Column(
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
-    certificate_ca_chain_id = sa.Column(
+    certificate_ca_chain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
-    certificate_request_id = sa.Column(
+    certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    certificate_signed_id = sa.Column(
+    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    coverage_assurance_event_id = sa.Column(
+    coverage_assurance_event_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
     )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    private_key_id = sa.Column(
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    queue_certificate_id = sa.Column(
+    queue_certificate_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
-    queue_domain_id = sa.Column(
+    queue_domain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
     )
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
     )
 
@@ -3640,36 +3822,50 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "private_key"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    key_technology_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
-    key_pem = sa.Column(sa.Text, nullable=False)
-    key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
-    spki_sha256 = sa.Column(sa.Unicode(64), nullable=False)
+    key_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    key_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
-    count_active_certificates = sa.Column(sa.Integer, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_compromised = sa.Column(sa.Boolean, nullable=True, default=None)
-    count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
-    count_certificate_signeds = sa.Column(sa.Integer, nullable=True, default=0)
-    timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
-    timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
-    operations_event_id__created = sa.Column(
+    count_active_certificates: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_compromised: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    count_acme_orders: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True, default=0
+    )
+    count_certificate_signeds: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True, default=0
+    )
+    timestamp_last_certificate_request: Mapped[
+        Optional[datetime.datetime]
+    ] = mapped_column(sa.DateTime, nullable=True)
+    timestamp_last_certificate_issue: Mapped[
+        Optional[datetime.datetime]
+    ] = mapped_column(sa.DateTime, nullable=True)
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    private_key_source_id = sa.Column(
+    private_key_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeySource
-    private_key_type_id = sa.Column(
+    private_key_type_id: Mapped[int] = mapped_column(
         sa.Integer,
         nullable=False,
     )  # see .utils.PrivateKeyType
-    acme_account_id__owner = sa.Column(
+    acme_account_id__owner: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )  # lock a PrivateKey to an AcmeAccount
-    private_key_id__replaces = sa.Column(
+    private_key_id__replaces: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )  # if this key replaces a compromised PrivateKey, note it.
 
@@ -3829,61 +4025,65 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
-    timestamp_process_attempt = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_processed: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    timestamp_process_attempt: Mapped[Optional[datetime.datetime]] = mapped_column(
         sa.DateTime, nullable=True
     )  # if not-null then an attempt was made on this item
-    process_result = sa.Column(
+    process_result: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # True/False are attempts; None is untouched
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    is_active = sa.Column(
+    is_active: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, default=True
     )  # see docstring above for QueueCertificate.is_active
-    private_key_strategy_id__requested = sa.Column(
+    private_key_strategy_id__requested: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyStrategy
 
     # this is our core requirements. all must be present
-    acme_account_id = sa.Column(
+    acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    private_key_id = sa.Column(
+    private_key_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
 
     # bookkeeping - what is the source?
     # only one of these 3 can be not-null, see `check_queue_certificate_source`
-    acme_order_id__source = sa.Column(
+    acme_order_id__source: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
-    certificate_signed_id__source = sa.Column(
+    certificate_signed_id__source: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
-    unique_fqdn_set_id__source = sa.Column(
+    unique_fqdn_set_id__source: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
     )
 
     # bookkeeping - what is generated?
-    acme_order_id__generated = sa.Column(
+    acme_order_id__generated: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
-    certificate_request_id__generated = sa.Column(
+    certificate_request_id__generated: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    certificate_signed_id__generated = sa.Column(
+    certificate_signed_id__generated: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
 
     # let's require this
-    private_key_cycle_id__renewal = sa.Column(
+    private_key_cycle_id__renewal: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
 
@@ -4028,15 +4228,21 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "queue_domain"
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_name = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    is_active = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_processed: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # see docstring above for QueueDomain.is_active
-    operations_event_id__created = sa.Column(
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -4085,9 +4291,11 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "remote_ip_address"
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    remote_ip_address: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4118,9 +4326,11 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.Text, nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4152,12 +4362,14 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         ),
     )
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    root_store_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    root_store_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
     )
-    version_string = sa.Column(sa.Integer, nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    version_string: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4186,11 +4398,11 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
 
 class RootStoreVersion_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "root_store_version_2_certificate_ca"
-    id = sa.Column(sa.Integer, primary_key=True)
-    root_store_version_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    root_store_version_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store_version.id"), nullable=False
     )
-    certificate_ca_id = sa.Column(
+    certificate_ca_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
     )
 
@@ -4231,11 +4443,13 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     # note: RATELIMIT.FQDN
 
     __tablename__ = "unique_fqdn_set"
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_ids_string = sa.Column(sa.Text, nullable=False, unique=True)
-    count_domains = sa.Column(sa.Integer, nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    operations_event_id__created = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    domain_ids_string: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    count_domains: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
@@ -4334,10 +4548,12 @@ class UniqueFQDNSet2Domain(Base):
     # note: RATELIMIT.FQDN
 
     __tablename__ = "unique_fqdn_set_2_domain"
-    unique_fqdn_set_id = sa.Column(
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), primary_key=True
     )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
+    domain_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), primary_key=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

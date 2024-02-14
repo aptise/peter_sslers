@@ -1,4 +1,9 @@
-def formstash_to_querystring(formStash):
+from pyramid_formencode_classic import FormStash
+
+# ==============================================================================
+
+
+def formstash_to_querystring(formStash: FormStash) -> str:
     err = []
     for k, v in formStash.errors.items():
         err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
@@ -9,7 +14,7 @@ def formstash_to_querystring(formStash):
 
 class _UrlSafeException(Exception):
     @property
-    def as_querystring(self):
+    def as_querystring(self) -> str:
         return str(self).replace("\n", "+").replace(" ", "+")
 
 
