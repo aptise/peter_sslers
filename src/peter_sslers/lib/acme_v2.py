@@ -1146,6 +1146,7 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         # acme_challenge_response
+        assert dbAcmeChallenge.token  # could be null on Orderless
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
             self.accountKeyData,
@@ -1230,6 +1231,7 @@ class AuthenticatedUser(object):
             )
 
         # acme_challenge_response
+        assert dbAcmeChallenge.token  # could be null on Orderless
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
             self.accountKeyData,
@@ -1362,6 +1364,9 @@ class AuthenticatedUser(object):
             raise ValueError(
                 "we must invoke this with a callable `update_order_status`"
             )
+
+        assert dbAcmeOrder.finalize_url
+        assert dbAcmeOrder.order_url
 
         # convert the certificate to a DER
         csr_der = cert_utils.convert_pem_to_der(csr_pem)
@@ -1847,9 +1852,11 @@ class AuthenticatedUser(object):
             # required for the `AcmeLogger`
             raise ValueError("we must invoke this knowing it will commit")
 
+        assert dbAcmeChallenge.acme_challenge_type
+        assert dbAcmeChallenge.challenge_url
+
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
         acme_challenge_type = dbAcmeChallenge.acme_challenge_type
-        assert acme_challenge_type
 
         # note that we are about to trigger the challenge:
         self.acmeLogger.log_challenge_trigger(

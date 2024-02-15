@@ -19,6 +19,7 @@ with open(os.path.join(HERE, "README.md")) as f:
 requires = [
     "cert_utils",  # formerly in this package, but migrated out
     "formencode>=2.0.0",
+    "josepy",
     "psutil>=4.4.0",  # for Python2/3 compat
     "packaging",
     "pyacmedns",  # not used by all, but it's small
@@ -27,7 +28,7 @@ requires = [
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
-    "pyramid",
+    "pyramid>=2",
     "python-dateutil",
     "requests",
     "SQLAlchemy>1.4.7",  # api-change or bug in 1.4-1.4.7; re zope.transaction + flush()
@@ -37,7 +38,6 @@ requires = [
 tests_require = [
     "certbot",
     "cryptography",
-    "josepy",
     "pre-commit",
     "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",

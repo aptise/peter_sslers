@@ -74,6 +74,8 @@ def create__AcmeAccountProvider(
     if protocol != "acme-v2":
         raise ValueError("invalid `protocol`")
 
+    assert ctx.timestamp
+
     # ok, try to build one...
     dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
     dbAcmeAccountProvider.timestamp_created = ctx.timestamp
@@ -128,6 +130,7 @@ def create__AcmeOrderless(
 
     assert ctx.request
     assert ctx.request.registry
+    assert ctx.timestamp
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
         active_challenges = []
         for domain_name, dbDomain in domain_objects.items():
@@ -261,6 +264,9 @@ def create__AcmeOrder(
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
             raise ValueError("The specified PrivateKey belongs to another AcmeAccount.")
 
+    if TYPE_CHECKING:
+        assert ctx.timestamp
+
     # validate the domains that were submitted
     # we already test for this on submission, but be safe!
     if not domains_challenged:
@@ -368,6 +374,7 @@ def create__AcmeOrderSubmission(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
 ) -> "AcmeOrderSubmission":
+    assert ctx.timestamp
     dbAcmeOrderSubmission = model_objects.AcmeOrderSubmission()
     dbAcmeOrderSubmission.acme_order_id = dbAcmeOrder.id
     dbAcmeOrderSubmission.timestamp_created = ctx.timestamp
@@ -430,6 +437,7 @@ def create__AcmeChallenge(
     _competing_challenges = None
     assert ctx.request
     assert ctx.request.registry
+    assert ctx.timestamp
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
         _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
             ctx,
@@ -479,8 +487,8 @@ def create__AcmeChallenge(
 
 def create__AcmeChallengePoll(
     ctx: "ApiContext",
-    dbAcmeChallenge=None,
-    remote_ip_address=None,
+    dbAcmeChallenge: model_objects.AcmeChallenge,
+    remote_ip_address: str,
 ) -> "AcmeChallengePoll":
     """
     Create a new AcmeChallengePoll - this is a log
@@ -489,12 +497,12 @@ def create__AcmeChallengePoll(
     :param dbAcmeChallenge: (required) The challenge which was polled
     :param remote_ip_address: (required) The remote ip address (string)
     """
-    remote_ip_address_id = None
-    if remote_ip_address:
-        (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
-            ctx, remote_ip_address
-        )
-        remote_ip_address_id = dbRemoteIpAddress.id
+    remote_ip_address_id: int
+    assert ctx.timestamp
+    (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
+        ctx, remote_ip_address
+    )
+    remote_ip_address_id = dbRemoteIpAddress.id
 
     dbAcmeChallengePoll = model_objects.AcmeChallengePoll()
     dbAcmeChallengePoll.acme_challenge_id = dbAcmeChallenge.id
@@ -519,12 +527,12 @@ def create__AcmeChallengeUnknownPoll(
     :param challenge: (required) challenge (string)
     :param remote_ip_address: (required) remote_ip_address (string)
     """
-    remote_ip_address_id = None
-    if remote_ip_address:
-        (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
-            ctx, remote_ip_address
-        )
-        remote_ip_address_id = dbRemoteIpAddress.id
+    assert ctx.timestamp
+    remote_ip_address_id: int
+    (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
+        ctx, remote_ip_address
+    )
+    remote_ip_address_id = dbRemoteIpAddress.id
 
     dbAcmeChallengeUnknownPoll = model_objects.AcmeChallengeUnknownPoll()
     dbAcmeChallengeUnknownPoll.domain = domain
@@ -562,6 +570,7 @@ def create__AcmeDnsServerAccount(
     :param fulldomain: (required)
     :param allowfrom: (required)
     """
+    assert ctx.timestamp
     if not dbAcmeDnsServer.is_active:
         raise ValueError("Inactive AcmeDnsServer")
     event_type_id = model_utils.OperationsEventType.from_string(
@@ -654,6 +663,8 @@ def create__CertificateRequest(
             "Unsupported `certificate_request_source_id`: %s"
             % certificate_request_source_id
         )
+
+    assert ctx.timestamp
 
     if domain_names is None:
         raise ValueError("Must submit `domain_names` for creation")
@@ -836,6 +847,8 @@ def create__CertificateSigned(
             )
     if not dbCertificateCAChain:
         raise ValueError("must submit `dbCertificateCAChain`")
+
+    assert ctx.timestamp
 
     dbAcmeAccount = None
     if dbAcmeOrder:
@@ -1066,6 +1079,8 @@ def create__CoverageAssuranceEvent(
             "must submit at least one of (dbPrivateKey, dbCertificateSigned, dbQueueCertificate)"
         )
 
+    assert ctx.timestamp
+
     dbCoverageAssuranceEvent = model_objects.CoverageAssuranceEvent()
     dbCoverageAssuranceEvent.timestamp_created = ctx.timestamp
     dbCoverageAssuranceEvent.coverage_assurance_event_type_id = (
@@ -1107,6 +1122,7 @@ def create__DomainAutocert(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) an instance of :class:`model.objects.Domain`
     """
+    assert ctx.timestamp
     dbDomainAutocert = model_objects.DomainAutocert()
     dbDomainAutocert.domain_id = dbDomain.id
     dbDomainAutocert.timestamp_created = datetime.datetime.utcnow()
@@ -1220,14 +1236,18 @@ def create__QueueCertificate(
             "Provide one and only one of (`dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet`)"
         )
 
+    assert ctx.timestamp
+
     # what are we renewing?
-    unique_fqdn_set_id = None
+    unique_fqdn_set_id: int
     if dbAcmeOrder:
         unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
     elif dbCertificateSigned:
         unique_fqdn_set_id = dbCertificateSigned.unique_fqdn_set_id
     elif dbUniqueFQDNSet:
         unique_fqdn_set_id = dbUniqueFQDNSet.id
+    else:
+        raise ValueError("unexpected logic")
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()

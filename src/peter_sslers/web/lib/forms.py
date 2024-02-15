@@ -1,6 +1,7 @@
 # stdlib
 from typing import Any
 from typing import Dict
+from typing import List
 
 # pypi
 from formencode import Schema as _Schema
@@ -24,8 +25,8 @@ from ...model import utils as model_utils
 
 class OnlyOneOf(FormValidator):
     # Field that only one of is allowed
-    only_one_ofs = None
-    not_empty = None
+    only_one_ofs: List[str]
+    not_empty: bool = False
     __unpackargs__ = ("only_one_ofs",)
 
     messages = {

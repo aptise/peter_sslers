@@ -2,6 +2,8 @@
     py3 only
     lib.cert_utils is now a pypi package, cert_utils, that is only py3
     typing fun
+    * allow valid Authorizations to be deactivated
+        * extend Authorization model to have `timestamp_deactivated`
 
 
 0.5.0-dev

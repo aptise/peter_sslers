@@ -108,7 +108,7 @@ def initialize_AcmeAccountProviders(ctx):
     dbObject = model_objects.PrivateKey()
     dbObject.id = 0
     dbObject.timestamp_created = timestamp_now
-    _placeholder_text = "*placeholder-key*"
+    _placeholder_text = utils.PLACEHOLDER_TEXT__KEY
     dbObject.key_pem = _placeholder_text
     dbObject.key_pem_md5 = cert_utils.utils.md5_text(_placeholder_text)
     dbObject.spki_sha256 = _placeholder_text
