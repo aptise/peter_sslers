@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -124,7 +125,7 @@ def getcreate__AcmeAccount(
         raise ValueError("invalid `private_key_technology_id`")
 
     # scoping
-    _letsencrypt_data = None
+    # _letsencrypt_data = None
 
     # quickly audit args/derive info
     if key_pem:
@@ -171,10 +172,10 @@ def getcreate__AcmeAccount(
             regr.json = uri, save for info
             regr.json = tos, save for info
         """
-        le_meta_json = json.loads(le_meta_jsons)
         le_reg_json = json.loads(le_reg_jsons)
-        _letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
-        _letsencrypt_data = json.dumps(_letsencrypt_data, sort_keys=True)
+        # le_meta_json = json.loads(le_meta_jsons)
+        # _letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
+        # _letsencrypt_data = json.dumps(_letsencrypt_data, sort_keys=True)
         try:
             contact = le_reg_json["body"]["contact"][0]
             if contact.startswith("mailto:"):
@@ -261,6 +262,9 @@ def getcreate__AcmeAccount(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
+
+        if TYPE_CHECKING:
+            assert key_technology is not None
 
         # grab the spki
         acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
@@ -796,6 +800,9 @@ def getcreate__CertificateCA__by_pem_text(
             _key_technology = cert_utils.parse_cert__key_technology(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
             )
+            if TYPE_CHECKING:
+                assert _key_technology is not None
+
             _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
             if key_technology_id is None:
                 key_technology_id = _key_technology_id
@@ -1178,6 +1185,9 @@ def getcreate__PrivateKey__by_pem_text(
             key_technology = cert_utils.validate_key(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
             )
+
+            if TYPE_CHECKING:
+                assert key_technology is not None
 
             pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None

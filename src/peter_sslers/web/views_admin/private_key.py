@@ -1,5 +1,7 @@
 # stdlib
 import logging
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -22,6 +24,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
+from ...model.objects import PrivateKey
 
 # ==============================================================================
 
@@ -83,9 +86,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbPrivateKey = None
+    dbPrivateKey: Optional[PrivateKey] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> PrivateKey:
         if self.dbPrivateKey is None:
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
                 self.request.api_context,
@@ -359,6 +362,9 @@ class View_Focus_Manipulate(View_Focus):
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
+
+            if TYPE_CHECKING:
+                assert event_status is not None
 
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey])
 

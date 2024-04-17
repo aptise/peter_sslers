@@ -1,10 +1,13 @@
 # stdlib
 import datetime
 import logging
+from typing import Dict
+from typing import Optional
 
 # pypi
 import cert_utils
 import sqlalchemy
+from typing_extensions import TypedDict
 
 # local
 from . import create as db_create
@@ -23,7 +26,22 @@ log.setLevel(logging.INFO)
 
 # ------------------------------------------------------------------------------
 
-acme_account_providers = {
+DictProvider = TypedDict(
+    "DictProvider",
+    {
+        "id": int,
+        "name": str,
+        "endpoint": Optional[str],
+        "directory": Optional[str],
+        "is_default": Optional[bool],
+        "protocol": str,
+        "is_enabled": bool,
+        "server": str,
+    },
+)
+
+
+acme_account_providers: Dict[int, DictProvider] = {
     1: {
         "id": 1,
         "name": "pebble",

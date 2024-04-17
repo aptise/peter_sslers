@@ -63,6 +63,7 @@ def decrypt_acme_newcert(post_data):
     csr_der = _unb64(csr_der_b64)
 
     _tmpfile_der = None
+    _tmpfile_pem = None
     # csr_decoded = None
     try:
         # store some data in a tempfile
@@ -72,15 +73,19 @@ def decrypt_acme_newcert(post_data):
 
         csr_pem = cert_utils.convert_der_to_pem__csr(csr_der)
 
-        # if False:
-        #    proc = subprocess.Popen([OPENSSL_BIN, "req", "-in", _tmpfile_der.name, '-inform', 'DER', "-noout", "-text"],
-        #                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #    csr_decoded, err = proc.communicate()
-        # else:
-        domain_names = cert_utils.parse_csr_domains(_tmpfile_der.name, is_der=True)
+        _tmpfile_pem = tempfile.NamedTemporaryFile()
+        _tmpfile_pem.write(csr_pem.encode())
+        _tmpfile_pem.seek(0)
+
+        domain_names = cert_utils.parse_csr_domains(
+            csr_pem, csr_pem_filepath=_tmpfile_pem.name
+        )
         return (csr_pem, domain_names)
     finally:
-        _tmpfile_der.close()
+        if _tmpfile_der is not None:
+            _tmpfile_der.close()
+        if _tmpfile_pem is not None:
+            _tmpfile_pem.close()
 
 
 def sign_csr(csr_pem):

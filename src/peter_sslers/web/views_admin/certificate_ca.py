@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
@@ -19,6 +22,7 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
+from ...model.objects import CertificateCA
 
 
 # ==============================================================================
@@ -388,9 +392,9 @@ class View_Preferred(Handler):
 
 
 class View_Focus(Handler):
-    dbCertificateCA = None
+    dbCertificateCA: Optional[CertificateCA] = None
 
-    def _focus(self):
+    def _focus(self) -> CertificateCA:
         if self.dbCertificateCA is None:
             dbCertificateCA = lib_db.get.get__CertificateCA__by_id(
                 self.request.api_context, self.request.matchdict["id"]

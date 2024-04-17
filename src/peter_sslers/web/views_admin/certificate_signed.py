@@ -1,6 +1,8 @@
 # stdlib
 import tempfile
 import time
+from typing import Optional
+from typing import TYPE_CHECKING
 import zipfile
 
 # pypi
@@ -26,6 +28,7 @@ from ...lib import events
 from ...lib import utils
 from ...lib import utils_nginx
 from ...model import utils as model_utils
+from ...model.objects import CertificateSigned
 
 
 # ==============================================================================
@@ -457,9 +460,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbCertificateSigned = None
+    dbCertificateSigned: Optional[CertificateSigned] = None
 
-    def _focus(self):
+    def _focus(self) -> CertificateSigned:
         if self.dbCertificateSigned is None:
             dbCertificateSigned = lib_db.get.get__CertificateSigned__by_id(
                 self.request.api_context, self.request.matchdict["id"]
@@ -1124,14 +1127,13 @@ class View_Focus_Manipulate(View_Focus):
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
             event_payload_dict["action"] = action
-            event_type = model_utils.OperationsEventType.from_string(
-                "CertificateSigned__mark"
-            )
+
+            event_type = "CertificateSigned__mark"
 
             update_recents = False
             unactivated = False
             activated = False
-            event_status = False
+            event_status: Optional[str] = None
 
             try:
                 if action == "active":
@@ -1183,11 +1185,15 @@ class View_Focus_Manipulate(View_Focus):
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
+            if TYPE_CHECKING:
+                assert isinstance(event_status, str)
+
             self.request.api_context.dbSession.flush(objects=[dbCertificateSigned])
 
             # bookkeeping
+            event_type_id = model_utils.OperationsEventType.from_string(event_type)
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
+                self.request.api_context, event_type_id, event_payload_dict
             )
             lib_db.logger._log_object_event(
                 self.request.api_context,

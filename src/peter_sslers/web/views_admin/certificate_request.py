@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.view import view_config
@@ -8,6 +11,7 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...model.objects import CertificateRequest
 
 # ==============================================================================
 
@@ -72,9 +76,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbCertificateRequest = None
+    dbCertificateRequest: Optional[CertificateRequest] = None
 
-    def _focus(self):
+    def _focus(self) -> CertificateRequest:
         if self.dbCertificateRequest is None:
             dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
                 self.request.api_context, self.request.matchdict["id"]

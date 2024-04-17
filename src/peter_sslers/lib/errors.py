@@ -8,8 +8,8 @@ def formstash_to_querystring(formStash: FormStash) -> str:
     for k, v in formStash.errors.items():
         err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
     err = sorted(err)
-    err = "---".join(err)
-    return err
+    _err = "---".join(err)
+    return _err
 
 
 class _UrlSafeException(Exception):
@@ -26,7 +26,7 @@ class GarfieldMinusGarfield(Exception):
     pass
 
 
-class InvalidTransition(Exception):
+class InvalidTransition(_UrlSafeException):
     """raised when a transition is invalid"""
 
     pass

@@ -1,6 +1,7 @@
 # stdlib
 import json
 import logging
+from typing import Optional
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -23,6 +24,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
+from ...model.objects import QueueCertificate
 
 
 # ==============================================================================
@@ -187,7 +189,7 @@ class View_List(Handler):
     )
     def list(self):
         get_kwargs = {}
-        url_template = None
+        url_template = "%s/error/{0}"  # placeholder
         sidenav_option = None
 
         if self.request.matched_route.name in (
@@ -606,9 +608,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbQueueCertificate = None
+    dbQueueCertificate: Optional[QueueCertificate] = None
 
-    def _focus(self):
+    def _focus(self) -> QueueCertificate:
         if self.dbQueueCertificate is None:
             dbQueueCertificate = lib_db.get.get__QueueCertificate__by_id(
                 self.request.api_context, self.request.matchdict["id"], load_events=True
@@ -695,7 +697,7 @@ class View_Focus(Handler):
             event_payload_dict["queue_certificate.id"] = dbQueueCertificate.id
             event_payload_dict["action"] = formStash.results["action"]
 
-            event_status = False
+            event_status = ""
             if action == "cancel":
                 try:
                     event_status = lib_db.update.update_QueueCertificate__cancel(

@@ -1,7 +1,10 @@
 # stdlib
 import http.client
+from io import BytesIO
 import test
 import test.test_httplib
+from typing import Callable
+from typing import Dict
 import unittest
 from urllib.response import addinfourl
 
@@ -11,6 +14,7 @@ from cert_utils import letsencrypt_info
 
 # local
 from peter_sslers.lib import acme_v2
+from peter_sslers.lib import utils
 from peter_sslers.lib.db import getcreate as lib_db_getcreate
 from peter_sslers.model import utils as model_utils
 from ._utils import AppTest
@@ -20,6 +24,9 @@ from ._utils import AppTest
 
 
 class _MixIn_AcmeAccount(object):
+    _filedata_testfile: Callable
+    ctx: Callable[[], utils.ApiContext]
+
     def _makeOne_AcmeAccount(
         self,
         private_key_cycle=None,
@@ -250,7 +257,7 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
         )
 
 
-class _MockedFP(object):
+class _MockedFP(BytesIO):
     """
     used to mock some objects for tests
     this does nothing but avoid errors!
@@ -298,13 +305,13 @@ class UnitTest_ACME_v2(unittest.TestCase):
         #   message_1.msg.headers = DOES NOT EXIST
 
         fp = _MockedFP()
-        message_1 = addinfourl(fp, message_1.msg, "")
-        message_2 = addinfourl(fp, message_2.msg, "")
+        message_1_ = addinfourl(fp, message_1.msg, "")
+        message_2_ = addinfourl(fp, message_2.msg, "")
 
-        message_1_alts = acme_v2.get_header_links(message_1.headers, "alternate")
+        message_1_alts = acme_v2.get_header_links(message_1_.headers, "alternate")
         assert len(message_1_alts) == 0
 
-        message_2_alts = acme_v2.get_header_links(message_2.headers, "alternate")
+        message_2_alts = acme_v2.get_header_links(message_2_.headers, "alternate")
         assert len(message_2_alts) == 1
 
 
@@ -319,7 +326,7 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
         self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES_CROSSED"))
         self.assertTrue(hasattr(letsencrypt_info, "CA_LE_INTERMEDIATES"))
 
-        seen = {
+        seen: Dict = {
             "url_pem": [],
             "display_name": [],
         }

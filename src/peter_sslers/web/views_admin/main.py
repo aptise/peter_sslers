@@ -1,4 +1,5 @@
 # stlib
+from typing import Dict
 from urllib.parse import urlencode
 
 # pypi
@@ -62,7 +63,7 @@ class ViewAdminMain(Handler):
         )
 
     def _search__submit(self, search_type):
-        results = {
+        results: Dict[str, Dict] = {
             "AcmeAccount": {"count": 0, "items": [], "next": False},
             "Domain": {"count": 0, "items": [], "next": False},
             "CertificateCA": {"count": 0, "items": [], "next": False},

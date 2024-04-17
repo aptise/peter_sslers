@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
@@ -97,7 +98,7 @@ def create__AcmeAccountProvider(
 def create__AcmeOrderless(
     ctx: "ApiContext",
     domains_challenged: "DomainsChallenged",
-    dbAcmeAccount: "AcmeAccount",
+    dbAcmeAccount: Optional["AcmeAccount"],
 ) -> "AcmeOrderless":
     """
     Create a new AcmeOrderless Tracker

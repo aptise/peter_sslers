@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 
 PLACEHOLDER_TEXT__KEY = "*placeholder-key*"
+PLACEHOLDER_TEXT__SHA1 = "*placeholder-sha1*"
 
 
 # ------------------------------------------------------------------------------

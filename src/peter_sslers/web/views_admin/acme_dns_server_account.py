@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.view import view_config
@@ -6,6 +9,7 @@ from pyramid.view import view_config
 from ..lib.docs import docify
 from ..lib.handler import Handler
 from ...lib import db as lib_db
+from ...model.objects import AcmeDnsServerAccount
 
 # ==============================================================================
 
@@ -61,9 +65,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeDnsServerAccount = None
+    dbAcmeDnsServerAccount: Optional[AcmeDnsServerAccount] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeDnsServerAccount:
         if self.dbAcmeDnsServerAccount is None:
             dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_id(
                 self.request.api_context,

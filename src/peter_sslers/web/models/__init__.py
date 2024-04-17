@@ -1,6 +1,6 @@
 # stdlib
 from typing import Any
-from typing import Callable
+from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
     import transaction
 
-    _TYPES_SESSION = Union[Session, scoped_session[Any], Callable]
+    _TYPES_SESSION = Union[Type[Session], scoped_session[Any], sessionmaker[Session]]
 
 # ==============================================================================
 

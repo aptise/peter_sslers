@@ -7,6 +7,10 @@ import os
 import subprocess
 import time
 import traceback
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 import unittest
 import uuid
 
@@ -24,7 +28,6 @@ from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 # local
-import peter_sslers.lib
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
@@ -437,7 +440,7 @@ def under_redis(_function):
 # !!!: TEST_FILES
 
 
-TEST_FILES = {
+TEST_FILES: Dict = {
     "AcmeDnsServer": {
         "1": {
             "root_url": ACME_DNS_API,
@@ -918,26 +921,30 @@ class _Mixin_filedata(object):
             return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
-    def _filedata_testfile(self, filename, is_binary=False):
+    def _filedata_testfile(
+        self,
+        filename,
+        is_binary=False,
+    ) -> Union[str, bytes]:
         _data_root = self._data_root
         if filename.startswith("letsencrypt-certs/"):
             filename = filename[18:]
             _data_root = self._data_root_letsencrypt
         if is_binary:
             with open(os.path.join(_data_root, filename), "rb") as f:
-                data = f.read()
-        else:
-            with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
-                data = f.read()
-        return data
+                data_b = f.read()
+            return data_b
+        with open(os.path.join(_data_root, filename), "rt", encoding="utf-8") as f:
+            data_s = f.read()
+        return data_s
 
 
 class AppTestCore(unittest.TestCase, _Mixin_filedata):
-    testapp = None
+    testapp: TestApp
     testapp_http = None
     _session_factory = None
     _DB_INTIALIZED = False
-    _settings = None
+    _settings: Dict
 
     def setUp(self):
         self._settings = settings = get_appsettings(
@@ -952,6 +959,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             print("---------------")
             print("AppTestCore.setUp | initialize db")
             engine = self._session_factory().bind
+            assert isinstance(engine, sqlalchemy.engine.base.Engine)
             model_meta.Base.metadata.drop_all(engine)
             with engine.begin() as connection:
                 connection.execute(sqlalchemy.text("VACUUM"))
@@ -980,11 +988,28 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         AppTestCore._DB_INTIALIZED = True
 
     def tearDown(self):
-        if self.testapp is not None:
-            pass
         self._session_factory = None
-
         self._turnoff_items()
+
+    _ctx: Optional[utils.ApiContext] = None
+
+    @property
+    def ctx(self) -> utils.ApiContext:
+        """
+        originally in `AppTest`, not `AppTestCore` but some functions here need it
+        """
+        if self._ctx is None:
+            dbSession_factory = self.testapp.app.registry["dbSession_factory"]
+            self._ctx = utils.ApiContext(
+                request=FakeRequest(),
+                dbSession=dbSession_factory(),
+                timestamp=datetime.datetime.utcnow(),
+            )
+            # merge in the settings
+            if TYPE_CHECKING:
+                assert self._ctx.request is not None
+            self._ctx.request.registry.settings = self.testapp.app.registry.settings
+        return self._ctx
 
     def _turnoff_items(self):
         """when running multiple tests, ensure we turn off blocking items"""
@@ -1002,8 +1027,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 _order.timestamp_updated = self.ctx.timestamp
                 _changed = True
             try:
-                _order = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
-                _changed = True
+                _changed = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
             except errors.InvalidTransition as exc:
                 # don't fret on this having an invalid
                 pass
@@ -1082,7 +1106,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
 
 class AppTest(AppTestCore):
-    _ctx = None
     _DB_SETUP_RECORDS = False
 
     def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
@@ -1198,7 +1221,7 @@ class AppTest(AppTestCore):
                 """
                 # note: pre-populate AcmeAccount
                 # this should create `/acme-account/1`
-                _dbAcmeAccount_1 = None
+                _dbAcmeAccount_1: model_objects.AcmeAccount
                 for _id in TEST_FILES["AcmeAccount"]:
                     _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
                     _private_key_cycle = TEST_FILES["AcmeAccount"][_id][
@@ -1294,7 +1317,7 @@ class AppTest(AppTestCore):
                 _dbCertificateSigned_4 = None
                 _dbCertificateSigned_5 = None
                 _dbPrivateKey_1 = None
-                _dbUniqueFQDNSet_1 = None
+                _dbUniqueFQDNSet_1: model_objects.UniqueFQDNSet
                 for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
                     # note: pre-populate PrivateKey
                     # this should create `/private-key/1`
@@ -1665,28 +1688,16 @@ class AppTest(AppTestCore):
             self._ctx.dbSession.commit()
             self._ctx.dbSession.close()
 
-    @property
-    def ctx(self):
-        if self._ctx is None:
-            dbSession_factory = self.testapp.app.registry["dbSession_factory"]
-            self._ctx = utils.ApiContext(
-                request=FakeRequest(),
-                dbSession=dbSession_factory(),
-                timestamp=datetime.datetime.utcnow(),
-            )
-            # merge in the settings
-            self._ctx.request.registry.settings = self.testapp.app.registry.settings
-        return self._ctx
-
 
 # ==============================================================================
 
 
 class AppTestWSGI(AppTest, _Mixin_filedata):
-    testapp = None
-    testapp_http = None
-    _session_factory = None
-    _DB_INTIALIZED = False
+    # Inherited from AppTest:
+    # * testapp
+    # * testapp_http
+    # * _session_factory
+    # * _DB_INTIALIZED
 
     def setUp(self):
         AppTest.setUp(self)

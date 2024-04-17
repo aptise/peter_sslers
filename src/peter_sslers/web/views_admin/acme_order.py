@@ -1,3 +1,8 @@
+# stdlib
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
@@ -18,6 +23,7 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...model import utils as model_utils
+from ...model.objects import AcmeOrder
 
 
 # ==============================================================================
@@ -267,9 +273,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeOrder = None
+    dbAcmeOrder: Optional[AcmeOrder] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeOrder:
         if self.dbAcmeOrder is None:
             dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
                 self.request.api_context,
@@ -328,8 +334,10 @@ class View_Focus(Handler):
     )
     def audit(self):
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if TYPE_CHECKING:
+            assert dbAcmeOrder is not None
         if self.request.wants_json:
-            audit_report = {
+            audit_report: Dict = {
                 "result": "success",
                 "AuditReport": {
                     "AcmeOrder": {
@@ -370,7 +378,7 @@ class View_Focus(Handler):
             for to_acme_authorization in dbAcmeOrder.to_acme_authorizations:
                 dbAcmeAuthorization = to_acme_authorization.acme_authorization
                 dbAcmeChallenge_http01 = dbAcmeAuthorization.acme_challenge_http_01
-                auth_local = {
+                auth_local: Dict = {
                     "AcmeAuthorization": {
                         "id": dbAcmeAuthorization.id,
                         "acme_status_authorization": dbAcmeAuthorization.acme_status_authorization,

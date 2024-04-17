@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class NginxSession(object):
-    session = None
+    session: requests.Session
 
     def __init__(self, request: "Request"):
         """

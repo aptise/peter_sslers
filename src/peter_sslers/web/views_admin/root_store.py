@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.view import view_config
@@ -8,6 +11,7 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...model.objects import RootStore
 
 # ==============================================================================
 
@@ -66,9 +70,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbRootStore = None
+    dbRootStore: Optional[RootStore] = None
 
-    def _focus(self):
+    def _focus(self) -> RootStore:
         if self.dbRootStore is None:
             dbRootStore = lib_db.get.get__RootStore__by_id(
                 self.request.api_context, self.request.matchdict["id"]

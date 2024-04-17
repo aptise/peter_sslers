@@ -1,6 +1,7 @@
 # stdlib
 import json
 import logging
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -337,6 +338,9 @@ class ViewAdminApi_Domain(Handler):
                 account_key_option=formStash.results["account_key_option"],
                 require_contact=None,
             )
+            if TYPE_CHECKING:
+                assert acmeAccountSelection.upload_parsed is not None
+
             if acmeAccountSelection.selection == "upload":
                 key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
                 key_create_args["event_type"] = "AcmeAccount__insert"
@@ -356,6 +360,8 @@ class ViewAdminApi_Domain(Handler):
                 formStash,
                 private_key_option=formStash.results["private_key_option"],
             )
+            if TYPE_CHECKING:
+                assert privateKeySelection.upload_parsed is not None
 
             if privateKeySelection.selection == "upload":
                 key_create_args = privateKeySelection.upload_parsed.getcreate_args
@@ -388,6 +394,10 @@ class ViewAdminApi_Domain(Handler):
 
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+
+            if TYPE_CHECKING:
+                assert acmeAccountSelection.AcmeAccount is not None
+                assert privateKeySelection.PrivateKey is not None
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
@@ -625,6 +635,8 @@ class ViewAdminApi_Domain(Handler):
                         "result": "error",
                     }
                     dbAcmeOrder = exc.acme_order
+                    if TYPE_CHECKING:
+                        assert dbAcmeOrder is not None
                     rval["AcmeOrder"] = {
                         "id": dbAcmeOrder.id,
                     }
@@ -1073,13 +1085,14 @@ class ViewAdminApi_QueueCertificate(Handler):
             )
             if self.request.wants_json:
                 return {"result": "success", "queue_results": queue_results}
+            _queue_results = ""
             if queue_results:
-                queue_results = json.dumps(queue_results, sort_keys=True)
+                _queue_results = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
                 "%s/queue-certificates/all?result=success&operation=api--queue-certificates--process&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
-                    json.dumps(queue_results, sort_keys=True),
+                    json.dumps(_queue_results, sort_keys=True),
                 )
             )
         except Exception as exc:

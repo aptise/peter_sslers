@@ -46,7 +46,11 @@ if TYPE_CHECKING:
     from .db.logger import AcmeLogger
     from .utils import ApiContext
     from cert_utils.core import AccountKeyData
+    from email.message import Message
     from http.client import HTTPMessage
+    from requests.structures import CaseInsensitiveDict
+
+    HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
 
 # ==============================================================================
 
@@ -273,7 +277,7 @@ class AcmeOrderRFC(object):
 
 
 def get_header_links(
-    response_headers: "HTTPMessage",
+    response_headers: "HEADERS_COMPAT",
     relation_type: str,
 ) -> List[str]:
     """
@@ -309,13 +313,17 @@ def get_header_links(
     if "Link" not in response_headers:
         return []
     if hasattr(response_headers, "get_all"):
-        links = response_headers.get_all("Link")
-        links = [parse_header_links(h) for h in links]  # type: ignore[union-attr]
-        links = [_l[0] for _l in links if _l]
+        links_a_ = response_headers.get_all("Link")
+        if TYPE_CHECKING:
+            assert links_a_ is not None
+        links_a__ = [parse_header_links(h) for h in links_a_]
+        links = [_l[0] for _l in links_a__ if _l]
     else:
         # '<https://acme-staging-v02.api.letsencrypt.org/directory>;rel="index", <https://acme-staging-v02.api.letsencrypt.org/acme/cert/123/1>;rel="alternate"'
-        links = response_headers.get("Link")
-        links = parse_header_links(links)  # type: ignore[arg-type]
+        links_b_ = response_headers.get("Link")
+        if TYPE_CHECKING:
+            assert links_b_ is not None
+        links = parse_header_links(links_b_)
     return [
         _l["url"]
         for _l in links
