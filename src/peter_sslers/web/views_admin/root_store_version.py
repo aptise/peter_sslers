@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.view import view_config
@@ -6,15 +9,16 @@ from pyramid.view import view_config
 from ..lib.docs import docify
 from ..lib.handler import Handler
 from ...lib import db as lib_db
+from ...model.objects import RootStoreVersion
 
 
 # ==============================================================================
 
 
 class View_Focus(Handler):
-    dbRootStoreVersion = None
+    dbRootStoreVersion: Optional[RootStoreVersion] = None
 
-    def _focus(self):
+    def _focus(self) -> RootStoreVersion:
         if self.dbRootStoreVersion is None:
             dbRootStoreVersion = lib_db.get.get__RootStoreVersion__by_id(
                 self.request.api_context, self.request.matchdict["id"]

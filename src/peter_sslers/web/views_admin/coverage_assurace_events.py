@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
@@ -15,7 +18,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
-
+from ...model.objects import CoverageAssuranceEvent
 
 # ==============================================================================
 
@@ -141,9 +144,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbCoverageAssuranceEvent = None
+    dbCoverageAssuranceEvent: Optional[CoverageAssuranceEvent] = None
 
-    def _focus(self):
+    def _focus(self) -> CoverageAssuranceEvent:
         if self.dbCoverageAssuranceEvent is None:
             dbCoverageAssuranceEvent = lib_db.get.get__CoverageAssuranceEvent__by_id(
                 self.request.api_context,

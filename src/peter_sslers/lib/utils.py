@@ -15,6 +15,13 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 
+PLACEHOLDER_TEXT__KEY = "*placeholder-key*"
+PLACEHOLDER_TEXT__SHA1 = "*placeholder-sha1*"
+
+
+# ------------------------------------------------------------------------------
+
+
 def url_to_server(url: str) -> str:
     url = url.lower()
     if url[:8] == "https://":

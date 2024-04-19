@@ -1,10 +1,13 @@
 # stdlib
 import datetime
 import logging
+from typing import Dict
+from typing import Optional
 
 # pypi
 import cert_utils
 import sqlalchemy
+from typing_extensions import TypedDict
 
 # local
 from . import create as db_create
@@ -23,7 +26,22 @@ log.setLevel(logging.INFO)
 
 # ------------------------------------------------------------------------------
 
-acme_account_providers = {
+DictProvider = TypedDict(
+    "DictProvider",
+    {
+        "id": int,
+        "name": str,
+        "endpoint": Optional[str],
+        "directory": Optional[str],
+        "is_default": Optional[bool],
+        "protocol": str,
+        "is_enabled": bool,
+        "server": str,
+    },
+)
+
+
+acme_account_providers: Dict[int, DictProvider] = {
     1: {
         "id": 1,
         "name": "pebble",
@@ -108,7 +126,7 @@ def initialize_AcmeAccountProviders(ctx):
     dbObject = model_objects.PrivateKey()
     dbObject.id = 0
     dbObject.timestamp_created = timestamp_now
-    _placeholder_text = "*placeholder-key*"
+    _placeholder_text = utils.PLACEHOLDER_TEXT__KEY
     dbObject.key_pem = _placeholder_text
     dbObject.key_pem_md5 = cert_utils.utils.md5_text(_placeholder_text)
     dbObject.spki_sha256 = _placeholder_text

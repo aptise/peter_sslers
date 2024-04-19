@@ -1,5 +1,6 @@
 # stdlib
 import json
+from typing import Optional
 from urllib.parse import quote_plus
 
 # pypi
@@ -23,7 +24,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
-
+from ...model.objects import QueueDomain
 
 # ==============================================================================
 
@@ -366,9 +367,9 @@ class View_Process(Handler):
 
 
 class View_Focus(Handler):
-    dbQueueDomain = None
+    dbQueueDomain: Optional[QueueDomain] = None
 
-    def _focus(self):
+    def _focus(self) -> QueueDomain:
         if self.dbQueueDomain is None:
             dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
                 self.request.api_context,

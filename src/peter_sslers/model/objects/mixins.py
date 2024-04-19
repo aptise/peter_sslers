@@ -1,20 +1,29 @@
 # stdlib
+import datetime
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
-from sqlalchemy import Column
+from sqlalchemy.orm import Mapped
+
 
 # ==============================================================================
 
 
 class _Mixin_Hex_Pretty(object):
-    cert_authority_key_identifier: Column
-    fingerprint_sha1: Column
-    spki_sha256: Column
+    # While it would be nice to have `Mapped` typing on these,
+    # it can create issues as SqlAlchemy thinks all fields are columns and
+    # will try to utilize them in sql operations
+    if TYPE_CHECKING:
+        cert_authority_key_identifier: Mapped[Optional[str]]
+        fingerprint_sha1: Mapped[str]
+        spki_sha256: Mapped[str]
 
     @property
     def cert_authority_key_identifier__colon(self) -> str:
+        if not self.cert_authority_key_identifier:
+            return ""
         return cert_utils.utils.hex_with_colons(self.cert_authority_key_identifier)
 
     @property
@@ -29,18 +38,22 @@ class _Mixin_Hex_Pretty(object):
 
 
 class _Mixin_Timestamps_Pretty(object):
-    timestamp_created: Column
-    timestamp_event: Column
-    timestamp_expires: Column
-    timestamp_finalized: Column
-    timestamp_finished: Column
-    timestamp_not_after: Column
-    timestamp_not_before: Column
-    timestamp_polled: Column
-    timestamp_processed: Column
-    timestamp_process_attempt: Column
-    timestamp_revoked_upstream: Column
-    timestamp_updated: Column
+    # While it would be nice to have `Mapped` typing on these,
+    # it can create issues as SqlAlchemy thinks all fields are columns and
+    # will try to utilize them in sql operations
+    if TYPE_CHECKING:
+        timestamp_created: Mapped[datetime.datetime]
+        timestamp_event: Mapped[Optional[datetime.datetime]]
+        timestamp_expires: Mapped[Optional[datetime.datetime]]
+        timestamp_finalized: Mapped[Optional[datetime.datetime]]
+        timestamp_finished: Mapped[Optional[datetime.datetime]]
+        timestamp_not_after: Mapped[Optional[datetime.datetime]]
+        timestamp_not_before: Mapped[Optional[datetime.datetime]]
+        timestamp_polled: Mapped[Optional[datetime.datetime]]
+        timestamp_processed: Mapped[Optional[datetime.datetime]]
+        timestamp_process_attempt: Mapped[Optional[datetime.datetime]]
+        timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]]
+        timestamp_updated: Mapped[Optional[datetime.datetime]]
 
     @property
     def timestamp_created_isoformat(self) -> Optional[str]:

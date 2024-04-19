@@ -170,6 +170,7 @@ def operations_reconcile_cas(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
+    assert ctx.timestamp
     dbCertificateCAs = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
@@ -185,6 +186,7 @@ def operations_reconcile_cas(
         cert_issuer_uri = dbCertificateCA.cert_issuer_uri
         log.debug(dbCertificateCA.cert_subject)
         log.debug(cert_issuer_uri)
+        assert cert_issuer_uri
         resp = requests.get(cert_issuer_uri)
         if resp.status_code != 200:
             raise ValueError("Could not load certificate")

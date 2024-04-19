@@ -1,12 +1,13 @@
 # stdlib
 from functools import wraps
-
-# from io import open  # overwrite `open` in Python2
 from io import BytesIO  # noqa: F401
 from io import StringIO  # noqa: F401
 import json
 import logging
 import pprint
+from typing import Dict
+from typing import Tuple
+from typing import TYPE_CHECKING
 import unittest
 import zipfile
 
@@ -572,7 +573,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert "form_fields" in res.json
 
-        form = {}
+        form: Dict = {}
         res2 = self.testapp.post(
             "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
         )
@@ -2623,10 +2624,10 @@ class FunctionalTests_CertificateCA(AppTest):
         )
         # calculate the expected matrix after an alteration
         # in this alteration, we swap the first and second items
-        expected_preferences_altered = [i[1] for i in expected_preferences_initial]
-        expected_preferences_altered.insert(0, expected_preferences_altered.pop(1))
+        _expected_preferences_altered = [i[1] for i in expected_preferences_initial]
+        _expected_preferences_altered.insert(0, _expected_preferences_altered.pop(1))
         expected_preferences_altered = [
-            (str(idx + 1), i) for (idx, i) in enumerate(expected_preferences_altered)
+            (str(idx + 1), i) for (idx, i) in enumerate(_expected_preferences_altered)
         ]
 
         return (expected_preferences_initial, expected_preferences_altered)
@@ -2912,7 +2913,7 @@ class FunctionalTests_CertificateCA(AppTest):
             "/.well-known/admin/certificate-cas/preferred/prioritize.json", status=200
         )
         assert "form_fields" in res.json
-        _expected_fields = ("slot", "fingerprint_sha1", "priority")
+        _expected_fields: Tuple[str, ...] = ("slot", "fingerprint_sha1", "priority")
         assert len(res.json["form_fields"]) == len(_expected_fields)
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
@@ -3200,13 +3201,15 @@ class FunctionalTests_CertificateCAChain(AppTest):
         """
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
-        chain_data = []
+        _chain_data = []
         for _cert_ca_id in chain_items:
             _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
             _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
             _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
-            chain_data.append(_cert_ca_filedata)
-        chain_data = "\n".join(chain_data)
+            if TYPE_CHECKING:
+                assert isinstance(_cert_ca_filedata, str)
+            _chain_data.append(_cert_ca_filedata)
+        chain_data = "\n".join(_chain_data)
         tmpfile_pem = None
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
@@ -3238,13 +3241,15 @@ class FunctionalTests_CertificateCAChain(AppTest):
         )
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
-        chain_data = []
+        _chain_data = []
         for _cert_ca_id in chain_items:
             _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
             _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
             _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
-            chain_data.append(_cert_ca_filedata)
-        chain_data = "\n".join(chain_data)
+            if TYPE_CHECKING:
+                assert isinstance(_cert_ca_filedata, str)
+            _chain_data.append(_cert_ca_filedata)
+        chain_data = "\n".join(_chain_data)
         tmpfile_pem = None
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
@@ -6640,7 +6645,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_new_json
         """
-        form = {}
+        form: Dict = {}
         res2 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
         assert res2.json["result"] == "error"
         assert "form_errors" in res2.json
@@ -6852,7 +6857,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert "form_fields" in res.json
         assert "key_pem" in res.json["form_fields"]
 
-        form = {}
+        form: Dict = {}
         res2 = self.testapp.post(
             "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
             form,
@@ -6924,7 +6929,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert "form_fields" in res.json
         assert "key_pem_existing" in res.json["form_fields"]
 
-        form = {}
+        form: Dict = {}
         res2 = self.testapp.post(
             "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
             form,
@@ -7235,6 +7240,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert _dbAcmeOrder is not None
         assert len(_dbAcmeOrder.acme_authorizations) == len(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -7808,6 +7814,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["operation"] == "acme-server/sync-authorizations"
 
         _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert _dbAcmeOrder is not None
         assert len(_dbAcmeOrder.acme_authorizations) == len(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -9004,7 +9011,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # try to process; a CREATE only
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
-        form = {}
+        form: Dict = {}
         form["account_key_option"] = "account_key_file"
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(
@@ -9059,7 +9066,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # try to process; PROCESS_SINGLE
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
-        form = {}
+        form: Dict = {}
         form["account_key_option"] = "account_key_file"
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(

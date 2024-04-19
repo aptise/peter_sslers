@@ -1,5 +1,8 @@
 # stdlib
 import logging
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -28,6 +31,7 @@ from ...lib import utils_nginx
 from ...lib import utils_redis
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...model.objects import Domain
 
 
 # ==============================================================================
@@ -348,9 +352,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbDomain = None
+    dbDomain: Optional[Domain] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> Domain:
         if self.dbDomain is None:
             domain_identifier = self.request.matchdict["domain_identifier"].strip()
             if domain_identifier.isdigit():
@@ -498,8 +502,8 @@ class View_Focus(Handler):
             "example": "curl {ADMIN_PREFIX}/domain/1/calendar.json",
         }
     )
-    def calendar(self):
-        rval = {}
+    def calendar(self) -> Dict:
+        rval: Dict = {}
         dbDomain = self._focus()
         weekly_certs = (
             self.request.api_context.dbSession.query(
@@ -1031,6 +1035,8 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         )
 
     def _new_submit(self):
+        if TYPE_CHECKING:
+            assert self.dbDomain is not None
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False

@@ -1,3 +1,7 @@
+# stdlib
+from typing import Dict
+from typing import Optional
+
 # pypi
 import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
@@ -18,6 +22,7 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...model.objects import UniqueFQDNSet
 
 
 # ==============================================================================
@@ -81,9 +86,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbUniqueFQDNSet = None
+    dbUniqueFQDNSet: Optional[UniqueFQDNSet] = None
 
-    def _focus(self):
+    def _focus(self) -> UniqueFQDNSet:
         if self.dbUniqueFQDNSet is None:
             dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
                 self.request.api_context, self.request.matchdict["id"]
@@ -137,8 +142,8 @@ class View_Focus(Handler):
             "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/calendar.json",
         }
     )
-    def calendar(self):
-        rval = {}
+    def calendar(self) -> Dict:
+        rval: Dict = {}
         dbUniqueFQDNSet = self._focus()
         weekly_certs = (
             self.request.api_context.dbSession.query(
@@ -436,10 +441,10 @@ class View_Focus(Handler):
 
             # calculate the validity of the new UniqueFQDNSet
             existing_domains = dbUniqueFQDNSet.domains_as_list
-            proposed_domains = set(existing_domains)
-            proposed_domains.update(domain_names_add)
-            proposed_domains.difference_update(domain_names_del)
-            proposed_domains = list(proposed_domains)
+            _proposed_domains = set(existing_domains)
+            _proposed_domains.update(domain_names_add)
+            _proposed_domains.difference_update(domain_names_del)
+            proposed_domains = list(_proposed_domains)
             if len(proposed_domains) > 100:
                 # `formStash.fatal_form()` will raise `FormInvalid()`
                 formStash.fatal_form(

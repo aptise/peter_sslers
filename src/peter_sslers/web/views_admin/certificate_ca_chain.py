@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
@@ -13,6 +16,7 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...model.objects import CertificateCAChain
 
 
 # ==============================================================================
@@ -78,9 +82,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbCertificateCAChain = None
+    dbCertificateCAChain: Optional[CertificateCAChain] = None
 
-    def _focus(self):
+    def _focus(self) -> CertificateCAChain:
         if self.dbCertificateCAChain is None:
             dbCertificateCAChain = lib_db.get.get__CertificateCAChain__by_id(
                 self.request.api_context, self.request.matchdict["id"]

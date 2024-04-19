@@ -1,5 +1,7 @@
 # stdlib
 import logging
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -21,6 +23,8 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...model import utils as model_utils
+from ...model.objects import AcmeChallenge
+from ...model.objects import AcmeOrderless
 
 # from ..lib.forms import Form_AcmeOrderless_manage_domain
 
@@ -188,6 +192,8 @@ class View_New(Handler):
                 allow_none=True,
             )
             if acmeAccountSelection.selection == "upload":
+                if TYPE_CHECKING:
+                    assert acmeAccountSelection.upload_parsed is not None
                 key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
                 key_create_args["event_type"] = "AcmeAccount__insert"
                 key_create_args[
@@ -241,9 +247,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeOrderless = None
+    dbAcmeOrderless: Optional[AcmeOrderless] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeOrderless:
         if self.dbAcmeOrderless is None:
             _dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
                 self.request.api_context,
@@ -263,6 +269,8 @@ class View_Focus(Handler):
 
     def _focus_print(self):
         self._focus()
+        if TYPE_CHECKING:
+            assert self.dbAcmeOrderless is not None
         if self.request.wants_json:
             resp = {
                 "AcmeOrderless": self.dbAcmeOrderless.as_json,
@@ -580,13 +588,14 @@ class View_Focus_Challenge(View_Focus):
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         dbAcmeOrderless = self._focus()
         id_challenge = int(self.request.matchdict["id_challenge"])
+        dbChallenge: AcmeChallenge
         try:
-            dbChallenge = [
+            _dbChallenge = [
                 i for i in dbAcmeOrderless.acme_challenges if i.id == id_challenge
             ]
-            if len(dbChallenge) != 1:
+            if len(_dbChallenge) != 1:
                 raise ValueError("invalid challenge")
-            dbChallenge = dbChallenge[0]
+            dbChallenge = _dbChallenge[0]
         except Exception as exc:  # noqa: F841
             return HTTPSeeOther("%s?result=error" % self._focus_url)
 

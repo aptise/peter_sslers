@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
@@ -11,6 +14,7 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
+from ...model.objects import AcmeChallenge
 
 # ==============================================================================
 
@@ -127,9 +131,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeChallenge = None
+    dbAcmeChallenge: Optional[AcmeChallenge] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeChallenge:
         if self.dbAcmeChallenge is None:
             dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
                 self.request.api_context,

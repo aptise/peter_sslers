@@ -361,16 +361,14 @@ def queue_certificates__update(
         assert ctx.timestamp
         _expiring_days = 28
         _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
-        _subquery_already_queued = (
-            ctx.dbSession.query(model_objects.QueueCertificate.acme_order_id__source)
-            .filter(
-                model_objects.QueueCertificate.acme_order_id__source.is_not(None),
-                model_objects.QueueCertificate.timestamp_processed.is_(None),
-                model_objects.QueueCertificate.process_result.is_not(
-                    None
-                ),  # True/False were attempted
-            )
-            .subquery()
+        _subquery_already_queued = ctx.dbSession.query(
+            model_objects.QueueCertificate.acme_order_id__source
+        ).filter(
+            model_objects.QueueCertificate.acme_order_id__source.is_not(None),
+            model_objects.QueueCertificate.timestamp_processed.is_(None),
+            model_objects.QueueCertificate.process_result.is_not(
+                None
+            ),  # True/False were attempted
         )
         _core_query = (
             ctx.dbSession.query(model_objects.AcmeOrder)

@@ -1,15 +1,20 @@
-def formstash_to_querystring(formStash):
+from pyramid_formencode_classic import FormStash
+
+# ==============================================================================
+
+
+def formstash_to_querystring(formStash: FormStash) -> str:
     err = []
     for k, v in formStash.errors.items():
         err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
     err = sorted(err)
-    err = "---".join(err)
-    return err
+    _err = "---".join(err)
+    return _err
 
 
 class _UrlSafeException(Exception):
     @property
-    def as_querystring(self):
+    def as_querystring(self) -> str:
         return str(self).replace("\n", "+").replace(" ", "+")
 
 
@@ -21,7 +26,7 @@ class GarfieldMinusGarfield(Exception):
     pass
 
 
-class InvalidTransition(Exception):
+class InvalidTransition(_UrlSafeException):
     """raised when a transition is invalid"""
 
     pass

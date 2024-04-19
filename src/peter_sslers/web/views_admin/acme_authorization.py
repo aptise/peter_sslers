@@ -1,3 +1,6 @@
+# stdlib
+from typing import Optional
+
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
@@ -12,6 +15,7 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...model import objects as model_objects
+from ...model.objects import AcmeAuthorization
 
 
 # ==============================================================================
@@ -102,9 +106,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeAuthorization = None
+    dbAcmeAuthorization: Optional[AcmeAuthorization] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeAuthorization:
         if self.dbAcmeAuthorization is None:
             dbAcmeAuthorization = lib_db.get.get__AcmeAuthorization__by_id(
                 self.request.api_context,

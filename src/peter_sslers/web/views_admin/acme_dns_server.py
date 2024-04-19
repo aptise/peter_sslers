@@ -1,3 +1,7 @@
+# stdlib
+from typing import Optional
+from typing import TYPE_CHECKING
+
 # pypi
 import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
@@ -21,6 +25,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
+from ...model.objects import AcmeDnsServer
 
 # ==============================================================================
 
@@ -155,9 +160,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeDnsServer = None
+    dbAcmeDnsServer: Optional[AcmeDnsServer] = None
 
-    def _focus(self, eagerload_web=False):
+    def _focus(self, eagerload_web=False) -> AcmeDnsServer:
         if self.dbAcmeDnsServer is None:
             dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
                 self.request.api_context,
@@ -329,6 +334,8 @@ class View_Focus(Handler):
 
     def _ensure_domains__submit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
+        if TYPE_CHECKING:
+            assert dbAcmeDnsServer is not None
         try:
             if lib_acmedns.pyacmedns is None:
                 raise formhandling.FormInvalid("`pyacmedns` is not installed")
@@ -447,6 +454,8 @@ class View_Focus(Handler):
     def ensure_domains_results(self):
         try:
             dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+            if TYPE_CHECKING:
+                assert dbAcmeDnsServer is not None
             _AcmeDnsServerAccountIds = self.request.params.get(
                 "acme-dns-server-accounts", ""
             )
@@ -519,6 +528,8 @@ class View_Focus(Handler):
 
     def _import_domain__submit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
+        if TYPE_CHECKING:
+            assert dbAcmeDnsServer is not None
         try:
             if lib_acmedns.pyacmedns is None:
                 raise formhandling.FormInvalid("`pyacmedns` is not installed")
@@ -658,7 +669,7 @@ class View_Focus_Manipulate(View_Focus):
             event_payload_dict["acme_dns_server.id"] = dbAcmeDnsServer.id
             event_payload_dict["action"] = formStash.results["action"]
 
-            event_status = None
+            event_status: Optional[str] = None
             event_alt = None
             try:
                 if action == "active":
@@ -689,6 +700,9 @@ class View_Focus_Manipulate(View_Focus):
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
+
+            if TYPE_CHECKING:
+                assert event_status is not None
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
@@ -766,6 +780,8 @@ class View_Focus_Manipulate(View_Focus):
 
     def _edit__submit(self):
         dbAcmeDnsServer = self.dbAcmeDnsServer
+        if TYPE_CHECKING:
+            assert dbAcmeDnsServer is not None
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False

@@ -1,4 +1,6 @@
 # stlib
+from typing import Optional
+from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
 
 # pypi
@@ -27,6 +29,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
+from ...model.objects import AcmeAccount
 
 
 # ==============================================================================
@@ -314,10 +317,15 @@ class View_New(Handler):
                 _dbAcmeAccountDuplicate = exc.args[0]
                 # the 'Duplicate' account was the earlier account and therefore
                 # it is our merge Target
+                if TYPE_CHECKING:
+                    assert _dbAcmeAccount is not None
                 lib_db.update.update_AcmeAccount_from_new_duplicate(
                     self.request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
                 )
                 dbAcmeAccount = _dbAcmeAccountDuplicate
+
+            if TYPE_CHECKING:
+                assert dbAcmeAccount is not None
 
             if self.request.wants_json:
                 return {
@@ -348,9 +356,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeAccount = None
+    dbAcmeAccount: Optional[AcmeAccount] = None
 
-    def _focus(self):
+    def _focus(self) -> AcmeAccount:
         if self.dbAcmeAccount is None:
             dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
                 self.request.api_context,
@@ -823,6 +831,8 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus_edit__submit(self):
         try:
+            if TYPE_CHECKING:
+                assert self.dbAcmeAccount is not None
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_AcmeAccount_edit, validate_get=False
             )
@@ -908,6 +918,8 @@ class View_Focus_Manipulate(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _handle_potentially_deactivated(self, exc):
+        if TYPE_CHECKING:
+            assert self.dbAcmeAccount is not None
         if exc.args[0] == 403:
             if isinstance(exc.args[1], dict):
                 info = exc.args[1]
@@ -1147,7 +1159,7 @@ class View_Focus_Manipulate(View_Focus):
             event_payload_dict["acme_account_id"] = dbAcmeAccount.id
             event_payload_dict["action"] = formStash.results["action"]
 
-            event_status = False
+            event_status: Optional[str] = None
             event_alt = None
 
             try:
@@ -1178,6 +1190,9 @@ class View_Focus_Manipulate(View_Focus):
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
+
+            if TYPE_CHECKING:
+                assert event_status is not None
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeAccount])
 
