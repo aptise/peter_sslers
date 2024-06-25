@@ -57,21 +57,22 @@ maintained by LetsEncrypt.
 
 ### Install pebble
 
-Follow the instructions on https://github.com/letsencrypt/pebble ;
+Follow the instructions on https://github.com/letsencrypt/pebble?tab=readme-ov-file#install ;
 this will require you to install `go`.
 
-> 1. [Set up Go](https://golang.org/doc/install) and your `$GOPATH`
-> 2. `go get -u github.com/letsencrypt/pebble/...`
-> 3. `cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...`
-> 4. `pebble -h`
+> 1. Set up Go [from binaries](https://golang.org/doc/install) or [from source](https://go.dev/doc/install/source) and your `$GOPATH`
+> 2. `git clone https://github.com/letsencrypt/pebble/`
+> 3. `cd pebble`
+> 4. `go install ./cmd/pebble
+`
 
 As a precaution, copy the pebble config file. On the root project directory:
 
-    cp ./tests/test_configuration/pebble/test/config/pebble-config.json ./tests/test_configuration/pebble/test/config/pebble-config.dist.json
+    cp ./test/config/pebble-config.json ./test/config/pebble-config.dist.json
 
 The edit it to see the configuration
 
-    vi ./tests/test_configuration/pebble/test/config/pebble-config.json
+    vi ./test/config/pebble-config.json
 
 Which should look something like this...
 
@@ -89,21 +90,23 @@ Which should look something like this...
 
 Good to go?  Ok, run pebble!
 
-    cd tests/test_configuration/pebble
-    PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 PEBBLE_CHAIN_LENGTH=3 ~/go/bin/pebble --config  ./test/config/pebble-config.json
-
-To have all challenge POST requests succeed without performing any validation run:
-
-    cd tests/test_configuration/pebble
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
         PEBBLE_VA_NOSLEEP=1 \
         PEBBLE_ALTERNATE_ROOTS=2 \
         PEBBLE_CHAIN_LENGTH=3 \
-        ~/go/bin/pebble -config ./test/config/pebble-config.json
+        pebble --config  ./test/config/pebble-config.json
+
+To have all challenge POST requests succeed without performing any validation run:
+
+    PEBBLE_VA_ALWAYS_VALID=1 \
+        PEBBLE_AUTHZREUSE=100 \
+        PEBBLE_VA_NOSLEEP=1 \
+        PEBBLE_ALTERNATE_ROOTS=2 \
+        PEBBLE_CHAIN_LENGTH=3 \
+        pebble -config ./test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
-
 
 ## Integrated Testing
 

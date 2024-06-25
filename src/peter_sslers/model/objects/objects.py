@@ -49,11 +49,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Unicode(255), nullable=True, unique=True
     )
 
-    count_acme_orders: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True, default=0
+    count_acme_orders: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
     )
-    count_certificate_signeds: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True, default=0
+    count_certificate_signeds: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
     )
 
     timestamp_last_certificate_request: Mapped[
@@ -2003,7 +2003,9 @@ class AcmeOrder2AcmeAuthorization(Base):
     acme_authorization_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_authorization.id"), primary_key=True
     )
-    is_present_on_new_order: Mapped[bool] = mapped_column(sa.Boolean, default=None)
+    is_present_on_new_order: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2202,8 +2204,8 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )  # who did we reconcile this to/
     reconciled_uris: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
-    count_active_certificates: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True
+    count_active_certificates: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
     )  # internal tracking
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -3583,8 +3585,8 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     operations_event_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # references OperationsEventType
-    timestamp_event: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+    timestamp_event: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
     )
     event_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
     operations_event_id__child_of: Mapped[Optional[int]] = mapped_column(
@@ -3833,18 +3835,20 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     key_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
     spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
-    count_active_certificates: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True
+    count_active_certificates: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=0,
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_compromised: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
-    count_acme_orders: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True, default=0
+    count_acme_orders: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
     )
-    count_certificate_signeds: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True, default=0
+    count_certificate_signeds: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
     )
     timestamp_last_certificate_request: Mapped[
         Optional[datetime.datetime]
@@ -4445,7 +4449,7 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "unique_fqdn_set"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_ids_string: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
-    count_domains: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    count_domains: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )

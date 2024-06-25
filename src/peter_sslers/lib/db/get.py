@@ -1,11 +1,16 @@
 # stdlib
 import datetime
 import logging
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
 import sqlalchemy
 from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import subqueryload
 
@@ -44,6 +49,8 @@ from ...model.objects import RootStoreVersion
 from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
 
+if TYPE_CHECKING:
+    from ..utils import ApiContext
 
 # ==============================================================================
 
@@ -52,12 +59,14 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def get__AcmeEventLog__count(ctx):
+def get__AcmeEventLog__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeEventLog).count()
     return counted
 
 
-def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
+def get__AcmeEventLog__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[AcmeEventLog]:
     query = (
         ctx.dbSession.query(AcmeEventLog)
         .order_by(AcmeEventLog.id.desc())
@@ -68,7 +77,7 @@ def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
     return dbAcmeEventLogs
 
 
-def get__AcmeEventLog__by_id(ctx, id_):
+def get__AcmeEventLog__by_id(ctx: "ApiContext", id_: int) -> Optional[AcmeEventLog]:
     item = ctx.dbSession.query(AcmeEventLog).get(id_)
     return item
 
@@ -76,7 +85,9 @@ def get__AcmeEventLog__by_id(ctx, id_):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeAccountProvider__default(ctx):
+def get__AcmeAccountProvider__default(
+    ctx: "ApiContext",
+) -> Optional[AcmeAccountProvider]:
     dbAcmeAccountProvider_default = (
         ctx.dbSession.query(AcmeAccountProvider)
         .filter(
@@ -87,21 +98,30 @@ def get__AcmeAccountProvider__default(ctx):
     return dbAcmeAccountProvider_default
 
 
-def get__AcmeAccountProvider__by_name(ctx, name):
+def get__AcmeAccountProvider__by_name(
+    ctx: "ApiContext", name: str
+) -> Optional[AcmeAccountProvider]:
     query = ctx.dbSession.query(AcmeAccountProvider).filter(
         sqlalchemy.func.lower(AcmeAccountProvider.name) == name.lower()
     )
     return query.first()
 
 
-def get__AcmeAccountProvider__by_server(ctx, server):
+def get__AcmeAccountProvider__by_server(
+    ctx: "ApiContext", server: str
+) -> Optional[AcmeAccountProvider]:
     query = ctx.dbSession.query(AcmeAccountProvider).filter(
         AcmeAccountProvider.server == server
     )
     return query.first()
 
 
-def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
+def get__AcmeAccountProviders__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    is_enabled: Optional[bool] = None,
+) -> List[AcmeAccountProvider]:
     query = ctx.dbSession.query(AcmeAccountProvider)
     if is_enabled is True:
         query = query.filter(AcmeAccountProvider.is_enabled.is_(True))
@@ -112,12 +132,17 @@ def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=N
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeAccount__count(ctx):
+def get__AcmeAccount__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeAccount).count()
     return counted
 
 
-def get__AcmeAccount__paginated(ctx, limit=None, offset=0, active_only=False):
+def get__AcmeAccount__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_only: bool = False,
+) -> List[AcmeAccount]:
     query = ctx.dbSession.query(AcmeAccount)
     if active_only:
         query = query.filter(AcmeAccount.is_active.is_(True))
@@ -126,13 +151,17 @@ def get__AcmeAccount__paginated(ctx, limit=None, offset=0, active_only=False):
     return dbAcmeAccounts
 
 
-def get__AcmeAccount__by_id(ctx, acme_account_id):
+def get__AcmeAccount__by_id(
+    ctx: "ApiContext", acme_account_id: int
+) -> Optional[AcmeAccount]:
     q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.id == acme_account_id)
     item = q.first()
     return item
 
 
-def get__AcmeAccount__by_pemMd5(ctx, pem_md5, is_active=True):
+def get__AcmeAccount__by_pemMd5(
+    ctx: "ApiContext", pem_md5: str, is_active: bool = True
+) -> Optional[AcmeAccount]:
     q = (
         ctx.dbSession.query(AcmeAccount)
         .join(
@@ -149,7 +178,9 @@ def get__AcmeAccount__by_pemMd5(ctx, pem_md5, is_active=True):
     return item
 
 
-def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
+def get__AcmeAccount__GlobalDefault(
+    ctx: "ApiContext", active_only: Optional[bool] = None
+) -> Optional[AcmeAccount]:
     q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_default.is_(True))
     if active_only:
         q = q.filter(AcmeAccount.is_active.is_(True))
@@ -157,7 +188,9 @@ def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
     return item
 
 
-def get__AcmeAccount__by_account_url(ctx, account_url):
+def get__AcmeAccount__by_account_url(
+    ctx: "ApiContext", account_url: str
+) -> Optional[AcmeAccount]:
     q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.account_url == account_url)
     item = q.first()
     return item
@@ -166,7 +199,10 @@ def get__AcmeAccount__by_account_url(ctx, account_url):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeAccountKey__by_AcmeAccountId__count(ctx, acme_account_id):
+def get__AcmeAccountKey__by_AcmeAccountId__count(
+    ctx: "ApiContext",
+    acme_account_id: int,
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeAccountKey)
         .filter(AcmeAccountKey.acme_account_id == acme_account_id)
@@ -176,11 +212,11 @@ def get__AcmeAccountKey__by_AcmeAccountId__count(ctx, acme_account_id):
 
 
 def get__AcmeAccountKey__by_AcmeAccountId__paginated(
-    ctx,
-    acme_account_id,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAccountKey]:
     query = (
         ctx.dbSession.query(AcmeAccountKey)
         .filter(AcmeAccountKey.acme_account_id == acme_account_id)
@@ -192,12 +228,17 @@ def get__AcmeAccountKey__by_AcmeAccountId__paginated(
     return dbAcmeAccountKeys
 
 
-def get__AcmeAccountKey__count(ctx):
+def get__AcmeAccountKey__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeAccountKey).count()
     return counted
 
 
-def get__AcmeAccountKey__paginated(ctx, limit=None, offset=0, active_only=False):
+def get__AcmeAccountKey__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_only: Optional[bool] = False,
+) -> List[AcmeAccountKey]:
     query = ctx.dbSession.query(AcmeAccountKey)
     if active_only:
         query = query.filter(AcmeAccountKey.is_active.is_(True))
@@ -206,7 +247,9 @@ def get__AcmeAccountKey__paginated(ctx, limit=None, offset=0, active_only=False)
     return dbAcmeAccountKeys
 
 
-def get__AcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
+def get__AcmeAccountKey__by_id(
+    ctx: "ApiContext", key_id: int, eagerload_web: bool = False
+) -> Optional[AcmeAccountKey]:
     q = ctx.dbSession.query(AcmeAccountKey).filter(AcmeAccountKey.id == key_id)
     if eagerload_web:
         q = q.options(
@@ -223,7 +266,9 @@ def get__AcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
     return item
 
 
-def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
+def get__AcmeAccountKey__by_pemMd5(
+    ctx: "ApiContext", pem_md5: str, is_active: bool = True
+) -> Optional[AcmeAccountKey]:
     q = ctx.dbSession.query(AcmeAccountKey).filter(
         AcmeAccountKey.key_pem_md5 == pem_md5
     )
@@ -233,7 +278,9 @@ def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
     return item
 
 
-def get__AcmeAccountKey__by_key_pem(ctx, key_pem):
+def get__AcmeAccountKey__by_key_pem(
+    ctx: "ApiContext", key_pem: str
+) -> Optional[AcmeAccountKey]:
     q = ctx.dbSession.query(AcmeAccountKey).filter(AcmeAccountKey.key_pem == key_pem)
     item = q.first()
     return item
@@ -242,7 +289,9 @@ def get__AcmeAccountKey__by_key_pem(ctx, key_pem):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__AcmeAuthorization__core(ctx, active_only=False, expired_only=False):
+def _get__AcmeAuthorization__core(
+    ctx: "ApiContext", active_only: bool = False, expired_only: bool = False
+):
     query = ctx.dbSession.query(AcmeAuthorization)
     if expired_only:
         active_only = True
@@ -260,7 +309,9 @@ def _get__AcmeAuthorization__core(ctx, active_only=False, expired_only=False):
     return query
 
 
-def get__AcmeAuthorization__count(ctx, active_only=False, expired_only=False):
+def get__AcmeAuthorization__count(
+    ctx: "ApiContext", active_only: bool = False, expired_only: bool = False
+) -> int:
     query = _get__AcmeAuthorization__core(
         ctx, active_only=active_only, expired_only=expired_only
     )
@@ -269,8 +320,12 @@ def get__AcmeAuthorization__count(ctx, active_only=False, expired_only=False):
 
 
 def get__AcmeAuthorization__paginated(
-    ctx, limit=None, offset=0, active_only=False, expired_only=False
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_only: bool = False,
+    expired_only: bool = False,
+) -> List[AcmeAuthorization]:
     query = _get__AcmeAuthorization__core(
         ctx, active_only=active_only, expired_only=expired_only
     )
@@ -279,13 +334,17 @@ def get__AcmeAuthorization__paginated(
     return items
 
 
-def get__AcmeAuthorization__by_id(ctx, item_id, eagerload_web=False):
+def get__AcmeAuthorization__by_id(
+    ctx: "ApiContext", item_id: int, eagerload_web: bool = False
+) -> Optional[AcmeAuthorization]:
     q = ctx.dbSession.query(AcmeAuthorization).filter(AcmeAuthorization.id == item_id)
     item = q.first()
     return item
 
 
-def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_id=None):
+def get__AcmeAuthorizations__by_ids(
+    ctx: "ApiContext", item_ids: Iterable[int], acme_account_id: Optional[int] = None
+) -> List[AcmeAuthorization]:
     q = ctx.dbSession.query(AcmeAuthorization).filter(
         AcmeAuthorization.id.in_(item_ids)
     )
@@ -299,7 +358,9 @@ def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_id=None):
     return items
 
 
-def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
+def get__AcmeAuthorization__by_authorization_url(
+    ctx: "ApiContext", authorization_url: str
+) -> Optional[AcmeAuthorization]:
     q = ctx.dbSession.query(AcmeAuthorization).filter(
         AcmeAuthorization.authorization_url == authorization_url
     )
@@ -311,7 +372,10 @@ def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
 
 
 def _get__AcmeAuthorization__by_AcmeAccountId__core(
-    ctx, acme_account_id, active_only=False, expired_only=False
+    ctx: "ApiContext",
+    acme_account_id: int,
+    active_only: bool = False,
+    expired_only: bool = False,
 ):
     if expired_only:
         active_only = True
@@ -342,8 +406,11 @@ def _get__AcmeAuthorization__by_AcmeAccountId__core(
 
 
 def get__AcmeAuthorization__by_AcmeAccountId__count(
-    ctx, acme_account_id, active_only=False, expired_only=False
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    active_only: bool = False,
+    expired_only: bool = False,
+) -> int:
     query = _get__AcmeAuthorization__by_AcmeAccountId__core(
         ctx, acme_account_id, active_only=active_only, expired_only=expired_only
     )
@@ -351,13 +418,13 @@ def get__AcmeAuthorization__by_AcmeAccountId__count(
 
 
 def get__AcmeAuthorization__by_AcmeAccountId__paginated(
-    ctx,
-    acme_account_id,
-    active_only=False,
-    expired_only=False,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    active_only: bool = False,
+    expired_only: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAuthorization]:
     query = _get__AcmeAuthorization__by_AcmeAccountId__core(
         ctx, acme_account_id, active_only=active_only, expired_only=expired_only
     )
@@ -369,7 +436,9 @@ def get__AcmeAuthorization__by_AcmeAccountId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeAuthorization__by_DomainId__count(ctx, domain_id):
+def get__AcmeAuthorization__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeAuthorization)
         .filter(AcmeAuthorization.domain_id == domain_id)
@@ -379,11 +448,11 @@ def get__AcmeAuthorization__by_DomainId__count(ctx, domain_id):
 
 
 def get__AcmeAuthorization__by_DomainId__paginated(
-    ctx,
-    domain_id,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    domain_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAuthorization]:
     query = (
         ctx.dbSession.query(AcmeAuthorization)
         .filter(AcmeAuthorization.domain_id == domain_id)
@@ -399,7 +468,10 @@ def get__AcmeAuthorization__by_DomainId__paginated(
 
 
 def _get__AcmeChallenge__filter(
-    q, active_only=None, resolved_only=None, processing_only=None
+    q,
+    active_only: Optional[bool] = None,
+    resolved_only: Optional[bool] = None,
+    processing_only: Optional[bool] = None,
 ):
     # shared filtering for `AcmeChallenge`
     q_filter = None
@@ -416,8 +488,11 @@ def _get__AcmeChallenge__filter(
 
 
 def get__AcmeChallenge__count(
-    ctx, active_only=None, resolved_only=None, processing_only=None
-):
+    ctx: "ApiContext",
+    active_only: Optional[bool] = None,
+    resolved_only: Optional[bool] = None,
+    processing_only: Optional[bool] = None,
+) -> int:
     q = ctx.dbSession.query(AcmeChallenge)
     q = _get__AcmeChallenge__filter(
         q,
@@ -429,13 +504,13 @@ def get__AcmeChallenge__count(
 
 
 def get__AcmeChallenge__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-    active_only=None,
-    resolved_only=None,
-    processing_only=None,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_only: Optional[bool] = None,
+    resolved_only: Optional[bool] = None,
+    processing_only: Optional[bool] = None,
+) -> List[AcmeChallenge]:
     q = ctx.dbSession.query(AcmeChallenge)
     q = _get__AcmeChallenge__filter(
         q,
@@ -448,12 +523,14 @@ def get__AcmeChallenge__paginated(
     return dbAcmeChallenges
 
 
-def get__AcmeChallenge__by_id(ctx, id_):
+def get__AcmeChallenge__by_id(ctx: "ApiContext", id_: int) -> Optional[AcmeChallenge]:
     item = ctx.dbSession.query(AcmeChallenge).get(id_)
     return item
 
 
-def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
+def get__AcmeChallenge__by_challenge_url(
+    ctx: "ApiContext", challenge_url: str
+) -> Optional[AcmeChallenge]:
     q = ctx.dbSession.query(AcmeChallenge).filter(
         AcmeChallenge.challenge_url == challenge_url
     )
@@ -461,7 +538,9 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
     return item
 
 
-def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
+def get__AcmeChallenge__challenged(
+    ctx: "ApiContext", domain_name: str, challenge: str
+) -> Optional[AcmeChallenge]:
     # ???: Should we ensure the associated AcmeAuthorization/AcmeOrderless is active?
     # see https://tools.ietf.org/html/rfc8555#section-8.3
     # GET : /path/to/{token}
@@ -487,7 +566,9 @@ def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
     return active_request
 
 
-def get__AcmeChallenge__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
+def get__AcmeChallenge__by_AcmeAuthorizationId__count(
+    ctx: "ApiContext", acme_authorization_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeChallenge)
         .filter(AcmeChallenge.acme_authorization_id == acme_authorization_id)
@@ -497,8 +578,11 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__count(ctx, acme_authorization_id
 
 
 def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
-    ctx, acme_authorization_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_authorization_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeChallenge]:
     items_paged = (
         ctx.dbSession.query(AcmeChallenge)
         .filter(AcmeChallenge.acme_authorization_id == acme_authorization_id)
@@ -511,8 +595,8 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
 
 
 def get__AcmeChallenges__by_DomainId__active(
-    ctx, domain_id, acme_challenge_type_id=None
-):
+    ctx: "ApiContext", domain_id: int, acme_challenge_type_id: Optional[int] = None
+) -> List[AcmeChallenge]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
@@ -587,7 +671,9 @@ def get__AcmeChallenges__by_DomainId__active(
     return query.all()
 
 
-def get__AcmeChallenge__by_DomainId__count(ctx, domain_id, acme_challenge_type_id=None):
+def get__AcmeChallenge__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int, acme_challenge_type_id: Optional[int] = None
+) -> int:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
@@ -604,7 +690,9 @@ def get__AcmeChallenge__by_DomainId__count(ctx, domain_id, acme_challenge_type_i
     return counted
 
 
-def get__AcmeChallenge__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+def get__AcmeChallenge__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[AcmeChallenge]:
     items_paged = (
         ctx.dbSession.query(AcmeChallenge)
         .filter(AcmeChallenge.domain_id == domain_id)
@@ -619,23 +707,25 @@ def get__AcmeChallenge__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeChallengePoll__count(ctx):
+def get__AcmeChallengePoll__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeChallengePoll).count()
     return counted
 
 
 def get__AcmeChallengePoll__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeChallengePoll]:
     query = ctx.dbSession.query(AcmeChallengePoll)
     query = query.order_by(AcmeChallengePoll.id.desc()).limit(limit).offset(offset)
     dbAcmeChallengePolls = query.all()
     return dbAcmeChallengePolls
 
 
-def get__AcmeChallengePoll__by_id(ctx, id_):
+def get__AcmeChallengePoll__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[AcmeChallengePoll]:
     item = ctx.dbSession.query(AcmeChallengePoll).get(id_)
     return item
 
@@ -643,16 +733,16 @@ def get__AcmeChallengePoll__by_id(ctx, id_):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeChallengeUnknownPoll__count(ctx):
+def get__AcmeChallengeUnknownPoll__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeChallengeUnknownPoll).count()
     return counted
 
 
 def get__AcmeChallengeUnknownPoll__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeChallengeUnknownPoll]:
     query = ctx.dbSession.query(AcmeChallengeUnknownPoll)
     query = (
         query.order_by(AcmeChallengeUnknownPoll.id.desc()).limit(limit).offset(offset)
@@ -661,7 +751,9 @@ def get__AcmeChallengeUnknownPoll__paginated(
     return dbAcmeChallengeUnknownPolls
 
 
-def get__AcmeChallengeUnknownPoll__by_id(ctx, id_):
+def get__AcmeChallengeUnknownPoll__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[AcmeChallengeUnknownPoll]:
     item = ctx.dbSession.query(AcmeChallengeUnknownPoll).get(id_)
     return item
 
@@ -669,33 +761,35 @@ def get__AcmeChallengeUnknownPoll__by_id(ctx, id_):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeDnsServer__by_root_url(ctx, root_url):
+def get__AcmeDnsServer__by_root_url(
+    ctx: "ApiContext", root_url: str
+) -> Optional[AcmeDnsServer]:
     q = ctx.dbSession.query(AcmeDnsServer).filter(AcmeDnsServer.root_url == root_url)
     return q.first()
 
 
-def get__AcmeDnsServer__GlobalDefault(ctx):
+def get__AcmeDnsServer__GlobalDefault(ctx: "ApiContext") -> Optional[AcmeDnsServer]:
     q = ctx.dbSession.query(AcmeDnsServer).filter(
         AcmeDnsServer.is_global_default.is_(True)
     )
     return q.first()
 
 
-def get__AcmeDnsServer__by_id(ctx, id_):
+def get__AcmeDnsServer__by_id(ctx: "ApiContext", id_: int) -> Optional[AcmeDnsServer]:
     item = ctx.dbSession.query(AcmeDnsServer).get(id_)
     return item
 
 
-def get__AcmeDnsServer__count(ctx):
+def get__AcmeDnsServer__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeDnsServer).count()
     return counted
 
 
 def get__AcmeDnsServer__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeDnsServer]:
     query = (
         ctx.dbSession.query(AcmeDnsServer)
         .order_by(AcmeDnsServer.id.desc())
@@ -708,12 +802,16 @@ def get__AcmeDnsServer__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeDnsServerAccount__by_id(ctx, id_):
+def get__AcmeDnsServerAccount__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[AcmeDnsServerAccount]:
     item = ctx.dbSession.query(AcmeDnsServerAccount).get(id_)
     return item
 
 
-def get__AcmeDnsServerAccounts__by_ids(ctx, ids):
+def get__AcmeDnsServerAccounts__by_ids(
+    ctx: "ApiContext", ids: List[int]
+) -> List[AcmeDnsServerAccount]:
     items = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .filter(AcmeDnsServerAccount.id.in_(ids))
@@ -722,16 +820,16 @@ def get__AcmeDnsServerAccounts__by_ids(ctx, ids):
     return items
 
 
-def get__AcmeDnsServerAccount__count(ctx):
+def get__AcmeDnsServerAccount__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeDnsServerAccount).count()
     return counted
 
 
 def get__AcmeDnsServerAccount__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeDnsServerAccount]:
     query = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .join(
@@ -750,7 +848,9 @@ def get__AcmeDnsServerAccount__paginated(
     return query.all()
 
 
-def get__AcmeDnsServerAccount__by_DomainId(ctx, domain_id):
+def get__AcmeDnsServerAccount__by_DomainId(
+    ctx: "ApiContext", domain_id: int
+) -> Optional[AcmeDnsServerAccount]:
     item = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .filter(
@@ -762,8 +862,8 @@ def get__AcmeDnsServerAccount__by_DomainId(ctx, domain_id):
 
 
 def get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
-    ctx, acme_dns_server_id, domain_id
-):
+    ctx: "ApiContext", acme_dns_server_id: int, domain_id: int
+) -> Optional[AcmeDnsServerAccount]:
     item = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .filter(
@@ -775,7 +875,9 @@ def get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
     return item
 
 
-def get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(ctx, acme_dns_server_id):
+def get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(
+    ctx: "ApiContext", acme_dns_server_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .filter(AcmeDnsServerAccount.acme_dns_server_id == acme_dns_server_id)
@@ -785,11 +887,11 @@ def get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(ctx, acme_dns_server_id
 
 
 def get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
-    ctx,
-    acme_dns_server_id,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    acme_dns_server_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeDnsServerAccount]:
     query = (
         ctx.dbSession.query(AcmeDnsServerAccount)
         .filter(AcmeDnsServerAccount.acme_dns_server_id == acme_dns_server_id)
@@ -803,7 +905,9 @@ def get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeEventLogs__by_AcmeOrderId__count(ctx, acme_order_id):
+def get__AcmeEventLogs__by_AcmeOrderId__count(
+    ctx: "ApiContext", acme_order_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeEventLog)
         .filter(AcmeEventLog.acme_order_id == acme_order_id)
@@ -813,11 +917,11 @@ def get__AcmeEventLogs__by_AcmeOrderId__count(ctx, acme_order_id):
 
 
 def get__AcmeEventLogs__by_AcmeOrderId__paginated(
-    ctx,
-    acme_order_id,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    acme_order_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeEventLog]:
     query = (
         ctx.dbSession.query(AcmeEventLog)
         .filter(AcmeEventLog.acme_order_id == acme_order_id)
@@ -831,25 +935,29 @@ def get__AcmeEventLogs__by_AcmeOrderId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeOrderless__count(ctx):
+def get__AcmeOrderless__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(AcmeOrderless).count()
     return counted
 
 
-def get__AcmeOrderless__paginated(ctx, limit=None, offset=0):
+def get__AcmeOrderless__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[AcmeOrderless]:
     query = ctx.dbSession.query(AcmeOrderless)
     query = query.order_by(AcmeOrderless.id.desc()).limit(limit).offset(offset)
     dbAcmeOrderlesss = query.all()
     return dbAcmeOrderlesss
 
 
-def get__AcmeOrderless__by_id(ctx, order_id, eagerload_web=False):
+def get__AcmeOrderless__by_id(
+    ctx: "ApiContext", order_id: int, eagerload_web: bool = False
+) -> Optional[AcmeOrderless]:
     q = ctx.dbSession.query(AcmeOrderless).filter(AcmeOrderless.id == order_id)
     item = q.first()
     return item
 
 
-def get__AcmeOrderless__by_DomainId__count(ctx, domain_id):
+def get__AcmeOrderless__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrderless)
         .join(
@@ -862,7 +970,9 @@ def get__AcmeOrderless__by_DomainId__count(ctx, domain_id):
     return counted
 
 
-def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+def get__AcmeOrderless__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[AcmeOrderless]:
     items_paged = (
         ctx.dbSession.query(AcmeOrderless)
         .join(
@@ -881,14 +991,19 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeOrder__count(ctx, active_only=None):
+def get__AcmeOrder__count(ctx: "ApiContext", active_only: Optional[bool] = None) -> int:
     query = ctx.dbSession.query(AcmeOrder)
     if active_only is not None:
         query = query.filter(AcmeOrder.is_processing.is_(active_only))
     return query.count()
 
 
-def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
+def get__AcmeOrder__paginated(
+    ctx: "ApiContext",
+    active_only: Optional[bool] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     """
     active_only: how this is invoked:
         None: all
@@ -911,19 +1026,25 @@ def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
     return dbAcmeOrders
 
 
-def get__AcmeOrder__by_id(ctx, order_id, eagerload_web=False):
+def get__AcmeOrder__by_id(
+    ctx: "ApiContext", order_id: int, eagerload_web: bool = False
+) -> Optional[AcmeOrder]:
     q = ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.id == order_id)
     item = q.first()
     return item
 
 
-def get__AcmeOrder__by_order_url(ctx, order_url):
+def get__AcmeOrder__by_order_url(
+    ctx: "ApiContext", order_url: str
+) -> Optional[AcmeOrder]:
     q = ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.order_url == order_url)
     item = q.first()
     return item
 
 
-def get__AcmeOrder__by_CertificateRequest__count(ctx, certificate_request_id):
+def get__AcmeOrder__by_CertificateRequest__count(
+    ctx: "ApiContext", certificate_request_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.certificate_request_id == certificate_request_id)
@@ -933,8 +1054,11 @@ def get__AcmeOrder__by_CertificateRequest__count(ctx, certificate_request_id):
 
 
 def get__AcmeOrder__by_CertificateRequest__paginated(
-    ctx, certificate_request_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    certificate_request_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.certificate_request_id == certificate_request_id)
@@ -946,7 +1070,9 @@ def get__AcmeOrder__by_CertificateRequest__paginated(
     return items_paged
 
 
-def get__AcmeOrder__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
+def get__AcmeOrder__by_AcmeAuthorizationId__count(
+    ctx: "ApiContext", acme_authorization_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
         .join(
@@ -962,8 +1088,11 @@ def get__AcmeOrder__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
 
 
 def get__AcmeOrder__by_AcmeAuthorizationId__paginated(
-    ctx, acme_authorization_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_authorization_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
         .join(
@@ -981,7 +1110,9 @@ def get__AcmeOrder__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
-def get__AcmeOrder__by_AcmeAccountId__count(ctx, acme_account_id):
+def get__AcmeOrder__by_AcmeAccountId__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.acme_account_id == acme_account_id)
@@ -991,8 +1122,11 @@ def get__AcmeOrder__by_AcmeAccountId__count(ctx, acme_account_id):
 
 
 def get__AcmeOrder__by_AcmeAccountId__paginated(
-    ctx, acme_account_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.acme_account_id == acme_account_id)
@@ -1004,7 +1138,7 @@ def get__AcmeOrder__by_AcmeAccountId__paginated(
     return items_paged
 
 
-def get__AcmeOrder__by_DomainId__count(ctx, domain_id):
+def get__AcmeOrder__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
         .join(
@@ -1022,11 +1156,11 @@ def get__AcmeOrder__by_DomainId__count(ctx, domain_id):
 
 
 def get__AcmeOrder__by_DomainId__paginated(
-    ctx,
-    domain_id,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    domain_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     query = (
         ctx.dbSession.query(AcmeOrder)
         .join(
@@ -1046,7 +1180,9 @@ def get__AcmeOrder__by_DomainId__paginated(
     return dbAcmeOrders
 
 
-def get__AcmeOrder__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+def get__AcmeOrder__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -1056,8 +1192,11 @@ def get__AcmeOrder__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
 
 
 def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
-    ctx, unique_fqdn_set_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -1072,12 +1211,14 @@ def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateCA__count(ctx):
+def get__CertificateCA__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(CertificateCA).count()
     return counted
 
 
-def get__CertificateCA__paginated(ctx, limit=None, offset=0):
+def get__CertificateCA__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateCA]:
     q = (
         ctx.dbSession.query(CertificateCA)
         .order_by(CertificateCA.id.desc())
@@ -1088,7 +1229,9 @@ def get__CertificateCA__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
-def get__CertificateCAPreference__paginated(ctx, limit=None, offset=0):
+def get__CertificateCAPreference__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateCA]:
     q = ctx.dbSession.query(CertificateCAPreference)
     q = q.order_by(CertificateCAPreference.id.asc()).limit(limit).offset(offset)
     q = q.options(joinedload(CertificateCAPreference.certificate_ca))
@@ -1096,14 +1239,18 @@ def get__CertificateCAPreference__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
-def get__CertificateCA__by_id(ctx, cert_id):
+def get__CertificateCA__by_id(
+    ctx: "ApiContext", cert_id: int
+) -> Optional[CertificateCA]:
     dbCertificateCA = (
         ctx.dbSession.query(CertificateCA).filter(CertificateCA.id == cert_id).first()
     )
     return dbCertificateCA
 
 
-def get__CertificateCAs__by_fingerprint_sha1_substring(ctx, fingerprint_sha1_substring):
+def get__CertificateCAs__by_fingerprint_sha1_substring(
+    ctx: "ApiContext", fingerprint_sha1_substring: str
+) -> List[CertificateCA]:
     dbCertificateCAs = (
         ctx.dbSession.query(CertificateCA)
         .filter(CertificateCA.fingerprint_sha1.startswith(fingerprint_sha1_substring))
@@ -1112,7 +1259,9 @@ def get__CertificateCAs__by_fingerprint_sha1_substring(ctx, fingerprint_sha1_sub
     return dbCertificateCAs
 
 
-def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
+def get__CertificateCA__by_fingerprint_sha1(
+    ctx: "ApiContext", fingerprint_sha1: str
+) -> CertificateCA:
     dbCertificateCA = (
         ctx.dbSession.query(CertificateCA)
         .filter(CertificateCA.fingerprint_sha1 == fingerprint_sha1)
@@ -1121,7 +1270,9 @@ def get__CertificateCA__by_fingerprint_sha1(ctx, fingerprint_sha1):
     return dbCertificateCA
 
 
-def get__CertificateCA__by_pem_text(ctx, cert_pem):
+def get__CertificateCA__by_pem_text(
+    ctx: "ApiContext", cert_pem: str
+) -> Optional[CertificateCA]:
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
     dbCertificateCA = (
@@ -1138,12 +1289,17 @@ def get__CertificateCA__by_pem_text(ctx, cert_pem):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateCAChain__count(ctx):
+def get__CertificateCAChain__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(CertificateCAChain).count()
     return counted
 
 
-def get__CertificateCAChain__paginated(ctx, limit=None, offset=0, active_only=False):
+def get__CertificateCAChain__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_only: bool = False,
+) -> List[CertificateCAChain]:
     q = ctx.dbSession.query(CertificateCAChain)
     if active_only:
         q = q.join(
@@ -1155,7 +1311,9 @@ def get__CertificateCAChain__paginated(ctx, limit=None, offset=0, active_only=Fa
     return items_paged
 
 
-def get__CertificateCAChain__by_id(ctx, chain_id):
+def get__CertificateCAChain__by_id(
+    ctx: "ApiContext", chain_id: int
+) -> Optional[CertificateCAChain]:
     dbCertificateCAChain = (
         ctx.dbSession.query(CertificateCAChain)
         .filter(CertificateCAChain.id == chain_id)
@@ -1164,7 +1322,9 @@ def get__CertificateCAChain__by_id(ctx, chain_id):
     return dbCertificateCAChain
 
 
-def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
+def get__CertificateCAChain__by_pem_text(
+    ctx: "ApiContext", chain_pem: str
+) -> Optional[CertificateCAChain]:
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
     chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
     dbCertificateCAChain = (
@@ -1182,7 +1342,9 @@ def get__CertificateCAChain__by_pem_text(ctx, chain_pem):
 
 
 def _get__CertificateCAChain__by_certificateCaId__core(
-    ctx, certificate_ca_id, column=None
+    ctx: "ApiContext",
+    certificate_ca_id: int,
+    column: InstrumentedAttribute[int],
 ):
     """
     column is either
@@ -1193,7 +1355,9 @@ def _get__CertificateCAChain__by_certificateCaId__core(
     return query
 
 
-def get__CertificateCAChain__by_CertificateCAId0__count(ctx, certificate_ca_id):
+def get__CertificateCAChain__by_CertificateCAId0__count(
+    ctx: "ApiContext", certificate_ca_id: int
+) -> int:
     query = _get__CertificateCAChain__by_certificateCaId__core(
         ctx, certificate_ca_id, CertificateCAChain.certificate_ca_0_id
     )
@@ -1201,8 +1365,11 @@ def get__CertificateCAChain__by_CertificateCAId0__count(ctx, certificate_ca_id):
 
 
 def get__CertificateCAChain__by_CertificateCAId0__paginated(
-    ctx, certificate_ca_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    certificate_ca_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateCAChain]:
     query = _get__CertificateCAChain__by_certificateCaId__core(
         ctx, certificate_ca_id, CertificateCAChain.certificate_ca_0_id
     )
@@ -1212,7 +1379,9 @@ def get__CertificateCAChain__by_CertificateCAId0__paginated(
     return items_paged
 
 
-def get__CertificateCAChain__by_CertificateCAIdN__count(ctx, certificate_ca_id):
+def get__CertificateCAChain__by_CertificateCAIdN__count(
+    ctx: "ApiContext", certificate_ca_id: int
+) -> int:
     query = _get__CertificateCAChain__by_certificateCaId__core(
         ctx, certificate_ca_id, CertificateCAChain.certificate_ca_n_id
     )
@@ -1220,8 +1389,11 @@ def get__CertificateCAChain__by_CertificateCAIdN__count(ctx, certificate_ca_id):
 
 
 def get__CertificateCAChain__by_CertificateCAIdN__paginated(
-    ctx, certificate_ca_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    certificate_ca_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateCAChain]:
     query = _get__CertificateCAChain__by_certificateCaId__core(
         ctx, certificate_ca_id, CertificateCAChain.certificate_ca_n_id
     )
@@ -1234,12 +1406,14 @@ def get__CertificateCAChain__by_CertificateCAIdN__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateRequest__count(ctx):
+def get__CertificateRequest__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(CertificateRequest).count()
     return counted
 
 
-def get__CertificateRequest__paginated(ctx, limit=None, offset=0):
+def get__CertificateRequest__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateRequest]:
     items_paged = (
         ctx.dbSession.query(CertificateRequest)
         .options(
@@ -1257,7 +1431,9 @@ def get__CertificateRequest__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
-def get__CertificateRequest__by_id(ctx, certificate_request_id):
+def get__CertificateRequest__by_id(
+    ctx: "ApiContext", certificate_request_id: int
+) -> Optional[CertificateRequest]:
     dbCertificateRequest = (
         ctx.dbSession.query(CertificateRequest)
         .filter(CertificateRequest.id == certificate_request_id)
@@ -1273,7 +1449,9 @@ def get__CertificateRequest__by_id(ctx, certificate_request_id):
     return dbCertificateRequest
 
 
-def get__CertificateRequest__by_pem_text(ctx, csr_pem):
+def get__CertificateRequest__by_pem_text(
+    ctx: "ApiContext", csr_pem: str
+) -> Optional[CertificateRequest]:
     csr_pem = cert_utils.cleanup_pem_text(csr_pem)
     csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
     dbCertificateRequest = (
@@ -1287,7 +1465,9 @@ def get__CertificateRequest__by_pem_text(ctx, csr_pem):
     return dbCertificateRequest
 
 
-def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
+def get__CertificateRequest__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateRequest)
         .join(
@@ -1305,8 +1485,8 @@ def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
 
 
 def get__CertificateRequest__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0
-):
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateRequest]:
     items_paged = (
         ctx.dbSession.query(CertificateRequest)
         .join(
@@ -1326,7 +1506,9 @@ def get__CertificateRequest__by_DomainId__paginated(
     return items_paged
 
 
-def get__CertificateRequest__by_PrivateKeyId__count(ctx, key_id):
+def get__CertificateRequest__by_PrivateKeyId__count(
+    ctx: "ApiContext", key_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateRequest)
         .filter(CertificateRequest.private_key_id == key_id)
@@ -1336,8 +1518,8 @@ def get__CertificateRequest__by_PrivateKeyId__count(ctx, key_id):
 
 
 def get__CertificateRequest__by_PrivateKeyId__paginated(
-    ctx, key_id, limit=None, offset=0
-):
+    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateRequest]:
     items_paged = (
         ctx.dbSession.query(CertificateRequest)
         .filter(CertificateRequest.private_key_id == key_id)
@@ -1354,7 +1536,9 @@ def get__CertificateRequest__by_PrivateKeyId__paginated(
     return items_paged
 
 
-def get__CertificateRequest__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+def get__CertificateRequest__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateRequest)
         .filter(CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -1364,8 +1548,11 @@ def get__CertificateRequest__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
 
 
 def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
-    ctx, unique_fqdn_set_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateRequest]:
     items_paged = (
         ctx.dbSession.query(CertificateRequest)
         .filter(CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -1380,7 +1567,9 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CoverageAssuranceEvent__count(ctx, unresolved_only=None):
+def get__CoverageAssuranceEvent__count(
+    ctx: "ApiContext", unresolved_only: Optional[bool] = None
+) -> int:
     q = ctx.dbSession.query(CoverageAssuranceEvent)
     if unresolved_only:
         q = q.filter(
@@ -1392,8 +1581,12 @@ def get__CoverageAssuranceEvent__count(ctx, unresolved_only=None):
 
 
 def get__CoverageAssuranceEvent__paginated(
-    ctx, show_all=None, unresolved_only=None, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    show_all: Optional[bool] = None,
+    unresolved_only: Optional[bool] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CoverageAssuranceEvent]:
     q = ctx.dbSession.query(CoverageAssuranceEvent)
     if unresolved_only:
         q = q.filter(
@@ -1406,7 +1599,9 @@ def get__CoverageAssuranceEvent__paginated(
     return items_paged
 
 
-def get__CoverageAssuranceEvent__by_id(ctx, event_id):
+def get__CoverageAssuranceEvent__by_id(
+    ctx: "ApiContext", event_id: int
+) -> Optional[CoverageAssuranceEvent]:
     q = ctx.dbSession.query(CoverageAssuranceEvent).filter(
         CoverageAssuranceEvent.id == event_id
     )
@@ -1415,8 +1610,8 @@ def get__CoverageAssuranceEvent__by_id(ctx, event_id):
 
 
 def get__CoverageAssuranceEvent__by_parentId__count(
-    ctx, parent_id, limit=None, offset=0
-):
+    ctx: "ApiContext", parent_id: int, limit: Optional[int] = None, offset: int = 0
+) -> int:
     q = ctx.dbSession.query(CoverageAssuranceEvent).filter(
         CoverageAssuranceEvent.coverage_assurance_event_id__parent == parent_id
     )
@@ -1424,8 +1619,8 @@ def get__CoverageAssuranceEvent__by_parentId__count(
 
 
 def get__CoverageAssuranceEvent__by_parentId__paginated(
-    ctx, parent_id, limit=None, offset=0
-):
+    ctx: "ApiContext", parent_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CoverageAssuranceEvent]:
     q = ctx.dbSession.query(CoverageAssuranceEvent).filter(
         CoverageAssuranceEvent.coverage_assurance_event_id__parent == parent_id
     )
@@ -1438,7 +1633,9 @@ def get__CoverageAssuranceEvent__by_parentId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _Domain_inject_exipring_days(ctx, q, expiring_days, order=False):
+def _Domain_inject_exipring_days(
+    ctx: "ApiContext", q, expiring_days: int, order: bool = False
+):
     """helper function for the count/paginated queries"""
     CertificateSignedMulti = sqlalchemy.orm.aliased(CertificateSigned)
     CertificateSignedSingle = sqlalchemy.orm.aliased(CertificateSigned)
@@ -1475,7 +1672,11 @@ def _Domain_inject_exipring_days(ctx, q, expiring_days, order=False):
     return q
 
 
-def get__Domain__count(ctx, expiring_days=None, active_only=False):
+def get__Domain__count(
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    active_only: Optional[bool] = False,
+) -> int:
     q = ctx.dbSession.query(Domain)
     if active_only and not expiring_days:
         q = q.filter(
@@ -1491,13 +1692,13 @@ def get__Domain__count(ctx, expiring_days=None, active_only=False):
 
 
 def get__Domain__paginated(
-    ctx,
-    expiring_days=None,
-    eagerload_web=False,
-    limit=None,
-    offset=0,
-    active_certs_only=None,
-):
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_certs_only: Optional[bool] = None,
+) -> List[Domain]:
     q = ctx.dbSession.query(Domain)
     if active_certs_only and not expiring_days:
         q = q.filter(
@@ -1523,7 +1724,7 @@ def get__Domain__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__Domain__core(q, preload=False, eagerload_web=False):
+def _get__Domain__core(q, preload: bool = False, eagerload_web: bool = False):
     q = q.options(
         subqueryload(Domain.certificate_signed__latest_single).options(
             joinedload(CertificateSigned.private_key),
@@ -1549,7 +1750,12 @@ def _get__Domain__core(q, preload=False, eagerload_web=False):
     return q
 
 
-def get__Domain__by_id(ctx, domain_id, preload=False, eagerload_web=False):
+def get__Domain__by_id(
+    ctx: "ApiContext",
+    domain_id: int,
+    preload: bool = False,
+    eagerload_web: bool = False,
+) -> Optional[Domain]:
     q = ctx.dbSession.query(Domain).filter(Domain.id == domain_id)
     if preload:
         q = _get__Domain__core(q, preload=preload, eagerload_web=eagerload_web)
@@ -1558,8 +1764,12 @@ def get__Domain__by_id(ctx, domain_id, preload=False, eagerload_web=False):
 
 
 def get__Domain__by_name(
-    ctx, domain_name, preload=False, eagerload_web=False, active_only=False
-):
+    ctx: "ApiContext",
+    domain_name: str,
+    preload: bool = False,
+    eagerload_web: bool = False,
+    active_only: bool = False,
+) -> Optional[Domain]:
     q = ctx.dbSession.query(Domain).filter(
         sqlalchemy.func.lower(Domain.domain_name) == sqlalchemy.func.lower(domain_name)
     )
@@ -1572,7 +1782,7 @@ def get__Domain__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__Domains_challenged__core(ctx):
+def _get__Domains_challenged__core(ctx: "ApiContext"):
     """
     AcmeStatus Codes
           Challenge["pending" or "processing"]
@@ -1640,17 +1850,17 @@ def _get__Domains_challenged__core(ctx):
     return q
 
 
-def get__Domains_challenged__count(ctx):
+def get__Domains_challenged__count(ctx: "ApiContext") -> int:
     q = _get__Domains_challenged__core(ctx)
     counted = q.count()
     return counted
 
 
 def get__Domains_challenged__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Domain]:
     q = _get__Domains_challenged__core(ctx)
     q = q.order_by(sqlalchemy.func.lower(Domain.domain_name).asc())
     q = q.limit(limit).offset(offset)
@@ -1661,7 +1871,9 @@ def get__Domains_challenged__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__DomainAutocert__by_blockingDomainId(ctx, domain_id):
+def get__DomainAutocert__by_blockingDomainId(
+    ctx: "ApiContext", domain_id: int
+) -> Optional[DomainAutocert]:
     # block autocerts on a domain if active or within the past 10 minutes
     q = ctx.dbSession.query(DomainAutocert).filter(
         DomainAutocert.id == domain_id,
@@ -1677,17 +1889,17 @@ def get__DomainAutocert__by_blockingDomainId(ctx, domain_id):
     return q.first()
 
 
-def get__DomainAutocert__count(ctx):
+def get__DomainAutocert__count(ctx: "ApiContext") -> int:
     q = ctx.dbSession.query(DomainAutocert)
     counted = q.count()
     return counted
 
 
 def get__DomainAutocert__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[DomainAutocert]:
     q = (
         ctx.dbSession.query(DomainAutocert)
         .order_by(DomainAutocert.id.desc())
@@ -1698,7 +1910,7 @@ def get__DomainAutocert__paginated(
     return items_paged
 
 
-def get__DomainAutocert__by_DomainId__count(ctx, domain_id):
+def get__DomainAutocert__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
     counted = (
         ctx.dbSession.query(DomainAutocert)
         .filter(DomainAutocert.domain_id == domain_id)
@@ -1707,7 +1919,9 @@ def get__DomainAutocert__by_DomainId__count(ctx, domain_id):
     return counted
 
 
-def get__DomainAutocert__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+def get__DomainAutocert__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[DomainAutocert]:
     items_paged = (
         ctx.dbSession.query(DomainAutocert)
         .filter(DomainAutocert.domain_id == domain_id)
@@ -1722,7 +1936,9 @@ def get__DomainAutocert__by_DomainId__paginated(ctx, domain_id, limit=None, offs
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__DomainBlocklisted__by_name(ctx, domain_name):
+def get__DomainBlocklisted__by_name(
+    ctx: "ApiContext", domain_name: str
+) -> Optional[DomainBlocklisted]:
     q = ctx.dbSession.query(DomainBlocklisted).filter(
         sqlalchemy.func.lower(DomainBlocklisted.domain_name)
         == sqlalchemy.func.lower(domain_name)
@@ -1731,17 +1947,17 @@ def get__DomainBlocklisted__by_name(ctx, domain_name):
     return item
 
 
-def get__DomainBlocklisted__count(ctx):
+def get__DomainBlocklisted__count(ctx: "ApiContext") -> int:
     q = ctx.dbSession.query(DomainBlocklisted)
     counted = q.count()
     return counted
 
 
 def get__DomainBlocklisted__paginated(
-    ctx,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[DomainBlocklisted]:
     q = (
         ctx.dbSession.query(DomainBlocklisted)
         .order_by(sqlalchemy.func.lower(DomainBlocklisted.domain_name).asc())
@@ -1755,13 +1971,15 @@ def get__DomainBlocklisted__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__OperationsObjectEvent__count(ctx):
+def get__OperationsObjectEvent__count(ctx: "ApiContext") -> int:
     q = ctx.dbSession.query(OperationsObjectEvent)
     counted = q.count()
     return counted
 
 
-def get__OperationsObjectEvent__paginated(ctx, limit=None, offset=0):
+def get__OperationsObjectEvent__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[OperationsObjectEvent]:
     q = (
         ctx.dbSession.query(OperationsObjectEvent)
         .order_by(OperationsObjectEvent.id.desc())
@@ -1772,7 +1990,9 @@ def get__OperationsObjectEvent__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
-def get__OperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
+def get__OperationsObjectEvent__by_id(
+    ctx: "ApiContext", event_id: int, eagerload_log: bool = False
+) -> Optional[OperationsObjectEvent]:
     q = ctx.dbSession.query(OperationsObjectEvent).filter(
         OperationsObjectEvent.id == event_id
     )
@@ -1790,7 +2010,10 @@ def get__OperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__OperationsEvent__count(ctx, event_type_ids=None):
+def get__OperationsEvent__count(
+    ctx: "ApiContext",
+    event_type_ids: Optional[Iterable[int]] = None,
+) -> int:
     q = ctx.dbSession.query(OperationsEvent)
     if event_type_ids is not None:
         q = q.filter(OperationsEvent.operations_event_type_id.in_(event_type_ids))
@@ -1798,7 +2021,12 @@ def get__OperationsEvent__count(ctx, event_type_ids=None):
     return items_count
 
 
-def get__OperationsEvent__paginated(ctx, event_type_ids=None, limit=None, offset=0):
+def get__OperationsEvent__paginated(
+    ctx: "ApiContext",
+    event_type_ids: Optional[Iterable[int]] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[OperationsEvent]:
     q = ctx.dbSession.query(OperationsEvent)
     if event_type_ids is not None:
         q = q.filter(OperationsEvent.operations_event_type_id.in_(event_type_ids))
@@ -1808,7 +2036,9 @@ def get__OperationsEvent__paginated(ctx, event_type_ids=None, limit=None, offset
     return items_paged
 
 
-def get__OperationsEvent__by_id(ctx, event_id, eagerload_log=False):
+def get__OperationsEvent__by_id(
+    ctx: "ApiContext", event_id: int, eagerload_log: bool = False
+) -> Optional[OperationsEvent]:
     q = ctx.dbSession.query(OperationsEvent).filter(OperationsEvent.id == event_id)
     if eagerload_log:
         q = q.options(
@@ -1826,7 +2056,9 @@ def get__OperationsEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__PrivateKey__count(ctx, active_usage_only=None):
+def get__PrivateKey__count(
+    ctx: "ApiContext", active_usage_only: Optional[bool] = None
+) -> int:
     q = ctx.dbSession.query(PrivateKey)
     if active_usage_only:
         q = q.filter(PrivateKey.count_active_certificates >= 1)
@@ -1834,7 +2066,12 @@ def get__PrivateKey__count(ctx, active_usage_only=None):
     return counted
 
 
-def get__PrivateKey__paginated(ctx, limit=None, offset=0, active_usage_only=None):
+def get__PrivateKey__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+    active_usage_only: Optional[bool] = None,
+) -> List[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey)
     if active_usage_only:
         q = q.filter(PrivateKey.count_active_certificates >= 1)
@@ -1843,7 +2080,9 @@ def get__PrivateKey__paginated(ctx, limit=None, offset=0, active_usage_only=None
     return items_paged
 
 
-def get__PrivateKey__by_id(ctx, key_id, eagerload_web=False):
+def get__PrivateKey__by_id(
+    ctx: "ApiContext", key_id: int, eagerload_web: Optional[bool] = False
+) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(PrivateKey.id == key_id)
     if eagerload_web:
         q = q.options(
@@ -1860,7 +2099,7 @@ def get__PrivateKey__by_id(ctx, key_id, eagerload_web=False):
     return item
 
 
-def get__PrivateKey_CurrentWeek_Global(ctx):
+def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
         PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("global_weekly"),
@@ -1873,7 +2112,7 @@ def get__PrivateKey_CurrentWeek_Global(ctx):
     return item
 
 
-def get__PrivateKey_CurrentDay_Global(ctx):
+def get__PrivateKey_CurrentDay_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
         PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("global_daily"),
@@ -1886,7 +2125,9 @@ def get__PrivateKey_CurrentDay_Global(ctx):
     return item
 
 
-def get__PrivateKey_CurrentWeek_AcmeAccount(ctx, acme_account_id):
+def get__PrivateKey_CurrentWeek_AcmeAccount(
+    ctx: "ApiContext", acme_account_id: int
+) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
         PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_weekly"),
@@ -1900,7 +2141,9 @@ def get__PrivateKey_CurrentWeek_AcmeAccount(ctx, acme_account_id):
     return item
 
 
-def get__PrivateKey_CurrentDay_AcmeAccount(ctx, acme_account_id):
+def get__PrivateKey_CurrentDay_AcmeAccount(
+    ctx: "ApiContext", acme_account_id: int
+) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
         PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_daily"),
@@ -1914,7 +2157,9 @@ def get__PrivateKey_CurrentDay_AcmeAccount(ctx, acme_account_id):
     return item
 
 
-def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
+def get__PrivateKey__by_pemMd5(
+    ctx: "ApiContext", pem_md5: str, is_active: bool = True
+) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(PrivateKey.key_pem_md5 == pem_md5)
     if is_active:
         q = q.filter(PrivateKey.is_active.is_(True))
@@ -1925,7 +2170,9 @@ def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__PrivateKey__by_AcmeAccountIdOwner__count(ctx, acme_account_id):
+def get__PrivateKey__by_AcmeAccountIdOwner__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(PrivateKey)
         .filter(PrivateKey.acme_account_id__owner == acme_account_id)
@@ -1935,8 +2182,11 @@ def get__PrivateKey__by_AcmeAccountIdOwner__count(ctx, acme_account_id):
 
 
 def get__PrivateKey__by_AcmeAccountIdOwner__paginated(
-    ctx, acme_account_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[PrivateKey]:
     items_paged = (
         ctx.dbSession.query(PrivateKey)
         .filter(PrivateKey.acme_account_id__owner == acme_account_id)
@@ -1951,7 +2201,11 @@ def get__PrivateKey__by_AcmeAccountIdOwner__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__QueueDomain__count(ctx, show_all=None, unprocessed_only=None):
+def get__QueueDomain__count(
+    ctx: "ApiContext",
+    show_all: Optional[bool] = None,
+    unprocessed_only: Optional[bool] = None,
+) -> int:
     q = ctx.dbSession.query(QueueDomain)
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
@@ -1962,8 +2216,13 @@ def get__QueueDomain__count(ctx, show_all=None, unprocessed_only=None):
 
 
 def get__QueueDomain__paginated(
-    ctx, show_all=None, unprocessed_only=None, eagerload_web=None, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    show_all: Optional[bool] = None,
+    unprocessed_only: Optional[bool] = None,
+    eagerload_web: Optional[bool] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[QueueDomain]:
     q = ctx.dbSession.query(QueueDomain)
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
@@ -1975,7 +2234,9 @@ def get__QueueDomain__paginated(
     return items_paged
 
 
-def get__QueueDomain__by_id(ctx, set_id, eagerload_log=None):
+def get__QueueDomain__by_id(
+    ctx: "ApiContext", set_id: int, eagerload_log: Optional[bool] = None
+) -> Optional[QueueDomain]:
     q = ctx.dbSession.query(QueueDomain).filter(QueueDomain.id == set_id)
     if eagerload_log:
         q = q.options(
@@ -1987,7 +2248,9 @@ def get__QueueDomain__by_id(ctx, set_id, eagerload_log=None):
     return item
 
 
-def get__QueueDomain__by_name__single(ctx, domain_name, active_only=True):
+def get__QueueDomain__by_name__single(
+    ctx: "ApiContext", domain_name: str, active_only: bool = True
+) -> Optional[QueueDomain]:
     q = ctx.dbSession.query(QueueDomain).filter(
         sqlalchemy.func.lower(QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)
@@ -1999,8 +2262,11 @@ def get__QueueDomain__by_name__single(ctx, domain_name, active_only=True):
 
 
 def get__QueueDomain__by_name__many(
-    ctx, domain_name, active_only=None, inactive_only=None
-):
+    ctx: "ApiContext",
+    domain_name: str,
+    active_only: Optional[bool] = None,
+    inactive_only: Optional[bool] = None,
+) -> List[QueueDomain]:
     q = ctx.dbSession.query(QueueDomain).filter(
         sqlalchemy.func.lower(QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)
@@ -2017,10 +2283,10 @@ def get__QueueDomain__by_name__many(
 
 
 def _get__QueueCertificate__core(
-    ctx,
-    failures_only=None,
-    successes_only=None,
-    unprocessed_only=None,
+    ctx: "ApiContext",
+    failures_only: Optional[bool] = None,
+    successes_only: Optional[bool] = None,
+    unprocessed_only: Optional[bool] = None,
 ):
     if (
         sum(
@@ -2053,11 +2319,11 @@ def _get__QueueCertificate__core(
 
 
 def get__QueueCertificate__count(
-    ctx,
-    failures_only=None,
-    successes_only=None,
-    unprocessed_only=False,
-):
+    ctx: "ApiContext",
+    failures_only: Optional[bool] = None,
+    successes_only: Optional[bool] = None,
+    unprocessed_only: Optional[bool] = False,
+) -> int:
     q = _get__QueueCertificate__core(
         ctx,
         failures_only=failures_only,
@@ -2069,15 +2335,15 @@ def get__QueueCertificate__count(
 
 
 def get__QueueCertificate__paginated(
-    ctx,
-    failures_only=None,
-    successes_only=None,
-    unprocessed_only=False,
-    eagerload_web=False,
-    eagerload_renewal=False,
-    limit=None,
-    offset=0,
-):
+    ctx: "ApiContext",
+    failures_only: Optional[bool] = None,
+    successes_only: Optional[bool] = None,
+    unprocessed_only: bool = False,
+    eagerload_web: bool = False,
+    eagerload_renewal: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[QueueCertificate]:
     q = _get__QueueCertificate__core(
         ctx,
         failures_only=failures_only,
@@ -2119,7 +2385,9 @@ def get__QueueCertificate__paginated(
     return items_paged
 
 
-def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
+def get__QueueCertificate__by_id(
+    ctx: "ApiContext", set_id: int, load_events: Optional[bool] = None
+) -> Optional[QueueCertificate]:
     q = ctx.dbSession.query(QueueCertificate).filter(QueueCertificate.id == set_id)
     if load_events:
         q = q.options(subqueryload(QueueCertificate.operations_object_events))
@@ -2127,7 +2395,9 @@ def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
     return item
 
 
-def get__QueueCertificate__by_AcmeAccountId__count(ctx, acme_account_id):
+def get__QueueCertificate__by_AcmeAccountId__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.acme_account_id == acme_account_id)
@@ -2137,8 +2407,11 @@ def get__QueueCertificate__by_AcmeAccountId__count(ctx, acme_account_id):
 
 
 def get__QueueCertificate__by_AcmeAccountId__paginated(
-    ctx, acme_account_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[QueueCertificate]:
     items_paged = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.acme_account_id == acme_account_id)
@@ -2150,7 +2423,7 @@ def get__QueueCertificate__by_AcmeAccountId__paginated(
     return items_paged
 
 
-def _get__QueueCertificate__by_DomainId__core(ctx, domain_id):
+def _get__QueueCertificate__by_DomainId__core(ctx: "ApiContext", domain_id: int):
     q = (
         ctx.dbSession.query(QueueCertificate)
         .join(
@@ -2166,13 +2439,15 @@ def _get__QueueCertificate__by_DomainId__core(ctx, domain_id):
     return q
 
 
-def get__QueueCertificate__by_DomainId__count(ctx, domain_id):
+def get__QueueCertificate__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
     q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
     counted = q.count()
     return counted
 
 
-def get__QueueCertificate__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+def get__QueueCertificate__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[QueueCertificate]:
     q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
     items_paged = (
         q.order_by(QueueCertificate.id.desc()).limit(limit).offset(offset).all()
@@ -2180,7 +2455,9 @@ def get__QueueCertificate__by_DomainId__paginated(ctx, domain_id, limit=None, of
     return items_paged
 
 
-def get__QueueCertificate__by_PrivateKeyId__count(ctx, private_key_id):
+def get__QueueCertificate__by_PrivateKeyId__count(
+    ctx: "ApiContext", private_key_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.private_key_id == private_key_id)
@@ -2190,8 +2467,8 @@ def get__QueueCertificate__by_PrivateKeyId__count(ctx, private_key_id):
 
 
 def get__QueueCertificate__by_PrivateKeyId__paginated(
-    ctx, private_key_id, limit=None, offset=0
-):
+    ctx: "ApiContext", private_key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[QueueCertificate]:
     items_paged = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.private_key_id == private_key_id)
@@ -2203,7 +2480,9 @@ def get__QueueCertificate__by_PrivateKeyId__paginated(
     return items_paged
 
 
-def get__QueueCertificate__by_UniqueFQDNSetId__active(ctx, set_id):
+def get__QueueCertificate__by_UniqueFQDNSetId__active(
+    ctx: "ApiContext", set_id: int
+) -> List[QueueCertificate]:
     q = ctx.dbSession.query(QueueCertificate).filter(
         QueueCertificate.unique_fqdn_set_id == set_id,
         QueueCertificate.timestamp_processed.is_(None),
@@ -2212,7 +2491,9 @@ def get__QueueCertificate__by_UniqueFQDNSetId__active(ctx, set_id):
     return items_paged
 
 
-def get__QueueCertificate__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+def get__QueueCertificate__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -2222,8 +2503,11 @@ def get__QueueCertificate__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
 
 
 def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
-    ctx, unique_fqdn_set_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[QueueCertificate]:
     items_paged = (
         ctx.dbSession.query(QueueCertificate)
         .filter(QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -2238,7 +2522,11 @@ def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateSigned__count(ctx, expiring_days=None, is_active=None):
+def get__CertificateSigned__count(
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    is_active: Optional[bool] = None,
+) -> int:
     q = ctx.dbSession.query(CertificateSigned)
     if is_active is not None:
         if is_active is True:
@@ -2257,8 +2545,13 @@ def get__CertificateSigned__count(ctx, expiring_days=None, is_active=None):
 
 
 def get__CertificateSigned__paginated(
-    ctx, expiring_days=None, is_active=None, eagerload_web=False, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
     q = ctx.dbSession.query(CertificateSigned)
     if eagerload_web:
         q = q.options(
@@ -2287,7 +2580,9 @@ def get__CertificateSigned__paginated(
     return items_paged
 
 
-def get__CertificateSigned__by_id(ctx, cert_id):
+def get__CertificateSigned__by_id(
+    ctx: "ApiContext", cert_id: int
+) -> Optional[CertificateSigned]:
     dbCertificateSigned = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.id == cert_id)
@@ -2304,7 +2599,9 @@ def get__CertificateSigned__by_id(ctx, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateSigned__by_AcmeAccountId__count(ctx, acme_account_id):
+def get__CertificateSigned__by_AcmeAccountId__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateSigned)
         .join(
@@ -2318,8 +2615,11 @@ def get__CertificateSigned__by_AcmeAccountId__count(ctx, acme_account_id):
 
 
 def get__CertificateSigned__by_AcmeAccountId__paginated(
-    ctx, acme_account_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
     items_paged = (
         ctx.dbSession.query(CertificateSigned)
         .join(
@@ -2343,7 +2643,9 @@ def get__CertificateSigned__by_AcmeAccountId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id):
+def _get__CertificateSigned__by_CertificateCAId__primary(
+    ctx: "ApiContext", cert_ca_id: int
+):
     """
     we no longer track the Certificate to the CertificateCA directly, but instead
     through the CertificateCAChain
@@ -2365,15 +2667,17 @@ def _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id):
     return query_core
 
 
-def get__CertificateSigned__by_CertificateCAId__primary__count(ctx, cert_ca_id):
+def get__CertificateSigned__by_CertificateCAId__primary__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
     query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
     counted = query_core.count()
     return counted
 
 
 def get__CertificateSigned__by_CertificateCAId__primary__paginated(
-    ctx, cert_ca_id, limit=None, offset=0
-):
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
     query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
     items_paged = (
         query_core.order_by(CertificateSigned.id.desc())
@@ -2384,7 +2688,9 @@ def get__CertificateSigned__by_CertificateCAId__primary__paginated(
     return items_paged
 
 
-def _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id):
+def _get__CertificateSigned__by_CertificateCAId__alt(
+    ctx: "ApiContext", cert_ca_id: int
+):
     """
     we no longer track the Certificate to the CertificateCA directly, but instead
     through the CertificateCAChain
@@ -2406,15 +2712,17 @@ def _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id):
     return query_core
 
 
-def get__CertificateSigned__by_CertificateCAId__alt__count(ctx, cert_ca_id):
+def get__CertificateSigned__by_CertificateCAId__alt__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
     query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
     counted = query_core.count()
     return counted
 
 
 def get__CertificateSigned__by_CertificateCAId__alt__paginated(
-    ctx, cert_ca_id, limit=None, offset=0
-):
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
     query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
     items_paged = (
         query_core.order_by(CertificateSigned.id.desc())
@@ -2428,7 +2736,9 @@ def get__CertificateSigned__by_CertificateCAId__alt__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateSigned__by_DomainId__count(ctx, domain_id):
+def get__CertificateSigned__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateSigned)
         .join(
@@ -2446,8 +2756,8 @@ def get__CertificateSigned__by_DomainId__count(ctx, domain_id):
 
 
 def get__CertificateSigned__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0
-):
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
     items_paged = (
         ctx.dbSession.query(CertificateSigned)
         .join(
@@ -2467,7 +2777,9 @@ def get__CertificateSigned__by_DomainId__paginated(
     return items_paged
 
 
-def get__CertificateSigned__by_DomainId__latest(ctx, domain_id):
+def get__CertificateSigned__by_DomainId__latest(
+    ctx: "ApiContext", domain_id: int
+) -> Optional[CertificateSigned]:
     first = (
         ctx.dbSession.query(CertificateSigned)
         .join(
@@ -2491,7 +2803,9 @@ def get__CertificateSigned__by_DomainId__latest(ctx, domain_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateSigned__by_PrivateKeyId__count(ctx, key_id):
+def get__CertificateSigned__by_PrivateKeyId__count(
+    ctx: "ApiContext", key_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.private_key_id == key_id)
@@ -2501,8 +2815,8 @@ def get__CertificateSigned__by_PrivateKeyId__count(ctx, key_id):
 
 
 def get__CertificateSigned__by_PrivateKeyId__paginated(
-    ctx, key_id, limit=None, offset=0
-):
+    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
     items_paged = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.private_key_id == key_id)
@@ -2514,7 +2828,9 @@ def get__CertificateSigned__by_PrivateKeyId__paginated(
     return items_paged
 
 
-def get__CertificateSigned__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+def get__CertificateSigned__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
     counted = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -2524,8 +2840,11 @@ def get__CertificateSigned__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
 
 
 def get__CertificateSigned__by_UniqueFQDNSetId__paginated(
-    ctx, unique_fqdn_set_id, limit=None, offset=0
-):
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
     items_paged = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -2537,7 +2856,9 @@ def get__CertificateSigned__by_UniqueFQDNSetId__paginated(
     return items_paged
 
 
-def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(ctx, unique_fqdn_set_id):
+def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> Optional[CertificateSigned]:
     item = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -2551,13 +2872,15 @@ def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(ctx, unique_fqdn_s
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__RootStore__count(ctx):
+def get__RootStore__count(ctx: "ApiContext") -> int:
     q = ctx.dbSession.query(RootStore)
     counted = q.count()
     return counted
 
 
-def get__RootStore__paginated(ctx, limit=None, offset=0):
+def get__RootStore__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[RootStore]:
     q = (
         ctx.dbSession.query(RootStore)
         .order_by(sqlalchemy.func.lower(RootStore.name).asc())
@@ -2568,12 +2891,14 @@ def get__RootStore__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
-def get__RootStore__by_id(ctx, root_store_id):
+def get__RootStore__by_id(ctx: "ApiContext", root_store_id: int) -> Optional[RootStore]:
     item = ctx.dbSession.query(RootStore).filter(RootStore.id == root_store_id).first()
     return item
 
 
-def get__RootStoreVersion__by_id(ctx, root_store_version_id):
+def get__RootStoreVersion__by_id(
+    ctx: "ApiContext", root_store_version_id: int
+) -> Optional[RootStoreVersion]:
     item = (
         ctx.dbSession.query(RootStoreVersion)
         .filter(RootStoreVersion.id == root_store_version_id)
@@ -2585,13 +2910,18 @@ def get__RootStoreVersion__by_id(ctx, root_store_version_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__UniqueFQDNSet__count(ctx):
+def get__UniqueFQDNSet__count(ctx: "ApiContext") -> int:
     q = ctx.dbSession.query(UniqueFQDNSet)
     counted = q.count()
     return counted
 
 
-def get__UniqueFQDNSet__paginated(ctx, eagerload_web=False, limit=None, offset=0):
+def get__UniqueFQDNSet__paginated(
+    ctx: "ApiContext",
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[UniqueFQDNSet]:
     q = ctx.dbSession.query(UniqueFQDNSet)
     if eagerload_web:
         q = q.options(
@@ -2603,7 +2933,9 @@ def get__UniqueFQDNSet__paginated(ctx, eagerload_web=False, limit=None, offset=0
     return items_paged
 
 
-def get__UniqueFQDNSet__by_id(ctx, set_id):
+def get__UniqueFQDNSet__by_id(
+    ctx: "ApiContext", set_id: int
+) -> Optional[UniqueFQDNSet]:
     item = (
         ctx.dbSession.query(UniqueFQDNSet)
         .filter(UniqueFQDNSet.id == set_id)
@@ -2617,7 +2949,7 @@ def get__UniqueFQDNSet__by_id(ctx, set_id):
     return item
 
 
-def get__UniqueFQDNSet__by_DomainId__count(ctx, domain_id):
+def get__UniqueFQDNSet__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
     counted = (
         ctx.dbSession.query(UniqueFQDNSet)
         .join(
@@ -2630,7 +2962,9 @@ def get__UniqueFQDNSet__by_DomainId__count(ctx, domain_id):
     return counted
 
 
-def get__UniqueFQDNSet__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+def get__UniqueFQDNSet__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[UniqueFQDNSet]:
     items_paged = (
         ctx.dbSession.query(UniqueFQDNSet)
         .join(

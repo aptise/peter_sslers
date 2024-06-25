@@ -2,7 +2,9 @@
 import datetime
 import logging
 from typing import Dict
+from typing import Literal
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -18,6 +20,9 @@ from .logger import log__OperationsEvent
 from ...lib import utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+
+if TYPE_CHECKING:
+    from ..utils import ApiContext
 
 # ==============================================================================
 
@@ -95,7 +100,7 @@ acme_account_providers: Dict[int, DictProvider] = {
 }
 
 
-def initialize_AcmeAccountProviders(ctx):
+def initialize_AcmeAccountProviders(ctx: "ApiContext") -> Literal[True]:
     timestamp_now = datetime.datetime.utcnow()
 
     for id, item in acme_account_providers.items():
@@ -149,7 +154,7 @@ def initialize_AcmeAccountProviders(ctx):
     return True
 
 
-def initialize_CertificateCAs(ctx):
+def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
     # nestle this import, so we do not load it on every run
     from cert_utils import letsencrypt_info
 
@@ -317,14 +322,16 @@ def initialize_CertificateCAs(ctx):
             raise ValueError("Certificate `%s` is unknown" % cert_id)
         dbCertificateCA = certs_lookup[cert_id]
         dbPref = db_create.create__CertificateCAPreference(  # noqa: F841
-            ctx, slot_id=slot_id, dbCertificateCA=dbCertificateCA
+            ctx,
+            dbCertificateCA=dbCertificateCA,
+            slot_id=slot_id,
         )
         slot_id += 1  # increment the slot
 
     return True
 
 
-def initialize_DomainBlocklisted(ctx):
+def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
     ctx.dbSession.add(dbDomainBlocklisted)
@@ -336,7 +343,9 @@ def initialize_DomainBlocklisted(ctx):
     return True
 
 
-def startup_AcmeAccountProviders(ctx, app_settings):
+def startup_AcmeAccountProviders(
+    ctx: "ApiContext", app_settings: Dict
+) -> Literal[True]:
     # first handle the Default CertificateAuthority
 
     dbAcmeAccountProvider = db_get.get__AcmeAccountProvider__by_name(

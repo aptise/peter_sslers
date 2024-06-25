@@ -421,6 +421,7 @@ class View_New(Handler):
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbCertificateCAChain=dbCertificateCAChain,
+                # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
             )

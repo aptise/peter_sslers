@@ -237,7 +237,7 @@ class View_Search(Handler):
             dbDomain = lib_db.get.get__Domain__by_name(
                 self.request.api_context,
                 domain_name,
-                preload=None,
+                preload=False,
                 eagerload_web=False,
                 active_only=False,
             )
@@ -1053,6 +1053,8 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 formStash.fatal_field(
                     field="acme_dns_server_id", message="Invalid AcmeDnsServer."
                 )
+            if TYPE_CHECKING:
+                assert dbAcmeDnsServer is not None
             if not dbAcmeDnsServer.is_active:
                 # `formStash.fatal_field()` will raise `FormInvalid()`
                 formStash.fatal_field(

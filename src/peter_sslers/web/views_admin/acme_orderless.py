@@ -536,11 +536,11 @@ class View_Focus_Manipulate(View_Focus):
                 formStash.results["acme_challenge_type"]
             )
             create_kwargs = {
-                "dbAcmeOrderless": dbAcmeOrderless,
                 "dbDomain": dbDomain,
+                "acme_challenge_type_id": acme_challenge_type_id,
+                "dbAcmeOrderless": dbAcmeOrderless,
                 "token": formStash.results["token"],
                 "keyauthorization": formStash.results["keyauthorization"],
-                "acme_challenge_type_id": acme_challenge_type_id,
             }
             if dbAcmeOrderless.acme_account_id:
                 create_kwargs["challenge_url"] = formStash.results["challenge_url"]

@@ -218,12 +218,12 @@ def operations_reconcile_cas(
             else:
                 raise ValueError("Not Implemented: multiple reconciles")
             # mark the second item
-            reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
-            reconciled_uris = reconciled_uris.split(" ") if reconciled_uris else []
+            _reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
+            reconciled_uris = _reconciled_uris.split(" ") if _reconciled_uris else []
             if cert_issuer_uri not in reconciled_uris:
                 reconciled_uris.append(cert_issuer_uri)
-                reconciled_uris = " ".join(reconciled_uris)
-                _dbCertificateCAReconciled.reconciled_uris = reconciled_uris
+                _reconciled_uris = " ".join(reconciled_uris)
+                _dbCertificateCAReconciled.reconciled_uris = _reconciled_uris
 
             dbCertificateCAReconciliation = model_objects.CertificateCAReconciliation()
             dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp

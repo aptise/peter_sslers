@@ -395,9 +395,10 @@ def queue_certificates__update(
                 ctx,
                 dbAcmeAccount=dbAcmeOrder.acme_account,
                 dbPrivateKey=dbAcmeOrder.private_key,
-                dbAcmeOrder=dbAcmeOrder,
                 private_key_cycle_id__renewal=FOO,
                 private_key_strategy_id__requested=FOO,
+                # optionals
+                dbAcmeOrder=dbAcmeOrder,
             )
             renewals.append(dbQueueCertificate)
             """
@@ -491,6 +492,7 @@ def queue_certificates__process(
                     coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
                         "reported"
                     ),
+                    # optionals
                     dbQueueCertificate=dbQueueCertificate,
                 )
                 continue

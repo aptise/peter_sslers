@@ -36,6 +36,7 @@ requires = [
     "python-dateutil",
     "requests",
     "SQLAlchemy>2",
+    "typing_extensions",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]
@@ -109,6 +110,7 @@ setup(
       main = peter_sslers.web:main
       [console_scripts]
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
+      import_certbot = peter_sslers.web.scripts.import_certbot:main
       disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
       """,
 )

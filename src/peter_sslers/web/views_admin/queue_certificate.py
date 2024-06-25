@@ -428,12 +428,17 @@ class View_New(Handler):
                 formStash,
                 require_contact=None,
             )
+            if acmeAccountSelection.AcmeAccount is None:
+                raise ValueError("No `AcmeAccount`")
+            if privateKeySelection.PrivateKey is None:
+                raise ValueError("No `PrivateKey`")
+
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle__renewal
             )
 
-            kwargs_create = {
+            kwargs_create: lib_db.create.create__QueueCertificate__args = {
                 "dbAcmeAccount": acmeAccountSelection.AcmeAccount,
                 "dbPrivateKey": privateKeySelection.PrivateKey,
                 "private_key_cycle_id__renewal": private_key_cycle_id__renewal,
@@ -556,6 +561,11 @@ class View_New(Handler):
                 formStash,
                 require_contact=None,
             )
+            if acmeAccountSelection.AcmeAccount is None:
+                raise ValueError("No `AcmeAccount`")
+            if privateKeySelection.PrivateKey is None:
+                raise ValueError("No `PrivateKey`")
+
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle__renewal
@@ -579,9 +589,10 @@ class View_New(Handler):
                     self.request.api_context,
                     dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                     dbPrivateKey=privateKeySelection.PrivateKey,
-                    dbUniqueFQDNSet=dbUniqueFQDNSet,
                     private_key_cycle_id__renewal=private_key_cycle_id__renewal,
                     private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
+                    # optionals
+                    dbUniqueFQDNSet=dbUniqueFQDNSet,
                 )
             except Exception as exc:
                 log.critical("create__QueueCertificate: %s", exc)

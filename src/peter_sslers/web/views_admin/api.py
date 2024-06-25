@@ -589,6 +589,8 @@ class ViewAdminApi_Domain(Handler):
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
+                    if dbDomain is None:
+                        raise ValueError("Could not extract `Domain`")
                     operations_event = (  # noqa: F841
                         lib_db.actions.operations_update_recents__domains(
                             self.request.api_context,

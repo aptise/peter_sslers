@@ -59,9 +59,10 @@ def _handle_Certificate_unactivated(
             ctx,
             dbAcmeAccount=serverCertificate.acme_account,
             dbPrivateKey=serverCertificate.private_key,
-            dbCertificateSigned=serverCertificate,
             private_key_cycle_id__renewal=serverCertificate.renewal__private_key_cycle_id,
             private_key_strategy_id__requested=serverCertificate.renewal__private_key_strategy_id,
+            # optionals
+            dbCertificateSigned=serverCertificate,
         )
     return requeue
 
@@ -157,6 +158,7 @@ def PrivateKey_compromised(
         coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
             "reported+deactivated"
         ),
+        # optionals
         dbPrivateKey=privateKeyCompromised,
     )
 
@@ -213,6 +215,7 @@ def PrivateKey_compromised(
                 coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
                     "reported+deactivated"
                 ),
+                # optionals
                 dbPrivateKey=privateKeyCompromised,
                 dbCertificateSigned=_dbCertificateSigned,
                 dbCoverageAssuranceEvent_parent=dbCoverageAssuranceEvent,

@@ -541,10 +541,11 @@ class View_Focus(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
                 try:
                     # this function checks the domain names match a simple regex
-                    domain_name = cert_utils.utils.domains_from_string(
+                    _domain_names = cert_utils.utils.domains_from_string(
                         formStash.results[test_domain]
                     )
                 except ValueError as exc:  # noqa: F841
@@ -552,20 +553,19 @@ class View_Focus(Handler):
                     formStash.fatal_field(
                         field=test_domain, message="invalid domain names detected"
                     )
-                if not domain_name:
+                if not _domain_names:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="invalid or no valid domain names detected",
                     )
-                if len(domain_name) != 1:
+                if len(_domain_names) != 1:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="Only 1 domain accepted here.",
                     )
-
-            # ensure we have a domain!
+            # grab our domain
             domain_name = formStash.results["domain_name"]
             (
                 _dbDomain,

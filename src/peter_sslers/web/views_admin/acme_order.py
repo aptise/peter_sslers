@@ -1098,6 +1098,11 @@ class View_Focus_Manipulate(View_Focus):
                 formStash,
                 require_contact=None,
             )
+            if acmeAccountSelection.AcmeAccount is None:
+                raise ValueError("Could not select `AcmeAccount`")
+            if privateKeySelection.PrivateKey is None:
+                raise ValueError("Could not select `PrivateKey`")
+
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             try:

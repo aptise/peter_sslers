@@ -1703,7 +1703,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         # NOTE: deferred-generate ; single_certificate
                         dbPrivateKey_new = create__PrivateKey(
                             ctx,
-                            acme_account_id__owner=dbAcmeOrder.acme_account.id,
                             private_key_source_id=model_utils.PrivateKeySource.from_string(
                                 "generated"
                             ),
@@ -1711,6 +1710,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                 "single_certificate"  # this COULD be "standard", but safer to lock down for now
                             ),
                             key_technology_id=dbAcmeOrder.acme_account.private_key_technology_id,
+                            acme_account_id__owner=dbAcmeOrder.acme_account.id,
                         )
                         raise ReassignedPrivateKey("new `generated`")
                     elif (
@@ -1812,8 +1812,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 csr_pem,
                 certificate_request_source_id=model_utils.CertificateRequestSource.ACME_ORDER,
                 dbPrivateKey=dbAcmeOrder.private_key,
-                dbCertificateSigned__issued=None,
                 domain_names=domain_names,
+                dbCertificateSigned__issued=None,
             )
             # dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
             dbAcmeOrder.certificate_request = dbCertificateRequest
@@ -1851,10 +1851,13 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
             raise
 
+        if not len(fullchain_pems):
+            raise ValueError("Could not load fullchains")
+
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None
-        dbCertificateCAChains_alternates = []
+        dbCertificateCAChains_all = []
         for fullchain_pem in fullchain_pems:
             (
                 _certificate_pem,
@@ -1877,16 +1880,20 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
             if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
-            dbCertificateCAChains_alternates.append(dbCertificateCAChain)
+            dbCertificateCAChains_all.append(dbCertificateCAChain)
+
+        if certificate_pem is None:
+            raise ValueError("Could not derive certificate_pem")
 
         dbCertificateSigned = create__CertificateSigned(
             ctx,
             cert_pem=certificate_pem,
             cert_domains_expected=domain_names,
+            dbCertificateCAChain=dbCertificateCAChains_all[0],
+            # optionals
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChain=dbCertificateCAChains_alternates[0],
-            dbCertificateCAChains_alt=dbCertificateCAChains_alternates[1:],
+            dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
             dbCertificateRequest=dbCertificateRequest,
         )
         ctx.pyramid_transaction_commit()
@@ -2181,12 +2188,13 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 order_url=order_url,
                 dbAcmeAccount=dbAcmeAccount,
+                dbUniqueFQDNSet=dbUniqueFQDNSet,
+                dbEventLogged=dbAcmeOrderEventLogged,
+                transaction_commit=True,
+                # optionals
                 dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
                 dbPrivateKey=dbPrivateKey,
-                dbEventLogged=dbAcmeOrderEventLogged,
-                dbUniqueFQDNSet=dbUniqueFQDNSet,
-                transaction_commit=True,
             )
 
             # register the AcmeOrder into the logging utility
@@ -2549,10 +2557,13 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
         )
 
+        if not len(fullchain_pems):
+            raise ValueError("Could not load fullchains")
+
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None
-        dbCertificateCAChains_alternates = []
+        dbCertificateCAChains_all = []
         for fullchain_pem in fullchain_pems:
             (
                 _certificate_pem,
@@ -2575,7 +2586,10 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             )
             if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
-            dbCertificateCAChains_alternates.append(dbCertificateCAChain)
+            dbCertificateCAChains_all.append(dbCertificateCAChain)
+
+        if certificate_pem is None:
+            raise ValueError("Could not derive certificate_pem")
 
         (
             dbCertificateSigned,
@@ -2584,10 +2598,11 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             ctx,
             cert_pem=certificate_pem,
             cert_domains_expected=dbAcmeOrder.domains_as_list,
-            dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChain=dbCertificateCAChains_alternates[0],
-            dbCertificateCAChains_alt=dbCertificateCAChains_alternates[1:],
+            dbCertificateCAChain=dbCertificateCAChains_all[0],
             dbPrivateKey=dbAcmeOrder.private_key,
+            # optionals
+            dbAcmeOrder=dbAcmeOrder,
+            dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
         )
         if dbAcmeOrder.certificate_signed:
             if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:

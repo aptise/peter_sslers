@@ -15,6 +15,8 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+    from ...model.objects import AcmeAccount
+    from ...model.objects import PrivateKey
 
 
 # ==============================================================================
@@ -31,7 +33,7 @@ def decode_args(getcreate_args: Dict) -> Dict:
 
 
 # standardized mapping for `model_utils.DomainsChallenged` to a formStash
-DOMAINS_CHALLENGED_FIELDS = {
+DOMAINS_CHALLENGED_FIELDS: Dict[str, str] = {
     "http-01": "domain_names_http01",
     "dns-01": "domain_names_dns01",
 }
@@ -52,13 +54,13 @@ class AcmeAccountUploadParser(object):
 
     # tracked
     acme_account_provider_id: Optional[int] = None
-    account_key_pem = None
-    le_meta_jsons = None
-    le_pkey_jsons = None
-    le_reg_jsons = None
-    private_key_cycle_id = None
+    account_key_pem: Optional[str] = None
+    le_meta_jsons: Optional[str] = None
+    le_pkey_jsons: Optional[str] = None
+    le_reg_jsons: Optional[str] = None
+    private_key_cycle_id: Optional[int] = None
     private_key_technology_id: Optional[int] = None
-    upload_type = None  # pem OR letsencrypt
+    upload_type: Optional[str] = None  # pem OR letsencrypt
 
     def __init__(self, formStash: FormStash):
         self.formStash = formStash
@@ -276,8 +278,8 @@ class _PrivateKeyUploadParser(object):
     formStash: FormStash
 
     # tracked
-    private_key_pem = None
-    upload_type = None  # pem
+    private_key_pem: Optional[str] = None
+    upload_type: Optional[str] = None  # pem
 
     def __init__(self, formStash: FormStash):
         self.formStash = formStash
@@ -307,14 +309,18 @@ class _AcmeAccountSelection(object):
 
     selection: Optional[str] = None
     upload_parsed: Optional["AcmeAccountUploadParser"] = None
-    AcmeAccount = None
+    AcmeAccount: Optional["AcmeAccount"] = None
+
+    def _ensure(self):
+        if self.AcmeAccount is None:
+            raise ValueError("No!")
 
 
 class _PrivateKeySelection(object):
     selection: Optional[str] = None
     upload_parsed: Optional["_PrivateKeyUploadParser"] = None
     private_key_strategy__requested: str
-    PrivateKey = None
+    PrivateKey: Optional["PrivateKey"] = None
 
     @property
     def private_key_strategy_id__requested(self) -> int:
@@ -336,9 +342,9 @@ def parse_AcmeAccountSelection(
     :param allow_none:
     :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
     """
-    account_key_pem_md5 = None
-    dbAcmeAccount = None
-    is_global_default = None
+    account_key_pem_md5: Optional[str] = None
+    dbAcmeAccount: Optional["AcmeAccount"] = None
+    is_global_default: Optional[bool] = None
 
     # handle the explicit-option
     acmeAccountSelection = _AcmeAccountSelection()
@@ -385,6 +391,8 @@ def parse_AcmeAccountSelection(
             formStash.fatal_field(
                 field=account_key_option, message="You did not provide a value"
             )
+        if TYPE_CHECKING:
+            assert account_key_pem_md5 is not None
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
             request.api_context, account_key_pem_md5, is_active=True
         )
@@ -394,6 +402,8 @@ def parse_AcmeAccountSelection(
                 field=account_key_option,
                 message="The selected AcmeAccount is not enrolled in the system.",
             )
+        if TYPE_CHECKING:
+            assert dbAcmeAccount is not None
         if is_global_default and not dbAcmeAccount.is_global_default:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
@@ -411,7 +421,7 @@ def parse_PrivateKeySelection(
     formStash: FormStash,
     private_key_option: Optional[str] = None,
 ) -> _PrivateKeySelection:
-    private_key_pem_md5 = None
+    private_key_pem_md5: Optional[str] = None
     # PrivateKey = None  # :class:`model.objects.PrivateKey`
 
     # handle the explicit-option
@@ -476,6 +486,8 @@ def parse_PrivateKeySelection(
             formStash.fatal_field(
                 field=private_key_option, message="You did not provide a value"
             )
+        if TYPE_CHECKING:
+            assert private_key_pem_md5 is not None
         dbPrivateKey = lib_db.get.get__PrivateKey__by_pemMd5(
             request.api_context, private_key_pem_md5, is_active=True
         )
@@ -496,7 +508,7 @@ def form_key_selection(
     request: "Request",
     formStash: FormStash,
     require_contact: Optional[bool] = None,
-) -> Tuple:
+) -> Tuple[_AcmeAccountSelection, _PrivateKeySelection]:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
@@ -528,6 +540,7 @@ def form_key_selection(
         private_key_option=formStash.results["private_key_option"],
     )
 
+    dbPrivateKey: Optional["PrivateKey"] = None
     if privateKeySelection.selection == "upload":
         assert privateKeySelection.upload_parsed
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
@@ -554,6 +567,9 @@ def form_key_selection(
                 message="Could not load the placeholder PrivateKey for autogeneration.",
             )
         privateKeySelection.PrivateKey = dbPrivateKey
+
+    if privateKeySelection.PrivateKey is None:
+        raise ValueError("no PrivateKey parsed")
 
     return (acmeAccountSelection, privateKeySelection)
 

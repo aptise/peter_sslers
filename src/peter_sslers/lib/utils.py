@@ -1,4 +1,5 @@
 # stdlib
+import datetime
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -57,7 +58,7 @@ class ApiContext(object):
 
     dbOperationsEvent: Optional[Any] = None
     dbSession: "Session"
-    timestamp = None
+    timestamp: datetime.datetime
     request: Optional["Request"] = None
 
     def __init__(
@@ -65,12 +66,14 @@ class ApiContext(object):
         request: Optional["Request"] = None,
         dbOperationsEvent=None,
         dbSession: Optional["Session"] = None,
-        timestamp=None,
+        timestamp: Optional[datetime.datetime] = None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent
         if dbSession:
             self.dbSession = dbSession
+        if timestamp is None:
+            timestamp = datetime.datetime.utcnow()
         self.timestamp = timestamp
 
     @property

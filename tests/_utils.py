@@ -1191,9 +1191,10 @@ class AppTest(AppTestCore):
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
             dbCertificateCAChain=_dbChain,
+            dbPrivateKey=_dbPrivateKey,
+            # optionals
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
-            dbPrivateKey=_dbPrivateKey,
         )
 
         # commit this!
@@ -1380,8 +1381,9 @@ class AppTest(AppTestCore):
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
                         dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
-                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
                         dbPrivateKey=_dbPrivateKey,
+                        # optionals
+                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
                     )
                     # print(_dbCertificateSigned_1, _is_created)
                     # self.ctx.pyramid_transaction_commit()
@@ -1459,11 +1461,12 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_1,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
                     ),
+                    # optionals
+                    dbCertificateSigned=_dbCertificateSigned_1,
                 )
                 # self.ctx.pyramid_transaction_commit()
 
@@ -1472,31 +1475,34 @@ class AppTest(AppTestCore):
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_2,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
                     ),
+                    # optionals
+                    dbCertificateSigned=_dbCertificateSigned_2,
                 )
                 _dbQueue3 = db.create.create__QueueCertificate(
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_3,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
                     ),
+                    # optionals
+                    dbCertificateSigned=_dbCertificateSigned_3,
                 )
                 _dbQueue4 = db.create.create__QueueCertificate(
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_4,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"
                     ),
+                    # optionals
+                    dbCertificateSigned=_dbCertificateSigned_4,
                 )
                 self.ctx.pyramid_transaction_commit()
 
@@ -1558,15 +1564,16 @@ class AppTest(AppTestCore):
                     acme_order_type_id=_acme_order_type_id,
                     acme_order_processing_status_id=_acme_order_processing_status_id,
                     acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
+                    domains_challenged=_domains_challenged,
                     private_key_cycle_id__renewal=_private_key_cycle_id__renewal,
                     private_key_strategy_id__requested=_private_key_strategy_id__requested,
                     order_url="https://example.com/acme/order/acmeOrder-1",
                     dbAcmeAccount=_dbAcmeAccount_1,
-                    dbEventLogged=_dbAcmeEventLog,
-                    dbPrivateKey=_dbPrivateKey_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
-                    domains_challenged=_domains_challenged,
+                    dbEventLogged=_dbAcmeEventLog,
                     transaction_commit=True,
+                    # optionals
+                    dbPrivateKey=_dbPrivateKey_1,
                 )
 
                 # merge these items in
