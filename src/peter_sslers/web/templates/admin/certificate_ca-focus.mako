@@ -48,7 +48,7 @@
                     </tr>
                     <tr>
                         <th>display_name</th>
-                        <td>${CertificateCA.display_name or ""}</td>
+                        <td><samp>${CertificateCA.display_name or ""}</samp></td>
                     </tr>
                     <tr>
                         <th>is_trusted_root</th>
@@ -105,7 +105,7 @@
                         <th>spki_sha256</th>
                         <td>
                             <code>${CertificateCA.spki_sha256}</code>
-                            ${CertificateCA.button_search_spki|n}
+                            ${CertificateCA.button_search_spki|n} <i>[Search for Compatible]</i>
                         </td>
                     </tr>
                     <tr>

@@ -32,6 +32,15 @@ Here we go...
 
 Then you can visit `http://127.0.0.1:7201`
 
+If you have an active Certbot install, you can import the enture dataset two ways:
+
+1. On the same machine, you can invoke a quick command:
+
+    import_certbot example_development.ini dir=/etc/letsencrypt
+
+2. On remote machines, you can import onto a central installation's database via
+an `invoke` command and the web API.  Details are below.
+
 Editing the `example_development.ini` file will let you specify how the package
 runs. Some fields are necessary for it to work correctly, they are noted below...
 
@@ -64,16 +73,16 @@ Then, in another terminal window:
     cd certificate_admin
     source peter_sslers-venv/bin/activate
     cd peter_sslers/tools
-    invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
-    invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive'
-    invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+    invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers' --live-path='/etc/letsencrypt/live'
+    invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers' --live-path='/etc/letsencrypt/archive'
+    invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
 Alternately, you can use shell variables to make this more readable:
 
     cd certificate_admin
     source peter_sslers-venv/bin/activate
     cd peter_sslers/tools
-    export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+    export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
     invoke import-certbot-certs-live --live-path='/etc/letsencrypt/live'
     invoke import-certbot-certs-archive --live-path='/etc/letsencrypt/archive'
     invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts'

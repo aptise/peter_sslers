@@ -1814,6 +1814,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 dbPrivateKey=dbAcmeOrder.private_key,
                 domain_names=domain_names,
                 dbCertificateSigned__issued=None,
+                discovery_type="ACME Order",
             )
             # dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
             dbAcmeOrder.certificate_request = dbCertificateRequest
@@ -1876,7 +1877,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ) = getcreate__CertificateCAChain__by_pem_text(
                 ctx,
                 _ca_chain_pem,
-                display_name="ACME Server Response",
+                discovery_type="ACME Order",
             )
             if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
@@ -1895,6 +1896,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbAcmeOrder=dbAcmeOrder,
             dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
             dbCertificateRequest=dbCertificateRequest,
+            discovery_type="ACME Order",
         )
         ctx.pyramid_transaction_commit()
 
@@ -2129,7 +2131,11 @@ def _do__AcmeV2_AcmeOrder__new_core(
         (
             dbUniqueFQDNSet,
             is_created_fqdn,
-        ) = getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
+        ) = getcreate__UniqueFQDNSet__by_domains(
+            ctx,
+            domain_names,
+            discovery_type="ACME Order",
+        )
         ctx.pyramid_transaction_commit()
 
     assert ctx.request
@@ -2582,7 +2588,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             ) = getcreate__CertificateCAChain__by_pem_text(
                 ctx,
                 _ca_chain_pem,
-                display_name="ACME Server Response",
+                discovery_type="ACME Order",
             )
             if is_created__CertificateCAChain:
                 ctx.pyramid_transaction_commit()
@@ -2603,6 +2609,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             # optionals
             dbAcmeOrder=dbAcmeOrder,
             dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
+            discovery_type="ACME Order",
         )
         if dbAcmeOrder.certificate_signed:
             if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:

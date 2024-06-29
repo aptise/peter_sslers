@@ -65,7 +65,7 @@
                 <p>Inactive CertificateSigneds.
                 </p>
             % else:
-                % if expiring_days:
+                % if expiring_days and sidenav_option != 'all':
                     <p>CertificateSigneds that will be expiring within `${expiring_days}` days.
                     </p>
                 % endif

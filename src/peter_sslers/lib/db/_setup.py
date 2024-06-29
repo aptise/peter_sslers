@@ -189,6 +189,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
     certs_lookup = {}  # stash the ones we create for a moment
     for cert_id in certs_order:
         cert_data = certs[cert_id]
+        assert cert_data["cert_pem"]
         _is_created = False
         dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
             ctx, cert_data["cert_pem"]
@@ -203,6 +204,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
                 cert_data["cert_pem"],
                 display_name=cert_data["display_name"],
                 is_trusted_root=is_trusted_root,
+                discovery_type="initial setup",
             )
             if _is_created:
                 certs_discovered.append(dbCertificateCA)
@@ -219,7 +221,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
                     if dbCertificateCA not in certs_discovered:
                         certs_modified.append(dbCertificateCA)
 
-        if "compatibility" in cert_data:
+        if ("compatibility" in cert_data) and (cert_data["compatibility"] is not None):
             # TODO: migrate to getcreate
             # TODO: log creation
             for platform_info in cert_data["compatibility"].items():

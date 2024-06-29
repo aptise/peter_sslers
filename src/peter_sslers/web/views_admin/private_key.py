@@ -516,6 +516,7 @@ class View_New(Handler):
                     "imported"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                discovery_type="upload",
             )
 
             if self.request.wants_json:

@@ -760,27 +760,36 @@ def getcreate__CertificateCAChain__by_pem_text(
     ctx: "ApiContext",
     chain_pem: str,
     display_name: Optional[str] = None,
+    discovery_type: Optional[str] = None,
 ) -> Tuple["CertificateCAChain", bool]:
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
     chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
     if len(chain_certs) < 1:
         raise ValueError("Did not find at least 1 Certificate in this Chain.")
     is_created = False
-    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
 
     # Ensure the certificate chain is structured front to back
     # this will raise an error
     if len(chain_certs) > 1:
         cert_utils.ensure_chain_order(chain_certs)
 
+    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
     if not dbCertificateCAChain:
         chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
         dbCertificateCAs = []
         for cert_pem in chain_certs:
             (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
-                ctx, cert_pem, display_name=display_name
+                ctx,
+                cert_pem,
+                display_name=display_name,
+                discovery_type=discovery_type,
             )
             dbCertificateCAs.append(_dbCertificateCA)
+
+        if not display_name:
+            display_name = dbCertificateCAs[0].display_name
+            if len(dbCertificateCAs) > 1:
+                display_name += " > " + dbCertificateCAs[-1].display_name
 
         # bookkeeping
         event_payload_dict = utils.new_event_payload_dict()
@@ -790,7 +799,8 @@ def getcreate__CertificateCAChain__by_pem_text(
         )
 
         dbCertificateCAChain = model_objects.CertificateCAChain()
-        dbCertificateCAChain.display_name = display_name or "discovered"
+        dbCertificateCAChain.display_name = display_name
+        dbCertificateCAChain.discovery_type = discovery_type
         dbCertificateCAChain.timestamp_created = ctx.timestamp
         dbCertificateCAChain.chain_pem = chain_pem
         dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
@@ -825,6 +835,7 @@ def getcreate__CertificateCA__by_pem_text(
     ctx: "ApiContext",
     cert_pem: str,
     display_name: Optional[str] = None,
+    discovery_type: Optional[str] = None,
     is_trusted_root: Optional[bool] = None,
     key_technology_id: Optional[int] = None,
 ) -> Tuple["CertificateCA", bool]:
@@ -834,6 +845,7 @@ def getcreate__CertificateCA__by_pem_text(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
     :param display_name: a name to display this as
+    :param discovery_type:
     :param is_trusted_root:
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
@@ -880,17 +892,20 @@ def getcreate__CertificateCA__by_pem_text(
                 model_utils.OperationsEventType.from_string("CertificateCA__insert"),
             )
 
+            _cert_data = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
+            )
+            if not display_name:
+                display_name = _cert_data["subject"] or "unknown"
+
             dbCertificateCA = model_objects.CertificateCA()
-            dbCertificateCA.display_name = display_name or "unknown"
+            dbCertificateCA.display_name = display_name
+            dbCertificateCA.discovery_type = discovery_type
             dbCertificateCA.key_technology_id = key_technology_id
             dbCertificateCA.is_trusted_root = is_trusted_root
             dbCertificateCA.timestamp_created = ctx.timestamp
             dbCertificateCA.cert_pem = cert_pem
             dbCertificateCA.cert_pem_md5 = cert_pem_md5
-
-            _cert_data = cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
             dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
             dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
             dbCertificateCA.cert_subject = _cert_data["subject"]
@@ -942,6 +957,7 @@ def getcreate__CertificateRequest__by_pem_text(
     dbPrivateKey: "PrivateKey",
     domain_names: List[str],
     dbCertificateSigned__issued: Optional["CertificateSigned"] = None,
+    discovery_type: Optional[str] = None,
 ) -> Tuple["CertificateRequest", bool]:
     """
     getcreate for a CSR
@@ -958,6 +974,7 @@ def getcreate__CertificateRequest__by_pem_text(
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param domain_names: (required) A list of fully qualified domain names
     :param dbCertificateSigned__issued: (optional) The :class:`model.objects.CertificateSigned` this issued as
+    :param str discovery_type:
 
     log__OperationsEvent takes place in `create__CertificateRequest`
     """
@@ -971,6 +988,7 @@ def getcreate__CertificateRequest__by_pem_text(
             dbPrivateKey=dbPrivateKey,
             domain_names=domain_names,
             dbCertificateSigned__issued=dbCertificateSigned__issued,
+            discovery_type=discovery_type,
         )
         is_created = True
 
@@ -990,6 +1008,7 @@ def getcreate__CertificateSigned(
     dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    discovery_type: Optional[str] = None,
     is_active: bool = False,
 ) -> Tuple["CertificateSigned", bool]:
     """
@@ -1154,6 +1173,7 @@ def getcreate__CertificateSigned(
             dbCertificateRequest=dbCertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
+            discovery_type=discovery_type,
         )
         is_created = True
 
@@ -1167,6 +1187,7 @@ def getcreate__Domain__by_domainName(
     ctx: "ApiContext",
     domain_name: str,
     is_from_queue_domain: Optional[bool] = None,
+    discovery_type: Optional[str] = None,
 ) -> Tuple["Domain", bool]:
     """
     getcreate wrapping a domain
@@ -1176,6 +1197,7 @@ def getcreate__Domain__by_domainName(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
     :param is_from_queue_domain:
+    :param discovery_type:
     """
     is_created = False
     dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
@@ -1189,6 +1211,7 @@ def getcreate__Domain__by_domainName(
         dbDomain.timestamp_created = ctx.timestamp
         dbDomain.is_from_queue_domain = is_from_queue_domain
         dbDomain.operations_event_id__created = dbOperationsEvent.id
+        dbDomain.discovery_type = discovery_type
         ctx.dbSession.add(dbDomain)
         ctx.dbSession.flush(objects=[dbDomain])
         is_created = True
@@ -1219,6 +1242,7 @@ def getcreate__PrivateKey__by_pem_text(
     private_key_type_id: int,
     acme_account_id__owner: Optional[int] = None,
     private_key_id__replaces: Optional[int] = None,
+    discovery_type: Optional[str] = None,
 ) -> Tuple["PrivateKey", bool]:
     """
     getcreate wrapping private keys
@@ -1229,6 +1253,7 @@ def getcreate__PrivateKey__by_pem_text(
     :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
     :param int private_key_id__replaces: (optional) if this key replaces a compromised key, note it.
+    :param str discovery_type:
     """
     is_created = False
     key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -1288,6 +1313,7 @@ def getcreate__PrivateKey__by_pem_text(
         dbPrivateKey.private_key_source_id = private_key_source_id
         dbPrivateKey.private_key_type_id = private_key_type_id
         dbPrivateKey.private_key_id__replaces = private_key_id__replaces
+        dbPrivateKey.discovery_type = discovery_type
         ctx.dbSession.add(dbPrivateKey)
         ctx.dbSession.flush(objects=[dbPrivateKey])
         is_created = True
@@ -1464,6 +1490,7 @@ def getcreate__RemoteIpAddress(
 def getcreate__UniqueFQDNSet__by_domains(
     ctx: "ApiContext",
     domain_names: List[str],
+    discovery_type: Optional[str] = None,
     allow_blocklisted_domains: Optional[bool] = False,
 ) -> Tuple["UniqueFQDNSet", bool]:
     """
@@ -1471,6 +1498,7 @@ def getcreate__UniqueFQDNSet__by_domains(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
+    :param discovery_type:
     :param allow_blocklisted_domains: boolean, default `False`. If `True`, disables check against domains blocklist
 
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
@@ -1489,7 +1517,9 @@ def getcreate__UniqueFQDNSet__by_domains(
 
     # ensure the domains are registered into our system
     domain_objects = {
-        _domain_name: getcreate__Domain__by_domainName(ctx, _domain_name)[
+        _domain_name: getcreate__Domain__by_domainName(
+            ctx, _domain_name, discovery_type="via UniqueFQDNSet"
+        )[
             0
         ]  # (dbDomain, _is_created)
         for _domain_name in domain_names
@@ -1499,7 +1529,11 @@ def getcreate__UniqueFQDNSet__by_domains(
     (
         dbUniqueFQDNSet,
         is_created_fqdn,
-    ) = getcreate__UniqueFQDNSet__by_domainObjects(ctx, list(domain_objects.values()))
+    ) = getcreate__UniqueFQDNSet__by_domainObjects(
+        ctx,
+        list(domain_objects.values()),
+        discovery_type=discovery_type,
+    )
 
     return (dbUniqueFQDNSet, is_created_fqdn)
 
@@ -1510,6 +1544,7 @@ def getcreate__UniqueFQDNSet__by_domains(
 def getcreate__UniqueFQDNSet__by_domainObjects(
     ctx: "ApiContext",
     domainObjects: List["Domain"],
+    discovery_type: Optional[str] = None,
 ) -> Tuple["UniqueFQDNSet", bool]:
     """
     getcreate wrapping unique fqdn
@@ -1540,6 +1575,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(
         dbUniqueFQDNSet.count_domains = len(domain_ids)
         dbUniqueFQDNSet.timestamp_created = ctx.timestamp
         dbUniqueFQDNSet.operations_event_id__created = dbOperationsEvent.id
+        dbUniqueFQDNSet.discovery_type = discovery_type
         ctx.dbSession.add(dbUniqueFQDNSet)
         ctx.dbSession.flush(objects=[dbUniqueFQDNSet])
 

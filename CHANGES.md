@@ -4,6 +4,7 @@
     typing fun
     * allow valid Authorizations to be deactivated
         * extend Authorization model to have `timestamp_deactivated`
+    /.well-known/admin is now mapped to /.well-known/peter_sslers
 
 
 0.5.0-dev

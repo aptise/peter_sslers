@@ -365,6 +365,7 @@ class ViewAdminApi_Domain(Handler):
 
             if privateKeySelection.selection == "upload":
                 key_create_args = privateKeySelection.upload_parsed.getcreate_args
+                key_create_args["discovery_type"] = "via certificate_if_needed"
                 key_create_args["event_type"] = "PrivateKey__insert"
                 key_create_args[
                     "private_key_source_id"
@@ -566,7 +567,9 @@ class ViewAdminApi_Domain(Handler):
                 if not dbDomain:
                     # we need to start with a domain name in order to create the Autocert block
                     dbDomain = lib_db.getcreate.getcreate__Domain__by_domainName(
-                        self.request.api_context, domain_name
+                        self.request.api_context,
+                        domain_name,
+                        discovery_type="autocert",
                     )[
                         0
                     ]  # (dbDomain, _is_created)

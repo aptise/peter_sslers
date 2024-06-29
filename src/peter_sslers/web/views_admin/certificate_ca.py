@@ -736,7 +736,10 @@ class View_New(Handler):
                 dbCertificateCA,
                 _is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
-                self.request.api_context, cert_pem, display_name=cert_file_name
+                self.request.api_context,
+                cert_pem,
+                display_name=cert_file_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:

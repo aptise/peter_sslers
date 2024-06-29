@@ -136,7 +136,9 @@ def create__AcmeOrderless(
 
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
-            ctx, _domain_name
+            ctx,
+            _domain_name,
+            discovery_type="via ACME Orderless",
         )[
             0
         ]  # (dbDomain, _is_created)
@@ -644,6 +646,7 @@ def create__CertificateRequest(
     dbPrivateKey: "PrivateKey",
     domain_names: List[str],
     dbCertificateSigned__issued: Optional["CertificateSigned"] = None,
+    discovery_type: Optional[str] = None,
 ) -> "CertificateRequest":
     """
     Create a new Certificate Signing Request (CSR)
@@ -656,6 +659,7 @@ def create__CertificateRequest(
     :param dbPrivateKey: (required) Private Key used to sign the CSR
     :param domain_names: (required) A list of domain names
     :param dbCertificateSigned__issued: (optional) a `model_objects.CertificateSigned`
+    :param str discovery_type:
     """
     if (
         certificate_request_source_id
@@ -754,7 +758,9 @@ def create__CertificateRequest(
     # ensure the domains are registered into our system
     domain_objects: Dict[str, "Domain"] = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
-            ctx, _domain_name
+            ctx,
+            _domain_name,
+            discovery_type="via CertificateRequest",
         )[
             0
         ]  # (dbDomain, _is_created)
@@ -766,7 +772,9 @@ def create__CertificateRequest(
         dbUniqueFQDNSet,
         is_created_fqdn,
     ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
-        ctx, list(domain_objects.values())
+        ctx,
+        list(domain_objects.values()),
+        discovery_type="via CertificateRequest",
     )
 
     # build the cert
@@ -780,6 +788,7 @@ def create__CertificateRequest(
     dbCertificateRequest.key_technology_id = dbPrivateKey.key_technology_id
     dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbCertificateRequest.spki_sha256 = csr__spki_sha256
+    dbCertificateRequest.discovery_type = discovery_type
 
     ctx.dbSession.add(dbCertificateRequest)
     ctx.dbSession.flush(objects=[dbCertificateRequest])
@@ -825,6 +834,7 @@ def create__CertificateSigned(
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    discovery_type: Optional[str] = None,
 ) -> "CertificateSigned":
     """
     Create a new CertificateSigned
@@ -835,7 +845,6 @@ def create__CertificateSigned(
       expect to see
     :param dbCertificateCAChain: (required) The :class:`model.objects.CertificateCAChain`
       that signed this certificate.
-
 
     :param is_active: (optional) default `False`; do not activate a certificate
       when uploading unless specified.
@@ -848,6 +857,7 @@ def create__CertificateSigned(
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
     :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
         required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
+    :param str discovery_type:
     """
     if not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
@@ -950,6 +960,7 @@ def create__CertificateSigned(
         dbCertificateSigned.private_key_id = dbPrivateKey.id
         dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
         dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
+        dbCertificateSigned.discovery_type = discovery_type
         if dbUniqueFQDNSet.count_domains == 1:
             dbCertificateSigned.is_single_domain_cert = True
         elif dbUniqueFQDNSet.count_domains >= 1:
@@ -1168,6 +1179,7 @@ def create__PrivateKey(
     key_technology_id: int = model_utils.KeyTechnology.from_string("RSA"),
     private_key_id__replaces: Optional[int] = None,
     acme_account_id__owner: Optional[int] = None,
+    discovery_type: Optional[str] = None,
     # bits_rsa=None,
 ) -> "PrivateKey":
     """
@@ -1183,6 +1195,8 @@ def create__PrivateKey(
     # :param int bits_rsa: (required) how many bits for the RSA PrivateKey, see `key_technology_id`
 
     :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
+
+    :param str discovery_type:
     """
     key_pem = cert_utils.new_private_key(key_technology_id=key_technology_id)
     dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(

@@ -29,7 +29,7 @@ documentation_grid = {
     "Views Configuration": {
         "admin_prefix": {
             "docstring": "The URL prefix which the admin tool will appear under.",
-            "default": "`/.well-known/admin`",
+            "default": "`/.well-known/peter_sslers`",
             "show_on_settings": True,
         },
         "api_host": {

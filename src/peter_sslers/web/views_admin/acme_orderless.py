@@ -517,7 +517,9 @@ class View_Focus_Manipulate(View_Focus):
                 dbDomain,
                 is_domain_added,
             ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                self.request.api_context, domain_name
+                self.request.api_context,
+                domain_name,
+                discovery_type="ACME Orderless",
             )
             if not dbDomain:
                 formStash.fatal_field(field="domain", message="invalid domain")

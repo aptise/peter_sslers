@@ -160,32 +160,32 @@ class FunctionalTests_Main(AppTest):
 
     @routes_tested("admin")
     def test_custom_headers(self):
-        res = self.testapp.get("/.well-known/admin", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers", status=200)
         assert res.headers["X-Peter-SSLers"] == "production"
 
     @routes_tested("admin")
     def test_root(self):
-        res = self.testapp.get("/.well-known/admin", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers", status=200)
 
     @routes_tested("admin:whoami")
     def test_admin_whoami(self):
-        res = self.testapp.get("/.well-known/admin/whoami", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/whoami", status=200)
 
     @routes_tested("admin:help")
     def test_help(self):
-        res = self.testapp.get("/.well-known/admin/help", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/help", status=200)
 
     @routes_tested("admin:settings")
     def test_settings(self):
-        res = self.testapp.get("/.well-known/admin/settings", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/settings", status=200)
 
     @routes_tested("admin:api")
     def test_api_docs(self):
-        res = self.testapp.get("/.well-known/admin/api", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/api", status=200)
 
     @routes_tested("admin:search")
     def test_search(self):
-        res = self.testapp.get("/.well-known/admin/search", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/search", status=200)
 
     @routes_tested("public_whoami")
     def test_public_whoami(self):
@@ -221,7 +221,9 @@ class FunctionalTests_AcmeAccount(AppTest):
         _private_key_cycle = TEST_FILES["AcmeAccount"]["2"]["private_key_cycle"]
         key_filepath = self._filepath_testfile(_key_filename)
 
-        res = self.testapp.get("/.well-known/admin/acme-account/upload", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/upload", status=200
+        )
         form = res.form
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
@@ -231,7 +233,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/acme-account/"""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/"""
         )
         assert res2.location.endswith(
             """?result=success&operation=upload&is_created=1"""
@@ -250,7 +252,9 @@ class FunctionalTests_AcmeAccount(AppTest):
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
-        res2 = self.testapp.post("/.well-known/admin/acme-account/upload.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/upload.json", form
+        )
         assert res2.status_code == 200
         assert "result" in res2.json
         assert res2.json["result"] == "error"
@@ -270,7 +274,9 @@ class FunctionalTests_AcmeAccount(AppTest):
         form["account__private_key_cycle"] = TEST_FILES["AcmeAccount"]["2"][
             "private_key_cycle"
         ]
-        res3 = self.testapp.post("/.well-known/admin/acme-account/upload.json", form)
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/upload.json", form
+        )
         assert res3.status_code == 200
         res3_json = json.loads(res3.text)
         assert "result" in res3_json
@@ -279,18 +285,22 @@ class FunctionalTests_AcmeAccount(AppTest):
     @routes_tested(("admin:acme_accounts", "admin:acme_accounts_paginated"))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-accounts", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-accounts", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-accounts/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-accounts/1", status=200)
 
     @routes_tested(("admin:acme_accounts|json", "admin:acme_accounts_paginated|json"))
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-accounts.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-accounts.json", status=200
+        )
         assert "AcmeAccounts" in res.json
 
         # json paginated
-        res = self.testapp.get("/.well-known/admin/acme-accounts/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-accounts/1.json", status=200
+        )
         assert "AcmeAccounts" in res.json
 
     @routes_tested(
@@ -314,60 +324,62 @@ class FunctionalTests_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-account-keys" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-account-keys" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-account-keys/1" % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations/1" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-account-keys/1" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-orders" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-orders/1" % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/private-keys" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/private-keys/1" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations/1"
+            % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/certificate-signeds" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-orders" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/certificate-signeds/1" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-orders/1" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/queue-certificates" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/private-keys" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/queue-certificates/1" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/private-keys/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/certificate-signeds" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/certificate-signeds/1"
+            % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -385,13 +397,14 @@ class FunctionalTests_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s.json" % focus_id, status=200
         )
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/parse.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/parse.json" % focus_id,
+            status=200,
         )
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id
@@ -399,28 +412,32 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "id" in res.json["AcmeAccount"]["AcmeAccountKey"]
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-account-keys.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-account-keys.json"
+            % focus_id,
             status=200,
         )
         assert "AcmeAccountKeys" in res.json
         assert "pagination" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-account-keys/1.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-account-keys/1.json"
+            % focus_id,
             status=200,
         )
         assert "AcmeAccountKeys" in res.json
         assert "pagination" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations.json"
+            % focus_id,
             status=200,
         )
         assert "AcmeAuthorizations" in res.json
         assert "pagination" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations/1.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations/1.json"
+            % focus_id,
             status=200,
         )
         assert "AcmeAuthorizations" in res.json
@@ -431,13 +448,14 @@ class FunctionalTests_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/key.key" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/key.key" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/key.pem" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/key.pem" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/key.pem.txt" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/key.pem.txt" % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:acme_account:focus:edit", "admin:acme_account:focus:mark"))
@@ -445,7 +463,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
             status=303,
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
@@ -458,7 +476,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -468,21 +486,21 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=inactive")
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
             {"action": "global_default"},
         )
         assert res.status_code == 303
@@ -493,7 +511,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         # edit it
         # only the private_key_cycle
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/edit" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/edit" % focus_id, status=200
         )
         form = res.form
         _existing = form["account__private_key_cycle"].value
@@ -507,7 +525,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=success&operation=edit"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=edit"""
             % focus_id
         )
         res3 = self.testapp.get(res2.location, status=200)
@@ -529,7 +547,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -541,7 +559,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 200
@@ -550,7 +568,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res.json["AcmeAccount"]["is_active"] is False
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -560,7 +578,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # then global_default
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "global_default"},
         )
         assert res.status_code == 200
@@ -569,13 +587,13 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res.json["AcmeAccount"]["is_global_default"] is True
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/edit.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, status=200
         )
         assert "form_fields" in res.json
 
         form: Dict = {}
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
+            "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
         )
         assert res2.json["result"] == "error"
         assert "form_errors" in res2.json
@@ -591,7 +609,7 @@ class FunctionalTests_AcmeAccount(AppTest):
             _new = "single_certificate"
         form = {"account__private_key_cycle": _new}
         res3 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
+            "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
         )
         assert res3.json["result"] == "error"
         assert "form_errors" in res3.json
@@ -608,7 +626,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         form["account__private_key_technology"] = "RSA"
         res4 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/edit.json" % focus_id, form
+            "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
         )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
@@ -617,21 +635,23 @@ class FunctionalTests_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         # !!!: test `POST required` `acme-account/new.json`
-        res = self.testapp.get("/.well-known/admin/acme-account/new.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/new.json", status=200
+        )
         assert "form_fields" in res.json
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `acme-account/upload.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/upload.json", status=200
+            "/.well-known/peter_sslers/acme-account/upload.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `acme-account/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             status=200,
         )
         assert "form_fields" in res.json
@@ -640,7 +660,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # !!!: test `POST required` `acme-account/%s/acme-server/authenticate.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/authenticate.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate.json"
             % focus_id,
             status=200,
         )
@@ -650,7 +670,8 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         # !!!: test `POST required` `acme-account/%s/acme-server/check.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/check.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/check.json"
+            % focus_id,
             status=200,
         )
         assert res.location is None  # no redirect
@@ -676,9 +697,13 @@ class FunctionalTests_AcmeAuthorization(AppTest):
     @routes_tested(("admin:acme_authorizations", "admin:acme_authorizations_paginated"))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-authorizations", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-authorizations", status=200
+        )
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-authorizations/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-authorizations/1", status=200
+        )
 
     @routes_tested(
         ("admin:acme_authorizations|json", "admin:acme_authorizations_paginated|json")
@@ -686,12 +711,12 @@ class FunctionalTests_AcmeAuthorization(AppTest):
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorizations.json", status=200
+            "/.well-known/peter_sslers/acme-authorizations.json", status=200
         )
         assert "AcmeAuthorizations" in res.json
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorizations/1.json", status=200
+            "/.well-known/peter_sslers/acme-authorizations/1.json", status=200
         )
         assert "AcmeAuthorizations" in res.json
 
@@ -708,22 +733,24 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-orders" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-orders" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-orders/1" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-orders/1" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-challenges" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-challenges"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-challenges/1" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-challenges/1"
+            % focus_id,
             status=200,
         )
 
@@ -732,7 +759,8 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s.json" % focus_id,
+            status=200,
         )
         assert "AcmeAuthorization" in res.json
         assert res.json["AcmeAuthorization"]["id"] == focus_id
@@ -743,11 +771,12 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         # !!!: test `POST required` `acme-authorization/%s/acme-server/sync`
         # "admin:acme_authorization:focus:sync"
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync"
+            % focus_id,
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-authorization/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
             % focus_id
         )
 
@@ -756,13 +785,13 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         # !!!: test `POST required` `acme-authorization/%s/acme-server/deactivate`
         # "admin:acme_authorization:focus:deactivate"
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate"
             % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-authorization/%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
             % focus_id
         )
 
@@ -772,7 +801,8 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         # !!!: test `POST required` `acme-authorization/%s/acme-server/sync.json`
         # "admin:acme_authorization:focus:sync|json"
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % focus_id,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -783,7 +813,7 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         # !!!: test `POST required` `acme-authorization/%s/acme-server/deactivate.json`
         # "admin:acme_authorization:focus:deactivate|json"
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate.json"
             % focus_id,
             status=200,
         )
@@ -812,26 +842,28 @@ class FunctionalTests_AcmeChallenge(AppTest):
     @routes_tested(("admin:acme_challenges", "admin:acme_challenges_paginated"))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-challenges", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-challenges", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges?status=active", status=200
+            "/.well-known/peter_sslers/acme-challenges?status=active", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges?status=resolved", status=200
+            "/.well-known/peter_sslers/acme-challenges?status=resolved", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges?status=processing", status=200
+            "/.well-known/peter_sslers/acme-challenges?status=processing", status=200
         )
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-challenges/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1?status=active", status=200
+            "/.well-known/peter_sslers/acme-challenges/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1?status=resolved", status=200
+            "/.well-known/peter_sslers/acme-challenges/1?status=active", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1?status=processing", status=200
+            "/.well-known/peter_sslers/acme-challenges/1?status=resolved", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-challenges/1?status=processing", status=200
         )
 
     @routes_tested(
@@ -839,34 +871,41 @@ class FunctionalTests_AcmeChallenge(AppTest):
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-challenges.json", status=200)
-        assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges.json?status=active", status=200
+            "/.well-known/peter_sslers/acme-challenges.json", status=200
         )
         assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges.json?status=resolved", status=200
+            "/.well-known/peter_sslers/acme-challenges.json?status=active", status=200
         )
         assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges.json?status=processing", status=200
+            "/.well-known/peter_sslers/acme-challenges.json?status=resolved", status=200
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-challenges.json?status=processing",
+            status=200,
         )
         assert "AcmeChallenges" in res.json
 
         # json paginated
-        res = self.testapp.get("/.well-known/admin/acme-challenges/1.json", status=200)
-        assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1.json?status=active", status=200
+            "/.well-known/peter_sslers/acme-challenges/1.json", status=200
         )
         assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1.json?status=resolved", status=200
+            "/.well-known/peter_sslers/acme-challenges/1.json?status=active", status=200
         )
         assert "AcmeChallenges" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenges/1.json?status=processing", status=200
+            "/.well-known/peter_sslers/acme-challenges/1.json?status=resolved",
+            status=200,
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-challenges/1.json?status=processing",
+            status=200,
         )
         assert "AcmeChallenges" in res.json
 
@@ -875,7 +914,7 @@ class FunctionalTests_AcmeChallenge(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-challenge/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:acme_challenge:focus|json"))
@@ -883,7 +922,7 @@ class FunctionalTests_AcmeChallenge(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-challenge/%s.json" % focus_id, status=200
         )
         assert "AcmeChallenge" in res.json
         assert res.json["AcmeChallenge"]["id"] == focus_id
@@ -894,24 +933,25 @@ class FunctionalTests_AcmeChallenge(AppTest):
         # !!!: test `POST required` `acme-challenge/%s/acme-server/sync`
         # "admin:acme_challenge:focus:acme_server:sync",
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s/acme-server/sync" % focus_id,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-challenge/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-challenge/%s/acme-server/trigger`
         # "admin:acme_challenge:focus:acme_server:trigger",
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % focus_id,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
+            % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-challenge/%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
             % focus_id
         )
 
@@ -921,7 +961,8 @@ class FunctionalTests_AcmeChallenge(AppTest):
         # !!!: test `POST required` `acme-challenge/%s/acme-server/sync.json`
         # "admin:acme_challenge:focus:acme_server:sync|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s/acme-server/sync.json" % focus_id,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -930,7 +971,8 @@ class FunctionalTests_AcmeChallenge(AppTest):
         # !!!: test `POST required` `acme-challenge/%s/acme-server/trigger.json`
         # "admin:acme_challenge:focus:acme_server:trigger|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json" % focus_id,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -975,9 +1017,13 @@ class FunctionalTests_AcmeChallengePolls(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-challenge-polls", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-challenge-polls", status=200
+        )
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-challenge-polls/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-challenge-polls/1", status=200
+        )
 
     @routes_tested(
         ("admin:acme_challenge_polls|json", "admin:acme_challenge_polls_paginated|json")
@@ -985,13 +1031,13 @@ class FunctionalTests_AcmeChallengePolls(AppTest):
     def test_list_json(self):
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-polls/1.json", status=200
+            "/.well-known/peter_sslers/acme-challenge-polls/1.json", status=200
         )
         assert "AcmeChallengePolls" in res.json
 
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-polls/1.json", status=200
+            "/.well-known/peter_sslers/acme-challenge-polls/1.json", status=200
         )
         assert "AcmeChallengePolls" in res.json
         assert "pagination" in res.json
@@ -1012,11 +1058,11 @@ class FunctionalTests_AcmeChallengeUnknownPolls(AppTest):
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-unknown-polls", status=200
+            "/.well-known/peter_sslers/acme-challenge-unknown-polls", status=200
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-unknown-polls/1", status=200
+            "/.well-known/peter_sslers/acme-challenge-unknown-polls/1", status=200
         )
 
     @routes_tested(
@@ -1028,13 +1074,13 @@ class FunctionalTests_AcmeChallengeUnknownPolls(AppTest):
     def test_list_json(self):
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-unknown-polls/1.json", status=200
+            "/.well-known/peter_sslers/acme-challenge-unknown-polls/1.json", status=200
         )
         assert "AcmeChallengeUnknownPolls" in res.json
 
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-unknown-polls/1.json", status=200
+            "/.well-known/peter_sslers/acme-challenge-unknown-polls/1.json", status=200
         )
         assert "AcmeChallengeUnknownPolls" in res.json
         assert "pagination" in res.json
@@ -1058,19 +1104,25 @@ class FunctionalTests_AcmeDnsServer(AppTest):
     @routes_tested(("admin:acme_dns_servers", "admin:acme_dns_servers_paginated"))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-dns-servers", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-dns-servers", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-dns-servers/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-servers/1", status=200
+        )
 
     @routes_tested(
         ("admin:acme_dns_servers|json", "admin:acme_dns_servers_paginated|json")
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-dns-servers.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-servers.json", status=200
+        )
         assert "AcmeDnsServers" in res.json
         # json paginated
-        res = self.testapp.get("/.well-known/admin/acme-dns-servers/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-servers/1.json", status=200
+        )
         assert "AcmeDnsServers" in res.json
 
     @routes_tested(
@@ -1084,14 +1136,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/acme-dns-server-accounts" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/acme-dns-server-accounts/1"
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/1"
             % focus_id,
             status=200,
         )
@@ -1107,13 +1160,13 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server/%s.json" % focus_id, status=200
         )
         assert "AcmeDnsServer" in res.json
         assert res.json["AcmeDnsServer"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/acme-dns-server-accounts.json"
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts.json"
             % focus_id,
             status=200,
         )
@@ -1122,7 +1175,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert "AcmeDnsServerAccounts" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/acme-dns-server-accounts/1.json"
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/1.json"
             % focus_id,
             status=200,
         )
@@ -1144,7 +1197,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_global_default(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
             assert "set Global Default" in res.text
             assert "form-mark-global_default" in res.forms
@@ -1155,7 +1208,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_inactive(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
             assert "Deactivate" in res.text
             assert "form-mark-inactive" in res.forms
@@ -1166,7 +1219,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_active(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
             assert "set Global Default" not in res.text
             assert "Activate" in res.text
@@ -1178,11 +1231,12 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _edit_url(_item_id, _root_url, expect_failure_nochange=None):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
             assert ("/acme-dns-server/%s/edit" % _item_id) in res.text
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s/edit" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s/edit" % _item_id,
+                status=200,
             )
             assert "form-edit" in res.forms
             form = res.forms["form-edit"]
@@ -1247,19 +1301,21 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_global_default(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
+                status=200,
             )
             assert "AcmeDnsServer" in res.json
             assert res.json["AcmeDnsServer"]["id"] == _item_id
             assert res.json["AcmeDnsServer"]["is_global_default"] is False
 
             res2 = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
+                status=200,
             )
             assert "instructions" in res2.json
 
             res3 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {},
                 status=200,
             )
@@ -1268,7 +1324,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
             res4 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {"action": "global_default"},
                 status=200,
             )
@@ -1278,19 +1334,21 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_inactive(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
+                status=200,
             )
             assert "AcmeDnsServer" in res.json
             assert res.json["AcmeDnsServer"]["id"] == _item_id
             assert res.json["AcmeDnsServer"]["is_active"] is True
 
             res2 = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
+                status=200,
             )
             assert "instructions" in res2.json
 
             res3 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {},
                 status=200,
             )
@@ -1299,7 +1357,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
             res4 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {"action": "inactive"},
                 status=200,
             )
@@ -1309,19 +1367,21 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _make_active(_item_id):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
+                status=200,
             )
             assert "AcmeDnsServer" in res.json
             assert res.json["AcmeDnsServer"]["id"] == _item_id
             assert res.json["AcmeDnsServer"]["is_active"] is False
 
             res2 = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
+                status=200,
             )
             assert "instructions" in res2.json
 
             res3 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {},
                 status=200,
             )
@@ -1330,7 +1390,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
             res4 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/mark.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
                 {"action": "active"},
                 status=200,
             )
@@ -1340,18 +1400,20 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         def _edit_url(_item_id, _root_url, expect_failure_nochange=False):
             res = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
+                status=200,
             )
             assert res.json["AcmeDnsServer"]["id"] == _item_id
             assert "AcmeDnsServer" in res.json
 
             res2 = self.testapp.get(
-                "/.well-known/admin/acme-dns-server/%s/edit.json" % _item_id, status=200
+                "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
+                status=200,
             )
             assert "instructions" in res2.json
 
             res3 = self.testapp.post(
-                "/.well-known/admin/acme-dns-server/%s/edit.json" % _item_id,
+                "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
                 {},
                 status=200,
             )
@@ -1361,7 +1423,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
             if not expect_failure_nochange:
                 res4 = self.testapp.post(
-                    "/.well-known/admin/acme-dns-server/%s/edit.json" % _item_id,
+                    "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
                     {"root_url": _root_url},
                     status=200,
                 )
@@ -1370,7 +1432,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
                 assert res4.json["AcmeDnsServer"]["root_url"] == _root_url
             else:
                 res4 = self.testapp.post(
-                    "/.well-known/admin/acme-dns-server/%s/edit.json" % _item_id,
+                    "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
                     {"root_url": _root_url},
                     status=200,
                 )
@@ -1423,7 +1485,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
     def test_against_acme_dns__html(self):
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server/%s" % focus_id, status=200
         )
         assert "form-check" in res.forms
         form = res.forms["form-check"]
@@ -1437,7 +1499,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/check.json" % focus_id,
             {},
             status=200,
         )
@@ -1459,7 +1521,9 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         """
         python -munittest tests.test_pyramid_app.FunctionalTests_AcmeDnsServer.test_new_html
         """
-        res = self.testapp.get("/.well-known/admin/acme-dns-server/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server/new", status=200
+        )
         form = res.form
         form["root_url"] = TEST_FILES["AcmeDnsServer"]["3"]["root_url"]
         res2 = form.submit()
@@ -1469,14 +1533,14 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         obj_id = matched.groups()[0]
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server/%s" % obj_id, status=200
         )
 
         # ensure-domains
         # use ._get_one() so the real server is used
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/ensure-domains" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/ensure-domains" % focus_id,
             status=200,
         )
         assert "form-acme_dns_server-ensure_domains" in res.forms
@@ -1496,7 +1560,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         # import_domain
         # use ._get_one() so the real server is used
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/import-domain" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/import-domain" % focus_id,
             status=200,
         )
         assert "form-acme_dns_server-import_domain" in res.forms
@@ -1536,7 +1600,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
     )
     def test_new_json(self):
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/new.json", {}, status=200
+            "/.well-known/peter_sslers/acme-dns-server/new.json", {}, status=200
         )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
@@ -1544,7 +1608,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         _payload = {"root_url": TEST_FILES["AcmeDnsServer"]["4"]["root_url"]}
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/new.json", _payload, status=200
+            "/.well-known/peter_sslers/acme-dns-server/new.json", _payload, status=200
         )
         assert res.json["result"] == "success"
         assert res.json["is_created"] is True
@@ -1556,13 +1620,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         # use ._get_one() so the real server is used
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/ensure-domains.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/ensure-domains.json"
+            % focus_id,
             status=200,
         )
         assert "domain_names" in res.json["form_fields"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/ensure-domains.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/ensure-domains.json"
+            % focus_id,
             status=200,
         )
         assert res.json["result"] == "error"
@@ -1575,7 +1641,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             ]
         }
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/ensure-domains.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/ensure-domains.json"
+            % focus_id,
             _payload,
             status=200,
         )
@@ -1587,7 +1654,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             for _domain in res.json["result_matrix"].keys()
         ]
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/ensure-domains-results.json?acme-dns-server-accounts=%s"
+            "/.well-known/peter_sslers/acme-dns-server/%s/ensure-domains-results.json?acme-dns-server-accounts=%s"
             % (focus_id, ",".join(_account_ids))
         )
         assert res.json["result"] == "success"
@@ -1596,7 +1663,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         # import-domain
         # use ._get_one() so the real server is used
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/import-domain.json"
+            % focus_id,
             status=200,
         )
         _intended_payload = TEST_FILES["Domains"]["AcmeDnsServer"]["1"][
@@ -1606,7 +1674,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert k in res.json["form_fields"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/import-domain.json"
+            % focus_id,
             status=200,
         )
         assert res.json["result"] == "error"
@@ -1614,7 +1683,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/import-domain.json"
+            % focus_id,
             _intended_payload,
             status=200,
         )
@@ -1628,7 +1698,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         # submit this again, and we should go to existing!
         res = self.testapp.post(
-            "/.well-known/admin/acme-dns-server/%s/import-domain.json" % focus_id,
+            "/.well-known/peter_sslers/acme-dns-server/%s/import-domain.json"
+            % focus_id,
             _intended_payload,
             status=200,
         )
@@ -1645,14 +1716,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
         # !!!: test `POST required` `acme-dns-server/%s/check.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server/%s/check.json" % focus_id,
+            status=200,
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `acme-dns-server/new.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/new.json", status=200
+            "/.well-known/peter_sslers/acme-dns-server/new.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
@@ -1679,11 +1751,11 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-accounts", status=200
+            "/.well-known/peter_sslers/acme-dns-server-accounts", status=200
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-accounts/1", status=200
+            "/.well-known/peter_sslers/acme-dns-server-accounts/1", status=200
         )
 
     @routes_tested(
@@ -1695,12 +1767,12 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-accounts.json", status=200
+            "/.well-known/peter_sslers/acme-dns-server-accounts.json", status=200
         )
         assert "AcmeDnsServerAccounts" in res.json
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-accounts/1.json", status=200
+            "/.well-known/peter_sslers/acme-dns-server-accounts/1.json", status=200
         )
         assert "AcmeDnsServerAccounts" in res.json
 
@@ -1709,7 +1781,8 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-account/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server-account/%s" % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:acme_dns_server_account:focus|json",))
@@ -1717,7 +1790,8 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server-account/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-dns-server-account/%s.json" % focus_id,
+            status=200,
         )
         assert "AcmeDnsServerAccount" in res.json
         assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
@@ -1737,17 +1811,23 @@ class FunctionalTests_AcmeEventLog(AppTest):
     @routes_tested(("admin:acme_event_log", "admin:acme_event_log_paginated"))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-event-logs", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-event-logs", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/acme-event-logs/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-event-logs/1", status=200
+        )
 
     @routes_tested(("admin:acme_event_log|json", "admin:acme_event_log_paginated|json"))
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-event-logs.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-event-logs.json", status=200
+        )
         assert "AcmeEventLogs" in res.json
         # json paginated
-        res = self.testapp.get("/.well-known/admin/acme-event-logs/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-event-logs/1.json", status=200
+        )
         assert "AcmeEventLogs" in res.json
 
     @routes_tested(("admin:acme_event_log:focus"))
@@ -1761,7 +1841,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-event-log/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-event-log/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:acme_event_log:focus|json"))
@@ -1775,7 +1855,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-event-log/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-event-log/%s.json" % focus_id, status=200
         )
         assert "AcmeEventLog" in res.json
         assert res.json["AcmeEventLog"]["id"] == focus_id
@@ -1812,10 +1892,10 @@ class FunctionalTests_AcmeOrder(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder.test_list_html
         """
         # root
-        res = self.testapp.get("/.well-known/admin/acme-orders", status=303)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-orders", status=303)
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-orders/active"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-orders/active"""
         )
 
         for _type in (
@@ -1824,10 +1904,10 @@ class FunctionalTests_AcmeOrder(AppTest):
             "finished",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/acme-orders/%s" % _type, status=200
+                "/.well-known/peter_sslers/acme-orders/%s" % _type, status=200
             )
             res = self.testapp.get(
-                "/.well-known/admin/acme-orders/%s/1" % _type, status=200
+                "/.well-known/peter_sslers/acme-orders/%s/1" % _type, status=200
             )
 
     @routes_tested(
@@ -1846,10 +1926,10 @@ class FunctionalTests_AcmeOrder(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder.test_list_json
         """
-        res = self.testapp.get("/.well-known/admin/acme-orders.json", status=303)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-orders.json", status=303)
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-orders/active.json"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-orders/active.json"""
         )
 
         for _type in (
@@ -1858,11 +1938,11 @@ class FunctionalTests_AcmeOrder(AppTest):
             "finished",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/acme-orders/%s.json" % _type, status=200
+                "/.well-known/peter_sslers/acme-orders/%s.json" % _type, status=200
             )
             assert "AcmeOrders" in res.json
             res = self.testapp.get(
-                "/.well-known/admin/acme-orders/%s/1.json" % _type, status=200
+                "/.well-known/peter_sslers/acme-orders/%s/1.json" % _type, status=200
             )
             assert "AcmeOrders" in res.json
 
@@ -1871,16 +1951,18 @@ class FunctionalTests_AcmeOrder(AppTest):
     @routes_tested(("admin:acme_orders:active:acme_server:sync",))
     def test_active_acme_server_sync_html(self):
         res = self.testapp.get(
-            "/.well-known/admin/acme-orders/active/acme-server/sync", status=303
+            "/.well-known/peter_sslers/acme-orders/active/acme-server/sync", status=303
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-orders/active?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-orders/active?result=error&operation=acme+server+sync&message=HTTP+POST+required"
         )
         res = self.testapp.post(
-            "/.well-known/admin/acme-orders/active/acme-server/sync", {}, status=303
+            "/.well-known/peter_sslers/acme-orders/active/acme-server/sync",
+            {},
+            status=303,
         )
         assert res.location.startswith(
-            "http://peter-sslers.example.com/.well-known/admin/acme-orders/active?result=success&operation=acme+server+sync&acme_order_ids.success="
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-orders/active?result=success&operation=acme+server+sync&acme_order_ids.success="
         )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -1888,13 +1970,14 @@ class FunctionalTests_AcmeOrder(AppTest):
     @routes_tested(("admin:acme_orders:active:acme_server:sync|json",))
     def test_active_acme_server_sync_json(self):
         res = self.testapp.get(
-            "/.well-known/admin/acme-orders/active/acme-server/sync.json", status=200
+            "/.well-known/peter_sslers/acme-orders/active/acme-server/sync.json",
+            status=200,
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-orders/active/acme-server/sync.json",
+            "/.well-known/peter_sslers/acme-orders/active/acme-server/sync.json",
             {},
             status=200,
         )
@@ -1914,18 +1997,18 @@ class FunctionalTests_AcmeOrder(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-event-logs" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-event-logs" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-event-logs/1" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-event-logs/1" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/audit" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s/audit" % focus_id, status=200
         )
 
     @routes_tested(("admin:acme_order:focus|json", "admin:acme_order:focus:audit|json"))
@@ -1933,13 +2016,13 @@ class FunctionalTests_AcmeOrder(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % focus_id, status=200
         )
         assert "AcmeOrder" in res.json
         assert res.json["AcmeOrder"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/audit.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s/audit.json" % focus_id, status=200
         )
         assert "AuditReport" in res.json
         assert "AcmeOrder" in res.json["AuditReport"]
@@ -1955,69 +2038,71 @@ class FunctionalTests_AcmeOrder(AppTest):
         # !!!: test `POST required` `acme-order/%s/acme-server/sync`
         # "admin:acme_order:focus:acme_server:sync",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % focus_id, status=303
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync" % focus_id,
+            status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-order/%s/acme-server/sync-authorizations`
         # "admin:acme_order:focus:acme_server:sync_authorizations",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations"
             % focus_id,
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-order/%s/acme-finalize`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-finalize" % focus_id, status=303
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize" % focus_id,
+            status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-order/%s/acme-server/deactivate-authorizations`
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/deactivate-authorizations"
             % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-order/%s/mark`
         # "admin:acme_order:focus:mark",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/mark?action=deactivate" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark?action=deactivate" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=mark&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=mark&message=HTTP+POST+required"
             % focus_id
         )
 
         # !!!: test `POST required` `acme-order/%s/acme-process`
         # "admin:acme_order:focus:acme-process",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-process" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-process" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+process&message=HTTP+POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=error&operation=acme+process&message=HTTP+POST+required"
             % focus_id
         )
 
@@ -2026,7 +2111,7 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         # !!!: test `POST required` `acme-order/%s/acme-server/sync.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -2034,7 +2119,7 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         # !!!: test `POST required` `acme-order/%s/acme-server/sync-authorizations.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations.json"
             % focus_id,
             status=200,
         )
@@ -2044,7 +2129,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         # !!!: test `POST required` `acme-order/%s/acme-finalize.json`
         # "admin:acme_order:focus:acme_finalize|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-finalize.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize.json" % focus_id,
+            status=200,
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
@@ -2052,7 +2138,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         # !!!: test `POST required` `acme-order/%s/acme-server/deactivate-authorizations.json`
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations.json"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/deactivate-authorizations.json"
             % focus_id,
             status=200,
         )
@@ -2061,7 +2147,8 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         # !!!: test `POST required` `acme-order/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/mark.json?action=deactivate" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=deactivate"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -2070,7 +2157,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         # !!!: test `POST required` `acme-order/%s/acme-process.json`
         # "admin:acme_order:focus:acme-process",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-process.json" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-process.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -2078,14 +2165,14 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         # !!!: test `POST required` `acme-order/new/freeform.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/freeform.json", status=200
+            "/.well-known/peter_sslers/acme-order/new/freeform.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `acme-order/%s/renew/quick.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/quick.json" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/renew/quick.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -2093,7 +2180,7 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         # !!!: test `POST required` `acme-order/%s/renew/custom.json`
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/custom.json" % focus_id,
+            "/.well-known/peter_sslers/acme-order/%s/renew/custom.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -2123,8 +2210,10 @@ class FunctionalTests_AcmeOrderless(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-orderlesss", status=200)
-        res = self.testapp.get("/.well-known/admin/acme-orderlesss/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-orderlesss", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderlesss/1", status=200
+        )
 
     @routes_tested(
         (
@@ -2134,9 +2223,13 @@ class FunctionalTests_AcmeOrderless(AppTest):
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-orderlesss.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderlesss.json", status=200
+        )
         assert "AcmeOrderless" in res.json
-        res = self.testapp.get("/.well-known/admin/acme-orderlesss/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderlesss/1.json", status=200
+        )
         assert "AcmeOrderless" in res.json
 
     @routes_tested(("admin:acme_orderless:focus",))
@@ -2145,10 +2238,10 @@ class FunctionalTests_AcmeOrderless(AppTest):
         challenge_id = focus_item.acme_challenges[0].id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-orderless/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s"
+            "/.well-known/peter_sslers/acme-orderless/%s/acme-challenge/%s"
             % (focus_id, challenge_id),
             status=200,
         )
@@ -2159,13 +2252,13 @@ class FunctionalTests_AcmeOrderless(AppTest):
         challenge_id = focus_item.acme_challenges[0].id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/acme-orderless/%s.json" % focus_id, status=200
         )
         assert "AcmeOrderless" in res.json
         assert res.json["AcmeOrderless"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s.json"
+            "/.well-known/peter_sslers/acme-orderless/%s/acme-challenge/%s.json"
             % (focus_id, challenge_id),
             status=200,
         )
@@ -2185,7 +2278,9 @@ class FunctionalTests_AcmeOrderless(AppTest):
     def test_new_html(self):
         # TODO - test with acmeaccountkey and challenge url
 
-        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderless/new", status=200
+        )
         form = res.form
         form["domain_names_http01"] = ",".join(
             TEST_FILES["AcmeOrderless"]["new-1"]["domain_names_http01"]
@@ -2199,7 +2294,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
 
         # build a new form and submit edits
         res3 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s" % obj_id,
             status=200,
         )
         form = res3.forms["acmeorderless-update"]
@@ -2223,11 +2318,11 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-orderless/%s?result=success"
             % obj_id
         )
         res5 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s?result=success" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s?result=success" % obj_id,
             status=200,
         )
 
@@ -2262,11 +2357,11 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res6.status_code == 303
         assert (
             res6.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-orderless/%s?result=success"
             % obj_id
         )
         res7 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s?status=success" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s?status=success" % obj_id,
             status=200,
         )
 
@@ -2283,18 +2378,18 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res8.status_code == 303
         assert (
             res8.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-orderless/%s?result=success"
             % obj_id
         )
 
         res9 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s?result=success" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s?result=success" % obj_id,
             status=200,
         )
         assert not res9.forms
 
         res10 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s"
+            "/.well-known/peter_sslers/acme-orderless/%s/acme-challenge/%s"
             % (obj_id, _challenge_ids[0]),
             status=200,
         )
@@ -2312,14 +2407,18 @@ class FunctionalTests_AcmeOrderless(AppTest):
     def test_new_json(self):
         # TODO - test with acmeaccountkey and challenge url
 
-        res = self.testapp.get("/.well-known/admin/acme-orderless/new.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderless/new.json", status=200
+        )
         assert "form_fields" in res.json
 
         form = {}
         form["domain_names_http01"] = ",".join(
             TEST_FILES["AcmeOrderless"]["new-1"]["domain_names_http01"]
         )
-        res2 = self.testapp.post("/.well-known/admin/acme-orderless/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-orderless/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert "form_errors" in res2.json
@@ -2327,7 +2426,9 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res2.json["form_errors"]["account_key_option"] == "Missing value"
 
         form["account_key_option"] = "none"
-        res2b = self.testapp.post("/.well-known/admin/acme-orderless/new.json", form)
+        res2b = self.testapp.post(
+            "/.well-known/peter_sslers/acme-orderless/new.json", form
+        )
         assert res2b.status_code == 200
         assert res2b.json["result"] == "success"
         assert "AcmeOrderless" in res2b.json
@@ -2335,7 +2436,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         obj_id = res2b.json["AcmeOrderless"]["id"]
 
         res3 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s.json" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s.json" % obj_id,
             status=200,
         )
         assert "AcmeOrderless" in res3.json
@@ -2360,7 +2461,8 @@ class FunctionalTests_AcmeOrderless(AppTest):
             assert update_fields[_field_keyauthorization] == ""
             update_fields[_field_keyauthorization] = "keyauthorization_%s" % _id
         res4 = self.testapp.post(
-            "/.well-known/admin/acme-orderless/%s/update.json" % obj_id, update_fields
+            "/.well-known/peter_sslers/acme-orderless/%s/update.json" % obj_id,
+            update_fields,
         )
         assert res4.status_code == 200
         assert "AcmeOrderless" in res4.json
@@ -2368,7 +2470,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
 
         # build a new form to assert the previous edits worked
         res3 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s.json" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s.json" % obj_id,
             status=200,
         )
         assert "AcmeOrderless" in res3.json
@@ -2401,7 +2503,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         add_fields["acme_challenge_type"] = "http-01"
 
         res6 = self.testapp.post(
-            "/.well-known/admin/acme-orderless/%s/add-challenge.json" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s/add-challenge.json" % obj_id,
             add_fields,
         )
         assert res6.status_code == 200
@@ -2410,13 +2512,13 @@ class FunctionalTests_AcmeOrderless(AppTest):
 
         form = res3.json["forms"]["acmeorderless-deactivate"]
         res7 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s/deactivate.json" % obj_id
+            "/.well-known/peter_sslers/acme-orderless/%s/deactivate.json" % obj_id
         )
         assert "instructions" in res7.json
         assert "HTTP POST required" in res7.json["instructions"]
 
         res8 = self.testapp.post(
-            "/.well-known/admin/acme-orderless/%s/deactivate.json" % obj_id, {}
+            "/.well-known/peter_sslers/acme-orderless/%s/deactivate.json" % obj_id, {}
         )
         assert res8.status_code == 200
         assert "result" in res8.json
@@ -2425,7 +2527,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res8.json["AcmeOrderless"]["is_processing"] is False
 
         res10 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s.json"
+            "/.well-known/peter_sslers/acme-orderless/%s/acme-challenge/%s.json"
             % (obj_id, _challenge_ids[0]),
             status=200,
         )
@@ -2443,13 +2545,15 @@ class FunctionalTests_AcmeAccountProvider(AppTest):
     @routes_tested("admin:acme_account_providers")
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-account-providers", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account-providers", status=200
+        )
 
     @routes_tested("admin:acme_account_providers|json")
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/admin/acme-account-providers.json", status=200
+            "/.well-known/peter_sslers/acme-account-providers.json", status=200
         )
         assert "AcmeAccountProviders" in res.json
 
@@ -2467,9 +2571,11 @@ class FunctionalTests_CertificateCA(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/certificate-cas", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/certificate-cas", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/certificate-cas/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-cas/1", status=200
+        )
 
     @routes_tested(
         (
@@ -2479,11 +2585,15 @@ class FunctionalTests_CertificateCA(AppTest):
     )
     def test_list_json(self):
         # JSON root
-        res = self.testapp.get("/.well-known/admin/certificate-cas.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-cas.json", status=200
+        )
         assert "CertificateCAs" in res.json
 
         # JSON paginated
-        res = self.testapp.get("/.well-known/admin/certificate-cas/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-cas/1.json", status=200
+        )
         assert "CertificateCAs" in res.json
 
     @routes_tested(
@@ -2499,40 +2609,45 @@ class FunctionalTests_CertificateCA(AppTest):
         )
     )
     def test_focus_html(self):
-        res = self.testapp.get("/.well-known/admin/certificate-ca/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/certificate-ca/1", status=200)
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.pem", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/cert.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.pem.txt", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/cert.pem.txt", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.cer", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/cert.cer", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.crt", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/cert.crt", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/cert.der", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/cert.der", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-signeds", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-signeds", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-signeds/1", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-signeds/1",
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-0", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0",
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-0/1", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0/1",
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-n", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n",
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/certificate-ca-chains-n/1", status=200
+            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n/1",
+            status=200,
         )
 
     @routes_tested(
@@ -2542,9 +2657,11 @@ class FunctionalTests_CertificateCA(AppTest):
         )
     )
     def test_focus_json(self):
-        res = self.testapp.get("/.well-known/admin/certificate-ca/1.json", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/1/parse.json", status=200
+            "/.well-known/peter_sslers/certificate-ca/1.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca/1/parse.json", status=200
         )
         assert "CertificateCA" in res.json
         assert "id" in res.json["CertificateCA"]
@@ -2565,7 +2682,7 @@ class FunctionalTests_CertificateCA(AppTest):
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload-cert", status=200
+            "/.well-known/peter_sslers/certificate-ca/upload-cert", status=200
         )
         form = res.form
         form["cert_file"] = Upload(_cert_ca_filepath)
@@ -2595,11 +2712,11 @@ class FunctionalTests_CertificateCA(AppTest):
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca/upload-cert.json", status=200
+            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", status=200
         )
         _data = {"cert_file": Upload(_cert_ca_filepath)}
         res2 = self.testapp.post(
-            "/.well-known/admin/certificate-ca/upload-cert.json", _data
+            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", _data
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
@@ -2610,7 +2727,7 @@ class FunctionalTests_CertificateCA(AppTest):
         )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
         obj_id = res2.json["CertificateCA"]["id"]
         res3 = self.testapp.get(
-            "/.well-known/admin/certificate-ca/%s" % obj_id, status=200
+            "/.well-known/peter_sslers/certificate-ca/%s" % obj_id, status=200
         )
 
     def _expected_preferences(self):
@@ -2717,7 +2834,7 @@ class FunctionalTests_CertificateCA(AppTest):
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -2748,7 +2865,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=prioritize"
         )
         res5 = self.testapp.get(res4.location, status=200)
         _ensure_compliance_form(res5, expected_preferences_altered)
@@ -2768,7 +2885,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res6.status_code == 303
         assert (
             res6.location
-            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=prioritize"
         )
 
         # now, do this again.
@@ -2787,7 +2904,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # start from scratch
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
         )
         forms = res.forms
         assert "form-preferred-add" in res.forms
@@ -2800,7 +2917,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=add"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=add"
         )
 
         # ensure compliance
@@ -2825,7 +2942,7 @@ class FunctionalTests_CertificateCA(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/admin/certificate-cas/preferred?result=success&operation=delete"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=delete"
         )
 
         # delete again, we should fail!
@@ -2838,7 +2955,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -2902,7 +3019,7 @@ class FunctionalTests_CertificateCA(AppTest):
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
         )
         _ensure_compliance_payload(res, expected_preferences_initial)
 
@@ -2910,7 +3027,8 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # GET/POST prioritize
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            status=200,
         )
         assert "form_fields" in res.json
         _expected_fields: Tuple[str, ...] = ("slot", "fingerprint_sha1", "priority")
@@ -2918,7 +3036,7 @@ class FunctionalTests_CertificateCA(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json"
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -2926,21 +3044,24 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # GET/POST add
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred/add.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred/add.json", status=200
         )
         assert "form_fields" in res.json
         _expected_fields = ("fingerprint_sha1",)
         assert len(res.json["form_fields"]) == len(_expected_fields)
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
-        res = self.testapp.post("/.well-known/admin/certificate-cas/preferred/add.json")
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-cas/preferred/add.json"
+        )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
         # GET/POST delete
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred/delete.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json",
+            status=200,
         )
         assert "form_fields" in res.json
         _expected_fields = ("fingerprint_sha1", "slot")
@@ -2948,7 +3069,7 @@ class FunctionalTests_CertificateCA(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/delete.json"
+            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -2964,7 +3085,8 @@ class FunctionalTests_CertificateCA(AppTest):
             "priority": "increase",
         }
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -2978,7 +3100,8 @@ class FunctionalTests_CertificateCA(AppTest):
             _payload["fingerprint_sha1"]
         ]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -2996,7 +3119,8 @@ class FunctionalTests_CertificateCA(AppTest):
             "priority": "decrease",
         }
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -3010,7 +3134,8 @@ class FunctionalTests_CertificateCA(AppTest):
             _payload["fingerprint_sha1"]
         ]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -3032,7 +3157,8 @@ class FunctionalTests_CertificateCA(AppTest):
             _payload["fingerprint_sha1"]
         ]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -3041,7 +3167,8 @@ class FunctionalTests_CertificateCA(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -3061,7 +3188,8 @@ class FunctionalTests_CertificateCA(AppTest):
             _payload["fingerprint_sha1"]
         ]
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -3070,7 +3198,8 @@ class FunctionalTests_CertificateCA(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/prioritize.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
+            _payload,
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -3088,7 +3217,7 @@ class FunctionalTests_CertificateCA(AppTest):
         # add
         _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/add.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/add.json", _payload
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -3103,14 +3232,14 @@ class FunctionalTests_CertificateCA(AppTest):
             )
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
         )
         _ensure_compliance_payload(res, expected_preferences_added)
 
         # delete
         _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/delete.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json", _payload
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -3118,7 +3247,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # delete again, we should fail!
         res = self.testapp.post(
-            "/.well-known/admin/certificate-cas/preferred/delete.json", _payload
+            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json", _payload
         )
         assert res.status_code == 200
         assert res.json["result"] == "error"
@@ -3130,7 +3259,7 @@ class FunctionalTests_CertificateCA(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/admin/certificate-cas/preferred.json", status=200
+            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
         )
         _ensure_compliance_payload(res, expected_preferences_initial)
 
@@ -3150,9 +3279,13 @@ class FunctionalTests_CertificateCAChain(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/certificate-ca-chains", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-chains", status=200
+        )
         # paginated
-        res = self.testapp.get("/.well-known/admin/certificate-ca-chains/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-chains/1", status=200
+        )
 
     @routes_tested(
         (
@@ -3163,13 +3296,13 @@ class FunctionalTests_CertificateCAChain(AppTest):
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chains.json", status=200
+            "/.well-known/peter_sslers/certificate-ca-chains.json", status=200
         )
         assert "CertificateCAChains" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chains/1.json", status=200
+            "/.well-known/peter_sslers/certificate-ca-chains/1.json", status=200
         )
         assert "CertificateCAChains" in res.json
 
@@ -3180,18 +3313,20 @@ class FunctionalTests_CertificateCAChain(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_focus_html
         """
-        res = self.testapp.get("/.well-known/admin/certificate-ca-chain/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chain/1/chain.pem", status=200
+            "/.well-known/peter_sslers/certificate-ca-chain/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chain/1/chain.pem.txt", status=200
+            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem.txt", status=200
         )
 
     @routes_tested(("admin:certificate_ca_chain:focus|json",))
     def test_focus_json(self):
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chain/1.json", status=200
+            "/.well-known/peter_sslers/certificate-ca-chain/1.json", status=200
         )
 
     @routes_tested(("admin:certificate_ca_chain:upload_chain",))
@@ -3214,7 +3349,8 @@ class FunctionalTests_CertificateCAChain(AppTest):
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca-chain/upload-chain", status=200
+                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain",
+                status=200,
             )
             form = res.form
             form["chain_file"] = Upload(tmpfile_pem.name)
@@ -3237,7 +3373,8 @@ class FunctionalTests_CertificateCAChain(AppTest):
         """
         # test chain uploads
         res = self.testapp.get(
-            "/.well-known/admin/certificate-ca-chain/upload-chain.json", status=200
+            "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+            status=200,
         )
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
@@ -3255,7 +3392,8 @@ class FunctionalTests_CertificateCAChain(AppTest):
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             _data = {"chain_file": Upload(tmpfile_pem.name)}
             res2 = self.testapp.post(
-                "/.well-known/admin/certificate-ca-chain/upload-chain.json", _data
+                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+                _data,
             )
             assert res2.status_code == 200
             assert res2.json["result"] == "success"
@@ -3290,10 +3428,14 @@ class FunctionalTests_CertificateRequest(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/certificate-requests", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-requests", status=200
+        )
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/certificate-requests/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-requests/1", status=200
+        )
 
     @routes_tested(
         (
@@ -3304,13 +3446,13 @@ class FunctionalTests_CertificateRequest(AppTest):
     def test_list_json(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/certificate-requests.json", status=200
+            "/.well-known/peter_sslers/certificate-requests.json", status=200
         )
         assert "CertificateRequests" in res.json
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/certificate-requests/1.json", status=200
+            "/.well-known/peter_sslers/certificate-requests/1.json", status=200
         )
         assert "CertificateRequests" in res.json
 
@@ -3325,16 +3467,16 @@ class FunctionalTests_CertificateRequest(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-request/%s" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/acme-orders" % focus_id,
+            "/.well-known/peter_sslers/certificate-request/%s/acme-orders" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/acme-orders/1" % focus_id,
+            "/.well-known/peter_sslers/certificate-request/%s/acme-orders/1" % focus_id,
             status=200,
         )
 
@@ -3343,13 +3485,15 @@ class FunctionalTests_CertificateRequest(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/csr.csr" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-request/%s/csr.csr" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/csr.pem" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-request/%s/csr.pem" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/csr.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/certificate-request/%s/csr.pem.txt" % focus_id,
             status=200,
         )
 
@@ -3358,7 +3502,8 @@ class FunctionalTests_CertificateRequest(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-request/%s.json" % focus_id,
+            status=200,
         )
         assert "CertificateRequest" in res.json
         assert res.json["CertificateRequest"]["id"] == focus_id
@@ -3396,10 +3541,12 @@ class FunctionalTests_CertificateSigned(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/certificate-signeds", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds", status=303
+        )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/certificate-signeds/active"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/certificate-signeds/active"""
         )
 
         for _type in (
@@ -3409,10 +3556,10 @@ class FunctionalTests_CertificateSigned(AppTest):
             "inactive",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signeds/%s" % _type, status=200
+                "/.well-known/peter_sslers/certificate-signeds/%s" % _type, status=200
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signeds/%s/1" % _type, status=200
+                "/.well-known/peter_sslers/certificate-signeds/%s/1" % _type, status=200
             )
 
     @routes_tested(
@@ -3431,11 +3578,11 @@ class FunctionalTests_CertificateSigned(AppTest):
     def test_list_json(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signeds.json", status=303
+            "/.well-known/peter_sslers/certificate-signeds.json", status=303
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/certificate-signeds/active.json"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/certificate-signeds/active.json"""
         )
 
         for _type in (
@@ -3445,12 +3592,14 @@ class FunctionalTests_CertificateSigned(AppTest):
             "inactive",
         ):
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signeds/%s.json" % _type, status=200
+                "/.well-known/peter_sslers/certificate-signeds/%s.json" % _type,
+                status=200,
             )
             assert "CertificateSigneds" in res.json
 
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signeds/%s/1.json" % _type, status=200
+                "/.well-known/peter_sslers/certificate-signeds/%s/1.json" % _type,
+                status=200,
             )
             assert "CertificateSigneds" in res.json
 
@@ -3473,15 +3622,17 @@ class FunctionalTests_CertificateSigned(AppTest):
             )
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/queue-certificates" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/queue-certificates"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/queue-certificates/1" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/queue-certificates/1"
+            % focus_id,
             status=200,
         )
 
@@ -3510,58 +3661,65 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # CERTIFICATE
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.pem" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/cert.pem" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.cer" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s/cert.pem.txt" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.crt" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s/cert.cer" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/cert.der" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s/cert.crt" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signed/%s/cert.der" % focus_id,
+            status=200,
         )
 
         # CHAIN
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/chain.pem" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s/chain.pem" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/chain.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/chain.pem.txt" % focus_id,
             status=200,
         )
 
         # FULLCHAIN
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/fullchain.pem" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/fullchain.pem" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/fullchain.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/fullchain.pem.txt"
+            % focus_id,
             status=200,
         )
 
         # PRIVATE KEY
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/privkey.key" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/privkey.key" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/privkey.pem" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/privkey.pem" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/privkey.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/privkey.pem.txt"
+            % focus_id,
             status=200,
         )
 
         # CONFIG
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/config.zip" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/config.zip" % focus_id,
             status=200,
         )
         assert res.headers["Content-Type"] == "application/zip"
@@ -3604,17 +3762,19 @@ class FunctionalTests_CertificateSigned(AppTest):
             )
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s.json" % focus_id,
+            status=200,
         )
         assert "CertificateSigned" in res.json
         assert res.json["CertificateSigned"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/config.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/config.json" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/parse.json" % focus_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s/parse.json" % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:certificate_signed:focus:mark",))
@@ -3622,7 +3782,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/mark" % focus_id
+            "/.well-known/peter_sslers/certificate-signed/%s/mark" % focus_id
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
@@ -3636,26 +3796,26 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/certificate-signed/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-signed/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
             % focus_id
         )
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=inactive")
 
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -3663,7 +3823,7 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark" % focus_id,
             {"action": "revoked"},
         )
         assert res.status_code == 303
@@ -3682,7 +3842,7 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -3694,7 +3854,7 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark.json" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 200
@@ -3703,7 +3863,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         assert res.json["CertificateSigned"]["is_active"] is False
 
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -3713,7 +3873,7 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark.json" % focus_id,
             {"action": "revoked"},
         )
         assert res.status_code == 200
@@ -3729,7 +3889,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         # upload a new cert
         #
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/upload", status=200
+            "/.well-known/peter_sslers/certificate-signed/upload", status=200
         )
         _SelfSigned_id = "1"
         form = res.form
@@ -3751,13 +3911,13 @@ class FunctionalTests_CertificateSigned(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/certificate-signed/"""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/certificate-signed/"""
         )
 
     @routes_tested(("admin:certificate_signed:upload|json",))
     def test_upload_json(self):
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/upload.json", status=200
+            "/.well-known/peter_sslers/certificate-signed/upload.json", status=200
         )
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         _SelfSigned_id = "2"
@@ -3778,14 +3938,15 @@ class FunctionalTests_CertificateSigned(AppTest):
             )
         )
         res2 = self.testapp.post(
-            "/.well-known/admin/certificate-signed/upload.json", form
+            "/.well-known/peter_sslers/certificate-signed/upload.json", form
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert res2.json["CertificateSigned"]["created"] in (True, False)
         certificate_id = res2.json["CertificateSigned"]["id"]
         res3 = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s.json" % certificate_id, status=200
+            "/.well-known/peter_sslers/certificate-signed/%s.json" % certificate_id,
+            status=200,
         )
         assert "CertificateSigned" in res3.json
 
@@ -3796,13 +3957,15 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # this shifted to POST only
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/nginx-cache-expire"
+            % focus_id,
             status=303,
         )
         assert RE_CertificateSigned_operation_nginx_expire__GET.match(res.location)
 
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/nginx-cache-expire"
+            % focus_id,
         )
         assert res.status_code == 303
         assert RE_CertificateSigned_operation_nginx_expire.match(res.location)
@@ -3813,14 +3976,14 @@ class FunctionalTests_CertificateSigned(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire.json"
+            "/.well-known/peter_sslers/certificate-signed/%s/nginx-cache-expire.json"
             % focus_id,
             status=200,
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/certificate-signed/%s/nginx-cache-expire.json"
+            "/.well-known/peter_sslers/certificate-signed/%s/nginx-cache-expire.json"
             % focus_id,
         )
         assert res.status_code == 200
@@ -3831,7 +3994,7 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # !!!: test `POST required` `certificate-signed/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/certificate-signed/%s/mark.json" % focus_id,
             status=200,
         )
         assert "form_fields" in res.json
@@ -3866,26 +4029,27 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events", status=303
+            "/.well-known/peter_sslers/coverage-assurance-events", status=303
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/coverage-assurance-events/all"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/coverage-assurance-events/all"
         )
 
         # roots
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/all", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/all", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/unresolved", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/unresolved", status=200
         )
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/all/1", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/all/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/unresolved/1", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/unresolved/1",
+            status=200,
         )
 
     @routes_tested(
@@ -3899,21 +4063,23 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
     def test_list_json(self):
         # roots
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/all.json", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/all.json", status=200
         )
         assert "CoverageAssuranceEvents" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/unresolved.json", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/unresolved.json",
+            status=200,
         )
         assert "CoverageAssuranceEvents" in res.json
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/all/1.json", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/all/1.json", status=200
         )
         assert "CoverageAssuranceEvents" in res.json
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-events/unresolved/1.json", status=200
+            "/.well-known/peter_sslers/coverage-assurance-events/unresolved/1.json",
+            status=200,
         )
         assert "CoverageAssuranceEvents" in res.json
 
@@ -3927,10 +4093,11 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/coverage-assurance-event/%s" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s/children" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/children" % focus_id,
             status=200,
         )
 
@@ -3944,13 +4111,15 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/coverage-assurance-event/%s.json" % focus_id,
+            status=200,
         )
         assert "CoverageAssuranceEvent" in res.json
         assert res.json["CoverageAssuranceEvent"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s/children.json" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/children.json"
+            % focus_id,
             status=200,
         )
         assert "CoverageAssuranceEvent" in res.json
@@ -3969,7 +4138,8 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/coverage-assurance-event/%s" % focus_id,
+            status=200,
         )
         _form_names = [i for i in res.forms.keys() if str(i).startswith("form-mark-")]
         # 4 possible options, but 3 should appear
@@ -3988,7 +4158,8 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
 
         # we should no longer have abandoned, and
         res_alt = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/coverage-assurance-event/%s" % focus_id,
+            status=200,
         )
         _form_names_alt = [
             i for i in res.forms.keys() if str(i).startswith("form-mark-")
@@ -4010,13 +4181,15 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/coverage-assurance-event/%s.json" % focus_id,
+            status=200,
         )
         assert "CoverageAssuranceEvent" in res.json
         assert res.json["CoverageAssuranceEvent"]["id"] == focus_id
 
         res2 = self.testapp.get(
-            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/mark.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res2.json
@@ -4035,7 +4208,8 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
             resolution = "abandoned"
 
         res3 = self.testapp.post(
-            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/mark.json"
+            % focus_id,
             {},
             status=200,
         )
@@ -4045,7 +4219,8 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
 
         _payload = {"action": "resolution", "resolution": resolution}
         res4 = self.testapp.post(
-            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/mark.json"
+            % focus_id,
             _payload,
             status=200,
         )
@@ -4059,7 +4234,8 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
 
         # try it again
         res5 = self.testapp.post(
-            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/coverage-assurance-event/%s/mark.json"
+            % focus_id,
             _payload,
             status=200,
         )
@@ -4099,14 +4275,20 @@ class FunctionalTests_Domain(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/domains", status=200)
-        res = self.testapp.get("/.well-known/admin/domains/challenged", status=200)
-        res = self.testapp.get("/.well-known/admin/domains/expiring", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domains", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/challenged", status=200
+        )
+        res = self.testapp.get("/.well-known/peter_sslers/domains/expiring", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/domains/1", status=200)
-        res = self.testapp.get("/.well-known/admin/domains/challenged/1", status=200)
-        res = self.testapp.get("/.well-known/admin/domains/expiring/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domains/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/challenged/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/expiring/1", status=200
+        )
 
     @routes_tested(
         (
@@ -4120,39 +4302,47 @@ class FunctionalTests_Domain(AppTest):
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/domains.json", status=200)
-        assert "Domains" in res.json
-
-        res = self.testapp.get("/.well-known/admin/domains/challenged.json", status=200)
-        assert "Domains" in res.json
-
-        res = self.testapp.get("/.well-known/admin/domains/expiring.json", status=200)
-        assert "Domains" in res.json
-
-        # json paginated
-        res = self.testapp.get("/.well-known/admin/domains/1.json", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domains.json", status=200)
         assert "Domains" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/domains/challenged/1.json", status=200
+            "/.well-known/peter_sslers/domains/challenged.json", status=200
         )
         assert "Domains" in res.json
 
-        res = self.testapp.get("/.well-known/admin/domains/expiring/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/expiring.json", status=200
+        )
+        assert "Domains" in res.json
+
+        # json paginated
+        res = self.testapp.get("/.well-known/peter_sslers/domains/1.json", status=200)
+        assert "Domains" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/challenged/1.json", status=200
+        )
+        assert "Domains" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/expiring/1.json", status=200
+        )
         assert "Domains" in res.json
 
     @routes_tested(("admin:domains:search",))
     def test_search_html(self):
-        res = self.testapp.get("/.well-known/admin/domains/search", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domains/search", status=200)
         res2 = self.testapp.post(
-            "/.well-known/admin/domains/search", {"domain": "example.com"}
+            "/.well-known/peter_sslers/domains/search", {"domain": "example.com"}
         )
 
     @routes_tested(("admin:domains:search|json",))
     def test_search_json(self):
-        res = self.testapp.get("/.well-known/admin/domains/search.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains/search.json", status=200
+        )
         res2 = self.testapp.post(
-            "/.well-known/admin/domains/search.json", {"domain": "example.com"}
+            "/.well-known/peter_sslers/domains/search.json", {"domain": "example.com"}
         )
 
     @routes_tested(
@@ -4182,70 +4372,88 @@ class FunctionalTests_Domain(AppTest):
         (focus_item, focus_id) = self._get_one()
         focus_name = focus_item.domain_name
 
-        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
-        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_name, status=200)
-
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-authorizations" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-authorizations/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s" % focus_name, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-challenges" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-authorizations" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-challenges/1" % focus_id, status=200
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-orders" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-orders/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-authorizations/1" % focus_id,
+            status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-orderlesss" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-challenges" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-orderlesss/1" % focus_id, status=200
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/domain-autocerts" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/domain-autocerts/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-challenges/1" % focus_id,
+            status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/certificate-requests" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-orders" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/certificate-requests/1" % focus_id, status=200
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/certificate-signeds" % focus_id, status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/certificate-signeds/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-orders/1" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/queue-certificates" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-orderlesss" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/queue-certificates/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-orderlesss/1" % focus_id,
+            status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/unique-fqdn-sets" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/domain-autocerts" % focus_id,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/unique-fqdn-sets/1" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/domain-autocerts/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-requests" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-requests/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/queue-certificates/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/unique-fqdn-sets" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/unique-fqdn-sets/1" % focus_id,
+            status=200,
         )
 
     @routes_tested(
@@ -4260,24 +4468,24 @@ class FunctionalTests_Domain(AppTest):
         focus_name = focus_item.domain_name
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s.json" % focus_id, status=200
         )
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         assert res.json["Domain"]["domain_name"].lower() == focus_name.lower()
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s.json" % focus_name, status=200
+            "/.well-known/peter_sslers/domain/%s.json" % focus_name, status=200
         )
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         assert res.json["Domain"]["domain_name"].lower() == focus_name.lower()
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/config.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/config.json" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/calendar.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/calendar.json" % focus_id, status=200
         )
 
     @routes_tested(("admin:domain:focus:mark", "admin:domain:focus:update_recents"))
@@ -4288,7 +4496,7 @@ class FunctionalTests_Domain(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark" % focus_id,
             status=303,
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
@@ -4299,7 +4507,7 @@ class FunctionalTests_Domain(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -4309,34 +4517,34 @@ class FunctionalTests_Domain(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=inactive")
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/update-recents" % focus_id, status=303
+            "/.well-known/peter_sslers/domain/%s/update-recents" % focus_id, status=303
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/domain/%s?result=error&operation=update-recents&message=POST+required"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/domain/%s?result=error&operation=update-recents&message=POST+required"""
             % focus_id
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/update-recents" % focus_id, status=303
+            "/.well-known/peter_sslers/domain/%s/update-recents" % focus_id, status=303
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/domain/%s?result=success&operation=update-recents"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/domain/%s?result=success&operation=update-recents"""
             % focus_id
         )
 
@@ -4352,7 +4560,7 @@ class FunctionalTests_Domain(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -4364,7 +4572,7 @@ class FunctionalTests_Domain(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark.json" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 200
@@ -4373,7 +4581,7 @@ class FunctionalTests_Domain(AppTest):
         assert res.json["Domain"]["is_active"] is False
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -4382,7 +4590,8 @@ class FunctionalTests_Domain(AppTest):
         assert res.json["Domain"]["is_active"] is True
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/update-recents.json" % focus_id,
+            status=200,
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -4400,7 +4609,7 @@ class FunctionalTests_Domain(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_Domain.test_acme_dns_server_new__html
         """
-        res = self.testapp.get("/.well-known/admin/domain/new", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domain/new", status=200)
         assert "form-domain-new" in res.forms
         form = res.forms["form-domain-new"]
         form["domain_name"] = TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"][
@@ -4413,14 +4622,17 @@ class FunctionalTests_Domain(AppTest):
         focus_id = matched.groups()[0]
 
         # get the record
-        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s" % focus_id, status=200
+        )
         assert """<th>AcmeDnsConfiguration</th>""" in res.text
         assert (
-            """/.well-known/admin/domain/%s/acme-dns-server/new""" % focus_id
+            """/.well-known/peter_sslers/domain/%s/acme-dns-server/new""" % focus_id
         ) in res.text
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new" % focus_id,
+            status=200,
         )
         assert "form-acme_dns_server-new" in res.forms
         form = res.forms["form-acme_dns_server-new"]
@@ -4433,28 +4645,32 @@ class FunctionalTests_Domain(AppTest):
         assert res2.status_code == 303
         assert RE_Domain_new_AcmeDnsServerAccount.match(res2.location)
 
-        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s" % focus_id, status=200
+        )
         assert """AcmeDnsServerAccounts - Existing""" in res.text
         assert (
-            """href="/.well-known/admin/domain/%s/acme-dns-server-accounts""" % focus_id
+            """href="/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts"""
+            % focus_id
         ) in res.text
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server-accounts" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts" % focus_id,
             status=200,
         )
-        assert "/.well-known/admin/acme-dns-server/" in res.text
-        assert "/.well-known/admin/acme-dns-server-account/" in res.text
+        assert "/.well-known/peter_sslers/acme-dns-server/" in res.text
+        assert "/.well-known/peter_sslers/acme-dns-server-account/" in res.text
 
         # force a new AcmeDnsServerAccount, and it should fail
         # originally this had a 200 return with errors
         # now we do a 303 redirect
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=303
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new" % focus_id,
+            status=303,
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/domain/%s/acme-dns-server-accounts?result=error&error=accounts-exist&operation=new"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts?result=error&error=accounts-exist&operation=new"""
             % focus_id
         )
 
@@ -4470,7 +4686,9 @@ class FunctionalTests_Domain(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_Domain.test_acme_dns_server_new__json
         """
-        res = self.testapp.post("/.well-known/admin/domain/new.json", {}, status=200)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/domain/new.json", {}, status=200
+        )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
@@ -4481,7 +4699,7 @@ class FunctionalTests_Domain(AppTest):
             ]["Domain"],
         }
         res = self.testapp.post(
-            "/.well-known/admin/domain/new.json", _payload, status=200
+            "/.well-known/peter_sslers/domain/new.json", _payload, status=200
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -4490,14 +4708,14 @@ class FunctionalTests_Domain(AppTest):
 
         # get the record
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s.json" % focus_id, status=200
         )
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         # note: there is no signifier to add a new acme-dns server account
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json  # already covered
@@ -4507,7 +4725,7 @@ class FunctionalTests_Domain(AppTest):
         assert 1 in res.json["valid_options"]["acme_dns_server_id"]
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
             {},
             status=200,
         )
@@ -4520,7 +4738,7 @@ class FunctionalTests_Domain(AppTest):
         }
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
             _payload,
             status=200,
         )
@@ -4531,7 +4749,8 @@ class FunctionalTests_Domain(AppTest):
         acme_dns_server_account_id = res.json["AcmeDnsServerAccount"]["id"]
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server-accounts.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts.json"
+            % focus_id,
             status=200,
         )
         assert "Domain" in res.json
@@ -4542,7 +4761,7 @@ class FunctionalTests_Domain(AppTest):
 
         # force a new AcmeDnsServerAccount, and it should fail
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
             _payload,
             # status=200,
         )
@@ -4565,12 +4784,13 @@ class FunctionalTests_Domain(AppTest):
 
         # this shifted to POST only
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/nginx-cache-expire" % focus_id, status=303
+            "/.well-known/peter_sslers/domain/%s/nginx-cache-expire" % focus_id,
+            status=303,
         )
         assert RE_Domain_operation_nginx_expire__GET.match(res.location)
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/nginx-cache-expire" % focus_id
+            "/.well-known/peter_sslers/domain/%s/nginx-cache-expire" % focus_id
         )
         assert res.status_code == 303
         assert RE_Domain_operation_nginx_expire.match(res.location)
@@ -4582,13 +4802,13 @@ class FunctionalTests_Domain(AppTest):
         focus_name = focus_item.domain_name
 
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/nginx-cache-expire.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/nginx-cache-expire.json" % focus_id,
             status=200,
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/nginx-cache-expire.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/nginx-cache-expire.json" % focus_id,
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -4601,7 +4821,7 @@ class FunctionalTests_Domain(AppTest):
 
         # !!!: test `POST required` `domain/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark.json" % focus_id,
             {"action": "active"},
             status=200,
         )
@@ -4611,19 +4831,20 @@ class FunctionalTests_Domain(AppTest):
 
         # !!!: test `POST required` `domain/%s/update-recents.json`
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
+            "/.well-known/peter_sslers/domain/%s/update-recents.json" % focus_id,
+            status=200,
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `domain/%s/new.json`
-        res = self.testapp.get("/.well-known/admin/domain/new.json", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domain/new.json", status=200)
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `domain/%s/acme-dns-server/new.json`
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -4643,10 +4864,12 @@ class FunctionalTests_DomainAutocert(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/domain-autocerts", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domain-autocerts", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/domain-autocerts/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain-autocerts/1", status=200
+        )
 
     @routes_tested(
         (
@@ -4656,11 +4879,15 @@ class FunctionalTests_DomainAutocert(AppTest):
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/domain-autocerts.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain-autocerts.json", status=200
+        )
         assert "DomainAutocerts" in res.json
 
         # json paginated
-        res = self.testapp.get("/.well-known/admin/domain-autocerts/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain-autocerts/1.json", status=200
+        )
         assert "DomainAutocerts" in res.json
 
 
@@ -4677,10 +4904,14 @@ class FunctionalTests_DomainBlocklisted(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/domains-blocklisted", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains-blocklisted", status=200
+        )
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/domains-blocklisted/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domains-blocklisted/1", status=200
+        )
 
     @routes_tested(
         (
@@ -4691,13 +4922,13 @@ class FunctionalTests_DomainBlocklisted(AppTest):
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/admin/domains-blocklisted.json", status=200
+            "/.well-known/peter_sslers/domains-blocklisted.json", status=200
         )
         assert "DomainsBlocklisted" in res.json
 
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/domains-blocklisted/1.json", status=200
+            "/.well-known/peter_sslers/domains-blocklisted/1.json", status=200
         )
         assert "DomainsBlocklisted" in res.json
 
@@ -4708,7 +4939,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # "admin:acme_order:new:freeform",
-        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+        )
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -4738,7 +4971,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
     def test_AcmeOrderless_new_fails(self):
-        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderless/new", status=200
+        )
         form = res.form
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
         res2 = form.submit()
@@ -4751,7 +4986,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
     def test_AcmeOrderless_add_fails(self):
-        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-orderless/new", status=200
+        )
         form = res.form
         form["domain_names_http01"] = "example.com"
         res2 = form.submit()
@@ -4762,7 +4999,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
 
         # build a new form and submit edits
         res3 = self.testapp.get(
-            "/.well-known/admin/acme-orderless/%s" % obj_id,
+            "/.well-known/peter_sslers/acme-orderless/%s" % obj_id,
             status=200,
         )
         form = res3.forms["acmeorderless-add_challenge"]
@@ -4782,7 +5019,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
     def test_QueueDomain_add_fails(self):
-        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add", status=200
+        )
         _domain_names = [
             "always-fail.example.com",
             "test-queuedomain-add-fails.example.com",
@@ -4793,7 +5032,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blocklisted%22%2C+%22test-queuedomain-add-fails.example.com%22%3A+%22queued%22%7D"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blocklisted%22%2C+%22test-queuedomain-add-fails.example.com%22%3A+%22queued%22%7D"""
         )
 
 
@@ -4833,22 +5072,28 @@ class FunctionalTests_Operations(AppTest):
         )
 
         # this should redirect
-        res = self.testapp.get("/.well-known/admin/operations", status=302)
+        res = self.testapp.get("/.well-known/peter_sslers/operations", status=302)
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/log"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/log"
         )
 
-        res = self.testapp.get("/.well-known/admin/operations/log", status=200)
-        res = self.testapp.get("/.well-known/admin/operations/log/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/operations/log", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/operations/log/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/operations/log/item/%s" % focus_item.id, status=200
+            "/.well-known/peter_sslers/operations/log/item/%s" % focus_item.id,
+            status=200,
         )
 
-        res = self.testapp.get("/.well-known/admin/operations/object-log", status=200)
-        res = self.testapp.get("/.well-known/admin/operations/object-log/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/operations/object-log/item/%s" % focus_item_event.id,
+            "/.well-known/peter_sslers/operations/object-log", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/operations/object-log/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/operations/object-log/item/%s"
+            % focus_item_event.id,
             status=200,
         )
 
@@ -4864,23 +5109,33 @@ class FunctionalTests_Operations(AppTest):
             else False
         )
         if _nginx:
-            res = self.testapp.get("/.well-known/admin/operations/nginx", status=200)
-            res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=200)
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/operations/nginx", status=200
+            )
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/operations/nginx/1", status=200
+            )
         else:
-            res = self.testapp.get("/.well-known/admin/operations/nginx", status=302)
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/operations/nginx", status=302
+            )
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
+                == "http://peter-sslers.example.com/.well-known/peter_sslers?result=error&error=nginx+is+not+enabled"
             )
 
-            res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=302)
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/operations/nginx/1", status=302
+            )
             assert (
                 res.location
-                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=nginx+is+not+enabled"
+                == "http://peter-sslers.example.com/.well-known/peter_sslers?result=error&error=nginx+is+not+enabled"
             )
 
-        res = self.testapp.get("/.well-known/admin/operations/redis", status=200)
-        res = self.testapp.get("/.well-known/admin/operations/redis/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/operations/redis", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/operations/redis/1", status=200
+        )
 
 
 class FunctionalTests_PrivateKey(AppTest):
@@ -4912,10 +5167,10 @@ class FunctionalTests_PrivateKey(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/private-keys", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/private-keys", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/private-keys/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/private-keys/1", status=200)
 
     @routes_tested(
         (
@@ -4925,10 +5180,14 @@ class FunctionalTests_PrivateKey(AppTest):
     )
     def test_list_json(self):
         # json
-        res = self.testapp.get("/.well-known/admin/private-keys.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/private-keys.json", status=200
+        )
         assert "PrivateKeys" in res.json
 
-        res = self.testapp.get("/.well-known/admin/private-keys/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/private-keys/1.json", status=200
+        )
         assert "PrivateKeys" in res.json
 
     @routes_tested(
@@ -4946,30 +5205,31 @@ class FunctionalTests_PrivateKey(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/certificate-requests" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/certificate-requests" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/certificate-requests/1" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/certificate-requests/1"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/certificate-signeds" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/certificate-signeds" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/certificate-signeds/1" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/certificate-signeds/1" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/queue-certificates" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/queue-certificates" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/queue-certificates/1" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -4983,13 +5243,13 @@ class FunctionalTests_PrivateKey(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s.json" % focus_id, status=200
         )
         assert "PrivateKey" in res.json
         assert res.json["PrivateKey"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/parse.json" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s/parse.json" % focus_id, status=200
         )
         assert str(focus_id) in res.json
 
@@ -4998,13 +5258,14 @@ class FunctionalTests_PrivateKey(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/key.key" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s/key.key" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/key.pem" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s/key.pem" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/key.pem.txt" % focus_id, status=200
+            "/.well-known/peter_sslers/private-key/%s/key.pem.txt" % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:private_key:focus:mark",))
@@ -5012,7 +5273,7 @@ class FunctionalTests_PrivateKey(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark" % focus_id,
             status=303,
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
@@ -5026,7 +5287,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -5036,14 +5297,14 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=inactive")
 
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 303
@@ -5051,7 +5312,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark" % focus_id,
             {"action": "compromised"},
         )
         assert res.status_code == 303
@@ -5072,7 +5333,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # fail making this active
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -5084,7 +5345,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # inactive ROUNDTRIP
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark.json" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 200
@@ -5093,7 +5354,7 @@ class FunctionalTests_PrivateKey(AppTest):
         assert res.json["PrivateKey"]["is_active"] is False
 
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark.json" % focus_id,
             {"action": "active"},
         )
         assert res.status_code == 200
@@ -5102,7 +5363,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # then compromised
         res = self.testapp.post(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark.json" % focus_id,
             {"action": "compromised"},
         )
         assert res.status_code == 200
@@ -5120,18 +5381,20 @@ class FunctionalTests_PrivateKey(AppTest):
         # this should be creating a new key
         _key_filename = TEST_FILES["PrivateKey"]["2"]["file"]
         key_filepath = self._filepath_testfile(_key_filename)
-        res = self.testapp.get("/.well-known/admin/private-key/upload", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/private-key/upload", status=200
+        )
         form = res.form
         form["private_key_file_pem"] = Upload(key_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
-        assert """/.well-known/admin/private-key/""" in res2.location
+        assert """/.well-known/peter_sslers/private-key/""" in res2.location
         # for some reason, we don't always "create" this.
         assert """?result=success""" in res2.location
         res3 = self.testapp.get(res2.location, status=200)
 
         # okay now new
-        res = self.testapp.get("/.well-known/admin/private-key/new", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/private-key/new", status=200)
         form = res.form
         new_fields = dict(form.submit_fields())
         assert "bits" in new_fields
@@ -5139,9 +5402,9 @@ class FunctionalTests_PrivateKey(AppTest):
 
         res2 = form.submit()
         assert res2.status_code == 303
-        # 'http://peter-sslers.example.com/.well-known/admin/private-key/3?result=success&is_created=1'
+        # 'http://peter-sslers.example.com/.well-known/peter_sslers/private-key/3?result=success&is_created=1'
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/private-key/"""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/private-key/"""
         )
         # for some reason, we don't always "create" this.
         assert res2.location.endswith("""?result=success&is_created=1""")
@@ -5157,20 +5420,26 @@ class FunctionalTests_PrivateKey(AppTest):
         _key_filename = TEST_FILES["PrivateKey"]["2"]["file"]
         key_filepath = self._filepath_testfile(_key_filename)
 
-        res = self.testapp.get("/.well-known/admin/private-key/upload.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/private-key/upload.json", status=200
+        )
         assert "form_fields" in res.json
 
         form = {}
         form["private_key_file_pem"] = Upload(key_filepath)
-        res2 = self.testapp.post("/.well-known/admin/private-key/upload.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/private-key/upload.json", form
+        )
         assert res2.status_code == 200
         assert "PrivateKey" in res2.json
 
-        res = self.testapp.get("/.well-known/admin/private-key/new.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/private-key/new.json", status=200
+        )
         assert "form_fields" in res.json
 
         form = {"bits": 4096}
-        res2 = self.testapp.post("/.well-known/admin/private-key/new.json", form)
+        res2 = self.testapp.post("/.well-known/peter_sslers/private-key/new.json", form)
         assert res2.status_code == 200
         assert "PrivateKey" in res2.json
 
@@ -5179,7 +5448,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
         # !!!: test `POST required` `private-key/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/mark.json" % focus_id,
             status=200,
         )
         assert "form_fields" in res.json
@@ -5210,10 +5479,10 @@ class FunctionalTests_RootStore(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/root-stores", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/root-stores", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/root-stores/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/root-stores/1", status=200)
 
     @routes_tested(
         (
@@ -5223,11 +5492,13 @@ class FunctionalTests_RootStore(AppTest):
     )
     def test_list_json(self):
         # root
-        res = self.testapp.get("/.well-known/admin/root-stores.json", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/root-stores.json", status=200)
         assert "RootStores" in res.json
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/root-stores/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/root-stores/1.json", status=200
+        )
         assert "RootStores" in res.json
 
     @routes_tested(("admin:root_store:focus",))
@@ -5235,7 +5506,7 @@ class FunctionalTests_RootStore(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/root-store/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/root-store/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:root_store:focus|json",))
@@ -5243,7 +5514,7 @@ class FunctionalTests_RootStore(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/root-store/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/root-store/%s.json" % focus_id, status=200
         )
         assert "RootStore" in res.json
         assert res.json["RootStore"]["id"] == focus_id
@@ -5269,7 +5540,7 @@ class FunctionalTests_RootStoreVersion(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/root-store-version/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/root-store-version/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:root_store_version:focus|json",))
@@ -5277,7 +5548,8 @@ class FunctionalTests_RootStoreVersion(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/root-store-version/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/root-store-version/%s.json" % focus_id,
+            status=200,
         )
         assert "RootStoreVersion" in res.json
         assert res.json["RootStoreVersion"]["id"] == focus_id
@@ -5306,10 +5578,12 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/unique-fqdn-sets", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-sets/1", status=200
+        )
 
     @routes_tested(
         (
@@ -5319,11 +5593,15 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     )
     def test_list_json(self):
         # root
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-sets.json", status=200
+        )
         assert "UniqueFQDNSets" in res.json
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-sets/1.json", status=200
+        )
         assert "UniqueFQDNSets" in res.json
 
     @routes_tested(
@@ -5343,42 +5621,48 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s" % focus_id, status=200
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/acme-orders" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/acme-orders" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/acme-orders/1" % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/certificate-requests" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/certificate-requests/1" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/acme-orders/1" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/certificate-signeds" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-requests"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/certificate-signeds/1" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-requests/1"
+            % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/queue-certificates" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-signeds"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/queue-certificates/1" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-signeds/1"
+            % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/queue-certificates"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/queue-certificates/1"
+            % focus_id,
             status=200,
         )
 
@@ -5392,13 +5676,14 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s.json" % focus_id, status=200
         )
         assert "UniqueFQDNSet" in res.json
         assert res.json["UniqueFQDNSet"]["id"] == focus_id
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/calendar.json" % focus_id, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/calendar.json" % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:unique_fqdn_set:new",))
@@ -5406,7 +5691,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_new_html
         """
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-set/new", status=200
+        )
         form = res.form
         new_fields = dict(form.submit_fields())
         assert "domain_names" in new_fields
@@ -5415,14 +5702,16 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         ] = "test--unique-fqdn-set--new-html--1.example.com, test--unique-fqdn-set--new-html--2.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
-        # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
+        # 'http://peter-sslers.example.com/.well-known/peter_sslers/unique-fqdn-set/3?result=success&is_created=True'
         matched = RE_UniqueFQDNSet_new.match(res2.location)
         assert matched
         (_id1, _is_created1) = matched.groups(0)
         assert _is_created1 == "True"
 
         # make it again, expect it to be NOT created
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-set/new", status=200
+        )
         form = res.form
         new_fields = dict(form.submit_fields())
         assert "domain_names" in new_fields
@@ -5431,7 +5720,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         ] = "test--unique-fqdn-set--new-html--1.example.com, test--unique-fqdn-set--new-html--2.example.com"
         res2 = form.submit()
         assert res2.status_code == 303
-        # 'http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/3?result=success&is_created=True'
+        # 'http://peter-sslers.example.com/.well-known/peter_sslers/unique-fqdn-set/3?result=success&is_created=True'
         matched = RE_UniqueFQDNSet_new.match(res2.location)
         assert matched
         (_id2, _is_created2) = matched.groups(0)
@@ -5489,7 +5778,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet.test_new_json
         """
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/new.json", status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", status=200
         )
         assert "form_fields" in res.json
 
@@ -5497,7 +5786,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form[
             "domain_names"
         ] = "test--unique-fqdn-set--new-json--1.example.com, test--unique-fqdn-set--new-json--2.example.com"
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert "result" in res2.json
         assert res2.json["result"] == "success"
@@ -5511,7 +5802,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form[
             "domain_names"
         ] = "test--unique-fqdn-set--new-json--1.example.com, test--unique-fqdn-set--new-json--2.example.com"
-        res3 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res3.status_code == 200
         assert "result" in res3.json
         assert res3.json["result"] == "success"
@@ -5525,14 +5818,18 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test no domains
         form["domain_names"] = ""
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert res2.json["form_errors"]["domain_names"] == "Please enter a value"
 
         # test no valid domains
         form["domain_names"] = ",,"
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert (
@@ -5541,7 +5838,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
 
         form["domain_names"] = "example.com."
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert (
@@ -5550,7 +5849,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test valid + invalid domains
         form["domain_names"] = "example.com., example.com"
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert (
@@ -5561,7 +5862,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form["domain_names"] = ",".join(
             ["test-%s.example.com" % i for i in range(0, 101)]
         )
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "error"
         assert (
@@ -5583,28 +5886,30 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/update-recents" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/update-recents" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/%s?result=error&operation=update-recents&message=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/unique-fqdn-set/%s?result=error&operation=update-recents&message=POST+required"
             % focus_id
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/unique-fqdn-set/%s/update-recents" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/update-recents" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/%s?result=success&operation=update-recents"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/unique-fqdn-set/%s?result=success&operation=update-recents"
             % focus_id
         )
 
         # MODIFY
         # create a new item
-        res = self.testapp.get("/.well-known/admin/unique-fqdn-set/new", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/unique-fqdn-set/new", status=200
+        )
         form = res.form
         new_fields = dict(form.submit_fields())
         assert "domain_names" in new_fields
@@ -5619,10 +5924,10 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert _is_created1 == "True"
         # grab it
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s" % _id1, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s" % _id1, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify" % _id1, status=200
         )
         forms = res.forms
         assert "form-unique_fqdn_set-modify" in res.forms
@@ -5644,7 +5949,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test 2- add existing domain
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify" % _id1, status=200
         )
         forms = res.forms
         assert "form-unique_fqdn_set-modify" in res.forms
@@ -5661,7 +5966,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # test 3- remove a domain
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/modify" % _id1, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify" % _id1, status=200
         )
         forms = res.forms
         assert "form-unique_fqdn_set-modify" in res.forms
@@ -5690,7 +5995,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.post(
-            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/update-recents.json"
+            % focus_id,
             status=200,
         )
         assert res.status_code == 200
@@ -5700,7 +6006,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         # MODIFY
         # create a new item
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/new.json", status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", status=200
         )
         assert "form_fields" in res.json
 
@@ -5708,7 +6014,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         form[
             "domain_names"
         ] = "test--unique-fqdn-set--manipulate-json--1.example.com, test--unique-fqdn-set--manipulate-json--2.example.com"
-        res2 = self.testapp.post("/.well-known/admin/unique-fqdn-set/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/unique-fqdn-set/new.json", form
+        )
         assert res2.status_code == 200
         assert "result" in res2.json
         assert res2.json["result"] == "success"
@@ -5721,7 +6029,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         focus_id = res2.json["UniqueFQDNSet"]["id"]
 
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id, status=200
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify.json" % focus_id,
+            status=200,
         )
         assert "form_fields" in res.json
 
@@ -5733,7 +6042,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "domain_names_del"
         ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         res2 = self.testapp.post(
-            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify.json" % focus_id,
             form,
             status=200,
         )
@@ -5751,7 +6060,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         form["domain_names_del"] = ""
         res2 = self.testapp.post(
-            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify.json" % focus_id,
             form,
             status=200,
         )
@@ -5769,7 +6078,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "domain_names_del"
         ] = "test--unique-fqdn-set--manipulate-json--1.example.com"
         res2 = self.testapp.post(
-            "/.well-known/admin/unique-fqdn-set/%s/modify.json" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/modify.json" % focus_id,
             form,
             status=200,
         )
@@ -5787,7 +6096,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
         # !!!: test `POST required` `unique-fqdn-set/%s/update-recents.json`
         res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/update-recents.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -5825,36 +6135,40 @@ class FunctionalTests_QueueCertificate(AppTest):
     )
     def test_list_html(self):
         # root redirects
-        res = self.testapp.get("/.well-known/admin/queue-certificates", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-certificates", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/unprocessed"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/unprocessed"
         )
 
         # root
-        res = self.testapp.get("/.well-known/admin/queue-certificates/all", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/failures", status=200
+            "/.well-known/peter_sslers/queue-certificates/all", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/successes", status=200
+            "/.well-known/peter_sslers/queue-certificates/failures", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/unprocessed", status=200
+            "/.well-known/peter_sslers/queue-certificates/successes", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-certificates/unprocessed", status=200
         )
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/all/1", status=200
+            "/.well-known/peter_sslers/queue-certificates/all/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/failures/1", status=200
+            "/.well-known/peter_sslers/queue-certificates/failures/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/successes/1", status=200
+            "/.well-known/peter_sslers/queue-certificates/successes/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/unprocessed/1", status=200
+            "/.well-known/peter_sslers/queue-certificates/unprocessed/1", status=200
         )
 
     @routes_tested(
@@ -5872,58 +6186,61 @@ class FunctionalTests_QueueCertificate(AppTest):
     )
     def test_list_json(self):
         # root|json redirects
-        res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-certificates.json", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/unprocessed.json"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/unprocessed.json"
         )
 
         # root
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/all.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/all.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/failures.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/failures.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/successes.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/successes.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/unprocessed.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/unprocessed.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/all/1.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/all/1.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/failures/1.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/failures/1.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/successes/1.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/successes/1.json", status=200
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/unprocessed/1.json", status=200
+            "/.well-known/peter_sslers/queue-certificates/unprocessed/1.json",
+            status=200,
         )
         assert "pagination" in res.json
         assert "QueueCertificates" in res.json
@@ -5935,7 +6252,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/queue-certificate/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:queue_certificate:focus|json",))
@@ -5945,7 +6262,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/queue-certificate/%s.json" % focus_id, status=200
         )
         assert res.json["result"] == "success"
         assert "QueueCertificate" in res.json
@@ -5958,35 +6275,35 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         (focus_item, focus_id) = self._get_one()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
             {"action": "cancel"},
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?&result=error&error=post+required&operation=mark"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?&result=error&error=post+required&operation=mark"
             % focus_id
         )
 
         res2 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
             {"action": "cancel"},
             status=303,
         )
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=success&operation=mark"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?result=success&operation=mark"
             % focus_id
         )
 
         res3 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
             {"action": "cancel"},
             status=303,
         )
         assert (
             res3.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+processed&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+processed&operation=mark&action=cancel"
             % focus_id
         )
 
@@ -5998,7 +6315,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res2 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
             {"action": "cancel"},
             status=200,
         )
@@ -6006,7 +6323,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert res2.json["QueueCertificate"]["is_active"] is False
 
         res3 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
             {"action": "cancel"},
             status=200,
         )
@@ -6055,17 +6372,17 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         # TODO: test with objects that have issues
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured", status=303
+            "/.well-known/peter_sslers/queue-certificate/new/structured", status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&error=invalid+queue+source&operation=new-structured"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates?result=error&error=invalid+queue+source&operation=new-structured"
         )
 
         # try with an AcmeOrder
         dbAcmeOrder = self._get_queueable_AcmeOrder()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=%s"
             % dbAcmeOrder.id,
             status=200,
         )
@@ -6079,7 +6396,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         # try with a CertificateSigned
         dbCertificateSigned = self._get_queueable_CertificateSigned()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=%s"
             % dbCertificateSigned.id,
             status=200,
         )
@@ -6093,7 +6410,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         # try with an UniqueFQDNSet
         dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
             % dbUniqueFQDNSet.id,
             status=200,
         )
@@ -6111,7 +6428,8 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         # TODO: test with objects that have issues
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json", status=200
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
+            status=200,
         )
         assert res.json["result"] == "error"
         assert res.json["error"] == "invalid queue source"
@@ -6128,7 +6446,7 @@ class FunctionalTests_QueueCertificate(AppTest):
             "private_key_cycle__renewal": "account_key_default",
         }
         res = self.testapp.post(
-            "/.well-known/admin/queue-certificate/new/structured.json",
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
             form,
             status=200,
         )
@@ -6139,7 +6457,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         # try with a CertificateSigned
         dbCertificateSigned = self._get_queueable_CertificateSigned()
         res_instructions = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=CertificateSigned&certificate_signed=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=CertificateSigned&certificate_signed=%s"
             % dbCertificateSigned.id,
             status=200,
         )
@@ -6156,7 +6474,7 @@ class FunctionalTests_QueueCertificate(AppTest):
             "private_key_cycle__renewal": "account_key_default",
         }
         res = self.testapp.post(
-            "/.well-known/admin/queue-certificate/new/structured.json",
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
             form,
             status=200,
         )
@@ -6167,7 +6485,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         # try with an UniqueFQDNSet
         dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
         res_instructions = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
             % dbUniqueFQDNSet.id,
             status=200,
         )
@@ -6181,7 +6499,7 @@ class FunctionalTests_QueueCertificate(AppTest):
             "private_key_cycle__renewal": "account_key_default",
         }
         res = self.testapp.post(
-            "/.well-known/admin/queue-certificate/new/structured.json",
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
             form,
             status=200,
         )
@@ -6195,7 +6513,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_freeform_html
         """
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/freeform", status=200
+            "/.well-known/peter_sslers/queue-certificate/new/freeform", status=200
         )
         form = res.form
         form["domain_names_http01"] = "test-new-freeform-html.example.com"
@@ -6211,12 +6529,14 @@ class FunctionalTests_QueueCertificate(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_freeform_json
         """
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/freeform.json", status=200
+            "/.well-known/peter_sslers/queue-certificate/new/freeform.json", status=200
         )
         assert "instructions" in res.json
 
         res2 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/new/freeform.json", {}, status=200
+            "/.well-known/peter_sslers/queue-certificate/new/freeform.json",
+            {},
+            status=200,
         )
         assert res2.json["result"] == "error"
         assert "form_errors" in res2.json
@@ -6232,7 +6552,9 @@ class FunctionalTests_QueueCertificate(AppTest):
         form["private_key_cycle__renewal"] = "account_key_default"
         form["domain_names_http01"] = "test-new-freeform-json.example.com"
         res3 = self.testapp.post(
-            "/.well-known/admin/queue-certificate/new/freeform.json", form, status=200
+            "/.well-known/peter_sslers/queue-certificate/new/freeform.json",
+            form,
+            status=200,
         )
         assert res3.json["result"] == "success"
         assert "QueueCertificate" in res3.json
@@ -6247,7 +6569,7 @@ class FunctionalTests_QueueCertificate(AppTest):
 
         # !!!: test `POST required` `queue-certificate/%s/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
             {"action": "cancel"},
             status=200,
         )
@@ -6256,21 +6578,21 @@ class FunctionalTests_QueueCertificate(AppTest):
 
         # !!!: test `POST required` `queue-certificates/process.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/process.json", status=200
+            "/.well-known/peter_sslers/api/queue-certificates/process.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `queue-certificates/update.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/update.json", status=200
+            "/.well-known/peter_sslers/api/queue-certificates/update.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `queue-certificate/new/structured.json`
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
+            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
             % dbAcmeOrder.id,
             status=200,
         )
@@ -6279,7 +6601,7 @@ class FunctionalTests_QueueCertificate(AppTest):
 
         # !!!: test `POST required` `queue-certificate/new/freeform.json`
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/freeform.json", status=200
+            "/.well-known/peter_sslers/queue-certificate/new/freeform.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
@@ -6311,11 +6633,15 @@ class FunctionalTests_QueueDomains(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/queue-domains", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-domains/all", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/queue-domains", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/all", status=200
+        )
         # paginated
-        res = self.testapp.get("/.well-known/admin/queue-domains/1", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-domains/all/1", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/queue-domains/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/all/1", status=200
+        )
 
     @routes_tested(
         (
@@ -6327,31 +6653,43 @@ class FunctionalTests_QueueDomains(AppTest):
     )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/queue-domains.json", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-domains/all.json", status=200)
-        # json paginated
-        res = self.testapp.get("/.well-known/admin/queue-domains/1.json", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-domains/all/1.json", status=200
+            "/.well-known/peter_sslers/queue-domains.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/all.json", status=200
+        )
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/1.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/all/1.json", status=200
         )
 
     @routes_tested(("admin:queue_domains:add",))
     def test_add_html(self):
-        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add", status=200
+        )
         form = res.form
         form["domain_names_http01"] = TEST_FILES["Domains"]["Queue"]["1"]["add"]
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
-            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success"""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/queue-domains?result=success"""
             in res2.location
         )
 
     @routes_tested(("admin:queue_domains:add|json",))
     def test_add_json(self):
-        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add.json", status=200
+        )
         _data = {"domain_names_http01": TEST_FILES["Domains"]["Queue"]["1"]["add.json"]}
-        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/queue-domains/add.json", _data
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
 
@@ -6360,7 +6698,7 @@ class FunctionalTests_QueueDomains(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-domain/%s" % focus_id, status=200
+            "/.well-known/peter_sslers/queue-domain/%s" % focus_id, status=200
         )
 
     @routes_tested(("admin:queue_domain:focus|json",))
@@ -6368,7 +6706,7 @@ class FunctionalTests_QueueDomains(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-domain/%s.json" % focus_id, status=200
+            "/.well-known/peter_sslers/queue-domain/%s.json" % focus_id, status=200
         )
         assert res.json["result"] == "success"
         assert "QueueDomain" in res.json
@@ -6379,34 +6717,36 @@ class FunctionalTests_QueueDomains(AppTest):
         (focus_item, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/queue-domain/%s/mark" % focus_id,
             {"action": "cancel"},
             status=303,
         )
 
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=post+required&operation=mark"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-domain/%s?result=error&error=post+required&operation=mark"
             % focus_id
         )
 
         res2 = self.testapp.post(
-            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+            "/.well-known/peter_sslers/queue-domain/%s/mark" % focus_id,
+            {"action": "cancel"},
         )
         assert res2.status_code == 303
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=success&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-domain/%s?result=success&operation=mark&action=cancel"
             % focus_id
         )
 
         res3 = self.testapp.post(
-            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+            "/.well-known/peter_sslers/queue-domain/%s/mark" % focus_id,
+            {"action": "cancel"},
         )
         assert res3.status_code == 303
         assert (
             res3.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+cancelled&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-domain/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+cancelled&operation=mark&action=cancel"
             % focus_id
         )
 
@@ -6416,7 +6756,7 @@ class FunctionalTests_QueueDomains(AppTest):
 
         # make this inactive
         res2 = self.testapp.post(
-            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-domain/%s/mark.json" % focus_id,
             {"action": "cancel"},
         )
         assert res2.status_code == 200
@@ -6426,7 +6766,7 @@ class FunctionalTests_QueueDomains(AppTest):
 
         # fail it inactive
         res3 = self.testapp.post(
-            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-domain/%s/mark.json" % focus_id,
             {"action": "cancel"},
         )
         assert res3.status_code == 200
@@ -6442,14 +6782,14 @@ class FunctionalTests_QueueDomains(AppTest):
 
         # !!!: test `POST required` `queue-domains/process.json`
         res = self.testapp.get(
-            "/.well-known/admin/queue-domains/process.json", status=200
+            "/.well-known/peter_sslers/queue-domains/process.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `queue-domain/mark.json`
         res = self.testapp.get(
-            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            "/.well-known/peter_sslers/queue-domain/%s/mark.json" % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -6495,18 +6835,20 @@ class FunctionalTests_AlternateChains(AppTest):
                 _certificate_signed_chain.certificate_ca_chain.certificate_ca_0_id
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca-chain/%s" % chain_id, status=200
+                "/.well-known/peter_sslers/certificate-ca-chain/%s" % chain_id,
+                status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/%s" % certificate_ca_id, status=200
+                "/.well-known/peter_sslers/certificate-ca/%s" % certificate_ca_id,
+                status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt"
+                "/.well-known/peter_sslers/certificate-ca/%s/certificate-signeds-alt"
                 % certificate_ca_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-ca/%s/certificate-signeds-alt/1"
+                "/.well-known/peter_sslers/certificate-ca/%s/certificate-signeds-alt/1"
                 % certificate_ca_id,
                 status=200,
             )
@@ -6531,7 +6873,7 @@ class FunctionalTests_AlternateChains(AppTest):
         ]
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-signed/%s" % certificate_signed_id,
+            "/.well-known/peter_sslers/certificate-signed/%s" % certificate_signed_id,
             status=200,
         )
 
@@ -6540,52 +6882,52 @@ class FunctionalTests_AlternateChains(AppTest):
 
             # chain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.cer"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.crt"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.der"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem.txt"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem.txt"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/config.json"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/admin/certificate-signed/%s/via-certificate-ca-chain/%s/config.zip"
+                "/.well-known/peter_sslers/certificate-signed/%s/via-certificate-ca-chain/%s/config.zip"
                 % focus_ids,
                 status=200,
             )
@@ -6620,7 +6962,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_new_html
         """
 
-        res = self.testapp.get("/.well-known/admin/acme-account/new", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/acme-account/new", status=200)
         form = res.form
         form["acme_account_provider_id"].force_value(
             str(1)
@@ -6646,7 +6988,9 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer_AcmeAccount.test_new_json
         """
         form: Dict = {}
-        res2 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/new.json", form
+        )
         assert res2.json["result"] == "error"
         assert "form_errors" in res2.json
         assert isinstance(res2.json["form_errors"], dict)
@@ -6658,7 +7002,9 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             "account__contact": "AcmeAccount.new.json@example.com",
             "account__private_key_cycle": "single_certificate",
         }
-        res3 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/new.json", form
+        )
         assert res3.json["result"] == "error"
         assert "form_errors" in res3.json
         assert isinstance(res3.json["form_errors"], dict)
@@ -6673,7 +7019,9 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         )
 
         form["account__private_key_technology"] = "RSA"
-        res4 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        res4 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/new.json", form
+        )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
         return True
@@ -6698,7 +7046,9 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             "account__private_key_cycle": "single_certificate",
             "account__private_key_technology": "RSA",
         }
-        res4 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
+        res4 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/new.json", form
+        )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
         focus_item = (
@@ -6722,22 +7072,24 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/authenticate" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+            % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=error&error=post+required&operation=acme-server--authenticate"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=error&error=post+required&operation=acme-server--authenticate"
             % focus_id
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/authenticate" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+            % focus_id,
             {},
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=success&operation=acme-server--authenticate&is_authenticated=True"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--authenticate&is_authenticated=True"""
             % focus_id
         )
 
@@ -6752,7 +7104,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._get_one_AcmeAccount()
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/authenticate.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate.json"
             % focus_id,
             {},
         )
@@ -6771,22 +7123,22 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/check" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/check" % focus_id,
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=error&error=post+required&operation=acme-server--check"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=error&error=post+required&operation=acme-server--check"
             % focus_id
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/check" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/check" % focus_id,
             {},
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&result=success&message="""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&result=success&message="""
             % focus_id
         )
 
@@ -6801,7 +7153,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/check.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/check.json"
+            % focus_id,
             {},
         )
         assert res.status_code == 200
@@ -6822,7 +7175,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate"
+            % focus_id,
             status=200,
         )
         assert "form-acme_account-deactivate" in res.forms
@@ -6850,7 +7204,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -6859,7 +7214,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form: Dict = {}
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate.json"
+            % focus_id,
             form,
         )
         assert res2.json["result"] == "error"
@@ -6867,7 +7223,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form["key_pem"] = "foo"
         res3 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate.json"
+            % focus_id,
             form,
         )
         assert res3.json["result"] == "error"
@@ -6878,7 +7235,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form["key_pem"] = focus_item.acme_account_key.key_pem_md5
         res4 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate.json"
+            % focus_id,
             form,
         )
         assert res4.json["result"] == "success"
@@ -6894,7 +7252,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/key-change" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/key-change"
+            % focus_id,
             status=200,
         )
         assert "form-acme_account-key_change" in res.forms
@@ -6922,7 +7281,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         (focus_item, focus_id) = self._make_one_AcmeAccount()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/key-change.json"
+            % focus_id,
             status=200,
         )
         assert "instructions" in res.json
@@ -6931,7 +7291,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form: Dict = {}
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/key-change.json"
+            % focus_id,
             form,
         )
         assert res2.json["result"] == "error"
@@ -6939,7 +7300,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form["key_pem_existing"] = "foo"
         res3 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/key-change.json"
+            % focus_id,
             form,
         )
         assert res3.json["result"] == "error"
@@ -6950,7 +7312,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         form["key_pem_existing"] = focus_item.acme_account_key.key_pem_md5
         res4 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/key-change.json" % focus_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/key-change.json"
+            % focus_id,
             form,
         )
         assert res4.json["result"] == "success"
@@ -6974,7 +7337,9 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
 
         # "admin:acme_order:new:freeform",
-        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+        )
         form = res.form
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
@@ -7010,7 +7375,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         # admin:acme_account:focus
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s" % acme_account_id, status=200
+            "/.well-known/peter_sslers/acme-account/%s" % acme_account_id, status=200
         )
 
         return acme_account_id
@@ -7031,7 +7396,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         # get - fail!
         res_bad = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate-pending-authorizations"
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate-pending-authorizations"
             % acme_account_id,
             status=303,
         )
@@ -7043,11 +7408,12 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         # use the JSON route to grab authorization ids for our form
         # admin:acme_account:focus:acme_authorizations
         res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations" % acme_account_id,
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations"
+            % acme_account_id,
             status=200,
         )
         res2 = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations.json"
             % acme_account_id,
             status=200,
         )
@@ -7066,7 +7432,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         matched = RE_AcmeAccount_deactivate_pending_success.match(res3.location)
 
         res4 = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations.json"
             % acme_account_id,
             status=200,
         )
@@ -7094,7 +7460,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         # get - fail!
         res_bad = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate-pending-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate-pending-authorizations.json"
             % acme_account_id,
             status=200,
         )
@@ -7103,7 +7469,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         # use the JSON route to grab authorization ids for our form
         # admin:acme_account:focus:acme_authorizations
         res2 = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations.json"
             % acme_account_id,
             status=200,
         )
@@ -7120,14 +7486,14 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             for acme_authorization_id in acme_authorization_ids
         ]
         res3 = self.testapp.post(
-            "/.well-known/admin/acme-account/%s/acme-server/deactivate-pending-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/deactivate-pending-authorizations.json"
             % acme_account_id,
             post_data,
         )
         assert res3.status_code == 200
 
         res4 = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-authorizations.json"
+            "/.well-known/peter_sslers/acme-account/%s/acme-authorizations.json"
             % acme_account_id,
             status=200,
         )
@@ -7152,7 +7518,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
 
         # "admin:acme_order:new:freeform",
-        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+        )
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -7221,21 +7589,24 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:acme_server:sync",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, {}, status=303
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync" % obj_id,
+            {},
+            status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id
         )
 
         # "admin:acme_order:focus:acme_server:sync_authorizations",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations"
+            % obj_id,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
             % obj_id
         )
 
@@ -7257,39 +7628,42 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_authorization:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s" % auth_id_1, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s" % auth_id_1, status=200
         )
 
         # "admin:acme_authorization:focus:sync"
         res = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_1,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync"
+            % auth_id_1,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-authorization/%s?result=success&operation=acme+server+sync"
             % auth_id_1
         )
 
         # note: originally we triggered the AUTHORIZATION `acme-authorization/%s/acme-server/trigger`
         # that endpoint was removed
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % challenge_id_1,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
+            % challenge_id_1,
             {},
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=success&operation=acme+server+trigger"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-challenge/%s?result=success&operation=acme+server+trigger"
             % challenge_id_1
         )
         res = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_1,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync"
+            % auth_id_1,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-authorization/%s?result=success&operation=acme+server+sync"
             % auth_id_1
         )
 
@@ -7298,47 +7672,50 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_challenge:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s" % challenge_id_2, status=200
+            "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id_2, status=200
         )
 
         # "admin:acme_challenge:focus:acme_server:sync",
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/sync" % challenge_id_2,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync"
+            % challenge_id_2,
             {},
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=success&operation=acme+server+sync"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-challenge/%s?result=success&operation=acme+server+sync"
             % challenge_id_2
         )
 
         # "admin:acme_challenge:focus:acme_server:trigger",
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % challenge_id_2,
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
+            % challenge_id_2,
             {},
             status=303,
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=success&operation=acme+server+trigger"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-challenge/%s?result=success&operation=acme+server+trigger"
             % challenge_id_2
         )
 
         # "admin:acme_authorization:focus:sync"
         res = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_2,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync"
+            % auth_id_2,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-authorization/%s?result=success&operation=acme+server+sync"
             % auth_id_2
         )
 
         # now go back to the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id,
             status=200,
         )
         assert (
@@ -7348,34 +7725,42 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:acme_server:sync",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, {}, status=303
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync" % obj_id,
+            {},
+            status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id
         )
 
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id
         )
-        res2 = self.testapp.get("/.well-known/admin/acme-authorization/%s.json" % 2)
-        res2 = self.testapp.get("/.well-known/admin/acme-authorization/%s.json" % 3)
+        res2 = self.testapp.get(
+            "/.well-known/peter_sslers/acme-authorization/%s.json" % 2
+        )
+        res2 = self.testapp.get(
+            "/.well-known/peter_sslers/acme-authorization/%s.json" % 3
+        )
 
-        res2 = self.testapp.get("/.well-known/admin/acme-order/%s.json" % obj_id)
+        res2 = self.testapp.get("/.well-known/peter_sslers/acme-order/%s.json" % obj_id)
 
         # "admin:acme_order:focus:acme_finalize",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-finalize" % obj_id, {}, status=303
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize" % obj_id,
+            {},
+            status=303,
         )
 
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+finalize"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+finalize"
             % obj_id
         )
 
         # now go back to the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id,
             status=200,
         )
         assert (
@@ -7385,7 +7770,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:renew:quick",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/quick" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s/renew/quick" % obj_id, status=200
         )
         form = res.form
         form["processing_strategy"].force_value("process_multi")
@@ -7398,22 +7783,22 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__quick, status=200
         )
         # "admin:acme_order:focus:acme_server:sync",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__quick,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync" % obj_id__quick,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id__quick
         )
 
         # "admin:acme_order:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__quick, status=200
         )
 
         # IMPORTANT
@@ -7422,23 +7807,24 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # let's call finalize
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-finalize" % obj_id__quick,
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize" % obj_id__quick,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+finalize"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+finalize"
             % obj_id__quick
         )
 
         # "admin:acme_order:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__quick, status=200
         )
 
         # "admin:acme_order:focus:renew:custom"
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/custom" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s/renew/custom" % obj_id__quick,
+            status=200,
         )
         form = res.form
         # we can just change the `processing_strategy`
@@ -7451,17 +7837,17 @@ class FunctionalTests_AcmeServer(AppTest):
         obj_id__custom = matched.groups()[0]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__custom,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync" % obj_id__custom,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id__custom
         )
         # "admin:acme_order:focus",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__custom, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__custom, status=200
         )
 
         #
@@ -7471,7 +7857,9 @@ class FunctionalTests_AcmeServer(AppTest):
         # we need two for this test
         assert len(_test_data["acme-order/new/freeform#2"]["domain_names_http01"]) == 2
         # "admin:acme_order:new:freeform",
-        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+        )
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -7503,43 +7891,43 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__2, status=200
         )
 
         # sync_authorizations
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations"
             % obj_id__2,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
             % obj_id__2
         )
 
         # grab the order
         # look for deactivate-authorizations
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__2, status=200
         )
         assert RE_AcmeOrder_btn_deactive_authorizations.findall(res.text)
 
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/deactivate-authorizations"
             % obj_id__2,
             {},
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+deactivate+authorizations"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=acme+server+deactivate+authorizations"
             % obj_id__2
         )
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__2, status=200
         )
         # look for deactivate-authorizations
         assert RE_AcmeOrder_btn_deactive_authorizations__off.findall(res.text)
@@ -7571,16 +7959,19 @@ class FunctionalTests_AcmeServer(AppTest):
         (obj_id, obj_url) = self._prep_AcmeOrder_html()
 
         # grab the order
-        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
+        )
 
         # "mark" deactivate
         assert (
-            'href="/.well-known/admin/acme-order/%s/mark?action=deactivate"' % obj_id
+            'href="/.well-known/peter_sslers/acme-order/%s/mark?action=deactivate"'
+            % obj_id
             in res.text
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark?action=deactivate" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark?action=deactivate" % obj_id,
             {},
             status=303,
         )
@@ -7588,7 +7979,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched
 
         # grab the order
-        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
+        )
 
         # "mark" invalid
         assert "form-acme_order-mark_invalid" in res.forms
@@ -7599,7 +7992,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # now try a manual post. it must fail.
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark?action=invalid" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark?action=invalid" % obj_id,
             {},
             status=303,
         )
@@ -7607,7 +8000,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched
 
         # grab the order
-        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
+        )
 
         # "admin:acme_order:focus:retry",
         assert "acme_order-retry" in res.forms
@@ -7621,7 +8016,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the NEW order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__4, status=200
         )
 
         # new orders should default to auto-renew on
@@ -7630,13 +8025,13 @@ class FunctionalTests_AcmeServer(AppTest):
         res = form.submit()
         assert res.status_code == 303
         assert (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=mark&action=renew_manual"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=mark&action=renew_manual"
             % obj_id__4
         )
 
         # grab the order again...
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__4, status=200
         )
 
         # and toggle it the other way
@@ -7645,7 +8040,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res = form.submit()
         assert res.status_code == 303
         assert (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=mark&action=renew_auto"
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-order/%s?result=success&operation=mark&action=renew_auto"
             % obj_id__4
         )
 
@@ -7692,7 +8087,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get(obj_url, status=200)
         assert RE_AcmeOrder_btn_acme_process__can.findall(res.text)
 
-        process_url = "/.well-known/admin/acme-order/%s/acme-process" % obj_id
+        process_url = "/.well-known/peter_sslers/acme-order/%s/acme-process" % obj_id
 
         # get the first process
         res = self.testapp.post(process_url, {}, status=303)
@@ -7752,7 +8147,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["processing_strategy"] = processing_strategy
 
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-order/new/freeform.json", form
+            "/.well-known/peter_sslers/acme-order/new/freeform.json", form
         )
         assert res2.status_code == 200
         assert "AcmeOrder" in res2.json
@@ -7792,12 +8187,12 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id,
             {},
             status=200,
         )
@@ -7805,7 +8200,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["operation"] == "acme-server/sync"
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations.json"
             % obj_id,
             {},
             status=200,
@@ -7830,13 +8225,14 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_authorization:focus|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s.json" % auth_id_1, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s.json" % auth_id_1,
+            status=200,
         )
         assert "AcmeAuthorization" in res.json
 
         # "admin:acme_authorization:focus:sync|json"
         res = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
             % auth_id_1,
             {},
             status=200,
@@ -7847,7 +8243,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # note: originally we triggered the AUTHORIZATION `acme-authorization/%s/acme-server/trigger.json`
         # "admin:acme_challenge:focus:acme_server:trigger|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
             % challenge_id_1,
             {},
             status=200,
@@ -7860,13 +8256,14 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_challenge:focus|json"
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s.json" % challenge_id_2, status=200
+            "/.well-known/peter_sslers/acme-challenge/%s.json" % challenge_id_2,
+            status=200,
         )
         assert "AcmeChallenge" in res.json
 
         # "admin:acme_challenge:focus:acme_server:sync|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync.json"
             % challenge_id_2,
             {},
             status=200,
@@ -7876,7 +8273,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_challenge:focus:acme_server:trigger|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+            "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
             % challenge_id_2,
             {},
             status=200,
@@ -7886,7 +8283,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_authorization:focus:sync|json"
         res = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
             % auth_id_2,
             {},
             status=200,
@@ -7896,7 +8293,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # now go back to the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id,
             status=200,
         )
         assert "AcmeOrder" in res.json
@@ -7907,7 +8304,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:acme_server:sync|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id,
             {},
             status=200,
         )
@@ -7916,7 +8313,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:acme_finalize|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-finalize.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize.json" % obj_id,
             {},
             status=200,
         )
@@ -7926,7 +8323,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # now go back to the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id,
             status=200,
         )
         assert "AcmeOrder" in res.json
@@ -7939,7 +8336,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         form = {"processing_strategy": "process_multi"}
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/renew/quick.json" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/renew/quick.json" % obj_id,
             form,
             status=200,
         )
@@ -7949,13 +8346,14 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__quick, status=200
         )
         assert "AcmeOrder" in res.json
 
         # "admin:acme_order:focus:acme_server:sync|json",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__quick,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json"
+            % obj_id__quick,
             {},
             status=200,
         )
@@ -7964,7 +8362,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__quick, status=200
         )
         assert "AcmeOrder" in res.json
 
@@ -7974,7 +8372,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # let's call finalize
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-finalize.json" % obj_id__quick,
+            "/.well-known/peter_sslers/acme-order/%s/acme-finalize.json"
+            % obj_id__quick,
             {},
             status=200,
         )
@@ -7983,7 +8382,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus|json",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__quick, status=200
         )
         assert "AcmeOrder" in res.json
         account_key_reuse = res.json["AcmeOrder"]["AcmeAccount"]["key_pem_md5"]
@@ -8000,7 +8399,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["private_key_reuse"] = private_key_reuse
         form["private_key_cycle__renewal"] = "account_key_default"
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/renew/custom.json" % obj_id__quick,
+            "/.well-known/peter_sslers/acme-order/%s/renew/custom.json" % obj_id__quick,
             form,
             status=200,
         )
@@ -8009,7 +8408,8 @@ class FunctionalTests_AcmeServer(AppTest):
         obj_id__custom = res.json["AcmeOrder"]["id"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__custom,
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json"
+            % obj_id__custom,
             {},
             status=200,
         )
@@ -8017,7 +8417,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["operation"] == "acme-server/sync"
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__custom, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__custom, status=200
         )
         assert "AcmeOrder" in res.json
 
@@ -8049,7 +8449,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["processing_strategy"] = "create_order"
 
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-order/new/freeform.json", form
+            "/.well-known/peter_sslers/acme-order/new/freeform.json", form
         )
         assert res2.status_code == 200
         assert "AcmeOrder" in res2.json
@@ -8057,12 +8457,12 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__2, status=200
         )
         assert "AcmeOrder" in res.json
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/sync-authorizations.json"
             % obj_id__2,
             {},
             status=200,
@@ -8073,7 +8473,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # grab the order
         # look for deactivate-authorizations, ENABLED
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__2, status=200
         )
         assert "AcmeOrder" in res.json
         assert (
@@ -8083,7 +8483,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations.json"
+            "/.well-known/peter_sslers/acme-order/%s/acme-server/deactivate-authorizations.json"
             % obj_id__2,
             {},
             status=200,
@@ -8094,7 +8494,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # grab the order
         # look for deactivate-authorizations, DISABLED
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__2, status=200
         )
         assert "AcmeOrder" in res.json
         assert (
@@ -8105,12 +8505,14 @@ class FunctionalTests_AcmeServer(AppTest):
         # "admin:acme_order:focus:retry",
         assert res.json["AcmeOrder"]["is_can_retry"] is True
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, status=200
+            "/.well-known/peter_sslers/acme-order/%s/retry.json" % obj_id__2, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, {}, status=200
+            "/.well-known/peter_sslers/acme-order/%s/retry.json" % obj_id__2,
+            {},
+            status=200,
         )
         assert res.json["result"] == "success"
         assert "AcmeOrder" in res.json
@@ -8135,7 +8537,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
 
@@ -8143,7 +8545,8 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeOrder"]["is_processing"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark.json?action=deactivate" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=deactivate"
+            % obj_id,
             {},
             status=200,
         )
@@ -8153,13 +8556,13 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
 
         # "mark" invalid
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark.json?action=invalid" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=invalid" % obj_id,
             {},
             status=200,
         )
@@ -8169,7 +8572,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
 
@@ -8178,12 +8581,14 @@ class FunctionalTests_AcmeServer(AppTest):
 
         assert res.json["AcmeOrder"]["is_can_retry"] is True
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/retry.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s/retry.json" % obj_id, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/retry.json" % obj_id, {}, status=200
+            "/.well-known/peter_sslers/acme-order/%s/retry.json" % obj_id,
+            {},
+            status=200,
         )
         assert res.json["result"] == "success"
         assert "AcmeOrder" in res.json
@@ -8191,7 +8596,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the NEW order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id__4, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id__4, status=200
         )
         assert "AcmeOrder" in res.json
 
@@ -8199,12 +8604,13 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeOrder"]["is_auto_renew"] is True
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id__4, status=200
         )
 
         # "mark" manual
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark.json?action=renew_manual" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=renew_manual"
+            % obj_id,
             {},
             status=200,
         )
@@ -8215,7 +8621,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # and toggle it the other way
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=renew_auto"
+            % obj_id,
             {},
             status=200,
         )
@@ -8226,7 +8633,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # lets make sure we can't do it again!
         res = self.testapp.post(
-            "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            "/.well-known/peter_sslers/acme-order/%s/mark.json?action=renew_auto"
+            % obj_id,
             {},
             status=200,
         )
@@ -8250,7 +8658,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # /acme-order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
         assert res.json["AcmeOrder"]["is_can_acme_process"] is False
@@ -8280,7 +8688,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # /acme-order
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res.json
         assert (
@@ -8288,7 +8696,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert res.json["AcmeOrder"]["is_can_acme_process"] is True
 
-        process_url = "/.well-known/admin/acme-order/%s/acme-process.json" % obj_id
+        process_url = (
+            "/.well-known/peter_sslers/acme-order/%s/acme-process.json" % obj_id
+        )
 
         # post the first process
         res = self.testapp.post(process_url, {}, status=200)
@@ -8336,7 +8746,9 @@ class FunctionalTests_AcmeServer(AppTest):
         self.ctx.pyramid_transaction_commit()
 
         # grab the order
-        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
+        )
         assert "acme_order-download_certificate" in res.forms
         form = res.forms["acme_order-download_certificate"]
         res2 = form.submit()
@@ -8344,7 +8756,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert RE_AcmeOrder_downloaded_certificate.match(res2.location)
 
         # grab the order again!
-        res3 = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        res3 = self.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
+        )
         assert "acme_order-download_certificate" not in res3.forms
         certificate_signed_ids = RE_CertificateSigned_main.findall(res3.text)
         assert certificate_signed_ids
@@ -8371,7 +8785,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         res2 = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % obj_id, status=200
         )
         assert "AcmeOrder" in res2.json
         assert res2.json["AcmeOrder"]["certificate_signed_id"] is None
@@ -8409,7 +8823,7 @@ class FunctionalTests_AcmeServer(AppTest):
         (order_id, order_url) = self._prep_AcmeOrder_html()
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % order_id, status=200
         )
         assert "AcmeOrder" in res.json
         acme_authorization_ids = res.json["AcmeOrder"]["acme_authorization_ids"]
@@ -8420,13 +8834,14 @@ class FunctionalTests_AcmeServer(AppTest):
         #
         id_ = acme_authorization_ids[0]
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s" % id_, status=200
         )
         matched = RE_AcmeAuthorization_deactivate_btn.search(res.text)
         assert matched
 
         res_deactivated = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate"
+            % id_,
             {},
             status=303,
         )
@@ -8434,7 +8849,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # check the main record, ensure we don't have a match
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s" % id_, status=200
         )
         matched_btn = RE_AcmeAuthorization_deactivate_btn.search(res.text)
         assert not matched_btn
@@ -8443,7 +8858,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # try again, and fail
         res_deactivated = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate"
+            % id_,
             {},
             status=303,
         )
@@ -8451,7 +8867,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # now sync
         res_synced = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % id_,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync" % id_,
             {},
             status=303,
         )
@@ -8481,7 +8897,7 @@ class FunctionalTests_AcmeServer(AppTest):
         order_id = self._prep_AcmeOrder_json(processing_strategy="create_order")
 
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % order_id, status=200
         )
         assert "AcmeOrder" in res.json
         acme_authorization_ids = res.json["AcmeOrder"]["acme_authorization_ids"]
@@ -8490,13 +8906,13 @@ class FunctionalTests_AcmeServer(AppTest):
         # for #1, we deactivate then sync
         id_ = acme_authorization_ids[0]
         res = self.testapp.get(
-            "/.well-known/admin/acme-authorization/%s.json" % id_, status=200
+            "/.well-known/peter_sslers/acme-authorization/%s.json" % id_, status=200
         )
         assert "AcmeAuthorization" in res.json
         assert res.json["AcmeAuthorization"]["url_acme_server_deactivate"] is not None
 
         res_deactivated = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate.json"
             % id_,
             {},
             status=200,
@@ -8517,7 +8933,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # try again, and fail
         res_deactivated = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/deactivate.json"
             % id_,
             {},
             status=200,
@@ -8531,7 +8947,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # now sync
         res_synced = self.testapp.post(
-            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % id_,
+            "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
+            % id_,
             {},
             status=200,
         )
@@ -8561,7 +8978,7 @@ class FunctionalTests_AcmeServer(AppTest):
         (order_id, order_url) = self._prep_AcmeOrder_html()
 
         res_order = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % order_id, status=200
         )
         acme_authorization_ids = res_order.json["AcmeOrder"]["acme_authorization_ids"]
         assert len(acme_authorization_ids) == 2
@@ -8570,12 +8987,13 @@ class FunctionalTests_AcmeServer(AppTest):
         for idx, authorization_id in enumerate(acme_authorization_ids):
             # Auth1
             res_auth = self.testapp.get(
-                "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
+                "/.well-known/peter_sslers/acme-authorization/%s.json"
+                % authorization_id,
                 status=200,
             )
             # sync it to load the challenge
             res_auth = self.testapp.post(
-                "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+                "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
                 % authorization_id,
                 {},
                 status=200,
@@ -8596,14 +9014,15 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # sync
                 res_sync = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/sync"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync"
                     % challenge_id,
                     {},
                     status=303,
@@ -8612,14 +9031,15 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
                     {},
                     status=303,
@@ -8628,14 +9048,15 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger fail
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
                     {},
                     status=303,
@@ -8647,14 +9068,15 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
                     {},
                     status=303,
@@ -8663,14 +9085,15 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # sync
                 res_sync = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/sync"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync"
                     % challenge_id,
                     {},
                     status=303,
@@ -8679,7 +9102,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                    "/.well-known/peter_sslers/acme-challenge/%s" % challenge_id,
+                    status=200,
                 )
                 assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
@@ -8701,7 +9125,7 @@ class FunctionalTests_AcmeServer(AppTest):
         order_id = self._prep_AcmeOrder_json()
 
         res_order = self.testapp.get(
-            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+            "/.well-known/peter_sslers/acme-order/%s.json" % order_id, status=200
         )
         acme_authorization_ids = res_order.json["AcmeOrder"]["acme_authorization_ids"]
         assert len(acme_authorization_ids) == 2
@@ -8710,12 +9134,13 @@ class FunctionalTests_AcmeServer(AppTest):
         for idx, authorization_id in enumerate(acme_authorization_ids):
             # Auth1
             res_auth = self.testapp.get(
-                "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
+                "/.well-known/peter_sslers/acme-authorization/%s.json"
+                % authorization_id,
                 status=200,
             )
             # sync it to load the challenge
             res_auth = self.testapp.post(
-                "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+                "/.well-known/peter_sslers/acme-authorization/%s/acme-server/sync.json"
                 % authorization_id,
                 {},
                 status=200,
@@ -8736,7 +9161,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s.json" % challenge_id,
+                    "/.well-known/peter_sslers/acme-challenge/%s.json" % challenge_id,
                     status=200,
                 )
                 assert (
@@ -8754,7 +9179,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # sync
                 res_sync = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync.json"
                     % challenge_id,
                     {},
                     status=200,
@@ -8775,7 +9200,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # trigger
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
                     {},
                     status=200,
@@ -8797,7 +9222,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # trigger fail
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
                     {},
                     status=200,
@@ -8814,7 +9239,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # Get/Audit Main Record
                 res_challenge = self.testapp.get(
-                    "/.well-known/admin/acme-challenge/%s.json" % challenge_id,
+                    "/.well-known/peter_sslers/acme-challenge/%s.json" % challenge_id,
                     status=200,
                 )
                 assert (
@@ -8832,7 +9257,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # trigger
                 res_trigger = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
                     {},
                     status=200,
@@ -8854,7 +9279,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
                 # sync
                 res_sync = self.testapp.post(
-                    "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+                    "/.well-known/peter_sslers/acme-challenge/%s/acme-server/sync.json"
                     % challenge_id,
                     {},
                     status=200,
@@ -8888,18 +9313,22 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
 
         # start off with some domains in the queue!
-        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add", status=200
+        )
         form = res.form
         form["domain_names_http01"] = ",".join(_domain_names)
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results="""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/queue-domains?result=success&operation=add&results="""
         )
 
         # try to process; a CREATE only
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
-        res3 = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+        res3 = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/process", status=200
+        )
         form = res3.form
         form["account_key_option"].force_value("account_key_file")
         form["acme_account_provider_id"].force_value("1")
@@ -8944,18 +9373,22 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
 
         # start off with some domains in the queue!
-        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add", status=200
+        )
         form = res.form
         form["domain_names_http01"] = ",".join(_domain_names)
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results="""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/queue-domains?result=success&operation=add&results="""
         )
 
         # try to process; use process_single
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
-        res3 = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+        res3 = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/process", status=200
+        )
         form = res3.form
         form["account_key_option"].force_value("account_key_file")
         form["acme_account_provider_id"].force_value("1")
@@ -8998,9 +9431,13 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
 
         # start off with some domains in the queue!
-        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add.json", status=200
+        )
         _data = {"domain_names_http01": ",".join(_domain_names)}
-        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/queue-domains/add.json", _data
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert "domains" in res2.json
@@ -9028,7 +9465,9 @@ class FunctionalTests_AcmeServer(AppTest):
         form["processing_strategy"] = "create_order"
         form["max_domains_per_certificate"] = 10
 
-        res2 = self.testapp.post("/.well-known/admin/queue-domains/process.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/queue-domains/process.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert "AcmeOrder" in res2.json
@@ -9052,9 +9491,13 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
 
         # start off with some domains in the queue!
-        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/queue-domains/add.json", status=200
+        )
         _data = {"domain_names_http01": ",".join(_domain_names)}
-        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/queue-domains/add.json", _data
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert "domains" in res2.json
@@ -9084,7 +9527,9 @@ class FunctionalTests_AcmeServer(AppTest):
         form["max_domains_per_certificate"] = 10
 
         # post it
-        res2 = self.testapp.post("/.well-known/admin/queue-domains/process.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/queue-domains/process.json", form
+        )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert "AcmeOrder" in res2.json
@@ -9105,19 +9550,19 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_html
         """
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/update", status=303
+            "/.well-known/peter_sslers/api/queue-certificates/update", status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/api/queue-certificates/update", status=303
+            "/.well-known/peter_sslers/api/queue-certificates/update", status=303
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=true"""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=true"""
         )
         # TODO - populate the database so it will actually update the queue, retest
 
@@ -9128,11 +9573,13 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_json
         """
-        res = self.testapp.get("/.well-known/admin/api/queue-certificates/update.json")
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/queue-certificates/update.json"
+        )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/queue-certificates/update.json", status=200
+            "/.well-known/peter_sslers/api/queue-certificates/update.json", status=200
         )
         assert res.json["result"] == "success"
         assert res.json["results"] is True
@@ -9146,18 +9593,18 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_html
         """
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/process", status=303
+            "/.well-known/peter_sslers/api/queue-certificates/process", status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/api/queue-certificates/process", status=303
+            "/.well-known/peter_sslers/api/queue-certificates/process", status=303
         )
         assert res.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/queue-certificates/all?result=success&operation=api--queue-certificates--process&results="""
+            """http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=success&operation=api--queue-certificates--process&results="""
         )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -9169,7 +9616,7 @@ class FunctionalTests_AcmeServer(AppTest):
         """
 
         res = self.testapp.post(
-            "/.well-known/admin/api/queue-certificates/process.json", status=200
+            "/.well-known/peter_sslers/api/queue-certificates/process.json", status=200
         )
         assert res.json["result"] == "success"
         assert "queue_results" in res.json
@@ -9182,7 +9629,7 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_Api_Domain_autocert_json
         """
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/autocert.json", {}, status=200
+            "/.well-known/peter_sslers/api/domain/autocert.json", {}, status=200
         )
         assert "result" in res.json
         assert res.json["result"] == "error"
@@ -9194,7 +9641,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/autocert.json",
+            "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-1.example.com"},
             status=200,
         )
@@ -9207,7 +9654,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # Test 2 -- autocert that same domain
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/autocert.json",
+            "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-1.example.com"},
             status=200,
         )
@@ -9229,7 +9676,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         self.ctx.pyramid_transaction_commit()
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/autocert.json",
+            "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-2.example.com"},
             status=200,
         )
@@ -9250,7 +9697,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # Test 4 -- autocert an inactive domain
         # 4.1 add the domain
-        res = self.testapp.get("/.well-known/admin/domain/new", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/domain/new", status=200)
         assert "form-domain-new" in res.forms
         form = res.forms["form-domain-new"]
         form["domain_name"] = "test-domain-autocert-3.example.com"
@@ -9262,7 +9709,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # 4.2 mark the domain inactve
         res = self.testapp.post(
-            "/.well-known/admin/domain/%s/mark" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/mark" % focus_id,
             {"action": "inactive"},
         )
         assert res.status_code == 303
@@ -9270,7 +9717,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # 4.3 autocert
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/autocert.json",
+            "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-3.example.com"},
             status=200,
         )
@@ -9297,8 +9744,10 @@ class FunctionalTests_API(AppTest):
 
     @routes_tested(("admin:api", "admin:api:domain:autocert"))
     def test_passive(self):
-        res = self.testapp.get("/.well-known/admin/api", status=200)
-        res = self.testapp.get("/.well-known/admin/api/domain/autocert", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/api", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/domain/autocert", status=200
+        )
 
     @routes_tested(
         (
@@ -9309,13 +9758,13 @@ class FunctionalTests_API(AppTest):
     def test_domains(self):
         # enable
         _data = {"domain_names": "example.com,foo.example.com, bar.example.com"}
-        res = self.testapp.post("/.well-known/admin/api/domain/enable", _data)
+        res = self.testapp.post("/.well-known/peter_sslers/api/domain/enable", _data)
         assert res.status_code == 200
         assert res.json["result"] == "success"
 
         # disable
         _data = {"domain_names": "example.com,biz.example.com"}
-        res = self.testapp.post("/.well-known/admin/api/domain/disable", _data)
+        res = self.testapp.post("/.well-known/peter_sslers/api/domain/disable", _data)
         assert res.status_code == 200
         assert res.json["result"] == "success"
 
@@ -9328,41 +9777,53 @@ class FunctionalTests_API(AppTest):
     )
     def test_manipulate_html(self):
         # deactivate-expired
-        res = self.testapp.get("/.well-known/admin/api/deactivate-expired", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/deactivate-expired", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
         )
 
-        res = self.testapp.post("/.well-known/admin/api/deactivate-expired", status=303)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/deactivate-expired", status=303
+        )
         assert (
-            "/.well-known/admin/operations/log?result=success&operation=api--deactivate-expired&event.id="
+            "/.well-known/peter_sslers/operations/log?result=success&operation=api--deactivate-expired&event.id="
             in res.location
         )
 
         # update-recents
-        res = self.testapp.get("/.well-known/admin/api/update-recents", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/update-recents", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/log?result=error&operation=api--update-recents&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/log?result=error&operation=api--update-recents&error=POST+required"
         )
 
-        res = self.testapp.post("/.well-known/admin/api/update-recents", status=303)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/update-recents", status=303
+        )
         assert (
-            "/.well-known/admin/operations/log?result=success&operation=api--update-recents&event.id="
+            "/.well-known/peter_sslers/operations/log?result=success&operation=api--update-recents&event.id="
             in res.location
         )
 
         # reconcile-cas
-        res = self.testapp.get("/.well-known/admin/api/reconcile-cas", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/reconcile-cas", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/log?result=error&operation=api--reconcile-cas&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/log?result=error&operation=api--reconcile-cas&error=POST+required"
         )
 
-        res = self.testapp.post("/.well-known/admin/api/reconcile-cas", status=303)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/reconcile-cas", status=303
+        )
         assert (
-            "/.well-known/admin/operations/log?result=success&operation=api--reconcile-cas&event.id="
+            "/.well-known/peter_sslers/operations/log?result=success&operation=api--reconcile-cas&event.id="
             in res.location
         )
 
@@ -9376,34 +9837,34 @@ class FunctionalTests_API(AppTest):
     def test_manipulate_json(self):
         # deactivate-expired
         res = self.testapp.get(
-            "/.well-known/admin/api/deactivate-expired.json", {}, status=200
+            "/.well-known/peter_sslers/api/deactivate-expired.json", {}, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/deactivate-expired.json", {}, status=200
+            "/.well-known/peter_sslers/api/deactivate-expired.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
         # update-recents
         res = self.testapp.get(
-            "/.well-known/admin/api/update-recents.json", {}, status=200
+            "/.well-known/peter_sslers/api/update-recents.json", {}, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/update-recents.json", {}, status=200
+            "/.well-known/peter_sslers/api/update-recents.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
         # reconcile-cas
         res = self.testapp.get(
-            "/.well-known/admin/api/reconcile-cas.json", {}, status=200
+            "/.well-known/peter_sslers/api/reconcile-cas.json", {}, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/reconcile-cas.json", {}, status=200
+            "/.well-known/peter_sslers/api/reconcile-cas.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
@@ -9422,31 +9883,33 @@ class FunctionalTests_API(AppTest):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents
         res = self.testapp.post(
-            "/.well-known/admin/api/update-recents.json", {}, status=200
+            "/.well-known/peter_sslers/api/update-recents.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-        res = self.testapp.get("/.well-known/admin/api/redis/prime", status=303)
+        res = self.testapp.get("/.well-known/peter_sslers/api/redis/prime", status=303)
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/redis?result=error&operation=api--redis--prime&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/redis?result=error&operation=api--redis--prime&error=POST+required"
         )
 
-        res = self.testapp.post("/.well-known/admin/api/redis/prime", {}, status=303)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/redis/prime", {}, status=303
+        )
         assert (
-            "/.well-known/admin/operations/redis?result=success&operation=redis_prime&event.id="
+            "/.well-known/peter_sslers/operations/redis?result=success&operation=redis_prime&event.id="
             in res.location
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/api/redis/prime.json", {}, status=200
+            "/.well-known/peter_sslers/api/redis/prime.json", {}, status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/redis/prime.json", {}, status=200
+            "/.well-known/peter_sslers/api/redis/prime.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
@@ -9464,25 +9927,29 @@ class FunctionalTests_API(AppTest):
         """
         # TODO: this doesn't actually test nginx
         # this will test the nginx routes work, but they will catch exceptions when trying to talk upstream
-        res = self.testapp.get("/.well-known/admin/api/nginx/cache-flush", status=303)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/nginx/cache-flush", status=303
+        )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/operations/nginx?result=error&operation=api--nginx--cache-flush&error=POST+required"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/operations/nginx?result=error&operation=api--nginx--cache-flush&error=POST+required"
         )
 
-        res = self.testapp.post("/.well-known/admin/api/nginx/cache-flush", status=303)
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/nginx/cache-flush", status=303
+        )
         assert (
-            "/.well-known/admin/operations/nginx?result=success&operation=nginx_cache_flush&event.id="
+            "/.well-known/peter_sslers/operations/nginx?result=success&operation=nginx_cache_flush&event.id="
             in res.location
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/api/nginx/cache-flush.json", status=200
+            "/.well-known/peter_sslers/api/nginx/cache-flush.json", status=200
         )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/nginx/cache-flush.json", {}, status=200
+            "/.well-known/peter_sslers/api/nginx/cache-flush.json", {}, status=200
         )
         assert res.json["result"] == "success"
         assert "servers_status" in res.json
@@ -9505,11 +9972,13 @@ class FunctionalTests_API(AppTest):
             self.assertGreaterEqual(server_version, OPENRESTY_PLUGIN_MINIMUM)
             assert res.json["servers_status"]["servers"][server]["expired"] == "all"
 
-        res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/nginx/status.json", status=200
+        )
         assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
-            "/.well-known/admin/api/nginx/status.json", {}, status=200
+            "/.well-known/peter_sslers/api/nginx/status.json", {}, status=200
         )
         assert res.json["result"] == "success"
         assert "servers_status" in res.json
@@ -9556,26 +10025,28 @@ class FunctionalTests_API(AppTest):
     def test_post_required_json(self):
         # !!!: test `POST required` `api/domain/autocert.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/domain/autocert.json", status=200
+            "/.well-known/peter_sslers/api/domain/autocert.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `api/deactivate-expired.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/deactivate-expired.json", status=200
+            "/.well-known/peter_sslers/api/deactivate-expired.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         # !!!: test `POST required` `api/update-recents.json`
-        res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/update-recents.json", status=200
+        )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
         try:
             res = self.testapp.get(
-                "/.well-known/admin/api/redis/prime.json", status=200
+                "/.well-known/peter_sslers/api/redis/prime.json", status=200
             )
             assert "instructions" in res.json
             assert "HTTP POST required" in res.json["instructions"]
@@ -9623,7 +10094,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
     def _place_order(self, account_key_file_pem, account__contact, domain_names):
         resp = requests.get(
-            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/freeform.json"
+            "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/new/freeform.json"
         )
         assert resp.status_code == 200
         assert "instructions" in resp.json()
@@ -9643,7 +10114,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["domain_names_http01"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
         resp = requests.post(
-            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/freeform.json",
+            "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/new/freeform.json",
             data=form,
             files=files,
         )
@@ -9724,7 +10195,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         obj_id = resp.json()["AcmeOrder"]["id"]
 
         # # test for resync bug
-        # url = "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id
+        # url = "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id
         # rrr = requests.post(url)
         # pdb.set_trace()
 
@@ -9905,7 +10376,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
         """
         res = self.testapp.get(
-            "/.well-known/admin/api/domain/certificate-if-needed", status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
         assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
@@ -9914,7 +10385,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ]["key_pem_md5"]
 
         res2 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", {}, status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", {}, status=200
         )
         assert "instructions" not in res2.json
         assert res2.json["result"] == "error"
@@ -9932,7 +10403,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res3 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res3.status_code == 200
         assert res3.json["result"] == "success"
@@ -9956,7 +10427,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         form["domain_name"] = ",".join(_domain_names)
         res4 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res4.status_code == 200
         assert res4.json["result"] == "error"
@@ -9969,7 +10440,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "fail-a-1.example.com"
         form["domain_name"] = _domain_name
         res5 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res5.status_code == 200
         assert res5.json["result"] == "success"
@@ -9988,7 +10459,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res6 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res6.status_code == 200
         assert res6.json["result"] == "success"
@@ -10008,7 +10479,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form_disable = {"domain_names": _domain_name}
         res_disable = self.testapp.post(
-            "/.well-known/admin/api/domain/disable", form_disable
+            "/.well-known/peter_sslers/api/domain/disable", form_disable
         )
         assert res_disable.status_code == 200
         assert res_disable.json["result"] == "success"
@@ -10016,7 +10487,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res7 = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res7.status_code == 200
         assert res7.json["result"] == "success"
@@ -10053,7 +10524,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # NOTE: prep work, ensure we have a cert
         # prep the form
         res = self.testapp.get(
-            "/.well-known/admin/api/domain/certificate-if-needed", status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
         assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
@@ -10072,7 +10543,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "test-redis-1.example.com"
         form["domain_name"] = _domain_name
         res = self.testapp.post(
-            "/.well-known/admin/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
@@ -10088,7 +10559,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents
         res = self.testapp.post(
-            "/.well-known/admin/api/update-recents.json", {}, status=200
+            "/.well-known/peter_sslers/api/update-recents.json", {}, status=200
         )
         assert res.json["result"] == "success"
 
@@ -10108,7 +10579,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 ] = _prime_style
 
                 res = self.testapp.post(
-                    "/.well-known/admin/api/redis/prime.json", {}, status=200
+                    "/.well-known/peter_sslers/api/redis/prime.json", {}, status=200
                 )
                 assert res.json["result"] == "success"
 

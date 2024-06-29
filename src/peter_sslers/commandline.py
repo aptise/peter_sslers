@@ -125,7 +125,7 @@ def import_certbot_certs_archive(archive_path: str, server_url_root: str) -> Non
     imports the entire letescrypt archive on `archive_path`
 
     :param str archive_path: (required) the path to an archive. usually `/etc/letsencrypt/archive`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((archive_path, server_url_root)):
         raise ValueError("must supply all of (archive_path, server_url_root)")
@@ -184,7 +184,7 @@ def import_certbot_cert_version(
 
     :param str domain_certs_path: (required) the path to a domain's certificate store'. usually `/etc/letsencrypt/archive/example.com`
     :param int certificate_version: (required) which version to import. e.g. `privkey3.pem` is (certificate_version=3)
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
 
     eg, if a folder has a family of certs numbered like this:
         /domain-certs/fullchain1.pem
@@ -239,7 +239,7 @@ def import_certbot_cert_plain(cert_path: str, server_url_root: str) -> None:
         /domain-cert/private_key.pem
 
     :param str cert_path: (required) the path to an archive. usually `/etc/letsencrypt/live/example.com`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((cert_path, server_url_root)):
         raise ValueError("must supply all of (cert_path, server_url_root)")
@@ -273,7 +273,7 @@ def import_certbot_certs_live(live_path: str, server_url_root: str) -> None:
     imports the letsencrypt live archive  in /etc/letsencrypt/live
 
     :param str live_path: (required) the path to an archive. usually `/etc/letsencrypt/live`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((live_path, server_url_root)):
         raise ValueError("must supply all of (live_path, server_url_root)")
@@ -352,7 +352,7 @@ def import_certbot_account(account_path: str, server_url_root: str) -> None:
     imports a specific Certbot account
 
     :param str account_path: (required) the path to an archive. usually `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((account_path, server_url_root)):
         raise ValueError("must supply all of (account_path, server_url_root)")
@@ -376,7 +376,7 @@ def import_certbot_accounts_server(
     imports all accounts for a given Certbot server
 
     :param str accounts_path_server: (required) the path to an archive. usually `/etc/letsencrypt/accounts/{SERVER}`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((accounts_path_server, server_url_root)):
         raise ValueError("must supply all of (accounts_path_server, server_url_root)")
@@ -420,7 +420,7 @@ def import_certbot_accounts_all(accounts_path_all: str, server_url_root: str) ->
     imports all accounts for a Certbot install
 
     :param str accounts_path_all: (required) the path to an archive. usually `/etc/letsencrypt/accounts`
-    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/peter_sslers`
     """
     if not all((accounts_path_all, server_url_root)):
         raise ValueError("must supply all of (accounts_path_all, server_url_root)")

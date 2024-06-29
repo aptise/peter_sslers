@@ -7,7 +7,7 @@ The webserver exposes the following routes/directories:
 
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
-* `/.well-known/admin` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
+* `/.well-known/peter_sslers` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
 
 The server will respond to requests with the following header to identify it:
 
@@ -42,7 +42,7 @@ To solve this you can:
 
 * proxy external ` /.well-known/acme-challenge/` to one or more machines running
   this tool (they just need to share a common datastore)
-* make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
+* make ` /.well-known/peter_sslers` only usable within your LAN or NEVER USABLE
 * on a machine within your LAN, you can query for the latest certs for Domain(s)
   using simple `curl` commands
 
@@ -51,7 +51,7 @@ manage) the Certificates need to be loaded into a `Redis` server for use by an
 `OpenResty`/`Nginx` webserver/gateway that will dynamically handle SSL Certificates.
 
 In a simple example, `OpenResty`/`Nginx` will query
-`/.well-known/admin/domain/example.com/config.json` to pull the active Certificate
+`/.well-known/peter_sslers/domain/example.com/config.json` to pull the active Certificate
 information for a Domain. In advanced versions, that Certificate information will
 be cached into multiple levels of `OpenResty`/`Nginx` and `Redis` using different
 optimization strategies.
@@ -188,7 +188,7 @@ If the certificate was revoked, it is permanent and should not be re-activated.
 
 ### Domain Queue
 
-The Domain queue, `/admin/queue-domains`, is designed to allow for Domains to be
+The Domain queue, `/peter_sslers/queue-domains`, is designed to allow for Domains to be
 "queued in" for later batch processing.
 
 If a Domain is added to the queue, the following logic takes place:

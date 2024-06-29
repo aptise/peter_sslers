@@ -19,7 +19,7 @@ information as every other LetsEncrypt client. These routes are generally safe.
 
 The
 [Admin Views](https://github.com/aptise/peter_sslers/tree/main/peter_sslers/web/views_admin)
-are isolated to the '/.well-known/admin` directory; while these routes can be
+are isolated to the '/.well-known/peter_sslers` directory; while these routes can be
 extremely dangerous, a reasonably competent security policy can be implemented to
 make this section of the application suite password protected and/or available
 only to local network traffic.
@@ -107,7 +107,7 @@ After running the server, in another window...
 
 - $VENV/bin/pip install invoke
 - cd tools
-- $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+- $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
 
 There is also a button under "operations" to sync LetsEncrypt's public website

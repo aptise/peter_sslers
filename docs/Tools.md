@@ -47,7 +47,7 @@ Installation Instructions:
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/peter_sslers/api/redis/prime.json`
 
 Using `prequest` is recommended in most contexts, because it will not timeout.
 This will allow for long-running processes.

@@ -301,6 +301,7 @@ The abridged version:
 - $VENV/bin/python setup.py develop
 - vi example_development.ini
 - $VENV/bin/initialize_peter_sslers_db example_development.ini
+- $VENV/bin/import_certbot example_development.ini dir=/etc/letsencrypt
 - $VENV/bin/pserve example_development.ini
 
 

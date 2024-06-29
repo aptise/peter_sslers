@@ -544,6 +544,7 @@ def form_key_selection(
     if privateKeySelection.selection == "upload":
         assert privateKeySelection.upload_parsed
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
+        key_create_args["discovery_type"] = "upload"
         key_create_args["event_type"] = "PrivateKey__insert"
         key_create_args[
             "private_key_source_id"

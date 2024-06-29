@@ -209,12 +209,15 @@ class View_New(Handler):
             if not isinstance(chain_pem, str):
                 chain_pem = chain_pem.decode("utf8")
 
-            chain_file_name = formStash.results["chain_file_name"] or "manual upload"
+            chain_file_name = formStash.results["chain_file_name"]
             (
                 dbCertificateCAChain,
                 _is_created,
             ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
-                self.request.api_context, chain_pem, display_name=chain_file_name
+                self.request.api_context,
+                chain_pem,
+                display_name=chain_file_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:

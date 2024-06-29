@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from invoke.context import Context
 
 
-# export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+# export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
 DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT", "")
 
 # ------------------------------------------------------------------------------
@@ -42,10 +42,10 @@ def import_certbot_certs_archive(
     imports the entire LetEncrypt archive in `archive_path`
 
     usage:
-        invoke import-certbot-certs-archive  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --archive-path="/etc/letsencrypt/archive"
+        invoke import-certbot-certs-archive  --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers" --archive-path="/etc/letsencrypt/archive"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-certs-archive --archive-path="/etc/letsencrypt/archive"
     """
     peter_sslers.commandline.import_certbot_certs_archive(archive_path, server_url_root)
@@ -77,10 +77,10 @@ def import_certbot_cert_version(
     you can import a specific version, for example "3", with this command
 
     usage:
-        invoke import-certbot-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3
+        invoke import-certbot-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3
     """
     peter_sslers.commandline.import_certbot_cert_version(
@@ -110,10 +110,10 @@ def import_certbot_cert_plain(
         /domain-cert/private_key.pem
 
     usage:
-        invoke import-certbot-cert-plain --server-url-root="http://127.0.0.1:7201/.well-known/admin" --cert-path="/path/to/ssl/live/example.com"
+        invoke import-certbot-cert-plain --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers" --cert-path="/path/to/ssl/live/example.com"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-cert-plain --cert-path="/path/to/ssl/live/example.com"
     """
     peter_sslers.commandline.import_certbot_cert_plain(cert_path, server_url_root)
@@ -136,10 +136,10 @@ def import_certbot_certs_live(
     imports the LetsEncrypt Certbot live archive  in /etc/letsencrypt/live
 
     usage:
-        invoke import-certbot-certs-live --server-url-root="http://127.0.0.1:7201/.well-known/admin" --live-path="/path/to/ssl/live"
+        invoke import-certbot-certs-live --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers" --live-path="/path/to/ssl/live"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-certs-live --live-path="/path/to/ssl/live"
     """
     peter_sslers.commandline.import_certbot_certs_live(live_path, server_url_root)
@@ -165,10 +165,10 @@ def import_certbot_account(
     imports a specific LetsEncrypt Certbot account
 
     usage:
-        invoke import-certbot-account --server-url-root="http://127.0.0.1:7201/.well-known/admin" --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
+        invoke import-certbot-account --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers" --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
     """
     peter_sslers.commandline.import_certbot_account(account_path, server_url_root)
@@ -191,10 +191,10 @@ def import_certbot_accounts_server(
     imports all accounts for a given LetsEncrypt server
 
     usage:
-        invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+        invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}"
     """
     peter_sslers.commandline.import_certbot_accounts_server(
@@ -219,10 +219,10 @@ def import_certbot_accounts_all(
     imports all accounts for a LetsEncrypt install
 
     usage:
-        invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+        invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/" --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers"
 
     usage:
-        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
+        export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
         invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/"
     """
     peter_sslers.commandline.import_certbot_accounts_all(

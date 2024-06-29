@@ -372,6 +372,7 @@ class View_New(Handler):
                     "imported"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                discovery_type="via upload certificate_signed",
             )
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if not isinstance(ca_chain_pem, str):
@@ -380,7 +381,9 @@ class View_New(Handler):
                 dbCertificateCAChain,
                 chain_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
-                self.request.api_context, ca_chain_pem, display_name="manual upload"
+                self.request.api_context,
+                ca_chain_pem,
+                discovery_type="upload",
             )
 
             certificate_pem = formhandling.slurp_file_field(
@@ -405,7 +408,9 @@ class View_New(Handler):
                     dbUniqueFQDNSet,
                     is_created_fqdn,
                 ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                    self.request.api_context, _certificate_domain_names
+                    self.request.api_context,
+                    _certificate_domain_names,
+                    discovery_type="via upload certificate_signed",
                 )
             except Exception as exc:  # noqa: F841
                 raise
@@ -424,6 +429,7 @@ class View_New(Handler):
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
+                discovery_type="via upload certificate_signed",
             )
 
             if self.request.wants_json:

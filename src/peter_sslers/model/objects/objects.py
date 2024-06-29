@@ -2166,6 +2166,9 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     __tablename__ = "certificate_ca"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
 
     # TODO: migrate this to an association table that tracks different trusted root stores
     is_trusted_root: Mapped[Optional[bool]] = mapped_column(
@@ -2369,6 +2372,9 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "certificate_ca_chain"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
@@ -2583,6 +2589,9 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2763,9 +2772,13 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    # this relationship is based on the AcmeOrder, not the PrivateKey
     acme_account = sa_orm_relationship(
         AcmeAccount,
         primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
@@ -2965,13 +2978,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def expiring_days_label(self) -> str:
-        if self.is_active:
-            if self.expiring_days <= 0:
-                return "danger"
-            elif self.expiring_days <= 30:
-                return "warning"
-            elif self.expiring_days > 30:
-                return "success"
+        if self.expiring_days <= 0:
+            return "danger"
+        elif self.expiring_days <= 30:
+            return "warning"
+        elif self.expiring_days > 30:
+            return "success"
         return "danger"
 
     def custom_config_payload(
@@ -3340,6 +3352,9 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_authorizations = sa_orm_relationship(
@@ -3872,6 +3887,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     private_key_id__replaces: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )  # if this key replaces a compromised PrivateKey, note it.
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4370,7 +4388,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     root_store_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
     )
-    version_string: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    version_string: Mapped[str] = mapped_column(sa.Text, nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
@@ -4455,6 +4473,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

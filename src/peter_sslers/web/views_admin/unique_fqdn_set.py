@@ -471,6 +471,7 @@ class View_Focus(Handler):
                     self.request.api_context,
                     proposed_domains,
                     allow_blocklisted_domains=False,
+                    discovery_type="fqdn modify",
                 )
             except Exception as exc:  # noqa: F841
                 raise
@@ -575,6 +576,7 @@ class ViewNew(Handler):
                     self.request.api_context,
                     domain_names,
                     allow_blocklisted_domains=False,
+                    discovery_type="upload",
                 )
             except Exception as exc:  # noqa: F841
                 raise

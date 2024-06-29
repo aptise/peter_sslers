@@ -327,7 +327,9 @@ class View_New(Handler):
                 dbDomain,
                 _is_created,
             ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                self.request.api_context, domain_name=domain_name
+                self.request.api_context,
+                domain_name=domain_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:

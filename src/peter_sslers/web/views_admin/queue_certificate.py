@@ -579,6 +579,7 @@ class View_New(Handler):
                     self.request.api_context,
                     domains_challenged.domains_as_list,
                     allow_blocklisted_domains=False,
+                    discovery_type="via queue_certificate",
                 )
 
             except errors.AcmeDomainsBlocklisted as exc:

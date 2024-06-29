@@ -208,7 +208,11 @@ def operations_reconcile_cas(
             (
                 _dbCertificateCAReconciled,
                 _is_created,
-            ) = getcreate.getcreate__CertificateCA__by_pem_text(ctx, cert_pem)
+            ) = getcreate.getcreate__CertificateCA__by_pem_text(
+                ctx,
+                cert_pem,
+                discovery_type="reconcile_cas",
+            )
             # mark the first item as reconciled
             dbCertificateCA.cert_issuer__reconciled = True
             if not dbCertificateCA.cert_issuer__certificate_ca_id:
@@ -762,7 +766,9 @@ def api_domains__certificate_if_needed(
 
         elif not _dbDomain:
             _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
-                ctx, _domain_name
+                ctx,
+                _domain_name,
+                discovery_type="via certificate_if_needed",
             )[
                 0
             ]  # (dbDomain, _is_created)

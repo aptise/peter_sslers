@@ -6,15 +6,15 @@
 ## Routes Designed for JSON Automation
 
 
-### `/.well-known/admin/api/deactivate-expired.json`
+### `/.well-known/peter_sslers/api/deactivate-expired.json`
 
 Deactivate expired Certificates.
 
-### `/.well-known/admin/api/redis/prime.json`
+### `/.well-known/peter_sslers/api/redis/prime.json`
 
 Prime a `Redis` cache with Domain data.
 
-### `/.well-known/admin/api/update-recents.json`
+### `/.well-known/peter_sslers/api/update-recents.json`
 
 Updates Domain records to list the most recent Certificates for the Domain.
 
@@ -26,19 +26,19 @@ Most routes have support for JSON requests via a `.json` suffix.
 These are usually documented on the html version, and via "GET" requests to the
 json version.
 
-### `/.well-known/admin/certificate-signed/upload.json`
+### `/.well-known/peter_sslers/certificate-signed/upload.json`
 
 This can be used used to directly import Certificates already issued by LetsEncrypt
 
     curl --form "private_key_file=@privkey1.pem" \
          --form "certificate_file=@cert1.pem" \
          --form "chain_file=@chain1.pem" \
-         http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
+         http://127.0.0.1:7201/.well-known/peter_sslers/certificate-signed/upload.json
 
     curl --form "private_key_file=@privkey2.pem" \
          --form "certificate_file=@cert2.pem" \
          --form "chain_file=@chain2.pem" \
-         http://127.0.0.1:7201/.well-known/admin/certificate-signed/upload.json
+         http://127.0.0.1:7201/.well-known/peter_sslers/certificate-signed/upload.json
 
 Note the url is not `/upload` like the html form but `/upload.json`.
 
@@ -53,32 +53,32 @@ There is an `invoke` script to automate these imports:
 
     invoke import-certbot-certs-archive \
            --archive-path='/path/to/archive' \
-           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+           --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
     invoke import-certbot-cert-version \
            --domain-certs-path="/path/to/ssl/archive/example.com" \
            --certificate-version=3 \
-           --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+           --server-url-root="http://127.0.0.1:7201/.well-known/peter_sslers"
 
     invoke import-certbot-certs-live \
            --live-path='/etc/letsencrypt/live' \
-           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+           --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
     invoke import-certbot-cert-plain \
            --cert-path='/etc/letsencrypt/live/example.com' \
-           --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+           --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
 
-### `/.well-known/admin/certificate-ca/upload-cert.json`
+### `/.well-known/peter_sslers/certificate-ca/upload-cert.json`
 
 Upload a new CertificateAuthority (LetsEncrypt) Certificate.
 
-### `/.well-known/admin/certificate-ca-chain/upload-chain.json`
+### `/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json`
 
 Upload a new CertificateAuthority (LetsEncrypt) Chain.  A chain are the
 intermediate certificates.
 
-### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
+### `/.well-known/peter_sslers/domain/{DOMAIN|ID}/config.json` Domain Data
 
 `{DOMAIN|ID}` can be the internal numeric id or the Domain name.
 
@@ -114,7 +114,7 @@ for `Redis` and load the Domain's info into `Redis` (if `Redis` is configured).
 
 This is the route use by the `OpenResty` Lua script to query Domain data.
 
-### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
+### `/.well-known/peter_sslers/certificate/{ID}/config.json` Certificate Data
 
 The certificate JSON payload is what is nested in the Domain payload
 
@@ -138,17 +138,17 @@ Notice that the numeric ids are returned as strings. This is by design.
 Need to get the Certificate data directly? NO SWEAT. Peter transforms this for you
 on the server, and sends it to you with the appropriate headers.
 
-* /.well-known/admin/certificate-signed/{ID}/cert.crt
-* /.well-known/admin/certificate-signed/{ID}/cert.pem
-* /.well-known/admin/certificate-signed/{ID}/cert.pem.txt
-* /.well-known/admin/certificate-signed/{ID}/chain.cer
-* /.well-known/admin/certificate-signed/{ID}/chain.crt
-* /.well-known/admin/certificate-signed/{ID}/chain.der
-* /.well-known/admin/certificate-signed/{ID}/chain.pem
-* /.well-known/admin/certificate-signed/{ID}/chain.pem.txt
-* /.well-known/admin/certificate-signed/{ID}/fullchain.pem
-* /.well-known/admin/certificate-signed/{ID}/fullchain.pem.txt
-* /.well-known/admin/certificate-signed/{ID}/privkey.key
-* /.well-known/admin/certificate-signed/{ID}/privkey.pem
-* /.well-known/admin/certificate-signed/{ID}/privkey.pem.txt
+* /.well-known/peter_sslers/certificate-signed/{ID}/cert.crt
+* /.well-known/peter_sslers/certificate-signed/{ID}/cert.pem
+* /.well-known/peter_sslers/certificate-signed/{ID}/cert.pem.txt
+* /.well-known/peter_sslers/certificate-signed/{ID}/chain.cer
+* /.well-known/peter_sslers/certificate-signed/{ID}/chain.crt
+* /.well-known/peter_sslers/certificate-signed/{ID}/chain.der
+* /.well-known/peter_sslers/certificate-signed/{ID}/chain.pem
+* /.well-known/peter_sslers/certificate-signed/{ID}/chain.pem.txt
+* /.well-known/peter_sslers/certificate-signed/{ID}/fullchain.pem
+* /.well-known/peter_sslers/certificate-signed/{ID}/fullchain.pem.txt
+* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.key
+* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.pem
+* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.pem.txt
 

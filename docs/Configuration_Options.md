@@ -44,7 +44,7 @@ These are documented at-length on the in-app settings page.
   library
 
 * `admin_server` (optional) defaults to `HTTP_HOST`
-* `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/admin`
+* `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/peter_sslers`
 * `admin_url` (optional) used for display in instructions. If omitted,
   scheme+server+prefix will be used.
 

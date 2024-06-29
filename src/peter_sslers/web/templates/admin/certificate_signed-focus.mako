@@ -280,9 +280,9 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${CertificateSigned.acme_order.acme_account_id}</a>
                                 <br/>
-                                <em>The CertificateSigned belongs to this AcmeAccount.</em>
+                                <em>The CertificateSigned belongs to this AcmeAccount through an AcmeOrder.</em>
                             % else:
-                                <em>The CertificateSigned is not associated with an AcmeAccount.</em>
+                                <em>The CertificateSigned is not associated with an AcmeAccount through an AcmeOrder.</em>
                             % endif
                         </td>
                     </tr>

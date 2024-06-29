@@ -1359,7 +1359,7 @@
         </li>
     </ul>
 
-    ## <code>http://127.0.0.1:7201/.well-known/admin/acme-account/new</code>
+    ## <code>http://127.0.0.1:7201/.well-known/peter_sslers/acme-account/new</code>
 </%def>
 
 

@@ -60,7 +60,7 @@ class ApplicationSettings(dict):
         # do this before setting routes!
         admin_prefix = settings.get("admin_prefix", None)
         if admin_prefix is None:
-            self["admin_prefix"] = "/.well-known/admin"
+            self["admin_prefix"] = "/.well-known/peter_sslers"
 
         # openssl updates:
         # * openssl_path_conf

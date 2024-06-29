@@ -136,22 +136,22 @@ ensure_chain
 		- sync is complex, because it requires a DNS lookup
 	- how to AcmeDNS?
 
-		/.well-known/admin/acme-order/{ID}
+		/.well-known/peter_sslers/acme-order/{ID}
 			list the challenge types
 
-		/.well-known/admin/acme-order/new/freeform
+		/.well-known/peter_sslers/acme-order/new/freeform
 			domain_names -> domain_names_http01 + domain_names_dns01
 
-		/.well-known/admin/acme-order/{ID}/renew/quick
+		/.well-known/peter_sslers/acme-order/{ID}/renew/quick
 			list the challenge types
 
-		/.well-known/admin/queue-certificate/new/structured
+		/.well-known/peter_sslers/queue-certificate/new/structured
 			list the challenge types
 
-		/.well-known/admin/queue-certificate/new/structured
+		/.well-known/peter_sslers/queue-certificate/new/structured
 			list the challenge types
 
-		/.well-known/admin/acme-order/{ID}/renew/custom
+		/.well-known/peter_sslers/acme-order/{ID}/renew/custom
 			list the challenge types
 
 

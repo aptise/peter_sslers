@@ -150,6 +150,7 @@
                             <thead>
                                 <tr>
                                     <th>id</th>
+                                    <th>display_name</th>
                                     <th>spki_sha256</th>
                                     <th>timestamp signed</th>
                                     <th>timestamp expires</th>
@@ -165,6 +166,7 @@
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             CertificateCA-${cert.id}</a>
                                     </td>
+                                    <td>${cert.display_name}</td>
                                     <td><code>${cert.spki_sha256}</code></td>
                                     <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                                     <td><timestamp>${cert.timestamp_not_after}</timestamp></td>

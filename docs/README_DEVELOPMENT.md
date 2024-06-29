@@ -41,11 +41,11 @@ checking on ACME payloads.
 When you start the server a new AcmeAccountProvider will be created for
 your CertificateAuthority:
 
-    http://127.0.0.1:7201/.well-known/admin/acme-account-providers
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-account-providers
 
 2.  Create/Upload a new account key for the 'custom' AcmeProvider.
 
-    http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-account-key/new
 
 
 3. Run a custom CA for testing

@@ -11,7 +11,7 @@ purpose:
     * /
     * /.well-known/acme-challenge/{challenge}
     * /.well-known/public/whoami
-    * /.well-known/admin
+    * /.well-known/peter_sslers
 
 By default, the server will run on 127.0.0.1:7201, which is the default port
 used by the peter_sslers Pyramid application.
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     config.add_route("hello", "/")
     config.add_route("public_challenge", "/.well-known/acme-challenge/{challenge}")
     config.add_route("public_whoami", "/.well-known/public/whoami")
-    config.add_route("admin", "/.well-known/admin")
+    config.add_route("admin", "/.well-known/peter_sslers")
 
     config.add_view(hello_world, route_name="hello")
     config.add_view(public_challenge, route_name="public_challenge")
