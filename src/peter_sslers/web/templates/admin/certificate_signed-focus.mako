@@ -202,6 +202,10 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>cert_serial</th>
+                        <td><code>${CertificateSigned.cert_serial}</code></td>
+                    </tr>
+                    <tr>
                         <th>timestamp_not_before</th>
                         <td><timestamp>${CertificateSigned.timestamp_not_before}</timestamp></td>
                     </tr>
@@ -215,6 +219,33 @@
                             <span class="label label-${CertificateSigned.expiring_days_label}">
                                 ${CertificateSigned.expiring_days} days
                             </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ARI</th>
+                        <td>
+
+                            <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
+                                <button class="btn btn-xs btn-success" type="submit">
+                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                    Check ARI
+                                </button>
+                            </form>
+                            
+                            % if CertificateSigned.ari_check__latest:
+                                &nbsp;
+                                <a class="label label-info" href="${admin_prefix}/ari-check/${CertificateSigned.ari_check__latest.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    ${CertificateSigned.ari_check__latest.id}
+                                    ARI Check Latest
+                                </a>
+                                &nbsp;
+                            % endif
+                            
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check-history">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ARI Checks (History)
+                            </a>
                         </td>
                     </tr>
                     <tr>

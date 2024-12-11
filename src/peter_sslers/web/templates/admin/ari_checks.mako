@@ -6,26 +6,36 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-signeds">Server Certificates</a></li>
-        <li><a href="${admin_prefix}/certificate-signed/${CertificateSigned.id}">Focus [${CertificateSigned.id}]</a></li>
-        <li class="active">Queue Certificates</li>
+        <li class="active">ARIChecks</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateSigned Focus - Queue Certificates</h2>
+    <h2>ARIChecks</h2>
+</%block>
+
+
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/ari-checks.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if QueueCertificates:
+            % if AriChecks:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_QueueCertificates(QueueCertificates, perspective='CertificateSigned')}
+                ${admin_partials.table_AriChecks(AriChecks, perspective='AriChecks')}
             % else:
-                No known QueueCertificates.
+                <em>
+                    No AriChecks
+                </em>
             % endif
         </div>
     </div>

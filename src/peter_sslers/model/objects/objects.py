@@ -2154,6 +2154,55 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class AriCheck(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "ari_check"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    certificate_signed_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("certificate_signed.id", use_alter=True),
+        nullable=False,
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    process_result: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean,
+        nullable=False,
+    )  # True: Success; False Failure
+
+    suggested_window_start: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    suggested_window_end: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+
+    certificate_signed = sa_orm_relationship(
+        "CertificateSigned",
+        primaryjoin="AriCheck.certificate_signed_id==CertificateSigned.id",
+        uselist=False,
+        back_populates="ari_checks",
+    )
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            "certificate_signed_id": self.certificate_signed_id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "process_result": self.process_result,
+            "suggested_window_start": self.suggested_window_start.isoformat()
+            if self.suggested_window_start
+            else None,
+            "suggested_window_end": self.suggested_window_end.isoformat()
+            if self.suggested_window_end
+            else None,
+        }
+
+
+# ==============================================================================
+
+
 class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
@@ -2752,6 +2801,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.DateTime, nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
+    cert_serial: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, unique=False
+    )  # the serial is only unique within an acme-provider
+
     # as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
     # is_auto_renew: Mapped[Optional[bool]] = mapped_column(sa.Boolean, nullable=True, default=None)
 
@@ -2839,6 +2892,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_signeds",
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ari_checks = sa_orm_relationship(
+        "AriCheck",
+        primaryjoin="CertificateSigned.id==AriCheck.certificate_signed_id",
+        back_populates="certificate_signed",
+        uselist=True,
+    )
     acme_order__renewals = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id__renewal_of",
@@ -3156,6 +3215,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "cert_pem_md5": self.cert_pem_md5,
             "cert_subject": self.cert_subject,
             "cert_issuer": self.cert_issuer,
+            "cert_serial": self.cert_serial,
             "fingerprint_sha1": self.fingerprint_sha1,
             "spki_sha256": self.spki_sha256,
             "key_technology": self.key_technology,
@@ -3163,6 +3223,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             # "acme_account_id": self.acme_account_id,
             "renewals_managed_by": self.renewals_managed_by,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "ari_check_latest_id": self.ari_check__latest.id
+            if self.ari_check__latest
+            else None,
         }
 
 
@@ -4616,6 +4679,7 @@ __all__ = (
     "AcmeOrder2AcmeAuthorization",
     "AcmeOrder2AcmeChallengeTypeSpecific",
     "AcmeOrderless",
+    "AriCheck",
     "CertificateCA",
     "CertificateCAChain",
     "CertificateCAPreference",

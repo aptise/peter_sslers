@@ -77,6 +77,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains-blocklisted</a></li>
+                <li><a href="${admin_prefix}/ari-checks"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    ari-checks</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>

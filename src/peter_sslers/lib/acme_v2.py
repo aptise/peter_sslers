@@ -26,6 +26,7 @@ from urllib.request import urlopen
 # pypi
 import cert_utils
 import josepy
+import requests
 from requests.utils import parse_header_links
 
 # localapp
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
     from ..model.objects import AcmeAuthorization
     from ..model.objects import AcmeChallenge
     from ..model.objects import AcmeOrder
+    from ..model.objects import CertificateSigned
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
     from .db.logger import AcmeLogger
@@ -377,7 +379,9 @@ def sign_payload(
 
 
 def sign_payload_inner(
-    url: str, payload: Any, accountKeyData: "AccountKeyData"
+    url: str,
+    payload: Any,
+    accountKeyData: "AccountKeyData",
 ) -> Dict:
     """
     This format is used by the `keyChange` rollover endpoint's inner payload.
@@ -2050,6 +2054,49 @@ class AuthenticatedUser(object):
                 )
             )
         raise ValueError("This should never run")
+
+
+def _ari_query(
+    acme_server: str, ari_id: str
+) -> Tuple[Optional[Dict], "CaseInsensitiveDict"]:
+    sess = requests.Session()
+    r = sess.get(acme_server)
+    _renewal_base = r.json().get("renewalInfo")
+    if not _renewal_base:
+        raise ValueError("endpoint does not support ARI")
+    _renewal_url = "%s/%s" % (_renewal_base, ari_id)
+    r = sess.get(_renewal_url)
+    _data: Optional[Dict] = r.json()
+    _headers: "CaseInsensitiveDict" = r.headers
+    return (_data, _headers)
+
+
+def ari_check(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> Optional[Dict]:
+    log.debug("ari_check(%s", dbCertificateSigned)
+
+    # can we grab the ARI info off the cert?
+
+    try:
+        ari_identifier = cert_utils.ari_construct_identifier(
+            cert_pem=dbCertificateSigned.cert_pem,
+        )
+    except Exception as exc:
+        raise exc
+
+    if not ari_identifier:
+        raise ValueError("no ARI Identifier")
+
+    # let's try to pull the cert info..
+    cert_data = cert_utils.parse_cert(cert_pem=dbCertificateSigned.cert_pem)
+    ari_endpoint = utils.issuer_to_endpoint(cert_data=cert_data)
+    if ari_endpoint:
+        _data, _headers = _ari_query(ari_endpoint, ari_identifier)
+        return _data
+
+    return None
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

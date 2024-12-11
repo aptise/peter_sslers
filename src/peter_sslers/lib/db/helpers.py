@@ -38,6 +38,7 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.cert_issuer`
         :attr:`model.utils.CertificateSigned.fingerprint_sha1`
         :attr:`model.utils.CertificateSigned.spki_sha256`
+        :attr:`model.utils.CertificateSigned.cert_serial`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -69,6 +70,9 @@ def _certificate_parse_to_record(
     dbCertificateSigned.cert_issuer = _cert_data["issuer"]
     dbCertificateSigned.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
     dbCertificateSigned.spki_sha256 = _cert_data["spki_sha256"]
+    dbCertificateSigned.cert_serial = str(
+        _cert_data["serial"]
+    )  # cast to str, because int may be TOO large
     return dbCertificateSigned
 
 

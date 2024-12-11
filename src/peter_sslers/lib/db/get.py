@@ -29,6 +29,7 @@ from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
 from ...model.objects import AcmeOrderless
+from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
 from ...model.objects import CertificateCAPreference
@@ -1206,6 +1207,69 @@ def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AriChecks__count(
+    ctx: "ApiContext",
+) -> int:
+    counted = ctx.dbSession.query(AriCheck).count()
+    return counted
+
+
+def get__AriChecks___paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AriCheck]:
+    q = (
+        ctx.dbSession.query(AriCheck)
+        .order_by(AriCheck.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__AriCheck__by_CertificateSignedId__count(
+    ctx: "ApiContext",
+    cert_id: int,
+) -> int:
+    counted = (
+        ctx.dbSession.query(AriCheck)
+        .filter(AriCheck.certificate_signed_id == cert_id)
+        .count()
+    )
+    return counted
+
+
+def get__AriCheck__by_CertificateSignedId__paginated(
+    ctx: "ApiContext",
+    cert_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AriCheck]:
+    q = (
+        ctx.dbSession.query(AriCheck)
+        .filter(AriCheck.certificate_signed_id == cert_id)
+        .order_by(AriCheck.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__AriCheck__by_id(
+    ctx: "ApiContext",
+    id: int,
+) -> AriCheck:
+    q = ctx.dbSession.query(AriCheck).filter(AriCheck.id == id)
+    item = q.first()
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

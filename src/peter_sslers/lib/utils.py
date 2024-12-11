@@ -1,5 +1,7 @@
 # stdlib
+import base64
 import datetime
+import json
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -33,11 +35,49 @@ def url_to_server(url: str) -> str:
     return url
 
 
+def urlify(as_dict: Dict) -> str:
+    _json_data = json.dumps(as_dict)
+    _encoded_bytes = _json_data.encode("utf-8")
+    _encoded = base64.b64encode(_encoded_bytes).decode("utf-8")
+    return _encoded
+
+
+def unurlify(_encoded: str) -> Dict:
+    _decoded = base64.b64decode(_encoded)
+    _json_data = json.loads(_decoded)
+    return _json_data
+
+
+def ari_timestamp_to_python(timestamp: str) -> datetime.datetime:
+    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+
+
 # ------------------------------------------------------------------------------
 
 
 def new_event_payload_dict() -> Dict:
     return {"v": 1}
+
+
+# ------------------------------------------------------------------------------
+
+
+def issuer_to_endpoint(
+    cert_data: Optional[Dict] = None,
+    sock_data: Optional[Dict] = None,
+) -> Optional[str]:
+    if not any((cert_data, sock_data)) or all((cert_data, sock_data)):
+        raise ValueError("submit `cert_data` OR `sock_data`")
+    if cert_data:
+        _issuer = cert_data["issuer"].split("\n")
+        if _issuer[1] == "O=Let's Encrypt":
+            return "https://acme-v02.api.letsencrypt.org/directory"
+        return None
+    if TYPE_CHECKING:
+        assert sock_data is not None
+    if sock_data["issuer"][1][0][1] == "Let's Encrypt":
+        return "https://acme-v02.api.letsencrypt.org/directory"
+    return None
 
 
 # ------------------------------------------------------------------------------

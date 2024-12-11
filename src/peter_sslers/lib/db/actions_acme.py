@@ -14,6 +14,7 @@ import cert_utils
 # localapp
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
+from .create import create__AriCheck
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
@@ -44,9 +45,11 @@ from ...model import utils as model_utils
 if TYPE_CHECKING:
     from tempfile import _TemporaryFileWrapper
     from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
     from ...model.objects import AcmeOrder
-    from ...model.objects import AcmeAuthorization
+    from ...model.objects import AriCheck
+    from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
     from ..acme_v2 import AcmeOrderRFC
     from ..acme_v2 import AuthenticatedUser
@@ -2743,3 +2746,30 @@ def do__AcmeV2_AcmeOrder__renew_quick(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def do__AcmeV2_AriCheck(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> Tuple["AriCheck", Dict]:
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object to check
+
+    :returns: A :class:`model.objects.AriCheck` object for the new AriCheck
+    """
+    if not dbCertificateSigned:
+        raise ValueError("Must submit `dbCertificateSigned`")
+    try:
+        ari_data = acme_v2.ari_check(
+            ctx=ctx,
+            dbCertificateSigned=dbCertificateSigned,
+        )
+        dbAriCheck = create__AriCheck(
+            ctx=ctx,
+            dbCertificateSigned=dbCertificateSigned,
+            ari_data=ari_data,
+        )
+    except Exception as exc:
+        raise
+    return [dbAriCheck, ari_data]

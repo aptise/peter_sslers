@@ -21,7 +21,7 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "cert_utils>=0.1.5",  # formerly in this package, but migrated out
+    "cert_utils>=0.1.18",  # formerly in this package, but migrated out
     "cryptography",  # needed for certbot disk importing
     "formencode>=2.0.0",
     "josepy",

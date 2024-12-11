@@ -506,7 +506,16 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {"CertificateSigned": dbCertificateSigned.as_json}
         # x-x509-server-cert
-        return {"project": "peter_sslers", "CertificateSigned": dbCertificateSigned}
+        templating_vars = {
+            "project": "peter_sslers",
+            "CertificateSigned": dbCertificateSigned,
+            "ari_data": None,
+        }
+        if "ari_data" in self.request.params:
+            templating_vars["ari_data"] = utils.unurlify(
+                self.request.params["ari_data"]
+            )
+        return templating_vars
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -818,6 +827,53 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check-history",
+        renderer="/admin/certificate_signed-focus-ari_checks.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check-history__paginated",
+        renderer="/admin/certificate_signed-focus-ari_checks.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check-history|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check-history__paginated|json",
+        renderer="json",
+    )
+    def ari_check_history(self):
+        dbCertificateSigned = self._focus()
+        items_count = lib_db.get.get__AriCheck__by_CertificateSignedId__count(
+            self.request.api_context, dbCertificateSigned.id
+        )
+        url_template = "%s/ari-check-history/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AriCheck__by_CertificateSignedId__paginated(
+            self.request.api_context,
+            dbCertificateSigned.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        if self.request.wants_json:
+            _ari_checks = {k.id: k.as_json for k in items_paged}
+            return {
+                "AriChecks": _ari_checks,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "CertificateSigned": dbCertificateSigned,
+            "AriCheck_count": items_count,
+            "AriChecks": items_paged,
+            "pager": pager,
+        }
+
 
 class View_Focus_via_CertificateCAChain(View_Focus):
     def _focus_via_CertificateCAChain(self):
@@ -1021,6 +1077,61 @@ class View_Focus_via_CertificateCAChain(View_Focus):
 
 
 class View_Focus_Manipulate(View_Focus):
+    @view_config(route_name="admin:certificate_signed:focus:ari_check", renderer=None)
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/ari-check.json",
+            "section": "certificate-signed",
+            "about": """Checks for ARI info. """,
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
+        }
+    )
+    def ari_check(self):
+        dbCertificateSigned = self._focus()
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self, "/certificate-signed/{ID}/ari-check.json"
+                )
+            raise HTTPSeeOther(
+                "%s?result=error&operation=ari-check&message=POST+required"
+                % self._focus_url
+            )
+        try:
+            # check ARI info
+            dbAriObject, ari_response = lib_db.actions_acme.do__AcmeV2_AriCheck(
+                self.request.api_context,
+                dbCertificateSigned=dbCertificateSigned,
+            )
+            if self.request.wants_json:
+                return {"result": "success", "ari_data": {ari_response}}
+            return HTTPSeeOther(
+                "%s?result=success&operation=ari-check&ari_data=%s"
+                % (self._focus_url, utils.urlify(ari_response))
+            )
+
+        except Exception as exc:
+            import pdb
+
+            pdb.set_trace()
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": utils.urlify(exc.args[0]),
+                }
+            raise HTTPSeeOther(
+                "%s?result=error&operation=ari-check&error=%s"
+                % (self._focus_url, utils.urlify(exc.args[0]))
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:certificate_signed:focus:nginx_cache_expire", renderer=None
     )

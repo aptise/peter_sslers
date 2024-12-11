@@ -643,6 +643,65 @@
 </%def>
 
 
+<%def name="table_AriChecks(ari_checks, perspective=None)">
+    <%
+        cols = ("id",
+                "certificate_signed_id",
+                "timestamp_created",
+                "process_result",
+                "suggested_window_start",
+                "suggested_window_end",
+               )
+        if perspective == 'CertificateSigned':
+            cols = [c for c in cols if c != 'certificate_signed_id']
+        elif perspective == 'AriChecks':
+            pass
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for ari_check in ari_checks:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/ari-check/${ari_check.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AriCheck-${ari_check.id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${ari_check.timestamp_created or ''}</timestamp>
+                            % elif c == 'process_result':
+                                % if ari_check.process_result:
+                                    <div class="label label-success">
+                                        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    </div>
+                                % else:
+                                    <div class="label label-danger">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    </div>
+                                % endif
+                            % elif c == 'suggested_window_start':
+                                <timestamp>${ari_check.suggested_window_start or ''}</timestamp>
+                            % elif c == 'suggested_window_end':
+                                <timestamp>${ari_check.suggested_window_end or ''}</timestamp>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
 <%def name="table_CertificateCAChains(certificate_ca_chains, perspective=None)">
     <%
         cols = ("id",
@@ -2048,7 +2107,10 @@
 
 
 <%def name="handle_querystring_result()">
-    <% result =  request.params.get('result', '') %>
+    <%
+        import pprint
+        result = request.params.get('result', '')
+    %>
     % if result == 'success':
         <div class="alert alert-success">
             <p>
@@ -2058,6 +2120,9 @@
                 <p>
                     Message: `${request.params.get('message')}`
                 </p>
+            % endif
+            % if ari_data:
+                ${pprint.pformat(ari_data)|n}
             % endif
         </div>
     % elif result == 'error':

@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeOrderless
     from ...model.objects import AcmeOrderSubmission
+    from ...model.objects import AriCheck
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateCAPreference
@@ -618,6 +619,29 @@ def create__AcmeDnsServerAccount(
     return dbAcmeDnsServerAccount
 
 
+def create__AriCheck(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+    ari_data: Dict,
+) -> "AriCheck":
+    dbAriCheck = model_objects.AriCheck()
+    dbAriCheck.certificate_signed_id = dbCertificateSigned.id
+    dbAriCheck.timestamp_created = ctx.timestamp
+    dbAriCheck.process_result = True
+    if ari_data.get("suggestedWindow"):
+        _start = ari_data["suggestedWindow"].get("start")
+        if _start:
+            _start = utils.ari_timestamp_to_python(_start)
+        dbAriCheck.suggested_window_start = _start
+        _end = ari_data["suggestedWindow"].get("end")
+        if _end:
+            _end = utils.ari_timestamp_to_python(_end)
+        dbAriCheck.suggested_window_end = _end
+    ctx.dbSession.add(dbAriCheck)
+    ctx.dbSession.flush(objects=[dbAriCheck])
+    return dbAriCheck
+
+
 def create__CertificateCAPreference(
     ctx: "ApiContext",
     dbCertificateCA: "CertificateCA",
@@ -974,6 +998,7 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.cert_issuer`
             :attr:`model.utils.CertificateSigned.fingerprint_sha1`
             :attr:`model.utils.CertificateSigned.spki_sha256`
+            :attr:`model.utils.CertificateSigned.cert_serial`
         """
         _certificate_parse_to_record(
             cert_pem=cert_pem,
@@ -985,6 +1010,8 @@ def create__CertificateSigned(
                 raise ValueError("Computed mismatch on SPKI")
         if dbCertificateRequest:
             dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
+
+        ctx.dbSession.connection().engine.echo = True
         ctx.dbSession.add(dbCertificateSigned)
         ctx.dbSession.flush(objects=[dbCertificateSigned])
 

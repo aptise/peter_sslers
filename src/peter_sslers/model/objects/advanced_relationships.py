@@ -19,6 +19,7 @@ from .objects import AcmeOrder
 from .objects import AcmeOrder2AcmeAuthorization
 from .objects import AcmeOrder2AcmeChallengeTypeSpecific
 from .objects import AcmeOrderless
+from .objects import AriCheck
 from .objects import CertificateRequest
 from .objects import CertificateSigned
 from .objects import CoverageAssuranceEvent
@@ -854,6 +855,25 @@ CertificateSigned.queue_certificates__5 = sa_orm_relationship(
         )
     ),
     order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
+
+# note: CertificateSigned.ari_check__latest
+CertificateSigned.ari_check__latest = sa_orm_relationship(
+    AriCheck,
+    primaryjoin=(
+        sa.and_(
+            CertificateSigned.id == AriCheck.certificate_signed_id,
+            AriCheck.id.in_(
+                sa.select((sa.func.max(AriCheck.id)))
+                .where(AriCheck.certificate_signed_id == CertificateSigned.id)
+                .offset(0)
+                .limit(1)
+                .correlate()
+            ),
+        )
+    ),
+    uselist=False,
     viewonly=True,
 )
 

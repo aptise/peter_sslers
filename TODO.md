@@ -1,3 +1,13 @@
+URGENT
+=====
+
+CertificateSigned
+    [ ] parse/store the serial
+    [ ] track the last ari_check
+    _
+
+
+
 * Build a tool that can generate/save/load a new testdb, so it does not need to
   be continually rebuilt for local tests.
 

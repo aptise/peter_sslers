@@ -619,6 +619,16 @@ def _admin_views(config: "Configurator") -> None:
         "/api/queue-certificates/update.json",
     )
 
+    # !!!: AriCheck
+    # config.add_route_7("admin:ari_check", "/ari-check")
+    # config.add_route_7("admin:ari_check|json", "/ari-check.json")
+    config.add_route_7("admin:ari_check:focus", "/ari-check/{@id}")
+    config.add_route_7("admin:ari_check:focus|json", "/ari-check/{@id}.json")
+    config.add_route_7("admin:ari_checks", "/ari-checks")
+    config.add_route_7("admin:ari_checks|json", "/ari-checks.json")
+    config.add_route_7("admin:ari_checks_paginated", "/ari-checks/{@page}")
+    config.add_route_7("admin:ari_checks_paginated|json", "/ari-checks/{@page}.json")
+
     # !!!: CertificateCAs (Certificate Authority)
     config.add_route_7("admin:certificate_cas", "/certificate-cas")
     config.add_route_7("admin:certificate_cas_paginated", "/certificate-cas/{@page}")
@@ -851,6 +861,30 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_signed:focus:privatekey:raw",
         "/certificate-signed/{@id}/privkey.{format:(key|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check",
+        r"/certificate-signed/{@id}/ari-check",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check|json",
+        r"/certificate-signed/{@id}/ari-check.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check-history",
+        r"/certificate-signed/{@id}/ari-check-history",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check-history|json",
+        r"/certificate-signed/{@id}/ari-check-history.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check-history__paginated",
+        r"/certificate-signed/{@id}/ari-check-history/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_signed:focus:ari_check-history__paginated|json",
+        r"/certificate-signed/{@id}/ari-check-history/{@page}.json",
     )
     config.add_route_7(
         "admin:certificate_signed:focus:nginx_cache_expire",

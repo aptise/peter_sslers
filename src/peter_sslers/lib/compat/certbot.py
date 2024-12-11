@@ -152,7 +152,7 @@ def import_certbot(
                 print("\tAccount correlates to certbot id: %s" % certbot_id)
                 certbotId2acmeAccount[certbot_id] = dbAcmeAccount
 
-            except Exception as exc:
+            except Exception as exc:  # noqa: F841
                 raise
 
     # discover renewals on disk
