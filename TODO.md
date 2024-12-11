@@ -2,9 +2,8 @@ URGENT
 =====
 
 CertificateSigned
-    [ ] parse/store the serial
-    [ ] track the last ari_check
-    _
+    [x] parse/store the serial
+    [x] track the last ari_check
 
 
 

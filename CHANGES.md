@@ -1,3 +1,8 @@
+0.6.1
+    preliminary ari-check support
+    py313 testsing
+
+
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3
