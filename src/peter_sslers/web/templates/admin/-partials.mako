@@ -648,9 +648,10 @@
         cols = ("id",
                 "certificate_signed_id",
                 "timestamp_created",
-                "process_result",
                 "suggested_window_start",
                 "suggested_window_end",
+                "timestamp_retry_after",
+                "ari_check_status",
                )
         if perspective == 'CertificateSigned':
             cols = [c for c in cols if c != 'certificate_signed_id']
@@ -677,10 +678,15 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AriCheck-${ari_check.id}
                                 </a>
+                            % elif c == 'certificate_signed_id':
+                                <a href="${admin_prefix}/certificate-signed/${ari_check.certificate_signed_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateSigned-${ari_check.certificate_signed_id}
+                                </a>
                             % elif c == 'timestamp_created':
                                 <timestamp>${ari_check.timestamp_created or ''}</timestamp>
-                            % elif c == 'process_result':
-                                % if ari_check.process_result:
+                            % elif c == 'ari_check_status':
+                                % if ari_check.ari_check_status:
                                     <div class="label label-success">
                                         <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                                     </div>
@@ -693,6 +699,8 @@
                                 <timestamp>${ari_check.suggested_window_start or ''}</timestamp>
                             % elif c == 'suggested_window_end':
                                 <timestamp>${ari_check.suggested_window_end or ''}</timestamp>
+                            % elif c == 'timestamp_retry_after':
+                                <timestamp>${ari_check.timestamp_retry_after or ''}</timestamp>
                             % endif
                         </td>
                     % endfor
@@ -1054,6 +1062,48 @@
     </table>
 </%def>
 
+
+<%def name="table_OperationsEvent_Payload(OperationsEvent, table_context=None)">
+    <%
+        show_event = True
+        if table_context == "log_list":
+            pass
+    %>
+    <table class="table table-striped table-condensed">
+        % for section in OperationsEvent.event_payload_json.keys():
+            <%
+                if section == "certificate_ca.ids":
+                    header = "CertificateCAs"
+                    ids_ = OperationsEvent.event_payload_json[section]
+                    url_template = "%s/certificate-ca" % admin_prefix
+                elif section == "certificate_ca.ids_fail":
+                    header = "CertificateCAs - Failures"
+                    ids_ = OperationsEvent.event_payload_json[section]
+                    url_template = "%s/certificate-ca" % admin_prefix
+                else:
+                    continue
+            %>
+            <thead>
+                <tr>
+                    <th colspan="2">${header}</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for id_ in ids_:
+                    <tr>
+                        <td></td>
+                        <td>
+                            <a class="label label-info" href="${url_template}/${id_}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${id_}
+                            </a>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        % endfor
+    </table>
+</%def>
 
 <%def name="table_OperationsObjectEvents(OperationsObjectEvents, table_context=None)">
     <%
@@ -2121,8 +2171,8 @@
                     Message: `${request.params.get('message')}`
                 </p>
             % endif
-            % if ari_data:
-                ${pprint.pformat(ari_data)|n}
+            % if _AriCheck:
+                ${pprint.pformat(_AriCheck)|n}
             % endif
         </div>
     % elif result == 'error':

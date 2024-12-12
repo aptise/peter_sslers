@@ -624,10 +624,44 @@ def _admin_views(config: "Configurator") -> None:
     # config.add_route_7("admin:ari_check|json", "/ari-check.json")
     config.add_route_7("admin:ari_check:focus", "/ari-check/{@id}")
     config.add_route_7("admin:ari_check:focus|json", "/ari-check/{@id}.json")
+
     config.add_route_7("admin:ari_checks", "/ari-checks")
     config.add_route_7("admin:ari_checks|json", "/ari-checks.json")
-    config.add_route_7("admin:ari_checks_paginated", "/ari-checks/{@page}")
-    config.add_route_7("admin:ari_checks_paginated|json", "/ari-checks/{@page}.json")
+
+    config.add_route_7("admin:ari_checks:all", "/ari-checks/all")
+    config.add_route_7("admin:ari_checks:all|json", "/ari-checks/all.json")
+    config.add_route_7("admin:ari_checks:all_paginated", "/ari-checks/all/{@page}")
+    config.add_route_7(
+        "admin:ari_checks:all_paginated|json", "/ari-checks/all/{@page}.json"
+    )
+
+    config.add_route_7("admin:ari_checks:cert_latest", "/ari-checks/cert-latest")
+    config.add_route_7(
+        "admin:ari_checks:cert_latest|json", "/ari-checks/cert-latest.json"
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_paginated", "/ari-checks/cert-latest/{@page}"
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_paginated|json",
+        "/ari-checks/cert-latest/{@page}.json",
+    )
+
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_overdue", "/ari-checks/cert-latest-overdue"
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_overdue|json",
+        "/ari-checks/cert-latest-overdue.json",
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_overdue_paginated",
+        "/ari-checks/cert-latest-overdue/{@page}",
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_overdue_paginated|json",
+        "/ari-checks/cert-latest-overdue/{@page}.json",
+    )
 
     # !!!: CertificateCAs (Certificate Authority)
     config.add_route_7("admin:certificate_cas", "/certificate-cas")
@@ -786,6 +820,14 @@ def _admin_views(config: "Configurator") -> None:
         "/certificate-signeds/active/{@page}",
     )
     config.add_route_7(
+        "admin:certificate_signeds:active_expired",
+        "/certificate-signeds/active-expired",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active_expired_paginated",
+        "/certificate-signeds/active-expired/{@page}",
+    )
+    config.add_route_7(
         "admin:certificate_signeds:expiring", "/certificate-signeds/expiring"
     )
     config.add_route_7(
@@ -798,6 +840,14 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_signeds:inactive_paginated",
         "/certificate-signeds/inactive/{@page}",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_unexpired",
+        "/certificate-signeds/inactive-unexpired",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_unexpired_paginated",
+        "/certificate-signeds/inactive-unexpired/{@page}",
     )
     config.add_route_7("admin:certificate_signeds|json", "/certificate-signeds.json")
     config.add_route_7(
@@ -815,6 +865,14 @@ def _admin_views(config: "Configurator") -> None:
         "/certificate-signeds/active/{@page}.json",
     )
     config.add_route_7(
+        "admin:certificate_signeds:active_expired|json",
+        "/certificate-signeds/active-expired.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active_expired_paginated|json",
+        "/certificate-signeds/active-expired/{@page}.json",
+    )
+    config.add_route_7(
         "admin:certificate_signeds:expiring|json", "/certificate-signeds/expiring.json"
     )
     config.add_route_7(
@@ -827,6 +885,14 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_signeds:inactive_paginated|json",
         "/certificate-signeds/inactive/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_unexpired|json",
+        "/certificate-signeds/inactive-unexpired.json",
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:inactive_unexpired_paginated|json",
+        "/certificate-signeds/inactive-unexpired/{@page}.json",
     )
 
     # !!!: CertificateSigned - Focus

@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 
+# local
+from .. import utils
+
 if TYPE_CHECKING:
     from ...model.objects import CertificateSigned
 
@@ -39,6 +42,7 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.fingerprint_sha1`
         :attr:`model.utils.CertificateSigned.spki_sha256`
         :attr:`model.utils.CertificateSigned.cert_serial`
+        :attr:`model.utils.CertificateSigned.is_ari_supported`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -73,6 +77,10 @@ def _certificate_parse_to_record(
     dbCertificateSigned.cert_serial = str(
         _cert_data["serial"]
     )  # cast to str, because int may be TOO large
+    _ari_endpoint = utils.issuer_to_endpoint(cert_data=_cert_data)
+    if _ari_endpoint:
+        dbCertificateSigned.is_ari_supported = True
+
     return dbCertificateSigned
 
 

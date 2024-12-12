@@ -1,5 +1,5 @@
-* [Previous - Automation](https://github.com/aptise/peter_sslers/docs/Automation.md)
-* [Next - Misc](https://github.com/aptise/peter_sslers/docs/Misc.md)
+* [Previous - Automation](https://github.com/aptise/peter_sslers/tree/main/docs/Automation.md)
+* [Next - Misc](https://github.com/aptise/peter_sslers/tree/main/docs/Misc.md)
 
 # FAQ
 
@@ -193,21 +193,21 @@ Alternate Chains are fully supported by PeterSSLers
 
 PeterSSLers was designed to be used on terminals, so it looks great on Lynx...
 
-![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/main/docs/images/lynx_01-admin_index.png)
-![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/main/docs/images/lynx_02-api_docs.png)
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/lynx_01-admin_index.png)
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/lynx_02-api_docs.png)
 
 And most endpoints over JSON versions, so you can process everything that way
 
 But... This project uses bootstrap, so it looks fine on browsers!
 
-![Admin Index](https://raw.github.com/aptise/peter_sslers/main/docs/images/01-admin_index.png)
-![CSR: Automate 'manual': Enter Domains](https://raw.github.com/aptise/peter_sslers/main/docs/images/02-enter_domains.png)
-![CSR: Automate 'manual': Enter  AcmeChallenges](https://raw.github.com/aptise/peter_sslers/main/docs/images/03-enter_challenge.png)
-![CSR: Check Verification Status](https://raw.github.com/aptise/peter_sslers/main/docs/images/04-view_status.png)
-![CSR: New FULL](https://raw.github.com/aptise/peter_sslers/main/docs/images/09-new_csr.png)
-![Operations Log](https://raw.github.com/aptise/peter_sslers/main/docs/images/05-operations_log.png)
-![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/06-certificate_cas.png)
-![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/main/docs/images/07-certificate_cas_focus.png)
-![Upload Existing Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/10-upload_cert.png)
-![List Certificates](https://raw.github.com/aptise/peter_sslers/main/docs/images/11-certificates_list.png)
-![List Domains](https://raw.github.com/aptise/peter_sslers/main/docs/images/12-domains_list.png)
+![Admin Index](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/01-admin_index.png)
+![CSR: Automate 'manual': Enter Domains](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/02-enter_domains.png)
+![CSR: Automate 'manual': Enter  AcmeChallenges](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/03-enter_challenge.png)
+![CSR: Check Verification Status](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/04-view_status.png)
+![CSR: New FULL](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/09-new_csr.png)
+![Operations Log](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/05-operations_log.png)
+![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/06-certificate_cas.png)
+![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/07-certificate_cas_focus.png)
+![Upload Existing Certificates](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/10-upload_cert.png)
+![List Certificates](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/11-certificates_list.png)
+![List Domains](https://raw.github.com/aptise/peter_sslers/tree/main/docs/images/12-domains_list.png)

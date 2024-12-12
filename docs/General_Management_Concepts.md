@@ -1,5 +1,5 @@
-* [Previous - Configuration_Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
-* [Next - Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
+* [Previous - Configuration_Options](https://github.com/aptise/peter_sslers/tree/main/docs/Configuration_Options.md)
+* [Next - Implementation_Details](https://github.com/aptise/peter_sslers/tree/main/docs/Implementation_Details.md)
 
 # General Management Concepts
 

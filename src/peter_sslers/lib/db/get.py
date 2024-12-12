@@ -1214,23 +1214,69 @@ def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
 
 def get__AriChecks__count(
     ctx: "ApiContext",
+    strategy: str,
 ) -> int:
-    counted = ctx.dbSession.query(AriCheck).count()
+    if strategy == "all":
+        counted = ctx.dbSession.query(AriCheck).count()
+    elif strategy == "cert-latest":
+        counted = (
+            ctx.dbSession.query(AriCheck)
+            .distinct(AriCheck.certificate_signed_id)
+            .group_by(AriCheck.certificate_signed_id)
+            .order_by(AriCheck.id.desc())
+            .count()
+        )
+    elif strategy == "cert-latest-overdue":
+        counted = (
+            ctx.dbSession.query(AriCheck)
+            .distinct(AriCheck.certificate_signed_id)
+            .group_by(AriCheck.certificate_signed_id)
+            .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
+            .order_by(AriCheck.id.desc())
+            .count()
+        )
+    else:
+        raise ValueError("unknown strategy")
     return counted
 
 
 def get__AriChecks___paginated(
     ctx: "ApiContext",
+    strategy: str,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[AriCheck]:
-    q = (
-        ctx.dbSession.query(AriCheck)
-        .order_by(AriCheck.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    items_paged = q.all()
+    if strategy == "all":
+        q = (
+            ctx.dbSession.query(AriCheck)
+            .order_by(AriCheck.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        items_paged = q.all()
+    elif strategy == "cert-latest":
+        q = (
+            ctx.dbSession.query(AriCheck)
+            .distinct(AriCheck.certificate_signed_id)
+            .group_by(AriCheck.certificate_signed_id)
+            .order_by(AriCheck.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        items_paged = q.all()
+    elif strategy == "cert-latest-overdue":
+        q = (
+            ctx.dbSession.query(AriCheck)
+            .distinct(AriCheck.certificate_signed_id)
+            .group_by(AriCheck.certificate_signed_id)
+            .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
+            .order_by(AriCheck.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        items_paged = q.all()
+    else:
+        raise ValueError("unknown strategy")
     return items_paged
 
 
@@ -1266,7 +1312,7 @@ def get__AriCheck__by_CertificateSignedId__paginated(
 def get__AriCheck__by_id(
     ctx: "ApiContext",
     id: int,
-) -> AriCheck:
+) -> Optional[AriCheck]:
     q = ctx.dbSession.query(AriCheck).filter(AriCheck.id == id)
     item = q.first()
     return item
@@ -1626,6 +1672,369 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateSigned__count(
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    is_unexpired: Optional[bool] = None,
+) -> int:
+    if (expiring_days is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: expiring_days, is_unexpired")
+    q = ctx.dbSession.query(CertificateSigned)
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(CertificateSigned.is_active.is_(True))
+        elif is_active is False:
+            q = q.filter(CertificateSigned.is_active.is_(False))
+    if expiring_days is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+        q = q.filter(
+            CertificateSigned.timestamp_not_after <= _until,
+        )
+    elif is_unexpired:
+        q = q.filter(
+            CertificateSigned.timestamp_not_after > ctx.timestamp,
+        )
+    counted = q.count()
+    return counted
+
+
+def get__CertificateSigned__paginated(
+    ctx: "ApiContext",
+    expiring_days: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    is_unexpired: Optional[bool] = None,
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    if (expiring_days is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: expiring_days, is_unexpired")
+    q = ctx.dbSession.query(CertificateSigned)
+    if eagerload_web:
+        q = q.options(
+            joinedload(CertificateSigned.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(CertificateSigned.is_active.is_(True))
+        elif is_active is False:
+            q = q.filter(CertificateSigned.is_active.is_(False))
+        # q = q.order_by(CertificateSigned.timestamp_not_after.asc())
+        q = q.order_by(CertificateSigned.id.desc())
+    if expiring_days is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+        q = q.filter(
+            CertificateSigned.timestamp_not_after <= _until,
+        ).order_by(CertificateSigned.timestamp_not_after.asc())
+    elif is_unexpired:
+        q = q.filter(
+            CertificateSigned.timestamp_not_after > ctx.timestamp,
+        ).order_by(CertificateSigned.timestamp_not_after.asc())
+    else:
+        q = q.order_by(CertificateSigned.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__CertificateSigned__by_id(
+    ctx: "ApiContext", cert_id: int
+) -> Optional[CertificateSigned]:
+    dbCertificateSigned = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.id == cert_id)
+        .options(
+            subqueryload(CertificateSigned.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+        .first()
+    )
+    return dbCertificateSigned
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateSigned__by_AcmeAccountId__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .filter(AcmeOrder.acme_account_id == acme_account_id)
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_AcmeAccountId__paginated(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .filter(AcmeOrder.acme_account_id == acme_account_id)
+        .options(
+            joinedload(CertificateSigned.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def _get__CertificateSigned__by_CertificateCAId__primary(
+    ctx: "ApiContext", cert_ca_id: int
+):
+    """
+    we no longer track the Certificate to the CertificateCA directly, but instead
+    through the CertificateCAChain
+        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    """
+    query_core = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            CertificateSignedChain,
+            CertificateSigned.id == CertificateSignedChain.certificate_signed_id,
+        )
+        .join(
+            CertificateCAChain,
+            CertificateSignedChain.certificate_ca_chain_id == CertificateCAChain.id,
+        )
+        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(CertificateSignedChain.is_upstream_default.is_(True))
+    )
+    return query_core
+
+
+def get__CertificateSigned__by_CertificateCAId__primary__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
+    query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
+    counted = query_core.count()
+    return counted
+
+
+def get__CertificateSigned__by_CertificateCAId__primary__paginated(
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
+    query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
+    items_paged = (
+        query_core.order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def _get__CertificateSigned__by_CertificateCAId__alt(
+    ctx: "ApiContext", cert_ca_id: int
+):
+    """
+    we no longer track the Certificate to the CertificateCA directly, but instead
+    through the CertificateCAChain
+        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    """
+    query_core = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            CertificateSignedChain,
+            CertificateSigned.id == CertificateSignedChain.certificate_signed_id,
+        )
+        .join(
+            CertificateCAChain,
+            CertificateSignedChain.certificate_ca_chain_id == CertificateCAChain.id,
+        )
+        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(CertificateSignedChain.is_upstream_default.isnot(True))
+    )
+    return query_core
+
+
+def get__CertificateSigned__by_CertificateCAId__alt__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
+    query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
+    counted = query_core.count()
+    return counted
+
+
+def get__CertificateSigned__by_CertificateCAId__alt__paginated(
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
+    query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
+    items_paged = (
+        query_core.order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateSigned__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            UniqueFQDNSet,
+            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            UniqueFQDNSet,
+            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__CertificateSigned__by_DomainId__latest(
+    ctx: "ApiContext", domain_id: int
+) -> Optional[CertificateSigned]:
+    first = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            UniqueFQDNSet,
+            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(
+            UniqueFQDNSet2Domain.domain_id == domain_id,
+            CertificateSigned.is_active.is_(True),
+        )
+        .order_by(CertificateSigned.id.desc())
+        .first()
+    )
+    return first
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateSigned__by_PrivateKeyId__count(
+    ctx: "ApiContext", key_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.private_key_id == key_id)
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_PrivateKeyId__paginated(
+    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.private_key_id == key_id)
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__CertificateSigned__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_UniqueFQDNSetId__paginated(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> Optional[CertificateSigned]:
+    item = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
+        .filter(CertificateSigned.is_active.is_(True))
+        .order_by(CertificateSigned.timestamp_not_after.desc())
+        .first()
+    )
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2581,356 +2990,6 @@ def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
         .all()
     )
     return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__CertificateSigned__count(
-    ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
-    is_active: Optional[bool] = None,
-) -> int:
-    q = ctx.dbSession.query(CertificateSigned)
-    if is_active is not None:
-        if is_active is True:
-            q = q.filter(CertificateSigned.is_active.is_(True))
-        elif is_active is False:
-            q = q.filter(CertificateSigned.is_active.is_(False))
-    else:
-        if expiring_days:
-            _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-            q = q.filter(
-                CertificateSigned.is_active.is_(True),
-                CertificateSigned.timestamp_not_after <= _until,
-            )
-    counted = q.count()
-    return counted
-
-
-def get__CertificateSigned__paginated(
-    ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
-    is_active: Optional[bool] = None,
-    eagerload_web: bool = False,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[CertificateSigned]:
-    q = ctx.dbSession.query(CertificateSigned)
-    if eagerload_web:
-        q = q.options(
-            joinedload(CertificateSigned.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-    if is_active is not None:
-        if is_active is True:
-            q = q.filter(CertificateSigned.is_active.is_(True))
-        elif is_active is False:
-            q = q.filter(CertificateSigned.is_active.is_(False))
-        # q = q.order_by(CertificateSigned.timestamp_not_after.asc())
-        q = q.order_by(CertificateSigned.id.desc())
-    else:
-        if expiring_days:
-            _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-            q = q.filter(
-                CertificateSigned.is_active.is_(True),
-                CertificateSigned.timestamp_not_after <= _until,
-            ).order_by(CertificateSigned.timestamp_not_after.asc())
-        else:
-            q = q.order_by(CertificateSigned.id.desc())
-    q = q.limit(limit).offset(offset)
-    items_paged = q.all()
-    return items_paged
-
-
-def get__CertificateSigned__by_id(
-    ctx: "ApiContext", cert_id: int
-) -> Optional[CertificateSigned]:
-    dbCertificateSigned = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.id == cert_id)
-        .options(
-            subqueryload(CertificateSigned.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-        .first()
-    )
-    return dbCertificateSigned
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__CertificateSigned__by_AcmeAccountId__count(
-    ctx: "ApiContext", acme_account_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            AcmeOrder,
-            CertificateSigned.id == AcmeOrder.certificate_signed_id,
-        )
-        .filter(AcmeOrder.acme_account_id == acme_account_id)
-        .count()
-    )
-    return counted
-
-
-def get__CertificateSigned__by_AcmeAccountId__paginated(
-    ctx: "ApiContext",
-    acme_account_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[CertificateSigned]:
-    items_paged = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            AcmeOrder,
-            CertificateSigned.id == AcmeOrder.certificate_signed_id,
-        )
-        .filter(AcmeOrder.acme_account_id == acme_account_id)
-        .options(
-            joinedload(CertificateSigned.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-        .order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _get__CertificateSigned__by_CertificateCAId__primary(
-    ctx: "ApiContext", cert_ca_id: int
-):
-    """
-    we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
-    """
-    query_core = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            CertificateSignedChain,
-            CertificateSigned.id == CertificateSignedChain.certificate_signed_id,
-        )
-        .join(
-            CertificateCAChain,
-            CertificateSignedChain.certificate_ca_chain_id == CertificateCAChain.id,
-        )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
-        .filter(CertificateSignedChain.is_upstream_default.is_(True))
-    )
-    return query_core
-
-
-def get__CertificateSigned__by_CertificateCAId__primary__count(
-    ctx: "ApiContext", cert_ca_id: int
-) -> int:
-    query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
-    counted = query_core.count()
-    return counted
-
-
-def get__CertificateSigned__by_CertificateCAId__primary__paginated(
-    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateSigned]:
-    query_core = _get__CertificateSigned__by_CertificateCAId__primary(ctx, cert_ca_id)
-    items_paged = (
-        query_core.order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def _get__CertificateSigned__by_CertificateCAId__alt(
-    ctx: "ApiContext", cert_ca_id: int
-):
-    """
-    we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
-    """
-    query_core = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            CertificateSignedChain,
-            CertificateSigned.id == CertificateSignedChain.certificate_signed_id,
-        )
-        .join(
-            CertificateCAChain,
-            CertificateSignedChain.certificate_ca_chain_id == CertificateCAChain.id,
-        )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
-        .filter(CertificateSignedChain.is_upstream_default.isnot(True))
-    )
-    return query_core
-
-
-def get__CertificateSigned__by_CertificateCAId__alt__count(
-    ctx: "ApiContext", cert_ca_id: int
-) -> int:
-    query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
-    counted = query_core.count()
-    return counted
-
-
-def get__CertificateSigned__by_CertificateCAId__alt__paginated(
-    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateSigned]:
-    query_core = _get__CertificateSigned__by_CertificateCAId__alt(ctx, cert_ca_id)
-    items_paged = (
-        query_core.order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__CertificateSigned__by_DomainId__count(
-    ctx: "ApiContext", domain_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            UniqueFQDNSet,
-            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .count()
-    )
-    return counted
-
-
-def get__CertificateSigned__by_DomainId__paginated(
-    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateSigned]:
-    items_paged = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            UniqueFQDNSet,
-            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__CertificateSigned__by_DomainId__latest(
-    ctx: "ApiContext", domain_id: int
-) -> Optional[CertificateSigned]:
-    first = (
-        ctx.dbSession.query(CertificateSigned)
-        .join(
-            UniqueFQDNSet,
-            CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(
-            UniqueFQDNSet2Domain.domain_id == domain_id,
-            CertificateSigned.is_active.is_(True),
-        )
-        .order_by(CertificateSigned.id.desc())
-        .first()
-    )
-    return first
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__CertificateSigned__by_PrivateKeyId__count(
-    ctx: "ApiContext", key_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.private_key_id == key_id)
-        .count()
-    )
-    return counted
-
-
-def get__CertificateSigned__by_PrivateKeyId__paginated(
-    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateSigned]:
-    items_paged = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.private_key_id == key_id)
-        .order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__CertificateSigned__by_UniqueFQDNSetId__count(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
-        .count()
-    )
-    return counted
-
-
-def get__CertificateSigned__by_UniqueFQDNSetId__paginated(
-    ctx: "ApiContext",
-    unique_fqdn_set_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[CertificateSigned]:
-    items_paged = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
-        .order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> Optional[CertificateSigned]:
-    item = (
-        ctx.dbSession.query(CertificateSigned)
-        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
-        .filter(CertificateSigned.is_active.is_(True))
-        .order_by(CertificateSigned.timestamp_not_after.desc())
-        .first()
-    )
-    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

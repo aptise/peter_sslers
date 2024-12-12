@@ -1,5 +1,5 @@
-* [Previous - General_Management_Concepts](https://github.com/aptise/peter_sslers/docs/General_Management_Concepts.md)
-* [Next - Automation](https://github.com/aptise/peter_sslers/docs/Automation.md)
+* [Previous - General_Management_Concepts](https://github.com/aptise/peter_sslers/tree/main/docs/General_Management_Concepts.md)
+* [Next - Automation](https://github.com/aptise/peter_sslers/tree/main/docs/Automation.md)
 
 # Implementation Details
 
@@ -64,19 +64,19 @@ in which format AND THERE YOU GO.*
 
 ## Deployment Concepts
 
-![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-01.png)
+![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/tree/main/docs/assets/network_map-01.png)
 
 PeterSSlers can run as a standalone service OR proxied behind `Nginx`/`Apache`/etc
 
 The SSLMinnow datastore is entirely separate and standalone. It is portable.
 
-![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-02.png)
+![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/tree/main/docs/assets/network_map-02.png)
 
 In order to make network configuration more simple, the package includes a "fake
 server" that includes routes for the major public and admin endpoints. This should
 support most integration test needs.
 
-![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-03.png)
+![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/tree/main/docs/assets/network_map-03.png)
 
 In an advanced setting, multiple servers proxy to multiple peter-sslers "public"
 instances.

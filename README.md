@@ -14,6 +14,9 @@ integrated tests.
 
 WE ARE ALMOST THERE!!!
 
+If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md), otherwise keep reading.
+
+
 
 peter_sslers README
 ================================
@@ -22,7 +25,9 @@ Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*
 
 `peter_sslers` is a framework designed to help *experienced* Admins and DevOps
 persons manage SSL Certificates and deploy them on larger systems (e.g. you have
-lots of Domains and/or Nodes and/or Networks).
+lots of Domains and/or Nodes and/or Networks).  This system is NOT designed for
+casual usage; it was designed for the needs of cloud deployed PAAS/SAAS systems
+that host domains for scalable numbers of customers over scalable nodes.
 
 What's in the "box" ?
 
@@ -288,7 +293,7 @@ Getting Started
 ===============
 
 Please read the
-[Full Installation Instructions](https://github.com/aptise/peter_sslers/docs/Installation.md)
+[Full Installation Instructions](https://github.com/aptise/peter_sslers/tree/main/docs/Installation.md)
 
 The abridged version:
 
@@ -309,16 +314,17 @@ The abridged version:
 Full Documentation
 ==================
 
-* [Installation](https://github.com/aptise/peter_sslers/docs/Installation.md)
-* [Configuration Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
-* [General_Management_Concepts](https://github.com/aptise/peter_sslers/docs/General_Management_Concepts.md)
-* [Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
-* [Automation](https://github.com/aptise/peter_sslers/docs/Automation.md)
-* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
-* [Misc](https://github.com/aptise/peter_sslers/docs/Misc.md)
-* [Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
-* [Tests](https://github.com/aptise/peter_sslers/docs/Tests.md)
-* [Versioning](https://github.com/aptise/peter_sslers/docs/Versioning.md)
+* [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md)
+* [Installation](https://github.com/aptise/peter_sslers/tree/main/docs/Installation.md)
+* [Configuration Options](https://github.com/aptise/peter_sslers/tree/main/docs/Configuration_Options.md)
+* [General_Management_Concepts](https://github.com/aptise/peter_sslers/tree/main/docs/General_Management_Concepts.md)
+* [Implementation_Details](https://github.com/aptise/peter_sslers/tree/main/docs/Implementation_Details.md)
+* [Automation](https://github.com/aptise/peter_sslers/tree/main/docs/Automation.md)
+* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/tree/main/docs/Frequently_Asked_Questions.md)
+* [Misc](https://github.com/aptise/peter_sslers/tree/main/docs/Misc.md)
+* [Tools](https://github.com/aptise/peter_sslers/tree/main/docs/Tools.md)
+* [Tests](https://github.com/aptise/peter_sslers/tree/main/docs/Tests.md)
+* [Versioning](https://github.com/aptise/peter_sslers/tree/main/docs/Versioning.md)
 
 
 Related Projects

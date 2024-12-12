@@ -479,6 +479,55 @@ CertificateRequest.certificate_signeds__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+# note: CertificateSigned.queue_certificates__5
+CertificateSigned.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin="""CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id""",
+    secondary="""join(UniqueFQDNSet,
+                      QueueCertificate,
+                      UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id
+                      )""",
+    secondaryjoin=(
+        sa.and_(
+            QueueCertificate.id.in_(
+                sa.select((QueueCertificate.id))
+                .where(
+                    CertificateSigned.unique_fqdn_set_id
+                    == QueueCertificate.unique_fqdn_set_id
+                )
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
+
+# note: CertificateSigned.ari_check__latest
+CertificateSigned.ari_check__latest = sa_orm_relationship(
+    AriCheck,
+    primaryjoin=(
+        sa.and_(
+            CertificateSigned.id == AriCheck.certificate_signed_id,
+            AriCheck.id.in_(
+                sa.select((sa.func.max(AriCheck.id)))
+                .where(AriCheck.certificate_signed_id == CertificateSigned.id)
+                .offset(0)
+                .limit(1)
+                .correlate()
+            ),
+        )
+    ),
+    uselist=False,
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 # note: CoverageAssuranceEvent.children__5
 CoverageAssuranceEvent.children__5 = sa_orm_relationship(
     CoverageAssuranceEventAlt,
@@ -825,55 +874,6 @@ PrivateKey.queue_certificates__5 = sa_orm_relationship(
         )
     ),
     order_by=QueueCertificate.id.desc(),
-    viewonly=True,
-)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-# note: CertificateSigned.queue_certificates__5
-CertificateSigned.queue_certificates__5 = sa_orm_relationship(
-    QueueCertificate,
-    primaryjoin="""CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet.id""",
-    secondary="""join(UniqueFQDNSet,
-                      QueueCertificate,
-                      UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id
-                      )""",
-    secondaryjoin=(
-        sa.and_(
-            QueueCertificate.id.in_(
-                sa.select((QueueCertificate.id))
-                .where(
-                    CertificateSigned.unique_fqdn_set_id
-                    == QueueCertificate.unique_fqdn_set_id
-                )
-                .order_by(QueueCertificate.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=QueueCertificate.id.desc(),
-    viewonly=True,
-)
-
-# note: CertificateSigned.ari_check__latest
-CertificateSigned.ari_check__latest = sa_orm_relationship(
-    AriCheck,
-    primaryjoin=(
-        sa.and_(
-            CertificateSigned.id == AriCheck.certificate_signed_id,
-            AriCheck.id.in_(
-                sa.select((sa.func.max(AriCheck.id)))
-                .where(AriCheck.certificate_signed_id == CertificateSigned.id)
-                .offset(0)
-                .limit(1)
-                .correlate()
-            ),
-        )
-    ),
-    uselist=False,
     viewonly=True,
 )
 

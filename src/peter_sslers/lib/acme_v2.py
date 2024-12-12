@@ -15,6 +15,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import TypedDict
 from typing import Union
 from urllib.request import Request
 from urllib.request import urlopen
@@ -60,6 +61,19 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 # ------------------------------------------------------------------------------
+
+
+class AriCheckResult(TypedDict):
+    """
+    AriCheck[payload] will be null if there is an error
+    AriCheck[headers] will always exist
+    """
+
+    payload: Optional[Dict]
+    headers: "CaseInsensitiveDict"
+
+    def as_json(self):
+        return self["payload"]
 
 
 def new_response_404() -> Dict:
@@ -2056,9 +2070,7 @@ class AuthenticatedUser(object):
         raise ValueError("This should never run")
 
 
-def _ari_query(
-    acme_server: str, ari_id: str
-) -> Tuple[Optional[Dict], "CaseInsensitiveDict"]:
+def _ari_query(acme_server: str, ari_id: str) -> AriCheckResult:
     sess = requests.Session()
     r = sess.get(acme_server)
     _renewal_base = r.json().get("renewalInfo")
@@ -2068,13 +2080,21 @@ def _ari_query(
     r = sess.get(_renewal_url)
     _data: Optional[Dict] = r.json()
     _headers: "CaseInsensitiveDict" = r.headers
-    return (_data, _headers)
+    result = AriCheckResult(payload=_data, headers=_headers)
+    return result
 
 
 def ari_check(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-) -> Optional[Dict]:
+) -> Optional[AriCheckResult]:
+    """
+    Returns:
+        None if no endpoint
+        AriCheck if there is an endpoing
+            AriCheck[payload] will be null if there is an error
+            AriCheck[headers] will always exist
+    """
     log.debug("ari_check(%s", dbCertificateSigned)
 
     # can we grab the ARI info off the cert?
@@ -2093,8 +2113,10 @@ def ari_check(
     cert_data = cert_utils.parse_cert(cert_pem=dbCertificateSigned.cert_pem)
     ari_endpoint = utils.issuer_to_endpoint(cert_data=cert_data)
     if ari_endpoint:
-        _data, _headers = _ari_query(ari_endpoint, ari_identifier)
-        return _data
+        ari_result = _ari_query(ari_endpoint, ari_identifier)
+        return ari_result
+    else:
+        log.info("No ARI Endpoint detectable for this Certificate.")
 
     return None
 

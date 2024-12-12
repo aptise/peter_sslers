@@ -224,28 +224,58 @@
                     <tr>
                         <th>ARI</th>
                         <td>
-
-                            <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
-                                <button class="btn btn-xs btn-success" type="submit">
-                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                                    Check ARI
-                                </button>
-                            </form>
-                            
-                            % if CertificateSigned.ari_check__latest:
-                                &nbsp;
-                                <a class="label label-info" href="${admin_prefix}/ari-check/${CertificateSigned.ari_check__latest.id}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ${CertificateSigned.ari_check__latest.id}
-                                    ARI Check Latest
-                                </a>
-                                &nbsp;
+                            % if CertificateSigned.is_ari_supported:
+                                <table>
+                                    <tr>
+                                        <th>Latest ARI Check</th>
+                                        <td>
+                                            % if CertificateSigned.ari_check__latest:
+                                                <a class="label label-info" href="${admin_prefix}/ari-check/${CertificateSigned.ari_check__latest.id}">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    ${CertificateSigned.ari_check__latest.id}
+                                                    ARI Check Latest
+                                                </a>
+                                                <table>
+                                                    <tr>
+                                                        <th>Suggested Window Start</th>
+                                                        <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_start}<timestamp></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Suggested Window End</th>
+                                                        <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_end}<timestamp></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Retry After</th>
+                                                        <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_retry_after}<timestamp></td>
+                                                    </tr>
+                                                </table>
+                                            % endif
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Historical Checks</th>
+                                        <td>
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check-history">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                ARI Checks (History)
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Manual Check</th>
+                                        <td>
+                                            <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
+                                                <button class="btn btn-xs btn-success" type="submit">
+                                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                                    Check ARI
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                </table>
+                            % else:
+                                ARI Does not seem possible for this Certificate
                             % endif
-                            
-                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check-history">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ARI Checks (History)
-                            </a>
                         </td>
                     </tr>
                     <tr>

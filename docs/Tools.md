@@ -1,5 +1,15 @@
 # Tools
 
+## commandline routines
+
+Some routines are accessible via commandline scripts:
+
+* `routine__run_ari_checks {example_development.ini}` will run necessary ARI checks
+
+* `routine__clear_old_ari_checks {example_development.ini}` will clear from the database outdated ARI checks.  An ARI check is considered outdated once it has been replaced with a newer ARI check.
+
+
+
 ## `invoke` Script
 
 There is an `invoke` script in the `tools` directory that can be used to automate

@@ -29,6 +29,7 @@ from ...model import utils as model_utils
 # from typing import Optional
 
 if TYPE_CHECKING:
+    from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAccountProvider
     from ...model.objects import AcmeAuthorization
@@ -53,7 +54,6 @@ if TYPE_CHECKING:
     from ...model.objects import PrivateKey
     from ...model.objects import QueueCertificate
     from ...model.objects import UniqueFQDNSet
-
     from ..utils import ApiContext
     from ...model.utils import DomainsChallenged
 
@@ -622,21 +622,32 @@ def create__AcmeDnsServerAccount(
 def create__AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-    ari_data: Dict,
+    ari_check_result: Optional["AriCheckResult"],
 ) -> "AriCheck":
     dbAriCheck = model_objects.AriCheck()
     dbAriCheck.certificate_signed_id = dbCertificateSigned.id
     dbAriCheck.timestamp_created = ctx.timestamp
-    dbAriCheck.process_result = True
-    if ari_data.get("suggestedWindow"):
-        _start = ari_data["suggestedWindow"].get("start")
-        if _start:
-            _start = utils.ari_timestamp_to_python(_start)
-        dbAriCheck.suggested_window_start = _start
-        _end = ari_data["suggestedWindow"].get("end")
-        if _end:
-            _end = utils.ari_timestamp_to_python(_end)
-        dbAriCheck.suggested_window_end = _end
+
+    if ari_check_result and ari_check_result["payload"]:
+        dbAriCheck.ari_check_status = True
+        if ari_check_result["payload"].get("suggestedWindow"):
+            _start = ari_check_result["payload"]["suggestedWindow"].get("start")
+            if _start:
+                _start = utils.ari_timestamp_to_python(_start)
+            dbAriCheck.suggested_window_start = _start
+            _end = ari_check_result["payload"]["suggestedWindow"].get("end")
+            if _end:
+                _end = utils.ari_timestamp_to_python(_end)
+            dbAriCheck.suggested_window_end = _end
+        retry_after_secs = ari_check_result["headers"].get("Retry-After")
+        if retry_after_secs:
+            retry_after = ctx.timestamp + datetime.timedelta(
+                seconds=int(retry_after_secs)
+            )
+            dbAriCheck.timestamp_retry_after = retry_after
+    else:
+        dbAriCheck.ari_check_status = False
+
     ctx.dbSession.add(dbAriCheck)
     ctx.dbSession.flush(objects=[dbAriCheck])
     return dbAriCheck
@@ -999,6 +1010,7 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.fingerprint_sha1`
             :attr:`model.utils.CertificateSigned.spki_sha256`
             :attr:`model.utils.CertificateSigned.cert_serial`
+            :attr:`model.utils.CertificateSigned.is_ari_supported`
         """
         _certificate_parse_to_record(
             cert_pem=cert_pem,

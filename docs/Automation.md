@@ -1,5 +1,5 @@
-* [Previous - Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
-* [Next - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
+* [Previous - Implementation_Details](https://github.com/aptise/peter_sslers/tree/main/docs/Implementation_Details.md)
+* [Next - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/tree/main/docs/Frequently_Asked_Questions.md)
 
 # Automation
 

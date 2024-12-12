@@ -1,10 +1,13 @@
 URGENT
 =====
 
-CertificateSigned
-    [x] parse/store the serial
-    [x] track the last ari_check
+Routines
+--------
 
+# routine__run_ari_checks
+
+This should be migrated to use a ranged or windowed query to better handle
+systems with large numbers of rows
 
 
 * Build a tool that can generate/save/load a new testdb, so it does not need to
@@ -63,6 +66,11 @@ TODO:
   * notes:
     * https://community.letsencrypt.org/t/issue-with-ssl-coms-acme-implementation/158189/13
       * Key Encipherment is not valid for ECDSA certificates. This is for "when the subject public key is used for enciphering private or secret keys, i.e., for key transport." (RFC 5280).
+
+
+Operations Log
+    Deserialize the Payloads and explore
+    This is important for `operations__reconcile_cas`, as there may be CA failures
 
 
 DATABASE MIGRATIONS

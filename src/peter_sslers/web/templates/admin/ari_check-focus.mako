@@ -66,9 +66,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>process_result</th>
+                        <th>ari_check_status</th>
                         <td>
-                            <code>${AriCheck.process_result}</code>
+                            <code>${AriCheck.ari_check_status}</code>
                         </td>
                     </tr>
                     <tr>

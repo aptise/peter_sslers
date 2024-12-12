@@ -1,5 +1,5 @@
-* [Previous - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
-* [Next - Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
+* [Previous - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/tree/main/docs/Frequently_Asked_Questions.md)
+* [Next - Tools](https://github.com/aptise/peter_sslers/tree/main/docs/Tools.md)
 
 # Misc
 

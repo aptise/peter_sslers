@@ -17,8 +17,14 @@
 
 
 <%block name="page_header_nav">
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/ari-checks/all">All AriChecks</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'cert-latest' else ''}"><a href="${admin_prefix}/ari-checks/cert-latest">Latest AriChecks per Certificate</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'cert-latest-overdue' else ''}"><a href="${admin_prefix}/ari-checks/cert-latest-overdue">Latest AriChecks per Certificate (Overdue)</a></li>
+    </ul>
+
     <p class="pull-right">
-        <a href="${admin_prefix}/ari-checks.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/ari-checks/${sidenav_option}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>

@@ -2165,17 +2165,21 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
-    process_result: Mapped[Optional[bool]] = mapped_column(
+    suggested_window_start: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    suggested_window_end: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_retry_after: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+
+    # originally intended to track success of the check
+    ari_check_status: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean,
         nullable=False,
     )  # True: Success; False Failure
-
-    suggested_window_start: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=True
-    )
-    suggested_window_end: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=True
-    )
 
     certificate_signed = sa_orm_relationship(
         "CertificateSigned",
@@ -2190,12 +2194,15 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             "certificate_signed_id": self.certificate_signed_id,
             "timestamp_created": self.timestamp_created_isoformat,
-            "process_result": self.process_result,
+            "ari_check_status": self.ari_check_status,
             "suggested_window_start": self.suggested_window_start.isoformat()
             if self.suggested_window_start
             else None,
             "suggested_window_end": self.suggested_window_end.isoformat()
             if self.suggested_window_end
+            else None,
+            "timestamp_retry_after": self.timestamp_retry_after.isoformat()
+            if self.timestamp_retry_after
             else None,
         }
 
@@ -2828,6 +2835,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
+    is_ari_supported: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3193,6 +3203,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def as_json(self) -> Dict:
+        import pprint
+
+        pprint.pprint(self.__dict__)
         return {
             "acme_order.is_auto_renew": self.acme_order.is_auto_renew
             if self.acme_order
@@ -3226,6 +3239,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "ari_check_latest_id": self.ari_check__latest.id
             if self.ari_check__latest
             else None,
+            "is_ari_supported": self.is_ari_supported,
         }
 
 

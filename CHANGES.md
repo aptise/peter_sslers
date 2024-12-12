@@ -2,6 +2,20 @@
     preliminary ari-check support
     py313 testsing
 
+    CertificateSigned
+        [x] new view of INACTIVE+NOT_EXPIRED
+        [x] new view of ACTIVE+EXPIRED
+        [x] parse/store the serial
+        [x] track the latest ari_check
+        [x] track ARI retry
+        [x] list ARI retries needed
+        [x] iterate over ARI retries needed
+
+    New commandline routines:
+        routine__clear_old_ari_checks
+        routine__run_ari_checks
+    
+    new QuickStart guide
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

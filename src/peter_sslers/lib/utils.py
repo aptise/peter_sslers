@@ -63,8 +63,8 @@ def new_event_payload_dict() -> Dict:
 
 
 def issuer_to_endpoint(
-    cert_data: Optional[Dict] = None,
-    sock_data: Optional[Dict] = None,
+    cert_data: Optional[Dict] = None,  # via parse_cert
+    sock_data: Optional[Dict] = None,  # via socket analysis
 ) -> Optional[str]:
     if not any((cert_data, sock_data)) or all((cert_data, sock_data)):
         raise ValueError("submit `cert_data` OR `sock_data`")

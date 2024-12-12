@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from ...model.objects import PrivateKey
     from ..acme_v2 import AcmeOrderRFC
     from ..acme_v2 import AuthenticatedUser
+    from ..acme_v2 import AriCheckResult
     from ..utils import ApiContext
 
 
@@ -2751,25 +2752,28 @@ def do__AcmeV2_AcmeOrder__renew_quick(
 def do__AcmeV2_AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-) -> Tuple["AriCheck", Dict]:
+) -> Tuple["AriCheck", Optional["AriCheckResult"]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object to check
+    :param dbCertificateSigned: (required)
+        A :class:`model.objects.CertificateSigned` object to check
 
-    :returns: A :class:`model.objects.AriCheck` object for the new AriCheck
+    :returns: A tuple of
+        :class:`model.objects.AriCheck` object for the new AriCheck, and the
+        :class:`AriCheckResult` formatted API Response
     """
     if not dbCertificateSigned:
         raise ValueError("Must submit `dbCertificateSigned`")
     try:
-        ari_data = acme_v2.ari_check(
+        ari_check_result: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
-            ari_data=ari_data,
+            ari_check_result=ari_check_result,
         )
     except Exception as exc:
         raise
-    return [dbAriCheck, ari_data]
+    return dbAriCheck, ari_check_result

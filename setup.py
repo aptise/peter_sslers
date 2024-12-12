@@ -113,5 +113,7 @@ setup(
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
       import_certbot = peter_sslers.web.scripts.import_certbot:main
       disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
+      routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
+      routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       """,
 )

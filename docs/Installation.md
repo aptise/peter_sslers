@@ -1,5 +1,5 @@
 * [Previous - README](https://github.com/aptise/peter_sslers/README.md)
-* [Next - Configuration Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
+* [Next - Configuration Options](https://github.com/aptise/peter_sslers/tree/main/docs/Configuration_Options.md)
 
 # Installation
 

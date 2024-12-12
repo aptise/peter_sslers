@@ -58,6 +58,9 @@
 
             <h4>Operation Object Events?</h4>
             ${admin_partials.table_OperationsObjectEvents(OperationsEvent.object_events, table_context='log-focus')}
+
+            <h4>Operation Payload Objects?</h4>
+            ${admin_partials.table_OperationsEvent_Payload(OperationsEvent, table_context='log-focus')}
         </div>
         <div class="col-sm-3">
             ${admin_partials.operations_options(enable_redis=enable_redis,

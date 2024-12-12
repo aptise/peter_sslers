@@ -1,4 +1,5 @@
 # stdlib
+import datetime
 import logging
 from typing import Dict
 from typing import Iterable
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING
 import cert_utils
 import requests
 import sqlalchemy
+from sqlalchemy import or_ as sqlalchemy_or
 
 # from zope.sqlalchemy import mark_changed
 
@@ -23,6 +25,8 @@ from .. import events
 from ... import lib
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...model.objects import AriCheck
+from ...model.objects import CertificateSigned
 
 
 if TYPE_CHECKING:
@@ -180,6 +184,7 @@ def operations_reconcile_cas(
         .all()
     )
     _certificate_ca_ids = []
+    _certificate_ca_ids_fail = []
     for dbCertificateCA in dbCertificateCAs:
         log.debug("Reconciling CA...")
         _certificate_ca_ids.append(dbCertificateCA.id)
@@ -187,59 +192,69 @@ def operations_reconcile_cas(
         log.debug(dbCertificateCA.cert_subject)
         log.debug(cert_issuer_uri)
         assert cert_issuer_uri
-        resp = requests.get(cert_issuer_uri)
-        if resp.status_code != 200:
-            raise ValueError("Could not load certificate")
-        content_type = resp.headers.get("content-type")
-        filetype = _header_2_format.get(content_type) if content_type else None
-        cert_pems = None
-        if filetype == "pkcs7":
-            cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
-        elif filetype == "pkix-cert":
-            cert_pem = cert_utils.convert_der_to_pem(resp.content)
-            cert_pems = [
-                cert_pem,
-            ]
-        else:
-            raise ValueError("Not Implemented: %s" % content_type)
+        try:
+            resp = requests.get(cert_issuer_uri)
+            if resp.status_code != 200:
+                raise ValueError("Could not load certificate")
+            content_type = resp.headers.get("content-type")
+            filetype = _header_2_format.get(content_type) if content_type else None
+            cert_pems = None
+            if filetype == "pkcs7":
+                cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
+            elif filetype == "pkix-cert":
+                cert_pem = cert_utils.convert_der_to_pem(resp.content)
+                cert_pems = [
+                    cert_pem,
+                ]
+            else:
+                raise ValueError("Not Implemented: %s" % content_type)
 
-        for cert_pem in cert_pems:
-            cert_parsed = cert_utils.parse_cert(cert_pem)
-            (
-                _dbCertificateCAReconciled,
-                _is_created,
-            ) = getcreate.getcreate__CertificateCA__by_pem_text(
-                ctx,
-                cert_pem,
-                discovery_type="reconcile_cas",
-            )
-            # mark the first item as reconciled
-            dbCertificateCA.cert_issuer__reconciled = True
-            if not dbCertificateCA.cert_issuer__certificate_ca_id:
-                dbCertificateCA.cert_issuer__certificate_ca_id = (
+            for cert_pem in cert_pems:
+                cert_parsed = cert_utils.parse_cert(cert_pem)
+                (
+                    _dbCertificateCAReconciled,
+                    _is_created,
+                ) = getcreate.getcreate__CertificateCA__by_pem_text(
+                    ctx,
+                    cert_pem,
+                    discovery_type="reconcile_cas",
+                )
+                # mark the first item as reconciled
+                dbCertificateCA.cert_issuer__reconciled = True
+                if not dbCertificateCA.cert_issuer__certificate_ca_id:
+                    dbCertificateCA.cert_issuer__certificate_ca_id = (
+                        _dbCertificateCAReconciled.id
+                    )
+                else:
+                    raise ValueError("Not Implemented: multiple reconciles")
+                # mark the second item
+                _reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
+                reconciled_uris = (
+                    _reconciled_uris.split(" ") if _reconciled_uris else []
+                )
+                if cert_issuer_uri not in reconciled_uris:
+                    reconciled_uris.append(cert_issuer_uri)
+                    _reconciled_uris = " ".join(reconciled_uris)
+                    _dbCertificateCAReconciled.reconciled_uris = _reconciled_uris
+
+                dbCertificateCAReconciliation = (
+                    model_objects.CertificateCAReconciliation()
+                )
+                dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
+                dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
+                dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
                     _dbCertificateCAReconciled.id
                 )
-            else:
-                raise ValueError("Not Implemented: multiple reconciles")
-            # mark the second item
-            _reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
-            reconciled_uris = _reconciled_uris.split(" ") if _reconciled_uris else []
-            if cert_issuer_uri not in reconciled_uris:
-                reconciled_uris.append(cert_issuer_uri)
-                _reconciled_uris = " ".join(reconciled_uris)
-                _dbCertificateCAReconciled.reconciled_uris = _reconciled_uris
-
-            dbCertificateCAReconciliation = model_objects.CertificateCAReconciliation()
-            dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
-            dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
-            dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
-                _dbCertificateCAReconciled.id
-            )
-            dbCertificateCAReconciliation.result = True
-            ctx.dbSession.add(dbCertificateCAReconciliation)
+                dbCertificateCAReconciliation.result = True
+                ctx.dbSession.add(dbCertificateCAReconciliation)
+        except Exception as exc:
+            log.debug("EXCEPTION - could not reconcile CA %s", dbCertificateCA.id)
+            _certificate_ca_ids_fail.append(dbCertificateCA.id)
 
     event_payload_dict = lib.utils.new_event_payload_dict()
     event_payload_dict["certificate_ca.ids"] = _certificate_ca_ids
+    if _certificate_ca_ids_fail:
+        event_payload_dict["certificate_ca.ids_fail"] = _certificate_ca_ids_fail
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__reconcile_cas"),
@@ -891,3 +906,129 @@ def api_domains__certificate_if_needed(
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     return results
+
+
+def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
+    """
+    clear from the database outdated ARI checks.
+    An ARI check is considered outdated once it has been replaced with a newer ARI check.
+    """
+    # iterate over all the CertificateSigned - windowed query of 100
+    # criteria: no ari check, ari_check expired
+    # run & store ari check
+    NOW = datetime.datetime.utcnow()
+
+    """
+    # The SQL we want (for now):
+
+    DELETE FROM ari_check WHERE id NOT IN (
+        SELECT subq.latest_ari_id FROM (
+            SELECT
+                max(id) AS latest_ari_id,
+                certificate_signed_id
+            FROM ari_check
+            GROUP BY
+                certificate_signed_id
+        ) subq
+    );
+    """
+
+    latest_ari_checks = (
+        ctx.dbSession.query(
+            sqlalchemy.func.max(AriCheck.id).label("latest_ari_id"),
+            AriCheck.certificate_signed_id,
+        )
+        .group_by(AriCheck.certificate_signed_id)
+        .subquery()
+    )
+    latest_ari_ids = ctx.dbSession.query(latest_ari_checks.c.latest_ari_id)
+    stmt = sqlalchemy.delete(AriCheck).where(AriCheck.id.not_in(latest_ari_ids))
+    result = ctx.dbSession.execute(stmt)
+    ctx.dbSession.commit()
+    return True
+
+
+def routine__run_ari_checks(ctx: "ApiContext") -> bool:
+    """
+    Run ARI checks for certificates that require one
+    * no ARI check logged
+    * current time is after the latest ARI check's retry-after
+    """
+    # iterate over all the CertificateSigned - windowed query of 100
+    # criteria: no ari check, ari_check expired
+    # run & store ari check
+    NOW = datetime.datetime.utcnow()
+
+    """
+    # The SQL we want (for now):
+    SELECT
+        cert.id,
+        latest_ari_checks.latest_ari_id,
+        latest_ari_checks.timestamp_retry_after
+    FROM
+        certificate_signed AS cert
+    LEFT OUTER JOIN (
+        SELECT
+            certificate_signed_id,
+            max(id) as latest_ari_id,
+            timestamp_retry_after
+        FROM ari_check
+        GROUP BY certificate_signed_id
+    ) AS latest_ari_checks
+    ON cert.id = latest_ari_checks.certificate_signed_id
+    WHERE
+        cert.is_active IS True
+        AND
+        cert.is_ari_supported IS True
+        AND
+        (
+            latest_ari_checks.latest_ari_id IS NULL
+            OR
+            latest_ari_checks.timestamp_retry_after < datetime()
+        )
+    ORDER BY cert.id DESC;
+    """
+
+    latest_ari_checks = (
+        ctx.dbSession.query(
+            AriCheck.certificate_signed_id,
+            sqlalchemy.func.max(AriCheck.id).label("latest_ari_id"),
+            AriCheck.timestamp_retry_after,
+        )
+        .group_by(AriCheck.certificate_signed_id)
+        .order_by(AriCheck.certificate_signed_id.desc())
+        .subquery()
+    )
+
+    certs = (
+        ctx.dbSession.query(CertificateSigned, latest_ari_checks.c.latest_ari_id)
+        .outerjoin(
+            latest_ari_checks,
+            CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
+        )
+        .filter(
+            CertificateSigned.is_active is True,
+            CertificateSigned.is_ari_supported is True,
+            sqlalchemy_or(
+                latest_ari_checks.c.latest_ari_id is None,
+                latest_ari_checks.c.timestamp_retry_after < NOW,
+            ),
+        )
+        .order_by(
+            CertificateSigned.id.desc(),
+            latest_ari_checks.c.latest_ari_id.desc(),
+        )
+        .all()
+    )
+
+    for dbCertificateSigned, latest_ari_id in certs:
+        print(
+            "Running ARI Check for : %s [%s]"
+            % (dbCertificateSigned.id, dbCertificateSigned.cert_serial)
+        )
+        dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
+            ctx,
+            dbCertificateSigned=dbCertificateSigned,
+        )
+        ctx.dbSession.commit()
+    return True

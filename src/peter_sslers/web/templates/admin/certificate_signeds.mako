@@ -20,7 +20,9 @@
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificate-signeds/all">All Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/certificate-signeds/active">Active Certificates</a></li>
+      <li role="presentation" class="${'active-expired' if sidenav_option == 'active-expired' else ''}"><a href="${admin_prefix}/certificate-signeds/active-expired">Active+Expired Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'inactive' else ''}"><a href="${admin_prefix}/certificate-signeds/inactive">Inactive Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'inactive-unexpired' else ''}"><a href="${admin_prefix}/certificate-signeds/inactive-unexpired">Inactive+Unexpired Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificate-signeds/expiring">Expiring Certificates</a></li>
     </ul>
     <p class="pull-right">
@@ -40,8 +42,18 @@
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
+        % elif sidenav_option == 'active-expired' :
+            <a href="${admin_prefix}/certificate-signeds/active-expired.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
         % elif sidenav_option == 'inactive' :
             <a href="${admin_prefix}/certificate-signeds/inactive.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'inactive-unexpired' :
+            <a href="${admin_prefix}/certificate-signeds/inactive-unexpired.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
@@ -61,8 +73,14 @@
             % if sidenav_option == 'active' :
                 <p>Active CertificateSigneds.
                 </p>
+            % elif sidenav_option == 'active-expired' :
+                <p>Active+Expired CertificateSigneds.
+                </p>
             % elif sidenav_option == 'inactive' :
                 <p>Inactive CertificateSigneds.
+                </p>
+            % elif sidenav_option == 'inactive-unexpired' :
+                <p>Inactive Unexpired CertificateSigneds.
                 </p>
             % else:
                 % if expiring_days and sidenav_option != 'all':

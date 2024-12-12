@@ -110,6 +110,14 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
+        route_name="admin:certificate_signeds:active_expired",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired_paginated",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
         route_name="admin:certificate_signeds:expiring",
         renderer="/admin/certificate_signeds.mako",
     )
@@ -125,6 +133,14 @@ class View_List(Handler):
         route_name="admin:certificate_signeds:inactive_paginated",
         renderer="/admin/certificate_signeds.mako",
     )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired_paginated",
+        renderer="/admin/certificate_signeds.mako",
+    )
     @view_config(route_name="admin:certificate_signeds:all|json", renderer="json")
     @view_config(
         route_name="admin:certificate_signeds:all_paginated|json", renderer="json"
@@ -133,6 +149,13 @@ class View_List(Handler):
     @view_config(
         route_name="admin:certificate_signeds:active_paginated|json", renderer="json"
     )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired_paginated|json",
+        renderer="json",
+    )
     @view_config(route_name="admin:certificate_signeds:expiring|json", renderer="json")
     @view_config(
         route_name="admin:certificate_signeds:expiring_paginated|json", renderer="json"
@@ -140,6 +163,13 @@ class View_List(Handler):
     @view_config(route_name="admin:certificate_signeds:inactive|json", renderer="json")
     @view_config(
         route_name="admin:certificate_signeds:inactive_paginated|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired_paginated|json",
+        renderer="json",
     )
     @docify(
         {
@@ -179,6 +209,24 @@ class View_List(Handler):
     )
     @docify(
         {
+            "endpoint": "/certificate-signeds/active-expired.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s) Active+Expired""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active-expired.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/active-expired/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active-expired/1.json",
+            "variant_of": "/certificate-signeds/active-expired.json",
+        }
+    )
+    @docify(
+        {
             "endpoint": "/certificate-signeds/expiring.json",
             "section": "certificate-signed",
             "about": """list CertificateSigned(s)""",
@@ -210,7 +258,25 @@ class View_List(Handler):
             "endpoint": "/certificate-signeds/inactive/{PAGE}.json",
             "section": "certificate-signed",
             "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive/1.json",
-            "variant_of": "/certificate-signeds/expiring.json",
+            "variant_of": "/certificate-signeds/inactive.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive-unexpired.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s) Inactive+Unexpired""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive-unexpired.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive-unexpired/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive-unexpired/1.json",
+            "variant_of": "/certificate-signeds/inactive.json",
         }
     )
     def list(self):
@@ -262,6 +328,30 @@ class View_List(Handler):
                 offset=offset,
             )
         elif self.request.matched_route.name in (
+            "admin:certificate_signeds:active_expired",
+            "admin:certificate_signeds:active_expired_paginated",
+            "admin:certificate_signeds:active_expired|json",
+            "admin:certificate_signeds:active_expired_paginated|json",
+        ):
+            sidenav_option = "active-expired"
+            url_template = (
+                "%s/certificate-signeds/active-expired/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__count(
+                self.request.api_context, expiring_days=expiring_days, is_active=True
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__paginated(
+                self.request.api_context,
+                expiring_days=expiring_days,
+                is_active=True,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
             "admin:certificate_signeds:inactive",
             "admin:certificate_signeds:inactive_paginated",
             "admin:certificate_signeds:inactive|json",
@@ -269,7 +359,7 @@ class View_List(Handler):
         ):
             sidenav_option = "inactive"
             url_template = (
-                "%s/certificate-signeds/active/{0}"
+                "%s/certificate-signeds/inactive/{0}"
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
@@ -281,6 +371,30 @@ class View_List(Handler):
             items_paged = lib_db.get.get__CertificateSigned__paginated(
                 self.request.api_context,
                 is_active=False,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:certificate_signeds:inactive_unexpired",
+            "admin:certificate_signeds:inactive_unexpired_paginated",
+            "admin:certificate_signeds:inactive_unexpired|json",
+            "admin:certificate_signeds:inactive_unexpired_paginated|json",
+        ):
+            sidenav_option = "inactive-unexpired"
+            url_template = (
+                "%s/certificate-signeds/inactive-unexpired/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__count(
+                self.request.api_context, is_active=False, is_unexpired=True
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__paginated(
+                self.request.api_context,
+                is_active=False,
+                is_unexpired=True,
                 limit=items_per_page,
                 offset=offset,
             )
@@ -509,11 +623,11 @@ class View_Focus(Handler):
         templating_vars = {
             "project": "peter_sslers",
             "CertificateSigned": dbCertificateSigned,
-            "ari_data": None,
+            "_AriCheck": None,
         }
-        if "ari_data" in self.request.params:
-            templating_vars["ari_data"] = utils.unurlify(
-                self.request.params["ari_data"]
+        if "AriCheck" in self.request.params:
+            templating_vars["_AriCheck"] = utils.unurlify(
+                self.request.params["AriCheck"]
             )
         return templating_vars
 
@@ -1105,21 +1219,20 @@ class View_Focus_Manipulate(View_Focus):
             )
         try:
             # check ARI info
-            dbAriObject, ari_response = lib_db.actions_acme.do__AcmeV2_AriCheck(
+            # ariresult is: None (failure) or Tuple(payload, headers)
+            dbAriObject, ari_check_result = lib_db.actions_acme.do__AcmeV2_AriCheck(
                 self.request.api_context,
                 dbCertificateSigned=dbCertificateSigned,
             )
             if self.request.wants_json:
-                return {"result": "success", "ari_data": {ari_response}}
+                return {"result": "success", "AriCheck": {dbAriObject.as_json}}
             return HTTPSeeOther(
-                "%s?result=success&operation=ari-check&ari_data=%s"
-                % (self._focus_url, utils.urlify(ari_response))
+                "%s?result=success&operation=ari-check&AriCheck=%s"
+                % (self._focus_url, utils.urlify(dbAriObject.as_json))
             )
 
         except Exception as exc:
-            import pdb
-
-            pdb.set_trace()
+            raise
             if self.request.wants_json:
                 return {
                     "result": "error",
