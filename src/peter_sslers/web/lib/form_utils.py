@@ -123,12 +123,12 @@ class AcmeAccountUploadParser(object):
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
-        self.private_key_cycle_id = getcreate_args[
-            "private_key_cycle_id"
-        ] = private_key_cycle_id
-        self.private_key_technology_id = getcreate_args[
-            "private_key_technology_id"
-        ] = private_key_technology_id
+        self.private_key_cycle_id = getcreate_args["private_key_cycle_id"] = (
+            private_key_cycle_id
+        )
+        self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
+            private_key_technology_id
+        )
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(
@@ -227,12 +227,12 @@ class AcmeAccountUploadParser(object):
 
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
-        self.private_key_cycle_id = getcreate_args[
-            "private_key_cycle_id"
-        ] = private_key_cycle_id
-        self.private_key_technology_id = getcreate_args[
-            "private_key_technology_id"
-        ] = private_key_technology_id
+        self.private_key_cycle_id = getcreate_args["private_key_cycle_id"] = (
+            private_key_cycle_id
+        )
+        self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
+            private_key_technology_id
+        )
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
@@ -242,20 +242,20 @@ class AcmeAccountUploadParser(object):
                 )
             self.upload_type = "pem"
             self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
-            self.account_key_pem = getcreate_args[
-                "key_pem"
-            ] = formhandling.slurp_file_field(formStash, "account_key_file_pem")
+            self.account_key_pem = getcreate_args["key_pem"] = (
+                formhandling.slurp_file_field(formStash, "account_key_file_pem")
+            )
         else:
             # note that we use `jsonS` to indicate a string
-            self.le_meta_jsons = getcreate_args[
-                "le_meta_jsons"
-            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_meta")
-            self.le_pkey_jsons = getcreate_args[
-                "le_pkey_jsons"
-            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_pkey")
-            self.le_reg_jsons = getcreate_args[
-                "le_reg_jsons"
-            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_reg")
+            self.le_meta_jsons = getcreate_args["le_meta_jsons"] = (
+                formhandling.slurp_file_field(formStash, "account_key_file_le_meta")
+            )
+            self.le_pkey_jsons = getcreate_args["le_pkey_jsons"] = (
+                formhandling.slurp_file_field(formStash, "account_key_file_le_pkey")
+            )
+            self.le_reg_jsons = getcreate_args["le_reg_jsons"] = (
+                formhandling.slurp_file_field(formStash, "account_key_file_le_reg")
+            )
         self.getcreate_args = decode_args(getcreate_args)
 
 
@@ -287,9 +287,9 @@ class _PrivateKeyUploadParser(object):
 
         if formStash.results["private_key_file_pem"] is not None:
             self.upload_type = "pem"
-            self.private_key_pem = getcreate_args[
-                "key_pem"
-            ] = formhandling.slurp_file_field(formStash, "private_key_file_pem")
+            self.private_key_pem = getcreate_args["key_pem"] = (
+                formhandling.slurp_file_field(formStash, "private_key_file_pem")
+            )
 
         self.getcreate_args = decode_args(getcreate_args)
 
@@ -515,9 +515,9 @@ def form_key_selection(
         assert acmeAccountSelection.upload_parsed
         key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
         key_create_args["event_type"] = "AcmeAccount__insert"
-        key_create_args[
-            "acme_account_key_source_id"
-        ] = model_utils.AcmeAccountKeySource.from_string("imported")
+        key_create_args["acme_account_key_source_id"] = (
+            model_utils.AcmeAccountKeySource.from_string("imported")
+        )
         (
             dbAcmeAccount,
             _is_created,
@@ -538,9 +538,9 @@ def form_key_selection(
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
         key_create_args["discovery_type"] = "upload"
         key_create_args["event_type"] = "PrivateKey__insert"
-        key_create_args[
-            "private_key_source_id"
-        ] = model_utils.PrivateKeySource.from_string("imported")
+        key_create_args["private_key_source_id"] = (
+            model_utils.PrivateKeySource.from_string("imported")
+        )
         key_create_args["private_key_type_id"] = model_utils.PrivateKeyType.from_string(
             "standard"
         )

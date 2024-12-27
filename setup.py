@@ -10,9 +10,9 @@ from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-long_description = (
-    description
-) = "peter_sslers is an integrated SSL Certificate Manager and ACME Client"
+long_description = description = (
+    "peter_sslers is an integrated SSL Certificate Manager and ACME Client"
+)
 with open(os.path.join(HERE, "README.md")) as f:
     long_description = f.read()
 

@@ -159,9 +159,9 @@ class View_New(Handler):
                     )
 
             key_create_args["event_type"] = "AcmeAccount__insert"
-            key_create_args[
-                "acme_account_key_source_id"
-            ] = model_utils.AcmeAccountKeySource.from_string("imported")
+            key_create_args["acme_account_key_source_id"] = (
+                model_utils.AcmeAccountKeySource.from_string("imported")
+            )
             try:
                 (
                     dbAcmeAccount,
@@ -274,9 +274,9 @@ class View_New(Handler):
             key_pem = cert_utils.new_account_key()  # rsa_bits=None
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccount__create"
-            key_create_args[
-                "acme_account_key_source_id"
-            ] = model_utils.AcmeAccountKeySource.from_string("generated")
+            key_create_args["acme_account_key_source_id"] = (
+                model_utils.AcmeAccountKeySource.from_string("generated")
+            )
 
             dbAcmeAccount = None
             _dbAcmeAccount = None

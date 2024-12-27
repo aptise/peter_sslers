@@ -57,12 +57,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False, default=0
     )
 
-    timestamp_last_certificate_request: Mapped[
-        Optional[datetime.datetime]
-    ] = mapped_column(sa.DateTime, nullable=True)
-    timestamp_last_certificate_issue: Mapped[
-        Optional[datetime.datetime]
-    ] = mapped_column(sa.DateTime, nullable=True)
+    timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
+        mapped_column(sa.DateTime, nullable=True)
+    )
+    timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
+        mapped_column(sa.DateTime, nullable=True)
+    )
     timestamp_last_authenticated: Mapped[Optional[datetime.datetime]] = mapped_column(
         sa.DateTime, nullable=True
     )
@@ -3686,22 +3686,22 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             return rval
         if self.certificate_signed_id__latest_single:
             if id_only:
-                rval[
-                    "certificate_signed__latest_single"
-                ] = self.certificate_signed__latest_single.config_payload_idonly
+                rval["certificate_signed__latest_single"] = (
+                    self.certificate_signed__latest_single.config_payload_idonly
+                )
             else:
-                rval[
-                    "certificate_signed__latest_single"
-                ] = self.certificate_signed__latest_single.config_payload
+                rval["certificate_signed__latest_single"] = (
+                    self.certificate_signed__latest_single.config_payload
+                )
         if self.certificate_signed_id__latest_multi:
             if id_only:
-                rval[
-                    "certificate_signed__latest_multi"
-                ] = self.certificate_signed__latest_multi.config_payload_idonly
+                rval["certificate_signed__latest_multi"] = (
+                    self.certificate_signed__latest_multi.config_payload_idonly
+                )
             else:
-                rval[
-                    "certificate_signed__latest_multi"
-                ] = self.certificate_signed__latest_multi.config_payload
+                rval["certificate_signed__latest_multi"] = (
+                    self.certificate_signed__latest_multi.config_payload
+                )
         return rval
 
 
@@ -4081,12 +4081,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     count_certificate_signeds: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-    timestamp_last_certificate_request: Mapped[
-        Optional[datetime.datetime]
-    ] = mapped_column(sa.DateTime, nullable=True)
-    timestamp_last_certificate_issue: Mapped[
-        Optional[datetime.datetime]
-    ] = mapped_column(sa.DateTime, nullable=True)
+    timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
+        mapped_column(sa.DateTime, nullable=True)
+    )
+    timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
+        mapped_column(sa.DateTime, nullable=True)
+    )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )

@@ -1055,11 +1055,12 @@ class View_Focus_via_CertificateCAChain(View_Focus):
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
-            response.headers[
-                "Content-Disposition"
-            ] = "attachment; filename= cert%s-chain%s.zip" % (
-                dbCertificateSigned.id,
-                certificate_ca_chain_id,
+            response.headers["Content-Disposition"] = (
+                "attachment; filename= cert%s-chain%s.zip"
+                % (
+                    dbCertificateSigned.id,
+                    certificate_ca_chain_id,
+                )
             )
             return response
 

@@ -77,19 +77,19 @@ def queue_domains__add(
                 # set this active
                 _dbDomain.is_active = True
 
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "QueueDomain__add__already_exists_activate"
+                _logger_args["event_status_id"] = (
+                    model_utils.OperationsObjectEventStatus.from_string(
+                        "QueueDomain__add__already_exists_activate"
+                    )
                 )
                 _logger_args["dbDomain"] = _dbDomain
                 _result = "exists"
 
             else:
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "QueueDomain__add__already_exists"
+                _logger_args["event_status_id"] = (
+                    model_utils.OperationsObjectEventStatus.from_string(
+                        "QueueDomain__add__already_exists"
+                    )
                 )
                 _logger_args["dbDomain"] = _dbDomain
                 _result = "exists"
@@ -102,10 +102,10 @@ def queue_domains__add(
             if _dbQueueDomain:
                 if _dbQueueDomain.is_active:
                     _create_new = False
-                    _logger_args[
-                        "event_status_id"
-                    ] = model_utils.OperationsObjectEventStatus.from_string(
-                        "QueueDomain__add__already_queued"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "QueueDomain__add__already_queued"
+                        )
                     )
                     _logger_args["dbQueueDomain"] = _dbQueueDomain
                     _result = "already_queued"
@@ -122,10 +122,10 @@ def queue_domains__add(
                 ctx.dbSession.add(_dbQueueDomain)
                 ctx.dbSession.flush(objects=[_dbQueueDomain])
 
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "QueueDomain__add__success"
+                _logger_args["event_status_id"] = (
+                    model_utils.OperationsObjectEventStatus.from_string(
+                        "QueueDomain__add__success"
+                    )
                 )
                 _logger_args["dbQueueDomain"] = _dbQueueDomain
                 _result = "queued"

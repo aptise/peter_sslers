@@ -344,9 +344,9 @@ class ViewAdminApi_Domain(Handler):
             if acmeAccountSelection.selection == "upload":
                 key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
                 key_create_args["event_type"] = "AcmeAccount__insert"
-                key_create_args[
-                    "acme_account_key_source_id"
-                ] = model_utils.AcmeAccountKeySource.from_string("imported")
+                key_create_args["acme_account_key_source_id"] = (
+                    model_utils.AcmeAccountKeySource.from_string("imported")
+                )
                 (
                     dbAcmeAccount,
                     _is_created,
@@ -367,12 +367,12 @@ class ViewAdminApi_Domain(Handler):
                 key_create_args = privateKeySelection.upload_parsed.getcreate_args
                 key_create_args["discovery_type"] = "via certificate_if_needed"
                 key_create_args["event_type"] = "PrivateKey__insert"
-                key_create_args[
-                    "private_key_source_id"
-                ] = model_utils.PrivateKeySource.from_string("imported")
-                key_create_args[
-                    "private_key_type_id"
-                ] = model_utils.PrivateKeyType.from_string("standard")
+                key_create_args["private_key_source_id"] = (
+                    model_utils.PrivateKeySource.from_string("imported")
+                )
+                key_create_args["private_key_type_id"] = (
+                    model_utils.PrivateKeyType.from_string("standard")
+                )
                 (
                     dbPrivateKey,
                     _is_created,

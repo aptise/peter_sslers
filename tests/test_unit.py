@@ -41,9 +41,9 @@ class _MixIn_AcmeAccount(object):
             contact = "%s@example.com" % private_key_cycle
         _kwargs = {}
         if private_key_technology is not None:
-            _kwargs[
-                "private_key_technology_id"
-            ] = model_utils.KeyTechnology.from_string(private_key_technology)
+            _kwargs["private_key_technology_id"] = (
+                model_utils.KeyTechnology.from_string(private_key_technology)
+            )
         if not existing_account_key:
             key_pem = cert_utils.new_account_key()
         else:

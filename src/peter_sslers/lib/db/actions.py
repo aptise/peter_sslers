@@ -759,10 +759,10 @@ def api_domains__certificate_if_needed(
 
             if not _dbDomain.is_active:
                 _result["domain.status"] = "existing.activated"
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__domain_activate"
+                _logger_args["event_status_id"] = (
+                    model_utils.OperationsObjectEventStatus.from_string(
+                        "ApiDomains__certificate_if_needed__domain_activate"
+                    )
                 )
                 _logger_args["dbDomain"] = _dbDomain
 
@@ -773,10 +773,10 @@ def api_domains__certificate_if_needed(
             else:
                 _result["domain.status"] = "existing.active"
 
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__domain_exists"
+                _logger_args["event_status_id"] = (
+                    model_utils.OperationsObjectEventStatus.from_string(
+                        "ApiDomains__certificate_if_needed__domain_exists"
+                    )
                 )
                 _logger_args["dbDomain"] = _dbDomain
 
@@ -790,10 +790,10 @@ def api_domains__certificate_if_needed(
             ]  # (dbDomain, _is_created)
             _result["domain.status"] = "new"
             _result["domain.id"] = _dbDomain.id
-            _logger_args[
-                "event_status_id"
-            ] = model_utils.OperationsObjectEventStatus.from_string(
-                "ApiDomains__certificate_if_needed__domain_new"
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__domain_new"
+                )
             )
             _logger_args["dbDomain"] = _dbDomain
 
@@ -811,10 +811,10 @@ def api_domains__certificate_if_needed(
         if _dbCertificateSigned:
             _result["certificate_signed.status"] = "exists"
             _result["certificate_signed.id"] = _dbCertificateSigned.id
-            _logger_args[
-                "event_status_id"
-            ] = model_utils.OperationsObjectEventStatus.from_string(
-                "ApiDomains__certificate_if_needed__certificate_exists"
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__certificate_exists"
+                )
             )
             _logger_args["dbCertificateSigned"] = _dbCertificateSigned
         else:
@@ -840,19 +840,19 @@ def api_domains__certificate_if_needed(
                 if dbAcmeOrder.certificate_signed_id:
                     _result["certificate_signed.status"] = "new"
                     _result["certificate_signed.id"] = dbAcmeOrder.certificate_signed_id
-                    _logger_args[
-                        "event_status_id"
-                    ] = model_utils.OperationsObjectEventStatus.from_string(
-                        "ApiDomains__certificate_if_needed__certificate_new_success"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_success"
+                        )
                     )
                     _logger_args["dbCertificateSigned"] = dbAcmeOrder.certificate_signed
                 else:
                     _result["error"] = "AcmeOrder did not generate a CertificateSigned"
                     _result["certificate_signed.status"] = "fail"
-                    _logger_args[
-                        "event_status_id"
-                    ] = model_utils.OperationsObjectEventStatus.from_string(
-                        "ApiDomains__certificate_if_needed__certificate_new_fail"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
                     )
 
             except Exception as exc:
@@ -867,10 +867,10 @@ def api_domains__certificate_if_needed(
                 if isinstance(exc, errors.AcmeError):
                     _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
                     _result["certificate_signed.status"] = "fail"
-                    _logger_args[
-                        "event_status_id"
-                    ] = model_utils.OperationsObjectEventStatus.from_string(
-                        "ApiDomains__certificate_if_needed__certificate_new_fail"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
                     )
                 else:
                     raise

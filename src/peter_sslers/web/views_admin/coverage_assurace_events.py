@@ -294,9 +294,9 @@ class View_Focus(Handler):
                 "CoverageAssuranceEvent__mark_resolution"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict[
-                "coverage_assurance_event.id"
-            ] = dbCoverageAssuranceEvent.id
+            event_payload_dict["coverage_assurance_event.id"] = (
+                dbCoverageAssuranceEvent.id
+            )
             event_payload_dict["action"] = action
             event_payload_dict["resolution"] = resolution
 
