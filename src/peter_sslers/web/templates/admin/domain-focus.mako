@@ -256,10 +256,12 @@
                     <tr>
                         <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
                             % if Domain.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
                             % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
                         </td>
                     </tr>
                     <tr>

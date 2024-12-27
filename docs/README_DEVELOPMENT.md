@@ -38,10 +38,10 @@ This above enables the AcmeProvider for a 'custom' CA and injects the protocol
 and endpoint into it. It also enables the "TESTING" flag, which disables SSL
 checking on ACME payloads.
 
-When you start the server a new AcmeAccountProvider will be created for
+When you start the server a new AcmeServer will be created for
 your CertificateAuthority:
 
-    http://127.0.0.1:7201/.well-known/peter_sslers/acme-account-providers
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-servers
 
 2.  Create/Upload a new account key for the 'custom' AcmeProvider.
 
@@ -68,11 +68,11 @@ this will require you to install `go`.
 
 As a precaution, copy the pebble config file. On the root project directory:
 
-    cp ./test/config/pebble-config.json ./test/config/pebble-config.dist.json
+    cp ./tests/test_configuration/pebble/test/config/pebble-config.json ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 The edit it to see the configuration
 
-    vi ./test/config/pebble-config.json
+    vi ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 Which should look something like this...
 
@@ -95,7 +95,7 @@ Good to go?  Ok, run pebble!
         PEBBLE_VA_NOSLEEP=1 \
         PEBBLE_ALTERNATE_ROOTS=2 \
         PEBBLE_CHAIN_LENGTH=3 \
-        pebble --config  ./test/config/pebble-config.json
+        pebble --config  ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 To have all challenge POST requests succeed without performing any validation run:
 
@@ -104,7 +104,7 @@ To have all challenge POST requests succeed without performing any validation ru
         PEBBLE_VA_NOSLEEP=1 \
         PEBBLE_ALTERNATE_ROOTS=2 \
         PEBBLE_CHAIN_LENGTH=3 \
-        pebble -config ./test/config/pebble-config.json
+        pebble -config ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
 

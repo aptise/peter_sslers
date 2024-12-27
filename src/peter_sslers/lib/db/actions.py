@@ -23,6 +23,7 @@ from .logger import log__OperationsEvent
 from .. import errors
 from .. import events
 from ... import lib
+from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AriCheck
@@ -958,6 +959,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     # criteria: no ari check, ari_check expired
     # run & store ari check
     NOW = datetime.datetime.utcnow()
+    timely_date = NOW - timedelta_ARI_CHECKS_TIMELY
 
     """
     # The SQL we want (for now):
@@ -981,6 +983,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
         AND
         cert.is_ari_supported IS True
         AND
+        cert.timestamp_not_after < timely_date
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
@@ -1009,6 +1012,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
         .filter(
             CertificateSigned.is_active is True,
             CertificateSigned.is_ari_supported is True,
+            CertificateSigned.timestamp_not_after < timely_date,
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id is None,
                 latest_ari_checks.c.timestamp_retry_after < NOW,

@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
+    from ...model.objects import AcmeServer
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateRequest
@@ -576,6 +577,7 @@ def _log_object_event(
     dbAcmeAccountKey: Optional["AcmeAccountKey"] = None,
     dbAcmeDnsServer: Optional["AcmeDnsServer"] = None,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbAcmeServer: Optional["AcmeServer"] = None,
     dbCertificateCA: Optional["CertificateCA"] = None,
     dbCertificateCAChain: Optional["CertificateCAChain"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
@@ -596,10 +598,12 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_account_id = dbAcmeAccount.id
     elif dbAcmeAccountKey:
         dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
-    elif dbAcmeOrder:
-        dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
     elif dbAcmeDnsServer:
         dbOperationsObjectEvent.acme_dns_server_id = dbAcmeDnsServer.id
+    elif dbAcmeOrder:
+        dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
+    elif dbAcmeServer:
+        dbOperationsObjectEvent.acme_server_id = dbAcmeServer.id
     elif dbCertificateCA:
         dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
     elif dbCertificateCAChain:

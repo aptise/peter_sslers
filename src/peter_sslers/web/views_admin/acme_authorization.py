@@ -168,11 +168,11 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "AcmeAuthorization": dbAcmeAuthorization.as_json,
-                "AcmeOrder2AcmeChallengeTypeSpecifics": [
-                    i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics
-                ]
-                if dbAcmeOrder2AcmeChallengeTypeSpecifics
-                else None,
+                "AcmeOrder2AcmeChallengeTypeSpecifics": (
+                    [i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics]
+                    if dbAcmeOrder2AcmeChallengeTypeSpecifics
+                    else None
+                ),
             }
         return {
             "project": "peter_sslers",

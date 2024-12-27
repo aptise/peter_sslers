@@ -43,6 +43,7 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.spki_sha256`
         :attr:`model.utils.CertificateSigned.cert_serial`
         :attr:`model.utils.CertificateSigned.is_ari_supported`
+        :attr:`model.utils.CertificateSigned.is_ari_supported__cert`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -80,6 +81,7 @@ def _certificate_parse_to_record(
     _ari_endpoint = utils.issuer_to_endpoint(cert_data=_cert_data)
     if _ari_endpoint:
         dbCertificateSigned.is_ari_supported = True
+        dbCertificateSigned.is_ari_supported__cert = True
 
     return dbCertificateSigned
 

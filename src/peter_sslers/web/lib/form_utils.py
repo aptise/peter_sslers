@@ -53,7 +53,7 @@ class AcmeAccountUploadParser(object):
     formStash: FormStash
 
     # tracked
-    acme_account_provider_id: Optional[int] = None
+    acme_server_id: Optional[int] = None
     account_key_pem: Optional[str] = None
     le_meta_jsons: Optional[str] = None
     le_pkey_jsons: Optional[str] = None
@@ -79,13 +79,11 @@ class AcmeAccountUploadParser(object):
         """
         formStash = self.formStash
 
-        acme_account_provider_id = formStash.results.get(
-            "acme_account_provider_id", None
-        )
-        if acme_account_provider_id is None:
+        acme_server_id = formStash.results.get("acme_server_id", None)
+        if acme_server_id is None:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="acme_account_provider_id", message="No provider submitted."
+                field="acme_server_id", message="No provider submitted."
             )
 
         private_key_cycle = formStash.results.get("account__private_key_cycle", None)
@@ -124,9 +122,7 @@ class AcmeAccountUploadParser(object):
 
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
-        self.acme_account_provider_id = getcreate_args[
-            "acme_account_provider_id"
-        ] = acme_account_provider_id
+        self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
         self.private_key_cycle_id = getcreate_args[
             "private_key_cycle_id"
         ] = private_key_cycle_id
@@ -153,7 +149,7 @@ class AcmeAccountUploadParser(object):
         requirements_either_or = (
             (
                 "account_key_file_pem",
-                # "acme_account_provider_id",
+                # "acme_server_id",
             ),
             (
                 "account_key_file_le_meta",
@@ -189,9 +185,7 @@ class AcmeAccountUploadParser(object):
         # validate the provider option
         # will be None unless a pem is uploaded
         # required for PEM, ignored otherwise
-        acme_account_provider_id = formStash.results.get(
-            "acme_account_provider_id", None
-        )
+        acme_server_id = formStash.results.get("acme_server_id", None)
 
         private_key_cycle = formStash.results.get("account__private_key_cycle", None)
         if private_key_cycle is None:
@@ -241,15 +235,13 @@ class AcmeAccountUploadParser(object):
         ] = private_key_technology_id
 
         if formStash.results["account_key_file_pem"] is not None:
-            if acme_account_provider_id is None:
+            if acme_server_id is None:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
-                    field="acme_account_provider_id", message="No provider submitted."
+                    field="acme_server_id", message="No provider submitted."
                 )
             self.upload_type = "pem"
-            self.acme_account_provider_id = getcreate_args[
-                "acme_account_provider_id"
-            ] = acme_account_provider_id
+            self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
             self.account_key_pem = getcreate_args[
                 "key_pem"
             ] = formhandling.slurp_file_field(formStash, "account_key_file_pem")

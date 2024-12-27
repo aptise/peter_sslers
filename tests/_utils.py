@@ -17,6 +17,7 @@ import uuid
 # pypi
 import cert_utils
 from cert_utils import letsencrypt_info
+from cert_utils.model import AccountKeyData
 import packaging.version
 import psutil
 from pyramid import testing
@@ -492,7 +493,7 @@ TEST_FILES: Dict = {
             "AcmeAccount": {
                 "type": "upload",
                 "private_key_cycling": "single_certificate",
-                "acme_account_provider_id": "1",
+                "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/acme_account_1.key",
             },
         },
@@ -501,7 +502,7 @@ TEST_FILES: Dict = {
         "test-extended_html": {
             "acme-order/new/freeform#1": {
                 "account_key_option": "account_key_file",
-                "acme_account_provider_id": "1",
+                "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
@@ -515,7 +516,7 @@ TEST_FILES: Dict = {
             },
             "acme-order/new/freeform#2": {
                 "account_key_option": "account_key_file",
-                "acme_account_provider_id": "1",
+                "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
@@ -888,9 +889,9 @@ KEY_SETS = {
 # ==============================================================================
 
 
-class FakeAccountKeyData(cert_utils.AccountKeyData):
+class FakeAccountKeyData(AccountKeyData):
     """
-    implements minimum amount of `cert_utils.AccountKeyData`
+    implements minimum amount of `cert_utils.model.AccountKeyData`
     """
 
     def __init__(self, thumbprint=None):
@@ -902,7 +903,7 @@ class FakeAuthenticatedUser(object):
     implements minimum amount of `acme_v2.AuthenticatedUser`
     """
 
-    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
+    accountKeyData = None  # an instance conforming to `AccountKeyData`
 
     def __init__(self, accountkey_thumbprint=None):
         self.accountKeyData = FakeAccountKeyData(thumbprint=accountkey_thumbprint)
@@ -972,7 +973,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             )
 
             # this would have been invoked by `initialize_database`
-            db._setup.initialize_AcmeAccountProviders(ctx)
+            db._setup.initialize_AcmeServers(ctx)
             db._setup.initialize_CertificateCAs(ctx)
             db._setup.initialize_DomainBlocklisted(ctx)
             dbSession.commit()
@@ -1236,7 +1237,7 @@ class AppTest(AppTestCore):
                         self.ctx,
                         key_pem,
                         contact=TEST_FILES["AcmeAccount"][_id]["contact"],
-                        acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
+                        acme_server_id=1,  # acme_server_id(1) == pebble
                         acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                             "imported"
                         ),

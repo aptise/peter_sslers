@@ -14,7 +14,7 @@ from ..models import get_session_factory
 from ..models import get_tm_session
 from ...lib.config_utils import ApplicationSettings
 from ...model.meta import Base
-from ...model.objects import AcmeAccountProvider
+from ...model.objects import AcmeServer
 
 # ==============================================================================
 
@@ -46,8 +46,8 @@ def main(argv=sys.argv):
 
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
-        dbAcmeAccountProviders = dbSession.query(AcmeAccountProvider).all()
-        for acmeAccountProvider in dbAcmeAccountProviders:
-            _disabled = acmeAccountProvider._disable()  # noqa: F841
+        dbAcmeServers = dbSession.query(AcmeServer).all()
+        for acmeServer in dbAcmeServers:
+            _disabled = acmeServer._disable()  # noqa: F841
 
     transaction.commit()

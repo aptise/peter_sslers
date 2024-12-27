@@ -17,6 +17,19 @@
     
     new QuickStart guide
 
+    AcmeAccountProvider -> AcmeServer
+    acme_account_provider -> acme_server
+    acme-account-provider -> acme-sever
+    
+    Added:
+        /acme-server/{id} - focus
+        /acme-server/{id}/check-ari - focus & check ari
+    
+    Improved
+        now handles polling an acme-order stuck in processing, 1x every 5 seconds
+        fixed testing docs and config to reflect active testing setup
+
+
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

@@ -12,9 +12,9 @@ from dateutil import parser as dateutil_parser
 
 # localapp
 from .get import get__AcmeAccount__GlobalDefault
-from .get import get__AcmeAccountProvider__default
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
+from .get import get__AcmeServer__default
 from .get import get__Domain__by_name
 from .logger import _log_object_event
 from .. import errors
@@ -26,7 +26,7 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from ...model.objects import AcmeAccount
-    from ...model.objects import AcmeAccountProvider
+    from ...model.objects import AcmeServer
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeOrder
@@ -49,38 +49,6 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def update_AcmeAccountProvider__activate_default(
-    ctx: "ApiContext",
-    dbAcmeAccountProvider_new: "AcmeAccountProvider",
-) -> str:
-    _objs = [
-        dbAcmeAccountProvider_new,
-    ]
-    dbAcmeAccountProvider_default = get__AcmeAccountProvider__default(ctx)
-    if dbAcmeAccountProvider_default:
-        _objs.append(dbAcmeAccountProvider_default)
-        if dbAcmeAccountProvider_default.id != dbAcmeAccountProvider_new.id:
-            dbAcmeAccountProvider_default.is_default = False
-    if not dbAcmeAccountProvider_new.is_default:
-        dbAcmeAccountProvider_new.is_default = True
-    if not dbAcmeAccountProvider_new.is_enabled:
-        dbAcmeAccountProvider_new.is_enabled = True
-    ctx.dbSession.flush(_objs)
-    event_status = "AcmeAccountProvider__activate_default"
-    return event_status
-
-
-def update_AcmeAccountProvider__set_is_enabled(
-    ctx: "ApiContext",
-    dbAcmeAccountProvider: "AcmeAccountProvider",
-) -> str:
-    if dbAcmeAccountProvider.is_enabled:
-        raise errors.InvalidTransition("Already enabled")
-    dbAcmeAccountProvider.is_enabled = True
-    event_status = "AcmeAccountProvider__mark__is_enabled"
-    return event_status
-
-
 def update_AcmeAccount_from_new_duplicate(
     ctx: "ApiContext",
     dbAcmeAccountTarget: "AcmeAccount",
@@ -99,13 +67,8 @@ def update_AcmeAccount_from_new_duplicate(
         raise ValueError("The Target and Duplicate `AcmeAccount` must be different")
 
     # make sure this is the right provider
-    if (
-        dbAcmeAccountTarget.acme_account_provider_id
-        != dbAcmeAccountDuplicate.acme_account_provider_id
-    ):
-        raise ValueError(
-            "New Account `deduplication` requires a single `AcmeAccountProvider`"
-        )
+    if dbAcmeAccountTarget.acme_server_id != dbAcmeAccountDuplicate.acme_server_id:
+        raise ValueError("New Account `deduplication` requires a single `AcmeServer`")
 
     raise ValueError("TESTING NEEDED")
     with ctx.dbSession.no_autoflush:
@@ -231,9 +194,9 @@ def update_AcmeAccount__set_global_default(
         # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
-    if not dbAcmeAccount.acme_account_provider.is_default:
+    if not dbAcmeAccount.acme_server.is_default:
         raise errors.InvalidTransition(
-            "This AcmeAccount is not from the default AcmeAccountProvider."
+            "This AcmeAccount is not from the default AcmeServer."
         )
 
     alt_info: Dict = {}
@@ -469,6 +432,61 @@ def update_AcmeOrderless_deactivate(
     dbAcmeOrderless.timestamp_updated = ctx.timestamp
     ctx.dbSession.flush(objects=[dbAcmeOrderless])
     return True
+
+
+def update_AcmeServer__activate_default(
+    ctx: "ApiContext",
+    dbAcmeServer_new: "AcmeServer",
+) -> str:
+    _objs = [
+        dbAcmeServer_new,
+    ]
+    dbAcmeServer_default = get__AcmeServer__default(ctx)
+    if dbAcmeServer_default:
+        _objs.append(dbAcmeServer_default)
+        if dbAcmeServer_default.id != dbAcmeServer_new.id:
+            dbAcmeServer_default.is_default = False
+    if not dbAcmeServer_new.is_default:
+        dbAcmeServer_new.is_default = True
+    if not dbAcmeServer_new.is_enabled:
+        dbAcmeServer_new.is_enabled = True
+    ctx.dbSession.flush(_objs)
+    event_status = "AcmeServer__activate_default"
+    return event_status
+
+
+def update_AcmeServer__set_is_enabled(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+) -> str:
+    if dbAcmeServer.is_enabled:
+        raise errors.InvalidTransition("Already enabled")
+    dbAcmeServer.is_enabled = True
+    event_status = "AcmeServer__mark__is_enabled"
+    return event_status
+
+
+def update_AcmeServer__is_unlimited_pending_authz(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    is_unlimited_pending_authz: bool = True,
+) -> str:
+    if is_unlimited_pending_authz:
+        if dbAcmeServer.is_unlimited_pending_authz:
+            raise errors.InvalidTransition(
+                "Already Configured: is_unlimited_pending_authz==True"
+            )
+        dbAcmeServer.is_unlimited_pending_authz = True
+        event_status = "AcmeServer__mark__is_unlimited_authz_true"
+    else:
+        if not dbAcmeServer.is_unlimited_pending_authz:
+            raise errors.InvalidTransition(
+                "Already Configured: is_unlimited_pending_authz==False"
+            )
+        dbAcmeServer.is_unlimited_pending_authz = False
+        event_status = "AcmeServer__mark__is_unlimited_authz_false"
+    ctx.dbSession.flush([dbAcmeServer])
+    return event_status
 
 
 def update_CertificateCAPreference_reprioritize(

@@ -17,7 +17,7 @@ import josepy
 from ...lib import db as lib_db
 from ...lib.utils import ApiContext
 from ...model.objects import AcmeAccount
-from ...model.objects import AcmeAccountProvider
+from ...model.objects import AcmeServer
 from ...model.utils import AcmeAccountKeySource
 from ...model.utils import PrivateKeySource
 from ...model.utils import PrivateKeyType
@@ -26,7 +26,7 @@ from ...model.utils import PrivateKeyType
 # ==============================================================================
 
 
-TYPE_MAPPING_AcmeAccountProvider = Dict[str, AcmeAccountProvider]
+TYPE_MAPPING_AcmeServer = Dict[str, AcmeServer]
 TYPE_MAPPING_CertbotId_2_AcmeAccount = Dict[str, AcmeAccount]
 TYPE_MAPPING_CertbotLineage_2_CertbotAccountId = Dict[str, str]
 
@@ -78,7 +78,7 @@ def key_pem_to_certbot_id(key_pem: bytes) -> str:
 def import_certbot(
     ctx: ApiContext,
     certbot_dir: str,
-    providersMapping: TYPE_MAPPING_AcmeAccountProvider,
+    providersMapping: TYPE_MAPPING_AcmeServer,
 ) -> None:
     certbotId2acmeAccount: TYPE_MAPPING_CertbotId_2_AcmeAccount = {}
     certbotLineage2certbotAccountId: TYPE_MAPPING_CertbotLineage_2_CertbotAccountId = {}
@@ -125,7 +125,7 @@ def import_certbot(
             key_create_args[
                 "acme_account_key_source_id"
             ] = AcmeAccountKeySource.from_string("imported")
-            # key_create_args["acme_account_provider_id"] = do not supply if le_* kwargs are submitted
+            # key_create_args["acme_server_id"] = do not supply if le_* kwargs are submitted
             with open("%s/meta.json" % _account_dir, "r") as fh:
                 key_create_args["le_meta_jsons"] = fh.read()
             with open("%s/regr.json" % _account_dir, "r") as fh:

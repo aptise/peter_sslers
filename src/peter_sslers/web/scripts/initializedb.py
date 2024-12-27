@@ -56,8 +56,8 @@ def main(argv=sys.argv):
             request=None,
         )
 
-        # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
-        _setup.initialize_AcmeAccountProviders(ctx)
+        # this will setup the initial AcmeServers and the placeholder PrivateKey
+        _setup.initialize_AcmeServers(ctx)
         _setup.initialize_CertificateCAs(ctx)
         _setup.initialize_DomainBlocklisted(ctx)
 

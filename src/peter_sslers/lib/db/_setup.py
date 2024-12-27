@@ -42,11 +42,15 @@ DictProvider = TypedDict(
         "protocol": str,
         "is_enabled": bool,
         "server": str,
+        "is_supports_ari__version": Optional[str],
+        "is_unlimited_pending_authz": Optional[bool],
+        "allow_insecure": bool,
     },
+    total=False,
 )
 
 
-acme_account_providers: Dict[int, DictProvider] = {
+acme_servers: Dict[int, DictProvider] = {
     1: {
         "id": 1,
         "name": "pebble",
@@ -56,6 +60,8 @@ acme_account_providers: Dict[int, DictProvider] = {
         "protocol": "acme-v2",
         "is_enabled": False,
         "server": "0.0.0.0:14000",
+        "is_supports_ari__version": "draft-ietf-acme-ari-03",
+        "allow_insecure": True,
     },
     2: {
         "id": 2,
@@ -86,6 +92,8 @@ acme_account_providers: Dict[int, DictProvider] = {
         "protocol": "acme-v2",
         "is_enabled": False,
         "server": "acme-v02.api.letsencrypt.org",
+        "is_supports_ari__version": "draft-ietf-acme-ari-03",
+        "is_unlimited_pending_authz": True,
     },
     5: {
         "id": 5,
@@ -96,15 +104,17 @@ acme_account_providers: Dict[int, DictProvider] = {
         "protocol": "acme-v2",
         "is_enabled": False,
         "server": "acme-staging-v02.api.letsencrypt.org",
+        "is_supports_ari__version": "draft-ietf-acme-ari-03",
+        "is_unlimited_pending_authz": True,
     },
 }
 
 
-def initialize_AcmeAccountProviders(ctx: "ApiContext") -> Literal[True]:
+def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
     timestamp_now = datetime.datetime.utcnow()
 
-    for id, item in acme_account_providers.items():
-        dbObject = model_objects.AcmeAccountProvider()
+    for id, item in acme_servers.items():
+        dbObject = model_objects.AcmeServer()
         dbObject.id = item["id"]
         dbObject.timestamp_created = timestamp_now
         dbObject.name = item["name"]
@@ -114,6 +124,11 @@ def initialize_AcmeAccountProviders(ctx: "ApiContext") -> Literal[True]:
         dbObject.is_enabled = item["is_enabled"]
         dbObject.protocol = item["protocol"]
         dbObject.server = item["server"]
+        dbObject.is_supports_ari__version = item.get("is_supports_ari__version", None)
+        dbObject.is_unlimited_pending_authz = item.get(
+            "is_unlimited_pending_authz", None
+        )
+        dbObject.allow_insecure = item.get("allow_insecure", False)
         ctx.dbSession.add(dbObject)
         ctx.dbSession.flush(
             objects=[
@@ -345,46 +360,39 @@ def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
     return True
 
 
-def startup_AcmeAccountProviders(
-    ctx: "ApiContext", app_settings: Dict
-) -> Literal[True]:
+def startup_AcmeServers(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
     # first handle the Default CertificateAuthority
 
-    dbAcmeAccountProvider = db_get.get__AcmeAccountProvider__by_name(
+    dbAcmeServer = db_get.get__AcmeServer__by_name(
         ctx, app_settings["certificate_authority"]
     )
-    if not dbAcmeAccountProvider:
-        print("Attempting to enroll new `AcmeAccountProvider` from config >>>")
-        dbAcmeAccountProvider = db_create.create__AcmeAccountProvider(
+    if not dbAcmeServer:
+        print("Attempting to enroll new `AcmeServer` from config >>>")
+        dbAcmeServer = db_create.create__AcmeServer(
             ctx,
             name=app_settings["certificate_authority"],
             directory=app_settings["certificate_authority_directory"],
             protocol=app_settings["certificate_authority_protocol"],
         )
-        print("<<< Enrolled new `AcmeAccountProvider` from config")
+        print("<<< Enrolled new `AcmeServer` from config")
 
-    if (
-        dbAcmeAccountProvider.directory
-        != app_settings["certificate_authority_directory"]
-    ):
+    if dbAcmeServer.directory != app_settings["certificate_authority_directory"]:
         raise ValueError(
-            "`dbAcmeAccountProvider.directory` ('%s') does not match `certificate_authority_directory` ('%s')"
+            "`dbAcmeServer.directory` ('%s') does not match `certificate_authority_directory` ('%s')"
             % (
-                dbAcmeAccountProvider.directory,
+                dbAcmeServer.directory,
                 app_settings["certificate_authority_directory"],
             )
         )
 
-    if dbAcmeAccountProvider.protocol != "acme-v2":
-        raise ValueError("`AcmeAccountProvider.protocol` is not `acme-v2`")
+    if dbAcmeServer.protocol != "acme-v2":
+        raise ValueError("`AcmeServer.protocol` is not `acme-v2`")
 
-    if not dbAcmeAccountProvider.is_default or not dbAcmeAccountProvider.is_enabled:
-        _event_status = db_update.update_AcmeAccountProvider__activate_default(
-            ctx, dbAcmeAccountProvider
-        )
+    if not dbAcmeServer.is_default or not dbAcmeServer.is_enabled:
+        _event_status = db_update.update_AcmeServer__activate_default(ctx, dbAcmeServer)
 
     dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
-    if dbAcmeAccount and not dbAcmeAccount.acme_account_provider.is_default:
+    if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
         dbAcmeAccount.is_global_default = False
         ctx.dbSession.flush()
 
@@ -392,19 +400,15 @@ def startup_AcmeAccountProviders(
     # now enable any other options
     if app_settings["certificate_authorities_enable"]:
         for ca_name in app_settings["certificate_authorities_enable"]:
-            dbAcmeAccountProvider = db_get.get__AcmeAccountProvider__by_name(
-                ctx, ca_name
-            )
-            if not dbAcmeAccountProvider:
+            dbAcmeServer = db_get.get__AcmeServer__by_name(ctx, ca_name)
+            if not dbAcmeServer:
                 raise ValueError(
                     "could not load the requested CertificateAuthority via `certificate_authorities_enable`: '%s'"
                     % ca_name
                 )
-            if not dbAcmeAccountProvider.is_enabled:
+            if not dbAcmeServer.is_enabled:
                 _event_status = (  # noqa: F841
-                    db_update.update_AcmeAccountProvider__set_is_enabled(
-                        ctx, dbAcmeAccountProvider
-                    )
+                    db_update.update_AcmeServer__set_is_enabled(ctx, dbAcmeServer)
                 )
 
     return True

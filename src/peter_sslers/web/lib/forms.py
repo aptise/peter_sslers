@@ -109,7 +109,7 @@ class _form_AcmeAccount_core(_Form_Schema_Base):
     account_key_file_le_reg = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
     )
-    acme_account_provider_id = Int(not_empty=False, if_missing=None)
+    acme_server_id = Int(not_empty=False, if_missing=None)
 
 
 class _form_PrivateKey_core(_Form_Schema_Base):
@@ -171,7 +171,7 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
     account_key_file_le_reg = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
     )
-    acme_account_provider_id = Int(not_empty=False, if_missing=None)
+    acme_server_id = Int(not_empty=False, if_missing=None)
     private_key_option = OneOf(
         model_utils.PrivateKey_options_a,
         not_empty=True,
@@ -210,7 +210,7 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
 
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
-    acme_account_provider_id = Int(not_empty=True, if_missing=None)
+    acme_server_id = Int(not_empty=True, if_missing=None)
     account__contact = Email(not_empty=True, if_missing=None)  # use it or don't
 
     # this is the `private_key_cycle` of the AcmeAccount
@@ -250,7 +250,7 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    acme_account_provider_id = Int(not_empty=False, if_missing=None)
+    acme_server_id = Int(not_empty=False, if_missing=None)
 
     # require all of these...
     account_key_file_le_meta = FieldStorageUploadConverter(
@@ -387,6 +387,16 @@ class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
     token = UnicodeString(not_empty=False, if_missing=None)
     keyauthorization = UnicodeString(not_empty=False, if_missing=None)
     challenge_url = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_AcmeServer_mark(_Form_Schema_Base):
+    action = OneOf(
+        (
+            "is_unlimited_pending_authz-true",
+            "is_unlimited_pending_authz-false",
+        ),
+        not_empty=True,
+    )
 
 
 class Form_API_Domain_enable(_Form_Schema_Base):

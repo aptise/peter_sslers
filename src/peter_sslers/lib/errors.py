@@ -229,6 +229,15 @@ class AcmeDomainsRequireConfigurationAcmeDNS(AcmeDomainsInvalid):
         )
 
 
+class AcmeAriCheckError(AcmeError):
+    pass
+
+
+class AcmeAriCheckDeclined(AcmeAriCheckError):
+    # raise when we don't want to do an ari check
+    pass
+
+
 class DomainVerificationError(AcmeError):
     pass
 

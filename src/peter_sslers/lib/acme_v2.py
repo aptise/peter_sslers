@@ -1,7 +1,6 @@
 # stdlib
 # import base64
 # import binascii
-# import datetime
 import hashlib
 import json
 import logging
@@ -26,8 +25,8 @@ from urllib.request import urlopen
 
 # pypi
 import cert_utils
+from cert_utils.model import AccountKeyData
 import josepy
-import requests
 from requests.utils import parse_header_links
 
 # localapp
@@ -35,6 +34,8 @@ from . import acmedns as lib_acmedns
 from . import errors
 from . import utils
 from .db import update as db_update
+from .utils import new_BrowserSession
+from .. import USER_AGENT
 from ..model import utils as model_utils
 
 if TYPE_CHECKING:
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from ..model.utils import DomainsChallenged
     from .db.logger import AcmeLogger
     from .utils import ApiContext
-    from cert_utils.core import AccountKeyData
     from email.message import Message
     from http.client import HTTPMessage
     from requests.structures import CaseInsensitiveDict
@@ -71,6 +71,7 @@ class AriCheckResult(TypedDict):
 
     payload: Optional[Dict]
     headers: "CaseInsensitiveDict"
+    status_code: int
 
     def as_json(self):
         return self["payload"]
@@ -106,7 +107,7 @@ def url_request(
     try:
         headers = {
             "Content-Type": "application/jose+json",
-            "User-Agent": "peter_sslers",
+            "User-Agent": USER_AGENT,
         }
         if cert_utils.TESTING_ENVIRONMENT:
             ctx = ssl.create_default_context()
@@ -130,6 +131,7 @@ def url_request(
     except Exception as exc:
         # TODO: log this error to the database
         if cert_utils.TESTING_ENVIRONMENT:
+            raise
             raise ValueError("LOG THIS EXCEPTION?")
         raise errors.AcmeCommunicationError(str(exc))
     try:
@@ -210,11 +212,11 @@ def filter_specific_challenge(
 
 def create_challenge_keyauthorization(
     token: str,
-    accountKeyData: "AccountKeyData",
+    accountKeyData: AccountKeyData,
 ) -> str:
     """
     :param str token: (required) A string `token` entry from a server Challenge object
-    :param str accountKeyData: (required) an instance conforming to `cert_utils.AccountKeyData`
+    :param str accountKeyData: (required) an instance conforming to `cert_utils.model.AccountKeyData`
         in that it at-least has a `.thumbprint` attribute of an Authenticated Account
     """
     token = re.sub(r"[^A-Za-z0-9_\-]", "_", token)
@@ -251,7 +253,7 @@ def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
     :param acmeAccount: (required) a :class:`model.objects.AcmeAccount` instance
     """
     log.info("acme_v2.acme_directory_get(")
-    url_directory = acmeAccount.acme_account_provider.directory
+    url_directory = acmeAccount.acme_server.directory
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
     directory_payload, _status_code, _headers = url_request(
@@ -357,7 +359,7 @@ def b64_payload(payload=Any) -> str:
 def sign_payload(
     url: str,
     payload: Any,
-    accountKeyData: "AccountKeyData",
+    accountKeyData: AccountKeyData,
     kid: Any,
     nonce: str,
 ):
@@ -395,14 +397,14 @@ def sign_payload(
 def sign_payload_inner(
     url: str,
     payload: Any,
-    accountKeyData: "AccountKeyData",
+    accountKeyData: AccountKeyData,
 ) -> Dict:
     """
     This format is used by the `keyChange` rollover endpoint's inner payload.
 
     :param payload: the payload to sign
     :param url: the url in the protected section
-    :param accountKeyData: instance of `cert_utils.AccountKeyData` used to sign
+    :param accountKeyData: instance of `cert_utils.model.AccountKeyData` used to sign
         this should be the NEW key
 
     Notes:
@@ -460,7 +462,9 @@ class AuthenticatedUser(object):
     acme_directory: Dict  # the payload from the remote server
     log__OperationsEvent: Optional[Callable]
 
-    accountKeyData: "AccountKeyData"  # an instance conforming to `cert_utils.AccountKeyData`
+    accountKeyData: (
+        AccountKeyData  # an instance conforming to `cert_utils.model.AccountKeyData`
+    )
 
     _api_account_object: Optional[Dict] = None  # api server native/json object
     _api_account_headers: Optional[Dict] = None  # api server native/json object
@@ -489,7 +493,7 @@ class AuthenticatedUser(object):
             acme_directory = acme_directory_get(acmeAccount)
 
         # parse account key to get public key
-        self.accountKeyData = cert_utils.AccountKeyData(
+        self.accountKeyData = AccountKeyData(
             key_pem=acmeAccount.acme_account_key.key_pem,
             key_pem_filepath=account_key_path,
         )
@@ -961,7 +965,7 @@ class AuthenticatedUser(object):
         try:
             # quickref and toggle these, so we generate the correct payloads
             accountKeyData_old = self.accountKeyData
-            accountKeyData_new = cert_utils.AccountKeyData(
+            accountKeyData_new = AccountKeyData(
                 key_pem=dbAcmeAccountKey_new.key_pem,
             )
 
@@ -1884,45 +1888,56 @@ class AuthenticatedUser(object):
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
         acme_challenge_type = dbAcmeChallenge.acme_challenge_type
 
-        # note that we are about to trigger the challenge:
-        self.acmeLogger.log_challenge_trigger(
-            "v2",
-            dbAcmeChallenge,
-            transaction_commit=True,
-        )
-        # trigger the challenge!
-        # if we had a 'valid' challenge, the payload would be `None`
-        # to invoke a GET-as-POST functionality and load the challenge resource
-        # POSTing an empty `dict` will trigger the challenge
-        try:
-            (
-                challenge_response,
-                _status_code,
-                _challenge_headers,
-            ) = self._send_signed_request(
-                dbAcmeChallenge.challenge_url,
-                payload={},
+        # handle this in a loop, so we can retry
+        _attempt = 0
+        max_attempts = 5
+        while _attempt < max_attempts:
+            _attempt += 1
+
+            # note that we are about to trigger the challenge:
+            self.acmeLogger.log_challenge_trigger(
+                "v2",
+                dbAcmeChallenge,
+                transaction_commit=True,
             )
-            log.debug(
-                ") acme_challenge_trigger | challenge_response: %s" % challenge_response
-            )
-            log.debug(
-                ") acme_challenge_trigger | _challenge_headers: %s" % _challenge_headers
-            )
-        except errors.AcmeServerError as exc:
-            (_status_code, _resp) = exc.args
-            if isinstance(_resp, dict):
-                if _resp["type"].startswith("urn:ietf:params:acme:error:"):
-                    # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
-                    # can this be caught?
-                    pass
-            raise
-        if challenge_response["status"] not in ("pending", "valid"):
-            # this should ALMOST ALWAYS be "pending"
-            # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"
-            raise ValueError(
-                "AcmeChallenge is not 'pending' or 'valid' on the ACME server"
-            )
+            # trigger the challenge!
+            # if we had a 'valid' challenge, the payload would be `None`
+            # to invoke a GET-as-POST functionality and load the challenge resource
+            # POSTing an empty `dict` will trigger the challenge
+            try:
+                (
+                    challenge_response,
+                    _status_code,
+                    _challenge_headers,
+                ) = self._send_signed_request(
+                    dbAcmeChallenge.challenge_url,
+                    payload={},
+                )
+                log.debug(
+                    ") acme_challenge_trigger | challenge_response: %s"
+                    % challenge_response
+                )
+                log.debug(
+                    ") acme_challenge_trigger | _challenge_headers: %s"
+                    % _challenge_headers
+                )
+            except errors.AcmeServerError as exc:
+                (_status_code, _resp) = exc.args
+                if isinstance(_resp, dict):
+                    if _resp["type"].startswith("urn:ietf:params:acme:error:"):
+                        # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
+                        # can this be caught?
+                        pass
+                raise
+            if challenge_response["status"] == "processing":
+                time.sleep(1)
+            elif challenge_response["status"] not in ("pending", "valid"):
+                # this should ALMOST ALWAYS be "pending"
+                # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"
+                raise ValueError(
+                    "AcmeChallenge is not 'pending' or 'valid' on the ACME server; received `%s`"
+                    % challenge_response["status"]
+                )
 
         # TODO: COULD an accepted challenge be here?
         log.info(
@@ -2070,23 +2085,50 @@ class AuthenticatedUser(object):
         raise ValueError("This should never run")
 
 
-def _ari_query(acme_server: str, ari_id: str) -> AriCheckResult:
-    sess = requests.Session()
-    r = sess.get(acme_server)
+def check_endpoint_for_renewalInfo(
+    acme_directory: str,
+    allow_insecure: Optional[bool] = False,
+) -> bool:
+    sess = new_BrowserSession()
+    _verify = True
+    if allow_insecure:
+        _verify = False
+    r = sess.get(acme_directory, verify=_verify)
+    _renewal_base = r.json().get("renewalInfo")
+    if not _renewal_base:
+        return False
+    return True
+
+
+def _ari_query(
+    acme_directory: str,
+    ari_id: str,
+    check_ari_support: Optional[bool] = True,
+    allow_insecure: Optional[bool] = False,
+) -> AriCheckResult:
+    sess = new_BrowserSession()
+    _verify = True
+    if allow_insecure:
+        _verify = False
+    r = sess.get(acme_directory, verify=_verify)
     _renewal_base = r.json().get("renewalInfo")
     if not _renewal_base:
         raise ValueError("endpoint does not support ARI")
     _renewal_url = "%s/%s" % (_renewal_base, ari_id)
-    r = sess.get(_renewal_url)
+    log.info("renewalInfo endpoint: %s", _renewal_url)
+    r = sess.get(_renewal_url, verify=_verify)
     _data: Optional[Dict] = r.json()
     _headers: "CaseInsensitiveDict" = r.headers
-    result = AriCheckResult(payload=_data, headers=_headers)
-    return result
+    ariCheckResult = AriCheckResult(
+        payload=_data, headers=_headers, status_code=r.status_code
+    )
+    return ariCheckResult
 
 
 def ari_check(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
+    force: bool = False,
 ) -> Optional[AriCheckResult]:
     """
     Returns:
@@ -2095,30 +2137,51 @@ def ari_check(
             AriCheck[payload] will be null if there is an error
             AriCheck[headers] will always exist
     """
-    log.debug("ari_check(%s", dbCertificateSigned)
+    log.info("ari_check(%s", dbCertificateSigned)
+
+    if not dbCertificateSigned.is_ari_check_timely:
+        if not force:
+            raise errors.AcmeAriCheckDeclined("ARI Check Not Timely")
+
+    ari_identifier: Optional[str] = None
+    check_ari_support: bool = True
+
+    allow_insecure = False
+    if dbCertificateSigned.acme_account:
+        if dbCertificateSigned.acme_account.acme_server:
+            if dbCertificateSigned.acme_account.acme_server.is_supports_ari:
+                acme_directory = dbCertificateSigned.acme_account.acme_server.url
+                allow_insecure = (
+                    dbCertificateSigned.acme_account.acme_server.allow_insecure
+                )
+                check_ari_support = False
+    else:
+        # let's try to pull the cert info..
+        cert_data = cert_utils.parse_cert(cert_pem=dbCertificateSigned.cert_pem)
+        acme_directory = utils.issuer_to_endpoint(cert_data=cert_data)
+
+    if not acme_directory:
+        log.info("No ARI Endpoint detectable for this Certificate.")
+        return None
 
     # can we grab the ARI info off the cert?
-
     try:
         ari_identifier = cert_utils.ari_construct_identifier(
             cert_pem=dbCertificateSigned.cert_pem,
         )
     except Exception as exc:
         raise exc
-
     if not ari_identifier:
-        raise ValueError("no ARI Identifier")
+        raise errors.AcmeAriCheckDeclined("No ARI Identifier")
 
-    # let's try to pull the cert info..
-    cert_data = cert_utils.parse_cert(cert_pem=dbCertificateSigned.cert_pem)
-    ari_endpoint = utils.issuer_to_endpoint(cert_data=cert_data)
-    if ari_endpoint:
-        ari_result = _ari_query(ari_endpoint, ari_identifier)
-        return ari_result
-    else:
-        log.info("No ARI Endpoint detectable for this Certificate.")
-
-    return None
+    log.debug("ari_check: ")
+    ariCheckResult = _ari_query(
+        acme_directory,
+        ari_identifier,
+        check_ari_support=check_ari_support,
+        allow_insecure=allow_insecure,
+    )
+    return ariCheckResult
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

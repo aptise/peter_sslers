@@ -18,10 +18,10 @@ from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
-from .get import get__AcmeAccountProvider__by_server
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
@@ -75,7 +75,7 @@ def getcreate__AcmeAccount(
     le_meta_jsons: Optional[str] = None,
     le_pkey_jsons: Optional[str] = None,
     le_reg_jsons: Optional[str] = None,
-    acme_account_provider_id: Optional[int] = None,
+    acme_server_id: Optional[int] = None,
     contact: Optional[str] = None,
     terms_of_service: Optional[str] = None,
     account_url: Optional[str] = None,
@@ -102,7 +102,7 @@ def getcreate__AcmeAccount(
         if not provided, `key_pem` must be supplied
     :param le_reg_jsons: (optional) data from certbot account key format
         if not provided, `key_pem` must be supplied
-    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server. required if `key_pem``; do not submit if `le_*` kwargs are provided.
+    :param acme_server_id: (optional) id corresponding to a :class:`model.objects.AcmeServer` server. required if `key_pem``; do not submit if `le_*` kwargs are provided.
     :param contact: (optional) contact info from acme server
     :param terms_of_service: (optional) str
     :param account_url: (optional)
@@ -155,16 +155,12 @@ def getcreate__AcmeAccount(
         # _strategy = "key_pem"
         if not contact:
             raise ValueError("must supply `contact` when submitting `key_pem`")
-        if not acme_account_provider_id:
-            raise ValueError(
-                "no `acme_account_provider_id`; required if PEM key is submitted."
-            )
+        if not acme_server_id:
+            raise ValueError("no `acme_server_id`; required if PEM key is submitted.")
 
-        dbAcmeAccountProvider = ctx.dbSession.query(
-            model_objects.AcmeAccountProvider
-        ).get(acme_account_provider_id)
-        if not dbAcmeAccountProvider:
-            raise ValueError("invalid `acme_account_provider_id`.")
+        dbAcmeServer = ctx.dbSession.query(model_objects.AcmeServer).get(acme_server_id)
+        if not dbAcmeServer:
+            raise ValueError("invalid `acme_server_id`.")
 
         # cleanup these
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -174,10 +170,8 @@ def getcreate__AcmeAccount(
         # _strategy = "LetsEncrypt payload"
         if contact:
             raise ValueError("do not submit `contact` with LetsEncrypt payload")
-        if acme_account_provider_id:
-            raise ValueError(
-                "do not submit `acme_account_provider_id` with LetsEncrypt payload"
-            )
+        if acme_server_id:
+            raise ValueError("do not submit `acme_server_id` with LetsEncrypt payload")
         if terms_of_service:
             raise ValueError(
                 "do not submit `terms_of_service` with LetsEncrypt payload"
@@ -218,27 +212,21 @@ def getcreate__AcmeAccount(
         _account_server = lib.utils.url_to_server(account_url)
         if not _account_server:
             raise ValueError(
-                "could not detect an AcmeAccountProvider server from LetsEncrypt payload"
+                "could not detect an AcmeServer server from LetsEncrypt payload"
             )
 
         # derive the api server
-        dbAcmeAccountProvider = get__AcmeAccountProvider__by_server(
-            ctx, _account_server
-        )
-        if not dbAcmeAccountProvider:
-            raise ValueError(
-                "invalid AcmeAccountProvider detected from LetsEncrypt payload"
-            )
-        acme_account_provider_id = dbAcmeAccountProvider.id
+        dbAcmeServer = get__AcmeServer__by_server(ctx, _account_server)
+        if not dbAcmeServer:
+            raise ValueError("invalid AcmeServer detected from LetsEncrypt payload")
+        acme_server_id = dbAcmeServer.id
 
         key_pem = cert_utils.convert_lejson_to_pem(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
         key_pem_md5 = cert_utils.utils.md5_text(key_pem)
 
-    if acme_account_provider_id is None:
-        raise ValueError(
-            "Could not derive, or missing supplied, `acme_account_provider_id`"
-        )
+    if acme_server_id is None:
+        raise ValueError("Could not derive, or missing supplied, `acme_server_id`")
 
     # now proceed with a single path of logic
 
@@ -254,8 +242,7 @@ def getcreate__AcmeAccount(
             .filter(
                 sqlalchemy.func.lower(model_objects.AcmeAccount.contact)
                 == contact.lower(),
-                model_objects.AcmeAccount.acme_account_provider_id
-                == acme_account_provider_id,
+                model_objects.AcmeAccount.acme_server_id == acme_server_id,
             )
             .first()
         )
@@ -267,8 +254,7 @@ def getcreate__AcmeAccount(
                     sqlalchemy.func.lower(model_objects.AcmeAccount.contact) == "",
                     model_objects.AcmeAccount.contact.is_(None),
                 ),
-                model_objects.AcmeAccount.acme_account_provider_id
-                == acme_account_provider_id,
+                model_objects.AcmeAccount.acme_server_id == acme_server_id,
             )
             .first()
         )
@@ -287,7 +273,7 @@ def getcreate__AcmeAccount(
             raise errors.ConflictingObject(
                 (
                     dbAcmeAccount,
-                    "The submitted AcmeAccountProvider and contact info is already associated with another AcmeAccountKey.",
+                    "The submitted AcmeServer and contact info is already associated with another AcmeAccountKey.",
                 )
             )
     elif dbAcmeAccountKey:
@@ -341,7 +327,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.contact = contact
     dbAcmeAccount.terms_of_service = terms_of_service
     dbAcmeAccount.account_url = account_url
-    dbAcmeAccount.acme_account_provider_id = acme_account_provider_id
+    dbAcmeAccount.acme_server_id = acme_server_id
     dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id

@@ -50,11 +50,11 @@
                         % endif
                     </td>
                     <td>
-                        <span class="label label-info">${account.acme_account_provider.name}</span>
-                        <a class="label label-info" href="${admin_prefix}/acme-account-providers">
+                        <span class="label label-info">${account.acme_server.name}</span>
+                        <a class="label label-info" href="${admin_prefix}/acme-servers">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccountProvider-${account.acme_account_provider_id}</a>
-                            ## <code>${account.acme_account_provider.url}</code>
+                            AcmeServer-${account.acme_server_id}</a>
+                            ## <code>${account.acme_server.url}</code>
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
@@ -101,7 +101,7 @@
                     </td>
                     <td><span class="label label-default">${key.acme_account_key_source}</span></td>
                     % if perspective != "AcmeAccount":
-                        <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                        <td><span class="label label-info">${key.acme_account.acme_server.name}</span></td>
                     % endif
                     <td><timestamp>${key.timestamp_created}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
@@ -1577,7 +1577,7 @@
                                      >
                                          AcmeAccount-${AcmeAccount_GlobalDefault.id}
                                      </a><br/>
-                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_account_provider.server}</code><br/>
+                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_server.server}</code><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
@@ -1648,13 +1648,13 @@
                 <table class="table table-condensed table-striped">
                     <tr>
                         <th>
-                            <label for="f1-acme_account_provider_id">
-                                ACME Provider
+                            <label for="f1-acme_server_id">
+                                ACME Servers
                             </label>
                         </th>
                         <td>
-                            <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id">
-                                % for option in AcmeAccountProviders:
+                            <select class="form-control" id="f1-acme_server_id" name="acme_server_id">
+                                % for option in AcmeServers:
                                     <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                                 % endfor
                             </select>
@@ -2163,6 +2163,10 @@
     %>
     % if result == 'success':
         <div class="alert alert-success">
+    % elif result == 'error':
+        <div class="alert alert-danger">
+    % endif
+        % if result == 'success':
             <p>
                 The operation `${request.params.get('operation')}` was successful.
             </p>
@@ -2174,9 +2178,7 @@
             % if _AriCheck:
                 ${pprint.pformat(_AriCheck)|n}
             % endif
-        </div>
-    % elif result == 'error':
-        <div class="alert alert-danger">
+        % elif result == 'error':
             % if request.params.get('operation'):
                 <p>
                     The operation `${request.params.get('operation')}` was not successful.
@@ -2187,11 +2189,21 @@
                     Error: `${request.params.get('error')}`
                 </p>
             % endif
-            % if request.params.get('message'):
+            % if request.params.get('error-encoded'):
                 <p>
-                    Message: `${request.params.get('message')}`
+                    Error: `${unurlify(request.params.get('error-encoded'))}`
                 </p>
             % endif
+        % endif
+        % if request.params.get('message'):
+            <p>
+                Message: `${request.params.get('message')}`
+            </p>
+        % endif
+        % if request.params.get('check-ari'):
+            <p>
+                Check-Ari Result: `${request.params.get('check-ari')}`
+            </p>
+        % endif
         </div>
-    % endif
 </%def>

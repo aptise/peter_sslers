@@ -144,16 +144,16 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountProvider</th>
+                        <th>AcmeServer</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-providers"
+                                href="${admin_prefix}/acme-servers"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
-                                [${AcmeAccount.acme_account_provider.name}]
-                                (${AcmeAccount.acme_account_provider.url})
+                                AcmeServer-${AcmeAccount.acme_server_id}
+                                [${AcmeAccount.acme_server.name}]
+                                (${AcmeAccount.acme_server.url})
                             </a>
                         </td>
                     </tr>

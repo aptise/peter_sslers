@@ -191,12 +191,16 @@ def PrivateKey_compromised(
             _certificate_id = _dbCertificateSigned.id
             pkey_certificates["*data"][_certificate_id] = (
                 _dbCertificateSigned.unique_fqdn_set_id,
-                _dbCertificateSigned.acme_order.id
-                if _dbCertificateSigned.acme_order
-                else None,
-                _dbCertificateSigned.acme_order.acme_account_id
-                if _dbCertificateSigned.acme_order
-                else None,
+                (
+                    _dbCertificateSigned.acme_order.id
+                    if _dbCertificateSigned.acme_order
+                    else None
+                ),
+                (
+                    _dbCertificateSigned.acme_order.acme_account_id
+                    if _dbCertificateSigned.acme_order
+                    else None
+                ),
             )
             if _dbCertificateSigned.is_active:
                 pkey_certificates["active"].append(_certificate_id)  # type: ignore[union-attr]

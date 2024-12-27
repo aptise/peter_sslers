@@ -227,9 +227,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         form = res.form
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_account_provider_id"].force_value(
-            str(1)
-        )  # acme_account_provider_id(1) == pebble
+        form["acme_server_id"].force_value(str(1))  # acme_server_id(1) == pebble
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.startswith(
@@ -251,7 +249,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         form = {}
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
+        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/upload.json", form
         )
@@ -269,7 +267,7 @@ class FunctionalTests_AcmeAccount(AppTest):
 
         form = {}
         form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
+        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account__private_key_cycle"] = TEST_FILES["AcmeAccount"]["2"][
             "private_key_cycle"
@@ -2027,7 +2025,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert "AuditReport" in res.json
         assert "AcmeOrder" in res.json["AuditReport"]
         assert "AcmeAccount" in res.json["AuditReport"]
-        assert "AcmeAccountProvider" in res.json["AuditReport"]
+        assert "AcmeServer" in res.json["AuditReport"]
         assert "PrivateKey" in res.json["AuditReport"]
         assert "UniqueFQDNSet" in res.json["AuditReport"]
         assert "AcmeAuthorizations" in res.json["AuditReport"]
@@ -2537,25 +2535,23 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert "AcmeChallenge" in res10.json
 
 
-class FunctionalTests_AcmeAccountProvider(AppTest):
+class FunctionalTests_AcmeServer(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeAccountProvider
+    python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer
     """
 
-    @routes_tested("admin:acme_account_providers")
+    @routes_tested("admin:acme_servers")
     def test_list_html(self):
         # root
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-account-providers", status=200
-        )
+        res = self.testapp.get("/.well-known/peter_sslers/acme-servers", status=200)
 
-    @routes_tested("admin:acme_account_providers|json")
+    @routes_tested("admin:acme_servers|json")
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-account-providers.json", status=200
+            "/.well-known/peter_sslers/acme-servers.json", status=200
         )
-        assert "AcmeAccountProviders" in res.json
+        assert "AcmeServers" in res.json
 
 
 class FunctionalTests_CertificateCA(AppTest):
@@ -4947,7 +4943,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -6964,9 +6960,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
 
         res = self.testapp.get("/.well-known/peter_sslers/acme-account/new", status=200)
         form = res.form
-        form["acme_account_provider_id"].force_value(
-            str(1)
-        )  # acme_account_provider_id(1) == pebble
+        form["acme_server_id"].force_value(str(1))  # acme_server_id(1) == pebble
         res2 = form.submit()
         assert res2.status_code == 200
         assert "There was an error with your form." in res2.text
@@ -6998,7 +6992,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
         form = {
-            "acme_account_provider_id": 1,
+            "acme_server_id": 1,
             "account__contact": "AcmeAccount.new.json@example.com",
             "account__private_key_cycle": "single_certificate",
         }
@@ -7031,7 +7025,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.is_active.is_(True))
-            .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
+            .filter(model_objects.AcmeAccount.acme_server_id == 1)
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
         )
@@ -7041,7 +7035,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
     def _make_one_AcmeAccount(self):
         """use the json api!"""
         form = {
-            "acme_account_provider_id": 1,
+            "acme_server_id": 1,
             "account__contact": generate_random_emailaddress(),
             "account__private_key_cycle": "single_certificate",
             "account__private_key_technology": "RSA",
@@ -7055,7 +7049,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
             .filter(model_objects.AcmeAccount.is_active.is_(True))
-            .filter(model_objects.AcmeAccount.acme_account_provider_id == 1)
+            .filter(model_objects.AcmeAccount.acme_server_id == 1)
             .first()
         )
         assert focus_item is not None
@@ -7344,7 +7338,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -7526,7 +7520,7 @@ class FunctionalTests_AcmeServer(AppTest):
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -7865,7 +7859,7 @@ class FunctionalTests_AcmeServer(AppTest):
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#2"]["account_key_file_pem"]
@@ -8127,7 +8121,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # "admin:acme_order:new:freeform",
         form = {}
         form["account_key_option"] = "account_key_file"
-        form["acme_account_provider_id"] = "1"
+        form["acme_server_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -8431,7 +8425,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # "admin:acme_order:new:freeform",
         form = {}
         form["account_key_option"] = "account_key_file"
-        form["acme_account_provider_id"] = "1"
+        form["acme_server_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#2"]["account_key_file_pem"]
@@ -9331,7 +9325,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         form = res3.form
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -9391,7 +9385,7 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         form = res3.form
         form["account_key_option"].force_value("account_key_file")
-        form["acme_account_provider_id"].force_value("1")
+        form["acme_server_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -9450,7 +9444,7 @@ class FunctionalTests_AcmeServer(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
         form: Dict = {}
         form["account_key_option"] = "account_key_file"
-        form["acme_account_provider_id"] = "1"
+        form["acme_server_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -9511,7 +9505,7 @@ class FunctionalTests_AcmeServer(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
         form: Dict = {}
         form["account_key_option"] = "account_key_file"
-        form["acme_account_provider_id"] = "1"
+        form["acme_server_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
                 _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
@@ -10102,7 +10096,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form = {}
         files = {}
         form["account_key_option"] = "account_key_file"
-        form["acme_account_provider_id"] = "1"
+        form["acme_server_id"] = "1"
         files["account_key_file_pem"] = open(
             self._filepath_testfile(account_key_file_pem),
             "rb",

@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import requests
 
 # local
 from ..lib import formhandling
@@ -24,6 +23,7 @@ from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
+from ...lib.utils import new_BrowserSession
 from ...model import utils as model_utils
 from ...model.objects import AcmeDnsServer
 
@@ -224,13 +224,14 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-dns-server/{ID}/check.json")
         url_post_required = (
-            "%s?result=error&error=post+required&operation=mark" % self._focus_url
+            "%s?result=error&error=post+required&operation=check" % self._focus_url
         )
         return HTTPSeeOther(url_post_required)
 
     def _check__submit(self, dbAcmeDnsServer):
         try:
-            resp = requests.get("%s/health" % dbAcmeDnsServer.root_url)
+            sess = new_BrowserSession()
+            resp = sess.get("%s/health" % dbAcmeDnsServer.root_url)
             if resp.status_code != 200:
                 raise ValueError("invalid status_code: %s" % resp.status_code)
             if self.request.wants_json:

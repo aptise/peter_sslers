@@ -90,15 +90,13 @@ def formatted_get_docs(view_instance, endpoint):
     if "valid_options" in docs:
         # define these with a placeholder like "{RENDER_ON_REQUEST}"
         try:
-            if "acme_account_provider_id" in docs["valid_options"]:
-                docs["valid_options"]["acme_account_provider_id"] = {
+            if "acme_server_id" in docs["valid_options"]:
+                docs["valid_options"]["acme_server_id"] = {
                     i.id: "%s (%s)" % (i.name, i.url)
-                    for i in view_instance.dbAcmeAccountProviders
+                    for i in view_instance.dbAcmeServers
                 }
         except Exception as exc:  # noqa: F841
-            log.critical(
-                "@docify error: valid_options:acme_account_provider_id %s", endpoint
-            )
+            log.critical("@docify error: valid_options:acme_server_id %s", endpoint)
             pass
         try:
             if "acme_dns_server_id" in docs["valid_options"]:

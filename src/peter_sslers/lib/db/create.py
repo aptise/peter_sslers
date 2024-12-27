@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import json
 import logging
 from typing import Dict
 from typing import List
@@ -31,7 +32,6 @@ from ...model import utils as model_utils
 if TYPE_CHECKING:
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
-    from ...model.objects import AcmeAccountProvider
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
     from ...model.objects import AcmeChallengePoll
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeOrderless
     from ...model.objects import AcmeOrderSubmission
+    from ...model.objects import AcmeServer
     from ...model.objects import AriCheck
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
@@ -67,20 +68,20 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def create__AcmeAccountProvider(
+def create__AcmeServer(
     ctx: "ApiContext",
     name: str,
     directory: str,
     protocol: str,
-) -> "AcmeAccountProvider":
+) -> "AcmeServer":
     """
-    Create a new AcmeAccountProvider
+    Create a new AcmeServer
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param name: (required) The name
     :param directory: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
 
-    returns: :class:`model.objects.AcmeAccountProvider`
+    returns: :class:`model.objects.AcmeServer`
     """
     if not directory or (
         not directory.startswith("http://") and not directory.startswith("https://")
@@ -93,21 +94,21 @@ def create__AcmeAccountProvider(
     assert ctx.timestamp
 
     # ok, try to build one...
-    dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
-    dbAcmeAccountProvider.timestamp_created = ctx.timestamp
-    dbAcmeAccountProvider.name = name
-    dbAcmeAccountProvider.directory = directory
-    dbAcmeAccountProvider.is_default = None
-    dbAcmeAccountProvider.is_enabled = True
-    dbAcmeAccountProvider.protocol = protocol
-    dbAcmeAccountProvider.server = utils.url_to_server(directory)
-    ctx.dbSession.add(dbAcmeAccountProvider)
+    dbAcmeServer = model_objects.AcmeServer()
+    dbAcmeServer.timestamp_created = ctx.timestamp
+    dbAcmeServer.name = name
+    dbAcmeServer.directory = directory
+    dbAcmeServer.is_default = None
+    dbAcmeServer.is_enabled = True
+    dbAcmeServer.protocol = protocol
+    dbAcmeServer.server = utils.url_to_server(directory)
+    ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[
-            dbAcmeAccountProvider,
+            dbAcmeServer,
         ]
     )
-    return dbAcmeAccountProvider
+    return dbAcmeServer
 
 
 def create__AcmeOrderless(
@@ -622,29 +623,35 @@ def create__AcmeDnsServerAccount(
 def create__AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-    ari_check_result: Optional["AriCheckResult"],
+    ariCheckResult: Optional["AriCheckResult"],
 ) -> "AriCheck":
     dbAriCheck = model_objects.AriCheck()
     dbAriCheck.certificate_signed_id = dbCertificateSigned.id
     dbAriCheck.timestamp_created = ctx.timestamp
 
-    if ari_check_result and ari_check_result["payload"]:
-        dbAriCheck.ari_check_status = True
-        if ari_check_result["payload"].get("suggestedWindow"):
-            _start = ari_check_result["payload"]["suggestedWindow"].get("start")
-            if _start:
-                _start = utils.ari_timestamp_to_python(_start)
-            dbAriCheck.suggested_window_start = _start
-            _end = ari_check_result["payload"]["suggestedWindow"].get("end")
-            if _end:
-                _end = utils.ari_timestamp_to_python(_end)
-            dbAriCheck.suggested_window_end = _end
-        retry_after_secs = ari_check_result["headers"].get("Retry-After")
-        if retry_after_secs:
-            retry_after = ctx.timestamp + datetime.timedelta(
-                seconds=int(retry_after_secs)
-            )
-            dbAriCheck.timestamp_retry_after = retry_after
+    if ariCheckResult:
+        if ariCheckResult["status_code"] != 200:
+            dbAriCheck.ari_check_status = False
+            dbAriCheck.raw_response = json.dumps(ariCheckResult["payload"])
+        else:
+            if TYPE_CHECKING:
+                assert ariCheckResult["payload"] is not None
+            dbAriCheck.ari_check_status = True
+            if ariCheckResult["payload"].get("suggestedWindow"):
+                _start = ariCheckResult["payload"]["suggestedWindow"].get("start")
+                if _start:
+                    _start = utils.ari_timestamp_to_python(_start)
+                dbAriCheck.suggested_window_start = _start
+                _end = ariCheckResult["payload"]["suggestedWindow"].get("end")
+                if _end:
+                    _end = utils.ari_timestamp_to_python(_end)
+                dbAriCheck.suggested_window_end = _end
+            retry_after_secs = ariCheckResult["headers"].get("Retry-After")
+            if retry_after_secs:
+                retry_after = ctx.timestamp + datetime.timedelta(
+                    seconds=int(retry_after_secs)
+                )
+                dbAriCheck.timestamp_retry_after = retry_after
     else:
         dbAriCheck.ari_check_status = False
 
@@ -1011,6 +1018,7 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.spki_sha256`
             :attr:`model.utils.CertificateSigned.cert_serial`
             :attr:`model.utils.CertificateSigned.is_ari_supported`
+            :attr:`model.utils.CertificateSigned.is_ari_supported__cert`
         """
         _certificate_parse_to_record(
             cert_pem=cert_pem,
@@ -1069,6 +1077,10 @@ def create__CertificateSigned(
             dbAcmeOrder.acme_order_processing_status_id = (
                 model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
             )  # note that we've completed this!
+
+            if dbAcmeOrder.acme_account.acme_server.is_supports_ari:
+                dbCertificateSigned.is_ari_supported = True
+                dbCertificateSigned.is_ari_supported__order = True
 
             # final, just to be safe
             ctx.dbSession.flush()

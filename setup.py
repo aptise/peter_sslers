@@ -21,8 +21,8 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "cert_utils>=0.1.18",  # formerly in this package, but migrated out
-    "cryptography",  # needed for certbot disk importing
+    "cert_utils>=0.1.19",  # formerly in this package, but migrated out
+    "cryptography>42.0.0",  # needed for certbot disk importing
     "formencode>=2.0.0",
     "josepy",
     "psutil>=4.4.0",  # for Python2/3 compat
@@ -54,18 +54,6 @@ tests_require = [
     "webtest",
 ]
 testing_extras = tests_require + []
-
-# PyOpenSSL Version Pinning
-#   23.1.0 is a bad release, see
-#   https://github.com/pyca/pyopenssl/issues/1199
-# PyOpenSSl 23.2.0 introduces a backwards incompatible change
-#   Invalid versions are now rejected in OpenSSL.crypto.X509Req.set_version.
-# The `acme` package (via Certbot) ends support for py3.6 on version `v1.23.0`
-#   v1.23.0 calls make_csr with a bad version, and does not pin PyOpenSSL
-tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0")
-tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
-testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0")
-testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
 
 setup(
     name="peter_sslers",
@@ -112,7 +100,7 @@ setup(
       [console_scripts]
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
       import_certbot = peter_sslers.web.scripts.import_certbot:main
-      disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
+      disable_acme_servers = peter_sslers.web.scripts.disable_acme_servers:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       """,

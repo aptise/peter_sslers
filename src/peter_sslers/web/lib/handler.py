@@ -110,11 +110,11 @@ class Handler(object):
         )
         return self.dbAcmeAccount_GlobalDefault
 
-    def _load_AcmeAccountProviders(self):
+    def _load_AcmeServers(self):
         """
-        Loads the options for :class:`model.objects.AcmeAccountProvider` into the view's :attr:`.dbAcmeAccountProviders`.
+        Loads the options for :class:`model.objects.AcmeServer` into the view's :attr:`.dbAcmeServers`.
         """
-        self.dbAcmeAccountProviders = db.get.get__AcmeAccountProviders__paginated(
+        self.dbAcmeServers = db.get.get__AcmeServers__paginated(
             self.request.api_context, is_enabled=True
         )
-        return self.dbAcmeAccountProviders
+        return self.dbAcmeServers

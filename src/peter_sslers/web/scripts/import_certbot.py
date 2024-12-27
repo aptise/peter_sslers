@@ -64,9 +64,9 @@ def main(argv=sys.argv):
         )
 
         # load the db providers
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(ctx)
-        providersMapping: compat_certbot.TYPE_MAPPING_AcmeAccountProvider = {
-            i.server: i for i in dbAcmeAccountProviders
+        dbAcmeServers = lib_db.get.get__AcmeServers__paginated(ctx)
+        providersMapping: compat_certbot.TYPE_MAPPING_AcmeServer = {
+            i.server: i for i in dbAcmeServers
         }
 
         compat_certbot.import_certbot(

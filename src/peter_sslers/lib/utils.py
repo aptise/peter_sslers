@@ -8,7 +8,11 @@ from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
+import requests
 from zope.sqlalchemy import mark_changed
+
+# local
+from .. import USER_AGENT
 
 if TYPE_CHECKING:
     from pyramid.request import Request
@@ -52,6 +56,14 @@ def ari_timestamp_to_python(timestamp: str) -> datetime.datetime:
     return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
 
 
+def new_BrowserSession() -> requests.Session:
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": USER_AGENT})
+    return sess
+
+
+timedelta_ARI_CHECKS_TIMELY = datetime.timedelta(days=3000)
+
 # ------------------------------------------------------------------------------
 
 
@@ -70,13 +82,15 @@ def issuer_to_endpoint(
         raise ValueError("submit `cert_data` OR `sock_data`")
     if cert_data:
         _issuer = cert_data["issuer"].split("\n")
-        if _issuer[1] == "O=Let's Encrypt":
-            return "https://acme-v02.api.letsencrypt.org/directory"
+        if len(_issuer) > 1:
+            if _issuer[1] == "O=Let's Encrypt":
+                return "https://acme-v02.api.letsencrypt.org/directory"
         return None
     if TYPE_CHECKING:
         assert sock_data is not None
-    if sock_data["issuer"][1][0][1] == "Let's Encrypt":
-        return "https://acme-v02.api.letsencrypt.org/directory"
+    if len(sock_data["issuer"]) > 1:
+        if sock_data["issuer"][1][0][1] == "Let's Encrypt":
+            return "https://acme-v02.api.letsencrypt.org/directory"
     return None
 
 

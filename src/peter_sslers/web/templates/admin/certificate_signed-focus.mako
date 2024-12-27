@@ -235,20 +235,38 @@
                                                     ${CertificateSigned.ari_check__latest.id}
                                                     ARI Check Latest
                                                 </a>
-                                                <table>
-                                                    <tr>
-                                                        <th>Suggested Window Start</th>
-                                                        <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_start}<timestamp></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Suggested Window End</th>
-                                                        <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_end}<timestamp></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Retry After</th>
-                                                        <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_retry_after}<timestamp></td>
-                                                    </tr>
-                                                </table>
+                                                % if CertificateSigned.ari_check__latest.ari_check_status:
+                                                    <table>
+                                                        <tr>
+                                                            <th>Timestamp</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_created}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Suggested Window Start</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_start}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Suggested Window End</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_end}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Retry After</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_retry_after}</timestamp></td>
+                                                        </tr>
+                                                    </table>
+                                                % else:
+                                                    <p>ERROR on Last ARI Check</p>
+                                                    <table>
+                                                        <tr>
+                                                            <th>Timestamp</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_created}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Response</th>
+                                                            <td><code>${CertificateSigned.ari_check__latest.raw_response}</code></td>
+                                                        </tr>
+                                                    </table>
+                                                % endif
                                             % endif
                                         </td>
                                     </tr>
@@ -261,17 +279,21 @@
                                             </a>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <th>Manual Check</th>
-                                        <td>
-                                            <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
-                                                <button class="btn btn-xs btn-success" type="submit">
-                                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                                                    Check ARI
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <th>Manual Check</th>
+                                            <td>
+                                                % if CertificateSigned.is_ari_check_timely:
+                                                    <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
+                                                        <button class="btn btn-xs btn-success" type="submit">
+                                                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                                            Check ARI
+                                                        </button>
+                                                    </form>
+                                                % else:
+                                                    Too Old for ARI Checks
+                                                % endif
+                                            </td>
+                                        </tr>
                                 </table>
                             % else:
                                 ARI Does not seem possible for this Certificate

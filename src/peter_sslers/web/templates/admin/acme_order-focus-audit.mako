@@ -98,16 +98,16 @@
                             </a>
                             <table class="table table-striped table-condensed">
                                 <tr>
-                                    <th>AcmeAccountProvider</th>
+                                    <th>AcmeServer</th>
                                     <td>
                                         <a
                                             class="label label-info"
-                                            href="${admin_prefix}/acme-account-providers"
+                                            href="${admin_prefix}/acme-servers"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            AcmeAccountProvider-${AcmeOrder.acme_account.acme_account_provider_id}
-                                            [${AcmeOrder.acme_account.acme_account_provider.name}]
-                                            (${AcmeOrder.acme_account.acme_account_provider.url})
+                                            AcmeServer-${AcmeOrder.acme_account.acme_server_id}
+                                            [${AcmeOrder.acme_account.acme_server.name}]
+                                            (${AcmeOrder.acme_account.acme_server.url})
                                         </a>
                                     </td>
                                 </tr>

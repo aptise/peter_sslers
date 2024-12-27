@@ -18,7 +18,6 @@ from sqlalchemy.orm import subqueryload
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeAccountKey
-from ...model.objects import AcmeAccountProvider
 from ...model.objects import AcmeAuthorization
 from ...model.objects import AcmeChallenge
 from ...model.objects import AcmeChallengePoll
@@ -29,6 +28,7 @@ from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
 from ...model.objects import AcmeOrderless
+from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
@@ -86,47 +86,46 @@ def get__AcmeEventLog__by_id(ctx: "ApiContext", id_: int) -> Optional[AcmeEventL
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeAccountProvider__default(
+def get__AcmeServer__default(
     ctx: "ApiContext",
-) -> Optional[AcmeAccountProvider]:
-    dbAcmeAccountProvider_default = (
-        ctx.dbSession.query(AcmeAccountProvider)
+) -> Optional[AcmeServer]:
+    dbAcmeServer_default = (
+        ctx.dbSession.query(AcmeServer)
         .filter(
-            AcmeAccountProvider.is_default.is_(True),
+            AcmeServer.is_default.is_(True),
         )
         .first()
     )
-    return dbAcmeAccountProvider_default
+    return dbAcmeServer_default
 
 
-def get__AcmeAccountProvider__by_name(
-    ctx: "ApiContext", name: str
-) -> Optional[AcmeAccountProvider]:
-    query = ctx.dbSession.query(AcmeAccountProvider).filter(
-        sqlalchemy.func.lower(AcmeAccountProvider.name) == name.lower()
+def get__AcmeServer__by_id(ctx: "ApiContext", id_: str) -> Optional[AcmeServer]:
+    query = ctx.dbSession.query(AcmeServer).filter(AcmeServer.id == id_)
+    return query.first()
+
+
+def get__AcmeServer__by_name(ctx: "ApiContext", name: str) -> Optional[AcmeServer]:
+    query = ctx.dbSession.query(AcmeServer).filter(
+        sqlalchemy.func.lower(AcmeServer.name) == name.lower()
     )
     return query.first()
 
 
-def get__AcmeAccountProvider__by_server(
-    ctx: "ApiContext", server: str
-) -> Optional[AcmeAccountProvider]:
-    query = ctx.dbSession.query(AcmeAccountProvider).filter(
-        AcmeAccountProvider.server == server
-    )
+def get__AcmeServer__by_server(ctx: "ApiContext", server: str) -> Optional[AcmeServer]:
+    query = ctx.dbSession.query(AcmeServer).filter(AcmeServer.server == server)
     return query.first()
 
 
-def get__AcmeAccountProviders__paginated(
+def get__AcmeServers__paginated(
     ctx: "ApiContext",
     limit: Optional[int] = None,
     offset: int = 0,
     is_enabled: Optional[bool] = None,
-) -> List[AcmeAccountProvider]:
-    query = ctx.dbSession.query(AcmeAccountProvider)
+) -> List[AcmeServer]:
+    query = ctx.dbSession.query(AcmeServer)
     if is_enabled is True:
-        query = query.filter(AcmeAccountProvider.is_enabled.is_(True))
-    query = query.order_by(AcmeAccountProvider.id.desc()).limit(limit).offset(offset)
+        query = query.filter(AcmeServer.is_enabled.is_(True))
+    query = query.order_by(AcmeServer.id.desc()).limit(limit).offset(offset)
     return query.all()
 
 

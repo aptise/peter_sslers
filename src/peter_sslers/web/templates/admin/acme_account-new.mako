@@ -32,11 +32,11 @@
                 ${form.html_error_main_fillable()|n}
 
                 <div class="form-group">
-                    <label for="acme_account_provider_id">
-                        ACME Provider
+                    <label for="acme_server_id">
+                        ACME Server
                     </label>
-                    <select class="form-control" id="acme_account_provider_id" name="acme_account_provider_id">
-                        % for option in AcmeAccountProviders:
+                    <select class="form-control" id="acme_server_id" name="acme_server_id">
+                        % for option in AcmeServers:
                             <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                         % endfor
                     </select>

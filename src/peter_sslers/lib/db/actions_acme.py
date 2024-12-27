@@ -47,8 +47,8 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
-    from ...model.objects import AcmeOrder
     from ...model.objects import AriCheck
+    from ...model.objects import AcmeOrder
     from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
     from ..acme_v2 import AcmeOrderRFC
@@ -2145,6 +2145,9 @@ def _do__AcmeV2_AcmeOrder__new_core(
     assert ctx.request
     assert ctx.request.registry
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+        # TODO
+        raise ValueError("need to create a 'challenge expected' concept here")
+
         # check each domain for an existing active challenge
         active_challenges = []
         for to_domain in dbUniqueFQDNSet.to_domains:
@@ -2155,10 +2158,14 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 active_challenges.extend(_active_challenges)
         if active_challenges:
             raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+        import pdb
+
+        pdb.set_trace()
+        raise ValueError("TESTING for overrides")
 
     tmpfiles = []
-    dbAcmeOrder = None
-    dbCertificateSigned = None
+    dbAcmeOrder: Optional["AcmeOrder"] = None
+    dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
         (authenticatedUser, tmpfile_account) = new_Authenticated_user(
             ctx, dbAcmeAccount
@@ -2236,6 +2243,14 @@ def _do__AcmeV2_AcmeOrder__new_core(
         # the AcmeOrder is already failed or valid, somehow...
         if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
             return dbAcmeOrder
+
+        if False:
+            # immediately sync the authorizations
+            # otherwise we may allow competing authz
+            dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+            )
 
         if (
             acme_order_processing_strategy_id
@@ -2765,15 +2780,15 @@ def do__AcmeV2_AriCheck(
     if not dbCertificateSigned:
         raise ValueError("Must submit `dbCertificateSigned`")
     try:
-        ari_check_result: Optional["AriCheckResult"] = acme_v2.ari_check(
+        ariCheckResult: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
-            ari_check_result=ari_check_result,
+            ariCheckResult=ariCheckResult,
         )
     except Exception as exc:
         raise
-    return dbAriCheck, ari_check_result
+    return dbAriCheck, ariCheckResult

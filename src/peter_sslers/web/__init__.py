@@ -18,6 +18,7 @@ from ..lib.config_utils import set_bool_setting
 from ..lib.db import _setup
 from ..lib.db import get
 from ..lib.utils import ApiContext
+from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
 
 # from ..lib import acme_v2
@@ -47,6 +48,7 @@ def add_renderer_globals(event):
     ]
     event["admin_server"] = event["request"].admin_server
     event["model_websafe"] = model_websafe
+    event["unurlify"] = unurlify
 
 
 def db_log_cleanup__tween_factory(handler, registry):
@@ -179,7 +181,7 @@ def main(global_config, **settings):
     config.include(".models")
     config.scan(".views")  # shared views, currently just exception handling
 
-    # after the models are included, setup the AcmeAccountProvider
+    # after the models are included, setup the AcmeServer
     dbEngine = models.get_engine(settings)
     dbSession = None
     with transaction.manager:
@@ -193,7 +195,7 @@ def main(global_config, **settings):
         )
 
         # this will do the heavy lifting
-        _setup.startup_AcmeAccountProviders(ctx, app_settings)
+        _setup.startup_AcmeServers(ctx, app_settings)
 
     if dbSession:
         dbSession.close()

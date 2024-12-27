@@ -10,14 +10,36 @@ This should be migrated to use a ranged or windowed query to better handle
 systems with large numbers of rows
 
 
+Development
+------------
+
 * Build a tool that can generate/save/load a new testdb, so it does not need to
   be continually rebuilt for local tests.
+
+Application
+-----------
 
 * These sections still need to be audited and streamlined.
 	They work and are tested, but the UX could potentially be cleaner
 	- queue certificates - process
 	- automatic renewal - update to create queues
 	- creating queue-certificates/freeform (domains)
+* AcmeAccont/new
+    - There is a bug in which an account is locally created but fails on the
+      sync with the acme server.  Due to how pyramid_transaction is leveraged
+      and how we catch the error, the local account is saved to disk but a
+      phantom error appears.  We should catch this and either drop the account
+      creation or allow it but message the subscriber.  if this is kept, we
+      should redirect to "view" page on create with an error.
+
+* Ensure an AcmeAccountKey is unique (not used across servers)
+
+Testing
+------------
+
+* Broken
+    update_AcmeAccount_from_new_duplicate
+    
 
 * Tests Needed:
 	UNIT Tests

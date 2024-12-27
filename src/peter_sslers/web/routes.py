@@ -566,11 +566,23 @@ def _admin_views(config: "Configurator") -> None:
         r"/acme-orderless/{@id}/acme-challenge/{id_challenge:\d+}.json",
     )
 
-    # !!!: AcmeProvider
+    # !!!: AcmeServer
     # this is just letsencrypt endpoints
-    config.add_route_7("admin:acme_account_providers", "/acme-account-providers")
+    config.add_route_7("admin:acme_servers", "/acme-servers")
+    config.add_route_7("admin:acme_servers|json", "/acme-servers.json")
+    config.add_route_7("admin:acme_server:focus", "/acme-server/{@id}")
+    config.add_route_7("admin:acme_server:focus|json", "/acme-server/{@id}.json")
     config.add_route_7(
-        "admin:acme_account_providers|json", "/acme-account-providers.json"
+        "admin:acme_server:focus:check_ari",
+        "/acme-server/{@id}/check-ari",
+    )
+    config.add_route_7(
+        "admin:acme_server:focus:check_ari|json",
+        "/acme-server/{@id}/check-ari.json",
+    )
+    config.add_route_7("admin:acme_server:focus:mark", "/acme-server/{@id}/mark")
+    config.add_route_7(
+        "admin:acme_server:focus:mark|json", "/acme-server/{@id}/mark.json"
     )
 
     # !!!: Admin API Items

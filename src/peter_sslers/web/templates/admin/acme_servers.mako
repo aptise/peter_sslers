@@ -6,19 +6,19 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Acme Providers</li>
+        <li class="active">Acme Servers</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Acme Providers</h2>
+    <h2>Acme Servers</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-account-providers.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-servers.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -38,12 +38,12 @@
             </p>
             
             <p>
-                The Default AcmeAccountProvider is specified in the application's active environment file.
-                Additional AcmeAccountProviders can be enabled via the environment file as well.
-                AcmeAccountProviders can be disabled with a console script that is distributed with this application.
+                The Default AcmeServer is specified in the application's active environment file.
+                Additional AcmeServers can be enabled via the environment file as well.
+                AcmeServers can be disabled with a console script that is distributed with this application.
             </p>
         
-            % if AcmeAccountProviders:
+            % if AcmeServers:
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -52,21 +52,27 @@
                             <th>name</th>
                             <th>enabled?</th>
                             <th>server</th>
+                            <th>ARI?</th>
                             <th>url</th>
                         </tr>
                     </thead>
                     <tbody>
-                    % for provider_data in AcmeAccountProviders:
+                    % for provider_data in AcmeServers:
                         <tr>
                             <td>
                                 % if provider_data.is_default:
                                     <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                                 % endif
                             </td>
-                            <td><code>${provider_data.id}</code></td>
+                            <td>
+                                <a class="label label-info" href="${admin_prefix}/acme-server/${provider_data.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeServer-${provider_data.id}</a>
+                            </td>
                             <td><code>${provider_data.name}</code></td>
                             <td><code>${"True" if provider_data.is_enabled else "False"}</code></td>
                             <td><code>${provider_data.server}</code></td>
+                            <td><code>${provider_data.is_supports_ari__version or ''}</code></td>
                             <td><code>${provider_data.url}</code></td>
                         </tr>
                     % endfor

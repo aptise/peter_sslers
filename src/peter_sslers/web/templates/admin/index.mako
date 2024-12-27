@@ -154,11 +154,11 @@
 
             <h3>Upstream Providers</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-account-providers"
-                       title="Acme Providers"
+                <li><a href="${admin_prefix}/acme-servers"
+                       title="Acme Servers"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-account-providers</a></li>
+                    acme-servers</a></li>
                 <li><a href="${admin_prefix}/acme-dns-servers"
                        title="acme-dns Servers"
                     >

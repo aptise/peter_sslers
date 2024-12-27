@@ -264,9 +264,9 @@ class View_Search(Handler):
                     "query": domain_name,
                     "search_results": {
                         "Domain": dbDomain.as_json if dbDomain else None,
-                        "QueueDomainActive": dbQueueDomainActive.as_json
-                        if dbQueueDomainActive
-                        else None,
+                        "QueueDomainActive": (
+                            dbQueueDomainActive.as_json if dbQueueDomainActive else None
+                        ),
                         "QueueDomainsInactive": [
                             q.as_json for q in dbQueueDomainsInactive
                         ],
@@ -406,9 +406,9 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeChallenges_Active": [i.as_json for i in dbAcmeChallenges]
-                if dbAcmeChallenges
-                else None,
+                "AcmeChallenges_Active": (
+                    [i.as_json for i in dbAcmeChallenges] if dbAcmeChallenges else None
+                ),
             }
         return {
             "project": "peter_sslers",

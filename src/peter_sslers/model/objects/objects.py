@@ -21,6 +21,7 @@ from .mixins import _Mixin_Hex_Pretty
 from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
 from ..meta import Base
+from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 
 
 # ==============================================================================
@@ -71,8 +72,8 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Boolean, nullable=True, default=None
     )
 
-    acme_account_provider_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_account_provider.id"), nullable=False
+    acme_server_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_server.id"), nullable=False
     )
 
     private_key_cycle_id: Mapped[int] = mapped_column(
@@ -110,9 +111,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
-    acme_account_provider = sa_orm_relationship(
-        "AcmeAccountProvider",
-        primaryjoin=("AcmeAccount.acme_account_provider_id==AcmeAccountProvider.id"),
+    acme_server = sa_orm_relationship(
+        "AcmeServer",
+        primaryjoin=("AcmeAccount.acme_server_id==AcmeServer.id"),
         uselist=False,
         back_populates="acme_accounts",
     )
@@ -159,7 +160,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_authenticate(self) -> bool:
-        if self.acme_account_provider.protocol == "acme-v2":
+        if self.acme_server.protocol == "acme-v2":
             return True
         return False
 
@@ -185,7 +186,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             return False
         if not self.acme_account_key.is_active:
             return False
-        if self.acme_account_provider.is_default:
+        if self.acme_server.is_default:
             return True
         return False
 
@@ -215,13 +216,13 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "is_active": True if self.is_active else False,
             "is_deactivated": self.timestamp_deactivated or False,
             "is_global_default": True if self.is_global_default else False,
-            "acme_account_provider_id": self.acme_account_provider_id,
-            "acme_account_provider_name": self.acme_account_provider.name,
-            "acme_account_provider_url": self.acme_account_provider.url,
-            "acme_account_provider_protocol": self.acme_account_provider.protocol,
-            "AcmeAccountKey": self.acme_account_key.as_json
-            if self.acme_account_key
-            else None,
+            "acme_server_id": self.acme_server_id,
+            "acme_server_name": self.acme_server.name,
+            "acme_server_url": self.acme_server.url,
+            "acme_server_protocol": self.acme_server.protocol,
+            "AcmeAccountKey": (
+                self.acme_account_key.as_json if self.acme_account_key else None
+            ),
             "id": self.id,
             "private_key_cycle": self.private_key_cycle,
             "contact": self.contact,
@@ -338,90 +339,6 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "spki_sha256": self.spki_sha256,
             "acme_account_key_source": self.acme_account_key_source,
             "is_active": self.is_active,
-        }
-
-
-# ==============================================================================
-
-
-class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
-    """
-    Represents an AcmeAccountProvider
-    """
-
-    __tablename__ = "acme_account_provider"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(endpoint IS NOT NULL AND directory IS NULL)"
-            " OR "
-            " (endpoint IS NULL AND directory IS NOT NULL)",
-            name="check_endpoint_or_directory",
-        ),
-        sa.CheckConstraint(
-            "(protocol = 'acme-v1')" " OR " "(protocol = 'acme-v2')",
-            name="check_protocol",
-        ),
-    )
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
-    )
-    name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
-    endpoint: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, unique=True
-    )  # either/or: A
-    directory: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, unique=True
-    )  # either/or: A
-    server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
-    is_default: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-    is_enabled: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-    protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_accounts = sa_orm_relationship(
-        "AcmeAccount",
-        primaryjoin=("AcmeAccountProvider.id==AcmeAccount.acme_account_provider_id"),
-        order_by="AcmeAccount.id.desc()",
-        uselist=True,
-        back_populates="acme_account_provider",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _disable(self) -> bool:
-        """
-        This should only be invoked by commandline tools
-        """
-        _changed = 0
-        if self.is_default:
-            self.is_default = False
-            _changed += 1
-        if self.is_enabled:
-            self.is_enabled = False
-            _changed += 1
-        return True if _changed else False
-
-    @property
-    def url(self) -> str:
-        return self.directory or self.endpoint or ""
-
-    @property
-    def as_json(self) -> Dict:
-        return {
-            "id": self.id,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "name": self.name,
-            "endpoint": self.endpoint,
-            "directory": self.directory,
-            "is_default": self.is_default or False,
-            "is_enabled": self.is_enabled or False,
-            "protocol": self.protocol,
         }
 
 
@@ -700,26 +617,31 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "acme_status_authorization": self.acme_status_authorization,
-            "acme_challenge_http_01_id": self.acme_challenge_http_01.id
-            if self.acme_challenge_http_01
-            else None,
-            "acme_challenge_dns_01_id": self.acme_challenge_dns_01.id
-            if self.acme_challenge_dns_01
-            else None,
-            "domain": {
-                "id": self.domain_id,
-                "domain_name": self.domain.domain_name,
-            }
-            if self.domain_id
-            else None,
-            "url_acme_server_sync": "%s/acme-authorization/%s/acme-server/sync.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_sync
-            else None,
-            "url_acme_server_deactivate": "%s/acme-authorization/%s/acme-server/deactivate.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_deactivate
-            else None,
+            "acme_challenge_http_01_id": (
+                self.acme_challenge_http_01.id if self.acme_challenge_http_01 else None
+            ),
+            "acme_challenge_dns_01_id": (
+                self.acme_challenge_dns_01.id if self.acme_challenge_dns_01 else None
+            ),
+            "domain": (
+                {
+                    "id": self.domain_id,
+                    "domain_name": self.domain.domain_name,
+                }
+                if self.domain_id
+                else None
+            ),
+            "url_acme_server_sync": (
+                "%s/acme-authorization/%s/acme-server/sync.json" % (admin_url, self.id)
+                if self.is_can_acme_server_sync
+                else None
+            ),
+            "url_acme_server_deactivate": (
+                "%s/acme-authorization/%s/acme-server/deactivate.json"
+                % (admin_url, self.id)
+                if self.is_can_acme_server_deactivate
+                else None
+            ),
         }
 
 
@@ -986,14 +908,16 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "token": self.token,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_sync
-            else None,
-            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server/trigger.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_trigger
-            else None,
+            "url_acme_server_sync": (
+                "%s/acme-challenge/%s/acme-server/sync.json" % (admin_url, self.id)
+                if self.is_can_acme_server_sync
+                else None
+            ),
+            "url_acme_server_trigger": (
+                "%s/acme-challenge/%s/acme-server/trigger.json" % (admin_url, self.id)
+                if self.is_can_acme_server_trigger
+                else None
+            ),
             # "acme_event_log_id": self.acme_event_log_id,
         }
 
@@ -1902,16 +1826,16 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "is_renewable_custom": True if self.is_renewable_custom else False,
             "is_renewable_queue": True if self.is_renewable_queue else False,
             "is_renewable_quick": True if self.is_renewable_quick else False,
-            "is_can_acme_server_deactivate_authorizations": True
-            if self.is_can_acme_server_deactivate_authorizations
-            else False,
+            "is_can_acme_server_deactivate_authorizations": (
+                True if self.is_can_acme_server_deactivate_authorizations else False
+            ),
             "is_renewed": True if self.is_renewed else False,
             "order_url": self.order_url,
             "PrivateKey": {
                 "id": self.private_key_id,
-                "key_pem_md5": self.private_key.key_pem_md5
-                if self.private_key_id
-                else None,
+                "key_pem_md5": (
+                    self.private_key.key_pem_md5 if self.private_key_id else None
+                ),
             },
             "certificate_signed_id": self.certificate_signed_id,
             "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
@@ -1920,18 +1844,22 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "url_acme_server_sync": "%s/acme-order/%s/acme-server/sync.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_sync
-            else None,
-            "url_acme_certificate_signed_download": "%s/acme-order/%s/acme-server/download-certificate.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_download_certificate
-            else None,
-            "url_acme_process": "%s/acme-order/%s/acme-process.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_process
-            else None,
+            "url_acme_server_sync": (
+                "%s/acme-order/%s/acme-server/sync.json" % (admin_url, self.id)
+                if self.is_can_acme_server_sync
+                else None
+            ),
+            "url_acme_certificate_signed_download": (
+                "%s/acme-order/%s/acme-server/download-certificate.json"
+                % (admin_url, self.id)
+                if self.is_can_acme_server_download_certificate
+                else None
+            ),
+            "url_acme_process": (
+                "%s/acme-order/%s/acme-process.json" % (admin_url, self.id)
+                if self.is_can_acme_process
+                else None
+            ),
             "private_key_cycle__renewal": self.private_key_cycle__renewal,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_strategy__final": self.private_key_strategy__final,
@@ -2154,6 +2082,113 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class AcmeServer(Base, _Mixin_Timestamps_Pretty):
+    """
+    Represents an AcmeServer
+    """
+
+    __tablename__ = "acme_server"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(endpoint IS NOT NULL AND directory IS NULL)"
+            " OR "
+            " (endpoint IS NULL AND directory IS NOT NULL)",
+            name="check_endpoint_or_directory",
+        ),
+        sa.CheckConstraint(
+            "(protocol = 'acme-v1')" " OR " "(protocol = 'acme-v2')",
+            name="check_protocol",
+        ),
+    )
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
+    endpoint: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )  # either/or: A
+    directory: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )  # either/or: A
+    server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    is_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_supports_ari__version: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(32), nullable=True, default=None
+    )
+    # LetsEncrypt now has unlimited pending autz
+    is_unlimited_pending_authz: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_enabled: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+
+    # we need to disable ssl verification on test/local servers
+    # this should NEVER be used for real servers
+    allow_insecure: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_accounts = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin=("AcmeServer.id==AcmeAccount.acme_server_id"),
+        order_by="AcmeAccount.id.desc()",
+        uselist=True,
+        back_populates="acme_server",
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
+        back_populates="acme_server",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def _disable(self) -> bool:
+        """
+        This should only be invoked by commandline tools
+        """
+        _changed = 0
+        if self.is_default:
+            self.is_default = False
+            _changed += 1
+        if self.is_enabled:
+            self.is_enabled = False
+            _changed += 1
+        return True if _changed else False
+
+    @property
+    def url(self) -> str:
+        return self.directory or self.endpoint or ""
+
+    @property
+    def is_supports_ari(self) -> bool:
+        return bool(self.is_supports_ari__version)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "name": self.name,
+            "endpoint": self.endpoint,
+            "directory": self.directory,
+            "is_default": self.is_default or False,
+            "is_enabled": self.is_enabled or False,
+            "protocol": self.protocol,
+            "is_supports_ari__version": self.is_supports_ari__version,
+        }
+
+
+# ==============================================================================
+
+
 class AriCheck(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "ari_check"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
@@ -2166,13 +2201,13 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=False
     )
     suggested_window_start: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime, nullable=True, default=None
     )
     suggested_window_end: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime, nullable=True, default=None
     )
     timestamp_retry_after: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime, nullable=True, default=None
     )
 
     # originally intended to track success of the check
@@ -2180,6 +2215,9 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
         sa.Boolean,
         nullable=False,
     )  # True: Success; False Failure
+
+    # we only use this on errors
+    raw_response: Mapped[str] = mapped_column(sa.Text, nullable=True)
 
     certificate_signed = sa_orm_relationship(
         "CertificateSigned",
@@ -2195,15 +2233,22 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
             "certificate_signed_id": self.certificate_signed_id,
             "timestamp_created": self.timestamp_created_isoformat,
             "ari_check_status": self.ari_check_status,
-            "suggested_window_start": self.suggested_window_start.isoformat()
-            if self.suggested_window_start
-            else None,
-            "suggested_window_end": self.suggested_window_end.isoformat()
-            if self.suggested_window_end
-            else None,
-            "timestamp_retry_after": self.timestamp_retry_after.isoformat()
-            if self.timestamp_retry_after
-            else None,
+            "suggested_window_start": (
+                self.suggested_window_start.isoformat()
+                if self.suggested_window_start
+                else None
+            ),
+            "suggested_window_end": (
+                self.suggested_window_end.isoformat()
+                if self.suggested_window_end
+                else None
+            ),
+            "timestamp_retry_after": (
+                self.timestamp_retry_after.isoformat()
+                if self.timestamp_retry_after
+                else None
+            ),
+            "raw_response": self.raw_response,
         }
 
 
@@ -2838,6 +2883,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     is_ari_supported: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
+    is_ari_supported__cert: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_ari_supported__order: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3202,22 +3253,29 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
 
     @property
+    def is_ari_check_timely(self):
+        timely_date = datetime.datetime.utcnow() - timedelta_ARI_CHECKS_TIMELY
+        if self.timestamp_not_after < timely_date:
+            return False
+        return True
+
+    @property
     def as_json(self) -> Dict:
         import pprint
 
         pprint.pprint(self.__dict__)
         return {
-            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
-            if self.acme_order
-            else None,
+            "acme_order.is_auto_renew": (
+                self.acme_order.is_auto_renew if self.acme_order else None
+            ),
             "domains_as_list": self.domains_as_list,
             "id": self.id,
             "is_active": True if self.is_active else False,
             "is_deactivated": True if self.is_deactivated else False,
             "is_revoked": True if self.is_revoked else False,
-            "is_compromised_private_key": True
-            if self.is_compromised_private_key
-            else False,
+            "is_compromised_private_key": (
+                True if self.is_compromised_private_key else False
+            ),
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
@@ -3236,9 +3294,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             # "acme_account_id": self.acme_account_id,
             "renewals_managed_by": self.renewals_managed_by,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "ari_check_latest_id": self.ari_check__latest.id
-            if self.ari_check__latest
-            else None,
+            "ari_check_latest_id": (
+                self.ari_check__latest.id if self.ari_check__latest else None
+            ),
             "is_ari_supported": self.is_ari_supported,
         }
 
@@ -3734,9 +3792,11 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
+            " CASE WHEN acme_dns_server_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
             " CASE WHEN acme_order_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN acme_dns_server_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN acme_server_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN certificate_ca_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
@@ -3781,6 +3841,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    acme_server_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_server.id"), nullable=True
     )
     certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
@@ -3837,6 +3900,12 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="OperationsObjectEvent.acme_order_id==AcmeOrder.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    acme_server = sa_orm_relationship(
+        "AcmeServer",
+        primaryjoin="OperationsObjectEvent.acme_server_id==AcmeServer.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -4678,7 +4747,7 @@ class UniqueFQDNSet2Domain(Base):
 __all__ = (
     "AcmeAccount",
     "AcmeAccountKey",
-    "AcmeAccountProvider",
+    "AcmeServer",
     "AcmeAuthorization",
     "AcmeChallenge",
     "AcmeChallengeCompeting",
