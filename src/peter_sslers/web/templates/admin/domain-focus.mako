@@ -292,6 +292,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>AcmeAuthorizationPotentials</th>
+                        <td>
+                            ${admin_partials.table_AcmeAuthorizationPotentials(Domain.acme_authorization_potentials__5, perspective="Domain")}
+                            % if Domain.acme_authorization_potentials__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-authz-potentials" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>AcmeChallenges</th>
                         <td>
                             ${admin_partials.table_AcmeChallenges(Domain.acme_challenges__5, perspective="Domain")}

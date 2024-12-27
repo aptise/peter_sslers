@@ -198,7 +198,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_authorization:focus|json", "/acme-authorization/{@id}.json"
     )
-
     config.add_route_7(
         "admin:acme_authorization:focus:acme_orders",
         "/acme-authorization/{@id}/acme-orders",
@@ -230,6 +229,35 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_authorization:focus:acme_server:sync|json",
         "/acme-authorization/{@id}/acme-server/sync.json",
+    )
+
+    # !!!: AcmeAuthorizationPotenials
+    config.add_route_7("admin:acme_authorization_potentials", "/acme-authz-potentials")
+    config.add_route_7(
+        "admin:acme_authorization_potentials_paginated",
+        "/acme-authz-potentials/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potentials|json", "/acme-authz-potentials.json"
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potentials_paginated|json",
+        "/acme-authz-potentials/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potential:focus", "/acme-authz-potential/{@id}"
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potential:focus|json",
+        "/acme-authz-potential/{@id}.json",
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potential:focus:delete",
+        "/acme-authz-potential/{@id}/delete",
+    )
+    config.add_route_7(
+        "admin:acme_authorization_potential:focus:delete|json",
+        "/acme-authz-potential/{@id}/delete.json",
     )
 
     # !!!: AcmeChallenge
@@ -1083,6 +1111,17 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:domains:challenged_paginated|json", "/domains/challenged/{@page}.json"
     )
+    config.add_route_7("admin:domains:authz_potential", "/domains/authz-potential")
+    config.add_route_7(
+        "admin:domains:authz_potential|json", "/domains/authz-potential.json"
+    )
+    config.add_route_7(
+        "admin:domains:authz_potential_paginated", "/domains/authz-potential/{@page}"
+    )
+    config.add_route_7(
+        "admin:domains:authz_potential_paginated|json",
+        "/domains/authz-potential/{@page}.json",
+    )
     config.add_route_7("admin:domains:expiring", "/domains/expiring")
     config.add_route_7("admin:domains:expiring|json", "/domains/expiring.json")
     config.add_route_7("admin:domains:expiring_paginated", "/domains/expiring/{@page}")
@@ -1119,6 +1158,14 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:domain:focus:acme_authorizations_paginated",
         "/domain/{domain_identifier}/acme-authorizations/{@page}",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_authorization_potentials",
+        "/domain/{domain_identifier}/acme-authz-potentials",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_authorization_potentials_paginated",
+        "/domain/{domain_identifier}/acme-authz-potentials/{@page}",
     )
     config.add_route_7(
         "admin:domain:focus:acme_challenges",
@@ -1212,7 +1259,7 @@ def _admin_views(config: "Configurator") -> None:
         "/domain/{domain_identifier}/acme-dns-server/new.json",
     )
 
-    # !!!: DomainBlocklist
+    # !!!: DomainAutocerts
     config.add_route_7("admin:domain_autocerts", "/domain-autocerts")
     config.add_route_7("admin:domain_autocerts|json", "/domain-autocerts.json")
     config.add_route_7("admin:domain_autocerts_paginated", "/domain-autocerts/{@page}")

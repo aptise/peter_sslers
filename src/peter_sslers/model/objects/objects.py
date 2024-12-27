@@ -648,6 +648,69 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
+    """
+    This class is used to pre-block on a domain to handle race conditions
+
+    """
+
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "acme_order_id",
+            "domain_id",
+            name="acme_authorization_potential_uidx",
+        ),
+    )
+
+    __tablename__ = "acme_authorization_potential"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_order_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("acme_order.id", use_alter=True),
+        nullable=False,
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    domain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    acme_challenge_type_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # `model_utils.AcmeChallengeType`
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeAuthorizationPotential.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_authorization_potentials",
+    )
+    # this is only used to easily grab an AcmeAccount
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeAuthorizationPotential.acme_order_id==AcmeOrder.id",
+        uselist=False,
+    )
+
+    @property
+    def acme_challenge_type(self) -> Optional[str]:
+        if self.acme_challenge_type_id:
+            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+        return None
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "acme_order_id": self.acme_order_id,
+            "domain_id": self.domain_id,
+            "acme_challenge_type": self.acme_challenge_type,
+        }
+
+
+# ==============================================================================
+
+
 class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
@@ -3499,6 +3562,13 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
+    acme_authorization_potentials = sa_orm_relationship(
+        "AcmeAuthorizationPotential",
+        primaryjoin="Domain.id==AcmeAuthorizationPotential.domain_id",
+        order_by="AcmeAuthorizationPotential.id.desc()",
+        uselist=True,
+        back_populates="domain",
+    )
     acme_challenges = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="Domain.id==AcmeChallenge.domain_id",
@@ -4749,6 +4819,7 @@ __all__ = (
     "AcmeAccountKey",
     "AcmeServer",
     "AcmeAuthorization",
+    "AcmeAuthorizationPotential",
     "AcmeChallenge",
     "AcmeChallengeCompeting",
     "AcmeChallengeCompeting2AcmeChallenge",

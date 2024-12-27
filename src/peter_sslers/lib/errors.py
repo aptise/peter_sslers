@@ -106,6 +106,19 @@ class AcmeDuplicateChallengesExisting(AcmeDuplicateChallenges):
         )
 
 
+class AcmeDuplicateChallengesExisting_PreAuthz(AcmeDuplicateChallengesExisting):
+    def __str__(self):
+        return (
+            """One or more domains already have active Pre Authorizations: %s."""
+            % ", ".join(
+                [
+                    "`%s` (%s)" % (ac.domain.domain_name, ac.acme_challenge_type)
+                    for ac in self.args[0]
+                ]
+            )
+        )
+
+
 class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
     """the first arg should be a single active challenge"""
 
@@ -114,6 +127,10 @@ class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
             """This domain already has active challenges: `%s`."""
             % self.args[0].domain.domain_name
         )
+
+
+class AcmeDuplicateChallenge_PreAuthz(AcmeDuplicateChallenge):
+    pass
 
 
 class AcmeDuplicateOrderlessDomain(AcmeDuplicateChallenges):

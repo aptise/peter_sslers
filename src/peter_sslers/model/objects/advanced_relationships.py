@@ -11,6 +11,7 @@ from .aliases import AcmeOrderAlt
 from .aliases import CoverageAssuranceEventAlt
 from .objects import AcmeAccount
 from .objects import AcmeAuthorization
+from .objects import AcmeAuthorizationPotential
 from .objects import AcmeChallenge
 from .objects import AcmeDnsServer
 from .objects import AcmeDnsServerAccount
@@ -571,6 +572,26 @@ Domain.acme_authorizations__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeAuthorization.id.desc(),
+    viewonly=True,
+)
+
+
+# note: Domain.acme_authorization_potentials__5
+Domain.acme_authorization_potentials__5 = sa_orm_relationship(
+    AcmeAuthorizationPotential,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == AcmeAuthorizationPotential.domain_id,
+            AcmeAuthorizationPotential.id.in_(
+                sa.select((AcmeAuthorizationPotential.id))
+                .where(AcmeAuthorizationPotential.domain_id == Domain.id)
+                .order_by(AcmeAuthorizationPotential.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeAuthorizationPotential.id.desc(),
     viewonly=True,
 )
 

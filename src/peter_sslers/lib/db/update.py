@@ -15,6 +15,7 @@ from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__AcmeServer__default
+from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__Domain__by_name
 from .logger import _log_object_event
 from .. import errors
@@ -268,6 +269,7 @@ def update_AcmeAuthorization_from_payload(
         authorization_status
     )
     _updated = False
+    _domain_id: Optional[int] = dbAcmeAuthorization.domain_id
     if (
         authorization_status
         not in model_utils.Acme_Status_Authorization.OPTIONS_X_UPDATE
@@ -286,6 +288,7 @@ def update_AcmeAuthorization_from_payload(
             raise ValueError(
                 "This `Domain` name has not been seen before. This should not be possible."
             )
+        _domain_id = dbDomain.id
 
         if dbAcmeAuthorization.domain_id != dbDomain.id:
             dbAcmeAuthorization.domain_id = dbDomain.id
@@ -297,6 +300,16 @@ def update_AcmeAuthorization_from_payload(
     if dbAcmeAuthorization.acme_status_authorization_id != acme_status_authorization_id:
         dbAcmeAuthorization.acme_status_authorization_id = acme_status_authorization_id
         _updated = True
+
+    # drop the AcmeAuthorizationPotential
+    if _domain_id and dbAcmeAuthorization.acme_order_id__created:
+        _potential = get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId(
+            ctx,
+            dbAcmeAuthorization.acme_order_id__created,
+            _domain_id,
+        )
+        if _potential:
+            ctx.dbSession.delete(_potential)
 
     if _updated:
         dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()

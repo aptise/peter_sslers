@@ -31,8 +31,20 @@ Application
       phantom error appears.  We should catch this and either drop the account
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
-
+* Integrate for Domains: Challenged & AuthorizationPotential
+* Detect if cert_utils needs tempfiles; autofail if so. 100% Cryptography
 * Ensure an AcmeAccountKey is unique (not used across servers)
+
+
+AuthorizationPotential
+    [x] focus page to remove manually
+    [x] domains view needs access to this
+    [x] deactivate on AcmeAuthz sync
+    [] deactivate on AcmeOrder deactivate authz
+    [] deactivate on AcmeAccount deactivate authz
+    [] remove on syncs
+    []list view on domains page is unusable; needs alternate table
+
 
 Testing
 ------------

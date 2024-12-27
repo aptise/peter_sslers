@@ -1684,6 +1684,10 @@ class AuthenticatedUser(object):
                 "unexpected challenge status: `%s`" % _challenge_status_text
             )
 
+        import pdb
+
+        pdb.set_trace()
+
         if _task__complete_challenge:
             self.prepare_acme_challenge(
                 ctx,

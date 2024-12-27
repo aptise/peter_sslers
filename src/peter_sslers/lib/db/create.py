@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
+    from ...model.objects import AcmeAuthorizationPotential
     from ...model.objects import AcmeChallenge
     from ...model.objects import AcmeChallengePoll
     from ...model.objects import AcmeChallengeUnknownPoll
@@ -358,20 +359,38 @@ def create__AcmeOrder(
     domains_challenged.ENSURE_DEFAULT_HTTP01()
     _dbDomainObjects = dbUniqueFQDNSet.domain_objects
     for act_, domains_ in domains_challenged.items():
-        if act_ == "http-01":
-            continue
+        # act_ = acme-challenge-type
+        # domains_ = list of domains
         if not domains_:
             continue
         acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(act_)
+        if act_ == "dns-01":
+            # we do not need:
+            # * ACME Challenge Preference - http01 is the default
+            # * Blocking AcmeAuthorizationPotential - http01 does not block
+            for domain_name_ in domains_:
+                if domain_name_ not in _dbDomainObjects:
+                    raise ValueError("did not load domain from database")
+                dbChallengePreference = (
+                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific()
+                )
+                dbChallengePreference.acme_order_id = dbAcmeOrder.id
+                dbChallengePreference.acme_challenge_type_id = acme_challenge_type_id
+                dbChallengePreference.domain_id = _dbDomainObjects[domain_name_].id
+                ctx.dbSession.add(dbChallengePreference)
+                ctx.dbSession.flush(objects=[dbChallengePreference])
+
+        # create a potential object
         for domain_name_ in domains_:
             if domain_name_ not in _dbDomainObjects:
                 raise ValueError("did not load domain from database")
-            dbChallengePreference = model_objects.AcmeOrder2AcmeChallengeTypeSpecific()
-            dbChallengePreference.acme_order_id = dbAcmeOrder.id
-            dbChallengePreference.acme_challenge_type_id = acme_challenge_type_id
-            dbChallengePreference.domain_id = _dbDomainObjects[domain_name_].id
-            ctx.dbSession.add(dbChallengePreference)
-            ctx.dbSession.flush(objects=[dbChallengePreference])
+            # create a blocking authz
+            dbAcmeAuthorizationPotential = create__AcmeAuthorizationPotential(
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                dbDomain=_dbDomainObjects[domain_name_],
+                acme_challenge_type_id=acme_challenge_type_id,
+            )
 
     # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_response.get("authorizations", []):
@@ -406,14 +425,30 @@ def create__AcmeOrderSubmission(
     return dbAcmeOrderSubmission
 
 
+def create__AcmeAuthorizationPotential(
+    ctx: "ApiContext",
+    dbAcmeOrder: "AcmeOrder",
+    dbDomain: "Domain",
+    acme_challenge_type_id: int,
+) -> "AcmeAuthorizationPotential":
+    dbAcmeAuthorizationPotential = model_objects.AcmeAuthorizationPotential()
+    dbAcmeAuthorizationPotential.acme_order_id = dbAcmeOrder.id
+    dbAcmeAuthorizationPotential.timestamp_created = ctx.timestamp
+    dbAcmeAuthorizationPotential.domain_id = dbDomain.id
+    dbAcmeAuthorizationPotential.acme_challenge_type_id = acme_challenge_type_id
+    ctx.dbSession.add(dbAcmeAuthorizationPotential)
+    ctx.dbSession.flush(objects=[dbAcmeAuthorizationPotential])
+    return dbAcmeAuthorizationPotential
+
+
 def create__AcmeAuthorization(*args, **kwargs):
     raise ValueError("use `getcreate__AcmeAuthorization`")
 
 
 def create__AcmeChallenge(
     ctx: "ApiContext",
-    dbDomain=None,
-    acme_challenge_type_id=None,
+    dbDomain: "Domain",
+    acme_challenge_type_id: int,
     # optionals
     dbAcmeOrderless: Optional["AcmeOrderless"] = None,
     dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,

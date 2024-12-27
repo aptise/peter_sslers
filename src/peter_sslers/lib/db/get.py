@@ -19,6 +19,7 @@ from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeAccountKey
 from ...model.objects import AcmeAuthorization
+from ...model.objects import AcmeAuthorizationPotential
 from ...model.objects import AcmeChallenge
 from ...model.objects import AcmeChallengePoll
 from ...model.objects import AcmeChallengeUnknownPoll
@@ -462,6 +463,79 @@ def get__AcmeAuthorization__by_DomainId__paginated(
     )
     dbAcmeAuthorizations = query.all()
     return dbAcmeAuthorizations
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeAuthorizationPotential__by_id(
+    ctx: "ApiContext",
+    id_: int,
+) -> int:
+    query = ctx.dbSession.query(AcmeAuthorizationPotential).filter(
+        AcmeAuthorizationPotential.id == id_
+    )
+    dbAcmeAuthorizationPotential = query.first()
+    return dbAcmeAuthorizationPotential
+
+
+def get__AcmeAuthorizationPotentials__count(
+    ctx: "ApiContext",
+) -> int:
+    query = ctx.dbSession.query(AcmeAuthorizationPotential)
+    counted = query.count()
+    return counted
+
+
+def get__AcmeAuthorizationPotentials__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = 100,
+    offset: int = 0,
+) -> Optional[AcmeAuthorizationPotential]:
+    q = ctx.dbSession.query(AcmeAuthorizationPotential)
+    items_ = (
+        q.order_by(AcmeAuthorizationPotential.id.desc()).limit(limit).offset(offset)
+    )
+    return items_
+
+
+def get__AcmeAuthorizationPotentials__by_DomainId__count(
+    ctx: "ApiContext",
+    domain_id: int,
+) -> List[AcmeAuthorizationPotential]:
+    query = ctx.dbSession.query(AcmeAuthorizationPotential).filter(
+        AcmeAuthorizationPotential.domain_id == domain_id
+    )
+    counted = query.count()
+    return counted
+
+
+def get__AcmeAuthorizationPotentials__by_DomainId__paginated(
+    ctx: "ApiContext",
+    domain_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAuthorizationPotential]:
+    query = (
+        ctx.dbSession.query(AcmeAuthorizationPotential)
+        .filter(AcmeAuthorizationPotential.domain_id == domain_id)
+        .order_by(AcmeAuthorizationPotential.id.desc())
+    )
+    dbAcmeAuthorizationPotential = query.all()
+    return dbAcmeAuthorizationPotential
+
+
+def get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId(
+    ctx: "ApiContext",
+    acme_order_id: int,
+    domain_id: int,
+) -> Optional[AcmeAuthorizationPotential]:
+    query = ctx.dbSession.query(AcmeAuthorizationPotential).filter(
+        AcmeAuthorizationPotential.acme_order_id == acme_order_id,
+        AcmeAuthorizationPotential.domain_id == domain_id,
+    )
+    dbAcmeAuthorizationPotential = query.first()
+    return dbAcmeAuthorizationPotential
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2334,6 +2408,39 @@ def get__Domains_challenged__paginated(
     offset: int = 0,
 ) -> List[Domain]:
     q = _get__Domains_challenged__core(ctx)
+    q = q.order_by(sqlalchemy.func.lower(Domain.domain_name).asc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def _get__Domains_authz_potential__core(ctx: "ApiContext"):
+    q = (
+        ctx.dbSession.query(Domain)
+        # domain joins on everything
+        .join(
+            AcmeAuthorizationPotential,
+            Domain.id == AcmeAuthorizationPotential.domain_id,
+        )
+    )
+    return q
+
+
+def get__Domains_authz_potential__count(ctx: "ApiContext") -> int:
+    q = _get__Domains_authz_potential__core(ctx)
+    counted = q.count()
+    return counted
+
+
+def get__Domains_authz_potential__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Domain]:
+    q = _get__Domains_authz_potential__core(ctx)
     q = q.order_by(sqlalchemy.func.lower(Domain.domain_name).asc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()

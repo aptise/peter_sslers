@@ -39,6 +39,9 @@
             % if sidenav_option == "challenged":
                 <p>Domains that have active challenges.</p>
             % endif
+            % if sidenav_option == "authz-potential":
+                <p>Domains that have active Authz Potential.</p>
+            % endif
             % if Domains:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">

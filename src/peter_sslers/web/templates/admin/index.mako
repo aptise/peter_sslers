@@ -110,6 +110,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-authorizations</a></li>
+                <li><a href="${admin_prefix}/acme-authz-potentials"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-authz-potentials</a></li>
                 <li><a href="${admin_prefix}/acme-challenges"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

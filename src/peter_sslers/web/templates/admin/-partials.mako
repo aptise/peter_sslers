@@ -216,6 +216,65 @@
 </%def>
 
 
+<%def name="table_AcmeAuthorizationPotentials(data, perspective=None)">
+    <%
+        cols = ("id",
+                "domain_id",
+                "timestamp_created",
+                "acme_order_id",
+               )
+        if perspective == 'AcmeAuthorizationPotentials':
+            cols = [c for c in cols]
+        elif perspective == 'Domain':
+            cols = [c for c in cols if c != "domain_id"]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for acme_authz_potential in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/acme-authz-potential/${acme_authz_potential.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorizationPotential-${acme_authz_potential.id}
+                                </a>
+                            % elif c == 'domain_id':
+                                % if acme_authz_potential.domain_id:
+                                    <a class="label label-info" href="${admin_prefix}/domain/${acme_authz_potential.domain_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        Domain-${acme_authz_potential.domain_id}
+                                    </a>
+                                    <code>${acme_authz_potential.domain.domain_name}</code>
+                                % endif
+                            % elif c == 'timestamp_created':
+                                <timestamp>${acme_authz_potential.timestamp_created or ''}</timestamp>
+                            % elif c == 'acme_order_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authz_potential.acme_order_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acme_authz_potential.acme_order_id}
+                                </a>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AcmeAuthorizationChallenges(AcmeOrder, perspective=None)">
 <%
     if perspective != 'AcmeOrder':
@@ -2095,6 +2154,7 @@
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'challenged' else ''}"><a href="${admin_prefix}/domains/challenged">Challenged Domains</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'authz-potential' else ''}"><a href="${admin_prefix}/domains/authz-potential">Authorization Potentials</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'search' else ''}"><a href="${admin_prefix}/domains/search">Search Domains</a></li>
     </ul>
     <p class="pull-right">
@@ -2105,6 +2165,11 @@
             </a>
         % elif sidenav_option == 'challenged' :
             <a href="${admin_prefix}/domains/challenged.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'authz-potential' :
+            <a href="${admin_prefix}/domains/authz-potential.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>

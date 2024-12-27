@@ -21,6 +21,8 @@ from .create import create__PrivateKey
 from .get import get__AcmeAccount__by_account_url
 from .get import get__AcmeAccountKey__by_key_pem
 from .get import get__AcmeAuthorizations__by_ids
+from .get import get__AcmeAuthorizationPotentials__by_DomainId__paginated
+from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
 from .getcreate import getcreate__AcmeAuthorization
@@ -359,6 +361,7 @@ def new_Authenticated_user(
 
     tmpfile_account = None
     if cert_utils.NEEDS_TEMPFILES:
+        raise ValueError("cert_utils.NEEDS_TEMPFILES")
         tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
 
     # register the account / ensure that it is registered
@@ -401,6 +404,19 @@ def update_AcmeAuthorization_status(
             model_utils.Acme_Status_Authorization.from_string(status_text)
         )
         _edited = True
+
+    # PotentialAuthz are only needed because we don't know the domain
+    if dbAcmeAuthorization.domain_id and dbAcmeAuthorization.acme_order_id__created:
+        _authzPotential = get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId(
+            ctx,
+            dbAcmeAuthorization.acme_order_id__created,
+            dbAcmeAuthorization.domain_id,
+        )
+        if _authzPotential:
+            ctx.dbSession.delete(_authzPotential)
+            if not _edited:
+                ctx.pyramid_transaction_commit()
+
     if _edited:
         if not timestamp:
             timestamp = datetime.datetime.utcnow()
@@ -410,8 +426,7 @@ def update_AcmeAuthorization_status(
             == model_utils.Acme_Status_Authorization.from_string("deactivated")
         ):
             dbAcmeAuthorization.timestamp_deactivated = timestamp
-        if transaction_commit:
-            ctx.pyramid_transaction_commit()
+        ctx.pyramid_transaction_commit()
         return True
     return False
 
@@ -979,7 +994,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 transaction_commit=True,
             )
 
-            # trigger this now, so we do not attempt to load the chalenges
+            # trigger this now, so we do not attempt to load the challenges
             if authorization_response["status"] == "*404*":
                 raise errors.AcmeServer404()
 
@@ -1602,7 +1617,17 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 is_via_acme_sync=True,
             )
 
+        print("ALL")
+        import pdb
+
+        pdb.set_trace()
+
         for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
+            print("One")
+            import pdb
+
+            pdb.set_trace()
+
             try:
                 (
                     authorization_response,
@@ -2144,10 +2169,8 @@ def _do__AcmeV2_AcmeOrder__new_core(
 
     assert ctx.request
     assert ctx.request.registry
+    # this is REQUIRED for DNS-01; we don't really care about HTTP-01
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
-        # TODO
-        raise ValueError("need to create a 'challenge expected' concept here")
-
         # check each domain for an existing active challenge
         active_challenges = []
         for to_domain in dbUniqueFQDNSet.to_domains:
@@ -2158,10 +2181,18 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 active_challenges.extend(_active_challenges)
         if active_challenges:
             raise errors.AcmeDuplicateChallengesExisting(active_challenges)
-        import pdb
 
-        pdb.set_trace()
-        raise ValueError("TESTING for overrides")
+        active_preauthzs = []
+        for to_domain in dbUniqueFQDNSet.to_domains:
+            _active_preauthzs = (
+                get__AcmeAuthorizationPotentials__by_DomainId__paginated(
+                    ctx, to_domain.domain_id
+                )
+            )
+            if _active_preauthzs:
+                active_preauthzs.extend(_active_preauthzs)
+        if active_preauthzs:
+            raise errors.AcmeDuplicateChallengesExisting_PreAuthz(active_preauthzs)
 
     tmpfiles = []
     dbAcmeOrder: Optional["AcmeOrder"] = None

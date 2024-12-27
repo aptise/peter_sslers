@@ -50,6 +50,13 @@ class View_List(Handler):
     @view_config(
         route_name="admin:domains:challenged_paginated", renderer="/admin/domains.mako"
     )
+    @view_config(
+        route_name="admin:domains:authz_potential", renderer="/admin/domains.mako"
+    )
+    @view_config(
+        route_name="admin:domains:authz_potential_paginated",
+        renderer="/admin/domains.mako",
+    )
     @view_config(route_name="admin:domains:expiring", renderer="/admin/domains.mako")
     @view_config(
         route_name="admin:domains:expiring_paginated", renderer="/admin/domains.mako"
@@ -58,6 +65,10 @@ class View_List(Handler):
     @view_config(route_name="admin:domains_paginated|json", renderer="json")
     @view_config(route_name="admin:domains:challenged|json", renderer="json")
     @view_config(route_name="admin:domains:challenged_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:authz_potential|json", renderer="json")
+    @view_config(
+        route_name="admin:domains:authz_potential_paginated|json", renderer="json"
+    )
     @view_config(route_name="admin:domains:expiring|json", renderer="json")
     @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
     @docify(
@@ -94,6 +105,24 @@ class View_List(Handler):
             "section": "domain",
             "example": "curl {ADMIN_PREFIX}/domains/challenged/1.json",
             "variant_of": "/domains/challenged.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/authz-potential.json",
+            "section": "domain",
+            "about": """list Domain(s)- Autorization Potential""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domains/authz-potential.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/authz-potential/{PAGE}.json",
+            "section": "domain",
+            "example": "curl {ADMIN_PREFIX}/domains/authz-potential/1.json",
+            "variant_of": "/domains/authz-potential.json",
         }
     )
     @docify(
@@ -158,6 +187,28 @@ class View_List(Handler):
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__Domains_challenged__paginated(
+                self.request.api_context,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domains:authz_potential",
+            "admin:domains:authz_potential_paginated",
+            "admin:domains:authz_potential|json",
+            "admin:domains:authz_potential_paginated|json",
+        ):
+            sidenav_option = "authz-potential"
+            url_template = (
+                "%s/domains/authz-potential/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__Domains_authz_potential__count(
+                self.request.api_context
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__Domains_authz_potential__paginated(
                 self.request.api_context,
                 limit=items_per_page,
                 offset=offset,
@@ -601,6 +652,37 @@ class View_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_authorization_potentials",
+        renderer="/admin/domain-focus-acme_authorization_potentials.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_authorization_potentials_paginated",
+        renderer="/admin/domain-focus-acme_authorization_potentials.mako",
+    )
+    def related__AcmeAuthorizationPoetntials(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeAuthorizationPotentials__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        url_template = "%s/acme-authz-potentials/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__AcmeAuthorizationPotentials__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeAuthorizationPotentials_count": items_count,
+            "AcmeAuthorizationPotentials": items_paged,
+            "pager": pager,
+        }
 
     @view_config(
         route_name="admin:domain:focus:acme_challenges",
