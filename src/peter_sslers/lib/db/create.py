@@ -831,6 +831,7 @@ def create__CertificateSigned(
     cert_pem: str,
     cert_domains_expected: List[str],
     dbCertificateCAChain: "CertificateCAChain",
+    certificate_type_id: int,
     # optionals
     is_active: bool = False,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
@@ -849,6 +850,8 @@ def create__CertificateSigned(
       expect to see
     :param dbCertificateCAChain: (required) The :class:`model.objects.CertificateCAChain`
       that signed this certificate.
+    :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
+      corresponding to this Certificate
 
     :param is_active: (optional) default `False`; do not activate a certificate
       when uploading unless specified.
@@ -883,6 +886,9 @@ def create__CertificateSigned(
             )
     if not dbCertificateCAChain:
         raise ValueError("must submit `dbCertificateCAChain`")
+
+    if certificate_type_id not in model_utils.CertificateType._mapping:
+        raise ValueError("invalid `certificate_type_id`")
 
     assert ctx.timestamp
 
@@ -956,6 +962,7 @@ def create__CertificateSigned(
 
         # ok, now pull the dates off the cert
         dbCertificateSigned = model_objects.CertificateSigned()
+        dbCertificateSigned.certificate_type_id = certificate_type_id
         dbCertificateSigned.timestamp_created = ctx.timestamp
         dbCertificateSigned.cert_pem = cert_pem
         dbCertificateSigned.cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)

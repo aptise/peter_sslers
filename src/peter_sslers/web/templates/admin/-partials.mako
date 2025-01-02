@@ -888,16 +888,14 @@
                     % endif
                 </td>
                 <td>
-                    % if cert.renewals_managed_by == "AcmeOrder":
-                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
-                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
-                            via AcmeOrder
-                        </div>
-                    % elif cert.renewals_managed_by == "CertificateSigned":
-                        <div class="label label-warning">
+                    % if cert.renewals_managed_by and cert.renewals_managed_by[0] == "RenewalConfiguration":
+                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.renewals_managed_by[1]}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            RenewalConfiguration-${cert.renewals_managed_by[1]}</a>
+                    % else:
+                        <span class="label label-warning">
                             unavailable
-                            ## via CertificateSigned
-                        </div>
+                        </span>
                     % endif
                 </td>
                 <td>
@@ -1604,7 +1602,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, allow_no_key=False, support_upload=True,)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=True,)">
     <%
         checked = {
             "none": "",
@@ -1613,21 +1611,13 @@
         }
         if dbAcmeAccountReuse:
             checked["account_key_reuse"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse and not allow_no_key:
+        elif not dbAcmeAccountReuse:
             checked["account_key_global_default"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse and allow_no_key:
+        elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
     %>
     <p>Select an AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
-        % if allow_no_key:
-            <div class="radio">
-                <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-none" value="none" ${checked["none"]}/>
-                    Do not associate this Orderless with an AcmeAccount
-                </label>
-            </div>
-        % endif
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>

@@ -4,6 +4,7 @@ import json
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
@@ -806,14 +807,6 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_challenge"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "token IS NOT NULL"
-            " OR "
-            " (token IS NULL AND acme_orderless_id IS NOT NULL)",
-            name="token_sanity",
-        ),
-    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
 
@@ -839,9 +832,8 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     )  # Acme_Status_Challenge
 
     # this is on the acme server
-    # TODO: is nullable possible on Orderless? it is not possible on AcmeOrder
     challenge_url: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, unique=True
+        sa.Unicode(255), nullable=False, unique=True
     )
 
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -851,9 +843,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=True
     )
 
-    token: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True
-    )  # only nullable if this is an orderless challenge
+    token: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=False)
     # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http_01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization: Mapped[Optional[str]] = mapped_column(
@@ -2886,7 +2876,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    # utils.CertificateType (backup vs primary)
+    # utils.CertificateType (imported, primary, backup)
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -3190,16 +3180,24 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return self.unique_fqdn_set.domains_as_list
 
     @property
+    def certificate_type(self) -> str:
+        return model_utils.CertificateType.as_string(self.certificate_type_id)
+
+    @property
     def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
     @property
-    def renewals_managed_by(self) -> str:
+    def renewals_managed_by(self) -> Optional[Tuple[str, int]]:
         if self.acme_order:
-            return "AcmeOrder"
-        return "CertificateSigned"
+            if self.acme_order.renewal_configuration_id:
+                return (
+                    "RenewalConfiguration",
+                    self.acme_order.renewal_configuration_id,
+                )
+        return None
 
     """
     @property
@@ -3275,13 +3273,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def as_json(self) -> Dict:
-        import pprint
-
-        pprint.pprint(self.__dict__)
         return {
             "acme_order.is_auto_renew": (
                 self.acme_order.is_auto_renew if self.acme_order else None
             ),
+            "certificate_type": self.certificate_type,
             "domains_as_list": self.domains_as_list,
             "id": self.id,
             "is_active": True if self.is_active else False,

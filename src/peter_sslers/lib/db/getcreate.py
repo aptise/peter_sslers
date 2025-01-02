@@ -132,9 +132,7 @@ def getcreate__AcmeAccount(
 
     # KeyTechnology
     if private_key_technology_id is None:
-        private_key_technology_id = model_utils.KeyTechnology.from_string(
-            model_utils.KeyTechnology._DEFAULT_AcmeAccount
-        )
+        private_key_technology_id = model_utils.KeyTechnology._DEFAULT_AcmeAccount_id
     if (
         private_key_technology_id
         not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
@@ -153,8 +151,8 @@ def getcreate__AcmeAccount(
         raise ValueError("invalid `order_default_private_key_cycle_id`")
 
     if order_default_private_key_technology_id is None:
-        order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
-            model_utils.KeyTechnology._DEFAULT_AcmeAccount_order_default
+        order_default_private_key_technology_id = (
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount_order_default_id
         )
     if (
         order_default_private_key_technology_id
@@ -315,7 +313,7 @@ def getcreate__AcmeAccount(
         )
         if TYPE_CHECKING:
             assert cu_key_technology is not None
-        key_technology_id = model_utils.KeyTechnology.from_validate_key(
+        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
             cu_key_technology
         )
         assert key_technology_id
@@ -868,89 +866,77 @@ def getcreate__CertificateCA__by_pem_text(
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
     if not dbCertificateCA:
         cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
-        _tmpfile = None
-        try:
-            if cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
 
-            # validate
-            cert_utils.validate_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
+        # validate
+        _validated = cert_utils.validate_cert(cert_pem=cert_pem)
 
-            _key_technology = cert_utils.parse_cert__key_technology(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-            if TYPE_CHECKING:
-                assert _key_technology is not None
+        _key_technology = cert_utils.parse_cert__key_technology(cert_pem=cert_pem)
+        if TYPE_CHECKING:
+            assert _key_technology is not None
 
-            _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
-            if key_technology_id is None:
-                key_technology_id = _key_technology_id
-            else:
-                if key_technology_id != _key_technology_id:
-                    raise ValueError(
-                        "Detected a different `key_technology_id` than submitted"
-                    )
+        _key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+            _key_technology
+        )
+        if key_technology_id is None:
+            key_technology_id = _key_technology_id
+        else:
+            if key_technology_id != _key_technology_id:
+                raise ValueError(
+                    "Detected a different `key_technology_id` than submitted"
+                )
 
-            # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__OperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string("CertificateCA__insert"),
-            )
+        # bookkeeping
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string("CertificateCA__insert"),
+        )
 
-            _cert_data = cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-            if not display_name:
-                display_name = _cert_data["subject"] or "unknown"
+        _cert_data = cert_utils.parse_cert(cert_pem=cert_pem)
+        if not display_name:
+            display_name = _cert_data["subject"] or "unknown"
 
-            dbCertificateCA = model_objects.CertificateCA()
-            dbCertificateCA.display_name = display_name
-            dbCertificateCA.discovery_type = discovery_type
-            dbCertificateCA.key_technology_id = key_technology_id
-            dbCertificateCA.is_trusted_root = is_trusted_root
-            dbCertificateCA.timestamp_created = ctx.timestamp
-            dbCertificateCA.cert_pem = cert_pem
-            dbCertificateCA.cert_pem_md5 = cert_pem_md5
-            dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
-            dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
-            dbCertificateCA.cert_subject = _cert_data["subject"]
-            dbCertificateCA.cert_issuer = _cert_data["issuer"]
-            dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
-            dbCertificateCA.key_technology_id = model_utils.KeyTechnology.from_string(
+        dbCertificateCA = model_objects.CertificateCA()
+        dbCertificateCA.display_name = display_name
+        dbCertificateCA.discovery_type = discovery_type
+        dbCertificateCA.key_technology_id = key_technology_id
+        dbCertificateCA.is_trusted_root = is_trusted_root
+        dbCertificateCA.timestamp_created = ctx.timestamp
+        dbCertificateCA.cert_pem = cert_pem
+        dbCertificateCA.cert_pem_md5 = cert_pem_md5
+        dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
+        dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
+        dbCertificateCA.cert_subject = _cert_data["subject"]
+        dbCertificateCA.cert_issuer = _cert_data["issuer"]
+        dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
+        dbCertificateCA.key_technology_id = (
+            model_utils.KeyTechnology.from_cert_utils_tuple(
                 _cert_data["key_technology"]
             )
-            dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
-            dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
-            dbCertificateCA.cert_authority_key_identifier = _cert_data[
-                "authority_key_identifier"
-            ]
-            dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
+        )
+        dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
+        dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
+        dbCertificateCA.cert_authority_key_identifier = _cert_data[
+            "authority_key_identifier"
+        ]
+        dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
 
-            ctx.dbSession.add(dbCertificateCA)
-            ctx.dbSession.flush(objects=[dbCertificateCA])
-            is_created = True
+        ctx.dbSession.add(dbCertificateCA)
+        ctx.dbSession.flush(objects=[dbCertificateCA])
+        is_created = True
 
-            event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush(objects=[dbOperationsEvent])
+        event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
 
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "CertificateCA__insert"
-                ),
-                dbCertificateCA=dbCertificateCA,
-            )
-
-        except Exception as exc:  # noqa: F841
-            raise
-        finally:
-            if _tmpfile is not None:
-                _tmpfile.close()
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "CertificateCA__insert"
+            ),
+            dbCertificateCA=dbCertificateCA,
+        )
 
     return (dbCertificateCA, is_created)
 
@@ -1012,6 +998,7 @@ def getcreate__CertificateSigned(
     cert_domains_expected: List[str],
     dbCertificateCAChain: "CertificateCAChain",
     dbPrivateKey: "PrivateKey",
+    certificate_type_id: int,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
@@ -1030,7 +1017,8 @@ def getcreate__CertificateSigned(
        :class:`model.objects.CertificateCAChain` that signed the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
       signed the certificate
-
+    :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
+      corresponding to this Certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
       certificate was generated through. If provivded, do not submit
       `dbCertificateRequest` or `dbPrivateKey`
@@ -1079,6 +1067,9 @@ def getcreate__CertificateSigned(
         raise ValueError(
             "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCAChain, dbPrivateKey)"
         )
+
+    if certificate_type_id not in model_utils.CertificateType._mapping:
+        raise ValueError("invalid `certificate_type_id`")
 
     is_created = False
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
@@ -1174,6 +1165,7 @@ def getcreate__CertificateSigned(
             cert_pem=cert_pem,
             cert_domains_expected=cert_domains_expected,
             dbCertificateCAChain=dbCertificateCAChain,
+            certificate_type_id=certificate_type_id,
             # optionals
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
@@ -1285,7 +1277,7 @@ def getcreate__PrivateKey__by_pem_text(
             )
             if TYPE_CHECKING:
                 assert cu_key_technology is not None
-            key_technology_id = model_utils.KeyTechnology.from_validate_key(
+            key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
                 cu_key_technology
             )
             assert key_technology_id

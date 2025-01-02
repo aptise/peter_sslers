@@ -19,6 +19,7 @@ from ...lib.utils import ApiContext
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeServer
 from ...model.utils import AcmeAccountKeySource
+from ...model.utils import CertificateType
 from ...model.utils import PrivateKeySource
 from ...model.utils import PrivateKeyType
 
@@ -259,6 +260,7 @@ def import_certbot(
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbCertificateCAChain=dbCertificateCAChain,
+                certificate_type_id=CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,

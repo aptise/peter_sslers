@@ -477,27 +477,6 @@ TEST_FILES: Dict = {
             },
         },
     },
-    "AcmeOrderless": {
-        "new-1": {
-            "domain_names_http01": [
-                "acme-orderless-1.example.com",
-                "acme-orderless-2.example.com",
-            ],
-            "AcmeAccount": None,
-        },
-        "new-2": {
-            "domain_names_http01": [
-                "acme-orderless-1.example.com",
-                "acme-orderless-2.example.com",
-            ],
-            "AcmeAccount": {
-                "type": "upload",
-                "private_key_cycling": "single_certificate",
-                "acme_server_id": "1",
-                "account_key_file_pem": "key_technology-rsa/acme_account_1.key",
-            },
-        },
-    },
     "AcmeOrder": {
         "test-extended_html": {
             "acme-order/new/freeform#1": {
@@ -1061,22 +1040,13 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 == model_objects.AcmeOrder.id,
                 isouter=True,
             )
-            # Path2: AcmeChallenge>AcmeOrderless
-            .join(
-                model_objects.AcmeOrderless,
-                model_objects.AcmeChallenge.acme_orderless_id
-                == model_objects.AcmeOrderless.id,
-                isouter=True,
-            )
             # shared filters
             .join(
                 model_objects.Domain,
                 model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
             )
             .filter(
-                model_objects.Domain.domain_name.notin_(
-                    ("selfsigned-1.example.com", "acme-orderless.example.com")
-                ),
+                model_objects.Domain.domain_name.notin_(("selfsigned-1.example.com",)),
                 sqlalchemy.or_(
                     # Path1 - Order Based Authorizations
                     sqlalchemy.and_(
@@ -1090,11 +1060,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                         model_objects.AcmeOrder.acme_status_order_id.in_(
                             model_utils.Acme_Status_Order.IDS_BLOCKING
                         ),
-                    ),
-                    # Path2 - Orderless
-                    sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
-                        model_objects.AcmeOrderless.is_processing.is_(True),
                     ),
                 ),
             )
@@ -1193,6 +1158,7 @@ class AppTest(AppTestCore):
             cert_domains_expected=_cert_domains_expected,
             dbCertificateCAChain=_dbChain,
             dbPrivateKey=_dbPrivateKey,
+            certificate_type_id=model_utils.CertificateType.RAW_IMPORT,
             # optionals
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -1628,18 +1594,6 @@ class AppTest(AppTestCore):
                         challenge="bar.foo",
                         remote_ip_address="127.1.1.2",
                     )
-                )
-
-                # note: pre-populate AcmeOrderless
-                _domains_challenged = model_utils.DomainsChallenged.new_http01(
-                    [
-                        "acme-orderless.example.com",
-                    ]
-                )
-                dbAcmeOrderless = db.create.create__AcmeOrderless(
-                    self.ctx,
-                    domains_challenged=_domains_challenged,
-                    dbAcmeAccount=None,
                 )
 
                 # note: pre-populate AcmeDnsServer

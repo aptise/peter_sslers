@@ -876,6 +876,7 @@ def update_CertificateSigned__unset_active(
 
 
 """
+as of 1.0, AcmeOrders do not; must use a RenewalConfiguration
 as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
 
 def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned,):

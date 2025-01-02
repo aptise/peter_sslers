@@ -157,9 +157,7 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
     )
     dbObject.private_key_type_id = model_utils.PrivateKeyType.from_string("placeholder")
     # SYSTEM_DEFAULT
-    dbObject.key_technology_id = model_utils.KeyTechnology.from_string(
-        "RSA"
-    )  # default to RSA
+    dbObject.key_technology_id = model_utils.KeyTechnology._DEFAULT_id
     ctx.dbSession.add(dbObject)
     ctx.dbSession.flush(
         objects=[

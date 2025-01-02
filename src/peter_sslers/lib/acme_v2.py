@@ -1193,7 +1193,7 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         # acme_challenge_response
-        assert dbAcmeChallenge.token  # could be null on Orderless
+        assert dbAcmeChallenge.token
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
             self.accountKeyData,
@@ -1278,7 +1278,7 @@ class AuthenticatedUser(object):
             )
 
         # acme_challenge_response
-        assert dbAcmeChallenge.token  # could be null on Orderless
+        assert dbAcmeChallenge.token
         keyauthorization = create_challenge_keyauthorization(
             dbAcmeChallenge.token,
             self.accountKeyData,

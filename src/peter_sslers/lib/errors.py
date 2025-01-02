@@ -133,10 +133,6 @@ class AcmeDuplicateChallenge_PreAuthz(AcmeDuplicateChallenge):
     pass
 
 
-class AcmeDuplicateOrderlessDomain(AcmeDuplicateChallenges):
-    pass
-
-
 class AcmeServerError(AcmeError):
     pass
 

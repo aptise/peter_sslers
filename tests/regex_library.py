@@ -154,13 +154,6 @@ RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
 )
 
 
-# note: AcmeOrderless
-
-RE_AcmeOrderless = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-orderless/(\d+)$"""
-)
-
-
 # note: CertificateCA
 
 RE_CertificateCA_uploaded = re.compile(

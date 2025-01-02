@@ -283,7 +283,7 @@ def do__AcmeV2_AcmeAccount__key_change(
         )
         if TYPE_CHECKING:
             assert cu_key_technology is not None
-        key_technology_id = model_utils.KeyTechnology.from_validate_key(
+        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
             cu_key_technology
         )
         assert key_technology_id
@@ -2244,7 +2244,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 private_key_cycle_id__renewal=private_key_cycle_id__renewal,
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 order_url=order_url,
-                certificate_type_id=model_utils.CertificateType.PRIMARY,
+                certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
                 dbAcmeAccount=dbAcmeAccount,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbEventLogged=dbAcmeOrderEventLogged,
@@ -2670,6 +2670,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             cert_domains_expected=dbAcmeOrder.domains_as_list,
             dbCertificateCAChain=dbCertificateCAChains_all[0],
             dbPrivateKey=dbAcmeOrder.private_key,
+            certificate_type_id=ValueError("xxx"),
             # optionals
             dbAcmeOrder=dbAcmeOrder,
             dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
@@ -2924,7 +2925,7 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
                 private_key_cycle_id__renewal=private_key_cycle_id__renewal,
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 order_url=order_url,
-                certificate_type_id=model_utils.CertificateType.PRIMARY,
+                certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
                 dbAcmeAccount=dbAcmeAccount,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbEventLogged=dbAcmeOrderEventLogged,

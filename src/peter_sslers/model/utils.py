@@ -792,12 +792,14 @@ class CertificateType(_mixin_mapping):
     What role is the certificate
     """
 
-    PRIMARY = 1
-    BACKUP = 2
+    RAW_IMPORTED = 1
+    MANAGED_PRIMARY = 2
+    MANAGED_BACKUP = 3
 
     _mapping = {
-        1: "Primary",
-        2: "Backup",
+        1: "RawImported",
+        2: "ManagedPrimary",
+        3: "ManagedBackup",
     }
 
 
@@ -933,6 +935,7 @@ class KeyTechnology(_mixin_mapping):
     _options_EC = (4, 5)
 
     _DEFAULT = "EC_P256"
+    _DEFAULT_id: int
     _DEFAULT_AcmeAccount = "EC_P256"
     _DEFAULT_AcmeAccount_id: int
     _DEFAULT_AcmeAccount_order_default = "EC_P256"
@@ -940,6 +943,7 @@ class KeyTechnology(_mixin_mapping):
     _DEFAULT_AcmeOrder = "EC_P256"
     _DEFAULT_AcmeOrder_id: int
     _DEFAULT_PrivateKey = "EC_P256"
+    _DEFAULT_PrivateKey_id: int
     _DEFAULT_GlobalKey = "EC_P256"
     _DEFAULT_GlobalKey_id: int
     _DEFAULT_RenewalConfiguration = "account_default"
@@ -970,20 +974,20 @@ class KeyTechnology(_mixin_mapping):
         return kwargs
 
     @classmethod
-    def from_validate_key(cls, cu_args: Tuple) -> int:
+    def from_cert_utils_tuple(cls, cu_args: Tuple) -> int:
         if cu_args[0] == "EC":
             if cu_args[1][0] == "P-256":
                 return cls.EC_P256
             elif cu_args[1][0] == "P-384":
                 return cls.EC_P384
-        elif cu_args[1] == "RSA":
+        elif cu_args[0] == "RSA":
             if cu_args[1][0] == 2048:
                 return cls.RSA_2048
             elif cu_args[1][0] == 3072:
                 return cls.RSA_3072
             elif cu_args[1][0] == 4096:
                 return cls.RSA_4096
-        raise ValueError("unknown cu_args")
+        raise ValueError("unknown cu_args: %s", cu_args)
 
 
 KeyTechnology._options_AcmeAccount_private_key_technology = [
@@ -1002,6 +1006,8 @@ KeyTechnology._options_RenewalConfiguration_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id
 ]
+
+KeyTechnology._DEFAULT_id = KeyTechnology.from_string(KeyTechnology._DEFAULT)
 KeyTechnology._DEFAULT_AcmeAccount_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_AcmeAccount
 )
@@ -1013,6 +1019,9 @@ KeyTechnology._DEFAULT_AcmeOrder_id = KeyTechnology.from_string(
 )
 KeyTechnology._DEFAULT_GlobalKey_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_GlobalKey
+)
+KeyTechnology._DEFAULT_PrivateKey_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_PrivateKey
 )
 KeyTechnology._DEFAULT_RenewalConfiguration_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_RenewalConfiguration

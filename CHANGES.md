@@ -32,8 +32,7 @@
             * customized -> via a new RenewalConfiguration
 
     Removed:
-        AcmeFlow/AcmeOrderless - not necessary
-
+        AcmeFlow/AcmeOrderless - not worth maintaining
 
     preliminary ari-check support
     py313 testsing

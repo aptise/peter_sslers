@@ -142,28 +142,30 @@
                     <tr>
                         <th>Renewals Managed by</th>
                         <td>
-                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
-                                <code>AcmeOrder</code>
-                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
-                                <code>CertificateSigned</code>
+                            % if CertificateSigned.renewals_managed_by and CertificateSigned.renewals_managed_by[0] == "RenewalConfiguration":
+                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.renewals_managed_by[1]}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RenewalConfiguration-${CertificateSigned.renewals_managed_by[1]}</a>
+                            % else:
+                                <span class="label label-warning">
+                                    unavailable
+                                </span>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>Renewal Strategy</th>
                         <td>
-                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
-                                % if CertificateSigned.acme_order.is_auto_renew:
-                                    <span class="label label-success">auto-renew enabled</span>
+                            % if CertificateSigned.renewals_managed_by and CertificateSigned.renewals_managed_by[0] == "RenewalConfiguration":
+                                % if CertificateSigned.acme_order.renewal_configuration.is_active:
+                                    <span class="label label-success">auto-renew active</span>
                                 % else:
                                     <span class="label label-danger">auto-renew disabled</span>
                                 % endif
-                                <a class="label label-info" href="${admin_prefix}/acme-order/${CertificateSigned.acme_order.id}">
+                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.renewals_managed_by[1]}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${CertificateSigned.acme_order.id}
+                                    RenewalConfiguration-${CertificateSigned.renewals_managed_by[1]}
                                 </a>
-                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
-                                <p>Imported CertificateSigneds do not support auto-renew. Queue a renewal AcmeOrder below to enroll in auto-renewal.</p>
                             % endif
                         </td>
                     </tr>
@@ -200,6 +202,10 @@
                                 </span>
                             % endif
                         </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_type</th>
+                        <td><code>${CertificateSigned.certificate_type}</code></td>
                     </tr>
                     <tr>
                         <th>cert_serial</th>
