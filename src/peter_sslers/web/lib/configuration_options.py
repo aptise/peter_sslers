@@ -17,10 +17,6 @@ documentation_grid = {
             "docstring": "If `True`, then public views are enabled. Otherwise they are disabled.",
             "show_on_settings": True,
         },
-        "enable_acme_flow": {
-            "docstring": "If `True`, then the `AcmeFlow` helper is enabled. Otherwise it is disabled.",
-            "show_on_settings": True,
-        },
         "block_competing_challenges": {
             "docstring": "If `True`, then a `Domain` can only have one challenge at a time.",
             "show_on_settings": True,

@@ -28,7 +28,6 @@ from ...model.objects import AcmeDnsServerAccount
 from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
-from ...model.objects import AcmeOrderless
 from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
@@ -46,6 +45,7 @@ from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
 from ...model.objects import QueueCertificate
 from ...model.objects import QueueDomain
+from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
 from ...model.objects import UniqueFQDNSet
@@ -615,7 +615,7 @@ def get__AcmeChallenge__by_challenge_url(
 def get__AcmeChallenge__challenged(
     ctx: "ApiContext", domain_name: str, challenge: str
 ) -> Optional[AcmeChallenge]:
-    # ???: Should we ensure the associated AcmeAuthorization/AcmeOrderless is active?
+    # ???: Should we ensure the associated AcmeAuthorization is active?
     # see https://tools.ietf.org/html/rfc8555#section-8.3
     # GET : /path/to/{token}
     # the following two are IDENTICAL:
@@ -704,12 +704,6 @@ def get__AcmeChallenges__by_DomainId__active(
             AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id,
             isouter=True,
         )
-        # Path2: AcmeChallenge>AcmeOrderless
-        .join(
-            AcmeOrderless,
-            AcmeChallenge.acme_orderless_id == AcmeOrderless.id,
-            isouter=True,
-        )
         # shared filters
         .filter(
             AcmeChallenge.domain_id == domain_id,
@@ -729,11 +723,6 @@ def get__AcmeChallenges__by_DomainId__active(
                         model_utils.Acme_Status_Order.IDS_BLOCKING
                     ),
                     # TOO LAX: AcmeOrder.is_processing.is_(True),
-                ),
-                # Path2 - Orderless
-                sqlalchemy.and_(
-                    AcmeChallenge.acme_orderless_id.is_not(None),
-                    AcmeOrderless.is_processing.is_(True),
                 ),
             ),
         )
@@ -1004,62 +993,6 @@ def get__AcmeEventLogs__by_AcmeOrderId__paginated(
         .offset(offset)
     )
     return query.all()
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__AcmeOrderless__count(ctx: "ApiContext") -> int:
-    counted = ctx.dbSession.query(AcmeOrderless).count()
-    return counted
-
-
-def get__AcmeOrderless__paginated(
-    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[AcmeOrderless]:
-    query = ctx.dbSession.query(AcmeOrderless)
-    query = query.order_by(AcmeOrderless.id.desc()).limit(limit).offset(offset)
-    dbAcmeOrderlesss = query.all()
-    return dbAcmeOrderlesss
-
-
-def get__AcmeOrderless__by_id(
-    ctx: "ApiContext", order_id: int, eagerload_web: bool = False
-) -> Optional[AcmeOrderless]:
-    q = ctx.dbSession.query(AcmeOrderless).filter(AcmeOrderless.id == order_id)
-    item = q.first()
-    return item
-
-
-def get__AcmeOrderless__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
-    counted = (
-        ctx.dbSession.query(AcmeOrderless)
-        .join(
-            AcmeChallenge,
-            AcmeOrderless.id == AcmeChallenge.acme_orderless_id,
-        )
-        .filter(AcmeChallenge.domain_id == domain_id)
-        .count()
-    )
-    return counted
-
-
-def get__AcmeOrderless__by_DomainId__paginated(
-    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[AcmeOrderless]:
-    items_paged = (
-        ctx.dbSession.query(AcmeOrderless)
-        .join(
-            AcmeChallenge,
-            AcmeOrderless.id == AcmeChallenge.acme_orderless_id,
-        )
-        .filter(AcmeChallenge.domain_id == domain_id)
-        .order_by(AcmeChallenge.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2360,12 +2293,6 @@ def _get__Domains_challenged__core(ctx: "ApiContext"):
             AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id,
             isouter=True,
         )
-        # Path2: AcmeChallenge>AcmeOrderless
-        .join(
-            AcmeOrderless,
-            AcmeChallenge.acme_orderless_id == AcmeOrderless.id,
-            isouter=True,
-        )
         # shared filters
         .filter(
             # ???: http challenges only
@@ -2384,11 +2311,6 @@ def _get__Domains_challenged__core(ctx: "ApiContext"):
                         model_utils.Acme_Status_Order.IDS_BLOCKING
                     ),
                     # TOO LAX: AcmeOrder.is_processing.is_(True),
-                ),
-                # Path2 - Orderless
-                sqlalchemy.and_(
-                    AcmeChallenge.acme_orderless_id.is_not(None),
-                    AcmeOrderless.is_processing.is_(True),
                 ),
             ),
         )
@@ -3095,6 +3017,68 @@ def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
         .offset(offset)
         .all()
     )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__RenewalConfiguration__by_id(
+    ctx: "ApiContext",
+    id_: int,
+) -> Optional[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(RenewalConfiguration.id == id_)
+    item = q.first()
+    return item
+
+
+def get__RenewalConfiguration__count(
+    ctx: "ApiContext",
+    active_status: Optional[bool] = None,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration)
+    if active_status in (True, False):
+        q = q.filter(RenewalConfiguration.is_active == active_status)
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfiguration__paginated(
+    ctx: "ApiContext",
+    active_status: Optional[bool] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration)
+    if active_status in (True, False):
+        q = q.filter(RenewalConfiguration.is_active == active_status)
+    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__RenewalConfigurations__by_AcmeAccountId__count(
+    ctx: "ApiContext",
+    acme_account_id: int,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.acme_account_id == acme_account_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfigurations__by_AcmeAccountId__paginated(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.acme_account_id == acme_account_id
+    )
+    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    items_paged = q.all()
     return items_paged
 
 

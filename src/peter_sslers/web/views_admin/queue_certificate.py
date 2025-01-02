@@ -370,7 +370,7 @@ class View_New(Handler):
                     "UniqueFQDNSet",
                 ),
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "account_key_option": model_utils.AcmeAccountKey_options_b,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
@@ -513,7 +513,7 @@ class View_New(Handler):
             },
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "account_key_option": model_utils.AcmeAccountKey_options_b,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,

@@ -4,6 +4,9 @@ from typing import List
 from typing import Tuple
 
 # pypi
+import cert_utils
+from cert_utils.model import KeyTechnologyEnum
+from cert_utils.model import NewKeyArgs
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Mapped
 from sqlalchemy.sql import expression
@@ -230,7 +233,7 @@ class _OperationsUnified(_mixin_mapping):
         133: "AcmeAccount__mark__default",
         134: "AcmeAccount__mark__notdefault",
         135: "AcmeAccount__edit",
-        136: "AcmeAccount__edit__private_key_cycle",
+        136: "AcmeAccount__edit__order_defaults",
         137: "AcmeAccount__edit_AcmeAccountKey",
         138: "AcmeAccount__edit__private_key_technology",
         139: "AcmeAccount__mark__deactivated",
@@ -241,6 +244,7 @@ class _OperationsUnified(_mixin_mapping):
         650: "AcmeOrder_New_Retry",
         651: "AcmeOrder_Renew_Custom",
         652: "AcmeOrder_Renew_Quick",
+        653: "AcmeOrder_New_RenewalConfiguration",
         661: "AcmeOrder__mark__renew_auto",
         662: "AcmeOrder__mark__renew_manual",
         1100: "AcmeServer__activate_default",
@@ -319,6 +323,10 @@ class _OperationsUnified(_mixin_mapping):
         740: "CertificateSigned__revoke",
         751: "CertificateSigned__deactivate_expired",
         752: "CertificateSigned__deactivate_duplicate",
+        1500: "RenewalConfiguration__insert",
+        1530: "RenewalConfiguration__mark",
+        1531: "RenewalConfiguration__mark__active",
+        1532: "RenewalConfiguration__mark__inactive",
         510: "UniqueFQDNSet__insert",
         1002: "operations__update_recents__global",
         1003: "operations__update_recents__domains",
@@ -656,7 +664,6 @@ class AcmeChallengeType(_mixin_mapping):
     }
 
     DEFAULT = "http-01"
-    _OPTIONS_AcmeOrderless_AddChallenge = ("http-01",)
 
 
 class AcmeChallengeFailType(_mixin_mapping):
@@ -748,6 +755,9 @@ class AcmeOrderType(_mixin_mapping):
     ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
     QUEUE_CERTIFICATE = 11
     QUEUE_DOMAINS = 12
+
+    RENEWAL_CONFIGURATION_REQUEST = 21
+    RENEWAL_CONFIGURATION_AUTOMATED = 22
     _mapping = {
         1: "ACME Automated (New)",
         2: "ACME Automated (Retry)",
@@ -756,6 +766,8 @@ class AcmeOrderType(_mixin_mapping):
         5: "ACME Automated (New - Certificate if Needed)",
         11: "Queue - Certificate Renewal",
         12: "Queue - Domains",
+        21: "RenewalConfiguration - Request",
+        22: "RenewalConfiguration - Automated",
     }
 
 
@@ -772,6 +784,20 @@ class CertificateRequestSource(_mixin_mapping):
     _mapping = {
         1: "imported",
         2: "acme_order",
+    }
+
+
+class CertificateType(_mixin_mapping):
+    """
+    What role is the certificate
+    """
+
+    PRIMARY = 1
+    BACKUP = 2
+
+    _mapping = {
+        1: "Primary",
+        2: "Backup",
     }
 
 
@@ -870,41 +896,126 @@ class DomainsChallenged(dict):
         raise ValueError("domain is not challenged")
 
 
+class KeyDeactivationType(_mixin_mapping):
+    ACCOUNT_KEY_ROLLOVER = 1
+
+    _mapping = {
+        1: "ACCOUNT_KEY_ROLLOVER",
+    }
+
+
 class KeyTechnology(_mixin_mapping):
     """
     What kind of Certificate/Key is this?
     """
 
-    RSA = 1
-    EC = 2  # ECDSA
-    # DSA = 3
+    ACCOUNT_DEFAULT = 0
+    RSA_2048 = 1
+    RSA_3072 = 2
+    RSA_4096 = 3
+    EC_P256 = 4  # ECDSA
+    EC_P384 = 5  # ECDSA
 
     _mapping = {
-        1: "RSA",
-        2: "EC",
-        # 3: "DSA",
+        0: "account_default",
+        1: "RSA_2048",
+        2: "RSA_3072",
+        3: "RSA_4096",
+        4: "EC_P256",
+        5: "EC_P384",
     }
 
-    _options_AcmeAccount_private_key_technology_id = (
-        1,
-        2,
-    )
-    _DEFAULT_AcmeAccount = "RSA"
+    _options_AcmeAccount_private_key_technology_id = (1, 2, 3, 4, 5)
+    _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
+    _options_AcmeOrder_private_key_technology_id = (1, 2, 3, 4, 5)
+    _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
+    _options_RSA = (1, 2, 3)
+    _options_EC = (4, 5)
+
+    _DEFAULT = "EC_P256"
+    _DEFAULT_AcmeAccount = "EC_P256"
     _DEFAULT_AcmeAccount_id: int
-    _DEFAULT_GlobalKey = "RSA"
+    _DEFAULT_AcmeAccount_order_default = "EC_P256"
+    _DEFAULT_AcmeAccount_order_default_id: int
+    _DEFAULT_AcmeOrder = "EC_P256"
+    _DEFAULT_AcmeOrder_id: int
+    _DEFAULT_PrivateKey = "EC_P256"
+    _DEFAULT_GlobalKey = "EC_P256"
     _DEFAULT_GlobalKey_id: int
+    _DEFAULT_RenewalConfiguration = "account_default"
+    _DEFAULT_RenewalConfiguration_id: int
+    _options: List[str]
     _options_AcmeAccount_private_key_technology: List[str]
+    _options_AcmeAccount_order_default: List[str]
+    _options_AcmeOrder_private_key_technology: List[str]
+    _options_RenewalConfiguration_private_key_technology: List[str]
+
+    @classmethod
+    def to_new_args(cls, id_) -> NewKeyArgs:
+        kwargs: NewKeyArgs = {}
+        if id_ in (cls.RSA_2048, cls.RSA_3072, cls.RSA_4096):
+            kwargs["key_technology_id"] = KeyTechnologyEnum.RSA
+            if id_ == cls.RSA_2048:
+                kwargs["rsa_bits"] = 2048
+            elif id_ == cls.RSA_3072:
+                kwargs["rsa_bits"] = 3072
+            elif id_ == cls.RSA_4096:
+                kwargs["rsa_bits"] = 4096
+        elif id_ in (cls.EC_P256, cls.EC_P384):
+            kwargs["key_technology_id"] = KeyTechnologyEnum.EC
+            if id_ == cls.EC_P256:
+                kwargs["ec_curve"] = "P-256"
+            elif id_ == cls.EC_P384:
+                kwargs["ec_curve"] = "P-384"
+        return kwargs
+
+    @classmethod
+    def from_validate_key(cls, cu_args: Tuple) -> int:
+        if cu_args[0] == "EC":
+            if cu_args[1][0] == "P-256":
+                return cls.EC_P256
+            elif cu_args[1][0] == "P-384":
+                return cls.EC_P384
+        elif cu_args[1] == "RSA":
+            if cu_args[1][0] == 2048:
+                return cls.RSA_2048
+            elif cu_args[1][0] == 3072:
+                return cls.RSA_3072
+            elif cu_args[1][0] == 4096:
+                return cls.RSA_4096
+        raise ValueError("unknown cu_args")
 
 
 KeyTechnology._options_AcmeAccount_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_AcmeAccount_private_key_technology_id
 ]
+KeyTechnology._options_AcmeAccount_order_default = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_AcmeAccount_order_default_id
+]
+KeyTechnology._options_AcmeOrder_private_key_technology = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_AcmeOrder_private_key_technology_id
+]
+KeyTechnology._options_RenewalConfiguration_private_key_technology = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+]
 KeyTechnology._DEFAULT_AcmeAccount_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_AcmeAccount
 )
+KeyTechnology._DEFAULT_AcmeAccount_order_default_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_AcmeAccount_order_default
+)
+KeyTechnology._DEFAULT_AcmeOrder_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_AcmeOrder
+)
 KeyTechnology._DEFAULT_GlobalKey_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_GlobalKey
+)
+KeyTechnology._DEFAULT_RenewalConfiguration_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_RenewalConfiguration
 )
 
 
@@ -914,19 +1025,22 @@ class PrivateKeyCycle(_mixin_mapping):
     """
 
     _mapping = {
-        1: "single_certificate",
-        2: "account_daily",
-        3: "global_daily",
-        4: "account_weekly",
-        5: "global_weekly",
-        6: "account_key_default",  # use the options for the AcmeAcountKey
+        1: "account_default",  # use the Account Default
+        2: "single_use",
+        3: "account_daily",  # use the account's daily key
+        4: "global_daily",  # use a global daily key
+        5: "account_weekly",  # use the account's weekly key
+        6: "global_weekly",  # use the global weekly key
+        7: "single_use__reuse_1_year",  # reuse the single certificate for up to one year
     }
-    _options_AcmeAccount_private_key_cycle_id = (
-        1,
+    _options_AcmeAccount_order_default_id = (
+        # 1, #  this IS the Account Default
         2,
         3,
         4,
         5,
+        6,
+        7,
     )
     _options_AcmeOrder_private_key_cycle_id = (
         1,
@@ -935,23 +1049,38 @@ class PrivateKeyCycle(_mixin_mapping):
         4,
         5,
         6,
+        7,
     )
-    _DEFAULT_AcmeAccount = "single_certificate"
-    _DEFAULT_AcmeOrder = "account_key_default"
-    _DEFAULT_system_renewal = "single_certificate"
+    _options_RenewalConfiguration_private_key_cycle_id = (
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+    )
+    _DEFAULT_AcmeOrder = "account_default"
+    _DEFAULT_AcmeAccount_order_default = "single_use__reuse_1_year"
+    _DEFAULT_system_renewal = "single_use"
 
-    _options_AcmeAccount_private_key_cycle: List[str]
+    _options_AcmeAccount_order_default: List[str]
     _options_AcmeOrder_private_key_cycle: List[str]
+    _options_RenewalConfiguration_private_key_cycle: List[str]
 
 
 # compute this for ease of `curl` options
-PrivateKeyCycle._options_AcmeAccount_private_key_cycle = [
+PrivateKeyCycle._options_AcmeAccount_order_default = [
     PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
+    for _id in PrivateKeyCycle._options_AcmeAccount_order_default_id
 ]
 PrivateKeyCycle._options_AcmeOrder_private_key_cycle = [
     PrivateKeyCycle._mapping[_id]
     for _id in PrivateKeyCycle._options_AcmeOrder_private_key_cycle_id
+]
+PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle = [
+    PrivateKeyCycle._mapping[_id]
+    for _id in PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
 ]
 
 
@@ -989,11 +1118,12 @@ class PrivateKeyType(_mixin_mapping):
     _mapping = {
         0: "placeholder",
         1: "standard",
-        2: "single_certificate",
+        2: "single_use",
         3: "global_daily",
         4: "global_weekly",
         5: "account_daily",
         6: "account_weekly",
+        7: "single_use__reuse_1_year",
     }
 
     _options_calendar = (
@@ -1009,6 +1139,21 @@ class PrivateKeyType(_mixin_mapping):
     _options_calendar_daily = ("global_daily" "account_daily",)
 
 
+class PrivateKeyDeferred(_mixin_mapping):
+    """
+    What kind of PrivateKeyDeferred is this?
+    """
+
+    ACCOUNT_DEFAULT = 1
+    GENERATE__RSA_4096 = 2
+    GENERATE__EC_P256 = 3
+    _mapping = {
+        1: "account_default",
+        2: "generate__rsa_4096",
+        3: "generate__ec_p256",
+    }
+
+
 class _mixin_OperationsEventType(object):
     operations_event_type_id: Mapped[int]
 
@@ -1022,21 +1167,21 @@ class _mixin_OperationsEventType(object):
 #
 
 
-AcmeAccontKey_options_a = (
+AcmeAccountKey_options_a = (
     "account_key_global_default",
     "account_key_existing",
     "account_key_file",
 )
 
 
-AcmeAccontKey_options_b = (
+AcmeAccountKey_options_b = (
     "account_key_reuse",
     "account_key_global_default",
     "account_key_existing",
     "account_key_file",
 )
 
-AcmeAccontKey_options_c = (
+AcmeAccountKey_options_c = (
     "account_key_reuse",
     "account_key_global_default",
     "account_key_existing",
@@ -1048,8 +1193,9 @@ AcmeAccontKey_options_c = (
 PrivateKey_options_a = (
     "private_key_existing",
     "private_key_file",
-    "private_key_generate",
-    "private_key_for_account_key",
+    "private_key_generate__ec_p256",
+    "private_key_generate__rsa_4096",
+    "account_default",
 )
 
 
@@ -1057,7 +1203,8 @@ PrivateKey_options_b = (
     "private_key_reuse",
     "private_key_existing",
     "private_key_file",
-    "private_key_generate",
+    "private_key_generate__ec_p256",
+    "private_key_generate__rsa_4096",
     "private_key_for_account_key",
 )
 
@@ -1072,10 +1219,11 @@ PrivateKeySelection_2_PrivateKeyStrategy = {
 
 
 PrivateKeyCycle_2_PrivateKeyStrategy = {
-    "single_certificate": "deferred-generate",
+    "single_use": "deferred-generate",
+    "single_use__reuse_1_year": "deferred-associate",
     "account_daily": "deferred-associate",
     "global_daily": "deferred-associate",
     "account_weekly": "deferred-associate",
     "global_weekly": "deferred-associate",
-    "account_key_default": "*lookup*",
+    "account_default": "*lookup*",
 }

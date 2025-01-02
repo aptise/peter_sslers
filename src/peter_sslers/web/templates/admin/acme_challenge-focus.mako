@@ -149,19 +149,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeOrderless</th>
-                        <td>
-                            % if AcmeChallenge.acme_orderless_id:
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/acme-orderless/${AcmeChallenge.acme_orderless_id}"
-                                >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrderless-${AcmeChallenge.acme_orderless_id}
-                                </a>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>domain</th>
                         <td>
                             % if AcmeChallenge.domain_id:

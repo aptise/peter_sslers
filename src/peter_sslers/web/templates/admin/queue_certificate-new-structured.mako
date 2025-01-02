@@ -134,7 +134,7 @@
                                 % endif
                             </td>
                             <td>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=PrivateKey_reuse, option_account_key_default=True, option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=PrivateKey_reuse, option_account_default=True, option_generate_new=True)}
                             </td>
                         </tr>
                         <tr>

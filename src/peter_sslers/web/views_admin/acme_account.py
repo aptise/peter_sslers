@@ -108,14 +108,12 @@ class View_New(Handler):
                 "account_key_file_le_pkey": "Group B",
                 "account_key_file_le_reg": "Group B",
                 "account__contact": "the contact's email address for the ACME Server",
-                "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
             },
             "notes": [
                 "You must submit ALL items from Group A or Group B",
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
             },
         }
     )
@@ -212,12 +210,10 @@ class View_New(Handler):
             "form_fields": {
                 "acme_server_id": "which provider",
                 "account__contact": "the contact's email address for the ACME Server",
-                "account__private_key_cycle": "how should the PrivateKey be cycled for this account?",
                 "account__private_key_technology": "what is the key technology preference for this account?",
             },
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
                 "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
             },
         }
@@ -271,13 +267,26 @@ class View_New(Handler):
             parser.require_new(require_contact=True)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
-            key_pem = cert_utils.new_account_key()  # rsa_bits=None
+
+            rsa_bits = None
+            ec_curve = None
+            cu_key_technology_id: int
+            _private_key_technology_id = key_create_args["private_key_technology_id"]
+
+            # convert the args
+            cu_new_args = model_utils.KeyTechnology.to_new_args(
+                _private_key_technology_id
+            )
+            key_pem = cert_utils.new_account_key(
+                key_technology_id=cu_new_args["key_technology_id"],
+                rsa_bits=cu_new_args.get("rsa_bits"),
+                ec_curve=cu_new_args.get("ec_curve"),
+            )
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccount__create"
             key_create_args["acme_account_key_source_id"] = (
                 model_utils.AcmeAccountKeySource.from_string("generated")
             )
-
             dbAcmeAccount = None
             _dbAcmeAccount = None
             try:
@@ -295,6 +304,7 @@ class View_New(Handler):
                         self.request.api_context, _dbAcmeAccount
                     )
                 )
+                # copy this over to signify a total success
                 dbAcmeAccount = _dbAcmeAccount
 
             except errors.ConflictingObject as exc:
@@ -343,7 +353,7 @@ class View_New(Handler):
             if _dbAcmeAccount and not dbAcmeAccount:
                 # we've created an AcmeAccount locally but not on the server
                 # right now, this will persist to the DB, which causes issues
-                raise ValueError("Fix Me")
+                raise ValueError("Account Local but not Upstream")
 
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -792,6 +802,39 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account:focus:renewal_configurations",
+        renderer="/admin/acme_account-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:renewal_configurations_paginated",
+        renderer="/admin/acme_account-focus-renewal_configurations.mako",
+    )
+    def related__QueueCertificates(self):
+        dbAcmeAccount = self._focus()
+        items_count = lib_db.get.get__RenewalConfigurations__by_AcmeAccountId__count(
+            self.request.api_context, dbAcmeAccount.id
+        )
+        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__RenewalConfigurations__by_AcmeAccountId__paginated(
+                self.request.api_context,
+                dbAcmeAccount.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount": dbAcmeAccount,
+            "RenewalConfigurations_count": items_count,
+            "RenewalConfigurations": items_paged,
+            "pager": pager,
+        }
+
 
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_account:focus:edit")
@@ -805,16 +848,14 @@ class View_Focus_Manipulate(View_Focus):
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/acme-account/1/edit.json",
             "instructions": [
-                """curl --form 'account__private_key_cycle=certificate'"""
+                """curl"""
                 """ --form 'account__private_key_technology=rsa'"""
                 """ {ADMIN_PREFIX}/acme-account/{ID}/edit.json""",
             ],
             "form_fields": {
-                "account__private_key_cycle": "option for cycling the PrivateKey on renewals",
                 "account__private_key_technology": "what is the key technology preference for this account?",
             },
             "valid_options": {
-                "account__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
                 "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
             },
         }
@@ -854,24 +895,6 @@ class View_Focus_Manipulate(View_Focus):
                 "old": {},
                 "new": {},
             }
-            private_key_cycle = formStash.results["account__private_key_cycle"]
-            if private_key_cycle != self.dbAcmeAccount.private_key_cycle:
-                try:
-                    event_payload_dict["edit"]["old"][
-                        "private_key_cycle"
-                    ] = self.dbAcmeAccount.private_key_cycle
-                    event_payload_dict["edit"]["new"][
-                        "private_key_cycle"
-                    ] = private_key_cycle
-                    event_status = lib_db.update.update_AcmeAccount__private_key_cycle(
-                        self.request.api_context,
-                        self.dbAcmeAccount,
-                        private_key_cycle,
-                    )
-                except errors.InvalidTransition as exc:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(message=exc.args[0])
-
             private_key_technology = formStash.results[
                 "account__private_key_technology"
             ]
@@ -889,6 +912,50 @@ class View_Focus_Manipulate(View_Focus):
                             self.dbAcmeAccount,
                             private_key_technology,
                         )
+                    )
+                except errors.InvalidTransition as exc:
+                    # `formStash.fatal_form(` will raise a `FormInvalid()`
+                    formStash.fatal_form(message=exc.args[0])
+
+            order_default_private_key_cycle = formStash.results[
+                "account__order_default_private_key_cycle"
+            ]
+            order_default_private_key_technology = formStash.results[
+                "account__order_default_private_key_technology"
+            ]
+            if (
+                order_default_private_key_cycle
+                != self.dbAcmeAccount.order_default_private_key_cycle
+            ) or (
+                order_default_private_key_technology
+                != self.dbAcmeAccount.order_default_private_key_technology
+            ):
+                if (
+                    order_default_private_key_cycle
+                    != self.dbAcmeAccount.order_default_private_key_cycle
+                ):
+                    event_payload_dict["edit"]["old"][
+                        "order_default_private_key_cycle"
+                    ] = self.dbAcmeAccount.order_default_private_key_cycle
+                    event_payload_dict["edit"]["new"][
+                        "order_default_private_key_cycle"
+                    ] = order_default_private_key_cycle
+                elif (
+                    order_default_private_key_technology
+                    != self.dbAcmeAccount.order_default_private_key_technology
+                ):
+                    event_payload_dict["edit"]["old"][
+                        "order_default_private_key_technology"
+                    ] = self.dbAcmeAccount.order_default_private_key_technology
+                    event_payload_dict["edit"]["new"][
+                        "order_default_private_key_technology"
+                    ] = order_default_private_key_technology
+                try:
+                    event_status = lib_db.update.update_AcmeAccount__order_defaults(
+                        self.request.api_context,
+                        self.dbAcmeAccount,
+                        order_default_private_key_cycle,
+                        order_default_private_key_technology,
                     )
                 except errors.InvalidTransition as exc:
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
@@ -1527,23 +1594,36 @@ class View_Focus_Manipulate(View_Focus):
                         field="key_pem_existing",
                         message="This does not match the active account key",
                     )
-
+            is_did_keychange: bool = False
             try:
-                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
-                    self.request.api_context,
-                    dbAcmeAccount=dbAcmeAccount,
-                    key_pem_new=None,
-                    transaction_commit=True,
+                (athdUser, is_did_keychange) = (
+                    lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
+                        self.request.api_context,
+                        dbAcmeAccount=dbAcmeAccount,
+                        key_pem_new=None,
+                        transaction_commit=True,
+                    )
                 )
             except errors.ConflictingObject as exc:
                 # args[0] = tuple(conflicting_object, error_message_string)
                 formStash.fatal_form(message=str(exc.args[0][1]))
+
             if self.request.wants_json:
+                if not is_did_keychange:
+                    return {
+                        "result": "success",
+                        "AcmeAccount": dbAcmeAccount.as_json,
+                        "note": "A key was generated, but the change did not persist on the ACMEServer",
+                    }
                 return {
                     "result": "success",
                     "AcmeAccount": dbAcmeAccount.as_json,
                 }
-
+            if not is_did_keychange:
+                return HTTPSeeOther(
+                    "%s?&result=success&operation=acme-server--key-change&note=acme-server-failure"
+                    % (self._focus_url,)
+                )
             return HTTPSeeOther(
                 "%s?&result=success&operation=acme-server--key-change"
                 % (self._focus_url,)

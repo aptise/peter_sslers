@@ -1,4 +1,40 @@
-0.6.1
+1.0.0
+    This is large rewrite and reorganization.
+    
+    This application was originally built to toss "domains" at, and generate
+    certificates for them.  An internal process just queued domains onto a local
+    install, and the install would be responsible for initial procurement.
+    Internal systems requested the renewals of a cert, and later that ability was
+    added onto this application.
+    
+    Trying to build "renewals" off of Certificates has now become too much of
+    a hassle.  With a nod to Certbot, the primary object is now a
+    RenewalConfiguration, which is the nexus of an Account + Domains
+    (including preferred challenges per domain) + and Certificate Preferences.
+    
+    Under the new design:
+    
+    * Accounts have specfic default preferences
+    * The defaults are used to seed "RenewalConfiguration" objects
+    * "RenewalConfigurations" are a nexus of Account + Domains + Preferences
+    
+    Previously:
+        Create an AcmeOrder
+        A Certificate can be renewed
+            * quick
+            * customized
+    
+    Now:
+        Create an AcmeOrder will first create a RenewalConfiguration
+        Create a RenewalConfiguration
+        A Certificate can be renewed:
+            * quick -> via existing RenewalConfiguration
+            * customized -> via a new RenewalConfiguration
+
+    Removed:
+        AcmeFlow/AcmeOrderless - not necessary
+
+
     preliminary ari-check support
     py313 testsing
 

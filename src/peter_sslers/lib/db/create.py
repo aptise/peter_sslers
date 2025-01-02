@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServerAccount
     from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
-    from ...model.objects import AcmeOrderless
     from ...model.objects import AcmeOrderSubmission
     from ...model.objects import AcmeServer
     from ...model.objects import AriCheck
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
     from ...model.objects import DomainAutocert
     from ...model.objects import PrivateKey
     from ...model.objects import QueueCertificate
+    from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ..utils import ApiContext
     from ...model.utils import DomainsChallenged
@@ -112,76 +112,6 @@ def create__AcmeServer(
     return dbAcmeServer
 
 
-def create__AcmeOrderless(
-    ctx: "ApiContext",
-    domains_challenged: "DomainsChallenged",
-    dbAcmeAccount: Optional["AcmeAccount"],
-) -> "AcmeOrderless":
-    """
-    Create a new AcmeOrderless Tracker
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param dbAcmeAccount: (optional) A :class:`lib.utils.AcmeAccount` object
-
-    Handle the DomainNames FIRST.
-    We do not want to generate an `AcmeOrderless` if there are no `Domains`.
-    """
-    # validate the domains that were submitted
-    # we already test for this on submission, but be safe!
-    if not domains_challenged:
-        raise ValueError("domains_challenged is required")
-    _domain_names_all = domains_challenged.domains_as_list
-    # this may raise errors.AcmeDomainsBlocklisted
-    validate_domain_names(ctx, _domain_names_all)
-
-    # only http01 challenges are supported right now
-    domains_challenged.ensure_parity(domains_challenged["http-01"])
-
-    domain_objects = {
-        _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
-            ctx,
-            _domain_name,
-            discovery_type="via ACME Orderless",
-        )[
-            0
-        ]  # (dbDomain, _is_created)
-        for _domain_name in domains_challenged["http-01"]
-    }
-
-    assert ctx.request
-    assert ctx.request.registry
-    assert ctx.timestamp
-    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
-        active_challenges = []
-        for domain_name, dbDomain in domain_objects.items():
-            # error out on ANY acme_challenge_type_id
-            _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
-                ctx, dbDomain.id
-            )
-            if _active_challenges:
-                active_challenges.extend(_active_challenges)
-        if active_challenges:
-            raise errors.AcmeDuplicateChallengesExisting(active_challenges)
-
-    dbAcmeOrderless = model_objects.AcmeOrderless()
-    dbAcmeOrderless.is_processing = True
-    dbAcmeOrderless.timestamp_created = ctx.timestamp
-    dbAcmeOrderless.acme_account_id = dbAcmeAccount.id if dbAcmeAccount else None
-    ctx.dbSession.add(dbAcmeOrderless)
-    ctx.dbSession.flush(objects=[dbAcmeOrderless])
-
-    for domain_name, dbDomain in domain_objects.items():
-        dbAcmeChallenge = create__AcmeChallenge(  # noqa: F841
-            ctx,
-            dbDomain=dbDomain,
-            acme_challenge_type_id=model_utils.AcmeChallengeType.from_string("http-01"),
-            # optionals
-            dbAcmeOrderless=dbAcmeOrderless,
-        )
-
-    return dbAcmeOrderless
-
-
 def create__AcmeOrder(
     ctx: "ApiContext",
     acme_order_response: Dict,
@@ -192,10 +122,13 @@ def create__AcmeOrder(
     private_key_cycle_id__renewal: int,
     private_key_strategy_id__requested: int,
     order_url: str,
+    certificate_type_id: int,
     dbAcmeAccount: "AcmeAccount",
     dbUniqueFQDNSet: "UniqueFQDNSet",
     dbEventLogged: "AcmeEventLog",
     transaction_commit: Literal[True],
+    # transition to required
+    dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
     # optionals
     is_auto_renew: bool = True,
     is_save_alternate_chains: bool = True,
@@ -203,6 +136,7 @@ def create__AcmeOrder(
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
+    private_key_deferred_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -219,9 +153,12 @@ def create__AcmeOrder(
     :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
     :param order_url: (required) the url of the object
+    :param certificate_type_id: (required) The value of :class:`model.utils.CertificateType`
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
+
+    :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
 
     :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
@@ -229,6 +166,7 @@ def create__AcmeOrder(
     :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
+    :param private_key_deferred_id: (optional) See `model.utils.PrivateKeyDeferred`
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
@@ -254,6 +192,9 @@ def create__AcmeOrder(
             "Unsupported `private_key_strategy_id__requested`: %s"
             % private_key_strategy_id__requested
         )
+
+    if certificate_type_id not in model_utils.CertificateType._mapping:
+        raise ValueError("Unsupported `certificate_type_id`: %s" % certificate_type_id)
 
     if acme_order_response is None:
         raise ValueError(
@@ -322,6 +263,7 @@ def create__AcmeOrder(
     dbAcmeOrder.is_save_alternate_chains = is_save_alternate_chains
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.order_url = order_url
+    dbAcmeOrder.certificate_type_id = certificate_type_id
     dbAcmeOrder.acme_order_type_id = acme_order_type_id
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
@@ -329,6 +271,7 @@ def create__AcmeOrder(
     dbAcmeOrder.private_key_cycle_id__renewal = private_key_cycle_id__renewal
     dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.acme_account_id = dbAcmeAccount.id
+    dbAcmeOrder.renewal_configuration_id = dbRenewalConfiguration.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = (
         dbCertificateRequest.id if dbCertificateRequest else None
@@ -344,7 +287,7 @@ def create__AcmeOrder(
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
     if dbAcmeOrder_renewal_of:
         dbAcmeOrder.acme_order_id__renewal_of = dbAcmeOrder_renewal_of.id
-
+    dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -450,7 +393,6 @@ def create__AcmeChallenge(
     dbDomain: "Domain",
     acme_challenge_type_id: int,
     # optionals
-    dbAcmeOrderless: Optional["AcmeOrderless"] = None,
     dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
     challenge_url: Optional[str] = None,
     token: Optional[str] = None,
@@ -463,7 +405,6 @@ def create__AcmeChallenge(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) The :class:`model.objects.Domain`
     :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallengeType`.
-    :param dbAcmeOrderless: (optional) The :class:`model.objects.AcmeOrderless`
     :param dbAcmeAuthorization: (optional) The :class:`model.objects.AcmeAuthorization`
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
@@ -472,21 +413,10 @@ def create__AcmeChallenge(
     :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
 
     """
-    if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
-        (dbAcmeOrderless, dbAcmeAuthorization)
-    ):
-        raise ValueError(
-            "must be invoked with one and only one of `dbAcmeOrderless` or `dbAcmeAuthorization`"
-        )
+    if not dbAcmeAuthorization:
+        raise ValueError("must be invoked with `dbAcmeAuthorization`")
     if not dbDomain:
         raise ValueError("must be invoked with `dbDomain`")
-
-    if dbAcmeOrderless:
-        orderless_domain_ids = [c.domain_id for c in dbAcmeOrderless.acme_challenges]
-        if dbDomain in orderless_domain_ids:
-            raise errors.AcmeDuplicateOrderlessDomain(
-                "Domain `%s` already in this AcmeOrderless." % dbDomain.domain_name
-            )
 
     if not acme_challenge_type_id:
         raise ValueError("must be invoked with `acme_challenge_type_id`")
@@ -509,10 +439,7 @@ def create__AcmeChallenge(
             _competing_challenges = _active_challenges
 
     dbAcmeChallenge = model_objects.AcmeChallenge()
-    if dbAcmeOrderless:
-        dbAcmeChallenge.acme_orderless_id = dbAcmeOrderless.id
-    elif dbAcmeAuthorization:
-        dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
+    dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
     dbAcmeChallenge.timestamp_created = ctx.timestamp
     dbAcmeChallenge.domain_id = dbDomain.id
     dbAcmeChallenge.acme_challenge_type_id = acme_challenge_type_id
@@ -1262,7 +1189,7 @@ def create__PrivateKey(
     private_key_source_id: int,
     private_key_type_id: int,
     # optionals
-    key_technology_id: int = model_utils.KeyTechnology.from_string("RSA"),
+    key_technology_id: int = model_utils.KeyTechnology._DEFAULT_PrivateKey,
     private_key_id__replaces: Optional[int] = None,
     acme_account_id__owner: Optional[int] = None,
     discovery_type: Optional[str] = None,
@@ -1439,6 +1366,122 @@ def create__QueueCertificate(
     )
 
     return dbQueueCertificate
+
+
+def create__RenewalConfiguration(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    private_key_cycle_id: int,
+    key_technology_id: int,
+    domains_challenged: "DomainsChallenged",
+) -> "RenewalConfiguration":
+    """
+    Queues an item for renewal
+
+    This must happen within the context other events
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
+    :returns :class:`model.objects.RenewalConfiguration`
+    """
+    if (
+        private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
+    ):
+        raise ValueError(
+            "Unsupported `private_key_cycle_id`: %s" % private_key_cycle_id
+        )
+    if (
+        key_technology_id
+        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+    ):
+        raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
+    if not dbAcmeAccount.is_active:
+        raise ValueError("must supply active `dbAcmeAccount`")
+
+    assert ctx.timestamp
+
+    # this may raise errors.AcmeDomainsBlocklisted
+    _domain_names_all = domains_challenged.domains_as_list
+    validate_domain_names(ctx, _domain_names_all)
+
+    _domain_objects: Dict[str, "Domain"] = {}
+    for _chall, _domains in domains_challenged.items():
+        if not _domains:
+            continue
+        for _domain_name in _domains:
+            _domain_objects[
+                _domain_name
+            ] = lib.db.getcreate.getcreate__Domain__by_domainName(
+                ctx,
+                _domain_name,
+                discovery_type="via RenewalConfiguration",
+            )[
+                0
+            ]  # (dbDomain, _is_created)
+
+    dbUniqueFQDNSet, _is_created = (
+        lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
+            ctx,
+            domainObjects=[i for i in _domain_objects.values()],
+            discovery_type="via RenewalConfiguration",
+        )
+    )
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("RenewalConfiguration__insert")
+    )
+
+    dbRenewalConfiguration = model_objects.RenewalConfiguration()
+    dbRenewalConfiguration.timestamp_created = ctx.timestamp
+    dbRenewalConfiguration.is_active = True
+    dbRenewalConfiguration.operations_event_id__created = dbOperationsEvent.id
+    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
+    dbRenewalConfiguration.key_technology_id = key_technology_id
+
+    # core elements
+    dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
+    dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
+
+    ctx.dbSession.add(dbRenewalConfiguration)
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
+
+    # now generate RenewalChallengePreferences
+    _dbPrefs = []
+    for _chall, _domains in domains_challenged.items():
+        if not _domains:
+            continue
+        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(_chall)
+        for _domain_name in _domains:
+            dbPref = model_objects.RenewalConfiguration2AcmeChallengeTypeSpecific(
+                renewal_configuration_id=dbRenewalConfiguration.id,
+                domain_id=_domain_objects[_domain_name].id,
+                acme_challenge_type_id=acme_challenge_type_id,
+            )
+            ctx.dbSession.add(dbPref)
+            _dbPrefs.append(dbPref)
+    if _dbPrefs:
+        ctx.dbSession.flush(objects=_dbPrefs)
+
+    # more bookkeeping!
+    event_payload_dict["renewal_configuration.id"] = dbRenewalConfiguration.id
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            "RenewalConfiguration__insert"
+        ),
+        dbRenewalConfiguration=dbRenewalConfiguration,
+    )
+
+    return dbRenewalConfiguration
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

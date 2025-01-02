@@ -319,15 +319,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeOrderless</th>
-                        <td>
-                            ${admin_partials.table_AcmeOrderlesss(Domain.acme_orderlesss__5, perspective="Domain")}
-                            % if Domain.acme_orderlesss__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/acme-orderlesss" % (admin_prefix, Domain.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>DomainAutocerts</th>
                         <td>
                             ${admin_partials.table_DomainAutocerts(Domain.domain_autocerts__5, perspective="Domain")}

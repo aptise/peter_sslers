@@ -384,7 +384,6 @@ class View_Focus(Handler):
                 ) = lib_db.getcreate.getcreate__Domain__by_domainName(
                     self.request.api_context,
                     _domain_name,
-                    is_from_queue_domain=False,
                     discovery_type="via acme_dns_server._ensure_domains__submit",
                 )
                 if not _is_created__domain:
@@ -577,7 +576,6 @@ class View_Focus(Handler):
             ) = lib_db.getcreate.getcreate__Domain__by_domainName(
                 self.request.api_context,
                 domain_name,
-                is_from_queue_domain=False,
                 discovery_type="via acme_dns_server._import_domain__submit",
             )
             _dbAcmeDnsServerAccount = None

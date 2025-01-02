@@ -49,7 +49,7 @@
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True, default="private_key_for_account_key")}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_default=True, option_generate_new=True, default="account_default")}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names(specify_challenge=True)}

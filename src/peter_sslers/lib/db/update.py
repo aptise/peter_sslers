@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeOrder
-    from ...model.objects import AcmeOrderless
     from ...model.objects import CertificateSigned
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CoverageAssuranceEvent
@@ -213,26 +212,61 @@ def update_AcmeAccount__set_global_default(
     return event_status, alt_info
 
 
-def update_AcmeAccount__private_key_cycle(
+def update_AcmeAccount__order_defaults(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    private_key_cycle: str,
+    order_default_private_key_cycle: str,
+    order_default_private_key_technology: str,
 ) -> str:
-    if dbAcmeAccount.private_key_cycle == private_key_cycle:
-        raise errors.InvalidTransition("Already updated: `private_key_cycle`")
-    try:
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle
+    _transitions: List[str] = []
+    if dbAcmeAccount.order_default_private_key_cycle != order_default_private_key_cycle:
+        try:
+            order_default_private_key_cycle_id = (
+                model_utils.PrivateKeyCycle.from_string(order_default_private_key_cycle)
+            )
+        except KeyError:
+            raise errors.InvalidTransition(
+                "Invalid option: `order_default_private_key_cycle`"
+            )
+        if (
+            order_default_private_key_cycle_id
+            not in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default_id
+        ):
+            raise errors.InvalidTransition(
+                "Invalid option: `order_default_private_key_cycle`"
+            )
+        dbAcmeAccount.order_default_private_key_cycle_id = (
+            order_default_private_key_cycle_id
         )
-    except KeyError:
-        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
+        _transitions.append("order_default_private_key_cycle_id")
     if (
-        private_key_cycle_id
-        not in model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
+        dbAcmeAccount.order_default_private_key_technology
+        != order_default_private_key_technology
     ):
-        raise errors.InvalidTransition("Invalid option: `private_key_cycle`")
-    dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
-    event_status = "AcmeAccount__edit__private_key_cycle"
+        try:
+            order_default_private_key_technology_id = (
+                model_utils.KeyTechnology.from_string(
+                    order_default_private_key_technology
+                )
+            )
+        except KeyError:
+            raise errors.InvalidTransition(
+                "Invalid option: `order_default_private_key_technology`"
+            )
+        if (
+            order_default_private_key_technology_id
+            not in model_utils.KeyTechnology._options_AcmeAccount_order_default_id
+        ):
+            raise errors.InvalidTransition(
+                "Invalid option: `order_default_private_key_technology`"
+            )
+        dbAcmeAccount.order_default_private_key_technology_id = (
+            order_default_private_key_technology_id
+        )
+        _transitions.append("order_default_private_key_technology_id")
+    if not _transitions:
+        raise ValueError("No valid transitions atempted")
+    event_status = "AcmeAccount__edit__order_defaults"
     return event_status
 
 
@@ -431,20 +465,6 @@ def update_AcmeOrder_set_renew_manual(
     # cleanup options
     event_status = "AcmeOrder__mark__renew_manual"
     return event_status
-
-
-def update_AcmeOrderless_deactivate(
-    ctx: "ApiContext",
-    dbAcmeOrderless: "AcmeOrderless",
-) -> bool:
-    """
-    `deactivate` should mark the order as:
-        `is_processing = False`
-    """
-    dbAcmeOrderless.is_processing = False
-    dbAcmeOrderless.timestamp_updated = ctx.timestamp
-    ctx.dbSession.flush(objects=[dbAcmeOrderless])
-    return True
 
 
 def update_AcmeServer__activate_default(
@@ -919,4 +939,27 @@ def update_CertificateSigned__unset_revoked(
     # lead is_active and is_deactivated as-is
     # cleanup options
     event_status = "CertificateSigned__mark__unrevoked"
+    return event_status
+
+
+def update_RenewalConfiguration__set_active(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+) -> str:
+    if dbRenewalConfiguration.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    dbRenewalConfiguration.is_active = True
+    event_status = "RenewalConfiguration__mark__active"
+    return event_status
+
+
+def update_RenewalConfiguration__unset_active(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+) -> str:
+    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    if not dbRenewalConfiguration.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    dbRenewalConfiguration.is_active = False
+    event_status = "RenewalConfiguration__mark__inactive"
     return event_status

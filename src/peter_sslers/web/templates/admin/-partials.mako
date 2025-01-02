@@ -76,6 +76,7 @@
                 <th>acme_account_id</th>
                 <th><!-- active --></th>
                 <th>source</th>
+                <th>key_technology</th>
                 % if perspective != "AcmeAccount":
                     <th>provider</th>
                 % endif
@@ -86,9 +87,14 @@
         <tbody>
             % for key in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccountKey-${key.id}</a></td>
+                    <td>
+                        ## <a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
+                        ## <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        <span class="label label-default">
+                            AcmeAccountKey-${key.id}
+                        </span>
+                        ##</a>
+                        </td>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${key.acme_account_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeAccount-${key.acme_account_id}</a></td>
@@ -99,6 +105,7 @@
                             <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
+                    <td><span class="label label-default">${key.key_technology}</span></td>
                     <td><span class="label label-default">${key.acme_account_key_source}</span></td>
                     % if perspective != "AcmeAccount":
                         <td><span class="label label-info">${key.acme_account.acme_server.name}</span></td>
@@ -541,53 +548,6 @@
 </%def>
 
 
-<%def name="table_AcmeOrderlesss(acme_orderlesss, perspective=None)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>is active</th>
-                <th>AcmeAccount</th>
-                <th>timestamp_created</th>
-                <th>timestamp_finalized</th>
-            </tr>
-        </thead>
-        <tbody>
-            % for order_ in acme_orderlesss:
-                <tr>
-                    <td>
-                        <a href="${admin_prefix}/acme-orderless/${order_.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrderless-${order_.id}
-                        </a>
-                    </td>
-                    <td>
-                        % if order_.is_processing:
-                            <div class="label label-success">
-                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
-                            </div>
-                        % else:
-                            <div class="label label-danger">
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                            </div>
-                        % endif
-                    </td>
-                    <td>
-                        % if order_.acme_account_id:
-                            <a href="${admin_prefix}/acme-account/${order_.acme_account_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${order_.id}
-                            </a>
-                        % endif
-                    </td>
-                    <td><timestamp>${order_.timestamp_created or ''}</timestamp></td>
-                    <td><timestamp>${order_.timestamp_finalized or ''}</timestamp></td>
-                </tr>
-            % endfor
-        </tbody>
-    </table>
-</%def>
-
 
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
@@ -599,6 +559,7 @@
                 "timestamp_created",
                 "timestamp_finalized",
                 "acme_account_id",
+                "renewal_configuration_id",
                 "certificate_request_id",
                 "certificate_signed_id",
                 "unique_fqdn_set_id",
@@ -613,6 +574,8 @@
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
             cols = [c for c in cols if c != "acme_account_id"]
+        elif perspective == 'RenewalConfiguration':
+            cols = [c for c in cols if c != "renewal_configuration_id"]
         elif perspective == 'UniqueFQDNSet':
             cols = [c for c in cols if c != "unique_fqdn_set_id"]
         else:
@@ -683,6 +646,13 @@
                                     <a href="${admin_prefix}/certificate-signed/${acme_order.certificate_signed_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         CertificateSigned-${acme_order.certificate_signed_id}
+                                    </a>
+                                % endif
+                            % elif c == 'renewal_configuration_id':
+                                % if acme_order.renewal_configuration_id:
+                                    <a href="${admin_prefix}/renewal-configuration/${acme_order.renewal_configuration_id}" class="label label-info">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        RenewalConfiguration-${acme_order.renewal_configuration_id}
                                     </a>
                                 % endif
                             % elif c == 'unique_fqdn_set_id':
@@ -1359,6 +1329,64 @@
 </%def>
 
 
+<%def name="table_RenewalConfigurations(data, perspective=None)">
+    <%
+        cols = ("id",
+                "timestamp_created",
+                "acme_account_id",
+                "unique_fqdn_set_id",
+               )
+        if perspective == 'RenewalConfiguration':
+            cols = [c for c in cols]
+        elif perspective == 'AcmeAccount':
+            cols = [c for c in cols if c != "acme_account_id"]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for renewal_configuration in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/renewal-configuration/${renewal_configuration.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RenewalConfiguration-${renewal_configuration.id}
+                                </a>
+                            % elif c == 'acme_account_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${renewal_configuration.acme_account_id}
+                                </a>
+                            % elif c == 'unique_fqdn_set_id':
+                                <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniqueFQDNSet-${renewal_configuration.unique_fqdn_set_id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${renewal_configuration.timestamp_created or ''}</timestamp>
+                            % elif c == 'is_active':
+                                <timestamp>${renewal_configuration.is_active or ''}</timestamp>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_RootStores(root_stores)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -1576,7 +1604,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, allow_no_key=False)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, allow_no_key=False, support_upload=True,)">
     <%
         checked = {
             "none": "",
@@ -1664,34 +1692,21 @@
                <input class="form-control" name="account_key_existing" id="account_key_existing-pem_md5" type="text"/>
             </div>
         </div>
-        <div class="radio">
-            <label>
-                <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
-                Upload a new AcmeAccount
-                ${formgroup__AcmeAccount_file()}
-            </label>
-        </div>
+        % if support_upload:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
+                    Upload a new AcmeAccount
+                    ${formgroup__AcmeAccount_file()}
+                </label>
+            </div>
+        % endif
     </div>
 </%def>
 
 
 <%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True)">
     <table class="table table-condensed">
-        <thead>
-            <tr><th>Private Key Cycling (*required)</th></tr>
-        </thead>
-        <tbody>
-            <tr><td>
-                <div class="form-group">
-                    <select class="form-control" name="account__private_key_cycle">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
-            </td></tr>
-        </tbody>
         <thead>
             <tr><th>Complete A or B</th></tr>
         </thead>
@@ -1901,13 +1916,41 @@
 </%def>
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_key_default=None, option_generate_new=None, default=None)">
+<%def name="formgroup__private_key_cycle(default=None)">
+    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
+    <div class="form-group">
+        <label for="private_key_cycle">Private Key Cycle</label>
+        <select class="form-control" name="private_key_cycle">
+            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__key_technology(default=None, options=None)">
+    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
+    <% options = options or model_websafe.KeyTechnology._options %>
+    <div class="form-group">
+        <label for="key_technology">Key Technology</label>
+        <select class="form-control" name="key_technology">
+            % for _option_text in options:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None)">
     <%
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",
-            "private_key_for_account_key": "",
-            "private_key_generate": "",
+            "account_default": "",
+            "private_key_generate__ec_p256": "",
+            "private_key_generate__rsa_4096": "",
             "private_key_existing": "",
             "private_key_file_pem": "",
         }
@@ -1915,20 +1958,20 @@
             selected[default] = _checked
         else:
             if dbPrivateKeyReuse:
-                if option_account_key_default:
-                    selected["private_key_for_account_key"] = _checked
+                if option_account_default:
+                    selected["account_default"] = _checked
                 else:
                     selected["private_key_reuse"] = _checked
             else:
-                selected["private_key_for_account_key"] = _checked
+                selected["account_default"] = _checked
     %>
     <p>Select a PrivateKey with one of the following options</p>
     <div class="form-horizontal">
-        % if option_account_key_default:
+        % if option_account_default:
             <div class="radio">
-                <label for="private_key_option-private_key_for_account_key">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_for_account_key" value="private_key_for_account_key" ${selected["private_key_for_account_key"]}>
-                    Use the AcmeAccount&#39;s Default PrivateKey or Strategy
+                <label for="private_key_option-account_default">
+                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]}>
+                    Use the AcmeAccount&#39;s Default PrivateKey Settings
                 </label>
             </div>
         % endif
@@ -1958,9 +2001,15 @@
         % endif        
         % if option_generate_new:
             <div class="radio">
-                <label for="private_key_option-private_key_generate">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]}>
-                    Generate a new PrivateKey with 4096 bits.
+                <label for="private_key_option-private_key_generate__rsa_4096">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate__rsa_4096" value="private_key_generate__rsa_4096" ${selected["private_key_generate__rsa_4096"]}>
+                    Generate a new RSA PrivateKey with 4096 bits.
+                </label>
+            </div>
+            <div class="radio">
+                <label for="private_key_option-private_key_generate__ec_p256">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate__ec_p256" value="private_key_generate__ec_p256" ${selected["private_key_generate__ec_p256"]}>
+                    Generate a new EC PrivateKey on the P-256 cruve.
                 </label>
             </div>
         % endif

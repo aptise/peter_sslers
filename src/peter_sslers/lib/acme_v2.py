@@ -353,7 +353,7 @@ def b64_payload(payload=Any) -> str:
     if payload is None:
         return ""
     # cert_utils.jose_b64 -> string
-    return cert_utils.jose_b64(json.dumps(payload).encode("utf8"))
+    return cert_utils.jose_b64(json.dumps(payload, sort_keys=True).encode("utf8"))
 
 
 def sign_payload(
@@ -368,9 +368,9 @@ def sign_payload(
     """
     # TODO: type for kid
     protected: Dict = {
-        "url": url,
         "alg": accountKeyData.alg,
         "nonce": nonce,
+        "url": url,
     }
     if kid:
         protected.update({"kid": kid})
@@ -382,8 +382,17 @@ def sign_payload(
     signature = cert_utils.account_key__sign(
         protected_input,
         key_pem=accountKeyData.key_pem,
-        key_pem_filepath=accountKeyData.key_pem_filepath,
     )
+    """
+    # DEBUGGING
+    if False:
+        _verified = cert_utils.account_key__verify(
+            signature,
+            protected_input,
+            key_pem=accountKeyData.key_pem,
+        )
+    """
+
     _signed_payload = json.dumps(
         {
             "protected": protected64,
@@ -442,8 +451,13 @@ def sign_payload_inner(
     signature = cert_utils.account_key__sign(
         protected_input,
         key_pem=accountKeyData.key_pem,
-        key_pem_filepath=accountKeyData.key_pem_filepath,
     )
+    if True:
+        _verified = cert_utils.account_key__verify(
+            signature,
+            protected_input,
+            key_pem=accountKeyData.key_pem,
+        )
     _signed_payload = {
         "protected": protected64,
         "payload": payload64,
@@ -473,15 +487,12 @@ class AuthenticatedUser(object):
         self,
         acmeLogger: "AcmeLogger",
         acmeAccount: "AcmeAccount",
-        account_key_path: Optional[str] = None,
         acme_directory: Optional[Dict] = None,
         log__OperationsEvent: Optional[Callable] = None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
         :param acmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-        :param account_key_path: (optional) The filepath of a PEM encoded RSA key.
-            This is only needed for openssl fallback, but it will be created if necessary.
         :param acme_directory: (optional) The ACME Directory payload. If not supplied, this will
             be generated.
         :param log__OperationsEvent: (required) callable function to log the operations event
@@ -495,7 +506,6 @@ class AuthenticatedUser(object):
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
             key_pem=acmeAccount.acme_account_key.key_pem,
-            key_pem_filepath=account_key_path,
         )
 
         # configure the object!
@@ -980,6 +990,7 @@ class AuthenticatedUser(object):
                 payload=_payload_inner,
                 accountKeyData=accountKeyData_new,
             )
+
             (
                 acme_response,
                 status_code,
@@ -1000,6 +1011,9 @@ class AuthenticatedUser(object):
             dbAcmeAccountKey_old = self.acmeAccount.acme_account_key
             dbAcmeAccountKey_old.is_active = None
             dbAcmeAccountKey_old.timestamp_deactivated = ctx.timestamp
+            dbAcmeAccountKey_old.key_deactivation_type_id = (
+                model_utils.KeyDeactivationType.ACCOUNT_KEY_ROLLOVER
+            )
             ctx.dbSession.flush(objects=[dbAcmeAccountKey_old])
             # turn on the new and flush
             self.acmeAccount.acme_account_key = dbAcmeAccountKey_new
@@ -1024,6 +1038,9 @@ class AuthenticatedUser(object):
                     ),
                     event_payload_dict,
                 )
+
+        except Exception as exc:
+            raise
 
         finally:
             return is_did_keychange
@@ -1683,10 +1700,6 @@ class AuthenticatedUser(object):
             raise ValueError(
                 "unexpected challenge status: `%s`" % _challenge_status_text
             )
-
-        import pdb
-
-        pdb.set_trace()
 
         if _task__complete_challenge:
             self.prepare_acme_challenge(

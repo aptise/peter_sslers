@@ -24,17 +24,36 @@ Application
 	- queue certificates - process
 	- automatic renewal - update to create queues
 	- creating queue-certificates/freeform (domains)
-* AcmeAccont/new
+* AcmeAccount/new
     - There is a bug in which an account is locally created but fails on the
       sync with the acme server.  Due to how pyramid_transaction is leveraged
       and how we catch the error, the local account is saved to disk but a
       phantom error appears.  We should catch this and either drop the account
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
+    [x] Select EC or RSA for initial setup
+    
 * Integrate for Domains: Challenged & AuthorizationPotential
 * Detect if cert_utils needs tempfiles; autofail if so. 100% Cryptography
 * Ensure an AcmeAccountKey is unique (not used across servers)
 
+* ACME Client
+    track nonces from headers
+    track header metadata hook, as LetsEncrypt wil offer info
+
+* PrivateKeys
+    * `single_certificate` renamed to `single_use`
+    * adding new `single_use__reuse_1_year`
+    * dropping _options_AcmeAccount_private_key_cycle
+    * dropping account__private_key_cycle
+    
+* Renewals
+    * implement single_use__reuse_1_year
+    
+* Create a "Renewable Configuration"; renewals should be based on that.
+    [x] create object and routes
+    [ ] import letsencrypt
+    [ ] remap as central object for renewals
 
 AuthorizationPotential
     [x] focus page to remove manually

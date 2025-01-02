@@ -941,6 +941,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Retry should create a new order
         """
+        raise ValueError("REPLACED BY /renewal-configuration/retry-order")
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":
@@ -1035,7 +1036,7 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "account_key_option": model_utils.AcmeAccountKey_options_b,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
@@ -1053,6 +1054,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
         """
+        raise ValueError("REPLACED BY /renewal-configuration/new-configuration")
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeServers()
         if self.request.method == "POST":
@@ -1183,6 +1185,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with this same Account .
         """
+        raise ValueError("REPLACED BY /renewal-configuration/new-order")
         if self.request.method == "POST":
             return self._renew_quick__submit()
         return self._renew_quick__print()
@@ -1309,7 +1312,7 @@ class View_New(Handler):
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_b,
+                "account_key_option": model_utils.AcmeAccountKey_options_b,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
@@ -1372,6 +1375,11 @@ class View_New(Handler):
 
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_deferred_id = None
+            if privateKeySelection.private_key_deferred:
+                private_key_deferred_id = model_utils.PrivateKeyDeferred.from_string(
+                    privateKeySelection.private_key_deferred
+                )
             try:
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
@@ -1397,6 +1405,7 @@ class View_New(Handler):
                         processing_strategy=processing_strategy,
                         dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                         dbPrivateKey=privateKeySelection.PrivateKey,
+                        private_key_deferred_id=private_key_deferred_id,
                     )
 
                 except Exception as exc:

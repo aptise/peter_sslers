@@ -80,8 +80,9 @@ def getcreate__AcmeAccount(
     terms_of_service: Optional[str] = None,
     account_url: Optional[str] = None,
     event_type: str = "AcmeAccount__insert",
-    private_key_cycle_id: Optional[int] = None,
     private_key_technology_id: Optional[int] = None,
+    order_default_private_key_cycle_id: Optional[int] = None,
+    order_default_private_key_technology_id: Optional[int] = None,
 ) -> Tuple["AcmeAccount", bool]:
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
@@ -106,8 +107,9 @@ def getcreate__AcmeAccount(
     :param contact: (optional) contact info from acme server
     :param terms_of_service: (optional) str
     :param account_url: (optional)
-    :param private_key_cycle_id: (optional) id corresponding to a :class:`model.utils.PrivateKeyCycle`
     :param private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
+    :param order_default_private_key_cycle_id: (optional) id corresponding to a :class:`model.utils.PrivateKeyCycle`
+    :param order_default_private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
     """
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError(
@@ -128,14 +130,6 @@ def getcreate__AcmeAccount(
     else:
         raise ValueError("invalid `event_type`")
 
-    # KeyCycle
-    if private_key_cycle_id is None:
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount
-        )
-    if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
-        raise ValueError("invalid `private_key_cycle_id`")
-
     # KeyTechnology
     if private_key_technology_id is None:
         private_key_technology_id = model_utils.KeyTechnology.from_string(
@@ -146,6 +140,27 @@ def getcreate__AcmeAccount(
         not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
     ):
         raise ValueError("invalid `private_key_technology_id`")
+
+    # AcmeOrder Defaults
+    if order_default_private_key_cycle_id is None:
+        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default
+        )
+    if (
+        order_default_private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default_id
+    ):
+        raise ValueError("invalid `order_default_private_key_cycle_id`")
+
+    if order_default_private_key_technology_id is None:
+        order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount_order_default
+        )
+    if (
+        order_default_private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_order_default_id
+    ):
+        raise ValueError("invalid `order_default_private_key_technology_id`")
 
     # scoping
     # _letsencrypt_data = None
@@ -285,7 +300,8 @@ def getcreate__AcmeAccount(
         )
 
     # scoping
-    key_technology = None
+    cu_key_technology = None
+    key_technology_id: Optional[int] = None
     acckey__spki_sha256 = None
     _tmpfile = None
     try:
@@ -293,13 +309,16 @@ def getcreate__AcmeAccount(
             _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
         # validate + grab the technology
-        key_technology = cert_utils.validate_key(
+        cu_key_technology = cert_utils.validate_key(
             key_pem=key_pem,
             key_pem_filepath=_tmpfile.name if _tmpfile else None,
         )
-
         if TYPE_CHECKING:
-            assert key_technology is not None
+            assert cu_key_technology is not None
+        key_technology_id = model_utils.KeyTechnology.from_validate_key(
+            cu_key_technology
+        )
+        assert key_technology_id
 
         # grab the spki
         acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
@@ -328,8 +347,13 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.terms_of_service = terms_of_service
     dbAcmeAccount.account_url = account_url
     dbAcmeAccount.acme_server_id = acme_server_id
-    dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
+    dbAcmeAccount.order_default_private_key_cycle_id = (
+        order_default_private_key_cycle_id
+    )
+    dbAcmeAccount.order_default_private_key_technology_id = (
+        order_default_private_key_technology_id
+    )
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
@@ -341,9 +365,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.timestamp_created = ctx.timestamp
     dbAcmeAccountKey.key_pem = key_pem
     dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-    dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
-        key_technology
-    )
+    dbAcmeAccountKey.key_technology_id = key_technology_id
     dbAcmeAccountKey.spki_sha256 = acckey__spki_sha256
     dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
@@ -1172,7 +1194,6 @@ def getcreate__CertificateSigned(
 def getcreate__Domain__by_domainName(
     ctx: "ApiContext",
     domain_name: str,
-    is_from_queue_domain: Optional[bool] = None,
     discovery_type: Optional[str] = None,
 ) -> Tuple["Domain", bool]:
     """
@@ -1182,7 +1203,6 @@ def getcreate__Domain__by_domainName(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
-    :param is_from_queue_domain:
     :param discovery_type:
     """
     is_created = False
@@ -1195,7 +1215,6 @@ def getcreate__Domain__by_domainName(
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name
         dbDomain.timestamp_created = ctx.timestamp
-        dbDomain.is_from_queue_domain = is_from_queue_domain
         dbDomain.operations_event_id__created = dbOperationsEvent.id
         dbDomain.discovery_type = discovery_type
         ctx.dbSession.add(dbDomain)
@@ -1253,18 +1272,23 @@ def getcreate__PrivateKey__by_pem_text(
         .first()
     )
     if not dbPrivateKey:
+        key_technology_id: Optional[int] = None
         _tmpfile = None
         try:
             if cert_utils.NEEDS_TEMPFILES:
                 _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
             # validate + grab the technology
-            key_technology = cert_utils.validate_key(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
+            cu_key_technology = cert_utils.validate_key(
+                key_pem=key_pem,
+                key_pem_filepath=_tmpfile.name if _tmpfile else None,
             )
-
             if TYPE_CHECKING:
-                assert key_technology is not None
+                assert cu_key_technology is not None
+            key_technology_id = model_utils.KeyTechnology.from_validate_key(
+                cu_key_technology
+            )
+            assert key_technology_id
 
             pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
                 key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
@@ -1288,9 +1312,7 @@ def getcreate__PrivateKey__by_pem_text(
 
         dbPrivateKey = model_objects.PrivateKey()
         dbPrivateKey.timestamp_created = ctx.timestamp
-        dbPrivateKey.key_technology_id = model_utils.KeyTechnology.from_string(
-            key_technology
-        )
+        dbPrivateKey.key_technology_id = key_technology_id
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.spki_sha256 = pkey__spki_sha256
@@ -1328,7 +1350,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
     dbAcmeAccount: "AcmeAccount",
 ) -> "PrivateKey":
     """
-    getcreate wrapping a RemoteIpAddress
+    getcreate wrapping a dbAcmeAccount
 
     returns: The :class:`model.objects.PrivateKey`
     raises: ValueError
@@ -1336,18 +1358,19 @@ def getcreate__PrivateKey_for_AcmeAccount(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
     """
+    raise ValueError("migrate below line")
     private_key_cycle = dbAcmeAccount.private_key_cycle
     # private_key_technology = dbAcmeAccount.private_key_technology
     acme_account_id__owner = dbAcmeAccount.id
     dbPrivateKey_new: Optional["PrivateKey"]
-    if private_key_cycle == "single_certificate":
-        # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
+    if private_key_cycle == "single_use__reuse_1_year":
+        raise ValueError("`single_use__reuse_1_year` invalid for AcmeAccount")
+    if private_key_cycle == "single_use":
+        # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         dbPrivateKey_new = create__PrivateKey(
             ctx,
             private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string(
-                "single_certificate"
-            ),
+            private_key_type_id=model_utils.PrivateKeyType.from_string("single_use"),
             key_technology_id=dbAcmeAccount.private_key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
         )
@@ -1423,9 +1446,9 @@ def getcreate__PrivateKey_for_AcmeAccount(
             )
         return dbPrivateKey_new
 
-    elif private_key_cycle == "account_key_default":
-        # NOTE: AcmeAccountNeedsPrivateKey ; account_key_default | INVALID
-        raise ValueError("Invalid option: `account_key_default`")
+    elif private_key_cycle == "account_default":
+        # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
+        raise ValueError("Invalid option: `account_default`")
 
     else:
         # NOTE: AcmeAccountNeedsPrivateKey | INVALID
@@ -1446,7 +1469,6 @@ def getcreate__RemoteIpAddress(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
-    :param is_from_queue_domain:
     """
     is_created = False
 

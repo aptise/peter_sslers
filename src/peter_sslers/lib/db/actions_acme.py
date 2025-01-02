@@ -103,7 +103,6 @@ def do__AcmeAccount_AcmeV2_register(
         authenticatedUser = acme_v2.AuthenticatedUser(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
-            account_key_path=account_key_path,
             log__OperationsEvent=log__OperationsEvent,
         )
         authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
@@ -150,7 +149,6 @@ def do__AcmeAccount_AcmeV2_register(
 def do__AcmeAccount_AcmeV2_authenticate(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    account_key_path: Optional[str] = None,
     onlyReturnExisting: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
@@ -158,14 +156,7 @@ def do__AcmeAccount_AcmeV2_authenticate(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param account_key_path: (optional) If there is a tempfile for the
-        `dbAcmeAccount`
     :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
-
-    !!! WARNING !!!
-
-    If `account_key_path` is not provided, the ACME library will be unable to
-    perform any operations after authentication.
     """
     acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
@@ -179,7 +170,6 @@ def do__AcmeAccount_AcmeV2_authenticate(
     authenticatedUser = acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
-        account_key_path=account_key_path,
         log__OperationsEvent=log__OperationsEvent,
     )
     authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
@@ -231,7 +221,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     dbAcmeAccount: "AcmeAccount",
     key_pem_new: Optional[str] = None,
     transaction_commit: Optional[bool] = None,
-) -> "AuthenticatedUser":
+) -> Tuple["AuthenticatedUser", bool]:
     """
     Deactivates an AcmeAccount against the LetsEncrypt ACME Directory
 
@@ -257,7 +247,15 @@ def do__AcmeV2_AcmeAccount__key_change(
             "imported"
         )
     else:
-        key_pem_new = cert_utils.new_account_key()  # rsa_bits=None
+        # convert the args
+        cu_new_args = model_utils.KeyTechnology.to_new_args(
+            dbAcmeAccount.private_key_technology_id
+        )
+        key_pem_new = cert_utils.new_account_key(
+            key_technology_id=cu_new_args["key_technology_id"],
+            rsa_bits=cu_new_args.get("rsa_bits"),
+            ec_curve=cu_new_args.get("ec_curve"),
+        )
         acme_account_key_source_id = model_utils.AcmeAccountKeySource.from_string(
             "generated"
         )
@@ -270,7 +268,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     key_pem_new_md5 = cert_utils.utils.md5_text(key_pem_new)
 
     # scoping
-    key_technology = None
+    key_technology_id: Optional[int] = None
     acckey__spki_sha256 = None
 
     _tmpfile_new = None
@@ -279,17 +277,22 @@ def do__AcmeV2_AcmeAccount__key_change(
             _tmpfile_new = cert_utils.new_pem_tempfile(key_pem_new)
 
         # validate + grab the technology
-        key_technology = cert_utils.validate_key(
+        cu_key_technology = cert_utils.validate_key(
             key_pem=key_pem_new,
             key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
         )
+        if TYPE_CHECKING:
+            assert cu_key_technology is not None
+        key_technology_id = model_utils.KeyTechnology.from_validate_key(
+            cu_key_technology
+        )
+        assert key_technology_id
 
         # grab the spki
         acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
             key_pem=key_pem_new,
             key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
         )
-        assert key_technology
     finally:
         if _tmpfile_new is not None:
             _tmpfile_new.close()
@@ -305,6 +308,9 @@ def do__AcmeV2_AcmeAccount__key_change(
         dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
     )
 
+    # grab the old
+    dbAcmeAccountKey_old = dbAcmeAccount.acme_account_key
+
     # then, create the new AcmeAccountKey
     # IMPORTANT: with `.is_active = None`
     dbAcmeAccountKey_new = model_objects.AcmeAccountKey()
@@ -313,9 +319,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     dbAcmeAccountKey_new.timestamp_created = ctx.timestamp
     dbAcmeAccountKey_new.key_pem = key_pem_new
     dbAcmeAccountKey_new.key_pem_md5 = key_pem_new_md5
-    dbAcmeAccountKey_new.key_technology_id = model_utils.KeyTechnology.from_string(
-        key_technology
-    )
+    dbAcmeAccountKey_new.key_technology_id = key_technology_id
     dbAcmeAccountKey_new.spki_sha256 = acckey__spki_sha256
     dbAcmeAccountKey_new.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey_new.operations_event_id__created = (
@@ -330,6 +334,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     # the global key identifier
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
+    # this will also rotate our keys in the database
     authenticatedUser = acme_v2.AuthenticatedUser(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
@@ -342,8 +347,11 @@ def do__AcmeV2_AcmeAccount__key_change(
     if is_did_keychange:
         if transaction_commit:
             ctx.pyramid_transaction_commit()
+    else:
+        # perhaps we raise an error because thi failed?
+        pass
 
-    return authenticatedUser
+    return authenticatedUser, is_did_keychange
 
 
 def new_Authenticated_user(
@@ -362,7 +370,6 @@ def new_Authenticated_user(
     tmpfile_account = None
     if cert_utils.NEEDS_TEMPFILES:
         raise ValueError("cert_utils.NEEDS_TEMPFILES")
-        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
 
     # register the account / ensure that it is registered
     # the authenticatedUser will have a `logger.AcmeLogger` object as the
@@ -371,7 +378,6 @@ def new_Authenticated_user(
     authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
         ctx,
         dbAcmeAccount,
-        account_key_path=tmpfile_account.name if tmpfile_account else None,
     )
     return (authenticatedUser, tmpfile_account)
 
@@ -1617,6 +1623,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 is_via_acme_sync=True,
             )
 
+        raise ValueError("DEBUGGING")
         print("ALL")
         import pdb
 
@@ -1729,14 +1736,14 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         == "deferred-generate"
                     ):
                         private_key_strategy__final = "deferred-generate"
-                        # NOTE: deferred-generate ; single_certificate
+                        # NOTE: deferred-generate ; single_use
                         dbPrivateKey_new = create__PrivateKey(
                             ctx,
                             private_key_source_id=model_utils.PrivateKeySource.from_string(
                                 "generated"
                             ),
                             private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                "single_certificate"  # this COULD be "standard", but safer to lock down for now
+                                "single_use"  # this COULD be "standard", but safer to lock down for now
                             ),
                             key_technology_id=dbAcmeOrder.acme_account.private_key_technology_id,
                             acme_account_id__owner=dbAcmeOrder.acme_account.id,
@@ -1963,6 +1970,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
     dbUniqueFQDNSet=None,
     dbPrivateKey=None,
     dbQueueCertificate__of=None,
+    private_key_deferred_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
 
@@ -1978,6 +1986,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.dbUniqueFQDNSet` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
+    :param private_key_deferred_id: (optional)  A value from :class:`model.utils.PrivateKeyDeferred`
 
     One and only one of the following items must be provided:
         dbAcmeOrder_retry_of
@@ -2235,6 +2244,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 private_key_cycle_id__renewal=private_key_cycle_id__renewal,
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 order_url=order_url,
+                certificate_type_id=model_utils.CertificateType.PRIMARY,
                 dbAcmeAccount=dbAcmeAccount,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbEventLogged=dbAcmeOrderEventLogged,
@@ -2243,6 +2253,7 @@ def _do__AcmeV2_AcmeOrder__new_core(
                 dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
                 dbPrivateKey=dbPrivateKey,
+                private_key_deferred_id=private_key_deferred_id,
             )
 
             # register the AcmeOrder into the logging utility
@@ -2540,6 +2551,7 @@ def do__AcmeV2_AcmeOrder__new(
     dbPrivateKey=None,
     dbQueueCertificate__of=None,
     dbUniqueFQDNSet=None,  # only used when submitting a QueueCertificiate
+    private_key_deferred_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     Automates a Certificate deployment from LetsEncrypt
@@ -2554,6 +2566,7 @@ def do__AcmeV2_AcmeOrder__new(
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
+    :param private_key_deferred_id: (optional)  A value from :class:`model.utils.PrivateKeyDeferred`
 
     :returns: A :class:`model.objects.AcmeOrder` object
     """
@@ -2572,6 +2585,7 @@ def do__AcmeV2_AcmeOrder__new(
         dbPrivateKey=dbPrivateKey,
         dbQueueCertificate__of=dbQueueCertificate__of,
         dbUniqueFQDNSet=dbUniqueFQDNSet,
+        private_key_deferred_id=private_key_deferred_id,
     )
 
 
@@ -2790,6 +2804,253 @@ def do__AcmeV2_AcmeOrder__renew_quick(
         private_key_strategy__requested=dbAcmeOrder.private_key_strategy__requested,
         processing_strategy=processing_strategy,
     )
+
+
+def do__AcmeV2_AcmeOrder__renewal_configuration(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+    processing_strategy: Optional[str] = None,
+) -> "AcmeOrder":
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+
+    :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
+    """
+    if not dbRenewalConfiguration:
+        raise ValueError("Must submit `dbRenewalConfiguration`")
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string(
+            "AcmeOrder_New_RenewalConfiguration"
+        ),
+    )
+    acme_order_processing_strategy_id = (
+        model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
+    )
+
+    # re-use these related objects
+    dbAcmeAccount = dbRenewalConfiguration.acme_account
+    dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
+
+    # `dbAcmeOrder_retry_of` is an instance of `model_objects.AcmeOrder`
+    domains_challenged = dbRenewalConfiguration.domains_challenged
+    _domain_names = dbRenewalConfiguration.domains_as_list
+
+    # ensure we have domains names!
+    # this should be impossible otherwise, but be safe!
+    if not _domain_names:
+        raise ValueError("No `domain_names` detected for this request")
+
+    # raise a ValueError if `DomainsChallenged` object is incompatible
+    domains_challenged.ensure_parity(_domain_names)
+
+    assert ctx.request
+    assert ctx.request.registry
+    # this is REQUIRED for DNS-01; we don't really care about HTTP-01
+    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+        # check each domain for an existing active challenge
+        active_challenges = []
+        for to_domain in dbUniqueFQDNSet.to_domains:
+            _active_challenges = get__AcmeChallenges__by_DomainId__active(
+                ctx, to_domain.domain_id
+            )
+            if _active_challenges:
+                active_challenges.extend(_active_challenges)
+        if active_challenges:
+            raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+
+        active_preauthzs = []
+        for to_domain in dbUniqueFQDNSet.to_domains:
+            _active_preauthzs = (
+                get__AcmeAuthorizationPotentials__by_DomainId__paginated(
+                    ctx, to_domain.domain_id
+                )
+            )
+            if _active_preauthzs:
+                active_preauthzs.extend(_active_preauthzs)
+        if active_preauthzs:
+            raise errors.AcmeDuplicateChallengesExisting_PreAuthz(active_preauthzs)
+
+    import pdb
+
+    pdb.set_trace()
+
+    # ensure the PrivateKey is usable!
+    if not dbPrivateKey.is_key_usable:
+        raise errors.InvalidRequest(
+            "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
+        )
+
+    tmpfiles = []
+    dbAcmeOrder: Optional["AcmeOrder"] = None
+    dbCertificateSigned: Optional["CertificateSigned"] = None
+    try:
+        (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+            ctx, dbAcmeAccount
+        )
+        tmpfiles.append(tmpfile_account)
+
+        # create the order on the ACME server
+        (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
+            ctx,
+            domain_names=domain_names,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            transaction_commit=True,
+        )
+        order_url = acmeOrderRfcObject.response_headers["location"]
+        if not order_url:
+            raise ValueError("We must receive an `order_url` in the location")
+
+        # Boulder has an implementation detail to deal with buggy clients:
+        #   duplicate order submissions may return the same AcmeOrder
+        dbAcmeOrder = get__AcmeOrder__by_order_url(ctx, order_url)
+        if not dbAcmeOrder:
+            # this is a new AcmeOrder
+            # in the current application design, `authenticatedUser.acme_order_new` created the order on the acme server
+            acme_order_processing_status_id = (
+                model_utils.AcmeOrder_ProcessingStatus.from_string("created_acme")
+            )
+
+            # enroll the Acme Order into our database
+            dbAcmeOrder = create__AcmeOrder(
+                ctx,
+                acme_order_response=acmeOrderRfcObject.rfc_object,
+                acme_order_type_id=acme_order_type_id,
+                acme_order_processing_status_id=acme_order_processing_status_id,
+                acme_order_processing_strategy_id=acme_order_processing_strategy_id,
+                domains_challenged=domains_challenged,
+                private_key_cycle_id__renewal=private_key_cycle_id__renewal,
+                private_key_strategy_id__requested=private_key_strategy_id__requested,
+                order_url=order_url,
+                certificate_type_id=model_utils.CertificateType.PRIMARY,
+                dbAcmeAccount=dbAcmeAccount,
+                dbUniqueFQDNSet=dbUniqueFQDNSet,
+                dbEventLogged=dbAcmeOrderEventLogged,
+                transaction_commit=True,
+                # optionals
+                dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
+                dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
+                dbPrivateKey=dbPrivateKey,
+                private_key_deferred_id=private_key_deferred_id,
+            )
+
+            # register the AcmeOrder into the logging utility
+            authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        else:
+            # the AcmeOrder is a duplicate of an existing order
+            # use the same flow here as `do__AcmeV2_AcmeOrder__acme_server_sync`
+            # except create a record that we submitted this
+            dbAcmeOrderSubmission = create__AcmeOrderSubmission(
+                ctx,
+                dbAcmeOrder,
+            )
+
+            # register the AcmeOrder into the logging utility
+            authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+            # update the AcmeOrder if it's not the same on the database
+            # always invoke this, as it handles it's own cleanup of the model
+            result = updated_AcmeOrder_status(
+                ctx,
+                dbAcmeOrder,
+                acmeOrderRfcObject.rfc_object,
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+                is_via_acme_sync=True,
+            )
+
+        # the AcmeOrder is already failed or valid, somehow...
+        if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
+            return dbAcmeOrder
+
+        if False:
+            # immediately sync the authorizations
+            # otherwise we may allow competing authz
+            dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+
+        if (
+            acme_order_processing_strategy_id
+            == model_utils.AcmeOrder_ProcessingStrategy.create_order
+        ):
+            # we may have created this order, yet it is "ready" due to existing authorizations
+            if dbAcmeOrder.acme_status_order == "ready":
+                FINALIZE_READY_ORDERS = False
+                if FINALIZE_READY_ORDERS:
+                    dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
+                        ctx,
+                        authenticatedUser=authenticatedUser,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
+            return dbAcmeOrder
+
+        if (
+            acme_order_processing_strategy_id
+            == model_utils.AcmeOrder_ProcessingStrategy.process_single
+        ):
+            # handle the order towards finalized?
+            _task_finalize_order = _AcmeV2_AcmeOrder__process_authorizations(
+                ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
+            )
+            if not _task_finalize_order:
+                return dbAcmeOrder
+
+            dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
+                ctx,
+                authenticatedUser=authenticatedUser,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+            return dbAcmeOrder
+
+        return dbAcmeOrder
+
+    except (errors.AcmeOrderProcessing, errors.AcmeOrderValid) as exc:
+        raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
+
+    except errors.AcmeOrderFatal as exc:
+        raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
+
+    except Exception as exc:
+        raise
+
+    finally:
+        if dbQueueCertificate__of:
+            # after creating the AcmeOrder, we need to update the `dbQueueCertificate__of` with the info
+            dbQueueCertificate__of.timestamp_process_attempt = ctx.timestamp
+            dbQueueCertificate__of.timestamp_processed = ctx.timestamp
+            dbQueueCertificate__of.process_result = True if dbAcmeOrder else None
+            dbQueueCertificate__of.is_active = False  # this as processed
+
+            if dbAcmeOrder:
+                dbQueueCertificate__of.acme_order_id__generated = dbAcmeOrder.id
+                if dbAcmeOrder.certificate_request_id:
+                    dbQueueCertificate__of.certificate_request_id__generated = (
+                        dbAcmeOrder.certificate_request_id
+                    )
+                if dbAcmeOrder.certificate_signed_id:
+                    dbQueueCertificate__of.certificate_signed_id__generated = (
+                        dbAcmeOrder.certificate_signed_id
+                    )
+
+            ctx.dbSession.flush(objects=[dbQueueCertificate__of])
+
+        if (
+            processing_strategy
+            in model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_DEACTIVATE_AUTHS
+        ):
+            # shut this down to deactivate the auths on our side
+            if dbAcmeOrder:
+                dbAcmeOrder.is_processing = None
+
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            if tf is not None:
+                tf.close()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

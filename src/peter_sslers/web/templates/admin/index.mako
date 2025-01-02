@@ -77,10 +77,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains-blocklisted</a></li>
-                <li><a href="${admin_prefix}/ari-checks"
+                <li><a href="${admin_prefix}/renewal-configurations"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ari-checks</a></li>
+                    renewal-configurations</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>
@@ -97,6 +97,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-event-logs</a></li>
+                <li><a href="${admin_prefix}/ari-checks"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    ari-checks</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME & Objects</h3>
@@ -123,11 +127,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orders</a></li>
-                <li><a href="${admin_prefix}/acme-orderlesss"
-                       title="Orderless "
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-orderless</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="CertificateRequests"
                     >
@@ -216,21 +215,19 @@
             <h3>New CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
+                    <a  href="${admin_prefix}/renewal-configuration/new"
+                        title="New Renewal Configuration"
+                        class="btn btn-primary"
+                    >
+                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                    New Renewal Configuration</a></li>
+                <li>
                     <a  href="${admin_prefix}/acme-order/new/freeform"
                         title="AcmeOrder NEW Freeform"
                         class="btn btn-primary"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     New ACME Order: Automated</a></li>
-                % if request.registry.settings["app_settings"]['enable_acme_flow']:
-                    <li>
-                        <a  href="${admin_prefix}/acme-orderless/new"
-                            title="ACME Orderless"
-                            class="btn btn-primary"
-                        >
-                        <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                        New: AcmeOrderless Flow</a></li>
-                % endif
             </ul>
 
             <h3>Existing CertificateSigneds</h3>

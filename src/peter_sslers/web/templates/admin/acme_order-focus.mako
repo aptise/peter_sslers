@@ -276,13 +276,16 @@
                                 </div>
                             % endif
                             % if AcmeOrder.is_processing:
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?action=deactivate"
-                                    class="btn btn-xs btn-danger"
+                                <form method="POST"
+                                    action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark"
+                                    id="form-deactivate_order"
                                 >
-                                    <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    Deactivate
-                                </a>
+                                    <input type="hidden" name="action" value="deactivate" />
+                                    <button class="btn btn-xs btn-info btn-danger" id="btn-deactivate_order">
+                                        <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                        Deactivate
+                                    </button>
+                                </form>
                             % endif
                         </td>
                     </tr>
@@ -384,6 +387,20 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>RenewalConfiguration</th>
+                        <td>
+                            % if AcmeOrder.renewal_configuration_id:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RenewalConfiguration-${AcmeOrder.renewal_configuration_id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>order_url</th>
                         <td><code>${AcmeOrder.order_url or ''}</code>
                         </td>
@@ -427,6 +444,7 @@
                         <td>
                             % if AcmeOrder.private_key_id == 0:
                                 <span class="label label-default">placeholder key</span>
+                                <code>type: ${AcmeOrder.private_key_deferred}</code>
                             % else:
                                 <a
                                     class="label label-info"
@@ -443,6 +461,7 @@
                         <td>
                             % if AcmeOrder.private_key_id__requested == 0:
                                 <span class="label label-default">placeholder key</span>
+                                <code>type: ${AcmeOrder.private_key_deferred}</code>
                             % else:
                                 <a
                                     class="label label-info"

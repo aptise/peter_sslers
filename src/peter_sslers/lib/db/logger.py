@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from ...model.objects import PrivateKey
     from ...model.objects import QueueCertificate
     from ...model.objects import QueueDomain
+    from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ..utils import ApiContext
 
@@ -588,6 +589,7 @@ def _log_object_event(
     dbQueueDomain: Optional["QueueDomain"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
 ) -> "OperationsObjectEvent":
     """additional logging for objects"""
     dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
@@ -624,6 +626,8 @@ def _log_object_event(
         dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
     elif dbCertificateSigned:
         dbOperationsObjectEvent.certificate_signed_id = dbCertificateSigned.id
+    elif dbRenewalConfiguration:
+        dbOperationsObjectEvent.renewal_configuration_id = dbRenewalConfiguration.id
     elif dbUniqueFQDNSet:
         dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
 

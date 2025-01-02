@@ -58,8 +58,10 @@ class AcmeAccountUploadParser(object):
     le_meta_jsons: Optional[str] = None
     le_pkey_jsons: Optional[str] = None
     le_reg_jsons: Optional[str] = None
-    private_key_cycle_id: Optional[int] = None
     private_key_technology_id: Optional[int] = None
+    order_default_private_key_cycle_id: Optional[int] = None
+    order_default_private_key_technology_id: Optional[int] = None
+
     upload_type: Optional[str] = None  # pem OR letsencrypt
 
     def __init__(self, formStash: FormStash):
@@ -86,16 +88,13 @@ class AcmeAccountUploadParser(object):
                 field="acme_server_id", message="No provider submitted."
             )
 
-        private_key_cycle = formStash.results.get("account__private_key_cycle", None)
-        if private_key_cycle is None:
+        contact = formStash.results.get("account__contact", None)
+        if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__private_key_cycle",
-                message="No PrivateKey cycle submitted.",
+                field="account__contact",
+                message="`account__contact` is required.",
             )
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle
-        )
 
         private_key_technology_id = None
         private_key_technology = formStash.results.get(
@@ -112,23 +111,44 @@ class AcmeAccountUploadParser(object):
                 message="No PrivateKey technology submitted.",
             )
 
-        contact = formStash.results.get("account__contact", None)
-        if not contact and require_contact:
+        order_default_private_key_cycle = formStash.results.get(
+            "account__order_default_private_key_cycle", None
+        )
+        if order_default_private_key_cycle is None:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__contact",
-                message="`account__contact` is required.",
+                field="account__order_default_private_key_cycle",
+                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
+        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            order_default_private_key_cycle
+        )
+
+        order_default_private_key_technology = formStash.results.get(
+            "account__order_default_private_key_technology", None
+        )
+        if order_default_private_key_technology is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="account__order_default_private_key_technology",
+                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
+            )
+        order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
+            order_default_private_key_technology
+        )
 
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
-        self.private_key_cycle_id = getcreate_args["private_key_cycle_id"] = (
-            private_key_cycle_id
-        )
         self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
             private_key_technology_id
         )
+        self.order_default_private_key_cycle_id = getcreate_args[
+            "order_default_private_key_cycle_id"
+        ] = order_default_private_key_cycle_id
+        self.order_default_private_key_technology_id = getcreate_args[
+            "order_default_private_key_technology_id"
+        ] = order_default_private_key_technology_id
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(
@@ -187,16 +207,17 @@ class AcmeAccountUploadParser(object):
         # required for PEM, ignored otherwise
         acme_server_id = formStash.results.get("acme_server_id", None)
 
-        private_key_cycle = formStash.results.get("account__private_key_cycle", None)
-        if private_key_cycle is None:
+        # require `contact` when uploading a PEM file
+        if formStash.results["account_key_file_pem"] is not None:
+            require_contact = True
+
+        contact = formStash.results.get("account__contact")
+        if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__private_key_cycle",
-                message="No PrivateKey cycle submitted.",
+                field="account__contact",
+                message="`account__contact` is required.",
             )
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle
-        )
 
         private_key_technology_id = None
         private_key_technology = formStash.results.get(
@@ -213,26 +234,43 @@ class AcmeAccountUploadParser(object):
                 message="No PrivateKey technology submitted.",
             )
 
-        # require `contact` when uploading a PEM file
-        if formStash.results["account_key_file_pem"] is not None:
-            require_contact = True
-
-        contact = formStash.results.get("account__contact")
-        if not contact and require_contact:
+        order_default_private_key_cycle = formStash.results.get(
+            "account__order_default_private_key_cycle", None
+        )
+        if order_default_private_key_cycle is None:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account__contact",
-                message="`account__contact` is required.",
+                field="account__order_default_private_key_cycle",
+                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
+        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            order_default_private_key_cycle
+        )
+
+        order_default_private_key_technology = formStash.results.get(
+            "account__order_default_private_key_technology", None
+        )
+        if order_default_private_key_technology is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="account__order_default_private_key_technology",
+                message="No PrivateKey Technology submitted for AcmeOrder defaults.",
+            )
+        order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
+            order_default_private_key_technology
+        )
 
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
-        self.private_key_cycle_id = getcreate_args["private_key_cycle_id"] = (
-            private_key_cycle_id
-        )
         self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
             private_key_technology_id
         )
+        self.order_default_private_key_cycle_id = getcreate_args[
+            "order_default_private_key_cycle_id"
+        ] = order_default_private_key_cycle_id
+        self.order_default_private_key_technology_id = getcreate_args[
+            "order_default_private_key_technology_id"
+        ] = order_default_private_key_technology_id
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
@@ -314,6 +352,9 @@ class _PrivateKeySelection(object):
     private_key_strategy__requested: str
     PrivateKey: Optional["PrivateKey"] = None
 
+    # see model_utils.PrivateKeyDeferred
+    private_key_deferred: Optional[str] = None
+
     @property
     def private_key_strategy_id__requested(self) -> int:
         return model_utils.PrivateKeyStrategy.from_string(
@@ -344,7 +385,7 @@ def parse_AcmeAccountSelection(
         # this will handle form validation and raise errors.
         parser = AcmeAccountUploadParser(formStash)
 
-        # this will have: `contact`, `private_key_cycle`, `private_key_technology`
+        # this will have: `contact`, `private_key_technology`, private_key_cycle
         parser.require_upload(require_contact=require_contact)
 
         # update our object
@@ -446,8 +487,9 @@ def parse_PrivateKeySelection(
             )
             private_key_pem_md5 = formStash.results["private_key_reuse"]
         elif private_key_option in (
-            "private_key_generate",
-            "private_key_for_account_key",
+            "private_key_generate__ec_p256",
+            "private_key_generate__rsa_4096",
+            "account_default",
         ):
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
             if not dbPrivateKey:
@@ -456,16 +498,24 @@ def parse_PrivateKeySelection(
                     message="Could not load the placeholder PrivateKey.",
                 )
             privateKeySelection.PrivateKey = dbPrivateKey
-            if private_key_option == "private_key_generate":
+            if private_key_option == "private_key_generate__ec_p256":
+                privateKeySelection.private_key_deferred = "generate__ec_p256"
                 privateKeySelection.selection = "generate"
                 privateKeySelection.private_key_strategy__requested = (
                     model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
                 )
-            elif private_key_option == "private_key_for_account_key":
-                privateKeySelection.selection = "private_key_for_account_key"
+            elif private_key_option == "private_key_generate__rsa_4096":
+                privateKeySelection.private_key_deferred = "generate__rsa_4096"
+                privateKeySelection.selection = "generate"
+                privateKeySelection.private_key_strategy__requested = (
+                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
+                )
+            elif private_key_option == "account_default":
+                privateKeySelection.private_key_deferred = "account_default"
+                privateKeySelection.selection = "account_default"
                 privateKeySelection.private_key_strategy__requested = (
                     model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                        "private_key_for_account_key"
+                        "account_default"
                     ]
                 )
             return privateKeySelection

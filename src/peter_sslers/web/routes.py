@@ -138,7 +138,14 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_account:focus:queue_certificates_paginated",
         "/acme-account/{@id}/queue-certificates/{@page}",
     )
-
+    config.add_route_7(
+        "admin:acme_account:focus:renewal_configurations",
+        "/acme-account/{@id}/renewal-configurations",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:renewal_configurations_paginated",
+        "/acme-account/{@id}/renewal-configurations/{@page}",
+    )
     config.add_route_7("admin:acme_account:focus:mark", "/acme-account/{@id}/mark")
     config.add_route_7(
         "admin:acme_account:focus:mark|json", "/acme-account/{@id}/mark.json"
@@ -542,56 +549,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:acme_order:new:freeform", "/acme-order/new/freeform")
     config.add_route_7(
         "admin:acme_order:new:freeform|json", "/acme-order/new/freeform.json"
-    )
-
-    # !!!: AcmeOrderless / AcmeFlow - our manual system
-    config.add_route_7("admin:acme_orderlesss", "/acme-orderlesss")
-    config.add_route_7("admin:acme_orderlesss_paginated", "/acme-orderlesss/{@page}")
-
-    config.add_route_7("admin:acme_orderlesss|json", "/acme-orderlesss.json")
-    config.add_route_7(
-        "admin:acme_orderlesss_paginated|json", "/acme-orderlesss/{@page}.json"
-    )
-
-    config.add_route_7("admin:acme_orderless:new", "/acme-orderless/new")
-    config.add_route_7("admin:acme_orderless:new|json", "/acme-orderless/new.json")
-
-    config.add_route_7(
-        "admin:acme_orderless:focus",
-        "/acme-orderless/{@id}",
-    )
-    config.add_route_7("admin:acme_orderless:focus|json", "/acme-orderless/{@id}.json")
-    config.add_route_7(
-        "admin:acme_orderless:focus:add_challenge",
-        "/acme-orderless/{@id}/add-challenge",
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:add_challenge|json",
-        "/acme-orderless/{@id}/add-challenge.json",
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:update",
-        "/acme-orderless/{@id}/update",
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:update|json", "/acme-orderless/{@id}/update.json"
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:deactivate",
-        "/acme-orderless/{@id}/deactivate",
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:deactivate|json",
-        "/acme-orderless/{@id}/deactivate.json",
-    )
-
-    config.add_route_7(
-        "admin:acme_orderless:focus:acme_challenge",
-        r"/acme-orderless/{@id}/acme-challenge/{id_challenge:\d+}",
-    )
-    config.add_route_7(
-        "admin:acme_orderless:focus:acme_challenge|json",
-        r"/acme-orderless/{@id}/acme-challenge/{id_challenge:\d+}.json",
     )
 
     # !!!: AcmeServer
@@ -1183,14 +1140,6 @@ def _admin_views(config: "Configurator") -> None:
         "/domain/{domain_identifier}/acme-orders/{@page}",
     )
     config.add_route_7(
-        "admin:domain:focus:acme_orderlesss",
-        "/domain/{domain_identifier}/acme-orderlesss",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_orderlesss_paginated",
-        "/domain/{domain_identifier}/acme-orderlesss/{@page}",
-    )
-    config.add_route_7(
         "admin:domain:focus:domain_autocerts",
         "/domain/{domain_identifier}/domain-autocerts",
     )
@@ -1474,6 +1423,97 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:queue_domain:focus:mark", "/queue-domain/{@id}/mark")
     config.add_route_7(
         "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
+    )
+
+    # !!!: Renewal Configurations
+    config.add_route_7("admin:renewal_configurations", "/renewal-configurations")
+    config.add_route_7(
+        "admin:renewal_configurations|json", "/renewal-configurations.json"
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:all", "/renewal-configurations/all"
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:all|json", "/renewal-configurations/all.json"
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:all_paginated",
+        "/renewal-configurations/all/{@page}",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:all_paginated|json",
+        "/renewal-configurations/all/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:active", "/renewal-configurations/active"
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:active|json",
+        "/renewal-configurations/active.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:active_paginated",
+        "/renewal-configurations/active/{@page}",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:active_paginated|json",
+        "/renewal-configurations/active/{@page}.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:disabled", "/renewal-configurations/disabled"
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:disabled|json",
+        "/renewal-configurations/disabled.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:disabled_paginated",
+        "/renewal-configurations/disabled/{@page}",
+    )
+    config.add_route_7(
+        "admin:renewal_configurations:disabled_paginated|json",
+        "/renewal-configurations/disabled/{@page}.json",
+    )
+    config.add_route_7("admin:renewal_configuration:new", "/renewal-configuration/new")
+    config.add_route_7(
+        "admin:renewal_configuration:new|json", "/renewal-configuration/new.json"
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus", "/renewal-configuration/{@id}"
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus|json", "/renewal-configuration/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:mark", "/renewal-configuration/{@id}/mark"
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:mark|json",
+        "/renewal-configuration/{@id}/mark.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:new_order",
+        "/renewal-configuration/{@id}/new-order",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:new_order|json",
+        "/renewal-configuration/{@id}/new-order.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:new_configuration",
+        "/renewal-configuration/{@id}/new-configuration",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:new_configuration|json",
+        "/renewal-configuration/{@id}/new-configuration.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:retry_order",
+        "/renewal-configuration/{@id}/retry-order",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:retry_order|json",
+        "/renewal-configuration/{@id}/retry-order.json",
     )
 
     # !!!: Root Stores

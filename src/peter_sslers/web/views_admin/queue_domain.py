@@ -237,7 +237,7 @@ class View_Process(Handler):
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_a,
+                "account_key_option": model_utils.AcmeAccountKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",

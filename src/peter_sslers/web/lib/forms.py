@@ -92,7 +92,7 @@ class _Form_Schema_Base(_Schema):
 class _form_AcmeAccount_core(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
-        model_utils.AcmeAccontKey_options_a,
+        model_utils.AcmeAccountKey_options_a,
         not_empty=True,
     )
     account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
@@ -123,7 +123,7 @@ class _form_PrivateKey_core(_Form_Schema_Base):
 
 class _form_AcmeAccount_reuse(_form_AcmeAccount_core):
     account_key_option = OneOf(
-        model_utils.AcmeAccontKey_options_b,
+        model_utils.AcmeAccountKey_options_b,
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
@@ -145,12 +145,6 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
     account__contact = Email(not_empty=False, if_missing=None)  # required if key_pem
-
-    # this is the `private_key_cycle` of the AcmeAccount
-    account__private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-        not_empty=True,
-    )
 
     # this is the `private_key_technology` of the AcmeAccount
     # this is not required on Upload, only New
@@ -184,7 +178,7 @@ class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
     """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance"""
 
     account_key_option = OneOf(
-        model_utils.AcmeAccontKey_options_b,
+        model_utils.AcmeAccountKey_options_b,
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
@@ -196,15 +190,20 @@ class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
 
 
 class Form_AcmeAccount_edit(_Form_Schema_Base):
-    # this is the `private_key_cycle` of the AcmeAccount
-    account__private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-        not_empty=True,
-    )
-
     # this is the `private_key_technology` of the AcmeAccount
     account__private_key_technology = OneOf(
         model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=True,
+    )
+
+    # defaults for AcmeOrders
+    account__order_default_private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_order_default,
+        not_empty=True,
+    )
+    # defaults for AcmeOrders
+    account__order_default_private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
         not_empty=True,
     )
 
@@ -213,15 +212,20 @@ class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     acme_server_id = Int(not_empty=True, if_missing=None)
     account__contact = Email(not_empty=True, if_missing=None)  # use it or don't
 
-    # this is the `private_key_cycle` of the AcmeAccount
-    account__private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-        not_empty=True,
-    )
-
     # this is the `private_key_technology` of the AcmeAccount
     account__private_key_technology = OneOf(
         model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+        not_empty=True,
+    )
+
+    # defaults for AcmeOrders
+    account__order_default_private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_order_default,
+        not_empty=True,
+    )
+    # defaults for AcmeOrders
+    account__order_default_private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
         not_empty=True,
     )
 
@@ -233,12 +237,6 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
     """
 
     account__contact = Email(not_empty=False, if_missing=None)  # required if key_pem
-
-    # this is the `private_key_cycle` of the AcmeAccount
-    account__private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle,
-        not_empty=True,
-    )
 
     # this is the `private_key_technology` of the AcmeAccount
     # this is not required on Upload, only New
@@ -261,6 +259,17 @@ class Form_AcmeAccount_new__file(_Form_Schema_Base):
     )
     account_key_file_le_reg = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
+    )
+
+    # defaults for AcmeOrders
+    account__order_default_private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_order_default,
+        not_empty=True,
+    )
+    # defaults for AcmeOrders
+    account__order_default_private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
+        not_empty=True,
     )
 
 
@@ -352,41 +361,6 @@ class Form_AcmeOrder_renew_custom(_form_AcmeAccount_PrivateKey_reuse):
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
-
-
-class Form_AcmeOrderless_new(_form_AcmeAccount_core):
-    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
-    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
-    account_key_option = OneOf(
-        (
-            "none",
-            "account_key_global_default",
-            "account_key_existing",
-            "account_key_file",
-        ),
-        not_empty=False,
-    )
-
-    chained_validators = [
-        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
-        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
-    ]
-
-
-class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
-    challenge_key = UnicodeString(not_empty=True)
-    challenge_text = UnicodeString(not_empty=True)
-
-
-class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
-    acme_challenge_type = OneOf(
-        model_utils.AcmeChallengeType._OPTIONS_AcmeOrderless_AddChallenge,
-        not_empty=True,
-    )
-    domain = UnicodeString(not_empty=True)
-    token = UnicodeString(not_empty=False, if_missing=None)
-    keyauthorization = UnicodeString(not_empty=False, if_missing=None)
-    challenge_url = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_AcmeServer_mark(_Form_Schema_Base):
@@ -591,6 +565,44 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
+
+
+class Form_RenewalConfig_new_order(_Form_Schema_Base):
+    processing_strategy = OneOf(
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+        not_empty=True,
+    )
+
+
+class Form_RenewalConfig_new(_Form_Schema_Base):
+    account_key_option = OneOf(
+        ("account_key_global_default", "account_key_existing"),
+        not_empty=True,
+    )
+    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+        not_empty=True,
+    )
+    key_technology = OneOf(
+        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+        not_empty=True,
+    )
+
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
+
+    chained_validators = [
+        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
+        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
+    ]
+
+
+class Form_RenewalConfiguration_mark(_Form_Schema_Base):
+    action = OneOf(("active", "inactive"), not_empty=True)
 
 
 class Form_UniqueFQDNSet_modify(_Form_Schema_Base):

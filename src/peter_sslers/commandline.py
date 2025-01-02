@@ -93,8 +93,6 @@ def upload_account(server_url_root: str, fset: FileSet) -> None:
                 "--form",
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
                 "--form",
-                "account__private_key_cycle=single_certificate",
-                "--form",
                 "account__private_key_technology=RSA",
                 url,
             ],

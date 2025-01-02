@@ -67,7 +67,7 @@
                         <tr>
                             <th>PrivateKey</th>
                             <td>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_default=True, option_generate_new=True)}
                             </td>
                         </tr>
                         <tr>

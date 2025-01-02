@@ -19,7 +19,6 @@ from .objects import AcmeEventLog
 from .objects import AcmeOrder
 from .objects import AcmeOrder2AcmeAuthorization
 from .objects import AcmeOrder2AcmeChallengeTypeSpecific
-from .objects import AcmeOrderless
 from .objects import AriCheck
 from .objects import CertificateRequest
 from .objects import CertificateSigned
@@ -28,6 +27,7 @@ from .objects import Domain
 from .objects import DomainAutocert
 from .objects import PrivateKey
 from .objects import QueueCertificate
+from .objects import RenewalConfiguration
 from .objects import UniqueFQDNSet
 from .objects import UniqueFQDNSet2Domain
 from .. import utils as model_utils
@@ -125,26 +125,6 @@ AcmeAccount.acme_orders__5 = sa_orm_relationship(
 )
 
 
-# note: AcmeAccount.acme_orderlesss__5
-AcmeAccount.acme_orderlesss__5 = sa_orm_relationship(
-    AcmeOrderless,
-    primaryjoin=(
-        sa.and_(
-            AcmeAccount.id == AcmeOrderless.acme_account_id,
-            AcmeOrderless.id.in_(
-                sa.select((AcmeOrderless.id))
-                .where(AcmeAccount.id == AcmeOrderless.acme_account_id)
-                .order_by(AcmeOrderless.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=AcmeOrderless.id.desc(),
-    viewonly=True,
-)
-
-
 AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
     PrivateKey,
     primaryjoin=(
@@ -208,6 +188,26 @@ AcmeAccount.queue_certificates__5 = sa_orm_relationship(
         )
     ),
     order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
+
+
+# note: AcmeAccount.renewal_configurations__5
+AcmeAccount.renewal_configurations__5 = sa_orm_relationship(
+    RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccount.id == RenewalConfiguration.acme_account_id,
+            RenewalConfiguration.id.in_(
+                sa.select((RenewalConfiguration.id))
+                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id)
+                .order_by(RenewalConfiguration.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=RenewalConfiguration.id.desc(),
     viewonly=True,
 )
 
@@ -667,39 +667,6 @@ Domain.acme_orders__5 = sa_orm_relationship(
     viewonly=True,
 )
 
-# note: Domain.acme_orderlesss__5
-Domain.acme_orderlesss__5 = sa_orm_relationship(
-    AcmeOrderless,
-    primaryjoin=(
-        "and_("
-        "Domain.id==AcmeChallenge.domain_id,"
-        "AcmeChallenge.acme_orderless_id.is_not(None)"
-        ")"
-    ),
-    secondary=(
-        "join("
-        "AcmeChallenge, "
-        "AcmeOrderless, "
-        "AcmeChallenge.acme_orderless_id==AcmeOrderless.id"
-        ")"
-    ),
-    secondaryjoin=(
-        sa.and_(
-            AcmeOrderless.id == sa.orm.foreign(AcmeChallenge.acme_orderless_id),
-            AcmeOrderless.id.in_(
-                sa.select((AcmeOrderless.id))
-                .where(AcmeOrderless.id == AcmeChallenge.acme_orderless_id)
-                .where(AcmeChallenge.domain_id == Domain.id)
-                .order_by(AcmeOrderless.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=AcmeOrderless.id.desc(),
-    viewonly=True,
-)
-
 
 # note: Domain.domain_autocerts__5
 Domain.domain_autocerts__5 = sa_orm_relationship(
@@ -900,6 +867,26 @@ PrivateKey.queue_certificates__5 = sa_orm_relationship(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: RenewalConfiguration.acme_orders__5
+RenewalConfiguration.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            RenewalConfiguration.id == AcmeOrder.renewal_configuration_id,
+            AcmeOrder.id.in_(
+                sa.select((AcmeOrder.id))
+                .where(RenewalConfiguration.id == AcmeOrder.renewal_configuration_id)
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
 
 
 # note: UniqueFQDNSet.acme_orders__5

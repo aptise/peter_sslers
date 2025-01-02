@@ -296,7 +296,7 @@ class ViewAdminApi_Domain(Handler):
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_a,
+                "account_key_option": model_utils.AcmeAccountKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
@@ -383,7 +383,7 @@ class ViewAdminApi_Domain(Handler):
 
             elif privateKeySelection.selection in (
                 "generate",
-                "private_key_for_account_key",
+                "account_default",
             ):
                 pass
 
@@ -584,7 +584,7 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
                     domains_challenged=domains_challenged,
-                    private_key_cycle__renewal="account_key_default",
+                    private_key_cycle__renewal="account_default",
                     private_key_strategy__requested="deferred-associate",
                     processing_strategy="process_single",
                     dbAcmeAccount=dbAcmeAccount,

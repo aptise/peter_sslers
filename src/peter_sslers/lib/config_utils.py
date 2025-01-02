@@ -24,7 +24,6 @@ class ApplicationSettings(dict):
             "certificate_authority_testing",
             "certificate_authority",
             "cleanup_pending_authorizations",
-            "enable_acme_flow",
             "enable_views_admin",
             "enable_views_public",
             "enable_nginx",
@@ -83,9 +82,6 @@ class ApplicationSettings(dict):
 
         # this is an int
         self["expiring_days"] = set_int_setting(settings, "expiring_days", default=30)
-
-        # enable/disable the acme-flow system
-        self["enable_acme_flow"] = set_bool_setting(settings, "enable_acme_flow")
 
         # should challenges block?
         self["block_competing_challenges"] = set_bool_setting(

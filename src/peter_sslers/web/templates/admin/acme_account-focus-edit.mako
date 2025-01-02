@@ -83,15 +83,31 @@
                         <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                     </tr>
                     <tr>
-                        <th>PrivateKey cycle</th>
+                        <th>PrivateKey Technology</th>
+                        <td>
+                                <%
+                                    selected = AcmeAccount.private_key_technology
+                                %>
+                                <select class="form-control" name="account__private_key_technology">
+                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
+                                        <%
+                                            _selected = ' selected' if _option_text == selected else ''
+                                        %>
+                                        <option value="${_option_text}" ${_selected}>${_option_text}</option>
+                                    % endfor
+                                </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Order Default: PrivateKey Cycle</th>
                         <td>
                             <%
-                                _selected = AcmeAccount.private_key_cycle
+                                selected = AcmeAccount.order_default_private_key_cycle
                             %>
-                            <select class="form-control" name="account__private_key_cycle">
-                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
+                            <select class="form-control" name="account__order_default_private_key_cycle">
+                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
                                     <%
-                                        _selected = ' selected' if _option_text == _selected else ''
+                                        _selected = ' selected' if _option_text == selected else ''
                                     %>
                                     <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                 % endfor
@@ -99,15 +115,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKey Technology</th>
+                        <th>Order Default: PrivateKey Technology</th>
                         <td>
                                 <%
-                                    _selected = AcmeAccount.private_key_technology
+                                    selected = AcmeAccount.order_default_private_key_technology
                                 %>
-                                <select class="form-control" name="account__private_key_technology">
-                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
+                                <select class="form-control" name="account__order_default_private_key_technology">
+                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_order_default:
                                         <%
-                                            _selected = ' selected' if _option_text == _selected else ''
+                                            _selected = ' selected' if _option_text == selected else ''
                                         %>
                                         <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                     % endfor

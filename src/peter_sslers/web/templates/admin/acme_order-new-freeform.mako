@@ -46,14 +46,20 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>AcmeAccount</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced()}
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced([])}
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True, default="private_key_for_account_key")}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(
+                    option_account_default=True,
+                    option_generate_new=True,
+                    default="account_default")}
                 <hr/>
 
-                ${admin_partials.formgroup__domain_names(specify_challenge=True, domain_names_http01=domain_names_http01, domain_names_dns01=domain_names_dns01)}
+                ${admin_partials.formgroup__domain_names(
+                    specify_challenge=True,
+                    domain_names_http01=domain_names_http01,
+                    domain_names_dns01=domain_names_dns01)}
                 <hr/>
 
                 ${admin_partials.formgroup__private_key_cycle__renewal()}

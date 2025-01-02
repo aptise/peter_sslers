@@ -238,7 +238,6 @@ def queue_domains__process(
             ) = lib.db.getcreate.getcreate__Domain__by_domainName(
                 ctx,
                 qDomain.domain_name,
-                is_from_queue_domain=True,
                 discovery_type="via queue_domains__process",
             )
             domainObjects.append(domainObject)
