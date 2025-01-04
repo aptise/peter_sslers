@@ -303,14 +303,14 @@ class _OperationsUnified(_mixin_mapping):
         830: "QueueDomain__mark",
         831: "QueueDomain__mark__cancelled",
         832: "QueueDomain__mark__already_processed",
-        910: "QueueCertificate__insert",
-        920: "QueueCertificate__update",
-        921: "QueueCertificate__batch",
-        930: "QueueCertificate__mark",
-        931: "QueueCertificate__mark__cancelled",
-        940: "QueueCertificate__process",
-        941: "QueueCertificate__process__success",
-        942: "QueueCertificate__process__fail",
+        # 910: "QueueCertificate__insert",
+        # 920: "QueueCertificate__update",
+        # 921: "QueueCertificate__batch",
+        # 930: "QueueCertificate__mark",
+        # 931: "QueueCertificate__mark__cancelled",
+        # 940: "QueueCertificate__process",
+        # 941: "QueueCertificate__process__success",
+        # 942: "QueueCertificate__process__fail",
         710: "CertificateSigned__insert",
         720: "CertificateSigned__mark",
         721: "CertificateSigned__mark__active",
@@ -750,10 +750,10 @@ class AcmeOrderType(_mixin_mapping):
 
     ACME_AUTOMATED_NEW = 1
     ACME_AUTOMATED_RETRY = 2
-    ACME_AUTOMATED_RENEW_QUICK = 3
-    ACME_AUTOMATED_RENEW_CUSTOM = 4
-    ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
-    QUEUE_CERTIFICATE = 11
+    # ACME_AUTOMATED_RENEW_QUICK = 3
+    # ACME_AUTOMATED_RENEW_CUSTOM = 4
+    # ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
+    # QUEUE_CERTIFICATE = 11
     QUEUE_DOMAINS = 12
 
     RENEWAL_CONFIGURATION_REQUEST = 21
@@ -802,6 +802,8 @@ class CertificateType(_mixin_mapping):
         3: "ManagedBackup",
     }
 
+    _options_AcmeOrder_id = [2, 3]
+
 
 class CoverageAssuranceEventType(_mixin_mapping):
     _mapping = {
@@ -811,7 +813,7 @@ class CoverageAssuranceEventType(_mixin_mapping):
         4: "CertificateSigned_revoked_acme",  # ACME confirms it as revoked
         5: "AccountKey_revoked_mark",  # we mark it as revoked
         6: "AccountKey_revoked_acme",  # ACME confirms it as revoked
-        7: "QueueCertificate_no_account_key",  # the Queue item has no key, and the fallback global is unavailable
+        # 7: "QueueCertificate_no_account_key",  # the Queue item has no key, and the fallback global is unavailable
     }
 
 
@@ -931,6 +933,7 @@ class KeyTechnology(_mixin_mapping):
     _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
     _options_AcmeOrder_private_key_technology_id = (1, 2, 3, 4, 5)
     _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
+    _options_Generate_id = (1, 2, 3, 4, 5)
     _options_RSA = (1, 2, 3)
     _options_EC = (4, 5)
 
@@ -942,10 +945,12 @@ class KeyTechnology(_mixin_mapping):
     _DEFAULT_AcmeAccount_order_default_id: int
     _DEFAULT_AcmeOrder = "EC_P256"
     _DEFAULT_AcmeOrder_id: int
-    _DEFAULT_PrivateKey = "EC_P256"
-    _DEFAULT_PrivateKey_id: int
     _DEFAULT_GlobalKey = "EC_P256"
     _DEFAULT_GlobalKey_id: int
+    _DEFAULT_Generate = "EC_P256"
+    _DEFAULT_Generate_id: int
+    _DEFAULT_PrivateKey = "EC_P256"
+    _DEFAULT_PrivateKey_id: int
     _DEFAULT_RenewalConfiguration = "account_default"
     _DEFAULT_RenewalConfiguration_id: int
     _options: List[str]
@@ -953,6 +958,7 @@ class KeyTechnology(_mixin_mapping):
     _options_AcmeAccount_order_default: List[str]
     _options_AcmeOrder_private_key_technology: List[str]
     _options_RenewalConfiguration_private_key_technology: List[str]
+    _options_Generate: List[str]
 
     @classmethod
     def to_new_args(cls, id_) -> NewKeyArgs:
@@ -1006,6 +1012,9 @@ KeyTechnology._options_RenewalConfiguration_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id
 ]
+KeyTechnology._options_Generate = [
+    KeyTechnology._mapping[_id] for _id in KeyTechnology._options_Generate_id
+]
 
 KeyTechnology._DEFAULT_id = KeyTechnology.from_string(KeyTechnology._DEFAULT)
 KeyTechnology._DEFAULT_AcmeAccount_id = KeyTechnology.from_string(
@@ -1016,6 +1025,9 @@ KeyTechnology._DEFAULT_AcmeAccount_order_default_id = KeyTechnology.from_string(
 )
 KeyTechnology._DEFAULT_AcmeOrder_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_AcmeOrder
+)
+KeyTechnology._DEFAULT_Generate_id = KeyTechnology.from_string(
+    KeyTechnology._DEFAULT_Generate
 )
 KeyTechnology._DEFAULT_GlobalKey_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_GlobalKey
@@ -1032,6 +1044,10 @@ class PrivateKeyCycle(_mixin_mapping):
     """
     How should a PrivateKey be cycled on renewal/queues?
     """
+
+    ACCOUNT_DEFAULT = 1
+    SINGLE_USE = 2
+    SINGLE_USE__REUSE_1_YEAR = 3
 
     _mapping = {
         1: "account_default",  # use the Account Default
@@ -1069,6 +1085,7 @@ class PrivateKeyCycle(_mixin_mapping):
         6,
         7,
     )
+    _DEFAULT_order_logic = "single_use"
     _DEFAULT_AcmeOrder = "account_default"
     _DEFAULT_AcmeAccount_order_default = "single_use__reuse_1_year"
     _DEFAULT_system_renewal = "single_use"
@@ -1135,6 +1152,22 @@ class PrivateKeyType(_mixin_mapping):
         7: "single_use__reuse_1_year",
     }
 
+    @classmethod
+    def from_private_key_cycle(cls, private_key_cycle) -> int:
+        if private_key_cycle == "account_default":
+            raise ValueError("`account_default` invalid")
+        elif private_key_cycle in (
+            "single_use",
+            "global_daily",
+            "global_weekly",
+            "account_daily",
+            "account_weekly",
+            "single_use__reuse_1_year",
+        ):
+            return private_key_cycle
+        else:
+            raise ValueError("unsupported type: %s" % private_key_cycle)
+
     _options_calendar = (
         "global_daily",
         "global_weekly",
@@ -1154,13 +1187,42 @@ class PrivateKeyDeferred(_mixin_mapping):
     """
 
     ACCOUNT_DEFAULT = 1
-    GENERATE__RSA_4096 = 2
-    GENERATE__EC_P256 = 3
+    GENERATE__RSA_2048 = 2
+    GENERATE__RSA_3072 = 3
+    GENERATE__RSA_4096 = 4
+    GENERATE__EC_P256 = 5
+    GENERATE__EC_P384 = 6
+
     _mapping = {
         1: "account_default",
-        2: "generate__rsa_4096",
-        3: "generate__ec_p256",
+        2: "generate__rsa_2048",
+        3: "generate__rsa_3072",
+        4: "generate__rsa_4096",
+        5: "generate__ec_p256",
+        6: "generate__ec_p384",
     }
+
+    @classmethod
+    def generate_from_key_technology_str(
+        cls, key_technology_str: str
+    ) -> Tuple[int, str]:
+        as_str = "generate__%s" % key_technology_str.lower()
+        as_id = getattr(cls, as_str.upper())
+        return (as_id, as_str)
+
+    @classmethod
+    def str_to_KeyTechnology_id(cls, str_) -> int:
+        if str_ == "generate__rsa_2048":
+            return KeyTechnology.RSA_2048
+        elif str_ == "generate__rsa_3072":
+            return KeyTechnology.RSA_3072
+        elif str_ == "generate__rsa_4096":
+            return KeyTechnology.RSA_4096
+        elif str_ == "generate__ec_p256":
+            return KeyTechnology.EC_P256
+        elif str_ == "generate__ec_p384":
+            return KeyTechnology.EC_P384
+        raise ValueError("unsupported")
 
 
 class _mixin_OperationsEventType(object):
@@ -1202,8 +1264,7 @@ AcmeAccountKey_options_c = (
 PrivateKey_options_a = (
     "private_key_existing",
     "private_key_file",
-    "private_key_generate__ec_p256",
-    "private_key_generate__rsa_4096",
+    "private_key_generate",
     "account_default",
 )
 
@@ -1212,9 +1273,8 @@ PrivateKey_options_b = (
     "private_key_reuse",
     "private_key_existing",
     "private_key_file",
-    "private_key_generate__ec_p256",
-    "private_key_generate__rsa_4096",
-    "private_key_for_account_key",
+    "private_key_generate",
+    "account_default",
 )
 
 
@@ -1223,7 +1283,7 @@ PrivateKeySelection_2_PrivateKeyStrategy = {
     "existing": "specified",
     "reuse": "specified",
     "generate": "deferred-generate",
-    "private_key_for_account_key": "deferred-associate",
+    "account_default": "deferred-associate",
 }
 
 

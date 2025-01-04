@@ -239,35 +239,6 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(
-        route_name="admin:private_key:focus:queue_certificates",
-        renderer="/admin/private_key-focus-queue_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:private_key:focus:queue_certificates_paginated",
-        renderer="/admin/private_key-focus-queue_certificates.mako",
-    )
-    def related__QueueCertificates(self):
-        dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_PrivateKeyId__count(
-            self.request.api_context, dbPrivateKey.id
-        )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_PrivateKeyId__paginated(
-            self.request.api_context,
-            dbPrivateKey.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "PrivateKey": dbPrivateKey,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
-            "pager": pager,
-        }
-
 
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)
@@ -410,7 +381,9 @@ class View_New(Handler):
                 """curl --form "bits=4096" {ADMIN_PREFIX}/private-key/new.json""",
             ],
             "form_fields": {"bits": "bits for the PrivateKey"},
-            "valid_options": {"bits": ["4096"]},
+            "valid_options": {
+                "private_key_generate": model_utils.KeyTechnology._options_Generate
+            },
         }
     )
     def new(self):
@@ -434,6 +407,12 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             try:
+
+                key_technology_id = model_utils.KeyTechnology.from_string(
+                    formStash.results["private_key_generate"]
+                )
+                # TODO: We should infer the above based on the private_key_cycle
+
                 dbPrivateKey = lib_db.create.create__PrivateKey(
                     self.request.api_context,
                     private_key_source_id=model_utils.PrivateKeySource.from_string(
@@ -442,6 +421,8 @@ class View_New(Handler):
                     private_key_type_id=model_utils.PrivateKeyType.from_string(
                         "standard"
                     ),
+                    key_technology_id=key_technology_id,
+                    discovery_type="interface-new",
                 )
             except Exception as exc:
                 log.critical("create__PrivateKey: %s", exc)
@@ -453,7 +434,7 @@ class View_New(Handler):
                     "PrivateKey": dbPrivateKey.as_json,
                 }
             return HTTPSeeOther(
-                "%s/private-key/%s?result=success%s"
+                "%s/private-key/%s?result=success%s&operstion=new"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbPrivateKey.id,
@@ -516,6 +497,7 @@ class View_New(Handler):
                     "imported"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="upload",
             )
 
@@ -526,7 +508,7 @@ class View_New(Handler):
                     "PrivateKey": dbPrivateKey.as_json,
                 }
             return HTTPSeeOther(
-                "%s/private-key/%s?result=success%s"
+                "%s/private-key/%s?result=success&operation=upload%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbPrivateKey.id,

@@ -131,14 +131,6 @@ def _admin_views(config: "Configurator") -> None:
         "/acme-account/{@id}/private-keys/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account:focus:queue_certificates",
-        "/acme-account/{@id}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:queue_certificates_paginated",
-        "/acme-account/{@id}/queue-certificates/{@page}",
-    )
-    config.add_route_7(
         "admin:acme_account:focus:renewal_configurations",
         "/acme-account/{@id}/renewal-configurations",
     )
@@ -600,22 +592,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:api:reconcile_cas", "/api/reconcile-cas")
     config.add_route_7("admin:api:reconcile_cas|json", "/api/reconcile-cas.json")
 
-    # !!!: Admin API Items - QueueCertificates
-    config.add_route_7(
-        "admin:api:queue_certificates:process", "/api/queue-certificates/process"
-    )
-    config.add_route_7(
-        "admin:api:queue_certificates:process|json",
-        "/api/queue-certificates/process.json",
-    )
-    config.add_route_7(
-        "admin:api:queue_certificates:update", "/api/queue-certificates/update"
-    )
-    config.add_route_7(
-        "admin:api:queue_certificates:update|json",
-        "/api/queue-certificates/update.json",
-    )
-
     # !!!: AriCheck
     # config.add_route_7("admin:ari_check", "/ari-check")
     # config.add_route_7("admin:ari_check|json", "/ari-check.json")
@@ -987,14 +963,6 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_signed:focus:mark|json",
         "/certificate-signed/{@id}/mark.json",
     )
-    config.add_route_7(
-        "admin:certificate_signed:focus:queue_certificates",
-        "/certificate-signed/{@id}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:queue_certificates_paginated",
-        "/certificate-signed/{@id}/queue-certificates/{@page}",
-    )
 
     # !!!: CoverageAssuranceEvents
     config.add_route_7("admin:coverage_assurance_events", "/coverage-assurance-events")
@@ -1156,14 +1124,6 @@ def _admin_views(config: "Configurator") -> None:
         "/domain/{domain_identifier}/certificate-signeds/{@page}",
     )
     config.add_route_7(
-        "admin:domain:focus:queue_certificates",
-        "/domain/{domain_identifier}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:domain:focus:queue_certificates_paginated",
-        "/domain/{domain_identifier}/queue-certificates/{@page}",
-    )
-    config.add_route_7(
         "admin:domain:focus:certificate_requests",
         "/domain/{domain_identifier}/certificate-requests",
     )
@@ -1282,14 +1242,6 @@ def _admin_views(config: "Configurator") -> None:
         "admin:private_key:focus:certificate_signeds_paginated",
         "/private-key/{@id}/certificate-signeds/{@page}",
     )
-    config.add_route_7(
-        "admin:private_key:focus:queue_certificates",
-        "/private-key/{@id}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:private_key:focus:queue_certificates_paginated",
-        "/private-key/{@id}/queue-certificates/{@page}",
-    )
     config.add_route_7("admin:private_key:focus:mark", "/private-key/{@id}/mark")
     config.add_route_7(
         "admin:private_key:focus:mark|json", "/private-key/{@id}/mark.json"
@@ -1300,100 +1252,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:private_key:new|json", "/private-key/new.json")
     config.add_route_7("admin:private_key:upload", "/private-key/upload")
     config.add_route_7("admin:private_key:upload|json", "/private-key/upload.json")
-
-    # !!!: Queue Certificates
-    # these 2 redirect to /all or /unprocessed
-    config.add_route_7("admin:queue_certificates", "/queue-certificates")
-    config.add_route_7("admin:queue_certificates|json", "/queue-certificates.json")
-    # all
-    config.add_route_7("admin:queue_certificates:all", "/queue-certificates/all")
-    config.add_route_7(
-        "admin:queue_certificates:all_paginated", "/queue-certificates/all/{@page}"
-    )
-    config.add_route_7(
-        "admin:queue_certificates:all|json", "/queue-certificates/all.json"
-    )
-    config.add_route_7(
-        "admin:queue_certificates:all_paginated|json",
-        "/queue-certificates/all/{@page}.json",
-    )
-    # failures
-    config.add_route_7(
-        "admin:queue_certificates:failures",
-        "/queue-certificates/failures",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:failures_paginated",
-        "/queue-certificates/failures/{@page}",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:failures|json",
-        "/queue-certificates/failures.json",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:failures_paginated|json",
-        "/queue-certificates/failures/{@page}.json",
-    )
-    # successes
-    config.add_route_7(
-        "admin:queue_certificates:successes",
-        "/queue-certificates/successes",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:successes_paginated",
-        "/queue-certificates/successes/{@page}",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:successes|json",
-        "/queue-certificates/successes.json",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:successes_paginated|json",
-        "/queue-certificates/successes/{@page}.json",
-    )
-    # unprocessed
-    config.add_route_7(
-        "admin:queue_certificates:unprocessed",
-        "/queue-certificates/unprocessed",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:unprocessed_paginated",
-        "/queue-certificates/unprocessed/{@page}",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:unprocessed|json",
-        "/queue-certificates/unprocessed.json",
-    )
-    config.add_route_7(
-        "admin:queue_certificates:unprocessed_paginated|json",
-        "/queue-certificates/unprocessed/{@page}.json",
-    )
-
-    config.add_route_7(
-        "admin:queue_certificate:new_structured", "/queue-certificate/new/structured"
-    )
-    config.add_route_7(
-        "admin:queue_certificate:new_structured|json",
-        "/queue-certificate/new/structured.json",
-    )
-    config.add_route_7(
-        "admin:queue_certificate:new_freeform", "/queue-certificate/new/freeform"
-    )
-    config.add_route_7(
-        "admin:queue_certificate:new_freeform|json",
-        "/queue-certificate/new/freeform.json",
-    )
-
-    config.add_route_7("admin:queue_certificate:focus", "/queue-certificate/{@id}")
-    config.add_route_7(
-        "admin:queue_certificate:focus|json", "/queue-certificate/{@id}.json"
-    )
-    config.add_route_7(
-        "admin:queue_certificate:focus:mark", "/queue-certificate/{@id}/mark"
-    )
-    config.add_route_7(
-        "admin:queue_certificate:focus:mark|json", "/queue-certificate/{@id}/mark.json"
-    )
 
     # !!!: Queue Domains
     # Domains can be queued in for batch processing
@@ -1484,6 +1342,31 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:renewal_configuration:focus|json", "/renewal-configuration/{@id}.json"
     )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:acme_orders",
+        "/renewal-configuration/{@id}/acme-orders",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:acme_orders_paginated",
+        "/renewal-configuration/{@id}/acme-orders/{@page}",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:certificate_signeds",
+        "/renewal-configuration/{@id}/certificate-signeds",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:certificate_signeds_paginated",
+        "/renewal-configuration/{@id}/certificate-signeds/{@page}",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:certificate_signeds|json",
+        "/renewal-configuration/{@id}/certificate-signeds.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:certificate_signeds_paginated|json",
+        "/renewal-configuration/{@id}/certificate-signeds/{@page}.json",
+    )
+
     config.add_route_7(
         "admin:renewal_configuration:focus:mark", "/renewal-configuration/{@id}/mark"
     )
@@ -1581,14 +1464,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:unique_fqdn_set:focus:certificate_signeds_paginated",
         "/unique-fqdn-set/{@id}/certificate-signeds/{@page}",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:queue_certificates",
-        "/unique-fqdn-set/{@id}/queue-certificates",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:queue_certificates_paginated",
-        "/unique-fqdn-set/{@id}/queue-certificates/{@page}",
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:modify", "/unique-fqdn-set/{@id}/modify"

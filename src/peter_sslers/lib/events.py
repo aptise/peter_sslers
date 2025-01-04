@@ -55,15 +55,7 @@ def _handle_Certificate_unactivated(
         else:
             requeue = False
     if requeue:
-        dbQueue = lib.db.create.create__QueueCertificate(  # noqa: F841
-            ctx,
-            dbAcmeAccount=serverCertificate.acme_account,
-            dbPrivateKey=serverCertificate.private_key,
-            private_key_cycle_id__renewal=serverCertificate.renewal__private_key_cycle_id,
-            private_key_strategy_id__requested=serverCertificate.renewal__private_key_strategy_id,
-            # optionals
-            dbCertificateSigned=serverCertificate,
-        )
+        raise ValueError("TODO")
     return requeue
 
 
@@ -79,17 +71,6 @@ def _handle_Certificate_new(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
     """
-    dbActiveQueues = lib.db.get.get__QueueCertificate__by_UniqueFQDNSetId__active(
-        ctx, serverCertificate.unique_fqdn_set_id
-    )
-    if dbActiveQueues:
-        tnow = datetime.datetime.utcnow()
-        for q in dbActiveQueues:
-            q.timestamp_processed = tnow
-            q.timestamp_process_attempt = tnow
-            q.process_result = True
-            ctx.dbSession.flush(objects=[q])
-        return True
     return False
 
 

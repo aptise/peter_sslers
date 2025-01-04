@@ -485,12 +485,12 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
-                "private_key_option": "private_key_for_account_key",
+                "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
                 ],
-                "private_key_cycle__renewal": "account_key_default",
+                "private_key_cycle": "account_key_default",
                 "processing_strategy": "create_order",
             },
             "acme-order/new/freeform#2": {
@@ -499,12 +499,12 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
-                "private_key_option": "private_key_for_account_key",
+                "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
                 ],
-                "private_key_cycle__renewal": "account_key_default",
+                "private_key_cycle": "account_key_default",
                 "processing_strategy": "create_order",
             },
         },
@@ -635,27 +635,22 @@ TEST_FILES: Dict = {
         "1": {
             "file": "key_technology-rsa/private_1.key",
             "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
-            "key_pem_modulus_md5": "fc1a6c569cba199eb5341c0c423fb768",
         },
         "2": {
             "file": "key_technology-rsa/private_2.key",
             "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
-            "key_pem_modulus_md5": "397282f3cd67d33b2b018b61fdd3f4aa",
         },
         "3": {
             "file": "key_technology-rsa/private_3.key",
             "key_pem_md5": "399236401eb91c168762da425669ad06",
-            "key_pem_modulus_md5": "112d2db5daba540f8ff26fcaaa052707",
         },
         "4": {
             "file": "key_technology-rsa/private_4.key",
             "key_pem_md5": "6867998790e09f18432a702251bb0e11",
-            "key_pem_modulus_md5": "687f3a3659cd423c48c50ed78a75eba0",
         },
         "5": {
             "file": "key_technology-rsa/private_5.key",
             "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
-            "key_pem_modulus_md5": "1eee27c04e912ff24614911abd2f0f8b",
         },
     },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
@@ -750,7 +745,6 @@ TEST_FILES: Dict = {
 CERT_CA_SETS = {
     "letsencrypt-certs/trustid-x3-root.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
         "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
         "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
         "cert.fingerprints": {
@@ -763,7 +757,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "9454972e3730ac131def33e045ab19df",
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
@@ -776,7 +769,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "9454972e3730ac131def33e045ab19df",
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
@@ -789,7 +781,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
@@ -802,7 +793,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x2-cross-signed.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
@@ -817,7 +807,6 @@ CERT_CA_SETS = {
         "key_technology": "RSA",
         "spki_sha256": "8D02536C887482BC34FF54E41D2BA659BF85B341A0A20AFADB5813DCFBCF286D",
         "spki_sha256.b64": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
-        "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
         "cert.fingerprints": {
             "sha1": "48504E974C0DAC5B5CD476C8202274B24C8C7172",
         },
@@ -834,17 +823,13 @@ CSR_SETS = {
         "key_private": {
             "file": "key_technology-ec/ec384-1-key.pem",
             "key_technology": "EC",
-            "modulus_md5": None,
         },
-        "modulus_md5": "e69f1df0d5a5c7c63e81a83c4f5411a7",
     },
     "key_technology-rsa/selfsigned_1-server.csr": {
         "key_private": {
             "file": "key_technology-rsa/selfsigned_1-server.csr",
             "key_technology": "RSA",
-            "modulus_md5": "e0d99ec6424d5182755315d56398f658",
         },
-        "modulus_md5": "e0d99ec6424d5182755315d56398f658",
     },
 }
 
@@ -852,13 +837,11 @@ CSR_SETS = {
 KEY_SETS = {
     "key_technology-rsa/acme_account_1.key": {
         "key_technology": "RSA",
-        "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
         "spki_sha256": "E70DCB45009DF3F79FC708B46888609E34A3D8D19AEAFA566389718A29140782",
         "spki_sha256.b64": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
     },
     "key_technology-ec/ec384-1-key.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "E739FB0081868C97B8AC0D3773680974E9FCECBFA1FC8B80AFDDBE42F30D1D9D",
         "spki_sha256.b64": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
     },
@@ -1348,6 +1331,7 @@ class AppTest(AppTestCore):
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
                         dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
+                        certificate_type_id=model_utils.CertificateType.RAW_IMPORT,
                         dbPrivateKey=_dbPrivateKey,
                         # optionals
                         dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -1413,66 +1397,6 @@ class AppTest(AppTestCore):
                 )
                 # self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate QueueCertificate
-                # renew a csr
-                # this MUST be a new domain to add to the queue
-                # if it is existing, a domain will not be added
-                event_type = model_utils.OperationsEventType.from_string(
-                    "QueueCertificate__update"
-                )
-                event_payload_dict = utils.new_event_payload_dict()
-                dbOperationsEvent = db.logger.log__OperationsEvent(
-                    self.ctx, event_type, event_payload_dict
-                )
-                dbQueue = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                    # optionals
-                    dbCertificateSigned=_dbCertificateSigned_1,
-                )
-                # self.ctx.pyramid_transaction_commit()
-
-                # we need at least 4 of these
-                _dbQueue2 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                    # optionals
-                    dbCertificateSigned=_dbCertificateSigned_2,
-                )
-                _dbQueue3 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                    # optionals
-                    dbCertificateSigned=_dbCertificateSigned_3,
-                )
-                _dbQueue4 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                    # optionals
-                    dbCertificateSigned=_dbCertificateSigned_4,
-                )
-                self.ctx.pyramid_transaction_commit()
-
                 # note: pre-populate AcmeOrder
 
                 # merge these items in
@@ -1532,9 +1456,8 @@ class AppTest(AppTestCore):
                     acme_order_processing_status_id=_acme_order_processing_status_id,
                     acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
                     domains_challenged=_domains_challenged,
-                    private_key_cycle_id__renewal=_private_key_cycle_id__renewal,
-                    private_key_strategy_id__requested=_private_key_strategy_id__requested,
                     order_url="https://example.com/acme/order/acmeOrder-1",
+                    certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
                     dbEventLogged=_dbAcmeEventLog,

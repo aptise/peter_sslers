@@ -108,12 +108,16 @@ class View_New(Handler):
                 "account_key_file_le_pkey": "Group B",
                 "account_key_file_le_reg": "Group B",
                 "account__contact": "the contact's email address for the ACME Server",
+                "account__order_default_private_key_cycle_id": "what should orders default to?",
+                "account__order_default_private_key_technology_id": "what should orders default to?",
             },
             "notes": [
                 "You must submit ALL items from Group A or Group B",
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
+                "account__order_default_private_key_cycle_id": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
+                "account__order_default_private_key_technology_id": model_utils.KeyTechnology._options_AcmeAccount_order_default,
             },
         }
     )
@@ -143,8 +147,16 @@ class View_New(Handler):
 
             parser = AcmeAccountUploadParser(formStash)
             parser.require_upload(require_contact=None, require_technology=False)
-            # this will have `contact` and `private_key_cycle`
+
             key_create_args = parser.getcreate_args
+            for _field in (
+                "acme_server_id",
+                "contact",
+                "order_default_private_key_cycle_id",
+                "order_default_private_key_technology_id",
+            ):
+                assert _field in key_create_args
+
             acme_server_id = key_create_args.get("acme_server_id")
             if acme_server_id:
                 self._load_AcmeServers()
@@ -211,10 +223,14 @@ class View_New(Handler):
                 "acme_server_id": "which provider",
                 "account__contact": "the contact's email address for the ACME Server",
                 "account__private_key_technology": "what is the key technology preference for this account?",
+                "account__order_default_private_key_cycle_id": "what should orders default to?",
+                "account__order_default_private_key_technology_id": "what should orders default to?",
             },
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
                 "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+                "account__order_default_private_key_cycle_id": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
+                "account__order_default_private_key_technology_id": model_utils.KeyTechnology._options_AcmeAccount_order_default,
             },
         }
     )
@@ -265,15 +281,19 @@ class View_New(Handler):
 
             parser = AcmeAccountUploadParser(formStash)
             parser.require_new(require_contact=True)
-            # this will have `contact` and `private_key_cycle`
+
             key_create_args = parser.getcreate_args
+            for _field in (
+                "contact",
+                "acme_server_id",
+                "private_key_technology_id",
+                "order_default_private_key_cycle_id",
+                "order_default_private_key_technology_id",
+            ):
+                assert _field in key_create_args
 
-            rsa_bits = None
-            ec_curve = None
-            cu_key_technology_id: int
+            # convert the args to cert_utils
             _private_key_technology_id = key_create_args["private_key_technology_id"]
-
-            # convert the args
             cu_new_args = model_utils.KeyTechnology.to_new_args(
                 _private_key_technology_id
             )
@@ -773,35 +793,6 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(
-        route_name="admin:acme_account:focus:queue_certificates",
-        renderer="/admin/acme_account-focus-queue_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:acme_account:focus:queue_certificates_paginated",
-        renderer="/admin/acme_account-focus-queue_certificates.mako",
-    )
-    def related__QueueCertificates(self):
-        dbAcmeAccount = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_AcmeAccountId__count(
-            self.request.api_context, dbAcmeAccount.id
-        )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_AcmeAccountId__paginated(
-            self.request.api_context,
-            dbAcmeAccount.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "AcmeAccount": dbAcmeAccount,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
-            "pager": pager,
-        }
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
@@ -812,12 +803,12 @@ class View_Focus(Handler):
         route_name="admin:acme_account:focus:renewal_configurations_paginated",
         renderer="/admin/acme_account-focus-renewal_configurations.mako",
     )
-    def related__QueueCertificates(self):
+    def related__RenewalConfigurations(self):
         dbAcmeAccount = self._focus()
         items_count = lib_db.get.get__RenewalConfigurations__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        url_template = "%s/renewal-configurations/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__RenewalConfigurations__by_AcmeAccountId__paginated(

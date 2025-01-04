@@ -307,35 +307,6 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(
-        route_name="admin:unique_fqdn_set:focus:queue_certificates",
-        renderer="/admin/unique_fqdn_set-focus-queue_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:unique_fqdn_set:focus:queue_certificates_paginated",
-        renderer="/admin/unique_fqdn_set-focus-queue_certificates.mako",
-    )
-    def related__QueueCertificates(self):
-        dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
-            self.request.api_context, dbUniqueFQDNSet.id
-        )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbUniqueFQDNSet.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "UniqueFQDNSet": dbUniqueFQDNSet,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
-            "pager": pager,
-        }
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(

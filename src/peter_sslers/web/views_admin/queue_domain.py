@@ -225,7 +225,7 @@ class View_Process(Handler):
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_file_pem": "pem to upload",
-                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
                 ["account_key_file_pem", "acme_server_id"],
@@ -241,7 +241,7 @@ class View_Process(Handler):
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -306,7 +306,7 @@ class View_Process(Handler):
                 raise formhandling.FormInvalid()
 
             processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_cycle = formStash.results["private_key_cycle"]
             max_domains_per_certificate = formStash.results[
                 "max_domains_per_certificate"
             ]
@@ -323,7 +323,7 @@ class View_Process(Handler):
                 dbPrivateKey=privateKeySelection.PrivateKey,
                 private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                 processing_strategy=processing_strategy,
-                private_key_cycle__renewal=private_key_cycle__renewal,
+                private_key_cycle=private_key_cycle,
                 max_domains_per_certificate=max_domains_per_certificate,
             )
             if self.request.wants_json:

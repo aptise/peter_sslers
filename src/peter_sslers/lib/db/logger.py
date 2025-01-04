@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import OperationsObjectEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueCertificate
     from ...model.objects import QueueDomain
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
@@ -585,7 +584,6 @@ def _log_object_event(
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
-    dbQueueCertificate: Optional["QueueCertificate"] = None,
     dbQueueDomain: Optional["QueueDomain"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
@@ -620,8 +618,6 @@ def _log_object_event(
         dbOperationsObjectEvent.domain_id = dbDomain.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
-    elif dbQueueCertificate:
-        dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
     elif dbQueueDomain:
         dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
     elif dbCertificateSigned:

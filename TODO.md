@@ -19,11 +19,6 @@ Development
 Application
 -----------
 
-* These sections still need to be audited and streamlined.
-	They work and are tested, but the UX could potentially be cleaner
-	- queue certificates - process
-	- automatic renewal - update to create queues
-	- creating queue-certificates/freeform (domains)
 * AcmeAccount/new
     - There is a bug in which an account is locally created but fails on the
       sync with the acme server.  Due to how pyramid_transaction is leveraged
@@ -46,9 +41,19 @@ Application
     * adding new `single_use__reuse_1_year`
     * dropping _options_AcmeAccount_private_key_cycle
     * dropping account__private_key_cycle
+    [] should "new" be locked to an account?
     
 * Renewals
     * implement single_use__reuse_1_year
+
+
+* Finish Migration to RenewalConfiguration
+	They work and are tested, but the UX could potentially be cleaner
+	- automatic renewal - update to create queues
+	- queue certificates - process
+	- creating queue-certificates/freeform (domains)
+
+
     
 * Create a "Renewable Configuration"; renewals should be based on that.
     [x] create object and routes

@@ -43,7 +43,6 @@ from ...model.objects import DomainBlocklisted
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
-from ...model.objects import QueueCertificate
 from ...model.objects import QueueDomain
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
@@ -1187,6 +1186,34 @@ def get__AcmeOrder__by_DomainId__paginated(
     return dbAcmeOrders
 
 
+def get__AcmeOrder__by_RenewalConfigurationId__count(
+    ctx: "ApiContext", renewal_configuration_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrder__by_RenewalConfigurationId__paginated(
+    ctx: "ApiContext",
+    renewal_configuration_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
+    query = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .order_by(AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeOrders = query.all()
+    return dbAcmeOrders
+
+
 def get__AcmeOrder__by_UniqueFQDNSetId__count(
     ctx: "ApiContext", unique_fqdn_set_id: int
 ) -> int:
@@ -2002,6 +2029,50 @@ def get__CertificateSigned__by_PrivateKeyId__paginated(
     return items_paged
 
 
+def get__CertificateSigned__by_RenewalConfigurationId__count(
+    ctx: "ApiContext", renewal_configuration_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.acme_order_id == AcmeOrder.id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_RenewalConfigurationId__paginated(
+    ctx: "ApiContext",
+    renewal_configuration_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.acme_order_id == AcmeOrder.id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 def get__CertificateSigned__by_UniqueFQDNSetId__count(
     ctx: "ApiContext", unique_fqdn_set_id: int
 ) -> int:
@@ -2781,243 +2852,6 @@ def get__QueueDomain__by_name__many(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _get__QueueCertificate__core(
-    ctx: "ApiContext",
-    failures_only: Optional[bool] = None,
-    successes_only: Optional[bool] = None,
-    unprocessed_only: Optional[bool] = None,
-):
-    if (
-        sum(
-            bool(f)
-            for f in (
-                failures_only,
-                successes_only,
-                unprocessed_only,
-            )
-        )
-        > 1
-    ):
-        raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(QueueCertificate)
-    if failures_only:
-        q = q.filter(
-            QueueCertificate.timestamp_processed.is_not(None),
-            QueueCertificate.timestamp_process_attempt.is_not(None),
-            QueueCertificate.process_result.is_(False),
-        )
-    elif successes_only:
-        q = q.filter(
-            QueueCertificate.timestamp_processed.is_not(None),
-            QueueCertificate.timestamp_process_attempt.is_not(None),
-            QueueCertificate.process_result.is_(True),
-        )
-    elif unprocessed_only:
-        q = q.filter(QueueCertificate.timestamp_processed.is_(None))
-    return q
-
-
-def get__QueueCertificate__count(
-    ctx: "ApiContext",
-    failures_only: Optional[bool] = None,
-    successes_only: Optional[bool] = None,
-    unprocessed_only: Optional[bool] = False,
-) -> int:
-    q = _get__QueueCertificate__core(
-        ctx,
-        failures_only=failures_only,
-        successes_only=successes_only,
-        unprocessed_only=unprocessed_only,
-    )
-    counted = q.count()
-    return counted
-
-
-def get__QueueCertificate__paginated(
-    ctx: "ApiContext",
-    failures_only: Optional[bool] = None,
-    successes_only: Optional[bool] = None,
-    unprocessed_only: bool = False,
-    eagerload_web: bool = False,
-    eagerload_renewal: bool = False,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[QueueCertificate]:
-    q = _get__QueueCertificate__core(
-        ctx,
-        failures_only=failures_only,
-        successes_only=successes_only,
-        unprocessed_only=unprocessed_only,
-    )
-    if eagerload_web:
-        q = q.options(
-            joinedload(QueueCertificate.acme_order__source),
-            joinedload(QueueCertificate.certificate_signed__source),
-            joinedload(QueueCertificate.unique_fqdn_set__source),
-            joinedload(QueueCertificate.acme_order__generated),
-            joinedload(QueueCertificate.certificate_request__generated),
-            joinedload(QueueCertificate.certificate_signed__generated),
-            joinedload(QueueCertificate.acme_account).joinedload(
-                AcmeAccount.acme_account_key
-            ),
-            joinedload(QueueCertificate.private_key),
-            joinedload(QueueCertificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain),
-        )
-    elif eagerload_renewal:
-        q = q.options(
-            joinedload(QueueCertificate.acme_order__source),
-            joinedload(QueueCertificate.certificate_signed__source),
-            joinedload(QueueCertificate.unique_fqdn_set__source),
-            joinedload(QueueCertificate.acme_account).joinedload(
-                AcmeAccount.acme_account_key
-            ),
-            joinedload(QueueCertificate.private_key),
-            joinedload(QueueCertificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain),
-        )
-    q = q.order_by(QueueCertificate.id.desc())
-    q = q.limit(limit).offset(offset)
-    items_paged = q.all()
-    return items_paged
-
-
-def get__QueueCertificate__by_id(
-    ctx: "ApiContext", set_id: int, load_events: Optional[bool] = None
-) -> Optional[QueueCertificate]:
-    q = ctx.dbSession.query(QueueCertificate).filter(QueueCertificate.id == set_id)
-    if load_events:
-        q = q.options(subqueryload(QueueCertificate.operations_object_events))
-    item = q.first()
-    return item
-
-
-def get__QueueCertificate__by_AcmeAccountId__count(
-    ctx: "ApiContext", acme_account_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.acme_account_id == acme_account_id)
-        .count()
-    )
-    return counted
-
-
-def get__QueueCertificate__by_AcmeAccountId__paginated(
-    ctx: "ApiContext",
-    acme_account_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[QueueCertificate]:
-    items_paged = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.acme_account_id == acme_account_id)
-        .order_by(QueueCertificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def _get__QueueCertificate__by_DomainId__core(ctx: "ApiContext", domain_id: int):
-    q = (
-        ctx.dbSession.query(QueueCertificate)
-        .join(
-            UniqueFQDNSet,
-            QueueCertificate.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-    )
-    return q
-
-
-def get__QueueCertificate__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:
-    q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
-    counted = q.count()
-    return counted
-
-
-def get__QueueCertificate__by_DomainId__paginated(
-    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[QueueCertificate]:
-    q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
-    items_paged = (
-        q.order_by(QueueCertificate.id.desc()).limit(limit).offset(offset).all()
-    )
-    return items_paged
-
-
-def get__QueueCertificate__by_PrivateKeyId__count(
-    ctx: "ApiContext", private_key_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.private_key_id == private_key_id)
-        .count()
-    )
-    return counted
-
-
-def get__QueueCertificate__by_PrivateKeyId__paginated(
-    ctx: "ApiContext", private_key_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[QueueCertificate]:
-    items_paged = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.private_key_id == private_key_id)
-        .order_by(QueueCertificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__QueueCertificate__by_UniqueFQDNSetId__active(
-    ctx: "ApiContext", set_id: int
-) -> List[QueueCertificate]:
-    q = ctx.dbSession.query(QueueCertificate).filter(
-        QueueCertificate.unique_fqdn_set_id == set_id,
-        QueueCertificate.timestamp_processed.is_(None),
-    )
-    items_paged = q.all()
-    return items_paged
-
-
-def get__QueueCertificate__by_UniqueFQDNSetId__count(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .count()
-    )
-    return counted
-
-
-def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
-    ctx: "ApiContext",
-    unique_fqdn_set_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[QueueCertificate]:
-    items_paged = (
-        ctx.dbSession.query(QueueCertificate)
-        .filter(QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .order_by(QueueCertificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

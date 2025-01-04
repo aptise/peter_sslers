@@ -640,6 +640,7 @@
                                 title="Queue a CertificateSigned"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                DEPRECATED - MIGRATE TO RenewalConfiguration
                                 Queue a Renewal
                             </a>
 
@@ -823,12 +824,8 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>QueueCertificates</th>
+                        <th></th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(CertificateSigned.queue_certificates__5, perspective="CertificateSigned")}
-                            % if CertificateSigned.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/certificate-signed/%s/queue-certificates" % (admin_prefix, CertificateSigned.id))}
-                            % endif
                         </td>
                     </tr>
                 </tbody>

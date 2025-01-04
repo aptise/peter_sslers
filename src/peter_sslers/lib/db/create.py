@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueCertificate
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ..utils import ApiContext
@@ -119,8 +118,6 @@ def create__AcmeOrder(
     acme_order_processing_status_id: int,
     acme_order_processing_strategy_id: int,
     domains_challenged: "DomainsChallenged",
-    private_key_cycle_id__renewal: int,
-    private_key_strategy_id__requested: int,
     order_url: str,
     certificate_type_id: int,
     dbAcmeAccount: "AcmeAccount",
@@ -137,6 +134,7 @@ def create__AcmeOrder(
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     private_key_deferred_id: Optional[int] = None,
+    private_key_strategy_id__requested: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -150,14 +148,11 @@ def create__AcmeOrder(
     :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
     :param order_url: (required) the url of the object
     :param certificate_type_id: (required) The value of :class:`model.utils.CertificateType`
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
-
     :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
 
     :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
@@ -167,6 +162,7 @@ def create__AcmeOrder(
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
     :param private_key_deferred_id: (optional) See `model.utils.PrivateKeyDeferred`
+    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
@@ -178,22 +174,7 @@ def create__AcmeOrder(
     if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
         raise ValueError("Unsupported `acme_order_type_id`: %s" % acme_order_type_id)
 
-    if private_key_cycle_id__renewal not in model_utils.PrivateKeyCycle._mapping:
-        raise ValueError(
-            "Unsupported `private_key_cycle_id__renewal`: %s"
-            % private_key_cycle_id__renewal
-        )
-
-    if (
-        private_key_strategy_id__requested
-        not in model_utils.PrivateKeyStrategy._mapping
-    ):
-        raise ValueError(
-            "Unsupported `private_key_strategy_id__requested`: %s"
-            % private_key_strategy_id__requested
-        )
-
-    if certificate_type_id not in model_utils.CertificateType._mapping:
+    if certificate_type_id not in model_utils.CertificateType._options_AcmeOrder_id:
         raise ValueError("Unsupported `certificate_type_id`: %s" % certificate_type_id)
 
     if acme_order_response is None:
@@ -228,6 +209,9 @@ def create__AcmeOrder(
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
             raise ValueError("The specified PrivateKey belongs to another AcmeAccount.")
+
+    if not private_key_strategy_id__requested:
+        raise ValueError("missing `private_key_strategy_id__requested`")
 
     if TYPE_CHECKING:
         assert ctx.timestamp
@@ -268,8 +252,6 @@ def create__AcmeOrder(
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
     dbAcmeOrder.acme_order_processing_strategy_id = acme_order_processing_strategy_id
-    dbAcmeOrder.private_key_cycle_id__renewal = private_key_cycle_id__renewal
-    dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.acme_account_id = dbAcmeAccount.id
     dbAcmeOrder.renewal_configuration_id = dbRenewalConfiguration.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
@@ -277,7 +259,8 @@ def create__AcmeOrder(
         dbCertificateRequest.id if dbCertificateRequest else None
     )
     dbAcmeOrder.private_key_id = dbPrivateKey.id
-    dbAcmeOrder.private_key_id__requested = dbPrivateKey.id
+    dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
+    dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
@@ -287,7 +270,6 @@ def create__AcmeOrder(
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
     if dbAcmeOrder_renewal_of:
         dbAcmeOrder.acme_order_id__renewal_of = dbAcmeOrder_renewal_of.id
-    dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -663,7 +645,7 @@ def create__CertificateRequest(
     :param dbPrivateKey: (required) Private Key used to sign the CSR
     :param domain_names: (required) A list of domain names
     :param dbCertificateSigned__issued: (optional) a `model_objects.CertificateSigned`
-    :param str discovery_type:
+    :param str discovery_type: (optional) Text about the discovery
     """
     if (
         certificate_request_source_id
@@ -864,7 +846,7 @@ def create__CertificateSigned(
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
     :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
         required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
-    :param str discovery_type:
+    :param str discovery_type: (optional) Text about the discovery
     """
     if not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
@@ -1085,7 +1067,6 @@ def create__CoverageAssuranceEvent(
     coverage_assurance_resolution_id: Optional[int] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
-    dbQueueCertificate: Optional["QueueCertificate"] = None,
     dbCoverageAssuranceEvent_parent: Optional["CoverageAssuranceEvent"] = None,
 ) -> "CoverageAssuranceEvent":
     """
@@ -1098,7 +1079,6 @@ def create__CoverageAssuranceEvent(
     :param coverage_assurance_resolution_id: (optional) :class:`model.utils.CoverageAssuranceResolution`; defaults to 'unresolved'
     :param dbPrivateKey: (optional) a `model_objects.PrivateKey`
     :param dbCertificateSigned: (optional) a `model_objects.CertificateSigned`
-    :param dbQueueCertificate: (optional) a `model_objects.QueueCertificate`
     :param dbCoverageAssuranceEvent_parent: (optional) a `model_objects.CoverageAssuranceEvent`
     """
     if (
@@ -1131,9 +1111,9 @@ def create__CoverageAssuranceEvent(
                 % coverage_assurance_resolution_id
             )
 
-    if not any((dbPrivateKey, dbCertificateSigned, dbQueueCertificate)):
+    if not any((dbPrivateKey, dbCertificateSigned)):
         raise ValueError(
-            "must submit at least one of (dbPrivateKey, dbCertificateSigned, dbQueueCertificate)"
+            "must submit at least one of (dbPrivateKey, dbCertificateSigned)"
         )
 
     assert ctx.timestamp
@@ -1153,8 +1133,6 @@ def create__CoverageAssuranceEvent(
         dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
     if dbCertificateSigned:
         dbCoverageAssuranceEvent.certificate_signed_id = dbCertificateSigned.id
-    if dbQueueCertificate:
-        dbCoverageAssuranceEvent.queue_certificate_id = dbQueueCertificate.id
     if dbCoverageAssuranceEvent_parent:
         dbCoverageAssuranceEvent.coverage_assurance_event_id__parent = (
             dbCoverageAssuranceEvent_parent.id
@@ -1216,9 +1194,14 @@ def create__PrivateKey(
 
     :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
 
-    :param str discovery_type:
+    :param str discovery_type: (optional) Text about the discovery
     """
-    key_pem = cert_utils.new_private_key(key_technology_id=key_technology_id)
+    cu_new_args = model_utils.KeyTechnology.to_new_args(key_technology_id)
+    key_pem = cert_utils.new_private_key(
+        key_technology_id=cu_new_args["key_technology_id"],
+        rsa_bits=cu_new_args.get("rsa_bits"),
+        ec_curve=cu_new_args.get("ec_curve"),
+    )
     dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
         ctx,
         key_pem,
@@ -1226,153 +1209,12 @@ def create__PrivateKey(
         private_key_type_id=private_key_type_id,
         acme_account_id__owner=acme_account_id__owner,
         private_key_id__replaces=private_key_id__replaces,
+        discovery_type=discovery_type,
     )
     return dbPrivateKey
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-create__QueueCertificate__args = TypedDict(
-    "create__QueueCertificate__args",
-    {
-        "dbAcmeAccount": Required["AcmeAccount"],
-        "dbPrivateKey": Required["PrivateKey"],
-        "private_key_cycle_id__renewal": Required[int],
-        "private_key_strategy_id__requested": Required[int],
-        "dbAcmeOrder": Optional["AcmeOrder"],
-        "dbCertificateSigned": Optional["CertificateSigned"],
-        "dbUniqueFQDNSet": Optional["UniqueFQDNSet"],
-    },
-    total=False,
-)
-
-
-def create__QueueCertificate(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    dbPrivateKey: "PrivateKey",
-    private_key_cycle_id__renewal: int,
-    private_key_strategy_id__requested: int,
-    # optionals
-    dbAcmeOrder: Optional["AcmeOrder"] = None,
-    dbCertificateSigned: Optional["CertificateSigned"] = None,
-    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
-) -> "QueueCertificate":
-    """
-    Queues an item for renewal
-
-    This must happen within the context other events
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object
-    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param private_key_strategy_id__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-
-    :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbCertificateSigned: (optional) A :class:`model.objects.CertificateSigned` object
-    :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
-
-    one and only one of (dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet) must be supplied
-
-    :returns :class:`model.objects.QueueCertificate`
-
-    """
-    if private_key_cycle_id__renewal not in model_utils.PrivateKeyCycle._mapping:
-        raise ValueError(
-            "Unsupported `private_key_cycle_id__renewal`: %s"
-            % private_key_cycle_id__renewal
-        )
-    if (
-        private_key_strategy_id__requested
-        not in model_utils.PrivateKeyStrategy._mapping
-    ):
-        raise ValueError(
-            "Unsupported `private_key_strategy_id__requested`: %s"
-            % private_key_strategy_id__requested
-        )
-    if not all((dbAcmeAccount, dbPrivateKey)):
-        raise ValueError("must supply both `dbAcmeAccount` and `dbPrivateKey`")
-    if not dbAcmeAccount.is_active:
-        raise ValueError("must supply active `dbAcmeAccount`")
-    if not dbPrivateKey.is_active:
-        raise ValueError("must supply active `dbPrivateKey`")
-
-    if (
-        sum(
-            bool(i)
-            for i in (
-                dbAcmeOrder,
-                dbCertificateSigned,
-                dbUniqueFQDNSet,
-            )
-        )
-        != 1
-    ):
-        raise ValueError(
-            "Provide one and only one of (`dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet`)"
-        )
-
-    assert ctx.timestamp
-
-    # what are we renewing?
-    unique_fqdn_set_id: int
-    if dbAcmeOrder:
-        unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
-    elif dbCertificateSigned:
-        unique_fqdn_set_id = dbCertificateSigned.unique_fqdn_set_id
-    elif dbUniqueFQDNSet:
-        unique_fqdn_set_id = dbUniqueFQDNSet.id
-    else:
-        raise ValueError("unexpected logic")
-
-    # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("QueueCertificate__insert")
-    )
-
-    dbQueueCertificate = model_objects.QueueCertificate()
-    dbQueueCertificate.timestamp_created = ctx.timestamp
-    dbQueueCertificate.timestamp_processed = None
-    dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
-    dbQueueCertificate.private_key_cycle_id__renewal = private_key_cycle_id__renewal
-    dbQueueCertificate.private_key_strategy_id__requested = (
-        private_key_strategy_id__requested
-    )
-
-    # core elements
-    dbQueueCertificate.acme_account_id = dbAcmeAccount.id
-    dbQueueCertificate.private_key_id = dbPrivateKey.id
-    dbQueueCertificate.unique_fqdn_set_id = unique_fqdn_set_id
-
-    # the source elements
-    dbQueueCertificate.acme_order_id__source = dbAcmeOrder.id if dbAcmeOrder else None
-    dbQueueCertificate.certificate_signed_id__source = (
-        dbCertificateSigned.id if dbCertificateSigned else None
-    )
-    dbQueueCertificate.unique_fqdn_set_id__source = (
-        dbUniqueFQDNSet.id if dbUniqueFQDNSet else None
-    )
-
-    ctx.dbSession.add(dbQueueCertificate)
-    ctx.dbSession.flush(objects=[dbQueueCertificate])
-
-    # more bookkeeping!
-    event_payload_dict["queue_certificate.id"] = dbQueueCertificate.id
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    ctx.dbSession.flush(objects=[dbOperationsEvent])
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "QueueCertificate__insert"
-        ),
-        dbQueueCertificate=dbQueueCertificate,
-    )
-
-    return dbQueueCertificate
 
 
 def create__RenewalConfiguration(
@@ -1498,5 +1340,5 @@ __all__ = (
     "create__CertificateRequest",
     "create__CertificateSigned",
     "create__PrivateKey",
-    "create__QueueCertificate",
+    "create__RenewalConfiguration",
 )

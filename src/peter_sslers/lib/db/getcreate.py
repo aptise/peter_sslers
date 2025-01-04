@@ -1340,38 +1340,72 @@ def getcreate__PrivateKey__by_pem_text(
 def getcreate__PrivateKey_for_AcmeAccount(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
+    key_technology_id: Optional[int] = None,
+    private_key_cycle_id: Optional[int] = None,
+    private_key_id__replaces: Optional[int] = None,
 ) -> "PrivateKey":
     """
-    getcreate wrapping a dbAcmeAccount
+    getcreate wrapping a dbPrivateKey, which is used by orders
 
     returns: The :class:`model.objects.PrivateKey`
     raises: ValueError
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
+    :param key_technology_id: (optional) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id: (optional) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_id__replaces: (optional) Passthrough to `create__PrivateKey`
+
     """
-    raise ValueError("migrate below line")
-    private_key_cycle = dbAcmeAccount.private_key_cycle
+    private_key_cycle: str
+    if private_key_cycle_id is None:
+        private_key_cycle_id = dbAcmeAccount.order_default_private_key_cycle_id
+        private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
+    else:
+        private_key_cycle = model_utils.PrivateKeyCycle._mapping[private_key_cycle_id]
+
+    if key_technology_id is None:
+        key_technology_id = dbAcmeAccount.order_default_private_key_technology_id
+
     # private_key_technology = dbAcmeAccount.private_key_technology
     acme_account_id__owner = dbAcmeAccount.id
+
+    # scoping
     dbPrivateKey_new: Optional["PrivateKey"]
-    if private_key_cycle == "single_use__reuse_1_year":
-        raise ValueError("`single_use__reuse_1_year` invalid for AcmeAccount")
+
     if private_key_cycle == "single_use":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         dbPrivateKey_new = create__PrivateKey(
             ctx,
             private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
             private_key_type_id=model_utils.PrivateKeyType.from_string("single_use"),
-            key_technology_id=dbAcmeAccount.private_key_technology_id,
+            key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
+            private_key_id__replaces=private_key_id__replaces,
+        )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "single_use__reuse_1_year":
+        # NOTE: AcmeAccountNeedsPrivateKey ; single_use
+        # ???: do we lookup?
+        # ???: how is create scoped - within an order?
+        dbPrivateKey_new = create__PrivateKey(
+            ctx,
+            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
+            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                "single_use__reuse_1_year"
+            ),
+            key_technology_id=key_technology_id,
+            acme_account_id__owner=acme_account_id__owner,
+            private_key_id__replaces=private_key_id__replaces,
         )
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_daily
         dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccount(
-            ctx, acme_account_id__owner
+            ctx,
+            acme_account_id__owner,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
@@ -1382,7 +1416,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 private_key_type_id=model_utils.PrivateKeyType.from_string(
                     "account_daily"
                 ),
-                key_technology_id=dbAcmeAccount.private_key_technology_id,
+                key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
         return dbPrivateKey_new
@@ -1406,7 +1440,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
     elif private_key_cycle == "account_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_weekly
         dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccount(
-            ctx, acme_account_id__owner
+            ctx,
+            acme_account_id__owner,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
@@ -1440,6 +1475,9 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
     elif private_key_cycle == "account_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
+        # this should never happen
+        # while it is a valid `model_utils.PrivateKeyCycle` option,
+        # anything calling this function should not pass it in
         raise ValueError("Invalid option: `account_default`")
 
     else:

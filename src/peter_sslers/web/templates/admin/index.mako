@@ -149,10 +149,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-domains</a></li>
-                <li><a href="${admin_prefix}/queue-certificates"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-certificates</a></li>
             </ul>
 
             <h3>Upstream Providers</h3>

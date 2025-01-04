@@ -61,25 +61,7 @@
 
                 <hr/>
                 <h3>Order/Renewal Defaults</h3>
-                <div class="form-group">
-                    ## TODO: AcmeOrder or RenewalConfiguration
-                    <label for="account__order_default_private_key_technology">Orders: Default PrivateKey Technology</label>
-                    <select class="form-control" name="account__order_default_private_key_technology">
-                        <% _default = model_websafe.KeyTechnology._DEFAULT_AcmeOrder %>
-                        % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_order_default:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="account__order_default_private_key_cycle">Orders: Default PrivateKey Cycling</label>
-                    <select class="form-control" name="account__order_default_private_key_cycle">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
+                ${admin_partials.formgroup__AcmeAccount_order_defaults()}
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>

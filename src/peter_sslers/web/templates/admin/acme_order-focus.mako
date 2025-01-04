@@ -339,6 +339,7 @@
                                 title="Queue a Renewal."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                DEPRECATED - MIGRATE TO RenewalConfiguration
                                 Queue a Renewal
                             </a>
                             &nbsp;
@@ -457,33 +458,19 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKey (Requested)</th>
+                        <th>PrivateKey (Deferred)</th>
                         <td>
-                            % if AcmeOrder.private_key_id__requested == 0:
-                                <span class="label label-default">placeholder key</span>
-                                <code>type: ${AcmeOrder.private_key_deferred}</code>
-                            % else:
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/private-key/${AcmeOrder.private_key_id__requested}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    PrivateKey-${AcmeOrder.private_key_id__requested}
-                                </a>
+                            % if AcmeOrder.private_key_deferred_id:
+                                <span class="label label-default">private_key_deferred_id</span>
+                                <code>type: ${model_websafe.PrivateKeyDeferred._mapping[AcmeOrder.private_key_deferred_id]}</code>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKeyCycle - renewals</th>
-                        <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
-                    </tr>
-                    <tr>
-                        <th>PrivateKeyStrategy - requested</th>
-                        <td><code>${AcmeOrder.private_key_strategy__requested}</code></td>
-                    </tr>
-                    <tr>
-                        <th>PrivateKeyStrategy - final</th>
-                        <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
+                        <th>CertificateType</th>
+                        <td>
+                            <code>${AcmeOrder.certificate_type}</code>
+                        </td>
                     </tr>
                     <tr>
                         <th>CertificateSigned</th>
@@ -539,21 +526,6 @@
                             % endif
                         </td>
                     </tr>
-                    <tr>
-                        <th>QueueCertificate (generator)</th>
-                        <td>
-                            % if AcmeOrder.queue_certificate__generator:
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/queue-certificate/${AcmeOrder.queue_certificate__generator.id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    QueueCertificate-${AcmeOrder.queue_certificate__generator.id}
-                                </a>
-                            % endif
-                        </td>
-                    </tr>
-
                     <tr>
                         <th><hr/></th>
                         <th><hr/></th>

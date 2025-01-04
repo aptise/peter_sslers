@@ -239,15 +239,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>QueueCertificates</th>
-                        <td>
-                            ${admin_partials.table_QueueCertificates(PrivateKey.queue_certificates__5, perspective="PrivateKey")}
-                            % if PrivateKey.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/queue-certificates" % (admin_prefix, PrivateKey.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>CertificateRequests</th>
                         <td>
                             ${admin_partials.table_CertificateRequests(PrivateKey.certificate_requests__5, perspective='PrivateKey')}

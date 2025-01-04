@@ -80,7 +80,7 @@
                         <tr>
                             <th>Private Key Cycling: Renewals</th>
                             <td>
-                                ${admin_partials.formgroup__private_key_cycle__renewal()}
+                                ${admin_partials.formgroup__private_key_cycle()}
                             </td>
                         </tr>
                         <tr>

@@ -343,15 +343,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>QueueCertificate(s)</th>
-                        <td>
-                            ${admin_partials.table_QueueCertificates(AcmeAccount.queue_certificates__5, perspective="AcmeAccount")}
-                            % if AcmeAccount.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account/%s/queue-certificates" % (admin_prefix, AcmeAccount.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>AcmeOrder(s)</th>
                         <td>
                             ${admin_partials.table_AcmeOrders(AcmeAccount.acme_orders__5, perspective="AcmeAccount")}

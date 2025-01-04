@@ -1024,7 +1024,7 @@ class View_Focus_Manipulate(View_Focus):
                 "private_key_reuse": "pem_md5 of existing key",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_file_pem": "pem to upload",
-                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
                 ["account_key_file_pem", "acme_server_id"],
@@ -1040,7 +1040,7 @@ class View_Focus_Manipulate(View_Focus):
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -1106,14 +1106,14 @@ class View_Focus_Manipulate(View_Focus):
                 raise ValueError("Could not select `PrivateKey`")
 
             processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_cycle = formStash.results["private_key_cycle"]
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
                     self.request.api_context,
                     dbAcmeOrder=dbAcmeOrder,
                     dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                     dbPrivateKey=privateKeySelection.PrivateKey,
-                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_cycle=private_key_cycle,
                     processing_strategy=processing_strategy,
                 )
             except errors.AcmeOrderCreatedError as exc:
@@ -1299,7 +1299,7 @@ class View_New(Handler):
                 "private_key_reuse": "pem_md5 of existing key",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_file_pem": "pem to upload",
-                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
                 ["account_key_file_pem", "acme_server_id"],
@@ -1316,7 +1316,7 @@ class View_New(Handler):
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
@@ -1367,20 +1367,85 @@ class View_New(Handler):
                 self.request, formStash
             )
 
-            (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request,
-                formStash,
-                require_contact=None,
-            )
-
-            processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
-            private_key_deferred_id = None
-            if privateKeySelection.private_key_deferred:
-                private_key_deferred_id = model_utils.PrivateKeyDeferred.from_string(
-                    privateKeySelection.private_key_deferred
-                )
             try:
+                (acmeAccountSelection, privateKeySelection) = (
+                    form_utils.form_key_selection(
+                        self.request,
+                        formStash,
+                        require_contact=None,
+                        support_upload_AcmeAccount=False,
+                        support_upload_PrivateKey=False,
+                    )
+                )
+                processing_strategy = formStash.results["processing_strategy"]
+
+                # we may be deferring a private key creation
+                # this is used so we don't have keys laying around for failed orders
+                private_key_deferred_id = None
+                if privateKeySelection.private_key_deferred:
+                    private_key_deferred_id = (
+                        model_utils.PrivateKeyDeferred.from_string(
+                            privateKeySelection.private_key_deferred
+                        )
+                    )
+
+                private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+                    formStash.results["private_key_cycle"]
+                )
+
+                # for the RenewalConfiguration we need the `key_technology`
+                # however this might come from a few places...
+                key_technology_id: int
+                if formStash.results["private_key_option"] == "account_default":
+                    key_technology_id = model_utils.KeyTechnology.ACCOUNT_DEFAULT
+                elif formStash.results["private_key_option"] == "private_key_generate":
+                    key_technology_id = model_utils.KeyTechnology.from_string(
+                        formStash.results["private_key_generate"]
+                    )
+                elif formStash.results["private_key_option"] == "private_key_existing":
+                    key_technology_id = privateKeySelection.PrivateKey.key_technology_id
+                else:
+                    raise ValueError("Unsupported `private_key_option")
+
+                #
+                # validate the domains
+
+                domains_all = []
+                # check for blocklists here
+                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
+                # this may raise errors.AcmeDomainsBlocklisted
+                for challenge_, domains_ in domains_challenged.items():
+                    if domains_:
+                        lib_db.validate.validate_domain_names(
+                            self.request.api_context, domains_
+                        )
+                        if challenge_ == "dns-01":
+                            # check to ensure the domains are configured for dns-01
+                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                            lib_db.validate.ensure_domains_dns01(
+                                self.request.api_context, domains_
+                            )
+                        domains_all.extend(domains_)
+
+                # create the configuration
+                # this will create:
+                # * model_utils.RenewableConfig
+                # * model_utils.dbUniqueFQDNSet
+                # * [model_utils.RenewalConfiguration2AcmeChallengeTypeSpecific, ...]
+                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                    self.request.api_context,
+                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                    private_key_cycle_id=private_key_cycle_id,
+                    key_technology_id=key_technology_id,
+                    domains_challenged=domains_challenged,
+                )
+
+                # unused because we're not uploading accounts
+                # migrate_a = formStash.results["account__order_default_private_key_technology"]
+                # migrate_b = formStash.results["account__order_default_private_key_cycle"]
+
+                # ???: should this be done elsewhere?
+
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
                 # this may raise errors.AcmeDomainsBlocklisted
@@ -1396,16 +1461,14 @@ class View_New(Handler):
                                 self.request.api_context, domains_
                             )
                 try:
-                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renewal_configuration(
                         self.request.api_context,
-                        acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                        domains_challenged=domains_challenged,
-                        private_key_cycle__renewal=private_key_cycle__renewal,
-                        private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
+                        dbRenewalConfiguration=dbRenewalConfiguration,
                         processing_strategy=processing_strategy,
-                        dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                         dbPrivateKey=privateKeySelection.PrivateKey,
                         private_key_deferred_id=private_key_deferred_id,
+                        acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
+                        private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
                     )
 
                 except Exception as exc:
@@ -1445,6 +1508,9 @@ class View_New(Handler):
                         dbAcmeOrder.id,
                     )
                 )
+
+            except (errors.ConflictingObject,) as exc:
+                formStash.fatal_field(field="Error_Main", message=str(exc))
 
             except (
                 errors.AcmeDomainsBlocklisted,

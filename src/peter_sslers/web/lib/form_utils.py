@@ -351,6 +351,7 @@ class _PrivateKeySelection(object):
     upload_parsed: Optional["_PrivateKeyUploadParser"] = None
     private_key_strategy__requested: str
     PrivateKey: Optional["PrivateKey"] = None
+    key_technology_id__generate: Optional[str] = None
 
     # see model_utils.PrivateKeyDeferred
     private_key_deferred: Optional[str] = None
@@ -368,6 +369,7 @@ def parse_AcmeAccountSelection(
     account_key_option: Optional[str] = None,
     allow_none: Optional[bool] = None,
     require_contact: Optional[bool] = None,
+    support_upload: Optional[bool] = None,
 ) -> _AcmeAccountSelection:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
@@ -382,6 +384,9 @@ def parse_AcmeAccountSelection(
     # handle the explicit-option
     acmeAccountSelection = _AcmeAccountSelection()
     if account_key_option == "account_key_file":
+        if not support_upload:
+            # `formStash.fatal_form()` will raise `FormInvalid()`
+            formStash.fatal_form("This form does not support AccountKey Uploads")
         # this will handle form validation and raise errors.
         parser = AcmeAccountUploadParser(formStash)
 
@@ -453,6 +458,7 @@ def parse_PrivateKeySelection(
     request: "Request",
     formStash: FormStash,
     private_key_option: Optional[str] = None,
+    support_upload: Optional[bool] = None,
 ) -> _PrivateKeySelection:
     private_key_pem_md5: Optional[str] = None
     # PrivateKey = None  # :class:`model.objects.PrivateKey`
@@ -460,6 +466,10 @@ def parse_PrivateKeySelection(
     # handle the explicit-option
     privateKeySelection = _PrivateKeySelection()
     if private_key_option == "private_key_file":
+        if not support_upload:
+            # `formStash.fatal_form()` will raise `FormInvalid()`
+            formStash.fatal_form("This form does not support PrivateKey Uploads")
+
         # this will handle form validation and raise errors.
         parser = _PrivateKeyUploadParser(formStash)
         parser.require_upload()
@@ -487,8 +497,7 @@ def parse_PrivateKeySelection(
             )
             private_key_pem_md5 = formStash.results["private_key_reuse"]
         elif private_key_option in (
-            "private_key_generate__ec_p256",
-            "private_key_generate__rsa_4096",
+            "private_key_generate",
             "account_default",
         ):
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
@@ -498,21 +507,23 @@ def parse_PrivateKeySelection(
                     message="Could not load the placeholder PrivateKey.",
                 )
             privateKeySelection.PrivateKey = dbPrivateKey
-            if private_key_option == "private_key_generate__ec_p256":
-                privateKeySelection.private_key_deferred = "generate__ec_p256"
+            if private_key_option == "private_key_generate":
                 privateKeySelection.selection = "generate"
-                privateKeySelection.private_key_strategy__requested = (
-                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
+                key_technology_str = formStash.results[
+                    "private_key_generate"
+                ]  # this is a model_utils.KeyTechnology
+                _deferred_id, _deferred_str = (
+                    model_utils.PrivateKeyDeferred.generate_from_key_technology_str(
+                        key_technology_str
+                    )
                 )
-            elif private_key_option == "private_key_generate__rsa_4096":
-                privateKeySelection.private_key_deferred = "generate__rsa_4096"
-                privateKeySelection.selection = "generate"
+                privateKeySelection.private_key_deferred = _deferred_str
                 privateKeySelection.private_key_strategy__requested = (
                     model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
                 )
             elif private_key_option == "account_default":
-                privateKeySelection.private_key_deferred = "account_default"
                 privateKeySelection.selection = "account_default"
+                privateKeySelection.private_key_deferred = "account_default"
                 privateKeySelection.private_key_strategy__requested = (
                     model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
                         "account_default"
@@ -550,6 +561,8 @@ def form_key_selection(
     request: "Request",
     formStash: FormStash,
     require_contact: Optional[bool] = None,
+    support_upload_AcmeAccount: Optional[bool] = None,
+    support_upload_PrivateKey: Optional[bool] = None,
 ) -> Tuple[_AcmeAccountSelection, _PrivateKeySelection]:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
@@ -560,6 +573,7 @@ def form_key_selection(
         formStash,
         account_key_option=formStash.results["account_key_option"],
         require_contact=require_contact,
+        support_upload=support_upload_AcmeAccount,
     )
     if acmeAccountSelection.selection == "upload":
         assert acmeAccountSelection.upload_parsed
@@ -580,6 +594,7 @@ def form_key_selection(
         request,
         formStash,
         private_key_option=formStash.results["private_key_option"],
+        support_upload=support_upload_PrivateKey,
     )
 
     dbPrivateKey: Optional["PrivateKey"] = None
@@ -594,6 +609,7 @@ def form_key_selection(
         key_create_args["private_key_type_id"] = model_utils.PrivateKeyType.from_string(
             "standard"
         )
+        # TODO: We should infer the above based on the private_key_cycle
         (
             dbPrivateKey,
             _is_created,

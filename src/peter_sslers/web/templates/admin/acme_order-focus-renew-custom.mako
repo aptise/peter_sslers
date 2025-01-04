@@ -101,9 +101,9 @@
                         </tr>
                         <tr>
                             <th>Private Key Cycle - Renewals</th>
-                            <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                            <td><code>${AcmeOrder.private_key_cycle}</code></td>
                             <td>
-                                ${admin_partials.formgroup__private_key_cycle__renewal(default=AcmeOrder.private_key_cycle__renewal)}
+                                ${admin_partials.formgroup__private_key_cycle(default=AcmeOrder.private_key_cycle)}
                             </td>
                         </tr>
                         <tr>

@@ -206,17 +206,17 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             return ""
         return self.acme_account_key.key_pem_sample
 
-    @reify
+    @property
     def private_key_technology(self) -> str:
         return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
-    @reify
+    @property
     def order_default_private_key_cycle(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(
             self.order_default_private_key_cycle_id
         )
 
-    @reify
+    @property
     def order_default_private_key_technology(self) -> str:
         return model_utils.KeyTechnology.as_string(
             self.order_default_private_key_technology_id
@@ -1466,6 +1466,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_processing_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
+    certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     order_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
@@ -1479,11 +1480,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
         sa.DateTime, nullable=True
     )
-    private_key_cycle_id__renewal: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle; if the order is renewed, what is the default cycle strategy?
-    private_key_strategy_id__requested: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
+    private_key_strategy_id__requested: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True
     )  # see .utils.PrivateKeyStrategy; how are we specifying the private key? NOW or deferred?
     private_key_strategy_id__final: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
@@ -1503,9 +1501,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
-    )
-    private_key_id__requested: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
     private_key_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
@@ -1576,21 +1571,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeOrder.id==OperationsObjectEvent.acme_order_id",
         back_populates="acme_order",
     )
-    private_key__requested = sa_orm_relationship(
-        "PrivateKey",
-        primaryjoin="AcmeOrder.private_key_id__requested==PrivateKey.id",
-        uselist=False,
-    )
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="AcmeOrder.private_key_id==PrivateKey.id",
         back_populates="acme_orders",
-        uselist=False,
-    )
-    queue_certificate__generator = sa.orm.relationship(
-        "QueueCertificate",
-        primaryjoin="AcmeOrder.id==QueueCertificate.acme_order_id__generated",
-        back_populates="acme_order__generated",
         uselist=False,
     )
     renewal_configuration = sa.orm.relationship(
@@ -1633,10 +1617,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return model_utils.AcmeOrder_ProcessingStatus.as_string(
             self.acme_order_processing_status_id
         )
-
-    @reify
-    def private_key_cycle__renewal(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
 
     @reify
     def private_key_deferred(self) -> str:
@@ -1864,6 +1844,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
+    def certificate_type(self) -> str:
+        return model_utils.CertificateType.as_string(self.certificate_type_id)
+
+    @property
     def as_json(self) -> Dict:
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
@@ -1883,6 +1867,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
             "acme_process_steps": self.acme_process_steps,
             "certificate_request_id": self.certificate_request_id,
+            "certificate_type": self.certificate_type,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -1929,7 +1914,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.is_can_acme_process
                 else None
             ),
-            "private_key_cycle__renewal": self.private_key_cycle__renewal,
+            "private_key_cycle": self.private_key_cycle,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_strategy__final": self.private_key_strategy__final,
             "acme_authorization_ids": self.acme_authorization_ids,
@@ -2969,18 +2954,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_signed__renewal_of",
         uselist=True,
     )
-    queue_certificate__parent = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="CertificateSigned.id==QueueCertificate.certificate_signed_id__generated",
-        back_populates="certificate_signed__generated",
-        uselist=True,
-    )
-    queue_certificate__renewal = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="CertificateSigned.id==QueueCertificate.certificate_signed_id__source",
-        back_populates="certificate_signed__source",
-        uselist=True,
-    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3203,8 +3176,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @property
     def backup__private_key_cycle_id(self):
         if self.acme_order:
-            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
-            if _private_key_cycle__renewal == "account_default":
+            _private_key_cycle = self.acme_order.private_key_cycle
+            if _private_key_cycle == "account_default":
                  ???
             return self.acme_order.private_key_cycle_id__renewal
         else:
@@ -3214,23 +3187,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     @property
-    def renewal__private_key_cycle_id(self) -> int:
-        if self.acme_order:
-            return self.acme_order.private_key_cycle_id__renewal
-        else:
-            return model_utils.PrivateKeyCycle.from_string(
-                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
-            )
-
-    @property
     def renewal__private_key_strategy_id(self) -> int:
         if self.acme_order:
-            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
-            if _private_key_cycle__renewal != "account_default":
+            _private_key_cycle = self.acme_order.private_key_cycle
+            if _private_key_cycle != "account_default":
                 _private_key_strategy = (
-                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
-                        _private_key_cycle__renewal
-                    ]
+                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[_private_key_cycle]
                 )
             else:
                 _private_key_strategy = (
@@ -3361,7 +3323,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "coverage_assurance_event"
     __table_args__ = (
         sa.CheckConstraint(
-            "(private_key_id IS NOT NULL OR certificate_signed_id IS NOT NULL OR queue_certificate_id IS NOT NULL)",
+            "(private_key_id IS NOT NULL OR certificate_signed_id IS NOT NULL)",
             name="check_pkey_andor_certs",
         ),
     )
@@ -3375,9 +3337,6 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
-    )
-    queue_certificate_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
     coverage_assurance_event_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -3413,12 +3372,6 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="CoverageAssuranceEvent.private_key_id==PrivateKey.id",
-        back_populates="coverage_assurance_events",
-        uselist=False,
-    )
-    queue_certificate = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="CoverageAssuranceEvent.queue_certificate_id==QueueCertificate.id",
         back_populates="coverage_assurance_events",
         uselist=False,
     )
@@ -3832,8 +3785,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN queue_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
             " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN renewal_configuration_id IS NOT NULL THEN 1 ELSE 0 END "
@@ -3887,9 +3838,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
-    )
-    queue_certificate_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
     queue_domain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
@@ -3968,12 +3916,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-    queue_certificate = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="OperationsObjectEvent.queue_certificate_id==QueueCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -4058,6 +4000,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     private_key_id__replaces: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )  # if this key replaces a compromised PrivateKey, note it.
+    renewal_configuration_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
+    )  # the key might be scoped to a renewal_configuration, like single_use__reuse_1_year
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
@@ -4102,6 +4047,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="PrivateKey.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+    renewal_configuration = sa_orm_relationship(
+        "RenewalConfiguration",
+        primaryjoin="PrivateKey.renewal_configuration_id==RenewalConfiguration.id",
+        back_populates="private_key_reuse",
         uselist=False,
     )
 
@@ -4157,15 +4108,15 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             # it's possible to have no lines if this is the placeholder key
             return "..."
 
-    @property
+    @reify
+    def private_key_source(self) -> str:
+        return model_utils.PrivateKeySource.as_string(self.private_key_source_id)
+
+    @reify
     def key_technology(self) -> Optional[str]:
         if self.key_technology_id:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
-
-    @reify
-    def private_key_source(self) -> str:
-        return model_utils.PrivateKeySource.as_string(self.private_key_source_id)
 
     @reify
     def private_key_type(self) -> str:
@@ -4190,216 +4141,6 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
 
 # ==============================================================================
-
-
-class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
-    """
-    An item to be renewed.
-    If something is expired, it will be placed here for renewal
-
-    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    `QueueCertificate.is_active` - a boolean triplet with the following meaning:
-        True  :  The QueueCertificate is active and should be part of the next processing batch.
-        False :  The QueueCertificate has processed, it may be successful or a failure.
-        None  :  The QueueCertificate has been cancelled by the user.
-    """
-
-    __tablename__ = "queue_certificate"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(CASE WHEN acme_order_id__source IS NOT NULL THEN 1 ELSE 0 END"
-            " + "
-            " CASE WHEN certificate_signed_id__source IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN unique_fqdn_set_id__source IS NOT NULL THEN 1 ELSE 0 END "
-            " ) = 1",
-            name="check_queue_certificate_source",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
-    )
-    timestamp_processed: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
-    )
-    timestamp_process_attempt: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
-    )  # if not-null then an attempt was made on this item
-    process_result: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # True/False are attempts; None is untouched
-    operations_event_id__created: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    is_active: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, default=True
-    )  # see docstring above for QueueCertificate.is_active
-    private_key_strategy_id__requested: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyStrategy
-
-    # this is our core requirements. all must be present
-    acme_account_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
-    )
-    private_key_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
-    )
-    unique_fqdn_set_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-
-    # bookkeeping - what is the source?
-    # only one of these 3 can be not-null, see `check_queue_certificate_source`
-    acme_order_id__source: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
-    )
-    certificate_signed_id__source: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
-    )
-    unique_fqdn_set_id__source: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
-    )
-
-    # bookkeeping - what is generated?
-    acme_order_id__generated: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
-    )
-    certificate_request_id__generated: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
-    )
-    certificate_signed_id__generated: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
-    )
-
-    # let's require this
-    private_key_cycle_id__renewal: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_account = sa.orm.relationship(
-        "AcmeAccount",
-        primaryjoin="QueueCertificate.acme_account_id==AcmeAccount.id",
-        uselist=False,
-    )
-    acme_order__generated = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="QueueCertificate.acme_order_id__generated==AcmeOrder.id",
-        back_populates="queue_certificate__generator",
-        uselist=False,
-    )
-    acme_order__source = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="QueueCertificate.acme_order_id__source==AcmeOrder.id",
-        uselist=False,
-    )
-    certificate_request__generated = sa.orm.relationship(
-        "CertificateRequest",
-        primaryjoin="QueueCertificate.certificate_request_id__generated==CertificateRequest.id",
-        uselist=False,
-    )
-    certificate_signed__generated = sa.orm.relationship(
-        "CertificateSigned",
-        primaryjoin="QueueCertificate.certificate_signed_id__generated==CertificateSigned.id",
-        back_populates="queue_certificate__parent",
-        uselist=False,
-    )
-    certificate_signed__source = sa.orm.relationship(
-        "CertificateSigned",
-        primaryjoin="QueueCertificate.certificate_signed_id__source==CertificateSigned.id",
-        back_populates="queue_certificate__renewal",
-        uselist=False,
-    )
-    coverage_assurance_events = sa_orm_relationship(
-        "CoverageAssuranceEvent",
-        primaryjoin="QueueCertificate.id==CoverageAssuranceEvent.queue_certificate_id",
-        back_populates="queue_certificate",
-        uselist=True,
-    )
-    operations_event__created = sa.orm.relationship(
-        "OperationsEvent",
-        primaryjoin="QueueCertificate.operations_event_id__created==OperationsEvent.id",
-        uselist=False,
-    )
-    operations_object_events = sa.orm.relationship(
-        "OperationsObjectEvent",
-        primaryjoin="QueueCertificate.id==OperationsObjectEvent.queue_certificate_id",
-        back_populates="queue_certificate",
-    )
-    private_key = sa.orm.relationship(
-        "PrivateKey",
-        primaryjoin="QueueCertificate.private_key_id==PrivateKey.id",
-        uselist=False,
-    )
-    unique_fqdn_set = sa.orm.relationship(
-        "UniqueFQDNSet",
-        primaryjoin="QueueCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="queue_certificates",
-        overlaps="queue_certificates__active",
-    )
-    unique_fqdn_set__source = sa.orm.relationship(
-        "UniqueFQDNSet",
-        primaryjoin="QueueCertificate.unique_fqdn_set_id__source==UniqueFQDNSet.id",
-        uselist=False,
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def domains_as_list(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_list
-
-    @reify
-    def private_key_cycle__renewal(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
-
-    @reify
-    def private_key_strategy__requested(self) -> str:
-        return (
-            model_utils.PrivateKeyStrategy.as_string(
-                self.private_key_strategy_id__requested
-            )
-            if self.private_key_strategy_id__requested
-            else ""
-        )
-
-    @property
-    def as_json(self) -> Dict:
-        rval = {
-            "id": self.id,
-            "process_result": self.process_result,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "timestamp_processed": self.timestamp_processed_isoformat,
-            "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
-            "is_active": self.is_active,
-            "acme_account_id": self.acme_account_id,
-            "private_key_strategy__requested": self.private_key_strategy__requested,
-            "private_key_cycle__renewal": self.private_key_cycle__renewal,
-            "private_key_id": self.private_key_id,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "generated": {
-                "acme_order_id__generated": self.acme_order_id__generated,
-                "certificate_request_id__generated": self.certificate_request_id__generated,
-                "certificate_signed_id__generated": self.certificate_signed_id__generated,
-            },
-            "source": {
-                "acme_order_id__source": self.acme_order_id__source,
-                "certificate_signed_id__source": self.certificate_signed_id__source,
-                "unique_fqdn_set_id__source": self.unique_fqdn_set_id__source,
-            },
-        }
-        if self.acme_order_id__generated:
-            rval["generated"]["AcmeOrder"] = {
-                "id": self.acme_order_id__generated,
-                "status": self.acme_order__generated.acme_status_order,
-            }
-        return rval
 
 
 # ==============================================================================
@@ -4562,13 +4303,37 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         back_populates="renewal_configuration",
     )
 
-    @reify
+    # only used for reused key cycles
+    private_key_reuse = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="RenewalConfiguration.id==PrivateKey.renewal_configuration_id",
+        back_populates="renewal_configuration",
+        uselist=False,
+    )
+
+    @property
     def private_key_cycle(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
 
-    @reify
+    @property
     def key_technology(self) -> str:
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def key_technology__effective(self) -> str:
+        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            return model_utils.KeyTechnology.as_string(
+                self.acme_account.order_default_private_key_technology_id
+            )
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def private_key_cycle__effective(self) -> str:
+        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            return model_utils.PrivateKeyCycle.as_string(
+                self.acme_account.order_default_private_key_cycle_id
+            )
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
 
     @property
     def domains_as_list(self) -> List[str]:
@@ -4594,10 +4359,13 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "private_key_cycle_id": self.private_key_cycle_id,
-            "private_key_strategy_id": self.private_key_strategy_id,
+            "private_key_cycle": self.private_key_cycle,
+            "key_technology«private_key_cycle__effective": self.private_key_cycle__effective,
+            "key_technology": self.key_technology,
+            "key_technology__effective": self.key_technology__effective,
             "acme_account_id": self.acme_account_id,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "domains_challenged": self.domains_challenged,
         }
 
 
@@ -4821,21 +4589,6 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="UniqueFQDNSet.id==UniqueFQDNSet2Domain.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-    queue_certificates = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin="UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id",
-        back_populates="unique_fqdn_set",
-    )
-    queue_certificates__active = sa_orm_relationship(
-        "QueueCertificate",
-        primaryjoin=(
-            "and_("
-            "UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id,"
-            "QueueCertificate.is_active==True"
-            ")"
-        ),
-        overlaps="queue_certificates",
-    )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="UniqueFQDNSet.id==OperationsObjectEvent.unique_fqdn_set_id",
@@ -4957,7 +4710,6 @@ __all__ = (
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",
-    "QueueCertificate",
     "QueueDomain",
     "RemoteIpAddress",
     "RenewalConfiguration",

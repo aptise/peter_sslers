@@ -123,6 +123,7 @@
                                 title="Queue a CertificateSigned"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                DEPRECATED - MIGRATE TO RenewalConfiguration
                                 Queue a CertificateSigned
                             </a>
                         </td>
@@ -237,15 +238,6 @@
                             ${admin_partials.table_CertificateRequests(UniqueFQDNSet.certificate_requests__5, perspective="UniqueFQDNSet")}
                             % if UniqueFQDNSet.certificate_requests__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Queue: Certificates</th>
-                        <td>
-                            ${admin_partials.table_QueueCertificates(UniqueFQDNSet.queue_certificates__5, perspective="UniqueFQDNSet")}
-                            % if UniqueFQDNSet.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/queue-certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

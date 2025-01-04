@@ -204,7 +204,9 @@ def import_certbot(
                 ctx,
                 private_key_pem,
                 private_key_source_id=PrivateKeySource.from_string("imported"),
-                private_key_type_id=PrivateKeyType.from_string("standard"),
+                private_key_type_id=PrivateKeyType.from_string(
+                    "standard"
+                ),  # certbot does not reuse by default, but might
                 acme_account_id__owner=_acme_account_id,
                 discovery_type="Certbot Import",
             )

@@ -148,7 +148,7 @@ def queue_domains__process(
     dbPrivateKey: Optional["PrivateKey"] = None,
     max_domains_per_certificate: int = 50,
     processing_strategy: Optional[str] = None,
-    private_key_cycle__renewal: Optional[str] = None,
+    private_key_cycle: Optional[str] = None,
     private_key_strategy__requested: Optional[str] = None,
 ) -> "AcmeOrder":
     """
@@ -161,7 +161,7 @@ def queue_domains__process(
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param max_domains_per_certificate: (required) int The maximum number of domains to be put on each Certificate.
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-    :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     """
     if (
@@ -273,7 +273,7 @@ def queue_domains__process(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
                     domains_challenged=domains_challenged,
-                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_cycle=private_key_cycle,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,
                     dbAcmeAccount=dbAcmeAccount,
@@ -338,226 +338,10 @@ def queue_domains__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_certificates__update(
-    ctx: "ApiContext",
-) -> bool:
-    """
-    Inspects the database for expiring :class:`model.objects.AcmeOrders`
-    inserts a new :class:`model.objects.QueueCertificate` for each one.
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param unique_fqdn_set_ids: only insert records for these items
-
-    Invoked by:
-        admin:api:queue_certificates:update
-        admin:api:queue_certificates:update|json
-    """
-    try:
-        #
-        event_type = model_utils.OperationsEventType.from_string(
-            "QueueCertificate__update"
-        )
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
-
-        assert ctx.timestamp
-        _expiring_days = 28
-        _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
-        _subquery_already_queued = ctx.dbSession.query(
-            model_objects.QueueCertificate.acme_order_id__source
-        ).filter(
-            model_objects.QueueCertificate.acme_order_id__source.is_not(None),
-            model_objects.QueueCertificate.timestamp_processed.is_(None),
-            model_objects.QueueCertificate.process_result.is_not(
-                None
-            ),  # True/False were attempted
-        )
-        _core_query = (
-            ctx.dbSession.query(model_objects.AcmeOrder)
-            .join(
-                model_objects.CertificateSigned,
-                model_objects.AcmeOrder.certificate_signed_id
-                == model_objects.CertificateSigned.id,
-            )
-            .filter(
-                model_objects.AcmeOrder.id.notin_(_subquery_already_queued),
-                model_objects.AcmeOrder.certificate_signed_id.is_not(None),
-                model_objects.AcmeOrder.is_auto_renew.is_(True),
-                model_objects.AcmeOrder.is_renewed.is_not(True),
-                model_objects.CertificateSigned.timestamp_not_after <= _until,
-            )
-        )
-        results = _core_query.all()
-        for dbAcmeOrder in results:
-            # TODO: This feature has not been ported yet
-            raise ValueError("This feature has not been ported yet")
-            """
-            # this will call `_log_object_event` as needed
-            dbQueueCertificate = lib.db.create.create__QueueCertificate(
-                ctx,
-                dbAcmeAccount=dbAcmeOrder.acme_account,
-                dbPrivateKey=dbAcmeOrder.private_key,
-                private_key_cycle_id__renewal=FOO,
-                private_key_strategy_id__requested=FOO,
-                # optionals
-                dbAcmeOrder=dbAcmeOrder,
-            )
-            renewals.append(dbQueueCertificate)
-            """
-        event_payload_dict["certificate_signed-queued.ids"] = ",".join(
-            [str(c.id) for c in results]
-        )
-
-        # event_payload_dict["queue_certificates.ids"] = ",".join(
-        #    [str(c.id) for c in renewals]
-        # )
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-        return True
-
-    except Exception as exc:  # noqa: F841
-        raise
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def queue_certificates__process(
-    ctx: "ApiContext",
-) -> Dict:
-    """
-    process the queue
-    in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    """
-    rval: Dict = {
-        "count_total": None,
-        "count_success": 0,
-        "count_fail": 0,
-        "count_remaining": 0,
-        "failures": {},
-    }
-    event_type = model_utils.OperationsEventType.from_string(
-        "QueueCertificate__process"
-    )
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
-    items_count = lib.db.get.get__QueueCertificate__count(ctx, unprocessed_only=True)
-    rval["count_total"] = items_count
-    rval["count_remaining"] = items_count
-    if items_count:
-        items_paged = lib.db.get.get__QueueCertificate__paginated(
-            ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
-        )
-
-        # first step is to see if we need the global AcmeAccountKey
-        # and cache it for later.
-        # if we do and it is missing...
-        # just error on the Queue item, not globally
-        dbAcmeAccount_GlobalDefault = None
-        _need_default_AcmeAccount = None
-        for dbQueueCertificate in items_paged:
-            # check the Account and AccountKey are both active
-            if not dbQueueCertificate.acme_account.is_usable:
-                _need_default_AcmeAccount = True
-                break
-        if _need_default_AcmeAccount:
-            dbAcmeAccount_GlobalDefault = lib.db.get.get__AcmeAccount__GlobalDefault(
-                ctx, active_only=True
-            )
-            # if we don't have an Active Account, create a CoverageAssuranceEvent for the certs that need it
-
-        for dbQueueCertificate in items_paged:
-            # timestamp_loop = datetime.datetime.utcnow()
-
-            try:
-                _dbAcmeAccount = (
-                    dbQueueCertificate.acme_account
-                    if dbQueueCertificate.acme_account.is_usable
-                    else dbAcmeAccount_GlobalDefault
-                )
-                if not _dbAcmeAccount:
-                    raise errors.QueueProcessingError("QueueCertificate_no_account_key")
-                # this can auto-heal
-                _dbPrivateKey = dbQueueCertificate.private_key  # noqa: F841
-
-            except errors.QueueProcessingError as exc:  # noqa: F841
-                # create a CoverageAssuranceEvent
-                rval["count_fail"] += 1
-                _dbCoverageAssuranceEvent = lib.db.create.create__CoverageAssuranceEvent(  # noqa: F841
-                    ctx,
-                    coverage_assurance_event_type_id=model_utils.CoverageAssuranceEventType.from_string(
-                        "QueueCertificate_no_account_key"
-                    ),
-                    coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
-                        "reported"
-                    ),
-                    # optionals
-                    dbQueueCertificate=dbQueueCertificate,
-                )
-                continue
-            try:
-                _dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(  # noqa: F841
-                    ctx,
-                    acme_order_type_id=model_utils.AcmeOrderType.QUEUE_CERTIFICATE,
-                    processing_strategy="create_order",
-                    private_key_cycle__renewal=dbQueueCertificate.private_key_cycle__renewal,
-                    private_key_strategy__requested=dbQueueCertificate.private_key_strategy__requested,
-                    dbQueueCertificate__of=dbQueueCertificate,
-                )
-                _log_object_event(
-                    ctx,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status_id=model_utils.OperationsEventType.from_string(
-                        "QueueCertificate__process__success"
-                    ),
-                    dbQueueCertificate=dbQueueCertificate,
-                )
-                rval["count_success"] += 1
-                rval["count_remaining"] -= 1
-
-            except Exception as exc:
-                # unpack a `errors.AcmeOrderCreatedError` to local vars
-                if isinstance(exc, errors.AcmeOrderCreatedError):
-                    # this is technically a success, at least for now
-                    # _dbAcmeOrder = exc.acme_order
-                    exc = exc.original_exception
-                    _log_object_event(
-                        ctx,
-                        dbOperationsEvent=dbOperationsEvent,
-                        event_status_id=model_utils.OperationsEventType.from_string(
-                            "QueueCertificate__process__success"
-                        ),
-                        dbQueueCertificate=dbQueueCertificate,
-                    )
-                    rval["count_success"] += 1
-                    rval["count_remaining"] -= 1
-                else:
-                    _log_object_event(
-                        ctx,
-                        dbOperationsEvent=dbOperationsEvent,
-                        event_status_id=model_utils.OperationsEventType.from_string(
-                            "QueueCertificate__process__fail"
-                        ),
-                        dbQueueCertificate=dbQueueCertificate,
-                    )
-                    rval["count_fail"] += 1
-                raise
-
-        event_payload_dict["rval"] = rval
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent])
-    return rval
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 __all__ = (
     "queue_domains__add",
     "queue_domains__process",
-    "queue_certificates__update",
-    "queue_certificates__process",
 )

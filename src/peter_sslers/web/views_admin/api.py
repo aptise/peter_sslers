@@ -284,7 +284,7 @@ class ViewAdminApi_Domain(Handler):
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_file_pem": "pem to upload",
-                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
                 ["account_key_file_pem", "acme_server_id"],
@@ -300,7 +300,7 @@ class ViewAdminApi_Domain(Handler):
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
         }
     )
@@ -373,6 +373,7 @@ class ViewAdminApi_Domain(Handler):
                 key_create_args["private_key_type_id"] = (
                     model_utils.PrivateKeyType.from_string("standard")
                 )
+                # TODO: We should infer the above based on the private_key_cycle
                 (
                     dbPrivateKey,
                     _is_created,
@@ -394,7 +395,7 @@ class ViewAdminApi_Domain(Handler):
                 )
 
             processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_cycle = formStash.results["private_key_cycle"]
 
             if TYPE_CHECKING:
                 assert acmeAccountSelection.AcmeAccount is not None
@@ -403,7 +404,7 @@ class ViewAdminApi_Domain(Handler):
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
                 domains_challenged=domains_challenged,
-                private_key_cycle__renewal=private_key_cycle__renewal,
+                private_key_cycle=private_key_cycle,
                 private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                 processing_strategy=processing_strategy,
                 dbAcmeAccount=acmeAccountSelection.AcmeAccount,
@@ -584,7 +585,7 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
                     domains_challenged=domains_challenged,
-                    private_key_cycle__renewal="account_default",
+                    private_key_cycle="account_default",
                     private_key_strategy__requested="deferred-associate",
                     processing_strategy="process_single",
                     dbAcmeAccount=dbAcmeAccount,
@@ -1001,114 +1002,5 @@ class ViewAdminApi_Nginx(Handler):
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     exc.as_querystring,
-                )
-            )
-
-
-class ViewAdminApi_QueueCertificate(Handler):
-    @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
-    @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/queue-certificates/update.json",
-            "section": "api",
-            "about": """Updates the certificates queue by inspecting active certificates for pending expiries.""",
-            "POST": True,
-            "GET": None,
-        }
-    )
-    def update(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return formatted_get_docs(self, "/api/queue-certificates/update.json")
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-        try:
-            if self.request.wants_json:
-                if self.request.method != "POST":
-                    return formatted_get_docs(
-                        self, "/api/queue-certificates/update.json"
-                    )
-            queue_results = lib_db.queues.queue_certificates__update(
-                self.request.api_context
-            )
-            if self.request.wants_json:
-                return {"result": "success", "results": queue_results}
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=%s"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    json.dumps(queue_results, sort_keys=True),
-                )
-            )
-        except Exception as exc:
-            self.request.api_context.pyramid_transaction_rollback()
-            raise
-            if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
-            return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--update"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    str(exc),
-                )
-            )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:api:queue_certificates:process", renderer=None)
-    @view_config(
-        route_name="admin:api:queue_certificates:process|json", renderer="json"
-    )
-    @docify(
-        {
-            "endpoint": "/api/queue-certificates/process.json",
-            "section": "api",
-            "about": """Processes the QueueCertificates.""",
-            "POST": True,
-            "GET": None,
-        }
-    )
-    def process(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return formatted_get_docs(self, "/api/queue-certificates/process.json")
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-        try:
-            if self.request.wants_json:
-                if self.request.method != "POST":
-                    return formatted_get_docs(
-                        self, "/api/queue-certificates/process.json"
-                    )
-            queue_results = lib_db.queues.queue_certificates__process(
-                self.request.api_context
-            )
-            if self.request.wants_json:
-                return {"result": "success", "queue_results": queue_results}
-            _queue_results = ""
-            if queue_results:
-                _queue_results = json.dumps(queue_results, sort_keys=True)
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--process&results=%s"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    json.dumps(_queue_results, sort_keys=True),
-                )
-            )
-        except Exception as exc:
-            self.request.api_context.pyramid_transaction_rollback()
-            raise
-            if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
-            return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--process"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    str(exc),
                 )
             )

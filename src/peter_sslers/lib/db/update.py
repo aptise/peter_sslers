@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from ...model.objects import DomainAutocert
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueCertificate
     from ...model.objects import QueueDomain
     from ..utils import ApiContext
 
@@ -764,21 +763,6 @@ def update_PrivateKey__set_compromised(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def update_QueueCertificate__cancel(
-    ctx: "ApiContext",
-    dbQueueCertificate: "QueueCertificate",
-) -> str:
-    if dbQueueCertificate.is_active is None:
-        raise errors.InvalidTransition("Already cancelled")
-    elif dbQueueCertificate.is_active is False:
-        raise errors.InvalidTransition("Already processed")
-    dbQueueCertificate.is_active = False
-    dbQueueCertificate.timestamp_processed = ctx.timestamp
-    ctx.dbSession.flush(objects=[dbQueueCertificate])
-    event_status = "QueueCertificate__mark__cancelled"
-    return event_status
 
 
 def update_QueuedDomain_dequeue(

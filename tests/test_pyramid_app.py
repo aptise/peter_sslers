@@ -79,7 +79,6 @@ from .regex_library import RE_Domain_new
 from .regex_library import RE_Domain_new_AcmeDnsServerAccount
 from .regex_library import RE_Domain_operation_nginx_expire
 from .regex_library import RE_Domain_operation_nginx_expire__GET
-from .regex_library import RE_QueueCertificate
 from .regex_library import RE_QueueDomain_process_success
 from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
@@ -313,8 +312,6 @@ class FunctionalTests_AcmeAccount(AppTest):
             "admin:acme_account:focus:private_keys_paginated",
             "admin:acme_account:focus:certificate_signeds",
             "admin:acme_account:focus:certificate_signeds_paginated",
-            "admin:acme_account:focus:queue_certificates",
-            "admin:acme_account:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -368,15 +365,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/certificate-signeds/1"
             % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-account/%s/queue-certificates" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-account/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -3248,13 +3236,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             )
             assert "CertificateSigneds" in res.json
 
-    @routes_tested(
-        (
-            "admin:certificate_signed:focus",
-            "admin:certificate_signed:focus:queue_certificates",
-            "admin:certificate_signed:focus:queue_certificates_paginated",
-        )
-    )
+    @routes_tested(("admin:certificate_signed:focus",))
     def test_focus_html(self):
         try:
             (focus_item, focus_id) = self._get_one()
@@ -3268,17 +3250,6 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/certificate-signed/%s" % focus_id, status=200
-        )
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-signed/%s/queue-certificates"
-            % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-signed/%s/queue-certificates/1"
-            % focus_id,
-            status=200,
         )
 
     @routes_tested(
@@ -4005,8 +3976,6 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:domain_autocerts_paginated",
             "admin:domain:focus:certificate_signeds",
             "admin:domain:focus:certificate_signeds_paginated",
-            "admin:domain:focus:queue_certificates",
-            "admin:domain:focus:queue_certificates_paginated",
             "admin:domain:focus:unique_fqdn_sets",
             "admin:domain:focus:unique_fqdn_sets_paginated",
         )
@@ -4070,15 +4039,6 @@ class FunctionalTests_Domain(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds/1" % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/domain/%s/queue-certificates" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/domain/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -4592,8 +4552,8 @@ class FunctionalTests_DomainBlocklisted(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
@@ -4784,8 +4744,6 @@ class FunctionalTests_PrivateKey(AppTest):
             "admin:private_key:focus:certificate_requests_paginated",
             "admin:private_key:focus:certificate_signeds",
             "admin:private_key:focus:certificate_signeds_paginated",
-            "admin:private_key:focus:queue_certificates",
-            "admin:private_key:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -4809,14 +4767,6 @@ class FunctionalTests_PrivateKey(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/private-key/%s/certificate-signeds/1" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/private-key/%s/queue-certificates" % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/private-key/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -5200,8 +5150,6 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "admin:unique_fqdn_set:focus:certificate_requests_paginated",
             "admin:unique_fqdn_set:focus:certificate_signeds",
             "admin:unique_fqdn_set:focus:certificate_signeds_paginated",
-            "admin:unique_fqdn_set:focus:queue_certificates",
-            "admin:unique_fqdn_set:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -5238,17 +5186,6 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-signeds/1"
-            % focus_id,
-            status=200,
-        )
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/unique-fqdn-set/%s/queue-certificates"
-            % focus_id,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/unique-fqdn-set/%s/queue-certificates/1"
             % focus_id,
             status=200,
         )
@@ -5686,509 +5623,6 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "/.well-known/peter_sslers/unique-fqdn-set/%s/update-recents.json"
             % focus_id,
             status=200,
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-
-class FunctionalTests_QueueCertificate(AppTest):
-    """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate
-    """
-
-    def _get_one(self):
-        # grab an item
-        focus_item = (
-            self.ctx.dbSession.query(model_objects.QueueCertificate)
-            .filter(model_objects.QueueCertificate.is_active.is_(True))
-            .order_by(model_objects.QueueCertificate.id.asc())
-            .first()
-        )
-        assert focus_item is not None
-        return focus_item, focus_item.id
-
-    @routes_tested(
-        (
-            "admin:queue_certificates",
-            "admin:queue_certificates:all",
-            "admin:queue_certificates:all_paginated",
-            "admin:queue_certificates:failures",
-            "admin:queue_certificates:failures_paginated",
-            "admin:queue_certificates:successes",
-            "admin:queue_certificates:successes_paginated",
-            "admin:queue_certificates:unprocessed",
-            "admin:queue_certificates:unprocessed_paginated",
-        )
-    )
-    def test_list_html(self):
-        # root redirects
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/unprocessed"
-        )
-
-        # root
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/all", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/failures", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/successes", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/unprocessed", status=200
-        )
-
-        # paginated
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/all/1", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/failures/1", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/successes/1", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/unprocessed/1", status=200
-        )
-
-    @routes_tested(
-        (
-            "admin:queue_certificates|json",
-            "admin:queue_certificates:all|json",
-            "admin:queue_certificates:all_paginated|json",
-            "admin:queue_certificates:failures|json",
-            "admin:queue_certificates:failures_paginated|json",
-            "admin:queue_certificates:successes|json",
-            "admin:queue_certificates:successes_paginated|json",
-            "admin:queue_certificates:unprocessed|json",
-            "admin:queue_certificates:unprocessed_paginated|json",
-        )
-    )
-    def test_list_json(self):
-        # root|json redirects
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates.json", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/unprocessed.json"
-        )
-
-        # root
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/all.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/failures.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/successes.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/unprocessed.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        # paginated
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/all/1.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/failures/1.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/successes/1.json", status=200
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificates/unprocessed/1.json",
-            status=200,
-        )
-        assert "pagination" in res.json
-        assert "QueueCertificates" in res.json
-
-    @routes_tested(("admin:queue_certificate:focus",))
-    def test_focus_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_focus_html
-        """
-        (focus_item, focus_id) = self._get_one()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/%s" % focus_id, status=200
-        )
-
-    @routes_tested(("admin:queue_certificate:focus|json",))
-    def test_focus_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_focus_json
-        """
-        (focus_item, focus_id) = self._get_one()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/%s.json" % focus_id, status=200
-        )
-        assert res.json["result"] == "success"
-        assert "QueueCertificate" in res.json
-        assert res.json["QueueCertificate"]["id"] == focus_id
-
-    @routes_tested(("admin:queue_certificate:focus:mark",))
-    def test_manipulate_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_manipulate_html
-        """
-        (focus_item, focus_id) = self._get_one()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
-            {"action": "cancel"},
-            status=303,
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?&result=error&error=post+required&operation=mark"
-            % focus_id
-        )
-
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
-            {"action": "cancel"},
-            status=303,
-        )
-        assert (
-            res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?result=success&operation=mark"
-            % focus_id
-        )
-
-        res3 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark" % focus_id,
-            {"action": "cancel"},
-            status=303,
-        )
-        assert (
-            res3.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificate/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.---action--Already+processed&operation=mark&action=cancel"
-            % focus_id
-        )
-
-    @routes_tested(("admin:queue_certificate:focus:mark|json",))
-    def test_manipulate_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_manipulate_json
-        """
-        (focus_item, focus_id) = self._get_one()
-
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
-            {"action": "cancel"},
-            status=200,
-        )
-        assert res2.json["result"] == "success"
-        assert res2.json["QueueCertificate"]["is_active"] is False
-
-        res3 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
-            {"action": "cancel"},
-            status=200,
-        )
-        assert res3.json["result"] == "error"
-        assert res3.json["form_errors"]["action"] == "Already processed"
-
-    def _get_queueable_AcmeOrder(self):
-        # see `AcmeOrder.is_renewable_queue`
-        dbAcmeOrder = (
-            self.ctx.dbSession.query(model_objects.AcmeOrder)
-            .join(
-                model_objects.AcmeAccount,
-                model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            )
-            .filter(
-                model_objects.AcmeAccount.is_active.is_(True),
-            )
-            .order_by(model_objects.AcmeOrder.id.asc())
-            .first()
-        )
-        assert dbAcmeOrder
-        return dbAcmeOrder
-
-    def _get_queueable_CertificateSigned(self):
-        dbCertificateSigned = (
-            self.ctx.dbSession.query(model_objects.CertificateSigned)
-            .order_by(model_objects.CertificateSigned.id.asc())
-            .first()
-        )
-        assert dbCertificateSigned
-        return dbCertificateSigned
-
-    def _get_queueable_UniqueFQDNSet(self):
-        dbUniqueFQDNSet = (
-            self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
-            .order_by(model_objects.UniqueFQDNSet.id.asc())
-            .first()
-        )
-        assert dbUniqueFQDNSet
-        return dbUniqueFQDNSet
-
-    @routes_tested(("admin:queue_certificate:new_structured",))
-    def test_new_structured_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_structured_html
-        """
-        # TODO: test with objects that have issues
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates?result=error&error=invalid+queue+source&operation=new-structured"
-        )
-
-        # try with an AcmeOrder
-        dbAcmeOrder = self._get_queueable_AcmeOrder()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=%s"
-            % dbAcmeOrder.id,
-            status=200,
-        )
-        form = res.form
-        res2 = form.submit()
-        assert res2.status_code == 303
-        matched = RE_QueueCertificate.match(res2.location)
-        assert matched
-        queue_id_1 = matched.groups()[0]
-
-        # try with a CertificateSigned
-        dbCertificateSigned = self._get_queueable_CertificateSigned()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=%s"
-            % dbCertificateSigned.id,
-            status=200,
-        )
-        form = res.form
-        res2 = form.submit()
-        assert res2.status_code == 303
-        matched = RE_QueueCertificate.match(res2.location)
-        assert matched
-        queue_id_2 = matched.groups()[0]
-
-        # try with an UniqueFQDNSet
-        dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
-            % dbUniqueFQDNSet.id,
-            status=200,
-        )
-        form = res.form
-        res2 = form.submit()
-        assert res2.status_code == 303
-        matched = RE_QueueCertificate.match(res2.location)
-        assert matched
-        queue_id_3 = matched.groups()[0]
-
-    @routes_tested(("admin:queue_certificate:new_structured|json",))
-    def test_new_structured_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_structured_json
-        """
-        # TODO: test with objects that have issues
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
-            status=200,
-        )
-        assert res.json["result"] == "error"
-        assert res.json["error"] == "invalid queue source"
-
-        # try with an AcmeOrder
-        dbAcmeOrder = self._get_queueable_AcmeOrder()
-        form = {
-            "queue_source": "AcmeOrder",
-            "acme_order": dbAcmeOrder.id,
-            "account_key_option": "account_key_reuse",
-            "account_key_reuse": dbAcmeOrder.acme_account.acme_account_key.key_pem_md5,
-            "account__private_key_cycle": "single_certificate",
-            "private_key_option": "private_key_for_account_key",
-            "private_key_cycle__renewal": "account_key_default",
-        }
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
-            form,
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert "QueueCertificate" in res.json
-        queue_id_1 = res.json["QueueCertificate"]
-
-        # try with a CertificateSigned
-        dbCertificateSigned = self._get_queueable_CertificateSigned()
-        res_instructions = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=CertificateSigned&certificate_signed=%s"
-            % dbCertificateSigned.id,
-            status=200,
-        )
-        account_key_global_default = res_instructions.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
-        form = {
-            "queue_source": "CertificateSigned",
-            "certificate_signed": dbCertificateSigned.id,
-            "account_key_option": "account_key_global_default",
-            "account_key_global_default": account_key_global_default,
-            "account__private_key_cycle": "single_certificate",
-            "private_key_option": "private_key_for_account_key",
-            "private_key_cycle__renewal": "account_key_default",
-        }
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
-            form,
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert "QueueCertificate" in res.json
-        queue_id_2 = res.json["QueueCertificate"]
-
-        # try with an UniqueFQDNSet
-        dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
-        res_instructions = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
-            % dbUniqueFQDNSet.id,
-            status=200,
-        )
-        form = {
-            "queue_source": "UniqueFQDNSet",
-            "unique_fqdn_set": dbUniqueFQDNSet.id,
-            "account_key_option": "account_key_global_default",
-            "account_key_global_default": account_key_global_default,
-            "account__private_key_cycle": "single_certificate",
-            "private_key_option": "private_key_for_account_key",
-            "private_key_cycle__renewal": "account_key_default",
-        }
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json",
-            form,
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert "QueueCertificate" in res.json
-        queue_id_3 = res.json["QueueCertificate"]
-
-    @routes_tested(("admin:queue_certificate:new_freeform",))
-    def test_new_freeform_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_freeform_html
-        """
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/freeform", status=200
-        )
-        form = res.form
-        form["domain_names_http01"] = "test-new-freeform-html.example.com"
-        res2 = form.submit()
-        assert res2.status_code == 303
-        matched = RE_QueueCertificate.match(res2.location)
-        assert matched
-        queue_id_1 = matched.groups()[0]
-
-    @routes_tested(("admin:queue_certificate:new_freeform|json",))
-    def test_new_freeform_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_QueueCertificate.test_new_freeform_json
-        """
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/freeform.json", status=200
-        )
-        assert "instructions" in res.json
-
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/new/freeform.json",
-            {},
-            status=200,
-        )
-        assert res2.json["result"] == "error"
-        assert "form_errors" in res2.json
-
-        form = {}
-        form["account_key_option"] = "account_key_global_default"
-        account_key_global_default = res.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
-        form["account_key_global_default"] = account_key_global_default
-        form["account__private_key_cycle"] = "single_certificate"
-        form["private_key_option"] = "private_key_for_account_key"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["domain_names_http01"] = "test-new-freeform-json.example.com"
-        res3 = self.testapp.post(
-            "/.well-known/peter_sslers/queue-certificate/new/freeform.json",
-            form,
-            status=200,
-        )
-        assert res3.json["result"] == "success"
-        assert "QueueCertificate" in res3.json
-        queue_id_1 = res3.json["QueueCertificate"]
-
-    def test_post_required_html(self):
-        pass
-
-    def test_post_required_json(self):
-        (focus_item, focus_id) = self._get_one()
-        dbAcmeOrder = self._get_queueable_AcmeOrder()
-
-        # !!!: test `POST required` `queue-certificate/%s/mark.json`
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/%s/mark.json" % focus_id,
-            {"action": "cancel"},
-            status=200,
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-        # !!!: test `POST required` `queue-certificates/process.json`
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/api/queue-certificates/process.json", status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-        # !!!: test `POST required` `queue-certificates/update.json`
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/api/queue-certificates/update.json", status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-        # !!!: test `POST required` `queue-certificate/new/structured.json`
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
-            % dbAcmeOrder.id,
-            status=200,
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
-        # !!!: test `POST required` `queue-certificate/new/freeform.json`
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/queue-certificate/new/freeform.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
@@ -6939,8 +6373,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -7121,8 +6555,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -7460,8 +6894,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -7722,8 +7156,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -7982,7 +7416,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["account__private_key_cycle"] = "single_certificate"
         form["private_key_option"] = "private_key_reuse"
         form["private_key_reuse"] = private_key_reuse
-        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_cycle"] = "account_key_default"
         res = self.testapp.post(
             "/.well-known/peter_sslers/acme-order/%s/renew/custom.json" % obj_id__quick,
             form,
@@ -8026,8 +7460,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -8926,8 +8360,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["processing_strategy"].force_value("create_order")
         form["max_domains_per_certificate"].force_value(10)
         res4 = form.submit()
@@ -8986,8 +8420,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"].force_value("account_daily")
-        form["private_key_cycle__renewal"].force_value("account_key_default")
-        form["private_key_option"].force_value("private_key_for_account_key")
+        form["private_key_cycle"].force_value("account_key_default")
+        form["private_key_option"].force_value("account_default")
         form["processing_strategy"].force_value("process_single")
         form["max_domains_per_certificate"].force_value(10)
         res4 = form.submit()
@@ -9045,8 +8479,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["processing_strategy"] = "create_order"
         form["max_domains_per_certificate"] = 10
 
@@ -9106,8 +8540,8 @@ class FunctionalTests_AcmeServer(AppTest):
             "account__contact"
         ]
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["processing_strategy"] = "process_single"
         form["max_domains_per_certificate"] = 10
 
@@ -9126,85 +8560,6 @@ class FunctionalTests_AcmeServer(AppTest):
         for _domain in _domain_names:
             _domain = _domain.lower()
             assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
-    @routes_tested(("admin:api:queue_certificates:update",))
-    def test_QueueCertificates_api_update_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_html
-        """
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/api/queue-certificates/update", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
-        )
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/api/queue-certificates/update", status=303
-        )
-        assert (
-            res.location
-            == """http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=true"""
-        )
-        # TODO - populate the database so it will actually update the queue, retest
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
-    @routes_tested(("admin:api:queue_certificates:update|json",))
-    def test_QueueCertificates_api_update_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_json
-        """
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/api/queue-certificates/update.json"
-        )
-        assert "HTTP POST required" in res.json["instructions"]
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/api/queue-certificates/update.json", status=200
-        )
-        assert res.json["result"] == "success"
-        assert res.json["results"] is True
-        # TODO - populate the database so it will actually update the queue, retest
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
-    @routes_tested(("admin:api:queue_certificates:process",))
-    def test_QueueCertificates_api_process_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_html
-        """
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/api/queue-certificates/process", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
-        )
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/api/queue-certificates/process", status=303
-        )
-        assert res.location.startswith(
-            """http://peter-sslers.example.com/.well-known/peter_sslers/queue-certificates/all?result=success&operation=api--queue-certificates--process&results="""
-        )
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
-    @routes_tested(("admin:api:queue_certificates:process|json",))
-    def test_QueueCertificates_api_process_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_json
-        """
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/api/queue-certificates/process.json", status=200
-        )
-        assert res.json["result"] == "success"
-        assert "queue_results" in res.json
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -9694,8 +9049,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         form["account__contact"] = account__contact
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["domain_names_http01"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
         resp = requests.post(
@@ -9980,8 +9335,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = key_pem_md5
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
@@ -10121,8 +9476,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = key_pem_md5
         form["account__private_key_cycle"] = "account_daily"
-        form["private_key_cycle__renewal"] = "account_key_default"
-        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle"] = "account_key_default"
+        form["private_key_option"] = "account_default"
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
         _domain_name = "test-redis-1.example.com"

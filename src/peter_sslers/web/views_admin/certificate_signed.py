@@ -486,6 +486,7 @@ class View_New(Handler):
                     "imported"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="via upload certificate_signed",
             )
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
@@ -911,35 +912,6 @@ class View_Focus(Handler):
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:certificate_signed:focus:queue_certificates",
-        renderer="/admin/certificate_signed-focus-queue_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:certificate_signed:focus:queue_certificates_paginated",
-        renderer="/admin/certificate_signed-focus-queue_certificates.mako",
-    )
-    def related__QueueCertificates(self):
-        dbCertificateSigned = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
-            self.request.api_context, dbCertificateSigned.unique_fqdn_set_id
-        )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbCertificateSigned.unique_fqdn_set_id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "CertificateSigned": dbCertificateSigned,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
-            "pager": pager,
-        }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

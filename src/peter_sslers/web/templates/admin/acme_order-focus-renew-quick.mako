@@ -95,7 +95,7 @@
                     <tr>
                         <th>Private Key Cycle - Renewals</th>
                         <td></td>
-                        <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                        <td><code>${AcmeOrder.private_key_cycle}</code></td>
                     </tr>
                     <tr>
                         <th></th>

@@ -46,14 +46,18 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>AcmeAccount</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced([])}
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced(support_upload=False)}
                 <hr/>
 
                 <h3>PrivateKey</h3>
                 ${admin_partials.formgroup__PrivateKey_selector__advanced(
                     option_account_default=True,
                     option_generate_new=True,
-                    default="account_default")}
+                    default="account_default",
+                    support_upload=False,
+                    )}
+                <hr/>
+                ${admin_partials.formgroup__private_key_cycle()}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names(
@@ -62,8 +66,6 @@
                     domain_names_dns01=domain_names_dns01)}
                 <hr/>
 
-                ${admin_partials.formgroup__private_key_cycle__renewal()}
-                <hr/>
 
                 ${admin_partials.formgroup__processing_strategy()}
                 <hr/>

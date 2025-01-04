@@ -209,12 +209,6 @@ RE_Domain_operation_nginx_expire__GET = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/domain/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
 )
 
-# note: QueueCertificate
-
-RE_QueueCertificate = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/queue-certificate/(\d+)$"""
-)
-
 # note: QueueDomain
 
 RE_QueueDomain_process_success = re.compile(

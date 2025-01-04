@@ -664,7 +664,7 @@ def api_domains__certificate_if_needed(
     ctx: "ApiContext",
     domains_challenged: "DomainsChallenged",
     processing_strategy: str,
-    private_key_cycle__renewal: str,
+    private_key_cycle: str,
     private_key_strategy__requested: str,
     dbAcmeAccount: "AcmeAccount",
     dbPrivateKey: "PrivateKey",
@@ -675,7 +675,7 @@ def api_domains__certificate_if_needed(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
@@ -700,7 +700,7 @@ def api_domains__certificate_if_needed(
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
     private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
-        private_key_cycle__renewal
+        private_key_cycle
     )
     private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
         private_key_strategy__requested
@@ -828,7 +828,7 @@ def api_domains__certificate_if_needed(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
                     domains_challenged=_domains_challenged__single,
-                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_cycle=private_key_cycle,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,
                     dbAcmeAccount=dbAcmeAccount,

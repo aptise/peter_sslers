@@ -265,15 +265,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>QueueCertificates</th>
-                        <td>
-                            ${admin_partials.table_QueueCertificates(Domain.queue_certificates__5, perspective="Domain")}
-                            % if Domain.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/queue-certificates" % (admin_prefix, Domain.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>AcmeOrders</th>
                         <td>
                             ${admin_partials.table_AcmeOrders(Domain.acme_orders__5, perspective="Domain")}

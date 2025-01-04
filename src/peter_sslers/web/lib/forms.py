@@ -119,6 +119,11 @@ class _form_PrivateKey_core(_Form_Schema_Base):
     )
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_generate = OneOf(
+        model_utils.KeyTechnology._options_Generate,
+        not_empty=False,
+        if_missing=None,
+    )
 
 
 class _form_AcmeAccount_reuse(_form_AcmeAccount_core):
@@ -154,6 +159,19 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
         if_missing=None,
     )
 
+    # these are only required on new/upload
+    # defaults for AcmeOrders
+    account__order_default_private_key_technology = OneOf(
+        model_utils.KeyTechnology._options_AcmeAccount_order_default,
+        not_empty=False,
+        if_missing=None,
+    )
+    account__order_default_private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
+        not_empty=False,
+        if_missing=None,
+    )
+
     # these are via Form_AcmeAccount_new__file
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_meta = FieldStorageUploadConverter(
@@ -172,6 +190,11 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
     )
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_generate = OneOf(
+        model_utils.KeyTechnology._options_Generate,
+        not_empty=False,
+        if_missing=None,
+    )
 
 
 class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
@@ -332,7 +355,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     )
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
+    private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
@@ -357,7 +380,7 @@ class Form_AcmeOrder_renew_custom(_form_AcmeAccount_PrivateKey_reuse):
     )
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
+    private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
@@ -393,7 +416,7 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
     )
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
+    private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
@@ -471,7 +494,10 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
 
 
 class Form_PrivateKey_new__autogenerate(_Form_Schema_Base):
-    bits = OneOf(("4096",), not_empty=True)
+    private_key_generate = OneOf(
+        model_utils.KeyTechnology._options_Generate,
+        not_empty=True,
+    )
 
 
 class Form_PrivateKey_new__full(_Form_Schema_Base):
@@ -497,51 +523,6 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
     )
 
 
-class Form_QueueCertificate_new_freeform(_form_AcmeAccount_PrivateKey_reuse):
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-        not_empty=True,
-    )
-    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
-    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
-
-    chained_validators = [
-        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
-        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
-    ]
-
-
-class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
-    queue_source = OneOf(
-        (
-            "AcmeOrder",
-            "CertificateSigned",
-            "UniqueFQDNSet",
-        ),
-        not_empty=True,
-    )
-    acme_order = Int(not_empty=False, if_missing=None)
-    certificate_signed = Int(not_empty=False, if_missing=None)
-    unique_fqdn_set = Int(not_empty=False, if_missing=None)
-
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-        not_empty=True,
-    )
-
-    chained_validators = [
-        OnlyOneOf(
-            ("acme_order", "certificate_signed", "unique_fqdn_set"), not_empty=True
-        )
-    ]
-
-
-class Form_QueueCertificate_mark(_Form_Schema_Base):
-    action = OneOf(("cancel",), not_empty=True)
-
-
 class Form_QueueDomains_add(_Form_Schema_Base):
     domain_names_http01 = UnicodeString(not_empty=True)
 
@@ -561,7 +542,7 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
     )
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
+    private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )

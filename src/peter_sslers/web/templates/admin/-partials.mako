@@ -934,7 +934,6 @@
                 <th>Resolution</th>
                 <th>Private Key</th>
                 <th>Server Certificate</th>
-                <th>Queue Certificate</th>
             </tr>
         </thead>
         % for cae in CoverageAssuranceEvents:
@@ -975,15 +974,6 @@
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             CertificateSigned-${cae.certificate_signed_id}</a>
-                    % endif
-                </td>
-                <td>
-                    % if cae.queue_certificate_id:
-                        <a  class="label label-info"
-                            href="${admin_prefix}/queue-certificate/${cae.queue_certificate_id}"
-                        >
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            QueueCertificate-${cae.queue_certificate_id}</a>
                     % endif
                 </td>
             </tr>
@@ -1235,96 +1225,7 @@
 </%def>
 
 
-<%def name="table_QueueCertificates(renewal_items, perspective=None)">
-    <%
-        show_unique_fqdn_set = False if perspective == "UniqueFQDNSet" else True
-    %>
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>result</th>
-                % if show_unique_fqdn_set:
-                    <th>UniqueFQDNSet</th>
-                % endif
-                <th>Source</th>
-                <th>Acme Order (Generated)</th>
-                <th>Server Certificate (Generated)</th>
-                <th>timestamp_created</th>
-                <th>operations_event_id__created</th>
-                <th>timestamp_processed</th>
-                <th>timestamp_process_attempt</th>
-            </tr>
-        </thead>
-        <tbody>
-        % for queue_certificate in renewal_items:
-            <tr>
-                <td><a href="${admin_prefix}/queue-certificate/${queue_certificate.id}" class="label label-info">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    QueueCertificate-${queue_certificate.id}</a>
-                </td>
-                <td>
-                    <span class="label label-${'success' if queue_certificate.is_active else 'warning'}">
-                        ${'active' if queue_certificate.is_active else 'no'}
-                    </span>
-                </td>
-                <td>
-                    % if queue_certificate.process_result is None:
-                        &nbsp;
-                    % elif queue_certificate.process_result is False:
-                        <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                    % elif queue_certificate.process_result is True:
-                        <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                    % endif
-                </td>
-                % if show_unique_fqdn_set:
-                    <td>
-                        <a href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id}</a>
-                    </td>
-                % endif
-                <td>
-                    % if queue_certificate.acme_order_id__source:
-                        <a class="label label-info" href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeOrder-${queue_certificate.acme_order_id__source}</a>
-                    % endif
-                    % if queue_certificate.certificate_signed_id__source:
-                        <a class="label label-info" href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        CertificateSigned-${queue_certificate.certificate_signed_id__source}</a>
-                    % endif
-                    % if queue_certificate.unique_fqdn_set_id__source:
-                        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id__source}</a>
-                    % endif
-                </td>
-                <td>
-                    % if queue_certificate.acme_order_id__generated:
-                        <a href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__generated}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrder-${queue_certificate.acme_order_id__generated}</a>
-                    % endif
-                </td>
-                <td>
-                    % if queue_certificate.certificate_signed_id__generated:
-                        <a href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__generated}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateSigned-${queue_certificate.certificate_signed_id__generated}</a>
-                    % endif
-                </td>
-                <td><timestamp>${queue_certificate.timestamp_created or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
-                <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
-                <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
+
 
 
 <%def name="table_RenewalConfigurations(data, perspective=None)">
@@ -1512,11 +1413,6 @@
             QueueDomain-${object_event.queue_domain_id}
         </a>
         <code>${object_event.queue_domain.domain_name}</code>
-    % elif object_event.queue_certificate_id:
-        <a class="label label-info" href="${admin_prefix}/queue-certificate/${object_event.queue_certificate_id}">
-            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            QueueCertificate-${object_event.queue_certificate_id}
-        </a>
     % elif object_event.certificate_signed_id:
         <a class="label label-info" href="${admin_prefix}/certificate-signed/${object_event.certificate_signed_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -1695,10 +1591,40 @@
 </%def>
 
 
+<%def name="formgroup__AcmeAccount_order_defaults()">
+    <div class="form-group">
+        <label for="account__order_default_private_key_technology">Orders: Default PrivateKey Technology</label>
+        <select class="form-control" name="account__order_default_private_key_technology">
+            <% _default = model_websafe.KeyTechnology._DEFAULT_AcmeOrder %>
+            % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_order_default:
+                <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="account__order_default_private_key_cycle">Orders: Default PrivateKey Cycling</label>
+        <select class="form-control" name="account__order_default_private_key_cycle">
+            <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default %>
+            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
+                <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
 <%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True)">
     <table class="table table-condensed">
         <thead>
-            <tr><th>Complete A or B</th></tr>
+            <tr><th>1) Select Account Defaults</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>
+                ${formgroup__AcmeAccount_order_defaults()}
+            </td></tr>
+        </tbody>
+        <thead>
+            <tr><th>2) Complete A or B</th></tr>
         </thead>
         <thead>
             <tr><th>A) AcmeAccountKey: PEM</th></tr>
@@ -1893,11 +1819,11 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle__renewal(default=None)">
+<%def name="formgroup__private_key_cycle(default=None)">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="private_key_cycle__renewal">Private Key Cycle - Renewals</label>
-        <select class="form-control" name="private_key_cycle__renewal">
+        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
+        <select class="form-control" name="private_key_cycle">
             % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
@@ -1933,14 +1859,13 @@
 </%def>
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None)">
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None,)">
     <%
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",
             "account_default": "",
-            "private_key_generate__ec_p256": "",
-            "private_key_generate__rsa_4096": "",
+            "private_key_generate": "",
             "private_key_existing": "",
             "private_key_file_pem": "",
         }
@@ -1991,15 +1916,17 @@
         % endif        
         % if option_generate_new:
             <div class="radio">
-                <label for="private_key_option-private_key_generate__rsa_4096">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate__rsa_4096" value="private_key_generate__rsa_4096" ${selected["private_key_generate__rsa_4096"]}>
-                    Generate a new RSA PrivateKey with 4096 bits.
-                </label>
-            </div>
-            <div class="radio">
-                <label for="private_key_option-private_key_generate__ec_p256">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate__ec_p256" value="private_key_generate__ec_p256" ${selected["private_key_generate__ec_p256"]}>
-                    Generate a new EC PrivateKey on the P-256 cruve.
+                <label for="private_key_option-private_key_generate">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]}>
+                    Generate a new Private Key
+
+                    <select class="form-control" id="private_key_option-private_key_generate-select" name="private_key_generate">
+                        <% _default = model_websafe.KeyTechnology._DEFAULT_Generate %>
+                        % for _option_text in model_websafe.KeyTechnology._options_Generate:
+                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+                        % endfor
+                    </select>
+                    
                 </label>
             </div>
         % endif
@@ -2012,13 +1939,15 @@
                <input class="form-control" name="private_key_existing" id="private_key_existing-pem_md5" type="text"/>
             </div>
         </div>
-        <div class="radio">
-            <label for="private_key_option-private_key_file_pem">
-                <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
-                Upload a new PrivateKey
-                    ${formgroup__PrivateKey_file()}
-            </label>
-        </div>
+        % if support_upload:
+            <div class="radio">
+                <label for="private_key_option-private_key_file_pem">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
+                    Upload a new PrivateKey
+                        ${formgroup__PrivateKey_file()}
+                </label>
+            </div>
+        % endif
     </div>
 </%def>
 
