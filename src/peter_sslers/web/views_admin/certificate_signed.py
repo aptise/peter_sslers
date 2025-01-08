@@ -541,7 +541,7 @@ class View_New(Handler):
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbCertificateCAChain=dbCertificateCAChain,
-                certificate_type_id=model_utils.CertificateType.RAW_IMPORT,
+                certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,

@@ -142,10 +142,17 @@
                     <tr>
                         <th>Renewals Managed by</th>
                         <td>
-                            % if CertificateSigned.renewals_managed_by and CertificateSigned.renewals_managed_by[0] == "RenewalConfiguration":
-                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.renewals_managed_by[1]}">
+                            % if CertificateSigned.acme_order:
+                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    RenewalConfiguration-${CertificateSigned.renewals_managed_by[1]}</a>
+                                    RenewalConfiguration-${CertificateSigned.acme_order.renewal_configuration_id}</a>
+                                % if CertificateSigned.acme_order:
+                                    % if CertificateSigned.acme_order.renewal_configuration.is_active:
+                                        <span class="label label-success">auto-renew active</span>
+                                    % else:
+                                        <span class="label label-danger">auto-renew disabled</span>
+                                    % endif
+                                % endif
                             % else:
                                 <span class="label label-warning">
                                     unavailable
@@ -154,17 +161,30 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Renewal Strategy</th>
+                        <th>Renew?</th>
                         <td>
-                            % if CertificateSigned.renewals_managed_by and CertificateSigned.renewals_managed_by[0] == "RenewalConfiguration":
-                                % if CertificateSigned.acme_order.renewal_configuration.is_active:
-                                    <span class="label label-success">auto-renew active</span>
-                                % else:
-                                    <span class="label label-danger">auto-renew disabled</span>
-                                % endif
-                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.renewals_managed_by[1]}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    RenewalConfiguration-${CertificateSigned.renewals_managed_by[1]}
+                            % if CertificateSigned.acme_order:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-order"
+                                    title="Renew Quick"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    Renew Quick
+                                </a>
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-configuration"
+                                    title="Renew Custom"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    Renew Custom
+                                </a>
+                            % else:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/new?domain_names_http01=${CertificateSigned.domains_as_string}"
+                                    title="Renew Custom"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    New RenewalConfiguration
                                 </a>
                             % endif
                         </td>
@@ -630,24 +650,6 @@
                             </td>
                         </tr>
                     % endif
-
-                    <tr>
-                        <th>Renew?</th>
-                        <td>
-                            &nbsp;
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=${CertificateSigned.id}"
-                                title="Queue a CertificateSigned"
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                DEPRECATED - MIGRATE TO RenewalConfiguration
-                                Queue a Renewal
-                            </a>
-
-                        </td>
-                    </tr>
-
-
                     <tr>
                         <th>related payloads</th>
                         <td>

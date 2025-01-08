@@ -20,7 +20,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-order.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -80,6 +80,21 @@
                         </td>
                         <td>
                             <code>${', '.join(RenewalConfiguration.domains_as_list)}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>UniquelyChallengedFQDNSet</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/uniquely-challenged-fqdn-set/${RenewalConfiguration.uniquely_challenged_fqdn_set_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniquelyChallengedFQDNSet-${RenewalConfiguration.uniquely_challenged_fqdn_set_id}
+                            </a>
+                        </td>
+                        <td>
+                            <code>${RenewalConfiguration.uniquely_challenged_fqdn_set.domain_names}</code>
                         </td>
                     </tr>
                     <tr>

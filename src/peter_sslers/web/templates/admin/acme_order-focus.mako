@@ -325,29 +325,18 @@
 
                             <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${quick_btn_class}"
-                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick"
-                                title="Renew immediately."
+                                href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-order"
+                                title="Quick Renewal"
                             >
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
-                                Quick Renewal
-                            </a>
-                            &nbsp;
-
-                            <% queue_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
-                            <a  class="btn btn-xs btn-primary ${queue_btn_class}"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
-                                title="Queue a Renewal."
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                DEPRECATED - MIGRATE TO RenewalConfiguration
-                                Queue a Renewal
+                                Renew Order
                             </a>
                             &nbsp;
 
                             <% custom_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${custom_btn_class}"
-                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/custom"
-                                title="Renew with options."
+                                href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-configuration"
+                                title="Custom Renewal"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 Custom Renewal
@@ -467,6 +456,12 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>PrivateKey Cycle</th>
+                        <td>
+                            <code>${AcmeOrder.private_key_cycle}</code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>CertificateType</th>
                         <td>
                             <code>${AcmeOrder.certificate_type}</code>
@@ -501,29 +496,17 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Preferred Challenges</th>
+                        <th>UniquelyChallengedFQDNSet</th>
                         <td>
-                            <em>http-01 is the default challenge, and will be used for all domains not specified below</em>
-                            % if not AcmeOrder.acme_order_2_acme_challenge_type_specifics:
-                                No preferred challenges.
-                            % else:
-                                <table class="table table-striped table-condensed">
-                                    <thead>
-                                        <tr>
-                                            <th>Domain</th>
-                                            <th>ACME Challenge</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        % for spec in AcmeOrder.acme_order_2_acme_challenge_type_specifics:
-                                            <tr>
-                                                <td><code>${spec.domain.domain_name}</code></td>
-                                                <td><code>${spec.acme_challenge_type}</code></td>
-                                            </tr>
-                                        % endfor
-                                    </tbody>
-                                </table>
-                            % endif
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/uniquely-challenged-fqdn-set/${AcmeOrder.uniquely_challenged_fqdn_set_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniquelyChallengedFQDNSet-${AcmeOrder.uniquely_challenged_fqdn_set_id}
+                            </a>
+                            <br/>
+                            <code>${AcmeOrder.uniquely_challenged_fqdn_set.domain_names}</code>
                         </td>
                     </tr>
                     <tr>

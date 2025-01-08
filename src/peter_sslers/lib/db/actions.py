@@ -171,7 +171,8 @@ def operations_reconcile_cas(
     ctx: "ApiContext",
 ) -> "OperationsEvent":
     """
-    tries to reconcile CAs
+    Tries to reconcile CAs.
+    This involves checking to ensure the cert_issuer_uri is live and valid
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
@@ -580,6 +581,9 @@ def api_domains__enable(
 
     # bookkeeping
     event_payload_dict = lib.utils.new_event_payload_dict()
+
+    raise ValueError("MIGRATE this should add domains into the system")
+
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ApiDomains__enable"),
@@ -600,7 +604,6 @@ def api_domains__disable(
     disables `domain_names` from the system
 
     * If the `domain_name` represents a `Domain`, it is marked inactive
-    * If the `domain_name` represents a `QueueDomain`, it is removed from the queue
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
@@ -633,21 +636,8 @@ def api_domains__disable(
                 results[domain_name] = "deactivated"
             else:
                 results[domain_name] = "already deactivated"
-        elif not _dbDomain:
-            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
-                ctx, domain_name
-            )
-            if _dbQueueDomain:
-                lib.db.update.update_QueuedDomain_dequeue(
-                    ctx,
-                    _dbQueueDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="QueueDomain__mark__cancelled",
-                    action="de-queued",
-                )
-                results[domain_name] = "de-queued"
-            else:
-                results[domain_name] = "not active or in queue"
+        else:
+            results[domain_name] = "not active or in queue"
 
     event_payload_dict["results"] = results
     # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
@@ -694,6 +684,7 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
+    raise ValueError("MIGRATE")
 
     # validate this first!
     acme_order_processing_strategy_id = (
@@ -740,7 +731,6 @@ def api_domains__certificate_if_needed(
             "certificate_signed.status": None,
             "acme_order.id": None,
         }
-        _dbQueueDomain = None
 
         # Step 1- is the domain_name blocklisted?
         _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
@@ -750,7 +740,7 @@ def api_domains__certificate_if_needed(
             _result["domain.status"] = "blocklisted"
             continue
 
-        # Step 2- is the domain_name a Domain or QueueDomain?
+        # Step 2- is the domain_name a Domain?
         _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, _domain_name, preload=False, active_only=False
         )
@@ -881,20 +871,6 @@ def api_domains__certificate_if_needed(
         # do commit, just because THE LOGGGING
         ctx.pyramid_transaction_commit()
 
-        # remove from queue if it exists
-        if _result["certificate_signed.status"] in ("new", "exists"):
-            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
-                ctx, _domain_name
-            )
-            if _dbQueueDomain:
-                lib.db.update.update_QueuedDomain_dequeue(
-                    ctx,
-                    _dbQueueDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="QueueDomain__mark__already_processed",
-                    action="already_processed",
-                )
-
         # do commit, just because THE LOGGGING
         ctx.pyramid_transaction_commit()
 
@@ -1014,7 +990,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             CertificateSigned.is_ari_supported is True,
             CertificateSigned.timestamp_not_after < timely_date,
             sqlalchemy_or(
-                latest_ari_checks.c.latest_ari_id is None,
+                latest_ari_checks.c.latest_ari_id.op("IS")(None),
                 latest_ari_checks.c.timestamp_retry_after < NOW,
             ),
         )

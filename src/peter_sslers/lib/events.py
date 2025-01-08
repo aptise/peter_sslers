@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import logging
 import math
 from typing import Dict
@@ -8,6 +7,7 @@ from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
 
+# import datetime
 
 # local
 from .db import create as db_create

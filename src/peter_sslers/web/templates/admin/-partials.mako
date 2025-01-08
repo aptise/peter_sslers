@@ -578,6 +578,8 @@
             cols = [c for c in cols if c != "renewal_configuration_id"]
         elif perspective == 'UniqueFQDNSet':
             cols = [c for c in cols if c != "unique_fqdn_set_id"]
+        elif perspective == 'UniquelyChallengedFQDNSet':
+            cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         else:
             raise ValueError("invalid `perspective`")
     %>
@@ -888,10 +890,10 @@
                     % endif
                 </td>
                 <td>
-                    % if cert.renewals_managed_by and cert.renewals_managed_by[0] == "RenewalConfiguration":
-                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.renewals_managed_by[1]}">
+                    % if cert.acme_order:
+                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            RenewalConfiguration-${cert.renewals_managed_by[1]}</a>
+                            RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
                     % else:
                         <span class="label label-warning">
                             unavailable
@@ -1234,11 +1236,14 @@
                 "timestamp_created",
                 "acme_account_id",
                 "unique_fqdn_set_id",
+                "uniquely_challenged_fqdn_set_id",
                )
         if perspective == 'RenewalConfiguration':
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
             cols = [c for c in cols if c != "acme_account_id"]
+        elif perspective == 'UniquelyChallengedFQDNSet':
+            cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         else:
             raise ValueError("invalid `perspective`")
     %>
@@ -1271,6 +1276,11 @@
                                 <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     UniqueFQDNSet-${renewal_configuration.unique_fqdn_set_id}
+                                </a>
+                            % elif c == 'uniquely_challenged_fqdn_set_id':
+                                <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${renewal_configuration.uniquely_challenged_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniquelyChallengedFQDNSet-${renewal_configuration.uniquely_challenged_fqdn_set_id}
                                 </a>
                             % elif c == 'timestamp_created':
                                 <timestamp>${renewal_configuration.timestamp_created or ''}</timestamp>
@@ -1311,6 +1321,7 @@
         </tbody>
     </table>
 </%def>
+
 
 
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
@@ -1375,6 +1386,35 @@
 </%def>
 
 
+<%def name="table_UniquelyChallengedFQDNSets(uniquely_challenged_fqdn_sets, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>domain_string</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in uniquely_challenged_fqdn_sets:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/uniquely-challenged-fqdn-set/${i.id}"
+                    >
+                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                     UniquelyChallengedFQDNSet-${i.id}
+                    </a>
+                </td>
+                <td>
+                    <code>${i.domain_names}</code>
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="object_event__object(object_event)">
     % if object_event.certificate_ca_id:
         <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.certificate_ca_id}">
@@ -1407,12 +1447,6 @@
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             PrivateKey-${object_event.private_key_id}
         </a>
-    % elif object_event.queue_domain_id:
-        <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.queue_domain_id}">
-            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            QueueDomain-${object_event.queue_domain_id}
-        </a>
-        <code>${object_event.queue_domain.domain_name}</code>
     % elif object_event.certificate_signed_id:
         <a class="label label-info" href="${admin_prefix}/certificate-signed/${object_event.certificate_signed_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -1768,7 +1802,13 @@
 </%def>
 
 
-<%def name="formgroup__domain_names(specify_challenge=None, http01_only=False, domain_names_http01='', domain_names_dns01='')">
+<%def name="formgroup__domain_names(
+    specify_challenge=None,
+    http01_only=False,
+    domain_names_http01='',
+    domain_names_dns01='',
+    AcmeDnsServer_GlobalDefault=None,
+)">
     <div class="form-group clearfix">
         % if specify_challenge:
             <label for="f1-domain_names_http01">Domain Names - HTTP-01</label>
@@ -1777,11 +1817,19 @@
                 A comma(,) separated list of domain names to use the default HTTP-01 challenge.
             </p>
             % if not http01_only:
-                <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
-                <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01">${domain_names_dns01}</textarea>
-                <p class="help-block">
-                    A comma(,) separated list of domain names to use the DNS-01 challenge. These domains must be registered with an ACME-DNS system known to this installation.
-                </p>
+                % if not AcmeDnsServer_GlobalDefault:
+                    <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
+                    <p class="help-block">
+                        A Global ACME-DNS installation must first be configured.
+                    </p>
+                % else:
+                    <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
+                    <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01">${domain_names_dns01}</textarea>
+                    <p class="help-block">
+                        A comma(,) separated list of domain names to use the DNS-01 challenge.
+                        These domains will be registered to the global ACME-DNS system if they are not already.
+                    </p>
+                % endif
             % endif
         % else:
             <label for="f1-domain_names">Domain Names</label>

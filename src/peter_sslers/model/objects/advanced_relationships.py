@@ -18,7 +18,6 @@ from .objects import AcmeDnsServerAccount
 from .objects import AcmeEventLog
 from .objects import AcmeOrder
 from .objects import AcmeOrder2AcmeAuthorization
-from .objects import AcmeOrder2AcmeChallengeTypeSpecific
 from .objects import AriCheck
 from .objects import CertificateRequest
 from .objects import CertificateSigned
@@ -29,6 +28,8 @@ from .objects import PrivateKey
 from .objects import RenewalConfiguration
 from .objects import UniqueFQDNSet
 from .objects import UniqueFQDNSet2Domain
+from .objects import UniquelyChallengedFQDNSet
+from .objects import UniquelyChallengedFQDNSet2Domain
 from .. import utils as model_utils
 
 
@@ -244,27 +245,45 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
 )
 
 
-# note: AcmeAuthorization.acme_order_2_acme_challenge_type_specifics
-AcmeAuthorization.acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
-    AcmeOrder2AcmeChallengeTypeSpecific,
-    primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-    secondary=(
-        """join(AcmeOrder2AcmeChallengeTypeSpecific,
-                AcmeOrder2AcmeAuthorization,
-                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
-                )"""
-    ),
-    secondaryjoin=(
-        sa.and_(
-            AcmeOrder2AcmeAuthorization.acme_order_id
-            == sa.orm.foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
-            AcmeAuthorization.domain_id
-            == AcmeOrder2AcmeChallengeTypeSpecific.domain_id,
-        )
-    ),
-    order_by=AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id.desc(),
-    viewonly=True,
-)
+# AcmeAuthorization-AcmeOrder2AcmeAuthorization-AcmeOrder-UnlquelyChallengedFQDNSet-UniquelyChallengedFQDNSet2Domain
+
+if False:
+    # TODO: MIGRATE
+    # note: AcmeAuthorization.acme_challenges_preferred
+    AcmeAuthorization.acme_challenges_preferred = sa_orm_relationship(
+        UniquelyChallengedFQDNSet2Domain,
+        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+        secondary=(
+            """join(AcmeOrder,
+                    AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
+                    )"""
+            """join(UnlquelyChallengedFQDNSet,
+                    AcmeOrder.uniquely_challenged_fqdn_set_id == UnlquelyChallengedFQDNSet.id
+                    )"""
+            """join(UniquelyChallengedFQDNSet2Domain,
+                    UnlquelyChallengedFQDNSet.id == UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id
+                    )"""
+        ),
+        secondaryjoin=(
+            sa.and_(
+                AcmeOrder.id
+                == sa.orm.foreign(AcmeOrder2AcmeAuthorization.acme_order_id),
+                AcmeOrder.id.in_(
+                    sa.select((AcmeOrder.id))
+                    .where(AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id)
+                    .where(
+                        AcmeOrder2AcmeAuthorization.acme_authorization_id
+                        == AcmeAuthorization.id
+                    )
+                    .order_by(AcmeOrder.id.desc())
+                    .limit(5)
+                    .correlate(AcmeOrder2AcmeAuthorization)
+                ),
+            )
+        ),
+        order_by=AcmeOrder.id.desc(),
+        viewonly=True,
+    )
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -286,43 +305,6 @@ AcmeChallenge.acme_orders = sa_orm_relationship(
         )
     ),
     order_by=AcmeOrder.id.desc(),
-    viewonly=True,
-)
-
-# note: AcmeChallenge.acme_order_2_acme_challenge_type_specifics
-"""
-this is a needlessly complex!
-we need to go from the challenge to the authorization to get the order
-then we need to go from the order to the 'challenge type specifics'
-then we need to filter the challenge type specific based on the authorization
--
-primaryjoin: a > (b,c)
-secondary: [b > d], [c > d]
-secondaryjoin = [filter b=d]
-
-A AcmeChallenge
-B AcmeAuthorization
-C AcmeOrder2AcmeAuthorization
-D AcmeOrder2AcmeChallengeTypeSpecific
-
-"""
-AcmeChallenge.acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
-    AcmeOrder2AcmeChallengeTypeSpecific,
-    primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
-    secondary=(
-        """join(AcmeAuthorization,
-                AcmeOrder2AcmeAuthorization,
-                AcmeAuthorization.id == foreign(AcmeOrder2AcmeAuthorization.acme_authorization_id)
-                )"""
-    ),
-    secondaryjoin=(
-        sa.and_(
-            AcmeOrder2AcmeAuthorization.acme_order_id
-            == sa.orm.foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
-            AcmeChallenge.domain_id == AcmeOrder2AcmeChallengeTypeSpecific.domain_id,
-        )
-    ),
-    order_by=AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id.desc(),
     viewonly=True,
 )
 
@@ -726,6 +708,31 @@ Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
 )
 
 
+# note: Domain.to_uniquely_challenged_fqdn_sets__5
+# returns an object with a `uniquely_challenged_fqdn_set` on it
+Domain.to_uniquely_challenged_fqdn_sets__5 = sa_orm_relationship(
+    UniquelyChallengedFQDNSet2Domain,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == UniquelyChallengedFQDNSet2Domain.domain_id,
+            UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id.in_(
+                sa.select(
+                    (UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id)
+                )
+                .where(Domain.id == UniquelyChallengedFQDNSet2Domain.domain_id)
+                .order_by(
+                    UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id.desc()
+                )
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id.desc(),
+    viewonly=True,
+)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # note: PrivateKey.certificate_requests__5
@@ -789,6 +796,8 @@ RenewalConfiguration.acme_orders__5 = sa_orm_relationship(
     order_by=AcmeOrder.id.desc(),
     viewonly=True,
 )
+
+# note: RenewalConfiguration.certificate_signeds__5
 RenewalConfiguration.certificate_signeds__5 = sa_orm_relationship(
     CertificateSigned,
     primaryjoin="RenewalConfiguration.id == AcmeOrder.renewal_configuration_id",
@@ -875,6 +884,25 @@ UniqueFQDNSet.certificate_signeds__5 = sa_orm_relationship(
     viewonly=True,
 )
 
+# note: UniqueFQDNSet.uniquely_challenged_fqdn_sets__5
+UniqueFQDNSet.uniquely_challenged_fqdn_sets__5 = sa_orm_relationship(
+    UniquelyChallengedFQDNSet,
+    primaryjoin=(
+        sa.and_(
+            UniqueFQDNSet.id == UniquelyChallengedFQDNSet.unique_fqdn_set_id,
+            UniquelyChallengedFQDNSet.id.in_(
+                sa.select((UniquelyChallengedFQDNSet.id))
+                .where(UniqueFQDNSet.id == UniquelyChallengedFQDNSet.unique_fqdn_set_id)
+                .order_by(UniquelyChallengedFQDNSet.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=UniquelyChallengedFQDNSet.id.desc(),
+    viewonly=True,
+)
+
 
 # note: UniqueFQDNSet.latest_certificate
 UniqueFQDNSet.latest_certificate = sa_orm_relationship(
@@ -908,5 +936,82 @@ UniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
         )
     ),
     uselist=False,
+    viewonly=True,
+)
+
+
+# note: UniquelyChallengedFQDNSet.acme_orders__5
+UniquelyChallengedFQDNSet.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            UniquelyChallengedFQDNSet.id == AcmeOrder.uniquely_challenged_fqdn_set_id,
+            AcmeOrder.id.in_(
+                sa.select((AcmeOrder.id))
+                .where(
+                    UniquelyChallengedFQDNSet.id
+                    == AcmeOrder.uniquely_challenged_fqdn_set_id
+                )
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+# note: UniquelyChallengedFQDNSet.certificate_signeds__5
+UniquelyChallengedFQDNSet.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned,
+    primaryjoin="UniquelyChallengedFQDNSet.id == AcmeOrder.uniquely_challenged_fqdn_set_id",
+    secondary=(
+        """join(AcmeOrder,
+                CertificateSigned,
+                AcmeOrder.certificate_signed_id == CertificateSigned.id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
+                .where(
+                    AcmeOrder.uniquely_challenged_fqdn_set_id
+                    == UniquelyChallengedFQDNSet.id
+                )
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+
+# note: UniquelyChallengedFQDNSet.renewal_configurations__5
+UniquelyChallengedFQDNSet.renewal_configurations__5 = sa_orm_relationship(
+    RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            UniquelyChallengedFQDNSet.id
+            == RenewalConfiguration.uniquely_challenged_fqdn_set_id,
+            RenewalConfiguration.id.in_(
+                sa.select((RenewalConfiguration.id))
+                .where(
+                    UniquelyChallengedFQDNSet.id
+                    == RenewalConfiguration.uniquely_challenged_fqdn_set_id
+                )
+                .order_by(RenewalConfiguration.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=RenewalConfiguration.id.desc(),
     viewonly=True,
 )

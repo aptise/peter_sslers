@@ -305,6 +305,39 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
+        renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
+    )
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets_paginated",
+        renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
+    )
+    def related__UniquelyChallengedFQDNSets(self):
+        dbUniqueFQDNSet = self._focus()
+        items_count = (
+            lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__count(
+                self.request.api_context, dbUniqueFQDNSet.id
+            )
+        )
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(
+                self.request.api_context,
+                dbUniqueFQDNSet.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+            "UniquelyChallengedFQDNSets_count": items_count,
+            "UniquelyChallengedFQDNSets": items_paged,
+            "pager": pager,
+        }
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

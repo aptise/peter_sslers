@@ -1,7 +1,8 @@
 # stdlib
-from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
+
+# from typing import Dict
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -15,8 +16,9 @@ from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_RenewalConfig_new
-from ..lib.forms import Form_RenewalConfiguration_mark
+from ..lib.forms import Form_RenewalConfig_new_configuration
 from ..lib.forms import Form_RenewalConfig_new_order
+from ..lib.forms import Form_RenewalConfiguration_mark
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -24,6 +26,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
+from ...model.objects import AcmeOrder
 from ...model.objects import RenewalConfiguration
 
 
@@ -222,6 +225,7 @@ class View_List(Handler):
 
 class View_Focus(Handler):
     dbRenewalConfiguration: Optional[RenewalConfiguration] = None
+    _competing_dbAcmeOrder: Optional[AcmeOrder] = None
 
     def _focus(self) -> RenewalConfiguration:
         if self.dbRenewalConfiguration is None:
@@ -265,113 +269,6 @@ class View_Focus(Handler):
             "project": "peter_sslers",
             "RenewalConfiguration": dbRenewalConfiguration,
         }
-
-    @view_config(
-        route_name="admin:renewal_configuration:focus:new_order", renderer=None
-    )
-    @view_config(
-        route_name="admin:renewal_configuration:focus:new_order|json", renderer="json"
-    )
-    @docify(
-        {
-            "endpoint": "/renewal-configuration/{ID}/new-order.json",
-            "section": "renewal-configuration",
-            "about": """AcmeOrder focus: Renew Quick""",
-            "POST": True,
-            "GET": None,
-            "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-order.json",
-            "form_fields": {
-                "processing_strategy": "How should the order be processed?",
-            },
-            "valid_options": {
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-            },
-            "instructions": [
-                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-order.json""",
-            ],
-        }
-    )
-    def new_order(self):
-        """
-        This endpoint is for Immediately Renewing the AcmeOrder with this same Account .
-        """
-        if self.request.method == "POST":
-            return self._new_order__submit()
-        return self._new_order__print()
-
-    def _new_order__print(self):
-        dbRenewalConfiguration = self._focus()
-        if self.request.wants_json:
-            return formatted_get_docs(
-                self, "/renewal-configuration/{ID}/new-order.json"
-            )
-
-        return render_to_response(
-            "/admin/renewal_configuration-focus-new_order.mako",
-            {
-                "RenewalConfiguration": dbRenewalConfiguration,
-            },
-            self.request,
-        )
-
-    def _new_order__submit(self):
-        dbRenewalConfiguration = self._focus()
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_RenewalConfig_new_order,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            processing_strategy = formStash.results["processing_strategy"]
-            try:
-                dbAcmeOrderNew = (
-                    lib_db.actions_acme.do__AcmeV2_AcmeOrder__renewal_configuration(
-                        self.request.api_context,
-                        dbRenewalConfiguration=dbRenewalConfiguration,
-                        processing_strategy=processing_strategy,
-                    )
-                )
-            except errors.AcmeOrderCreatedError as exc:
-                # unpack a `errors.AcmeOrderCreatedError` to local vars
-                dbAcmeOrderNew = exc.acme_order
-                exc = exc.original_exception
-                if self.request.wants_json:
-                    return {
-                        "result": "error",
-                        "error": str(exc),
-                        "AcmeOrder": dbAcmeOrderNew.as_json,
-                    }
-                return HTTPSeeOther(
-                    "%s/acme-order/%s?result=error&error=%s&operation=renewal+configuration"
-                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring)
-                )
-            if self.request.wants_json:
-                return {
-                    "result": "success",
-                    "AcmeOrder": dbAcmeOrderNew.as_json,
-                }
-            return HTTPSeeOther(
-                "%s/acme-order/%s?result=success&operation=renewal+configuration"
-                % (self.request.admin_url, dbAcmeOrderNew.id)
-            )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
-            if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
-            url_failure = "%s?result=error&error=%s&operation=renewal+configuration" % (
-                self._focus_url,
-                exc.as_querystring,
-            )
-            raise HTTPSeeOther(url_failure)
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            return formhandling.form_reprint(self.request, self._new_order__print)
 
     @view_config(
         route_name="admin:renewal_configuration:focus:acme_orders",
@@ -456,6 +353,333 @@ class View_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+class View_Focus_Order(View_Focus):
+
+    @view_config(
+        route_name="admin:renewal_configuration:focus:new_order", renderer=None
+    )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:new_order|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/renewal-configuration/{ID}/new-order.json",
+            "section": "renewal-configuration",
+            "about": """AcmeOrder focus: Renew Quick""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-order.json",
+            "form_fields": {
+                "processing_strategy": "How should the order be processed?",
+            },
+            "valid_options": {
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+            },
+            "instructions": [
+                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-order.json""",
+            ],
+        }
+    )
+    def new_order(self):
+        """
+        This endpoint is for Immediately Renewing the AcmeOrder with this same Account .
+        """
+        dbRenewalConfiguration = self._focus()
+        self._competing_dbAcmeOrder = (
+            lib_db.associate.check_competing_orders_RenewalConfiguration(
+                self.request.api_context,
+                dbRenewalConfiguration,
+            )
+        )
+
+        if self.request.method == "POST":
+            return self._new_order__submit()
+        return self._new_order__print()
+
+    def _new_order__print(self):
+        dbRenewalConfiguration = self._focus()
+        if self.request.wants_json:
+            return formatted_get_docs(
+                self, "/renewal-configuration/{ID}/new-order.json"
+            )
+
+        return render_to_response(
+            "/admin/renewal_configuration-focus-new_order.mako",
+            {
+                "RenewalConfiguration": dbRenewalConfiguration,
+            },
+            self.request,
+        )
+
+    def _new_order__submit(self):
+        dbRenewalConfiguration = self._focus()
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_RenewalConfig_new_order,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            processing_strategy = formStash.results["processing_strategy"]
+            try:
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renewal_configuration(
+                    self.request.api_context,
+                    dbRenewalConfiguration=dbRenewalConfiguration,
+                    processing_strategy=processing_strategy,
+                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
+                )
+            except errors.AcmeOrderCreatedError as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                dbAcmeOrderNew = exc.acme_order
+                exc = exc.original_exception
+                if self.request.wants_json:
+                    return {
+                        "result": "error",
+                        "error": str(exc),
+                        "AcmeOrder": dbAcmeOrderNew.as_json,
+                    }
+                return HTTPSeeOther(
+                    "%s/acme-order/%s?result=error&error=%s&operation=renewal+configuration"
+                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring)
+                )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrderNew.as_json,
+                }
+            return HTTPSeeOther(
+                "%s/acme-order/%s?result=success&operation=renewal+configuration"
+                % (self.request.admin_url, dbAcmeOrderNew.id)
+            )
+        except (
+            errors.AcmeError,
+            errors.InvalidRequest,
+        ) as exc:
+            if self.request.wants_json:
+                return {"result": "error", "error": str(exc)}
+            url_failure = "%s?result=error&error=%s&operation=renewal+configuration" % (
+                self._focus_url,
+                exc.as_querystring,
+            )
+            raise HTTPSeeOther(url_failure)
+        except formhandling.FormInvalid as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new_order__print)
+
+    @view_config(
+        route_name="admin:renewal_configuration:focus:new_configuration", renderer=None
+    )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:new_configuration|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/renewal-configuration/{ID}/new-configuration.json",
+            "section": "renewal-configuration",
+            "about": """AcmeOrder focus: Renew Quick""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
+            "form_fields": {
+                "processing_strategy": "How should the order be processed?",
+            },
+            "valid_options": {
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+            },
+            "instructions": [
+                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json""",
+            ],
+        }
+    )
+    def new_configuration(self):
+        """
+        This is basically forking the configuration
+        """
+        self._load_AcmeAccount_GlobalDefault()
+        self._load_AcmeDnsServer_GlobalDefault()
+        self._load_AcmeServers()
+        if self.request.method == "POST":
+            return self._new_configuration__submit()
+        return self._new_configuration__print()
+
+    def _new_configuration__print(self):
+        dbRenewalConfiguration = self._focus()
+        if self.request.wants_json:
+            return formatted_get_docs(
+                self, "/renewal-configuration/{ID}/new-configuration.json"
+            )
+
+        return render_to_response(
+            "/admin/renewal_configuration-focus-new_configuration.mako",
+            {
+                "RenewalConfiguration": dbRenewalConfiguration,
+                "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+                "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
+                "AcmeServers": self.dbAcmeServers,
+            },
+            self.request,
+        )
+
+    def _new_configuration__submit(self):
+        """
+        much of this logic is shared with /api/domain-certificate-if-needed
+        """
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_RenewalConfig_new_configuration,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            domains_challenged = form_utils.form_domains_challenge_typed(
+                self.request,
+                formStash,
+                dbAcmeDnsServer_GlobalDefault=self.dbAcmeDnsServer_GlobalDefault,
+            )
+
+            acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
+                self.request,
+                formStash,
+                account_key_option=formStash.results["account_key_option"],
+                require_contact=False,
+            )
+            assert acmeAccountSelection.AcmeAccount is not None
+            private_key_cycle = formStash.results["private_key_cycle"]
+            private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle
+            )
+            key_technology = formStash.results["key_technology"]
+            key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+            try:
+                domains_all = []
+                # check for blocklists here
+                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
+                # this may raise errors.AcmeDomainsBlocklisted
+                for challenge_, domains_ in domains_challenged.items():
+                    if domains_:
+                        lib_db.validate.validate_domain_names(
+                            self.request.api_context, domains_
+                        )
+                        if challenge_ == "dns-01":
+                            # check to ensure the domains are configured for dns-01
+                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                            try:
+                                lib_db.validate.ensure_domains_dns01(
+                                    self.request.api_context, domains_
+                                )
+                            except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
+                                # in "experimental" mode, we may want to use specific
+                                # acme-dns servers and not the global one
+                                if (
+                                    self.request.registry.settings["acme_dns_support"]
+                                    == "experimental"
+                                ):
+                                    raise
+                                # in "basic" mode we can just associate these to the global option
+                                if not self.dbAcmeDnsServer_GlobalDefault:
+                                    formStash.fatal_field(
+                                        "domain_names_dns01",
+                                        "No global acme-dns server configured.",
+                                    )
+                                if TYPE_CHECKING:
+                                    assert (
+                                        self.dbAcmeDnsServer_GlobalDefault is not None
+                                    )
+                                # exc.args[0] will be the listing of domains
+                                (domainObjects, adnsAccountObjects) = (
+                                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
+                                        self.request.api_context,
+                                        exc.args[0],
+                                        self.dbAcmeDnsServer_GlobalDefault,
+                                        discovery_type="via renewal_configuration.new",
+                                    )
+                                )
+                        domains_all.extend(domains_)
+
+                # create the configuration
+                # this will create:
+                # * model_utils.RenewableConfig
+                # * model_utils.UniquelyChallengedFQDNSet2Domain
+                # * model_utils.UniqueFQDNSet
+                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                    self.request.api_context,
+                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                    private_key_cycle_id=private_key_cycle_id,
+                    key_technology_id=key_technology_id,
+                    domains_challenged=domains_challenged,
+                )
+
+                if self.request.wants_json:
+                    return {
+                        "result": "success",
+                        "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                    }
+
+                return HTTPSeeOther(
+                    "%s/renewal-configuration/%s"
+                    % (
+                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        dbRenewalConfiguration.id,
+                    )
+                )
+
+            except (
+                errors.AcmeDomainsBlocklisted,
+                errors.AcmeDomainsRequireConfigurationAcmeDNS,
+            ) as exc:
+                formStash.fatal_field(field="Error_Main", message=str(exc))
+
+            except (errors.DuplicateRenewalConfiguration,) as exc:
+                formStash.fatal_field(
+                    field="Error_Main",
+                    message="""This appears to be a duplicate of """
+                    """RenewalConfiguration: %s.""" % exc.args[0].id,
+                )
+
+            except errors.AcmeDuplicateChallenges as exc:
+                if self.request.wants_json:
+                    return {"result": "error", "error": str(exc)}
+                formStash.fatal_field(field="Error_Main", message=str(exc))
+
+            except (
+                errors.AcmeError,
+                errors.InvalidRequest,
+            ) as exc:
+                if self.request.wants_json:
+                    return {"result": "error", "error": str(exc)}
+
+                return HTTPSeeOther(
+                    "%s/renewal-configurations/all?result=error&error=%s&operation=new+freeform"
+                    % (
+                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        exc.as_querystring,
+                    )
+                )
+            except Exception as exc:  # noqa: F841
+                raise
+                # note: allow this on testing
+                # raise
+                if self.request.registry.settings["exception_redirect"]:
+                    return HTTPSeeOther(
+                        "%s/renewal-configurations/all?result=error&operation=new-freeform"
+                        % self.request.registry.settings["app_settings"]["admin_prefix"]
+                    )
+                raise
+
+        except formhandling.FormInvalid as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(
+                self.request, self._new_configuration__print
+            )
 
 
 class View_Focus_Manipulate(View_Focus):
@@ -636,6 +860,7 @@ class View_New(Handler):
     )
     def new(self):
         self._load_AcmeAccount_GlobalDefault()
+        self._load_AcmeDnsServer_GlobalDefault()
         self._load_AcmeServers()
         if self.request.method == "POST":
             return self._new__submit()
@@ -648,6 +873,7 @@ class View_New(Handler):
             "/admin/renewal_configuration-new.mako",
             {
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+                "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.dbAcmeServers,
                 "domain_names_http01": self.request.params.get(
                     "domain_names_http01", ""
@@ -671,14 +897,18 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request, formStash
+                self.request,
+                formStash,
+                dbAcmeDnsServer_GlobalDefault=self.dbAcmeDnsServer_GlobalDefault,
             )
+
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
             )
+            assert acmeAccountSelection.AcmeAccount is not None
             private_key_cycle = formStash.results["private_key_cycle"]
             private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
@@ -698,16 +928,44 @@ class View_New(Handler):
                         if challenge_ == "dns-01":
                             # check to ensure the domains are configured for dns-01
                             # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
-                            lib_db.validate.ensure_domains_dns01(
-                                self.request.api_context, domains_
-                            )
+                            try:
+                                lib_db.validate.ensure_domains_dns01(
+                                    self.request.api_context, domains_
+                                )
+                            except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
+                                # in "experimental" mode, we may want to use specific
+                                # acme-dns servers and not the global one
+                                if (
+                                    self.request.registry.settings["acme_dns_support"]
+                                    == "experimental"
+                                ):
+                                    raise
+                                # in "basic" mode we can just associate these to the global option
+                                if not self.dbAcmeDnsServer_GlobalDefault:
+                                    formStash.fatal_field(
+                                        "domain_names_dns01",
+                                        "No global acme-dns server configured.",
+                                    )
+                                if TYPE_CHECKING:
+                                    assert (
+                                        self.dbAcmeDnsServer_GlobalDefault is not None
+                                    )
+                                # exc.args[0] will be the listing of domains
+                                (domainObjects, adnsAccountObjects) = (
+                                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
+                                        self.request.api_context,
+                                        exc.args[0],
+                                        self.dbAcmeDnsServer_GlobalDefault,
+                                        discovery_type="via renewal_configuration.new",
+                                    )
+                                )
                         domains_all.extend(domains_)
 
                 # create the configuration
                 # this will create:
                 # * model_utils.RenewableConfig
-                # * model_utils.dbUniqueFQDNSet
-                # * [model_utils.RenewalConfiguration2AcmeChallengeTypeSpecific, ...]
+                # * model_utils.UniquelyChallengedFQDNSet2Domain
+                # * model_utils.UniqueFQDNSet
                 dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                     self.request.api_context,
                     dbAcmeAccount=acmeAccountSelection.AcmeAccount,
@@ -735,6 +993,13 @@ class View_New(Handler):
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
                 formStash.fatal_field(field="Error_Main", message=str(exc))
+
+            except (errors.DuplicateRenewalConfiguration,) as exc:
+                formStash.fatal_field(
+                    field="Error_Main",
+                    message="""This appears to be a duplicate of """
+                    """RenewalConfiguration: %s.""" % exc.args[0].id,
+                )
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:

@@ -55,7 +55,12 @@
                     options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
                 )}
 
-                ${admin_partials.formgroup__domain_names(specify_challenge=True, domain_names_http01=domain_names_http01, domain_names_dns01=domain_names_dns01)}
+                ${admin_partials.formgroup__domain_names(
+                    specify_challenge=True,
+                    domain_names_http01=domain_names_http01,
+                    domain_names_dns01=domain_names_dns01,
+                    AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
+                    )}
                 <hr/>
 
                 <hr/>

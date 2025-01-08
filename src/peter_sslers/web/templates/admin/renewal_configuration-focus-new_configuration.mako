@@ -6,25 +6,20 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orders/all">AcmeOrders</a></li>
-        <li class="active">New</li>
+        <li><a href="${admin_prefix}/renewal-configurations">RenewalConfiguration</a></li>
+        <li><a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}">Focus [${RenewalConfiguration.id}]</a></li>
+        <li class="active">New Configuration</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeOrder | New</h2>
-    <div class="alert alert-info">
-        <em>
-            Requests will be performed against the Certificate Authority associated with the Account Key
-        </em>
-    </div>
+    <h2>RenewalConfiguration - Focus ${RenewalConfiguration.id} - New Configuration</h2>
 </%block>
-
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-order/new/freeform.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/renewal-configuration/new.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -38,7 +33,7 @@
         <div class="col-sm-6">
 
             <form
-                action="${admin_prefix}/acme-order/new/freeform"
+                action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-configuration"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -46,30 +41,30 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>AcmeAccount</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced(support_upload=False)}
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                    support_upload=False,
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account,
+                )}
                 <hr/>
 
-                <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(
-                    option_account_default=True,
-                    option_generate_new=True,
-                    default="account_default",
-                    support_upload=False,
-                    )}
-                <hr/>
-                ${admin_partials.formgroup__private_key_cycle()}
-                <hr/>
+                ${admin_partials.formgroup__private_key_cycle(
+                    default=RenewalConfiguration.private_key_cycle,
+                )}
+                ${admin_partials.formgroup__key_technology(
+                    default=RenewalConfiguration.key_technology,
+                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                )}
 
                 ${admin_partials.formgroup__domain_names(
                     specify_challenge=True,
-                    domain_names_http01=domain_names_http01,
-                    domain_names_dns01=domain_names_dns01,
+                    domain_names_http01=RenewalConfiguration.domains_challenged_liststr("http-01"),
+                    domain_names_dns01=RenewalConfiguration.domains_challenged_liststr("dns-01"),
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
                 <hr/>
 
+                <hr/>
 
-                ${admin_partials.formgroup__processing_strategy()}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -78,7 +73,8 @@
         <div class="col-sm-6">
             <p>This route supports JSON and is self-documenting on GET requests.</p>
             ${admin_partials.info_AcmeAccount()}
-            ${admin_partials.info_PrivateKey()}
+            ## ${admin_partials.info_PrivateKey()}
         </div>
     </div>
 </%block>
+

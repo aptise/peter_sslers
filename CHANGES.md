@@ -33,9 +33,30 @@
 
     Removed:
         AcmeFlow/AcmeOrderless - not worth maintaining
+        removed obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+            replaced by UniquelyChallengedFQDNSet
+        removed configuration options; both deprecated in cert_utis and not needed:
+            openssl_path        
+            openssl_path_conf
+        
+    Limited:
+        there is now only a single acme-dns server and it will function as the 
+        global default.
 
-    preliminary ari-check support
-    py313 testsing
+    UniquelyChallengedFQDNSet
+        new concept    
+
+    * AcmeAccount/new
+        [x] Select EC or RSA for initial setup
+
+    * Integrate for Domains: Challenged & AuthorizationPotential
+    * Detect if cert_utils needs tempfiles; autofail if so. 100% Cryptography
+        
+        
+    * Renewals
+        * implement single_use__reuse_1_year
+
+    ari-check support
 
     CertificateSigned
         [x] new view of INACTIVE+NOT_EXPIRED
@@ -45,6 +66,16 @@
         [x] track ARI retry
         [x] list ARI retries needed
         [x] iterate over ARI retries needed
+    
+    EC Keys
+        Valid for Certificates
+        Valid for Accounts
+
+    PrivateKeys
+        * `single_certificate` renamed to `single_use`
+        * adding new `single_use__reuse_1_year`
+        * dropping _options_AcmeAccount_private_key_cycle
+        * dropping account__private_key_cycle
 
     New commandline routines:
         routine__clear_old_ari_checks
@@ -64,6 +95,17 @@
         now handles polling an acme-order stuck in processing, 1x every 5 seconds
         fixed testing docs and config to reflect active testing setup
 
+    Development Tools
+        added
+            dev-reset_db.sh         - clears old db, initializes new db
+            dev-reset_db-post.sh    - runs setup routines against live install
+
+    py313 testsing
+
+    * `account__private_key_cycle`
+        was required on many forms but often unused
+        did a first pass audit to remove
+    
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

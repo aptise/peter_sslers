@@ -2,6 +2,7 @@
 import datetime
 import logging
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -12,10 +13,10 @@ from dateutil import parser as dateutil_parser
 
 # localapp
 from .get import get__AcmeAccount__GlobalDefault
+from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__AcmeServer__default
-from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__Domain__by_name
 from .logger import _log_object_event
 from .. import errors
@@ -38,7 +39,7 @@ if TYPE_CHECKING:
     from ...model.objects import DomainAutocert
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueDomain
+    from ...model.objects import RenewalConfiguration
     from ..utils import ApiContext
 
 # ==============================================================================
@@ -54,7 +55,7 @@ def update_AcmeAccount_from_new_duplicate(
     dbAcmeAccountDuplicate: "AcmeAccount",
 ) -> bool:
     """
-    Invoke this to migrate the duplicate `AcmeAccount`'s information onto the original account
+    Invoke this to Transfer the duplicate `AcmeAccount`'s information onto the original account
 
     ONLY INVOKE THIS ON A NEWLY CREATED DUPLICATE
 
@@ -71,7 +72,7 @@ def update_AcmeAccount_from_new_duplicate(
 
     raise ValueError("TESTING NEEDED")
     with ctx.dbSession.no_autoflush:
-        log.info("Attempting to migrate the following:")
+        log.info("Attempting to Transfer the following:")
         log.info("TARGET record:")
         log.info(" dbAcmeAccountTarget.id", dbAcmeAccountTarget.id)
         log.info(" dbAcmeAccountTarget.account_url", dbAcmeAccountTarget.account_url)
@@ -94,12 +95,12 @@ def update_AcmeAccount_from_new_duplicate(
         dbAcmeAccountDuplicate.account_url = None
         ctx.dbSession.flush([dbAcmeAccountDuplicate])
 
-        # Migrate the Account fields:
+        # Transfer the Account fields:
         dbAcmeAccountTarget.account_url = account_url
         dbAcmeAccountTarget.terms_of_service = dbAcmeAccountDuplicate.terms_of_service
         ctx.dbSession.flush([dbAcmeAccountTarget])
 
-        # Migrate the AcmeAccountKey
+        # Transfer the AcmeAccountKey
         # alias the keys
         dbAcmeAccountKey_old = dbAcmeAccountTarget.acme_account_key
         dbAcmeAccountKey_new = dbAcmeAccountDuplicate.acme_account_key
@@ -760,42 +761,6 @@ def update_PrivateKey__set_compromised(
 
     event_status = "PrivateKey__mark__compromised"
     return event_status
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def update_QueuedDomain_dequeue(
-    ctx: "ApiContext",
-    dbQueueDomain: "QueueDomain",
-    dbOperationsEvent: "OperationsEvent",
-    event_status="QueueDomain__mark__cancelled",
-    action="de-queued",
-) -> bool:
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbQueueDomain: (required) The :class:`model.objects.QueueDomain`
-    :param dbOperationsEvent:
-    :param event_status:
-    :param action:
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["queue_domain.id"] = dbQueueDomain.id
-    event_payload_dict["action"] = action
-
-    dbQueueDomain.is_active = None
-    dbQueueDomain.timestamp_processed = ctx.timestamp
-    ctx.dbSession.flush(objects=[dbQueueDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbQueueDomain=dbQueueDomain,
-    )
-    return True
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -141,16 +141,6 @@
                     </a></li>
             </ul>
 
-
-
-            <h3>Queues</h3>
-            <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/queue-domains"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-domains</a></li>
-            </ul>
-
             <h3>Upstream Providers</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/acme-servers"

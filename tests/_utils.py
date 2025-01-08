@@ -62,17 +62,6 @@ If running LetsEncrypt tests: you must specify a domain, and make sure to proxy
 port80 of that domain to this app, so LetsEncrypt can access it.
 
 see the nginx test config file `testing.conf`
-
-
-IMPORTANT
-
-cert_utils also has some environ vars:
-
-    openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
-    openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
-
-    export SSL_BIN_OPENSSL="/usr/local/bin/openssl"
-    export SSL_CONF_OPENSSL="/usr/local/ssl/openssl.cnf"
 """
 
 # run tests that expire nginx caches
@@ -598,12 +587,6 @@ TEST_FILES: Dict = {
         },
     },
     "Domains": {
-        "Queue": {
-            "1": {
-                "add": "qadd1.example.com, qadd2.example.com, qadd3.example.com",
-                "add.json": "qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com",
-            },
-        },
         "AcmeDnsServer": {
             "1": {
                 "ensure-domains.html": "ensure1-html.example.com, ensure2-html.example.com, ensure1.example.com",
@@ -1387,16 +1370,6 @@ class AppTest(AppTestCore):
 
                 # self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate QueueDomain
-                # queue a domain
-                # this MUST be a new domain to add to the queue
-                # if it is existing, a domain will not be added
-                db.queues.queue_domains__add(
-                    self.ctx,
-                    ["queue.example.com", "queue2.example.com", "queue3.example.com"],
-                )
-                # self.ctx.pyramid_transaction_commit()
-
                 # note: pre-populate AcmeOrder
 
                 # merge these items in
@@ -1449,6 +1422,10 @@ class AppTest(AppTestCore):
                 _domains_challenged = model_utils.DomainsChallenged.new_http01(
                     _dbUniqueFQDNSet_1.domains_as_list
                 )
+
+                raise ValueError("TODO: dbRenewalConfiguration")
+                raise ValueError("TODO: private_key_cycle_id")
+
                 _dbAcmeOrder_1 = db.create.create__AcmeOrder(
                     self.ctx,
                     acme_order_response=_acme_order_response,
@@ -1461,9 +1438,10 @@ class AppTest(AppTestCore):
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
                     dbEventLogged=_dbAcmeEventLog,
-                    transaction_commit=True,
-                    # optionals
+                    dbRenewalConfiguration=dbRenewalConfiguration,
                     dbPrivateKey=_dbPrivateKey_1,
+                    private_key_cycle_id=private_key_cycle_id,
+                    transaction_commit=True,
                 )
 
                 # merge these items in

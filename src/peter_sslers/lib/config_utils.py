@@ -15,6 +15,7 @@ import cert_utils
 class ApplicationSettings(dict):
     def __init__(self):
         for _opt in (
+            "acme_dns_support",
             "admin_prefix",
             "api_host",
             "block_competing_challenges",
@@ -36,10 +37,6 @@ class ApplicationSettings(dict):
             "nginx.status_path",
             "nginx.timeout",
             "nginx.userpass",
-            "openssl_path_conf",
-            "openssl_path",
-            "queue_domains_max_per_cert",
-            "queue_domains_min_per_cert",
             "redis.prime_style",
             "redis.url",
             "redis.timeout.certcachain"
@@ -61,16 +58,12 @@ class ApplicationSettings(dict):
         if admin_prefix is None:
             self["admin_prefix"] = "/.well-known/peter_sslers"
 
-        # openssl updates:
-        # * openssl_path_conf
-        # * openssl_path
-        # this will validate the INI/ENV for conflicts
-        cert_utils.update_from_appsettings(settings)
-        # just copy these over to set
-        if "openssl_path" in settings:
-            self["openssl_path"] = settings["openssl_path"]
-        if "openssl_path_conf" in settings:
-            self["openssl_path_conf"] = settings["openssl_path_conf"]
+        #
+        if "acme_dns_support" in settings:
+            if settings["acme_dns_support"] not in ("basic", "experimental"):
+                settings["acme_dns_support"] = "basic"
+        else:
+            settings["acme_dns_support"] = "basic"
 
         # should we cleanup challenges
         self["cleanup_pending_authorizations"] = set_bool_setting(
@@ -86,14 +79,6 @@ class ApplicationSettings(dict):
         # should challenges block?
         self["block_competing_challenges"] = set_bool_setting(
             settings, "block_competing_challenges", default=True
-        )
-
-        # Queue Domains Config
-        self["queue_domains_max_per_cert"] = set_int_setting(
-            settings, "queue_domains_max_per_cert", default=100
-        )
-        self["queue_domains_min_per_cert"] = set_int_setting(
-            settings, "queue_domains_min_per_cert", default=1
         )
 
         # redis
@@ -179,18 +164,6 @@ class ApplicationSettings(dict):
         """
         Validates the settings.
         """
-        if (self["queue_domains_max_per_cert"] < 1) or (
-            self["queue_domains_max_per_cert"] > 100
-        ):
-            raise ValueError("`queue_domains_max_per_cert` must be between 1 and 100")
-        if (self["queue_domains_min_per_cert"] < 1) or (
-            self["queue_domains_max_per_cert"] > 100
-        ):
-            raise ValueError("`queue_domains_min_per_cert` must be between 1 and 100")
-        if self["queue_domains_min_per_cert"] > self["queue_domains_max_per_cert"]:
-            raise ValueError(
-                "`queue_domains_max_per_cert` must be greater than `queue_domains_min_per_cert`"
-            )
 
         _redis_prime_style = self.get("redis.prime_style")
         if _redis_prime_style and _redis_prime_style not in ("1", "2"):

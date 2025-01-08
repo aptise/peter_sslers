@@ -1,4 +1,5 @@
 # stdlib
+from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -30,9 +31,9 @@ from ...model.objects import AcmeDnsServer
 # ==============================================================================
 
 
-def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts):
-    domain_matrix = {}
-    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts:
+def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap) -> Dict:
+    domain_matrix: Dict = {}
+    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap.values():
         _dbDomain = _dbAcmeDnsServerAccount.domain
         domain_matrix[_dbDomain.domain_name] = {
             "Domain": {
@@ -95,6 +96,23 @@ class View_List(Handler):
 
 
 class View_New(Handler):
+
+    _count_servers: int = 0
+
+    def _acme_dns_support_check(self):
+        _mode = self.request.registry.settings["acme_dns_support"]
+        if _mode == "experimental":
+            return True
+        self._count_servers = lib_db.get.get__AcmeDnsServer__count(
+            self.request.api_context
+        )
+        if self._count_servers >= 1:
+            raise HTTPSeeOther(
+                "%s/acme-dns-servers?error=only-one-server-supported"
+                % (self.request.admin_url,)
+            )
+        return True
+
     @view_config(route_name="admin:acme_dns_server:new")
     @view_config(route_name="admin:acme_dns_server:new|json", renderer="json")
     @docify(
@@ -109,6 +127,7 @@ class View_New(Handler):
         }
     )
     def new(self):
+        self._acme_dns_support_check()
         if self.request.method == "POST":
             return self._new__submit()
         return self._new__print()
@@ -137,6 +156,17 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__AcmeDnsServer(
                 self.request.api_context, root_url=formStash.results["root_url"]
             )
+
+            # in "basic" mode we only have a single server,
+            # so it should be the default
+            if self.request.registry.settings["acme_dns_support"] == "basic":
+                if self._count_servers == 0:
+                    (
+                        event_status,
+                        alt_info,
+                    ) = lib_db.update.update_AcmeDnsServer__set_global_default(
+                        self.request.api_context, dbAcmeDnsServer
+                    )
 
             if self.request.wants_json:
                 return {
@@ -371,55 +401,23 @@ class View_Focus(Handler):
                     message="More than 100 domain names. There is a max of 100 domains per certificate.",
                 )
 
-            # initialize a client
-            client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
-
-            dbAcmeDnsServerAccounts = []
-            for _domain_name in domain_names:
-                _dbAcmeDnsServerAccount = None
-                # _is_created__account = None
-                (
-                    _dbDomain,
-                    _is_created__domain,
-                ) = lib_db.getcreate.getcreate__Domain__by_domainName(
+            (domainObjectsMap, dbAcmeDnsServerAccountsMap) = (
+                lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                     self.request.api_context,
-                    _domain_name,
+                    domain_names,
+                    dbAcmeDnsServer,
                     discovery_type="via acme_dns_server._ensure_domains__submit",
                 )
-                if not _is_created__domain:
-                    _dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
-                        self.request.api_context,
-                        acme_dns_server_id=dbAcmeDnsServer.id,
-                        domain_id=_dbDomain.id,
-                    )
-                if not _dbAcmeDnsServerAccount:
-                    try:
-                        account = client.register_account(None)  # arg = allowlist ips
-                    except Exception as exc:  # noqa: F841
-                        raise ValueError("error registering an account with AcmeDns")
-                    _dbAcmeDnsServerAccount = (
-                        lib_db.create.create__AcmeDnsServerAccount(
-                            self.request.api_context,
-                            dbAcmeDnsServer=dbAcmeDnsServer,
-                            dbDomain=_dbDomain,
-                            username=account["username"],
-                            password=account["password"],
-                            fulldomain=account["fulldomain"],
-                            subdomain=account["subdomain"],
-                            allowfrom=account["allowfrom"],
-                        )
-                    )
-
-                dbAcmeDnsServerAccounts.append(_dbAcmeDnsServerAccount)
+            )
 
             if self.request.wants_json:
-                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts)
+                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap)
                 return {"result": "success", "result_matrix": result_matrix}
 
             acme_dns_server_accounts = ",".join(
                 [
                     str(_dbAcmeDnsServerAccount.id)
-                    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts
+                    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap.values()
                 ]
             )
             url_success = "%s/ensure-domains-results?acme-dns-server-accounts=%s" % (

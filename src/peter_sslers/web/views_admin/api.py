@@ -1,7 +1,8 @@
 # stdlib
-import json
 import logging
 from typing import TYPE_CHECKING
+
+# import json
 
 # pypi
 import cert_utils
@@ -580,6 +581,8 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context,
                     dbDomain=dbDomain,
                 )
+
+                raise ValueError("MIGRATE")
 
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,

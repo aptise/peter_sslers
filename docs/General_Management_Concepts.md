@@ -8,15 +8,15 @@
 
 * With a migration to ACME-2, this project shifted the "core" object from a
   CertificateSigned to the AcmeOrder.
-* An ACME-Order's primary relations are an AcmeAccount (who owns the AcmeOrder?) and
-  a UniqueFQDNSet (what Domains are in the AcmeOrder?)
-* A PrivateKey is considered a secondary item to the AcmeOrder. One can be specified
-  for an AcmeOrder, but the AcmeAccount can specify it's own strategy when
-  obtaining an initial Certificate or Renewing.
+* For the 1.0 release, the primary object is now a RenewalConfiguration.  
+* A RenewalConfiguration's primary relations are:
+    AcmeAccount - which account owns the configuration?
+    UniqueFQDNSet - a simple listing of the domains
+    RenewalConfiguration2Domain - specific challenge preferences per domain; a UniqueFQDNSet but with challenges
+    AcmeOrders - generated from this configuration
+* A PrivateKey is considered a secondary item to the RenewalConfiguration. One can be specified for a given AcmeOrder, but the RenewalConfiguration can specify it's own strategy when obtaining an initial Certificate or Renewing; and that strategy can default to the AcmeAccount.
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified.
-* An AcmeAccount can specify: use the same PrivateKey, always use a unique
-  PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week.
-  The AcmeAccount can choose to use daily or weekly per-account or global keys.
+* An AcmeAccount can specify: use the same PrivateKey for up to 1 year, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week. The AcmeAccount can choose to use daily or weekly per-account or global keys.
 
 
 ### CertificateCAs and Certificate Chains
@@ -241,7 +241,7 @@ keys will use less memory and support more sites. The following options are avai
 * `global_weekly` - The AcmeOrder/Certificate should use a PrivateKey generated for the
   entire installation for the WEEK the AcmeOrder is finalized.
 
-AcmeOrders and Queues can also specify:
+AcmeOrders and Renewals can also specify:
 
 * `account_key_default` - The AcmeOrder/Certificate will use whatever option is set as
   the default strategy for the active AccountKey.

@@ -453,7 +453,7 @@ def sign_payload_inner(
         key_pem=accountKeyData.key_pem,
     )
     if True:
-        _verified = cert_utils.account_key__verify(
+        _verified = cert_utils.account_key__verify(  # noqa: F841
             signature,
             protected_input,
             key_pem=accountKeyData.key_pem,
@@ -917,7 +917,7 @@ class AuthenticatedUser(object):
         ctx: "ApiContext",
         dbAcmeAccountKey_new: "AcmeAccountKey",
         transaction_commit: Optional[bool] = None,
-    ) -> Optional[bool]:
+    ) -> bool:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeAccountKey_new: (required) a :class:`model.objects.AcmeAccountKey` instance
@@ -971,7 +971,7 @@ class AuthenticatedUser(object):
         if not _account_url:
             raise ValueError("Account URL unknown")
 
-        is_did_keychange = None
+        is_did_keychange = False
         try:
             # quickref and toggle these, so we generate the correct payloads
             accountKeyData_old = self.accountKeyData
@@ -1039,7 +1039,7 @@ class AuthenticatedUser(object):
                     event_payload_dict,
                 )
 
-        except Exception as exc:
+        except Exception:
             raise
 
         finally:

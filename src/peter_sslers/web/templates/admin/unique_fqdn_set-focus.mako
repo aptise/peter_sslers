@@ -241,6 +241,15 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>UniquelyChallengedFQDNSets</th>
+                        <td>
+                            ${admin_partials.table_UniquelyChallengedFQDNSets(UniqueFQDNSet.uniquely_challenged_fqdn_sets__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.uniquely_challenged_fqdn_sets__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/uniquely-challenged-fqdn-sets" % (admin_prefix, UniqueFQDNSet.id))}
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

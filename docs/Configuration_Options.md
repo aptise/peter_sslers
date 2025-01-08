@@ -7,9 +7,6 @@ Your `environment.ini` exposes a few configuration options.
 
 These are documented at-length on the in-app settings page.
 
-* `openssl_path` - the full path to your openssl binary (default `openssl`)
-* `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
-
 * `certificate_authority` - the LetsEncrypt CertificateAuthority. by default we
   use their staging URL. you will have to manually put in the real URL as defined on
   their docs. You can also use the string "pebble" or "custom" to enable local testing.
@@ -47,10 +44,5 @@ These are documented at-length on the in-app settings page.
 * `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/peter_sslers`
 * `admin_url` (optional) used for display in instructions. If omitted,
   scheme+server+prefix will be used.
-
-If you have a custom openssl install, you probably want these settings
-
-    openssl_path = /usr/local/bin/openssl
-    openssl_path_conf = /usr/local/ssl/openssl.cnf
 
 These options are used by the server AND by the test suite.

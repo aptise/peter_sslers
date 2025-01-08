@@ -1139,6 +1139,14 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain:focus:unique_fqdn_sets_paginated",
         "/domain/{domain_identifier}/unique-fqdn-sets/{@page}",
     )
+    config.add_route_7(
+        "admin:domain:focus:uniquely_challenged_fqdn_sets",
+        "/domain/{domain_identifier}/uniquely-challenged-fqdn-sets",
+    )
+    config.add_route_7(
+        "admin:domain:focus:uniquely_challenged_fqdn_sets_paginated",
+        "/domain/{domain_identifier}/uniquely-challenged-fqdn-sets/{@page}",
+    )
     config.add_route_7("admin:domain:focus:mark", "/domain/{domain_identifier}/mark")
     config.add_route_7(
         "admin:domain:focus:mark|json", "/domain/{domain_identifier}/mark.json"
@@ -1252,36 +1260,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:private_key:new|json", "/private-key/new.json")
     config.add_route_7("admin:private_key:upload", "/private-key/upload")
     config.add_route_7("admin:private_key:upload|json", "/private-key/upload.json")
-
-    # !!!: Queue Domains
-    # Domains can be queued in for batch processing
-    config.add_route_7("admin:queue_domains", "/queue-domains")
-    config.add_route_7("admin:queue_domains_paginated", "/queue-domains/{@page}")
-    config.add_route_7("admin:queue_domains:all", "/queue-domains/all")
-    config.add_route_7(
-        "admin:queue_domains:all_paginated", "/queue-domains/all/{@page}"
-    )
-    config.add_route_7("admin:queue_domains|json", "/queue-domains.json")
-    config.add_route_7(
-        "admin:queue_domains_paginated|json", "/queue-domains/{@page}.json"
-    )
-    config.add_route_7("admin:queue_domains:all|json", "/queue-domains/all.json")
-    config.add_route_7(
-        "admin:queue_domains:all_paginated|json", "/queue-domains/all/{@page}.json"
-    )
-
-    config.add_route_7("admin:queue_domains:add", "/queue-domains/add")
-    config.add_route_7("admin:queue_domains:add|json", "/queue-domains/add.json")
-    config.add_route_7("admin:queue_domains:process", "/queue-domains/process")
-    config.add_route_7(
-        "admin:queue_domains:process|json", "/queue-domains/process.json"
-    )
-    config.add_route_7("admin:queue_domain:focus", "/queue-domain/{@id}")
-    config.add_route_7("admin:queue_domain:focus|json", "/queue-domain/{@id}.json")
-    config.add_route_7("admin:queue_domain:focus:mark", "/queue-domain/{@id}/mark")
-    config.add_route_7(
-        "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
-    )
 
     # !!!: Renewal Configurations
     config.add_route_7("admin:renewal_configurations", "/renewal-configurations")
@@ -1466,6 +1444,14 @@ def _admin_views(config: "Configurator") -> None:
         "/unique-fqdn-set/{@id}/certificate-signeds/{@page}",
     )
     config.add_route_7(
+        "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
+        "/unique-fqdn-set/{@id}/uniquely-challenged-fqdn-sets",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets_paginated",
+        "/unique-fqdn-set/{@id}/uniquely-challenged-fqdn-sets/{@page}",
+    )
+    config.add_route_7(
         "admin:unique_fqdn_set:focus:modify", "/unique-fqdn-set/{@id}/modify"
     )
     config.add_route_7(
@@ -1473,5 +1459,57 @@ def _admin_views(config: "Configurator") -> None:
     )
     config.add_route_7("admin:unique_fqdn_set:new", "/unique-fqdn-set/new")
     config.add_route_7("admin:unique_fqdn_set:new|json", "/unique-fqdn-set/new.json")
+
+    # !!!: Uniquely Challenged FQDN Sets
+    # tied to RenewalConfigurations and AcmeOrders
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_sets", "/uniquely-challenged-fqdn-sets"
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_sets_paginated",
+        "/uniquely-challenged-fqdn-sets/{@page}",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_sets|json",
+        "/uniquely-challenged-fqdn-sets.json",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_sets_paginated|json",
+        "/uniquely-challenged-fqdn-sets/{@page}.json",
+    )
+
+    # !!!: Uniquely Challenged FQDN Set - Focus
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus",
+        "/uniquely-challenged-fqdn-set/{@id}",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus|json",
+        "/uniquely-challenged-fqdn-set/{@id}.json",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:acme_orders",
+        "/uniquely-challenged-fqdn-set/{@id}/acme-orders",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:acme_orders_paginated",
+        "/uniquely-challenged-fqdn-set/{@id}/acme-orders/{@page}",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds",
+        "/uniquely-challenged-fqdn-set/{@id}/certificate-signeds",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds_paginated",
+        "/uniquely-challenged-fqdn-set/{@id}/certificate-signeds/{@page}",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations",
+        "/uniquely-challenged-fqdn-set/{@id}/renewal-configurations",
+    )
+    config.add_route_7(
+        "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations_paginated",
+        "/uniquely-challenged-fqdn-set/{@id}/renewal-configurations/{@page}",
+    )
 
     config.scan("peter_sslers.web.views_admin")

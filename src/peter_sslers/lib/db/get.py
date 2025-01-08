@@ -43,12 +43,14 @@ from ...model.objects import DomainBlocklisted
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
-from ...model.objects import QueueDomain
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
 from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
+from ...model.objects import UniquelyChallengedFQDNSet
+from ...model.objects import UniquelyChallengedFQDNSet2Domain
+
 
 if TYPE_CHECKING:
     from ..utils import ApiContext
@@ -470,7 +472,7 @@ def get__AcmeAuthorization__by_DomainId__paginated(
 def get__AcmeAuthorizationPotential__by_id(
     ctx: "ApiContext",
     id_: int,
-) -> int:
+) -> Optional[AcmeAuthorizationPotential]:
     query = ctx.dbSession.query(AcmeAuthorizationPotential).filter(
         AcmeAuthorizationPotential.id == id_
     )
@@ -490,10 +492,13 @@ def get__AcmeAuthorizationPotentials__paginated(
     ctx: "ApiContext",
     limit: Optional[int] = 100,
     offset: int = 0,
-) -> Optional[AcmeAuthorizationPotential]:
+) -> List[AcmeAuthorizationPotential]:
     q = ctx.dbSession.query(AcmeAuthorizationPotential)
     items_ = (
-        q.order_by(AcmeAuthorizationPotential.id.desc()).limit(limit).offset(offset)
+        q.order_by(AcmeAuthorizationPotential.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
     )
     return items_
 
@@ -501,7 +506,7 @@ def get__AcmeAuthorizationPotentials__paginated(
 def get__AcmeAuthorizationPotentials__by_DomainId__count(
     ctx: "ApiContext",
     domain_id: int,
-) -> List[AcmeAuthorizationPotential]:
+) -> int:
     query = ctx.dbSession.query(AcmeAuthorizationPotential).filter(
         AcmeAuthorizationPotential.domain_id == domain_id
     )
@@ -1234,6 +1239,38 @@ def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
         .filter(AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__count(
+    ctx: "ApiContext", uniquely_challenged_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
+    ctx: "ApiContext",
+    uniquely_challenged_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
+    items_paged = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
         .order_by(AcmeOrder.id.desc())
         .limit(limit)
         .offset(offset)
@@ -2114,6 +2151,40 @@ def get__CertificateSigned__by_UniqueFQDNSetId__latest_active(
     return item
 
 
+def get__CertificateSigneds__by_UniquelyChallengedFQDNSetId__count(
+    ctx: "ApiContext", uniquely_challenged_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigneds__by_UniquelyChallengedFQDNSetId__paginated(
+    ctx: "ApiContext",
+    uniquely_challenged_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -2616,7 +2687,6 @@ def get__OperationsEvent__by_id(
         q = q.options(
             subqueryload(OperationsEvent.object_events).options(
                 joinedload(OperationsObjectEvent.domain),
-                joinedload(OperationsObjectEvent.queue_domain),
             ),
             subqueryload(OperationsEvent.children),
             subqueryload(OperationsEvent.parent),
@@ -2773,87 +2843,6 @@ def get__PrivateKey__by_AcmeAccountIdOwner__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__QueueDomain__count(
-    ctx: "ApiContext",
-    show_all: Optional[bool] = None,
-    unprocessed_only: Optional[bool] = None,
-) -> int:
-    q = ctx.dbSession.query(QueueDomain)
-    if unprocessed_only and show_all:
-        raise ValueError("conflicting arguments")
-    if unprocessed_only:
-        q = q.filter(QueueDomain.timestamp_processed.is_(None))
-    counted = q.count()
-    return counted
-
-
-def get__QueueDomain__paginated(
-    ctx: "ApiContext",
-    show_all: Optional[bool] = None,
-    unprocessed_only: Optional[bool] = None,
-    eagerload_web: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[QueueDomain]:
-    q = ctx.dbSession.query(QueueDomain)
-    if unprocessed_only and show_all:
-        raise ValueError("conflicting arguments")
-    if unprocessed_only:
-        q = q.filter(QueueDomain.timestamp_processed.is_(None))
-    q = q.order_by(QueueDomain.id.desc())
-    q = q.limit(limit).offset(offset)
-    items_paged = q.all()
-    return items_paged
-
-
-def get__QueueDomain__by_id(
-    ctx: "ApiContext", set_id: int, eagerload_log: Optional[bool] = None
-) -> Optional[QueueDomain]:
-    q = ctx.dbSession.query(QueueDomain).filter(QueueDomain.id == set_id)
-    if eagerload_log:
-        q = q.options(
-            subqueryload(QueueDomain.operations_object_events).joinedload(
-                OperationsObjectEvent.operations_event
-            )
-        )
-    item = q.first()
-    return item
-
-
-def get__QueueDomain__by_name__single(
-    ctx: "ApiContext", domain_name: str, active_only: bool = True
-) -> Optional[QueueDomain]:
-    q = ctx.dbSession.query(QueueDomain).filter(
-        sqlalchemy.func.lower(QueueDomain.domain_name)
-        == sqlalchemy.func.lower(domain_name)
-    )
-    if active_only:
-        q = q.filter(QueueDomain.is_active.is_(True))
-    item = q.first()
-    return item
-
-
-def get__QueueDomain__by_name__many(
-    ctx: "ApiContext",
-    domain_name: str,
-    active_only: Optional[bool] = None,
-    inactive_only: Optional[bool] = None,
-) -> List[QueueDomain]:
-    q = ctx.dbSession.query(QueueDomain).filter(
-        sqlalchemy.func.lower(QueueDomain.domain_name)
-        == sqlalchemy.func.lower(domain_name)
-    )
-    if active_only:
-        q = q.filter(QueueDomain.is_active.is_(True))
-    elif inactive_only:
-        q = q.filter(QueueDomain.is_active.is_(False))
-    items = q.all()
-    return items
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -2910,6 +2899,33 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
         RenewalConfiguration.acme_account_id == acme_account_id
+    )
+    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__count(
+    ctx: "ApiContext",
+    unique_challenged_fqdn_set_id: int,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.unique_challenged_fqdn_set_id
+        == unique_challenged_fqdn_set_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__paginated(
+    ctx: "ApiContext",
+    unique_challenged_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.unique_challenged_fqdn_set_id
+        == unique_challenged_fqdn_set_id
     )
     q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
     items_paged = q.all()
@@ -3028,3 +3044,107 @@ def get__UniqueFQDNSet__by_DomainId__paginated(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__UniquelyChallengedFQDNSet__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(UniquelyChallengedFQDNSet)
+    counted = q.count()
+    return counted
+
+
+def get__UniquelyChallengedFQDNSet__paginated(
+    ctx: "ApiContext",
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[UniquelyChallengedFQDNSet]:
+    q = ctx.dbSession.query(UniquelyChallengedFQDNSet)
+    if eagerload_web:
+        q = q.options(
+            joinedload(UniquelyChallengedFQDNSet.to_domains).joinedload(
+                UniquelyChallengedFQDNSet2Domain.domain
+            )
+        )
+    q = q.order_by(UniquelyChallengedFQDNSet.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__UniquelyChallengedFQDNSet__by_id(
+    ctx: "ApiContext", set_id: int
+) -> Optional[UniquelyChallengedFQDNSet]:
+    item = (
+        ctx.dbSession.query(UniquelyChallengedFQDNSet)
+        .filter(UniquelyChallengedFQDNSet.id == set_id)
+        .options(
+            subqueryload(UniquelyChallengedFQDNSet.to_domains).joinedload(
+                UniquelyChallengedFQDNSet2Domain.domain
+            )
+        )
+        .first()
+    )
+    return item
+
+
+def get__UniquelyChallengedFQDNSet__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(UniquelyChallengedFQDNSet)
+        .join(
+            UniquelyChallengedFQDNSet2Domain,
+            UniquelyChallengedFQDNSet.id
+            == UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
+        )
+        .filter(UniquelyChallengedFQDNSet2Domain.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__UniquelyChallengedFQDNSet__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[UniquelyChallengedFQDNSet]:
+    items_paged = (
+        ctx.dbSession.query(UniquelyChallengedFQDNSet)
+        .join(
+            UniquelyChallengedFQDNSet2Domain,
+            UniquelyChallengedFQDNSet.id
+            == UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
+        )
+        .filter(UniquelyChallengedFQDNSet2Domain.domain_id == domain_id)
+        .order_by(UniquelyChallengedFQDNSet.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(UniquelyChallengedFQDNSet)
+        .filter(UniquelyChallengedFQDNSet.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[UniquelyChallengedFQDNSet]:
+    items_paged = (
+        ctx.dbSession.query(UniquelyChallengedFQDNSet)
+        .filter(UniquelyChallengedFQDNSet.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(UniquelyChallengedFQDNSet.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged

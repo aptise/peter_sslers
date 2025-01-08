@@ -28,9 +28,9 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import OperationsObjectEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueDomain
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
+    from ...model.objects import UniquelyChallengedFQDNSet
     from ..utils import ApiContext
 
 # ==============================================================================
@@ -584,9 +584,9 @@ def _log_object_event(
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
-    dbQueueDomain: Optional["QueueDomain"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    dbUniquelyChallengedFQDNSet: Optional["UniquelyChallengedFQDNSet"] = None,
     dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
 ) -> "OperationsObjectEvent":
     """additional logging for objects"""
@@ -618,14 +618,16 @@ def _log_object_event(
         dbOperationsObjectEvent.domain_id = dbDomain.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
-    elif dbQueueDomain:
-        dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
     elif dbCertificateSigned:
         dbOperationsObjectEvent.certificate_signed_id = dbCertificateSigned.id
     elif dbRenewalConfiguration:
         dbOperationsObjectEvent.renewal_configuration_id = dbRenewalConfiguration.id
     elif dbUniqueFQDNSet:
         dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    elif dbUniquelyChallengedFQDNSet:
+        dbOperationsObjectEvent.uniquely_challenged_fqdn_set_id = (
+            dbUniquelyChallengedFQDNSet.id
+        )
 
     ctx.dbSession.add(dbOperationsObjectEvent)
     ctx.dbSession.flush(objects=[dbOperationsObjectEvent])

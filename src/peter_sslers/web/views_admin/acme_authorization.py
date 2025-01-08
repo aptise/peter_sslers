@@ -147,20 +147,31 @@ class View_Focus(Handler):
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         # now we need to get the AcmeOrder2AcmeChallengeTypeSpecific
-        dbAcmeOrder2AcmeChallengeTypeSpecifics = None
+        dbUniquelyChallengedFQDNSet2Domain = None
         if dbAcmeAuthorization.domain_id:
-            dbAcmeOrder2AcmeChallengeTypeSpecifics = (
+            dbUniquelyChallengedFQDNSet2Domain = (
                 self.request.api_context.dbSession.query(
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific
+                    model_objects.UniquelyChallengedFQDNSet2Domain
+                )
+                .join(
+                    model_objects.UniquelyChallengedFQDNSet,
+                    model_objects.UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id
+                    == model_objects.UniquelyChallengedFQDNSet.id,
+                )
+                .join(
+                    model_objects.AcmeOrder,
+                    model_objects.UniquelyChallengedFQDNSet.id
+                    == model_objects.AcmeOrder.uniquely_challenged_fqdn_set_id,
                 )
                 .join(
                     model_objects.AcmeOrder2AcmeAuthorization,
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
+                    model_objects.AcmeOrder.id
                     == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
                 )
                 .filter(
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.domain_id
-                    == model_objects.AcmeAuthorization.domain_id
+                    model_objects.UniquelyChallengedFQDNSet2Domain.domain_id
+                    == model_objects.AcmeAuthorization.domain_id,
+                    model_objects.AcmeAuthorization.id == dbAcmeAuthorization.id,
                 )
                 .all()
             )
@@ -168,16 +179,16 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "AcmeAuthorization": dbAcmeAuthorization.as_json,
-                "AcmeOrder2AcmeChallengeTypeSpecifics": (
-                    [i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics]
-                    if dbAcmeOrder2AcmeChallengeTypeSpecifics
+                "UniquelyChallengedFQDNSet2Domain": (
+                    [i.as_json() for i in dbUniquelyChallengedFQDNSet2Domain]
+                    if dbUniquelyChallengedFQDNSet2Domain
                     else None
                 ),
             }
         return {
             "project": "peter_sslers",
             "AcmeAuthorization": dbAcmeAuthorization,
-            "AcmeOrder2AcmeChallengeTypeSpecifics": dbAcmeOrder2AcmeChallengeTypeSpecifics,
+            "UniquelyChallengedFQDNSet2Domain": dbUniquelyChallengedFQDNSet2Domain,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

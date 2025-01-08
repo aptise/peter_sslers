@@ -74,30 +74,6 @@ documentation_grid = {
             "default": "`30`",
             "show_on_settings": True,
         },
-        "openssl_path": {
-            "docstring": "The path to the OpenSSL binary. PeterSSLers uses the system OpenSSL as backup.",
-            "default": "`openssl`",
-            "default-notes": "The default is set in `lib.cert_utils`.",
-            "show_on_settings": True,
-        },
-        "openssl_path_conf": {
-            "docstring": "The path to the OpenSSL configruation. PeterSSLers uses the system OpenSSL as backup.",
-            "default": "`/etc/ssl/openssl.cnf`",
-            "default-notes": "The default is set in `lib.cert_utils`.",
-            "show_on_settings": True,
-        },
-        "queue_domains_max_per_cert": {
-            "docstring": "Max domains per cert when dealing with the queued-domains",
-            "default": "`100`",
-            "default-notes": "LetsEncrypt has a max of 100.",
-            "show_on_settings": True,
-        },
-        "queue_domains_min_per_cert": {
-            "docstring": "Min domains per cert when dealing with the queued-domains",
-            "default": "`1`",
-            "default-notes": "",
-            "show_on_settings": True,
-        },
         "cleanup_pending_authorizations": {
             "docstring": "If an AcmeChallenge fails when processing an AcmeOrder, should the remaining AcmeAuthorizations be deactivated?",
             "default": "`True`",
@@ -148,5 +124,11 @@ documentation_grid = {
     },
     "SqlAlchemy Configuration": {
         "sqlalchemy.url": {"docstring": "The SqlAlchemy URL", "show_on_settings": True}
+    },
+    "Experimental Configuration": {
+        "acme_dns_support": {
+            "docstring": "Default of `basic`, can be set to `experimental`.",
+            "show_on_settings": False,
+        }
     },
 }

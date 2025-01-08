@@ -259,6 +259,10 @@ class DisplayableError(_UrlSafeException):
     pass
 
 
+class DuplicateRenewalConfiguration(Exception):
+    pass
+
+
 class InvalidRequest(_UrlSafeException):
     """
     raised when an end-user wants to do something invalid/not-allowed

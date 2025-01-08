@@ -14,6 +14,8 @@
 
 <%block name="page_header_col">
     <h2>Renewal Configuration | Focus: ${RenewalConfiguration.id}</h2>
+    
+    ${admin_partials.handle_querystring_result()}
 </%block>
 
 
@@ -124,7 +126,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>unique_fqdn_set_id</th>
+                        <th>unique_fqdn_set</th>
                         <td>
                             <a  class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/unique-fqdn-set/${RenewalConfiguration.unique_fqdn_set_id}"
@@ -137,6 +139,20 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>uniquely_challenged_fqdn_set</th>
+                        <td>
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/uniquely-challenged-fqdn-set/${RenewalConfiguration.uniquely_challenged_fqdn_set_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniquelyChallengedFQDNSet-${RenewalConfiguration.uniquely_challenged_fqdn_set_id}
+                            </a>
+                            <br/>
+                            <code>${RenewalConfiguration.uniquely_challenged_fqdn_set.domain_names}</code>
+                        </td>
+                    </tr>
+
+                    <tr>
                         <th></th>
                         <td>
                             <a  class="btn btn-xs btn-primary"
@@ -146,34 +162,23 @@
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
                                 New Order
                             </a>
+
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-configuration"
+                                title="Custom Renewal"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                Custom Renewal
+                            </a>
+
+
                         </td>
                     </tr>
                     <tr>
                         <th></th>
                         <td>
                             Last Order
-                        </td>
-                    
-                    </tr>
-                    <tr>
-                        <th>Preferred Challenges</th>
-                        <td>
-                            <table class="table table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th>Domain</th>
-                                        <th>ACME Challenge Type</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    % for spec in RenewalConfiguration.renewal_configuration_2_acme_challenge_type_specifics:
-                                        <tr>
-                                            <td><code>${spec.domain.domain_name}</code></td>
-                                            <td><code>${spec.acme_challenge_type}</code></td>
-                                        </tr>
-                                    % endfor
-                                </tbody>
-                            </table>
+                            ## TODO - show the last order here
                         </td>
                     </tr>
                 </tbody>

@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 from dateutil import parser as dateutil_parser
-from typing_extensions import Required
-from typing_extensions import TypedDict
+
+# from typing_extensions import Required
+# from typing_extensions import TypedDict
 
 # local
 from .helpers import _certificate_parse_to_record
@@ -123,16 +124,16 @@ def create__AcmeOrder(
     dbAcmeAccount: "AcmeAccount",
     dbUniqueFQDNSet: "UniqueFQDNSet",
     dbEventLogged: "AcmeEventLog",
+    dbRenewalConfiguration: "RenewalConfiguration",
+    dbPrivateKey: "PrivateKey",  # could be a Placeholder(0) key
+    private_key_cycle_id: int,
     transaction_commit: Literal[True],
-    # transition to required
-    dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
     # optionals
     is_auto_renew: bool = True,
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_renewal_of: Optional["AcmeOrder"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
-    dbPrivateKey: Optional["PrivateKey"] = None,
     private_key_deferred_id: Optional[int] = None,
     private_key_strategy_id__requested: Optional[int] = None,
 ) -> "AcmeOrder":
@@ -154,6 +155,7 @@ def create__AcmeOrder(
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
     :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
+    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
 
     :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
@@ -182,8 +184,14 @@ def create__AcmeOrder(
             "`create__AcmeOrder` must be invoked with a `acme_order_response`."
         )
 
+    if not dbAcmeAccount:
+        raise ValueError("`create__AcmeOrder` must be invoked with a `dbAcmeAccount`.")
+
     if not dbPrivateKey:
         raise ValueError("`create__AcmeOrder` must be invoked with a `dbPrivateKey`.")
+
+    if not dbRenewalConfiguration:
+        raise ValueError("`create__AcmeOrder` requires `dbRenewalConfiguration`")
 
     if not dbUniqueFQDNSet:
         raise ValueError("`create__AcmeOrder` requires `dbUniqueFQDNSet`")
@@ -212,6 +220,11 @@ def create__AcmeOrder(
 
     if not private_key_strategy_id__requested:
         raise ValueError("missing `private_key_strategy_id__requested`")
+
+    # DEBUG
+    if model_utils.PrivateKeyCycle.as_string(private_key_cycle_id) == "account_default":
+        # this should be computer BEFORE creating the order
+        raise ValueError("account_default should never be here")
 
     if TYPE_CHECKING:
         assert ctx.timestamp
@@ -254,11 +267,15 @@ def create__AcmeOrder(
     dbAcmeOrder.acme_order_processing_strategy_id = acme_order_processing_strategy_id
     dbAcmeOrder.acme_account_id = dbAcmeAccount.id
     dbAcmeOrder.renewal_configuration_id = dbRenewalConfiguration.id
+    dbAcmeOrder.uniquely_challenged_fqdn_set_id = (
+        dbRenewalConfiguration.uniquely_challenged_fqdn_set_id
+    )
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = (
         dbCertificateRequest.id if dbCertificateRequest else None
     )
     dbAcmeOrder.private_key_id = dbPrivateKey.id
+    dbAcmeOrder.private_key_cycle_id = private_key_cycle_id
     dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
     dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
@@ -289,32 +306,19 @@ def create__AcmeOrder(
         if not domains_:
             continue
         acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(act_)
-        if act_ == "dns-01":
-            # we do not need:
-            # * ACME Challenge Preference - http01 is the default
-            # * Blocking AcmeAuthorizationPotential - http01 does not block
-            for domain_name_ in domains_:
-                if domain_name_ not in _dbDomainObjects:
-                    raise ValueError("did not load domain from database")
-                dbChallengePreference = (
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific()
-                )
-                dbChallengePreference.acme_order_id = dbAcmeOrder.id
-                dbChallengePreference.acme_challenge_type_id = acme_challenge_type_id
-                dbChallengePreference.domain_id = _dbDomainObjects[domain_name_].id
-                ctx.dbSession.add(dbChallengePreference)
-                ctx.dbSession.flush(objects=[dbChallengePreference])
 
         # create a potential object
         for domain_name_ in domains_:
             if domain_name_ not in _dbDomainObjects:
                 raise ValueError("did not load domain from database")
             # create a blocking authz
-            dbAcmeAuthorizationPotential = create__AcmeAuthorizationPotential(
-                ctx,
-                dbAcmeOrder=dbAcmeOrder,
-                dbDomain=_dbDomainObjects[domain_name_],
-                acme_challenge_type_id=acme_challenge_type_id,
+            dbAcmeAuthorizationPotential = (  # noqa: F841
+                create__AcmeAuthorizationPotential(
+                    ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                    dbDomain=_dbDomainObjects[domain_name_],
+                    acme_challenge_type_id=acme_challenge_type_id,
+                )
             )
 
     # now loop the authorization URLs to create stub records for this order
@@ -547,6 +551,11 @@ def create__AcmeDnsServerAccount(
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["acme_dns_server_id"] = dbAcmeDnsServer.id
     event_payload_dict["domain_id"] = dbDomain.id
+
+    # sometimes an empty list pops in
+    if isinstance(allowfrom, list):
+        allowfrom = str(allowfrom)
+
     # bookkeeping
     dbOperationsEvent = log__OperationsEvent(ctx, event_type_id, event_payload_dict)
     dbAcmeDnsServerAccount = model_objects.AcmeDnsServerAccount()
@@ -1174,7 +1183,7 @@ def create__PrivateKey(
     private_key_source_id: int,
     private_key_type_id: int,
     # optionals
-    key_technology_id: int = model_utils.KeyTechnology._DEFAULT_PrivateKey,
+    key_technology_id: int = model_utils.KeyTechnology._DEFAULT_PrivateKey_id,
     private_key_id__replaces: Optional[int] = None,
     acme_account_id__owner: Optional[int] = None,
     discovery_type: Optional[str] = None,
@@ -1225,7 +1234,7 @@ def create__RenewalConfiguration(
     domains_challenged: "DomainsChallenged",
 ) -> "RenewalConfiguration":
     """
-    Queues an item for renewal
+    Sets params for AcmeOrders and Renewals
 
     This must happen within the context other events
 
@@ -1280,6 +1289,33 @@ def create__RenewalConfiguration(
         )
     )
 
+    dbUniquelyChallengedFQDNSet, _is_created = (
+        lib.db.getcreate.getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
+            ctx,
+            domainObjects=_domain_objects,
+            domainsChallenged=domains_challenged,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            discovery_type="via RenewalConfiguration",
+        )
+    )
+
+    # ok, so now let's make sure we don't have a duplicate...
+
+    existingRenewalConfiguration = (
+        ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .filter(
+            model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
+            model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
+            == dbUniquelyChallengedFQDNSet.id,
+            model_objects.RenewalConfiguration.private_key_cycle_id
+            == private_key_cycle_id,
+            model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
+        )
+        .first()
+    )
+    if existingRenewalConfiguration:
+        raise errors.DuplicateRenewalConfiguration(existingRenewalConfiguration)
+
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
@@ -1290,32 +1326,18 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.timestamp_created = ctx.timestamp
     dbRenewalConfiguration.is_active = True
     dbRenewalConfiguration.operations_event_id__created = dbOperationsEvent.id
-    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
-    dbRenewalConfiguration.key_technology_id = key_technology_id
 
     # core elements
+    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
+    dbRenewalConfiguration.key_technology_id = key_technology_id
     dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
+        dbUniquelyChallengedFQDNSet.id
+    )
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
-
-    # now generate RenewalChallengePreferences
-    _dbPrefs = []
-    for _chall, _domains in domains_challenged.items():
-        if not _domains:
-            continue
-        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(_chall)
-        for _domain_name in _domains:
-            dbPref = model_objects.RenewalConfiguration2AcmeChallengeTypeSpecific(
-                renewal_configuration_id=dbRenewalConfiguration.id,
-                domain_id=_domain_objects[_domain_name].id,
-                acme_challenge_type_id=acme_challenge_type_id,
-            )
-            ctx.dbSession.add(dbPref)
-            _dbPrefs.append(dbPref)
-    if _dbPrefs:
-        ctx.dbSession.flush(objects=_dbPrefs)
 
     # more bookkeeping!
     event_payload_dict["renewal_configuration.id"] = dbRenewalConfiguration.id

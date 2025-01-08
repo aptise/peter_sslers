@@ -110,6 +110,15 @@ class Handler(object):
         )
         return self.dbAcmeAccount_GlobalDefault
 
+    def _load_AcmeDnsServer_GlobalDefault(self):
+        """
+        Loads the default :class:`model.objects.AcmeDnsServer` into the view's :attr:`.dbAcmeDnsServer_GlobalDefault`.
+        """
+        self.dbAcmeDnsServer_GlobalDefault = db.get.get__AcmeDnsServer__GlobalDefault(
+            self.request.api_context,
+        )
+        return self.dbAcmeDnsServer_GlobalDefault
+
     def _load_AcmeServers(self):
         """
         Loads the options for :class:`model.objects.AcmeServer` into the view's :attr:`.dbAcmeServers`.

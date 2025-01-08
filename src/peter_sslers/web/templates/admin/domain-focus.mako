@@ -245,6 +245,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>UniquelyChallengedFQDNSets</th>
+                        <td>
+                            ${admin_partials.table_UniquelyChallengedFQDNSets([i.uniquely_challenged_fqdn_set for i in Domain.to_uniquely_challenged_fqdn_sets__5], perspective="Domain")}
+                            % if Domain.to_unique_fqdn_sets__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/uniquely-challenged-fqdn-sets" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>UniqueFQDNSets</th>
                         <td>
                             ${admin_partials.table_UniqueFQDNSets([i.unique_fqdn_set for i in Domain.to_unique_fqdn_sets__5], perspective="Domain")}

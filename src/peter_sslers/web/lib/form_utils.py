@@ -16,6 +16,7 @@ from ...model import utils as model_utils
 if TYPE_CHECKING:
     from pyramid.request import Request
     from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeDnsServer
     from ...model.objects import PrivateKey
 
 
@@ -637,6 +638,7 @@ def form_domains_challenge_typed(
     request: "Request",
     formStash: FormStash,
     http01_only: bool = False,
+    dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
 ) -> model_utils.DomainsChallenged:
     domains_challenged = model_utils.DomainsChallenged()
     domain_names_all = []
@@ -681,7 +683,29 @@ def form_domains_challenge_typed(
                         message="only http-01 domains are accepted by this form",
                     )
 
+        # ensure wildcards are only in dns-01
+        for chall, ds in domains_challenged.items():
+            if chall == "dns-01":
+                continue
+            if ds:
+                for d in ds:
+                    if d[0] == "*":
+                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                        formStash.fatal_field(
+                            field="Error_Main",
+                            message="wildcards (*) must use `dns-01`.",
+                        )
+
+        # see DOMAINS_CHALLENGED_FIELDS
+        if domains_challenged["dns-01"]:
+            if not dbAcmeDnsServer_GlobalDefault:
+                formStash.fatal_field(
+                    field="domain_names_dns01",
+                    message="The global acme-dns server is not configured.",
+                )
+
     except ValueError as exc:  # noqa: F841
+        raise
         # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field="Error_Main", message="invalid domain names detected"

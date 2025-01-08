@@ -126,7 +126,10 @@ class _form_PrivateKey_core(_Form_Schema_Base):
     )
 
 
+"""
 class _form_AcmeAccount_reuse(_form_AcmeAccount_core):
+    # this doesn't seem to subclass correctly as a mixin
+    # so just overwrite these two fields
     account_key_option = OneOf(
         model_utils.AcmeAccountKey_options_b,
         not_empty=True,
@@ -135,8 +138,11 @@ class _form_AcmeAccount_reuse(_form_AcmeAccount_core):
 
 
 class _form_PrivateKey_reuse(_form_PrivateKey_core):
+    # this doesn't seem to subclass correctly as a mixin
+    # so just overwrite these two fields
     private_key_option = OneOf(model_utils.PrivateKey_options_b, not_empty=True)
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+"""
 
 
 class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
@@ -523,31 +529,6 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
     )
 
 
-class Form_QueueDomains_add(_Form_Schema_Base):
-    domain_names_http01 = UnicodeString(not_empty=True)
-
-
-class Form_QueueDomain_mark(_Form_Schema_Base):
-    action = OneOf(("cancel",), not_empty=True)
-
-
-class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
-    """just use the PrivateKey and AcmeAccount in the parent class"""
-
-    max_domains_per_certificate = Int(not_empty=True, max=100, min=1)
-
-    processing_strategy = OneOf(
-        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-        not_empty=True,
-    )
-
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-        not_empty=True,
-    )
-
-
 class Form_RenewalConfig_new_order(_Form_Schema_Base):
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
@@ -580,6 +561,14 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
         RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
         RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
     ]
+
+
+class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
+    account_key_option = OneOf(
+        model_utils.AcmeAccountKey_options_b,
+        not_empty=True,
+    )
+    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):

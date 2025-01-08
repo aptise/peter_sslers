@@ -1,6 +1,28 @@
 URGENT
 =====
 
+
+
+* Finish Migration to RenewalConfiguration
+	They work and are tested, but the UX could potentially be cleaner
+	- automatic renewal - update to create queues
+	- queue certificates - process
+	- creating queue-certificates/freeform (domains)
+
+* Blocs
+    New Order - check to see if there is a live order:
+        same order
+        fqdns
+    New Renewal Configuration
+        Block on identical "new"
+        Block on identical "new-configuration"
+
+* AcmeDNS
+    dev docs
+    tests    
+
+
+
 Routines
 --------
 
@@ -15,50 +37,58 @@ Development
 
 * Build a tool that can generate/save/load a new testdb, so it does not need to
   be continually rebuilt for local tests.
+  - Migrating cert_utils to cryptography might drop this need
+
+  
+Bugs
+----
+
+Processing an ACME order can generate an error. I thought it was a timing issue, but it mgiht be debug code.
+
+The authz do not sync on exit. (still pending when valid)
+
+
+CertificateSigned-Focus:
+
+- If there is no acme_order/renewal_configuration, link to create one
+
+
+
 
 Application
 -----------
 
 * AcmeAccount/new
+    [x] Select EC or RSA for initial setup
     - There is a bug in which an account is locally created but fails on the
       sync with the acme server.  Due to how pyramid_transaction is leveraged
       and how we catch the error, the local account is saved to disk but a
       phantom error appears.  We should catch this and either drop the account
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
-    [x] Select EC or RSA for initial setup
+
+
+
+
     
-* Integrate for Domains: Challenged & AuthorizationPotential
-* Detect if cert_utils needs tempfiles; autofail if so. 100% Cryptography
-* Ensure an AcmeAccountKey is unique (not used across servers)
+Questions:
+----------
+* Should we ensure an AcmeAccountKey is unique (not used across servers)
+
 
 * ACME Client
-    track nonces from headers
+    better track nonces from headers
     track header metadata hook, as LetsEncrypt wil offer info
 
-* PrivateKeys
-    * `single_certificate` renamed to `single_use`
-    * adding new `single_use__reuse_1_year`
-    * dropping _options_AcmeAccount_private_key_cycle
-    * dropping account__private_key_cycle
+
+# Private Keys
     [] should "new" be locked to an account?
-    
-* Renewals
-    * implement single_use__reuse_1_year
-
-
-* Finish Migration to RenewalConfiguration
-	They work and are tested, but the UX could potentially be cleaner
-	- automatic renewal - update to create queues
-	- queue certificates - process
-	- creating queue-certificates/freeform (domains)
-
 
     
 * Create a "Renewable Configuration"; renewals should be based on that.
     [x] create object and routes
+    [-] remap as central object for renewals
     [ ] import letsencrypt
-    [ ] remap as central object for renewals
 
 AuthorizationPotential
     [x] focus page to remove manually
@@ -98,7 +128,6 @@ Not Finished Yet
 ===============
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
-[ ] Full Support for EC Certificates
 
 Almost done:
 ===============
@@ -113,7 +142,6 @@ TODO:
 * DomainAutocert
 	as_json payload was not tested
 * acme_account: sidenav_option is unused?
-
 
 * "# TODO: reintegrate"
   * the setup routine did not add soon-to-expire ca certificates
@@ -132,10 +160,11 @@ Operations Log
 
 DATABASE MIGRATIONS
 ====================
-v 0.6
-    alter table acme_authorization add timestamp_deactivated datetime null;
-v 0.5
-    START
+
+v 1.0.0 is a fresh install
+
+Moving forward, Alembic must be used
+* integrate ALEMEBIC and migrate the database_migrations file to it
 
 
 UNDECIDED
@@ -148,18 +177,15 @@ UNDECIDED
 Deferred
 ===============
 
+[-] audit usage of `ctx.pyramid_transaction_commit()`
+	- some work done. remaining work can be deferred.
+
 [ ] Correctly support writing these formats:
 	* pkcs8
 	* pkcs10
 	
 	They are not necessarily written to RFC right now, but lax rules by parsers
 	just seem to work.
-
-[-] audit usage of `ctx.pyramid_transaction_commit()`
-	- some work done. remaining work can be deferred.
-
-
-
 
 TESTS:
 
@@ -179,21 +205,14 @@ EDIT:
 		change "PrivateKeyCycle - renewals"
 		??xx?? add "is_via_emergency"
 
-
 ensure_chain_order 
 	The pure-python does not correctly ensure the chain order. it just looks at the subject/issuer for matches
 ensure_chain
 	not leveraged yet
 
 * CertificateCAs / AcmeOrders
-* integrate ALEMEBIC and migrate the database_migrations file to it
 
 ====
-
-* QueueDomain
-	* processing
-	- include an offset of the last domain added, so there isn't a race condition
-	- before creating an acme-order, run a HTTP test on all the domains(!) to ensure it works
 
 * CertificateSigned
 	* TESTS
@@ -231,36 +250,19 @@ ensure_chain
 
 deferred tasks
 ---------------
-* take into account the validity of existing LetsEncrypt authz and challenges when requesting certs
 * create tool for exporting and deleting the logs
+    - good idea
 * finish rate limit calendars
-* upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
-* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
+    - perhaps drop for now
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * migrate testing away from `setup.py`
-* `account__private_key_cycle` is required on all forms but often unused
-	it should be conditional, based on the presences of uploading a new account-key
-
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
-
-* UniqueFQDNSet
-	- allow a set to be decomposed into one or more sets
-	- for example:
-		- original set: [a.example.com, b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]
-
-* cert_utils
-	figure out how to emulate openssl's `--text` with crypto in `parse_key`
-
 * search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
-
-* log full actual results; if a queue fails log that data too
+* log full actual results;
 	this happens to standard python logging
-
+	this could be formatted to a special logger though
 * associate all objects to one another when imported; only some objects are currently associated
-
 * limit pending request search to 7 days
 
 
@@ -293,3 +295,24 @@ Case B:
 
 
 
+Rejected Tasks
+===============
+* upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
+    Rejection
+    - Dropping CSR and Acme-Flow/Acme-Orderless
+* UniqueFQDNSet
+    Idea
+	- allow a set to be decomposed into one or more sets
+	- for example:
+		- original set: [a.example.com, b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]
+    Rejection
+    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"    
+* Take into account the validity of existing LetsEncrypt authz and challenges when requesting certs.
+    Rejection
+    - The cached validity time may drastically change as short-life certs re introduced.
+* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
+    Rejection
+    - This is external application logic.
+    - Domain Queues are dropped    

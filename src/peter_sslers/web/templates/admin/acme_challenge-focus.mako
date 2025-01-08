@@ -119,27 +119,28 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeOrder2AcmeChallengeTypeSpecifics</th>
+                        <th>UniquelyChallengedFQDNSets</th>
                         <td>
+                            ## TODO: show the orders
                             <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
-                            % if AcmeChallenge.acme_order_2_acme_challenge_type_specifics:
+                            % if UniquelyChallengedFQDNSet2Domain:
                                 <table class=" table-striped table-condensed">
                                     <thead>
                                         <tr>
-                                            <th>AcmeOrder</th>
+                                            <th>UniquelyChallengedFQDNSet</th>
                                             <th>Preferred Challenge Type</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        % for order2Challenge in AcmeChallenge.acme_order_2_acme_challenge_type_specifics:
+                                        % for item in UniquelyChallengedFQDNSet2Domain:
                                             <tr>
                                                 <td>
-                                                    <a class="label label-info" href="${admin_prefix}/acme-order/${order2Challenge.acme_order_id}">
+                                                    <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${item.uniquely_challenged_fqdn_set_id}">
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    AcmeOrder-${order2Challenge.acme_order_id}</a>
+                                                    UniquelyChallengedFQDNSet-${item.uniquely_challenged_fqdn_set_id}</a>
                                                 </td>
                                                 <td>
-                                                    <code>${order2Challenge.acme_challenge_type}</code>
+                                                    <code>${item.acme_challenge_type}</code>
                                                 </td>
                                             </tr>
                                         % endfor
@@ -185,7 +186,7 @@
                     
                     <tr>
                         <th>challenge_url</th>
-                        <td>${AcmeChallenge.challenge_url}</td>
+                        <td><code>${AcmeChallenge.challenge_url}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>

@@ -292,20 +292,9 @@ class View_Search(Handler):
                 eagerload_web=False,
                 active_only=False,
             )
-            dbQueueDomainActive = lib_db.get.get__QueueDomain__by_name__single(
-                self.request.api_context, domain_name, active_only=True
-            )
-            dbQueueDomainsInactive = lib_db.get.get__QueueDomain__by_name__many(
-                self.request.api_context,
-                domain_name,
-                active_only=False,
-                inactive_only=True,
-            )
 
             search_results = {
                 "Domain": dbDomain,
-                "QueueDomainActive": dbQueueDomainActive,
-                "QueueDomainsInactive": dbQueueDomainsInactive,
                 "query": domain_name,
             }
             self.search_results = search_results
@@ -315,12 +304,6 @@ class View_Search(Handler):
                     "query": domain_name,
                     "search_results": {
                         "Domain": dbDomain.as_json if dbDomain else None,
-                        "QueueDomainActive": (
-                            dbQueueDomainActive.as_json if dbQueueDomainActive else None
-                        ),
-                        "QueueDomainsInactive": [
-                            q.as_json for q in dbQueueDomainsInactive
-                        ],
                     },
                 }
             return self._search__print()
@@ -373,7 +356,6 @@ class View_New(Handler):
             )
             domain_name = domains_challenged["http-01"][0]
 
-            # TODO: check the queue
             (
                 dbDomain,
                 _is_created,
@@ -849,6 +831,32 @@ class View_Focus(Handler):
             "Domain": dbDomain,
             "UniqueFQDNSets_count": items_count,
             "UniqueFQDNSets": items_paged,
+            "pager": pager,
+        }
+
+    @view_config(
+        route_name="admin:domain:focus:uniquely_challenged_fqdn_sets",
+        renderer="/admin/domain-focus-uniquely_challenged_fqdn_sets.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:uniquely_challenged_fqdn_sets_paginated",
+        renderer="/admin/domain-focus-uniquely_challenged_fqdn_sets.mako",
+    )
+    def related__UniquelyChallengedFQDNSets(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__UniquelyChallengedFQDNSet__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        url_template = "%s/uniquely-challenged-fqdn-sets/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__UniquelyChallengedFQDNSet__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "UniquelyChallengedFQDNSets_count": items_count,
+            "UniquelyChallengedFQDNSets": items_paged,
             "pager": pager,
         }
 

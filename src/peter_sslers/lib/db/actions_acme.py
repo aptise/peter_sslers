@@ -20,18 +20,18 @@ from .create import create__CertificateSigned
 from .create import create__PrivateKey
 from .get import get__AcmeAccount__by_account_url
 from .get import get__AcmeAccountKey__by_key_pem
-from .get import get__AcmeAuthorizations__by_ids
-from .get import get__AcmeAuthorizationPotentials__by_DomainId__paginated
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
+from .get import get__AcmeAuthorizationPotentials__by_DomainId__paginated
+from .get import get__AcmeAuthorizations__by_ids
 from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
+from .get import get__PrivateKey__by_id
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
 from .getcreate import getcreate__AcmeChallenges_via_payload
 from .getcreate import getcreate__CertificateCAChain__by_pem_text
 from .getcreate import getcreate__CertificateSigned
 from .getcreate import getcreate__PrivateKey_for_AcmeAccount
-from .getcreate import getcreate__UniqueFQDNSet__by_domains
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
@@ -44,6 +44,8 @@ from ...lib import acme_v2
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
+# from .getcreate import getcreate__UniqueFQDNSet__by_domains
+
 if TYPE_CHECKING:
     from tempfile import _TemporaryFileWrapper
     from ...model.objects import AcmeAccount
@@ -53,6 +55,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
+    from ...model.objects import RenewalConfiguration
     from ..acme_v2 import AcmeOrderRFC
     from ..acme_v2 import AuthenticatedUser
     from ..acme_v2 import AriCheckResult
@@ -1631,7 +1634,6 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
 
         for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
             print("One")
-            import pdb
 
             pdb.set_trace()
 
@@ -1710,6 +1712,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
 ) -> "AcmeOrder":
     """
     `_do__AcmeV2_AcmeOrder__finalize` is invoked to actually finalize the order.
+
+    This should only be called by `do_` operations in this file.
+
     :param authenticatedUser: (required) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
 
@@ -1730,19 +1735,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         try:
             # inner `try/except` catches `AcmeAccountNeedsPrivateKey`
 
-            #
-            #   Figure out the PrivateKeyCycle
-            #
-            private_key_cycle = (
-                model_utils.PrivateKeyCycle._DEFAULT_order_logic
-            )  # single_use
-            if dbAcmeOrder.renewal_configuration:
-                # we should always have a `renewal_configuration` under the new design
-                private_key_cycle = dbAcmeOrder.renewal_configuration.private_key_cycle
-            if private_key_cycle == "account_default":
-                private_key_cycle = (
-                    dbAcmeOrder.acme_account.order_default_private_key_cycle
-                )
+            private_key_cycle = dbAcmeOrder.private_key_cycle
 
             private_key_type = model_utils.PrivateKeyType.from_private_key_cycle(
                 private_key_cycle
@@ -1783,18 +1776,18 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         key_technology_id = (
                             dbAcmeOrder.acme_account.order_default_private_key_technology_id
                         )
-                    else:
-                        key_technology_id = (
-                            model_utils.PrivateKeyDeferred.str_to_KeyTechnology_id(
-                                private_key_deferred
-                            )
-                        )
 
                     if (
                         dbAcmeOrder.private_key_strategy__requested
                         == "deferred-generate"
                     ):
                         # what are we generating?
+
+                        key_technology_id = (
+                            model_utils.PrivateKeyDeferred.str_to_KeyTechnology_id(
+                                private_key_deferred
+                            )
+                        )
 
                         private_key_strategy__final = "deferred-generate"
                         dbPrivateKey_new = create__PrivateKey(
@@ -1815,6 +1808,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     ):
                         # all these items should share the same final strategy
                         private_key_strategy__final = "deferred-associate"
+                        private_key_deferred_id = (
+                            model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
+                        )
                         raise AcmeAccountNeedsPrivateKey()
 
                     else:
@@ -2322,26 +2318,32 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
     processing_strategy: str,
-    dbPrivateKey: "PrivateKey",
     acme_order_type_id: int,
-    private_key_strategy_id__requested: str,
+    # Optionals
+    dbPrivateKey: Optional["PrivateKey"] = None,
+    private_key_strategy_id__requested: Optional[int] = None,
     private_key_deferred_id: Optional[int] = None,
+    private_key_cycle_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object to use for this order;
-        this may be a placeholder, or a specific key
     :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
-    :param private_key_strategy_id__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-    :param private_key_deferred_id: (required)  A value from :class:`model.utils.PrivateKeyDeferred`
+
+    :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
+        this may be a placeholder, or a specific key
+    :param private_key_strategy_id__requested: (optional)  A value from :class:`model.utils.PrivateKeyStrategy`
+
+    :param private_key_deferred_id: (optional)  A value from :class:`model.utils.PrivateKeyDeferred`
         this is used if we have a placeholder and requested a specific key for this order
+    :param private_key_cycle_id: (optional) tracked onto the order object, perhaps cert
 
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
+
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
@@ -2356,7 +2358,29 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
     dbAcmeAccount = dbRenewalConfiguration.acme_account
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
 
-    # `dbAcmeOrder_retry_of` is an instance of `model_objects.AcmeOrder`
+    #
+    #   Figure out the PrivateKeyCycle
+    #
+    private_key_cycle: str
+    if private_key_cycle_id:
+        private_key_cycle = model_utils.PrivateKeyCycle.as_string(private_key_cycle_id)
+    else:
+        # # single_use
+        # private_key_cycle = model_utils.PrivateKeyCycle._DEFAULT_order_logic)
+        private_key_cycle = dbRenewalConfiguration.private_key_cycle
+    if private_key_cycle == "account_default":
+        private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
+    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+
+    key_technology = dbRenewalConfiguration.key_technology
+    if key_technology == "account_default":
+        key_technology = dbAcmeAccount.order_default_private_key_technology
+    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+
+    #
+    # Domains Check
+    #
+
     domains_challenged = dbRenewalConfiguration.domains_challenged
     domain_names = dbRenewalConfiguration.domains_as_list
 
@@ -2395,21 +2419,125 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
         if active_preauthzs:
             raise errors.AcmeDuplicateChallengesExisting_PreAuthz(active_preauthzs)
 
-    private_key_cycle = dbRenewalConfiguration.private_key_cycle
-    if private_key_cycle == "account_default":
-        private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
+    # There are two contexts for a PrivateKey:
+    # Path A - Initial AcmeOrder creation, which creates the RC
+    #          Submit a specific PrivateKey alongside this request
+    # Path B - "Renewal" via "RenewalConfiguration"
+    #           There may not be a PrivateKey, so we need to figure it out
 
-    key_technology = dbRenewalConfiguration.key_technology
-    if key_technology == "account_default":
-        key_technology = dbAcmeAccount.order_default_private_key_technology
-
-    # ???: when do we not have this?
     if dbPrivateKey:
-        # ensure the PrivateKey is usable!
+        # ensure the PrivateKey is usable
+        # raise if the dbPrivateKey is specified
+        # if we compute the key, we can likely generate a replacement
         if not dbPrivateKey.is_key_usable:
             raise errors.InvalidRequest(
                 "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
             )
+    else:
+        # if not specifying a private key, we need to discern it on the order
+        # creation, not later on, to avoid a race condition where an order starts
+        # expecting a certain set of defaults, but then completes with another
+        # set of account defaults
+        #
+        # we need to discern the for the renewal:
+        # * dbPrivateKey
+        #
+        # and possibly
+        # * private_key_deferred_id
+        # * private_key_strategy_id__requested
+        #
+        if private_key_strategy_id__requested or private_key_deferred_id:
+            print(private_key_strategy_id__requested)
+            print(private_key_deferred_id)
+
+            raise ValueError(
+                "This logic should not happen? %s|%s"
+                % (private_key_strategy_id__requested, private_key_deferred_id)
+            )
+
+        # temp assign everything to the default key
+        dbPrivateKey = get__PrivateKey__by_id(ctx, 0)
+
+        if private_key_cycle == "single_use__reuse_1_year":
+            # load the last pkey, decide if we're going to use it or not
+            _dbPreviousOrders = dbRenewalConfiguration.acme_orders__5
+            if _dbPreviousOrders:
+                _last_order = _dbPreviousOrders[0]
+                if _last_order.private_key_cycle == "single_use__reuse_1_year":
+                    _dbPrivateKey = _last_order.private_key
+                    private_key_deferred_id = (
+                        model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
+                            _dbPrivateKey.key_technology_id
+                        )
+                    )
+                    if (
+                        (_dbPrivateKey.is_key_usable)
+                        and (
+                            _dbPrivateKey.private_key_cycle
+                            == "single_use__reuse_1_year"
+                        )
+                        and (
+                            (
+                                _dbPrivateKey.timestamp_created
+                                + datetime.timedelta(days=365)
+                            )
+                            < datetime.datetime.utcnow()
+                        )
+                    ):
+                        dbPrivateKey = _dbPrivateKey
+                        private_key_strategy_id__requested = (
+                            model_utils.PrivateKeyStrategy.from_string("reused")
+                        )
+
+            # the following might be common to additional `private_key_cycle`
+
+            if private_key_strategy_id__requested:
+                raise ValueError("GARFIELD-GARFIELD")
+            private_key_strategy_id__requested = (
+                model_utils.PrivateKeyStrategy.from_string("deferred-generate")
+            )
+
+            if not private_key_deferred_id:
+                # Calculate it from the default tech
+                private_key_deferred_id = (
+                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
+                        key_technology_id
+                    )
+                )
+
+        elif private_key_cycle == "single_use":
+
+            if private_key_strategy_id__requested:
+                raise ValueError("GARFIELD-GARFIELD")
+            private_key_strategy_id__requested = (
+                model_utils.PrivateKeyStrategy.from_string("deferred-generate")
+            )
+
+            if not private_key_deferred_id:
+                # Calculate it from the default tech
+                private_key_deferred_id = (
+                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
+                        key_technology_id
+                    )
+                )
+
+        else:
+
+            # dbAcmeOrder.private_key_deferred
+            #   ['account_default', 'generate__rsa_2048', 'generate__rsa_3072', 'generate__rsa_4096', 'generate__ec_p256', 'generate__ec_p384'])
+            #
+            #   we should see any of these values here
+            #
+            # dbAcmeOrder.renewal_configuration.private_key_cycle
+            #   ['account_default', 'single_use', 'account_daily', 'global_daily', 'account_weekly', 'global_weekly', 'single_use__reuse_1_year']
+            #   This may affect how we generate the key
+            #
+            private_key_strategy_id__requested = (
+                model_utils.PrivateKeyStrategy.from_string("deferred-associate")
+            )
+            private_key_deferred_id = model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
+
+    assert dbPrivateKey is not None
 
     tmpfiles = []
     dbAcmeOrder: Optional["AcmeOrder"] = None
@@ -2451,15 +2579,16 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
                 domains_challenged=domains_challenged,
                 order_url=order_url,
                 certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
-                dbRenewalConfiguration=dbRenewalConfiguration,
                 dbAcmeAccount=dbAcmeAccount,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbEventLogged=dbAcmeOrderEventLogged,
+                dbRenewalConfiguration=dbRenewalConfiguration,
+                dbPrivateKey=dbPrivateKey,
+                private_key_cycle_id=private_key_cycle_id,
                 transaction_commit=True,
                 # optionals
                 # dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 # dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
-                dbPrivateKey=dbPrivateKey,
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 private_key_deferred_id=private_key_deferred_id,
             )

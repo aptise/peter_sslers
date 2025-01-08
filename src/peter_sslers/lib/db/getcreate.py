@@ -59,6 +59,8 @@ if TYPE_CHECKING:
     from ...model.objects import PrivateKey
     from ...model.objects import RemoteIpAddress
     from ...model.objects import UniqueFQDNSet
+    from ...model.objects import UniquelyChallengedFQDNSet
+    from ...model.utils import DomainsChallenged
 
 
 # ==============================================================================
@@ -868,7 +870,7 @@ def getcreate__CertificateCA__by_pem_text(
         cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
 
         # validate
-        _validated = cert_utils.validate_cert(cert_pem=cert_pem)
+        _validated = cert_utils.validate_cert(cert_pem=cert_pem)  # noqa: F841
 
         _key_technology = cert_utils.parse_cert__key_technology(cert_pem=cert_pem)
         if TYPE_CHECKING:
@@ -1641,6 +1643,88 @@ def getcreate__UniqueFQDNSet__by_domainObjects(
     return (dbUniqueFQDNSet, is_created)
 
 
+def getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
+    ctx: "ApiContext",
+    domainObjects: Dict[str, "Domain"],
+    domainsChallenged: "DomainsChallenged",
+    dbUniqueFQDNSet: "UniqueFQDNSet",
+    discovery_type: Optional[str] = None,
+) -> Tuple["UniquelyChallengedFQDNSet", bool]:
+    """
+    getcreate wrapping unique fqdn
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param domainObjects:
+    """
+    is_created = False
+
+    domain_challenges_serialized = domainsChallenged.serialize_ids(
+        mapping=domainObjects
+    )
+
+    dbUniquelyChallengedFQDNSet = (
+        ctx.dbSession.query(model_objects.UniquelyChallengedFQDNSet)
+        .filter(
+            model_objects.UniquelyChallengedFQDNSet.domain_challenges_serialized
+            == domain_challenges_serialized
+        )
+        .first()
+    )
+
+    if not dbUniquelyChallengedFQDNSet:
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string(
+                "UniquelyChallengedFQDNSet__insert"
+            ),
+        )
+
+        dbUniquelyChallengedFQDNSet = model_objects.UniquelyChallengedFQDNSet()
+        dbUniquelyChallengedFQDNSet.unique_fqdn_set_id = dbUniqueFQDNSet.id
+        dbUniquelyChallengedFQDNSet.domain_challenges_serialized = (
+            domain_challenges_serialized
+        )
+        dbUniquelyChallengedFQDNSet.timestamp_created = ctx.timestamp
+        dbUniquelyChallengedFQDNSet.operations_event_id__created = dbOperationsEvent.id
+        dbUniquelyChallengedFQDNSet.discovery_type = discovery_type
+        ctx.dbSession.add(dbUniquelyChallengedFQDNSet)
+        ctx.dbSession.flush(objects=[dbUniquelyChallengedFQDNSet])
+
+        for _ct, _domains in domainsChallenged.items():
+            if not _domains:
+                continue
+            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(_ct)
+            for _domain_name in _domains:
+                dbDomain = domainObjects[_domain_name]
+
+                dbAssoc = model_objects.UniquelyChallengedFQDNSet2Domain()
+                dbAssoc.uniquely_challenged_fqdn_set_id = dbUniquelyChallengedFQDNSet.id
+                dbAssoc.domain_id = dbDomain.id
+                dbAssoc.acme_challenge_type_id = acme_challenge_type_id
+                ctx.dbSession.add(dbAssoc)
+                ctx.dbSession.flush(objects=[dbAssoc])
+
+        is_created = True
+
+        event_payload_dict["uniquely_challenged_fqdn_set.id"] = (
+            dbUniquelyChallengedFQDNSet.id
+        )
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "UniquelyChallengedFQDNSet__insert"
+            ),
+            dbUniquelyChallengedFQDNSet=dbUniquelyChallengedFQDNSet,
+        )
+
+    return (dbUniquelyChallengedFQDNSet, is_created)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1652,4 +1736,5 @@ __all__ = (
     "getcreate__PrivateKey__by_pem_text",
     "getcreate__CertificateSigned",
     "getcreate__UniqueFQDNSet__by_domainObjects",
+    "getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged",
 )

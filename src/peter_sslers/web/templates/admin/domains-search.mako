@@ -26,7 +26,7 @@
     <div class="row">
         <div class="col-sm-12">
             <p>
-            This will seach registered and queued domains to determine if they are enrolled.
+            This will seach registered domains to determine if they are enrolled.
             </p>
             <form action="${admin_prefix}/domains/search" method="POST">
                 <% form = request.pyramid_formencode_classic.get_form() %>
@@ -72,75 +72,6 @@
                     </table>
                 % else:
                     <em>No Domain</em>
-                % endif 
-
-                <h4>Results - QueueDomain Active</h4>
-                % if search_results['QueueDomainActive']:
-                    <table class="table table-striped table-condensed">
-                        <thead>
-                            <tr>
-                                <th colspan="2">QueueDomain</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th>domain_name</th>
-                                <td><code>${search_results['QueueDomainActive'].domain_name}</code></td>
-                            </tr>
-                            <tr>
-                                <th>record</th>
-                                <td><a href="${admin_prefix}/queue-domain/${search_results['QueueDomainActive'].id}"
-                                       class="label label-info"
-                                    >
-                                    queue-domain-${search_results['QueueDomainActive'].id}
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>is_active</th>
-                                <td>${search_results['QueueDomainActive'].is_active}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                % else:
-                    <em>No QueueDomain - Active</em>
-                % endif 
-
-                <h4>Results - QueueDomains - Inactive</h4>
-                % if search_results['QueueDomainsInactive']:
-                    <table class="table table-striped table-condensed">
-                        <thead>
-                            <tr>
-                                <th colspan="2">QueueDomainsInactive</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            % for q in search_results['QueueDomainsInactive']:
-                                <tr>
-                                    <th>domain_name</th>
-                                    <td><code>${q.domain_name}</code></td>
-                                </tr>
-                                <tr>
-                                    <th>record</th>
-                                    <td><a href="${admin_prefix}/queue-domain/${q.id}"
-                                           class="label label-info"
-                                        >
-                                        queue-domain-${q.id}
-                                        </a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>is_active</th>
-                                    <td>${q.is_active}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2"><hr/></td>
-                                </tr>
-                            % endfor
-                        </tbody>
-                    </table>
-                % else:
-                    <em>No QueueDomain - Active</em>
                 % endif 
             % endif 
             

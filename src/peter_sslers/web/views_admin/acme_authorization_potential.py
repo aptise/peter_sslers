@@ -13,9 +13,10 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...lib import errors
-from ...model import objects as model_objects
 from ...model.objects import AcmeAuthorizationPotential
+
+# from ...lib import errors
+# from ...model import objects as model_objects
 
 
 # ==============================================================================
@@ -182,5 +183,5 @@ class View_Focus_Manipulate(View_Focus):
                 "%s/acme-authz-potentials?id=%s&result=success&operation=delete"
                 % (self.request.admin_url, dbAcmeAuthorizationPotential.id)
             )
-        except:
+        except Exception:
             raise

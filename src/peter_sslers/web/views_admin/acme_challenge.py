@@ -14,6 +14,7 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
+from ...model import objects as model_objects
 from ...model.objects import AcmeChallenge
 
 # ==============================================================================
@@ -170,11 +171,49 @@ class View_Focus(Handler):
     )
     def focus(self):
         dbAcmeChallenge = self._focus(eagerload_web=True)
+        # now we need to get the AcmeOrder2AcmeChallengeTypeSpecific
+        dbUniquelyChallengedFQDNSet2Domain = None
+        if dbAcmeChallenge.domain_id:
+            dbUniquelyChallengedFQDNSet2Domain = (
+                self.request.api_context.dbSession.query(
+                    model_objects.UniquelyChallengedFQDNSet2Domain
+                )
+                .join(
+                    model_objects.UniquelyChallengedFQDNSet,
+                    model_objects.UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id
+                    == model_objects.UniquelyChallengedFQDNSet.id,
+                )
+                .join(
+                    model_objects.AcmeOrder,
+                    model_objects.UniquelyChallengedFQDNSet.id
+                    == model_objects.AcmeOrder.uniquely_challenged_fqdn_set_id,
+                )
+                .join(
+                    model_objects.AcmeOrder2AcmeAuthorization,
+                    model_objects.AcmeOrder.id
+                    == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+                )
+                .filter(
+                    model_objects.UniquelyChallengedFQDNSet2Domain.domain_id
+                    == model_objects.AcmeChallenge.domain_id,
+                    model_objects.AcmeChallenge.id == dbAcmeChallenge.id,
+                )
+                .all()
+            )
         if self.request.wants_json:
             return {
                 "AcmeChallenge": dbAcmeChallenge.as_json,
+                "UniquelyChallengedFQDNSet2Domain": (
+                    [i.as_json() for i in dbUniquelyChallengedFQDNSet2Domain]
+                    if dbUniquelyChallengedFQDNSet2Domain
+                    else None
+                ),
             }
-        return {"project": "peter_sslers", "AcmeChallenge": dbAcmeChallenge}
+        return {
+            "project": "peter_sslers",
+            "AcmeChallenge": dbAcmeChallenge,
+            "UniquelyChallengedFQDNSet2Domain": dbUniquelyChallengedFQDNSet2Domain,
+        }
 
 
 class View_Focus_Manipulate(View_Focus):
