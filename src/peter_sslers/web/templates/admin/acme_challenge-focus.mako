@@ -68,11 +68,6 @@
                                 </button>
                                 % if AcmeChallenge.is_can_acme_server_trigger:
                                     <p><em>${AcmeChallenge.challenge_instructions_short}</em></p>
-                                    % if not AcmeChallenge.is_configured_to_answer:
-                                        This installation is NOT configured to answer this challenge.
-                                        You must submit the challenge <code>token</code> to trigger.
-                                        <input type="textfield" name="token" value="" class="form-control"/>
-                                    % endif
                                 % endif
                             </form>
                         </td>
@@ -116,37 +111,6 @@
                                 </a>
                                 <hr/>
                             % endfor
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>UniquelyChallengedFQDNSets</th>
-                        <td>
-                            ## TODO: show the orders
-                            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
-                            % if UniquelyChallengedFQDNSet2Domain:
-                                <table class=" table-striped table-condensed">
-                                    <thead>
-                                        <tr>
-                                            <th>UniquelyChallengedFQDNSet</th>
-                                            <th>Preferred Challenge Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        % for item in UniquelyChallengedFQDNSet2Domain:
-                                            <tr>
-                                                <td>
-                                                    <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${item.uniquely_challenged_fqdn_set_id}">
-                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    UniquelyChallengedFQDNSet-${item.uniquely_challenged_fqdn_set_id}</a>
-                                                </td>
-                                                <td>
-                                                    <code>${item.acme_challenge_type}</code>
-                                                </td>
-                                            </tr>
-                                        % endfor
-                                    </tbody>
-                                </table>
-                            % endif
                         </td>
                     </tr>
                     <tr>

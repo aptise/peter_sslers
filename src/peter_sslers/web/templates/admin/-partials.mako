@@ -2288,3 +2288,41 @@
         % endif
         </div>
 </%def>
+
+
+
+<%def name="tr_PreferredChallenges(PreferredChallenges=None)">
+    <tr>
+        <th>PreferredChallenges</th>
+        <td>
+            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
+            % if PreferredChallenges:
+                <table class=" table-striped table-condensed">
+                    <thead>
+                        <tr>
+                            <th>AcmeOrder</th>
+                            <th>UniquelyChallengedFQDNSet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        % for (dbAcmeOrder, dbUniquelyChallengedFQDNSet2Domain) in PreferredChallenges:
+                            <tr>
+                                <td>
+                                    <a class="label label-info" href="${admin_prefix}/acme-order/${dbAcmeOrder.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${dbAcmeOrder.id}</a>
+                                </td>
+                                <td>
+                                    <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniquelyChallengedFQDNSet-${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}</a>
+                                    <code>${model_websafe.AcmeChallengeType._mapping[dbUniquelyChallengedFQDNSet2Domain.acme_challenge_type_id]}</code>
+                                </td>
+                            </tr>
+                        % endfor
+                    </tbody>
+                </table>
+            % endif
+        </td>
+    </tr>
+</%def>

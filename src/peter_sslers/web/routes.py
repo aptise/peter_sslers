@@ -522,22 +522,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_order:focus:retry|json", "/acme-order/{@id}/retry.json"
     )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:custom",
-        "/acme-order/{@id}/renew/custom",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:custom|json",
-        "/acme-order/{@id}/renew/custom.json",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:quick",
-        "/acme-order/{@id}/renew/quick",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:quick|json",
-        "/acme-order/{@id}/renew/quick.json",
-    )
     config.add_route_7("admin:acme_order:new:freeform", "/acme-order/new/freeform")
     config.add_route_7(
         "admin:acme_order:new:freeform|json", "/acme-order/new/freeform.json"
@@ -564,8 +548,6 @@ def _admin_views(config: "Configurator") -> None:
 
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
-    config.add_route_7("admin:api:domain:enable", "/api/domain/enable")
-    config.add_route_7("admin:api:domain:disable", "/api/domain/disable")
     config.add_route_7(
         "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
     )
@@ -591,6 +573,9 @@ def _admin_views(config: "Configurator") -> None:
 
     config.add_route_7("admin:api:reconcile_cas", "/api/reconcile-cas")
     config.add_route_7("admin:api:reconcile_cas|json", "/api/reconcile-cas.json")
+
+    config.add_route_7("admin:api:version", "/api/version")
+    config.add_route_7("admin:api:version|json", "/api/version.json")
 
     # !!!: AriCheck
     # config.add_route_7("admin:ari_check", "/ari-check")

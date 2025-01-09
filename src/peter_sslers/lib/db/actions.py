@@ -17,7 +17,6 @@ from sqlalchemy import or_ as sqlalchemy_or
 # localapp
 from . import actions_acme
 from . import getcreate
-from . import update
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .. import errors
@@ -563,88 +562,6 @@ def operations_update_recents__global(
     )
 
     return dbOperationsEvent
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def api_domains__enable(
-    ctx: "ApiContext",
-    domain_names: Iterable[str],
-):
-    """
-    this is just a proxy around queue_domains__add
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domain_names: (required) a list of domain names
-    """
-
-    # bookkeeping
-    event_payload_dict = lib.utils.new_event_payload_dict()
-
-    raise ValueError("MIGRATE this should add domains into the system")
-
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("ApiDomains__enable"),
-        event_payload_dict,
-    )
-    results = lib.db.queues.queue_domains__add(ctx, domain_names)
-    return results
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def api_domains__disable(
-    ctx: "ApiContext",
-    domain_names: Iterable[str],
-):
-    """
-    disables `domain_names` from the system
-
-    * If the `domain_name` represents a `Domain`, it is marked inactive
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domain_names: (required) a list of domain names
-    """
-    # this function checks the domain names match a simple regex
-    _domain_names = cert_utils.utils.domains_from_list(domain_names)
-    results: Dict = {d: None for d in _domain_names}
-
-    # bookkeeping
-    event_payload_dict = lib.utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("ApiDomains__disable"),
-        event_payload_dict,
-    )
-
-    for domain_name in _domain_names:
-        _dbDomain = lib.db.get.get__Domain__by_name(
-            ctx, domain_name, preload=False, active_only=False
-        )
-        if _dbDomain:
-            if _dbDomain.is_active:
-                update.update_Domain_disable(
-                    ctx,
-                    _dbDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="Domain__mark__inactive",
-                    action="deactivated",
-                )
-                results[domain_name] = "deactivated"
-            else:
-                results[domain_name] = "already deactivated"
-        else:
-            results[domain_name] = "not active or in queue"
-
-    event_payload_dict["results"] = results
-    # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-    return results
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

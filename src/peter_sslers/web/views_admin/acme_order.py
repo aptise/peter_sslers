@@ -15,8 +15,6 @@ from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeOrder_new_freeform
-from ..lib.forms import Form_AcmeOrder_renew_custom
-from ..lib.forms import Form_AcmeOrder_renew_quick
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination

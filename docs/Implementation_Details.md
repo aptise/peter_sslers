@@ -186,41 +186,6 @@ If a certificate is not "active", only one of these will be `True`. If an inacti
 certificate was deactivated, then it can be activated and this flag will reverse.
 If the certificate was revoked, it is permanent and should not be re-activated.
 
-### Domain Queue
-
-The Domain queue, `/peter_sslers/queue-domains`, is designed to allow for Domains to be
-"queued in" for later batch processing.
-
-If a Domain is added to the queue, the following logic takes place:
-
-* If the Domain is already managed, but is not `active`, activate it.
-* If the Domain is not managed and not in the queue, add it to the queue.
-* In all other cases, ignore the request. the Domain is either actively managed
-  or queued to be so.
-
-
-### Renewal Queue
-
-* `update` will calculate which Certificates need to be renewed
-* `process` will do the actual renewal
-
-Certificates end up in the renewal queue through the `update` command or being
-individually queued.
-
-Certificates can also have a "custom renewal".
-
-To process the queue:
-
-To deal with timeouts and various issues, queue processing only works on one queue
-item at a time.
-
-There are simple ways to process the entire queue though:
-
-* Visit the renewal page and choose HTML processing. An item will be popped off
-the queue. Refresh tags are used to continue processing until finished.
-* Use the API endpoint. Inspect results and continue processing as needed
-
-
 ## Oddities
 
 *   When an ``AcmeAuthorization`` is "deactivated", the "ACME Server" will

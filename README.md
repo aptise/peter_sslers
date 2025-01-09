@@ -1,20 +1,18 @@
-ACME-v2 RELEASE
-================================
+If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md), otherwise keep reading.
 
-Hi!
+
+Project History
+===============
+
+The project started at Aptise Media as an internal tool for obtaining and managing
+SSL Certificates for customer domains.  The project integrated an ACME(v1)
+Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
+certificate loading.
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate
 Manager's design. The central object changed from a `CertificateSigned` to the
-`AcmeOrder`, which caused a ripple effect.
-
-This project is still undergoing active development, and the design is not
-entirely finalized yet... but... most of the functionality is working (and this
-package is used in production!). Everything is covered by extensive unit and
-integrated tests.
-
-WE ARE ALMOST THERE!!!
-
-If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md), otherwise keep reading.
+`AcmeOrder`, which caused a ripple effect.  The V1 release again changed the
+central object to a new `RenewalConfiguration` concept.
 
 
 peter_sslers README

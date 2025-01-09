@@ -157,36 +157,7 @@
                             AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
                         </td>
                     </tr>
-                    <tr>
-                        <th>UniquelyChallengedFQDNSet2Domain</th>
-                        <td>
-                            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
-                            ## TODO: Show Orders
-                            <table class=" table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th>UniquelyChallengedFQDNSet</th>
-                                        <th>Preferred Challenge Type</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    % for item in UniquelyChallengedFQDNSet2Domain:
-                                        <tr>
-                                            <td>
-                                                <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${item.uniquely_challenged_fqdn_set_id}">
-                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                UniquelyChallengedFQDNSet-${item.uniquely_challenged_fqdn_set_id}</a>
-                                            </td>
-                                            <td>
-                                                <code>${model_websafe.AcmeChallengeType._mapping[item.acme_challenge_type_id]}</code>
-                                            </td>
-                                        </tr>
-                                    % endfor
-                                </tbody>
-                            </table>
-
-                        </tr>
-                    </tr>
+                    ${admin_partials.tr_PreferredChallenges(PreferredChallenges=PreferredChallenges)}
                 </tbody>
                 <thead>
                     <tr>

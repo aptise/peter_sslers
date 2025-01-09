@@ -51,7 +51,7 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
     session_factory = get_session_factory(engine)
 
-    app_settings = ApplicationSettings()
+    app_settings = ApplicationSettings(config_uri)
     app_settings.from_settings_dict(settings)
 
     with transaction.manager:

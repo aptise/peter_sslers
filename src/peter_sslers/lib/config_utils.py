@@ -1,4 +1,5 @@
 # stdlib
+import hashlib
 from typing import Dict
 from typing import Optional
 
@@ -13,7 +14,7 @@ import cert_utils
 
 
 class ApplicationSettings(dict):
-    def __init__(self):
+    def __init__(self, config_uri: str):
         for _opt in (
             "acme_dns_support",
             "admin_prefix",
@@ -46,6 +47,14 @@ class ApplicationSettings(dict):
             "requests.disable_ssl_warning",
         ):
             self[_opt] = None
+        if not config_uri:
+            raise ValueError("must submit a `config_url`")
+
+        self["config_uri"] = config_uri
+        with open(config_uri, "rb") as f:
+            _contents = f.read()
+            _hash = hashlib.md5(_contents).hexdigest()
+            self["config_uri-hash"] = _hash
 
     def from_settings_dict(self, settings: Dict) -> None:
         """

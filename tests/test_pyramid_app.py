@@ -8236,25 +8236,6 @@ class FunctionalTests_API(AppTest):
 
     @routes_tested(
         (
-            "admin:api:domain:enable",
-            "admin:api:domain:disable",
-        )
-    )
-    def test_domains(self):
-        # enable
-        _data = {"domain_names": "example.com,foo.example.com, bar.example.com"}
-        res = self.testapp.post("/.well-known/peter_sslers/api/domain/enable", _data)
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-
-        # disable
-        _data = {"domain_names": "example.com,biz.example.com"}
-        res = self.testapp.post("/.well-known/peter_sslers/api/domain/disable", _data)
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-
-    @routes_tested(
-        (
             "admin:api:deactivate_expired",
             "admin:api:update_recents",
             "admin:api:reconcile_cas",

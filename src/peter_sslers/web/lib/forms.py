@@ -372,26 +372,6 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     ]
 
 
-class Form_AcmeOrder_renew_quick(_Form_Schema_Base):
-    processing_strategy = OneOf(
-        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-        not_empty=True,
-    )
-
-
-class Form_AcmeOrder_renew_custom(_form_AcmeAccount_PrivateKey_reuse):
-    processing_strategy = OneOf(
-        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-        not_empty=True,
-    )
-
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
-        not_empty=True,
-    )
-
-
 class Form_AcmeServer_mark(_Form_Schema_Base):
     action = OneOf(
         (

@@ -11,8 +11,8 @@
 * For the 1.0 release, the primary object is now a RenewalConfiguration.  
 * A RenewalConfiguration's primary relations are:
     AcmeAccount - which account owns the configuration?
-    UniqueFQDNSet - a simple listing of the domains
-    RenewalConfiguration2Domain - specific challenge preferences per domain; a UniqueFQDNSet but with challenges
+    UniqueFQDNSet - a simple listing of the domains, shorthand for compatible certificates
+    UniquelyChallengedFQDNSet - specific challenge preferences per domain; a UniqueFQDNSet but with per-domain preferred challenge types
     AcmeOrders - generated from this configuration
 * A PrivateKey is considered a secondary item to the RenewalConfiguration. One can be specified for a given AcmeOrder, but the RenewalConfiguration can specify it's own strategy when obtaining an initial Certificate or Renewing; and that strategy can default to the AcmeAccount.
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified.
@@ -146,11 +146,7 @@ cryptography libraries and wrap OpenSSL via subprocesses:
 As time progressed, it has become much easier to deploy Python cryptography libraries
 onto target server, and many servers already have them installed.
 
-The current library prioritizes doing the work in Python when possible, and will
-fallback to OpenSSL if the requisite libraries are not available. *installing the
-EFF's LetsEncrypt client `certbot` will install all the Python libraries*
-
-An extended test suite ensures both the primary and fallback systems work.
+The project now uses Cryptography exclusively.
 
 
 ## "autocert" functionality

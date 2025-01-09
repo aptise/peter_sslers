@@ -4,6 +4,7 @@ import logging
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
@@ -961,8 +962,16 @@ def get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
 ) -> List[AcmeDnsServerAccount]:
     query = (
         ctx.dbSession.query(AcmeDnsServerAccount)
+        .join(
+            Domain,
+            AcmeDnsServerAccount.domain_id == Domain.id,
+        )
         .filter(AcmeDnsServerAccount.acme_dns_server_id == acme_dns_server_id)
-        .order_by(AcmeDnsServerAccount.id.desc())
+        .order_by(
+            sqlalchemy.func.lower(Domain.domain_name).asc(),
+            sqlalchemy.func.lower(AcmeDnsServerAccount.fulldomain).asc(),
+            AcmeDnsServerAccount.acme_dns_server_id.asc(),
+        )
         .limit(limit)
         .offset(offset)
     )
@@ -2693,6 +2702,51 @@ def get__OperationsEvent__by_id(
         )
     item = q.first()
     return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__PreferredChallenges_by_acmeAuthorizationId__paginated(
+    ctx: "ApiContext",
+    acme_authorization_id: int,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
+) -> List[Tuple[AcmeOrder, UniquelyChallengedFQDNSet2Domain]]:
+    q = (
+        ctx.dbSession.query(
+            AcmeOrder,
+            UniquelyChallengedFQDNSet2Domain,
+        )
+        .join(
+            UniquelyChallengedFQDNSet2Domain,
+            AcmeOrder.uniquely_challenged_fqdn_set_id
+            == UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
+        )
+        .join(
+            AcmeOrder2AcmeAuthorization,
+            AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id,
+        )
+        .join(
+            AcmeAuthorization,
+            AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
+        )
+        .filter(
+            AcmeOrder2AcmeAuthorization.acme_authorization_id == acme_authorization_id,
+            AcmeAuthorization.domain_id == UniquelyChallengedFQDNSet2Domain.domain_id,
+        )
+        .order_by(
+            AcmeOrder.id.desc(),
+            # we need to order on all 3 to be fully deterministic
+            UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id.desc(),
+            UniquelyChallengedFQDNSet2Domain.domain_id.desc(),
+            UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+
+    return [i for i in q.all()]
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

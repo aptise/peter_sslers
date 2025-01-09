@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 # import json
 
 # pypi
-import cert_utils
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
@@ -18,9 +17,8 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_API_Domain_autocert
 from ..lib.forms import Form_API_Domain_certificate_if_needed
-from ..lib.forms import Form_API_Domain_disable
-from ..lib.forms import Form_API_Domain_enable
 from ..lib.handler import Handler
+from ... import __VERSION__
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -44,6 +42,22 @@ class ViewAdminApi(Handler):
             "project": "peter_sslers",
             "API_DOCS": docs.API_DOCS,
         }
+
+    @view_config(route_name="admin:api:version", renderer="json")
+    @view_config(route_name="admin:api:version|json", renderer="json")
+    def version(self):
+        """
+        this route exists to help ensure an API client is operating against
+        the correct server.
+        """
+        version = {
+            "version": __VERSION__,
+            "config_uri": self.request.registry.settings["app_settings"]["config_uri"],
+            "config_uri-hash": self.request.registry.settings["app_settings"][
+                "config_uri-hash"
+            ],
+        }
+        return version
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -159,100 +173,6 @@ class ViewAdminApi(Handler):
 
 
 class ViewAdminApi_Domain(Handler):
-    @view_config(route_name="admin:api:domain:enable", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/domain/enable.json",
-            "section": "api",
-            "about": """Enables Domain(s) for management.""",
-            "POST": True,
-            "GET": None,
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
-    )
-    def enable(self):
-        if self.request.method == "POST":
-            return self._enable__submit()
-        return self._enable__print()
-
-    def _enable__print(self):
-        return formatted_get_docs(self, "/api/domain/enable.json")
-
-    def _enable__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_API_Domain_enable, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # this function checks the domain names match a simple regex
-            domain_names = cert_utils.utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
-                )
-            api_results = lib_db.actions.api_domains__enable(
-                self.request.api_context, domain_names
-            )
-            return {"result": "success", "domain_results": api_results}
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            return {"result": "error", "form_errors": formStash.errors}
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:api:domain:disable", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/domain/disable.json",
-            "section": "api",
-            "about": """Disables Domain(s) for management.""",
-            "POST": True,
-            "GET": None,
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
-    )
-    def disable(self):
-        if self.request.method == "POST":
-            return self._disable__submit()
-        return self._disable__print()
-
-    def _disable__print(self):
-        return formatted_get_docs(self, "/api/domain/disable.json")
-
-    def _disable__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_API_Domain_disable, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # this function checks the domain names match a simple regex
-            domain_names = cert_utils.utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
-                )
-
-            api_results = lib_db.actions.api_domains__disable(
-                self.request.api_context, domain_names
-            )
-            return {"result": "success", "domain_results": api_results}
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            return {"result": "error", "form_errors": formStash.errors}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

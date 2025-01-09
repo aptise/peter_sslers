@@ -245,47 +245,6 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
 )
 
 
-# AcmeAuthorization-AcmeOrder2AcmeAuthorization-AcmeOrder-UnlquelyChallengedFQDNSet-UniquelyChallengedFQDNSet2Domain
-
-if False:
-    # TODO: MIGRATE
-    # note: AcmeAuthorization.acme_challenges_preferred
-    AcmeAuthorization.acme_challenges_preferred = sa_orm_relationship(
-        UniquelyChallengedFQDNSet2Domain,
-        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-        secondary=(
-            """join(AcmeOrder,
-                    AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
-                    )"""
-            """join(UnlquelyChallengedFQDNSet,
-                    AcmeOrder.uniquely_challenged_fqdn_set_id == UnlquelyChallengedFQDNSet.id
-                    )"""
-            """join(UniquelyChallengedFQDNSet2Domain,
-                    UnlquelyChallengedFQDNSet.id == UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id
-                    )"""
-        ),
-        secondaryjoin=(
-            sa.and_(
-                AcmeOrder.id
-                == sa.orm.foreign(AcmeOrder2AcmeAuthorization.acme_order_id),
-                AcmeOrder.id.in_(
-                    sa.select((AcmeOrder.id))
-                    .where(AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id)
-                    .where(
-                        AcmeOrder2AcmeAuthorization.acme_authorization_id
-                        == AcmeAuthorization.id
-                    )
-                    .order_by(AcmeOrder.id.desc())
-                    .limit(5)
-                    .correlate(AcmeOrder2AcmeAuthorization)
-                ),
-            )
-        ),
-        order_by=AcmeOrder.id.desc(),
-        viewonly=True,
-    )
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

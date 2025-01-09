@@ -816,7 +816,8 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         nullable=False,
     )
 
-    # legacy `AcmeOrderless` required a domain; duplicating this is fine
+    # legacy `AcmeOrderless` required a domain;
+    # duplicating this is fine and useful
     domain_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("domain.id"), nullable=False
     )
@@ -901,6 +902,8 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             return "PeterSSLers is configured to answer this challenge."
         elif self.acme_challenge_type == "dns-01":
             return "This challenge may require DNS configuration."
+        elif self.acme_challenge_type == "tls-alpn-01":
+            return "`TLS-ALPN-01` challenges are not currently supported."
         return "PeterSSLers can not answer this challenge."
 
     @property
@@ -924,7 +927,12 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER
         ):
             return False
-        return True
+        if self.acme_challenge_type == "http-01":
+            return True
+        elif self.acme_challenge_type == "dns-01":
+            if self.domain.acme_dns_server_account__active:
+                return True
+        return False
 
     @property
     def is_configured_to_answer(self) -> bool:
@@ -4087,6 +4095,12 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
+    acme_order_id__latest_attempt: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    acme_order_id__latest_success: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",
@@ -4098,6 +4112,16 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         "AcmeOrder",
         primaryjoin="RenewalConfiguration.id==AcmeOrder.renewal_configuration_id",
         back_populates="renewal_configuration",
+        uselist=True,
+    )
+    acme_order__latest_attempt = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="RenewalConfiguration.acme_order_id__latest_attempt==AcmeOrder.id",
+        uselist=True,
+    )
+    acme_order__latest_success = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="RenewalConfiguration.acme_order_id__latest_success==AcmeOrder.id",
         uselist=True,
     )
     # only used for reused key cycles
