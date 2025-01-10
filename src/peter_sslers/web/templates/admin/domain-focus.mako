@@ -111,34 +111,6 @@
                         <td><timestamp>${Domain.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>is_active</th>
-                        <td>
-                            <span class="label label-${'success' if Domain.is_active else 'warning'}">
-                                ${'Active' if Domain.is_active else 'inactive'}
-                            </span>
-
-                            % if Domain.is_active:
-                                &nbsp;
-                                <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="inactive"/>
-                                    <button class="btn btn-xs btn-warning" type="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        inactive
-                                    </button>
-                                </form>
-                            % else:
-                                &nbsp;
-                                <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-success" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        active
-                                    </button>
-                                </form>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>json_config</th>
                         <td>
                             <a  class="btn btn-xs btn-info"

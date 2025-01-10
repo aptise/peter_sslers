@@ -64,10 +64,6 @@
                                     </a>
                                 </td>
                             </tr>
-                            <tr>
-                                <th>is_active</th>
-                                <td>${search_results['Domain'].is_active}</td>
-                            </tr>
                         </tbody>
                     </table>
                 % else:

@@ -3331,7 +3331,6 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
@@ -3437,7 +3436,6 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         payload = {
             "id": self.id,
-            "is_active": True if self.is_active else False,
             "domain_name": self.domain_name,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
@@ -3456,7 +3454,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             }
         return payload
 
-    def as_json_config(self, id_only=False, active_only=None):
+    def as_json_config(self, id_only=False):
         """
         this is slightly different
         * everything is lowercase
@@ -3466,13 +3464,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "domain": {
                 "id": str(self.id),
                 "domain_name": self.domain_name,
-                "is_active": self.is_active,
             },
             "certificate_signed__latest_single": None,
             "certificate_signed__latest_multi": None,
         }
-        if active_only and not self.is_active:
-            return rval
         if self.certificate_signed_id__latest_single:
             if id_only:
                 rval["certificate_signed__latest_single"] = (

@@ -17,7 +17,6 @@ from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Domain_AcmeDnsServer_new
-from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler
@@ -26,7 +25,6 @@ from ..lib.handler import json_pagination
 from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils
 from ...lib import utils_nginx
 from ...lib import utils_redis
 from ...model import objects as model_objects
@@ -290,7 +288,6 @@ class View_Search(Handler):
                 domain_name,
                 preload=False,
                 eagerload_web=False,
-                active_only=False,
             )
 
             search_results = {
@@ -515,7 +512,7 @@ class View_Focus(Handler):
     def config_json(self):
         dbDomain = self._focus()
         rval = dbDomain.as_json_config(
-            id_only=self.request.params.get("id_only", None), active_only=True
+            id_only=self.request.params.get("id_only", None),
         )
         if self.request.params.get("openresty", None):
             try:
@@ -859,113 +856,6 @@ class View_Focus(Handler):
             "UniquelyChallengedFQDNSets": items_paged,
             "pager": pager,
         }
-
-
-class View_Focus_Manipulate(View_Focus):
-    @view_config(route_name="admin:domain:focus:mark", renderer=None)
-    @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
-    @docify(
-        {
-            "endpoint": "/domain/{ID}/mark.json",
-            "section": "domain",
-            "about": """Domain focus: mark""",
-            "POST": True,
-            "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/mark.json",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/domain/1/mark.json""",
-            ],
-            "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["active", "inactive"]},
-        }
-    )
-    def mark(self):
-        dbDomain = self._focus()
-        if self.request.method == "POST":
-            return self._mark__submit(dbDomain)
-        return self._mark__print(dbDomain)
-
-    def _mark__print(self, dbDomain):
-        if self.request.wants_json:
-            return formatted_get_docs(self, "/domain/{ID}/mark.json")
-        url_post_required = "%s?result=error&error=post+required&operation=mark" % (
-            self._focus_url,
-        )
-        return HTTPSeeOther(url_post_required)
-
-    def _mark__submit(self, dbDomain):
-        action = "!MISSING or !INVALID"
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Domain_mark, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            action = formStash.results["action"]
-            event_type = model_utils.OperationsEventType.from_string("Domain__mark")
-            event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["domain_id"] = dbDomain.id
-            event_payload_dict["action"] = action
-            # event_status = False
-
-            # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
-            )
-
-            if action == "active":
-                if dbDomain.is_active:
-                    # `formStash.fatal_form()` will raise `FormInvalid()`
-                    formStash.fatal_form("Already active.")
-
-                lib_db.update.update_Domain_enable(
-                    self.request.api_context,
-                    dbDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="Domain__mark__active",
-                    action="activated",
-                )
-
-            elif action == "inactive":
-                if not dbDomain.is_active:
-                    # `formStash.fatal_form()` will raise `FormInvalid()`
-                    formStash.fatal_form("Already inactive.")
-
-                lib_db.update.update_Domain_disable(
-                    self.request.api_context,
-                    dbDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="Domain__mark__inactive",
-                    action="deactivated",
-                )
-
-            else:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="action", message="Invalid option.")
-
-            self.request.api_context.dbSession.flush(
-                objects=[dbOperationsEvent, dbDomain]
-            )
-
-            if self.request.wants_json:
-                return {"result": "success", "Domain": dbDomain.as_json}
-
-            url_success = "%s?result=success&operation=mark&action=%s" % (
-                self._focus_url,
-                action,
-            )
-            return HTTPSeeOther(url_success)
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
-                self._focus_url,
-                errors.formstash_to_querystring(formStash),
-                action,
-            )
-            raise HTTPSeeOther(url_failure)
 
 
 class View_Focus_AcmeDnsServerAccounts(View_Focus):

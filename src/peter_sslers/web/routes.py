@@ -1132,10 +1132,6 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain:focus:uniquely_challenged_fqdn_sets_paginated",
         "/domain/{domain_identifier}/uniquely-challenged-fqdn-sets/{@page}",
     )
-    config.add_route_7("admin:domain:focus:mark", "/domain/{domain_identifier}/mark")
-    config.add_route_7(
-        "admin:domain:focus:mark|json", "/domain/{domain_identifier}/mark.json"
-    )
     config.add_route_7(
         "admin:domain:focus:nginx_cache_expire",
         "/domain/{domain_identifier}/nginx-cache-expire",

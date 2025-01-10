@@ -18,9 +18,7 @@ from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__AcmeServer__default
 from .get import get__Domain__by_name
-from .logger import _log_object_event
 from .. import errors
-from .. import utils
 from ... import lib
 from ...lib import events as _events  # noqa: F401
 from ...model import objects as model_objects
@@ -35,7 +33,6 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateSigned
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CoverageAssuranceEvent
-    from ...model.objects import Domain
     from ...model.objects import DomainAutocert
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
@@ -616,72 +613,6 @@ def update_CoverageAssuranceEvent__set_resolution(
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
     dbCoverageAssuranceEvent.coverage_assurance_resolution_id = resolution_id
-    return True
-
-
-def update_Domain_disable(
-    ctx: "ApiContext",
-    dbDomain: "Domain",
-    dbOperationsEvent: "OperationsEvent",
-    event_status: str = "Domain__mark__inactive",
-    action: str = "deactivated",
-) -> bool:
-    """
-    Disables a domain
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomain: (required) A :class:`model.objects.Domain` object
-    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
-
-    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
-    :param action: (optional) A string action. default = "deactivated"
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["domain.id"] = dbDomain.id
-    event_payload_dict["action"] = action
-    dbDomain.is_active = False
-    ctx.dbSession.flush(objects=[dbDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbDomain=dbDomain,
-    )
-    return True
-
-
-def update_Domain_enable(
-    ctx: "ApiContext",
-    dbDomain: "Domain",
-    dbOperationsEvent: "OperationsEvent",
-    event_status="Domain__mark__active",
-    action="activated",
-) -> bool:
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomain: (required) A :class:`model.objects.Domain` object
-    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
-
-    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
-    :param action: (optional) A string action. default = "activated"
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["domain.id"] = dbDomain.id
-    event_payload_dict["action"] = action
-    dbDomain.is_active = True
-    ctx.dbSession.flush(objects=[dbDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbDomain=dbDomain,
-    )
     return True
 
 

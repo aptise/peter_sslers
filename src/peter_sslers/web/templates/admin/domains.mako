@@ -72,11 +72,6 @@
                             </td>
                             <td><code>${d.domain_name}</code></td>
                             <td>
-                                <span class="label label-${'success' if d.is_active else 'warning'}">
-                                    ${'Active' if d.is_active else 'inactive'}
-                                </span>
-                            </td>
-                            <td>
                                 % if d.certificate_signed_id__latest_multi:
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate-signed/${d.certificate_signed_id__latest_multi}"

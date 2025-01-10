@@ -2264,7 +2264,10 @@ def get__CoverageAssuranceEvent__by_parentId__paginated(
 
 
 def _Domain_inject_exipring_days(
-    ctx: "ApiContext", q, expiring_days: int, order: bool = False
+    ctx: "ApiContext",
+    q,
+    expiring_days: int,
+    order: bool = False,
 ):
     """helper function for the count/paginated queries"""
     CertificateSignedMulti = sqlalchemy.orm.aliased(CertificateSigned)
@@ -2305,10 +2308,9 @@ def _Domain_inject_exipring_days(
 def get__Domain__count(
     ctx: "ApiContext",
     expiring_days: Optional[int] = None,
-    active_only: Optional[bool] = False,
 ) -> int:
     q = ctx.dbSession.query(Domain)
-    if active_only and not expiring_days:
+    if not expiring_days:
         q = q.filter(
             sqlalchemy.or_(
                 Domain.certificate_signed_id__latest_single.is_not(None),
@@ -2398,7 +2400,6 @@ def get__Domain__by_name(
     domain_name: str,
     preload: bool = False,
     eagerload_web: bool = False,
-    active_only: bool = False,
 ) -> Optional[Domain]:
     q = ctx.dbSession.query(Domain).filter(
         sqlalchemy.func.lower(Domain.domain_name) == sqlalchemy.func.lower(domain_name)
@@ -2745,8 +2746,12 @@ def get__PreferredChallenges_by_acmeAuthorizationId__paginated(
         .limit(limit)
         .offset(offset)
     )
-
-    return [i for i in q.all()]
+    results = q.all()
+    if TYPE_CHECKING:
+        # TODO: use Tuple
+        _results = [(i[0], i[1]) for i in results]
+        return _results
+    return results
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

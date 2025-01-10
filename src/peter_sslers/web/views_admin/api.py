@@ -409,15 +409,9 @@ class ViewAdminApi_Domain(Handler):
             )
             if dbDomain:
                 log.debug("autocert - domain known")
-                if not dbDomain.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="domain_name",
-                        message="This domain_name has been disabled",
-                    )
                 if dbDomain.has_active_certificates:
                     # exit early
-                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval = dbDomain.as_json_config(id_only=False)
                     rval["result"] = "success"
                     rval["notes"] = "existing certificate(s)"
                     log.debug("autocert - domain known - active certs")
@@ -437,7 +431,7 @@ class ViewAdminApi_Domain(Handler):
                     # and check again...
                     if dbDomain.has_active_certificates:
                         # exit early
-                        rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                        rval = dbDomain.as_json_config(id_only=False)
                         rval["result"] = "success"
                         rval["notes"] = "existing certificate(s), updated recents"
                         log.debug("autocert - domain known - active certs")
@@ -529,7 +523,7 @@ class ViewAdminApi_Domain(Handler):
 
                     # commit this so the domain will reload
                     self.request.api_context.pyramid_transaction_commit()
-                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval = dbDomain.as_json_config(id_only=False)
                     rval["result"] = "success"
                     rval["notes"] = "new AcmeOrder, valid"
                     rval["AcmeOrder"] = {

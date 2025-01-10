@@ -658,34 +658,18 @@ def api_domains__certificate_if_needed(
             continue
 
         # Step 2- is the domain_name a Domain?
-        _dbDomain = lib.db.get.get__Domain__by_name(
-            ctx, _domain_name, preload=False, active_only=False
-        )
+        _dbDomain = lib.db.get.get__Domain__by_name(ctx, _domain_name, preload=False)
         if _dbDomain:
             _result["domain.id"] = _dbDomain.id
 
-            if not _dbDomain.is_active:
-                _result["domain.status"] = "existing.activated"
-                _logger_args["event_status_id"] = (
-                    model_utils.OperationsObjectEventStatus.from_string(
-                        "ApiDomains__certificate_if_needed__domain_activate"
-                    )
-                )
-                _logger_args["dbDomain"] = _dbDomain
+            _result["domain.status"] = "existing"
 
-                # set this active
-                lib.db.update.update_Domain_enable(
-                    ctx, _dbDomain, dbOperationsEvent=dbOperationsEvent
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__domain_exists"
                 )
-            else:
-                _result["domain.status"] = "existing.active"
-
-                _logger_args["event_status_id"] = (
-                    model_utils.OperationsObjectEventStatus.from_string(
-                        "ApiDomains__certificate_if_needed__domain_exists"
-                    )
-                )
-                _logger_args["dbDomain"] = _dbDomain
+            )
+            _logger_args["dbDomain"] = _dbDomain
 
         elif not _dbDomain:
             _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
