@@ -51,10 +51,12 @@ class ApplicationSettings(dict):
             raise ValueError("must submit a `config_url`")
 
         self["config_uri"] = config_uri
+        _hash = hashlib.md5(config_uri.encode()).hexdigest()
+        self["config_uri-path"] = _hash
         with open(config_uri, "rb") as f:
             _contents = f.read()
             _hash = hashlib.md5(_contents).hexdigest()
-            self["config_uri-hash"] = _hash
+            self["config_uri-contents"] = _hash
 
     def from_settings_dict(self, settings: Dict) -> None:
         """

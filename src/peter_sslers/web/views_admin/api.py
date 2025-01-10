@@ -52,9 +52,11 @@ class ViewAdminApi(Handler):
         """
         version = {
             "version": __VERSION__,
-            "config_uri": self.request.registry.settings["app_settings"]["config_uri"],
-            "config_uri-hash": self.request.registry.settings["app_settings"][
-                "config_uri-hash"
+            "config_uri-path": self.request.registry.settings["app_settings"][
+                "config_uri-path"
+            ],
+            "config_uri-contents": self.request.registry.settings["app_settings"][
+                "config_uri-contents"
             ],
         }
         return version
