@@ -2,6 +2,7 @@
 import hashlib
 from typing import Dict
 from typing import Optional
+import uuid
 
 # pypi
 import cert_utils
@@ -57,6 +58,8 @@ class ApplicationSettings(dict):
             _contents = f.read()
             _hash = hashlib.md5(_contents).hexdigest()
             self["config_uri-contents"] = _hash
+        mac = uuid.getnode()
+        self["mac_uuid"] = str(uuid.UUID(int=mac))
 
     def from_settings_dict(self, settings: Dict) -> None:
         """
