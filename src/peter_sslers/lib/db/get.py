@@ -2719,6 +2719,7 @@ def get__PreferredChallenges_by_acmeAuthorizationId__paginated(
             AcmeOrder,
             UniquelyChallengedFQDNSet2Domain,
         )
+        .tuples()
         .join(
             UniquelyChallengedFQDNSet2Domain,
             AcmeOrder.uniquely_challenged_fqdn_set_id
@@ -2747,10 +2748,6 @@ def get__PreferredChallenges_by_acmeAuthorizationId__paginated(
         .offset(offset)
     )
     results = q.all()
-    if TYPE_CHECKING:
-        # TODO: use Tuple
-        _results = [(i[0], i[1]) for i in results]
-        return _results
     return results
 
 
