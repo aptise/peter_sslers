@@ -42,7 +42,6 @@ def _certificate_parse_to_record(
         :attr:`model.utils.CertificateSigned.fingerprint_sha1`
         :attr:`model.utils.CertificateSigned.spki_sha256`
         :attr:`model.utils.CertificateSigned.cert_serial`
-        :attr:`model.utils.CertificateSigned.is_ari_supported`
         :attr:`model.utils.CertificateSigned.is_ari_supported__cert`
 
     # --------------------------------------------------------------------------
@@ -80,7 +79,6 @@ def _certificate_parse_to_record(
     )  # cast to str, because int may be TOO large
     _ari_endpoint = utils.issuer_to_endpoint(cert_data=_cert_data)
     if _ari_endpoint:
-        dbCertificateSigned.is_ari_supported = True
         dbCertificateSigned.is_ari_supported__cert = True
 
     return dbCertificateSigned

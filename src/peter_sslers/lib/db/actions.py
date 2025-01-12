@@ -858,7 +858,11 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     WHERE
         cert.is_active IS True
         AND
-        cert.is_ari_supported IS True
+        (
+            cert.is_ari_supported__cert IS True
+            OR
+            cert.is_ari_supported__order IS True
+        )
         AND
         cert.timestamp_not_after < timely_date
         (
@@ -888,7 +892,10 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
         )
         .filter(
             CertificateSigned.is_active is True,
-            CertificateSigned.is_ari_supported is True,
+            sqlalchemy_or(
+                CertificateSigned.is_ari_supported__cert is True,
+                CertificateSigned.is_ari_supported__order is True,
+            ),
             CertificateSigned.timestamp_not_after < timely_date,
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.op("IS")(None),

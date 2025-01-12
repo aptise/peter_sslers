@@ -482,6 +482,11 @@ class AuthenticatedUser(object):
 
     _api_account_object: Optional[Dict] = None  # api server native/json object
     _api_account_headers: Optional[Dict] = None  # api server native/json object
+    # default to None;
+    # set True if server known to support it
+    # set False if server known to NOT support it
+    # if None, we may want to check
+    supports_ari: Optional[bool] = None
 
     def __init__(
         self,
@@ -514,6 +519,8 @@ class AuthenticatedUser(object):
         self.acme_directory = acme_directory
         self.log__OperationsEvent = log__OperationsEvent
         self._next_nonce = None
+        if acmeAccount.acme_server and acmeAccount.acme_server.is_supports_ari:
+            self.supports_ari = True
 
     def _send_signed_request(
         self,
@@ -1095,11 +1102,13 @@ class AuthenticatedUser(object):
         domain_names: List[str],
         dbUniqueFQDNSet: "UniqueFQDNSet",
         transaction_commit: bool,
+        replaces: Optional[str] = None,
     ) -> Tuple:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param domain_names: (required) The domains for our order
         :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
+        :param replaces: (optional) an optional ARI identifier
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
         returns
@@ -1113,6 +1122,9 @@ class AuthenticatedUser(object):
         payload_order = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]
         }
+        if self.supports_ari:
+            if replaces is not None:
+                payload_order["replaces"] = replaces
         (
             acme_order_object,
             _status_code,
@@ -2183,9 +2195,7 @@ def ari_check(
 
     # can we grab the ARI info off the cert?
     try:
-        ari_identifier = cert_utils.ari_construct_identifier(
-            cert_pem=dbCertificateSigned.cert_pem,
-        )
+        ari_identifier = dbCertificateSigned.ari_identifier
     except Exception as exc:
         raise exc
     if not ari_identifier:

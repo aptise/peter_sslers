@@ -1479,7 +1479,10 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                     authenticatedUser=authenticatedUser,
                 )
             except Exception as exc:
-                print(exc)
+                log.critical(
+                    "Exception in do__AcmeV2_AcmeOrder__acme_server_sync_authorizations"
+                )
+                log.critical(exc)
                 raise
 
         return dbAcmeOrder
@@ -2450,9 +2453,12 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
         # * private_key_strategy_id__requested
         #
         if private_key_strategy_id__requested or private_key_deferred_id:
-            print(private_key_strategy_id__requested)
-            print(private_key_deferred_id)
-
+            log.critical("This logic should not happen:")
+            log.critical(
+                " - private_key_strategy_id__requested:",
+                private_key_strategy_id__requested,
+            )
+            log.critical(" - private_key_deferred_id:", private_key_deferred_id)
             raise ValueError(
                 "This logic should not happen? %s|%s"
                 % (private_key_strategy_id__requested, private_key_deferred_id)
@@ -2551,12 +2557,30 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
         )
         tmpfiles.append(tmpfile_account)
 
+        # Calculate the replaces
+        replaces: Optional[str] = None
+        # RenewalConfiguration.acme_order_id__latest_attempt
+        # RenewalConfiguration.acme_order_id__latest_success
+        # AcmeOrder.acme_order_id__retry_of
+        # AcmeOrder.acme_order_id__renewal_of
+        # AcmeOrder.certificate_signed_id
+        # AcmeOrder.certificate_signed_id__renewal_of
+        # CertificateSigned.certificate_signed_id__renewal_of
+        if (
+            dbRenewalConfiguration.acme_order_id__latest_success
+            and dbRenewalConfiguration.acme_order__latest_success.certificate_signed_id
+        ):
+            replaces = (
+                dbRenewalConfiguration.acme_order__latest_success.certificate_signed.ari_identifier
+            )
+
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
             domain_names=domain_names,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=True,
+            replaces=replaces,
         )
         order_url = acmeOrderRfcObject.response_headers["location"]
         if not order_url:

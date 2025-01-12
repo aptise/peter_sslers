@@ -981,7 +981,6 @@ def create__CertificateSigned(
             :attr:`model.utils.CertificateSigned.fingerprint_sha1`
             :attr:`model.utils.CertificateSigned.spki_sha256`
             :attr:`model.utils.CertificateSigned.cert_serial`
-            :attr:`model.utils.CertificateSigned.is_ari_supported`
             :attr:`model.utils.CertificateSigned.is_ari_supported__cert`
         """
         _certificate_parse_to_record(
@@ -1043,8 +1042,13 @@ def create__CertificateSigned(
             )  # note that we've completed this!
 
             if dbAcmeOrder.acme_account.acme_server.is_supports_ari:
-                dbCertificateSigned.is_ari_supported = True
                 dbCertificateSigned.is_ari_supported__order = True
+
+            # update the renewal configuration
+            if dbAcmeOrder.renewal_configuration_id:
+                dbAcmeOrder.renewal_configuration.acme_order_id__latest_success = (
+                    dbCertificateSigned.id
+                )
 
             # final, just to be safe
             ctx.dbSession.flush()

@@ -7,6 +7,7 @@ from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
+import cert_utils
 from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped
@@ -2794,12 +2795,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
-    is_ari_supported: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
+    # True if we parse the cert and detect a known ARI server
     is_ari_supported__cert: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
+    # True if we ordered the cert from a known ARI server
     is_ari_supported__order: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
@@ -2880,6 +2880,16 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def ari_identifier(self) -> str:
+        try:
+            ari_identifier = cert_utils.ari_construct_identifier(
+                cert_pem=self.cert_pem,
+            )
+        except Exception as exc:
+            raise exc
+        return ari_identifier
 
     @property
     def cert_spki_search(self) -> str:
@@ -3086,6 +3096,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         if self.timestamp_not_after < timely_date:
             return False
         return True
+
+    @property
+    def is_ari_supported(self):
+        if self.is_ari_supported__cert or self.is_ari_supported__order:
+            return True
+        return False
 
     @property
     def key_technology(self) -> Optional[str]:
