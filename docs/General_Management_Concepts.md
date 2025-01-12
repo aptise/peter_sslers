@@ -170,13 +170,13 @@ webservers can interact with.
 
 ## Certificates and CertificateRequests
 
-PeterSSLers handles several types of CertificateRequests
+PeterSSLers handles several types of CertificateRequests:
 
-1. Upload an existing CertificateRequest and Certificate for tracking
-2. Have the built-in ACME-v2 client generate an AcmeOrder and it's own Certificate
-   Request, then handle the challeges (Acme-Automated).
-3. Use an external tool to generate the CertificateRequest and AcmeOrder, use
-   PeterSSLers via HTML/API to manage the AcmeChallenges (Acme-Flow).
+1. (Preferred) The system will generate a CertificateRequest as part of the 
+   ordering process with the built-in ACME-v2 client.
+2. Legacy. An existing CertificateRequest (and Certificate) can be imported
+   for tracking and relationship analysis.
+
 
 ## Input
 

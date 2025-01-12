@@ -965,11 +965,11 @@ class KeyTechnology(_mixin_mapping):
 
     _options_AcmeAccount_private_key_technology_id = (1, 2, 3, 4, 5)
     _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
-    _options_AcmeOrder_private_key_technology_id = (1, 2, 3, 4, 5)
+    _options_all = (0, 1, 2, 3, 4, 5)
     _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
     _options_Generate_id = (1, 2, 3, 4, 5)
-    _options_RSA = (1, 2, 3)
-    _options_EC = (4, 5)
+    _options_RSA_id = (1, 2, 3)
+    _options_EC_id = (4, 5)
 
     _DEFAULT = "EC_P256"
     _DEFAULT_id: int
@@ -978,21 +978,19 @@ class KeyTechnology(_mixin_mapping):
     _DEFAULT_AcmeAccount_order_default = "EC_P256"
     _DEFAULT_AcmeAccount_order_default_id: int
     _DEFAULT_AcmeOrder = "EC_P256"
-    _DEFAULT_AcmeOrder_id: int
-    _DEFAULT_GlobalKey = "EC_P256"
-    _DEFAULT_GlobalKey_id: int
     _DEFAULT_Generate = "EC_P256"
     _DEFAULT_Generate_id: int
+    _DEFAULT_GlobalKey = "EC_P256"
+    _DEFAULT_GlobalKey_id: int
     _DEFAULT_PrivateKey = "EC_P256"
     _DEFAULT_PrivateKey_id: int
     _DEFAULT_RenewalConfiguration = "account_default"
     _DEFAULT_RenewalConfiguration_id: int
-    _options: List[str]
     _options_AcmeAccount_private_key_technology: List[str]
     _options_AcmeAccount_order_default: List[str]
-    _options_AcmeOrder_private_key_technology: List[str]
-    _options_RenewalConfiguration_private_key_technology: List[str]
+    _options_all: List[str]
     _options_Generate: List[str]
+    _options_RenewalConfiguration_private_key_technology: List[str]
 
     @classmethod
     def to_new_args(cls, id_) -> NewKeyArgs:
@@ -1038,16 +1036,12 @@ KeyTechnology._options_AcmeAccount_order_default = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_AcmeAccount_order_default_id
 ]
-KeyTechnology._options_AcmeOrder_private_key_technology = [
-    KeyTechnology._mapping[_id]
-    for _id in KeyTechnology._options_AcmeOrder_private_key_technology_id
+KeyTechnology._options_Generate = [
+    KeyTechnology._mapping[_id] for _id in KeyTechnology._options_Generate_id
 ]
 KeyTechnology._options_RenewalConfiguration_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id
-]
-KeyTechnology._options_Generate = [
-    KeyTechnology._mapping[_id] for _id in KeyTechnology._options_Generate_id
 ]
 
 KeyTechnology._DEFAULT_id = KeyTechnology.from_string(KeyTechnology._DEFAULT)
@@ -1056,9 +1050,6 @@ KeyTechnology._DEFAULT_AcmeAccount_id = KeyTechnology.from_string(
 )
 KeyTechnology._DEFAULT_AcmeAccount_order_default_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_AcmeAccount_order_default
-)
-KeyTechnology._DEFAULT_AcmeOrder_id = KeyTechnology.from_string(
-    KeyTechnology._DEFAULT_AcmeOrder
 )
 KeyTechnology._DEFAULT_Generate_id = KeyTechnology.from_string(
     KeyTechnology._DEFAULT_Generate
@@ -1101,15 +1092,6 @@ class PrivateKeyCycle(_mixin_mapping):
         6,
         7,
     )
-    _options_AcmeOrder_private_key_cycle_id = (
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-    )
     _options_RenewalConfiguration_private_key_cycle_id = (
         1,
         2,
@@ -1125,7 +1107,6 @@ class PrivateKeyCycle(_mixin_mapping):
     _DEFAULT_system_renewal = "single_use"
 
     _options_AcmeAccount_order_default: List[str]
-    _options_AcmeOrder_private_key_cycle: List[str]
     _options_RenewalConfiguration_private_key_cycle: List[str]
 
 
@@ -1133,10 +1114,6 @@ class PrivateKeyCycle(_mixin_mapping):
 PrivateKeyCycle._options_AcmeAccount_order_default = [
     PrivateKeyCycle._mapping[_id]
     for _id in PrivateKeyCycle._options_AcmeAccount_order_default_id
-]
-PrivateKeyCycle._options_AcmeOrder_private_key_cycle = [
-    PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_AcmeOrder_private_key_cycle_id
 ]
 PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle = [
     PrivateKeyCycle._mapping[_id]

@@ -1872,7 +1872,7 @@
     <div class="form-group">
         <label for="private_key_cycle">Private Key Cycle - Renewals</label>
         <select class="form-control" name="private_key_cycle">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
         </select>
@@ -1885,7 +1885,7 @@
     <div class="form-group">
         <label for="private_key_cycle">Private Key Cycle</label>
         <select class="form-control" name="private_key_cycle">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
         </select>
@@ -1895,7 +1895,7 @@
 
 <%def name="formgroup__key_technology(default=None, options=None)">
     <% default = default or model_websafe.KeyTechnology._DEFAULT %>
-    <% options = options or model_websafe.KeyTechnology._options %>
+    <% options = options or model_websafe.KeyTechnology._options_all %>
     <div class="form-group">
         <label for="key_technology">Key Technology</label>
         <select class="form-control" name="key_technology">

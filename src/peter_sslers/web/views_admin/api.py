@@ -58,6 +58,7 @@ class ViewAdminApi(Handler):
             "config_uri-contents": self.request.registry.settings["app_settings"][
                 "config_uri-contents"
             ],
+            "mac_uuid": self.request.registry.settings["app_settings"]["mac_uuid"],
         }
         return version
 
@@ -223,7 +224,7 @@ class ViewAdminApi_Domain(Handler):
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                "private_key_cycle": model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
             },
         }
     )

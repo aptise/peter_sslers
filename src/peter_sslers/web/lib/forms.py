@@ -362,7 +362,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
         not_empty=True,
     )
 
@@ -403,7 +403,7 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
         not_empty=True,
     )
 
