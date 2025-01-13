@@ -47,7 +47,6 @@ from ...model import utils as model_utils
 # from .getcreate import getcreate__UniqueFQDNSet__by_domains
 
 if TYPE_CHECKING:
-    from tempfile import _TemporaryFileWrapper
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
@@ -78,20 +77,12 @@ TEST_CERTIFICATE_CHAIN = True
 def do__AcmeAccount_AcmeV2_register(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    account_key_path: Optional[str] = None,
 ) -> "AuthenticatedUser":
     """
     Registers an AcmeAccount against the LetsEncrypt ACME Directory
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param account_key_path: (optional) If there is a tempfile for the
-        `dbAcmeAccount`
-
-    !!! WARNING !!!
-
-    If `account_key_path` is not provided, the ACME library will be unable to
-    perform any operations after authentication.
     """
     try:
         if not dbAcmeAccount.contact:
@@ -274,31 +265,21 @@ def do__AcmeV2_AcmeAccount__key_change(
     key_technology_id: Optional[int] = None
     acckey__spki_sha256 = None
 
-    _tmpfile_new = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile_new = cert_utils.new_pem_tempfile(key_pem_new)
+    # validate + grab the technology
+    cu_key_technology = cert_utils.validate_key(
+        key_pem=key_pem_new,
+    )
+    if TYPE_CHECKING:
+        assert cu_key_technology is not None
+    key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+        cu_key_technology
+    )
+    assert key_technology_id
 
-        # validate + grab the technology
-        cu_key_technology = cert_utils.validate_key(
-            key_pem=key_pem_new,
-            key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
-        )
-        if TYPE_CHECKING:
-            assert cu_key_technology is not None
-        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
-            cu_key_technology
-        )
-        assert key_technology_id
-
-        # grab the spki
-        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-            key_pem=key_pem_new,
-            key_pem_filepath=_tmpfile_new.name if _tmpfile_new else None,
-        )
-    finally:
-        if _tmpfile_new is not None:
-            _tmpfile_new.close()
+    # grab the spki
+    acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+        key_pem=key_pem_new,
+    )
 
     dbOperationsEvent_AcmeAccountKey_new = log__OperationsEvent(
         ctx,
@@ -360,7 +341,7 @@ def do__AcmeV2_AcmeAccount__key_change(
 def new_Authenticated_user(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-) -> Tuple["AuthenticatedUser", Optional["_TemporaryFileWrapper"]]:
+) -> "AuthenticatedUser":
     """
     helper function to authenticate the user
 
@@ -370,10 +351,6 @@ def new_Authenticated_user(
     """
     account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
-    tmpfile_account = None
-    if cert_utils.NEEDS_TEMPFILES:
-        raise ValueError("cert_utils.NEEDS_TEMPFILES")
-
     # register the account / ensure that it is registered
     # the authenticatedUser will have a `logger.AcmeLogger` object as the
     # `.acmeLogger` attribtue
@@ -382,7 +359,7 @@ def new_Authenticated_user(
         ctx,
         dbAcmeAccount,
     )
-    return (authenticatedUser, tmpfile_account)
+    return authenticatedUser
 
 
 def update_AcmeAuthorization_status(
@@ -866,96 +843,84 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
         raise ValueError("Can not deactivate this `AcmeAuthorization`")
 
-    tmpfiles = []
+    # the authorization could be on multiple AcmeOrders
+    # see :method:`AcmeAuthorization.to_acme_orders`
+    # however the first order is cached onto the object so we can access the account
+    # the account-key will be the same across linked orders/auths
+    dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
+
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
+
     try:
-        # the authorization could be on multiple AcmeOrders
-        # see :method:`AcmeAuthorization.to_acme_orders`
-        # however the first order is cached onto the object so we can access the account
-        # the account-key will be the same across linked orders/auths
-        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
-
-        # we need to use tmpfiles on the disk
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
-
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
-
-        try:
-            (
-                authorization_response,
-                dbAcmeEventLog_authorization_fetch,
-            ) = authenticatedUser.acme_authorization_deactivate(
-                ctx,
-                dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
-            )
-            _server_status = authorization_response["status"]
-            if _server_status != "deactivated":
-                raise ValueError(
-                    "Authorization status should be `deactivated`; instead it is `%s`",
-                    _server_status,
-                )
-            _result = update_AcmeAuthorization_status(
-                ctx,
-                dbAcmeAuthorization,
+        (
+            authorization_response,
+            dbAcmeEventLog_authorization_fetch,
+        ) = authenticatedUser.acme_authorization_deactivate(
+            ctx,
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            transaction_commit=True,
+        )
+        _server_status = authorization_response["status"]
+        if _server_status != "deactivated":
+            raise ValueError(
+                "Authorization status should be `deactivated`; instead it is `%s`",
                 _server_status,
+            )
+        _result = update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeAuthorization,
+            _server_status,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+
+        # fields in the authorization_response:
+        # - status
+        # - challenges
+        # - identifier
+        # - expires
+        # there is no point in updating those.
+        # but...
+        # figure out all the challenges we have and set them to *410* if they are no longer there
+        #
+        disable_missing_AcmeAuthorization_AcmeChallenges(
+            ctx,
+            dbAcmeAuthorization,
+            authorization_response,
+            transaction_commit=True,
+        )
+
+        # the RFC requires an AcmeOrder transitions to "invalid" when an
+        # AcmeAuthorization is deactivated
+        # TODO: sync the AcmeOrder objects instead
+        for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+            updated_AcmeOrder_ProcessingStatus(
+                ctx,
+                _to_acme_order.acme_order,
+                acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
+                acme_status_order_id=model_utils.Acme_Status_Order.from_string(
+                    "invalid"
+                ),
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
-                is_via_acme_sync=True,
             )
-
-            # fields in the authorization_response:
-            # - status
-            # - challenges
-            # - identifier
-            # - expires
-            # there is no point in updating those.
-            # but...
-            # figure out all the challenges we have and set them to *410* if they are no longer there
-            #
-            disable_missing_AcmeAuthorization_AcmeChallenges(
-                ctx,
-                dbAcmeAuthorization,
-                authorization_response,
-                transaction_commit=True,
-            )
-
-            # the RFC requires an AcmeOrder transitions to "invalid" when an
-            # AcmeAuthorization is deactivated
-            # TODO: sync the AcmeOrder objects instead
-            for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
-                updated_AcmeOrder_ProcessingStatus(
-                    ctx,
-                    _to_acme_order.acme_order,
-                    acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
-                    acme_status_order_id=model_utils.Acme_Status_Order.from_string(
-                        "invalid"
-                    ),
-                    timestamp=ctx.timestamp,
-                    transaction_commit=True,
-                )
-            return True
-        except errors.AcmeServer404 as exc:
-            update_AcmeAuthorization_status(
-                ctx,
-                dbAcmeAuthorization,
-                "*404*",
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-                is_via_acme_sync=True,
-            )
-            return False
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+        return True
+    except errors.AcmeServer404 as exc:
+        update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeAuthorization,
+            "*404*",
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+        return False
 
 
 def do__AcmeV2_AcmeAuthorization__acme_server_sync(
@@ -975,7 +940,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization.is_can_acme_server_sync:
         raise ValueError("Can not sync this `AcmeAuthorization`")
 
-    tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
@@ -985,74 +949,64 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
         if authenticatedUser is None:
             dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+            authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
+        (
+            authorization_response,
+            dbAcmeEventLog_authorization_fetch,
+        ) = authenticatedUser.acme_authorization_load(
+            ctx,
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            transaction_commit=True,
+        )
+
+        # trigger this now, so we do not attempt to load the challenges
+        if authorization_response["status"] == "*404*":
+            raise errors.AcmeServer404()
+
+        # update the the Authorization object
+        _updated = update_AcmeAuthorization_from_payload(
+            ctx, dbAcmeAuthorization, authorization_response
+        )
+
+        # it's possible we are missing older challenges
+        disable_missing_AcmeAuthorization_AcmeChallenges(
+            ctx,
+            dbAcmeAuthorization,
+            authorization_response,
+            transaction_commit=True,
+        )
+
+        # and it's possible we have new challenges
         try:
-            (
-                authorization_response,
-                dbAcmeEventLog_authorization_fetch,
-            ) = authenticatedUser.acme_authorization_load(
+            dbAcmeChallenges = getcreate__AcmeChallenges_via_payload(
                 ctx,
+                authenticatedUser=authenticatedUser,
                 dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
+                authorization_payload=authorization_response,
             )
+        except errors.AcmeMissingChallenges as exc:
+            # maybe there are challenges in the payload?
+            if (
+                authorization_response["status"]
+                in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+            ):
+                # note: perhaps better raised as `errors.InvalidRequest`
+                raise errors.AcmeCommunicationError("Missing required challenges")
 
-            # trigger this now, so we do not attempt to load the challenges
-            if authorization_response["status"] == "*404*":
-                raise errors.AcmeServer404()
-
-            # update the the Authorization object
-            _updated = update_AcmeAuthorization_from_payload(
-                ctx, dbAcmeAuthorization, authorization_response
-            )
-
-            # it's possible we are missing older challenges
-            disable_missing_AcmeAuthorization_AcmeChallenges(
-                ctx,
-                dbAcmeAuthorization,
-                authorization_response,
-                transaction_commit=True,
-            )
-
-            # and it's possible we have new challenges
-            try:
-                dbAcmeChallenges = getcreate__AcmeChallenges_via_payload(
-                    ctx,
-                    authenticatedUser=authenticatedUser,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    authorization_payload=authorization_response,
-                )
-            except errors.AcmeMissingChallenges as exc:
-                # maybe there are challenges in the payload?
-                if (
-                    authorization_response["status"]
-                    in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
-                ):
-                    # note: perhaps better raised as `errors.InvalidRequest`
-                    raise errors.AcmeCommunicationError("Missing required challenges")
-
-            return True
-        except errors.AcmeServer404 as exc:
-            update_AcmeAuthorization_status(
-                ctx,
-                dbAcmeAuthorization,
-                "*404*",
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-            )
-            return False
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+        return True
+    except errors.AcmeServer404 as exc:
+        update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeAuthorization,
+            "*404*",
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
+        return False
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_trigger(
@@ -1076,7 +1030,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeChallenge`")
 
-    tmpfiles = []
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
@@ -1101,10 +1054,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         if authenticatedUser is None:
             # the associated AcmeOrders should all have the same AcmeAccount
             dbAcmeAccount = dbAcmeOrderCreated.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+            authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
@@ -1194,11 +1144,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                     transaction_commit=True,
                 )
 
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
     return True
 
 
@@ -1220,98 +1165,85 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge.is_can_acme_server_sync:
         raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
 
-    tmpfiles = []
+    # this is used a bit
+    dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+
+    # the authorization could be on multiple AcmeOrders
+    # see :method:`AcmeAuthorization.to_acme_orders`
+    # however the first order is cached onto the object so we can access the account
+    # the account-key will be the same across linked orders/auths
+    dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrderCreated.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
+
     try:
-        # this is used a bit
-        dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+        (
+            challenge_response,
+            dbAcmeEventLog_challenge_fetch,
+        ) = authenticatedUser.acme_challenge_load(
+            ctx,
+            dbAcmeChallenge=dbAcmeChallenge,
+            transaction_commit=True,
+        )
 
-        # the authorization could be on multiple AcmeOrders
-        # see :method:`AcmeAuthorization.to_acme_orders`
-        # however the first order is cached onto the object so we can access the account
-        # the account-key will be the same across linked orders/auths
-        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrderCreated.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+        # this only logs
+        _audit_AcmeChallenge_against_server_response(
+            ctx, dbAcmeChallenge, challenge_response
+        )
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
+        # update the AcmeChallenge.status if it's not the same on the database
+        _server_status = challenge_response["status"]
+        update_AcmeChallenge_status(
+            ctx,
+            dbAcmeChallenge,
+            _server_status,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
 
-        try:
-            (
-                challenge_response,
-                dbAcmeEventLog_challenge_fetch,
-            ) = authenticatedUser.acme_challenge_load(
-                ctx,
-                dbAcmeChallenge=dbAcmeChallenge,
-                transaction_commit=True,
-            )
+        if _server_status == "invalid":
+            if dbAcmeChallenge.acme_authorization:
+                # the RFC requires an AcmeAuthorization transitions to "invalid"
+                # if an AcmeChallenge transitions to "invalid"
+                if (
+                    dbAcmeChallenge.acme_authorization.acme_status_authorization
+                    != "invalid"
+                ):
+                    update_AcmeAuthorization_status(
+                        ctx,
+                        dbAcmeChallenge.acme_authorization,
+                        "invalid",
+                        timestamp=ctx.timestamp,
+                        transaction_commit=True,
+                        is_via_acme_sync=False,
+                    )
+                # the RFC requires an AcmeOrder transitions to "invalid"
+                # if an AcmeAuthorization transitions to "invalid"
+                for _to_acme_order in dbAcmeChallenge.acme_authorization.to_acme_orders:
+                    updated_AcmeOrder_ProcessingStatus(
+                        ctx,
+                        _to_acme_order.acme_order,
+                        acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
+                        acme_status_order_id=model_utils.Acme_Status_Order.from_string(
+                            "invalid"
+                        ),
+                        timestamp=ctx.timestamp,
+                        transaction_commit=True,
+                    )
+    except errors.AcmeServer404 as exc:
+        update_AcmeChallenge_status(
+            ctx,
+            dbAcmeChallenge,
+            "*404*",
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
 
-            # this only logs
-            _audit_AcmeChallenge_against_server_response(
-                ctx, dbAcmeChallenge, challenge_response
-            )
-
-            # update the AcmeChallenge.status if it's not the same on the database
-            _server_status = challenge_response["status"]
-            update_AcmeChallenge_status(
-                ctx,
-                dbAcmeChallenge,
-                _server_status,
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-            )
-
-            if _server_status == "invalid":
-                if dbAcmeChallenge.acme_authorization:
-                    # the RFC requires an AcmeAuthorization transitions to "invalid"
-                    # if an AcmeChallenge transitions to "invalid"
-                    if (
-                        dbAcmeChallenge.acme_authorization.acme_status_authorization
-                        != "invalid"
-                    ):
-                        update_AcmeAuthorization_status(
-                            ctx,
-                            dbAcmeChallenge.acme_authorization,
-                            "invalid",
-                            timestamp=ctx.timestamp,
-                            transaction_commit=True,
-                            is_via_acme_sync=False,
-                        )
-                    # the RFC requires an AcmeOrder transitions to "invalid"
-                    # if an AcmeAuthorization transitions to "invalid"
-                    for (
-                        _to_acme_order
-                    ) in dbAcmeChallenge.acme_authorization.to_acme_orders:
-                        updated_AcmeOrder_ProcessingStatus(
-                            ctx,
-                            _to_acme_order.acme_order,
-                            acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
-                            acme_status_order_id=model_utils.Acme_Status_Order.from_string(
-                                "invalid"
-                            ),
-                            timestamp=ctx.timestamp,
-                            transaction_commit=True,
-                        )
-        except errors.AcmeServer404 as exc:
-            update_AcmeChallenge_status(
-                ctx,
-                dbAcmeChallenge,
-                "*404*",
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-            )
-
-        return True
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return True
 
 
 def do__AcmeV2_AcmeOrder__acme_server_sync(
@@ -1330,61 +1262,50 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    tmpfiles = []
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+    is_order_404 = None
     try:
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrder.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+        (
+            acmeOrderRfcObject,
+            dbAcmeOrderEventLogged,
+        ) = authenticatedUser.acme_order_load(
+            ctx,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        is_order_404 = False
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        # update the AcmeOrder if it's not the same on the database
+        # always invoke this, as it handles it's own cleanup of the model
+        result = updated_AcmeOrder_status(
+            ctx,
+            dbAcmeOrder,
+            acmeOrderRfcObject.rfc_object,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+        return dbAcmeOrder
 
-        is_order_404 = None
-        try:
-            (
-                acmeOrderRfcObject,
-                dbAcmeOrderEventLogged,
-            ) = authenticatedUser.acme_order_load(
-                ctx,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
-            )
-            is_order_404 = False
-
-            # update the AcmeOrder if it's not the same on the database
-            # always invoke this, as it handles it's own cleanup of the model
-            result = updated_AcmeOrder_status(
-                ctx,
-                dbAcmeOrder,
-                acmeOrderRfcObject.rfc_object,
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-                is_via_acme_sync=True,
-            )
-            return dbAcmeOrder
-
-        except errors.AcmeServer404 as exc:
-            is_order_404 = True
-            updated_AcmeOrder_status(
-                ctx,
-                dbAcmeOrder,
-                acme_v2.new_response_404(),
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-                is_via_acme_sync=True,
-            )
-            # Do not reflect the 404 status on AcmeAuthoriztions, as the ACME
-            # server may elect to reuse them
-            return dbAcmeOrder
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    except errors.AcmeServer404 as exc:
+        is_order_404 = True
+        updated_AcmeOrder_status(
+            ctx,
+            dbAcmeOrder,
+            acme_v2.new_response_404(),
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+        # Do not reflect the 404 status on AcmeAuthoriztions, as the ACME
+        # server may elect to reuse them
+        return dbAcmeOrder
 
 
 def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
@@ -1402,96 +1323,83 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    tmpfiles = []
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+    handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
+        ctx, authenticatedUser, dbAcmeOrder
+    )
+
+    is_order_404 = None
     try:
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrder.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+        (
+            acmeOrderRfcObject,
+            dbAcmeOrderEventLogged,
+        ) = authenticatedUser.acme_order_load(
+            ctx,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        is_order_404 = False
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
-
-        handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
-            ctx, authenticatedUser, dbAcmeOrder
+        # always invoke this, as it handles it's own cleanup of the model
+        updated_AcmeOrder_status(
+            ctx,
+            dbAcmeOrder,
+            acmeOrderRfcObject.rfc_object,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
         )
 
-        is_order_404 = None
-        try:
+    except errors.AcmeServer404 as exc:
+        is_order_404 = True
+        updated_AcmeOrder_status(
+            ctx,
+            dbAcmeOrder,
+            acme_v2.new_response_404(),
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+        # just continue, as the internal orders are what we care about
+
+    # make sure we have all the authorizations
+    if not is_order_404:
+        _changed = None
+        for authorization_url in acmeOrderRfcObject.rfc_object.get("authorizations"):
             (
-                acmeOrderRfcObject,
-                dbAcmeOrderEventLogged,
-            ) = authenticatedUser.acme_order_load(
-                ctx,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                _dbAuthPlacholder,
+                _is_auth_created,
+                _is_auth_2_order_created,
+            ) = getcreate__AcmeAuthorizationUrl(
+                ctx, authorization_url=authorization_url, dbAcmeOrder=dbAcmeOrder
             )
-            is_order_404 = False
+            if not _changed and (_is_auth_created or _is_auth_2_order_created):
+                _changed = True
+        if _changed:
+            # the major benefit to commit here is to expire `dbAcmeOrder.acme_authorizations`
+            ctx.pyramid_transaction_commit()
 
-            # always invoke this, as it handles it's own cleanup of the model
-            updated_AcmeOrder_status(
+    for dbAcmeAuthorization in dbAcmeOrder.acme_authorizations:
+        try:
+            result = do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 ctx,
-                dbAcmeOrder,
-                acmeOrderRfcObject.rfc_object,
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-                is_via_acme_sync=True,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                authenticatedUser=authenticatedUser,
             )
-
-        except errors.AcmeServer404 as exc:
-            is_order_404 = True
-            updated_AcmeOrder_status(
-                ctx,
-                dbAcmeOrder,
-                acme_v2.new_response_404(),
-                timestamp=ctx.timestamp,
-                transaction_commit=True,
-                is_via_acme_sync=True,
+        except Exception as exc:
+            log.critical(
+                "Exception in do__AcmeV2_AcmeOrder__acme_server_sync_authorizations"
             )
-            # just continue, as the internal orders are what we care about
+            log.critical(exc)
+            raise
 
-        # make sure we have all the authorizations
-        if not is_order_404:
-            _changed = None
-            for authorization_url in acmeOrderRfcObject.rfc_object.get(
-                "authorizations"
-            ):
-                (
-                    _dbAuthPlacholder,
-                    _is_auth_created,
-                    _is_auth_2_order_created,
-                ) = getcreate__AcmeAuthorizationUrl(
-                    ctx, authorization_url=authorization_url, dbAcmeOrder=dbAcmeOrder
-                )
-                if not _changed and (_is_auth_created or _is_auth_2_order_created):
-                    _changed = True
-            if _changed:
-                # the major benefit to commit here is to expire `dbAcmeOrder.acme_authorizations`
-                ctx.pyramid_transaction_commit()
-
-        for dbAcmeAuthorization in dbAcmeOrder.acme_authorizations:
-            try:
-                result = do__AcmeV2_AcmeAuthorization__acme_server_sync(
-                    ctx,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    authenticatedUser=authenticatedUser,
-                )
-            except Exception as exc:
-                log.critical(
-                    "Exception in do__AcmeV2_AcmeOrder__acme_server_sync_authorizations"
-                )
-                log.critical(exc)
-                raise
-
-        return dbAcmeOrder
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return dbAcmeOrder
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
@@ -1511,72 +1419,62 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     if not dbAcmeAccount:
         raise ValueError("Must submit `dbAcmeAccount`")
 
-    tmpfiles = []
-    try:
-        if authenticatedUser is None:
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+    if authenticatedUser is None:
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        dbAcmeAuthorizations = get__AcmeAuthorizations__by_ids(
-            ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
+    dbAcmeAuthorizations = get__AcmeAuthorizations__by_ids(
+        ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
+    )
+    results: Dict = {id_: False for id_ in acme_authorization_ids}
+    for dbAcmeAuthorization in dbAcmeAuthorizations:
+        if not dbAcmeAuthorization.is_acme_server_pending:
+            # no need to attempt turning off an auth that is not (potentially) pending
+            continue
+        try:
+            (
+                authorization_response,
+                dbAcmeEventLog_authorization_fetch,
+            ) = authenticatedUser.acme_authorization_deactivate(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
+            )
+            results[dbAcmeAuthorization.id] = True
+        except errors.AcmeServer404 as exc:
+            results[dbAcmeAuthorization.id] = None
+            authorization_response = acme_v2.new_response_404()
+        update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeAuthorization,
+            authorization_response["status"],
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
         )
-        results: Dict = {id_: False for id_ in acme_authorization_ids}
-        for dbAcmeAuthorization in dbAcmeAuthorizations:
-            if not dbAcmeAuthorization.is_acme_server_pending:
-                # no need to attempt turning off an auth that is not (potentially) pending
-                continue
-            try:
-                (
-                    authorization_response,
-                    dbAcmeEventLog_authorization_fetch,
-                ) = authenticatedUser.acme_authorization_deactivate(
-                    ctx,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    transaction_commit=True,
-                )
-                results[dbAcmeAuthorization.id] = True
-            except errors.AcmeServer404 as exc:
-                results[dbAcmeAuthorization.id] = None
-                authorization_response = acme_v2.new_response_404()
-            update_AcmeAuthorization_status(
+
+        if authorization_response["status"] == "deactivated":
+            # disable the missing `AcmeChallenges` (should be all!)
+            disable_missing_AcmeAuthorization_AcmeChallenges(
                 ctx,
                 dbAcmeAuthorization,
-                authorization_response["status"],
-                timestamp=ctx.timestamp,
+                authorization_response,
                 transaction_commit=True,
             )
 
-            if authorization_response["status"] == "deactivated":
-                # disable the missing `AcmeChallenges` (should be all!)
-                disable_missing_AcmeAuthorization_AcmeChallenges(
+            """
+            RFC:
+            The order also moves to the "invalid"
+            state if it expires or one of its authorizations enters a final state
+            other than "valid" ("expired", "revoked", or "deactivated").
+            """
+            for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+                updated_AcmeOrder_status(
                     ctx,
-                    dbAcmeAuthorization,
-                    authorization_response,
+                    _to_acme_order.acme_order,
+                    acme_v2.new_response_invalid(),
+                    timestamp=ctx.timestamp,
                     transaction_commit=True,
                 )
-
-                """
-                RFC:
-                The order also moves to the "invalid"
-                state if it expires or one of its authorizations enters a final state
-                other than "valid" ("expired", "revoked", or "deactivated").
-                """
-                for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
-                    updated_AcmeOrder_status(
-                        ctx,
-                        _to_acme_order.acme_order,
-                        acme_v2.new_response_invalid(),
-                        timestamp=ctx.timestamp,
-                        transaction_commit=True,
-                    )
-        return results
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return results
 
 
 def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
@@ -1592,21 +1490,85 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    tmpfiles = []
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+    # first, load the order
+    acmeOrderRfcObject = None
+    is_order_404 = None
     try:
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrder.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
+        (
+            acmeOrderRfcObject,
+            dbAcmeOrderEventLogged,
+        ) = authenticatedUser.acme_order_load(
+            ctx,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        is_order_404 = False
+    except errors.AcmeServer404 as exc:
+        is_order_404 = True
+        updated_AcmeOrder_status(
+            ctx,
+            dbAcmeOrder,
+            acme_v2.new_response_404(),
+            is_processing_False=True,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+            is_via_acme_sync=True,
+        )
+
+    raise ValueError("DEBUGGING")
+    print("ALL")
+    import pdb
+
+    pdb.set_trace()
+
+    for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
+        print("One")
+
+        pdb.set_trace()
+
+        try:
+            (
+                authorization_response,
+                dbAcmeEventLog_authorization_fetch,
+            ) = authenticatedUser.acme_authorization_deactivate(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
             )
-            tmpfiles.append(tmpfile_account)
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+                is_via_acme_sync=True,
+            )
+            disable_missing_AcmeAuthorization_AcmeChallenges(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response,
+                transaction_commit=True,
+            )
+        except errors.AcmeServer404 as exc:
+            authorization_response = acme_v2.new_response_404()
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+                is_via_acme_sync=True,
+            )
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
-
-        # first, load the order
-        acmeOrderRfcObject = None
-        is_order_404 = None
+    # update the AcmeOrder if it's not the same in the database
+    if not is_order_404:
         try:
             (
                 acmeOrderRfcObject,
@@ -1616,96 +1578,21 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 dbAcmeOrder=dbAcmeOrder,
                 transaction_commit=True,
             )
-            is_order_404 = False
-        except errors.AcmeServer404 as exc:
-            is_order_404 = True
-            updated_AcmeOrder_status(
+            # always invoke this, as it handles some cleanup routines
+            return updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acme_v2.new_response_404(),
+                acmeOrderRfcObject.rfc_object,
+                acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
                 is_processing_False=True,
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
                 is_via_acme_sync=True,
             )
+        except Exception as exc:
+            raise
 
-        raise ValueError("DEBUGGING")
-        print("ALL")
-        import pdb
-
-        pdb.set_trace()
-
-        for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
-            print("One")
-
-            pdb.set_trace()
-
-            try:
-                (
-                    authorization_response,
-                    dbAcmeEventLog_authorization_fetch,
-                ) = authenticatedUser.acme_authorization_deactivate(
-                    ctx,
-                    dbAcmeAuthorization=dbAcmeAuthorization,
-                    transaction_commit=True,
-                )
-                update_AcmeAuthorization_status(
-                    ctx,
-                    dbAcmeAuthorization,
-                    authorization_response["status"],
-                    timestamp=ctx.timestamp,
-                    transaction_commit=True,
-                    is_via_acme_sync=True,
-                )
-                disable_missing_AcmeAuthorization_AcmeChallenges(
-                    ctx,
-                    dbAcmeAuthorization,
-                    authorization_response,
-                    transaction_commit=True,
-                )
-            except errors.AcmeServer404 as exc:
-                authorization_response = acme_v2.new_response_404()
-                update_AcmeAuthorization_status(
-                    ctx,
-                    dbAcmeAuthorization,
-                    authorization_response["status"],
-                    timestamp=ctx.timestamp,
-                    transaction_commit=True,
-                    is_via_acme_sync=True,
-                )
-
-        # update the AcmeOrder if it's not the same in the database
-        if not is_order_404:
-            try:
-                (
-                    acmeOrderRfcObject,
-                    dbAcmeOrderEventLogged,
-                ) = authenticatedUser.acme_order_load(
-                    ctx,
-                    dbAcmeOrder=dbAcmeOrder,
-                    transaction_commit=True,
-                )
-                # always invoke this, as it handles some cleanup routines
-                return updated_AcmeOrder_status(
-                    ctx,
-                    dbAcmeOrder,
-                    acmeOrderRfcObject.rfc_object,
-                    acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
-                    is_processing_False=True,
-                    timestamp=ctx.timestamp,
-                    transaction_commit=True,
-                    is_via_acme_sync=True,
-                )
-            except Exception as exc:
-                raise
-
-        return False
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return False
 
 
 def _do__AcmeV2_AcmeOrder__finalize(
@@ -1727,7 +1614,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
 
-    tmpfiles = []
     try:
         private_key_strategy__final: Optional[str] = None
         # if there is a new PrivateKeyNew,
@@ -1884,33 +1770,20 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ]
         )
 
-        # we may need to use tmpfiles on the disk for the Private Key signing
-        tmpfile_pkey = None
         private_key_pem = dbAcmeOrder.private_key.key_pem
-        if cert_utils.NEEDS_TEMPFILES:
-            tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
-            tmpfiles.append(tmpfile_pkey)
 
         # what are the domain names?
         domain_names = dbAcmeOrder.domains_as_list
 
-        tmpfile_csr = None
         if dbAcmeOrder.certificate_request:
             dbCertificateRequest = dbAcmeOrder.certificate_request
             csr_pem = dbCertificateRequest.csr_pem
-            if cert_utils.NEEDS_TEMPFILES:
-                tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
-                tmpfiles.append(tmpfile_csr)
         else:
             # make the CSR
             csr_pem = cert_utils.make_csr(
                 domain_names,
                 key_pem=private_key_pem,
-                key_pem_filepath=tmpfile_pkey.name if tmpfile_pkey else None,
             )
-            if cert_utils.NEEDS_TEMPFILES:
-                tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
-                tmpfiles.append(tmpfile_csr)
 
             # immediately commit this
             dbCertificateRequest = create__CertificateRequest(
@@ -1929,7 +1802,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(
             csr_pem=csr_pem,
-            csr_pem_filepath=tmpfile_csr.name if tmpfile_csr else None,
             submitted_domain_names=domain_names,
         )
         if set(csr_domains) != set(domain_names):
@@ -2024,12 +1896,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
     except Exception as exc:
         raise
 
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
-
 
 def do__AcmeV2_AcmeOrder__finalize(
     ctx: "ApiContext",
@@ -2048,31 +1914,20 @@ def do__AcmeV2_AcmeOrder__finalize(
     if not dbAcmeOrder.is_can_acme_finalize:
         raise ValueError("Can not finalize this `dbAcmeOrder`")
 
-    tmpfiles = []
-    try:
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrder.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
-            )
-            tmpfiles.append(tmpfile_account)
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-            ctx,
-            authenticatedUser=authenticatedUser,
-            dbAcmeOrder=dbAcmeOrder,
-        )
+    dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
+        ctx,
+        authenticatedUser=authenticatedUser,
+        dbAcmeOrder=dbAcmeOrder,
+    )
 
-        return dbAcmeOrder
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return dbAcmeOrder
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2097,102 +1952,91 @@ def do__AcmeV2_AcmeOrder__process(
     if not dbAcmeOrder.is_can_acme_process:
         raise ValueError("Can not process this `dbAcmeOrder`")
 
-    tmpfiles = []
-    try:
-        if authenticatedUser is None:
-            dbAcmeAccount = dbAcmeOrder.acme_account
-            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccount
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrder.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+    if dbAcmeOrder.acme_status_order == "pending":
+        #
+        # what is the next validation?
+        auths_pending = dbAcmeOrder.acme_authorizations_pending
+        if auths_pending:
+            dbAcmeAuthorization = auths_pending.pop()
+            if not dbAcmeAuthorization.is_can_acme_server_process:
+                # ensures we have 'pending' status and http-01 challenge; or *discover* status
+                # acme order, with acme_account
+                raise ValueError("Can not trigger the `AcmeAuthorization`")
+
+            handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
+                ctx, authenticatedUser, dbAcmeOrder
             )
-            tmpfiles.append(tmpfile_account)
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
-
-        if dbAcmeOrder.acme_status_order == "pending":
-            #
-            # what is the next validation?
-            auths_pending = dbAcmeOrder.acme_authorizations_pending
-            if auths_pending:
-                dbAcmeAuthorization = auths_pending.pop()
-                if not dbAcmeAuthorization.is_can_acme_server_process:
-                    # ensures we have 'pending' status and http-01 challenge; or *discover* status
-                    # acme order, with acme_account
-                    raise ValueError("Can not trigger the `AcmeAuthorization`")
-
-                handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
-                    ctx, authenticatedUser, dbAcmeOrder
+            domains_challenged = dbAcmeOrder.domains_challenged
+            if (
+                dbAcmeAuthorization.acme_status_authorization_id
+                == model_utils.Acme_Status_Authorization.ID_DISCOVERED
+            ):
+                _result = authenticatedUser.acme_authorization_process_url(
+                    ctx,
+                    dbAcmeAuthorization.authorization_url,
+                    handle_authorization_payload=handle_authorization_payload,
+                    update_AcmeAuthorization_status=update_AcmeAuthorization_status,
+                    update_AcmeChallenge_status=update_AcmeChallenge_status,
+                    updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    acme_challenge_type_id__preferred=None,
+                    domains_challenged=domains_challenged,
+                    transaction_commit=True,
                 )
-
-                domains_challenged = dbAcmeOrder.domains_challenged
-                if (
-                    dbAcmeAuthorization.acme_status_authorization_id
-                    == model_utils.Acme_Status_Authorization.ID_DISCOVERED
-                ):
-                    _result = authenticatedUser.acme_authorization_process_url(
-                        ctx,
-                        dbAcmeAuthorization.authorization_url,
-                        handle_authorization_payload=handle_authorization_payload,
-                        update_AcmeAuthorization_status=update_AcmeAuthorization_status,
-                        update_AcmeChallenge_status=update_AcmeChallenge_status,
-                        updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
-                        dbAcmeAuthorization=dbAcmeAuthorization,
-                        acme_challenge_type_id__preferred=None,
-                        domains_challenged=domains_challenged,
-                        transaction_commit=True,
-                    )
-                else:
-                    _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
-                        dbAcmeAuthorization.domain.domain_name
-                    )
-                    if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
-                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
-                    elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
-                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
-                    else:
-                        raise ValueError("Can not process the selecte challenge type")
-                    if not dbAcmeChallenge:
-                        raise ValueError("Can not trigger this `AcmeChallenge`")
-
-                    _result = do__AcmeV2_AcmeChallenge__acme_server_trigger(
-                        ctx,
-                        dbAcmeChallenge=dbAcmeChallenge,
-                        authenticatedUser=authenticatedUser,
-                    )
             else:
-                # no authorizations?
-                # it's possible we did the last one?
-                dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync(
-                    ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser
+                _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
+                    dbAcmeAuthorization.domain.domain_name
                 )
-                if dbAcmeOrder.acme_status_order == "pending":
-                    raise errors.GarfieldMinusGarfield(
-                        "unsure how this happened; pending but no active authorizations"
-                    )
-                elif dbAcmeOrder.acme_status_order == "ready":
-                    dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-                        ctx,
-                        authenticatedUser=authenticatedUser,
-                        dbAcmeOrder=dbAcmeOrder,
-                    )
+                if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
+                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+                elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
                 else:
-                    raise errors.GarfieldMinusGarfield("unsure how this happened")
-        elif dbAcmeOrder.acme_status_order == "ready":
-            dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
-                ctx,
-                authenticatedUser=authenticatedUser,
-                dbAcmeOrder=dbAcmeOrder,
-            )
+                    raise ValueError("Can not process the selecte challenge type")
+                if not dbAcmeChallenge:
+                    raise ValueError("Can not trigger this `AcmeChallenge`")
+
+                _result = do__AcmeV2_AcmeChallenge__acme_server_trigger(
+                    ctx,
+                    dbAcmeChallenge=dbAcmeChallenge,
+                    authenticatedUser=authenticatedUser,
+                )
         else:
-            raise errors.GarfieldMinusGarfield("unsure how this happened")
+            # no authorizations?
+            # it's possible we did the last one?
+            dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync(
+                ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser
+            )
+            if dbAcmeOrder.acme_status_order == "pending":
+                raise errors.GarfieldMinusGarfield(
+                    "unsure how this happened; pending but no active authorizations"
+                )
+            elif dbAcmeOrder.acme_status_order == "ready":
+                dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
+                    ctx,
+                    authenticatedUser=authenticatedUser,
+                    dbAcmeOrder=dbAcmeOrder,
+                )
+            else:
+                raise errors.GarfieldMinusGarfield("unsure how this happened")
+    elif dbAcmeOrder.acme_status_order == "ready":
+        dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
+            ctx,
+            authenticatedUser=authenticatedUser,
+            dbAcmeOrder=dbAcmeOrder,
+        )
+    else:
+        raise errors.GarfieldMinusGarfield("unsure how this happened")
 
-        return dbAcmeOrder
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    return dbAcmeOrder
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2219,102 +2063,90 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         )
     assert dbAcmeOrder.certificate_url
 
-    tmpfiles = []
-    try:
-        # we need to use tmpfiles on the disk
-        dbAcmeAccount = dbAcmeOrder.acme_account
-        (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-            ctx, dbAcmeAccount
-        )
-        tmpfiles.append(tmpfile_account)
+    dbAcmeAccount = dbAcmeOrder.acme_account
+    authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        fullchain_pems = authenticatedUser.download_certificate(
-            dbAcmeOrder.certificate_url,
-            is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
-        )
+    fullchain_pems = authenticatedUser.download_certificate(
+        dbAcmeOrder.certificate_url,
+        is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
+    )
 
-        if not len(fullchain_pems):
-            raise ValueError("Could not load fullchains")
+    if not len(fullchain_pems):
+        raise ValueError("Could not load fullchains")
 
-        # we may have downloaded the alternate chains
-        # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
-        certificate_pem = None
-        dbCertificateCAChains_all = []
-        for fullchain_pem in fullchain_pems:
-            (
-                _certificate_pem,
-                _ca_chain_pem,
-            ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
-            if certificate_pem is None:
-                certificate_pem = _certificate_pem
-            else:
-                if certificate_pem != _certificate_pem:
-                    raise ValueError("certificate mismatch!")
-
-            # get/create the CertificateCA
-            (
-                dbCertificateCAChain,
-                is_created__CertificateCAChain,
-            ) = getcreate__CertificateCAChain__by_pem_text(
-                ctx,
-                _ca_chain_pem,
-                discovery_type="ACME Order",
-            )
-            if is_created__CertificateCAChain:
-                ctx.pyramid_transaction_commit()
-            dbCertificateCAChains_all.append(dbCertificateCAChain)
-
-        if certificate_pem is None:
-            raise ValueError("Could not derive certificate_pem")
-
+    # we may have downloaded the alternate chains
+    # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
+    certificate_pem = None
+    dbCertificateCAChains_all = []
+    for fullchain_pem in fullchain_pems:
         (
-            dbCertificateSigned,
-            _is_created__cert,
-        ) = getcreate__CertificateSigned(
+            _certificate_pem,
+            _ca_chain_pem,
+        ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+        if certificate_pem is None:
+            certificate_pem = _certificate_pem
+        else:
+            if certificate_pem != _certificate_pem:
+                raise ValueError("certificate mismatch!")
+
+        # get/create the CertificateCA
+        (
+            dbCertificateCAChain,
+            is_created__CertificateCAChain,
+        ) = getcreate__CertificateCAChain__by_pem_text(
             ctx,
-            cert_pem=certificate_pem,
-            cert_domains_expected=dbAcmeOrder.domains_as_list,
-            dbCertificateCAChain=dbCertificateCAChains_all[0],
-            dbPrivateKey=dbAcmeOrder.private_key,
-            certificate_type_id=dbAcmeOrder.certificate_type_id,
-            # optionals
-            dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
+            _ca_chain_pem,
             discovery_type="ACME Order",
         )
-        if dbAcmeOrder.certificate_signed:
-            if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:
-                raise ValueError("competing certificates for this AcmeOrder")
-        else:
-            # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
-            dbAcmeOrder.certificate_signed = dbCertificateSigned
+        if is_created__CertificateCAChain:
+            ctx.pyramid_transaction_commit()
+        dbCertificateCAChains_all.append(dbCertificateCAChain)
 
-        # note that we've completed this!
-        dbAcmeOrder.acme_order_processing_status_id = (
-            model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
-        )
+    if certificate_pem is None:
+        raise ValueError("Could not derive certificate_pem")
 
-        ctx.pyramid_transaction_commit()
+    (
+        dbCertificateSigned,
+        _is_created__cert,
+    ) = getcreate__CertificateSigned(
+        ctx,
+        cert_pem=certificate_pem,
+        cert_domains_expected=dbAcmeOrder.domains_as_list,
+        dbCertificateCAChain=dbCertificateCAChains_all[0],
+        dbPrivateKey=dbAcmeOrder.private_key,
+        certificate_type_id=dbAcmeOrder.certificate_type_id,
+        # optionals
+        dbAcmeOrder=dbAcmeOrder,
+        dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
+        discovery_type="ACME Order",
+    )
+    if dbAcmeOrder.certificate_signed:
+        if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:
+            raise ValueError("competing certificates for this AcmeOrder")
+    else:
+        # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
+        dbAcmeOrder.certificate_signed = dbCertificateSigned
 
-        # update the logger
-        authenticatedUser.acmeLogger.log_CertificateProcured(
-            "v2",
-            dbCertificateSigned=dbCertificateSigned,
-            dbCertificateRequest=dbAcmeOrder.certificate_request,
-            transaction_commit=True,
-        )
+    # note that we've completed this!
+    dbAcmeOrder.acme_order_processing_status_id = (
+        model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
+    )
 
-        # don't commit here, as that will trigger an error on object refresh
-        return dbAcmeOrder
+    ctx.pyramid_transaction_commit()
 
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
+    # update the logger
+    authenticatedUser.acmeLogger.log_CertificateProcured(
+        "v2",
+        dbCertificateSigned=dbCertificateSigned,
+        dbCertificateRequest=dbAcmeOrder.certificate_request,
+        transaction_commit=True,
+    )
+
+    # don't commit here, as that will trigger an error on object refresh
+    return dbAcmeOrder
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2548,14 +2380,10 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
 
     assert dbPrivateKey is not None
 
-    tmpfiles = []
     dbAcmeOrder: Optional["AcmeOrder"] = None
     dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
-        (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-            ctx, dbAcmeAccount
-        )
-        tmpfiles.append(tmpfile_account)
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
         # Calculate the replaces
         replaces: Optional[str] = None
@@ -2595,6 +2423,8 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
             acme_order_processing_status_id = (
                 model_utils.AcmeOrder_ProcessingStatus.from_string("created_acme")
             )
+
+            assert private_key_strategy_id__requested is not None
 
             # enroll the Acme Order into our database
             dbAcmeOrder = create__AcmeOrder(
@@ -2710,11 +2540,6 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
             # shut this down to deactivate the auths on our side
             if dbAcmeOrder:
                 dbAcmeOrder.is_processing = None
-
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            if tf is not None:
-                tf.close()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
