@@ -500,10 +500,10 @@ class FunctionalTests_AcmeAccount(AppTest):
         form = res.form
         _existing = form["account__private_key_cycle"].value
         _new = None
-        if _existing == "single_certificate":
+        if _existing == "single_use":
             _new = "account_daily"
         else:
-            _new = "single_certificate"
+            _new = "single_use"
         form["account__private_key_cycle"] = _new
         res2 = form.submit()
         assert res2.status_code == 303
@@ -585,13 +585,15 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert len(res2.json["form_errors"]) == 1
         assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        _existing = focus_item.private_key_cycle
+        # order_default_private_key_cycle_id
+
+        _existing = focus_item.order_default_private_key_cycle
         _new = None
-        if _existing == "single_certificate":
+        if _existing == "single_use":
             _new = "account_daily"
         else:
-            _new = "single_certificate"
-        form = {"account__private_key_cycle": _new}
+            _new = "single_use"
+        form = {"account__order_default_private_key_cycle": _new}
         res3 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
         )
@@ -604,11 +606,11 @@ class FunctionalTests_AcmeAccount(AppTest):
             == "There was an error with your form."
         )
         assert (
-            res3.json["form_errors"]["account__private_key_technology"]
+            res3.json["form_errors"]["account__order_default_private_key_technology"]
             == "Missing value"
         )
 
-        form["account__private_key_technology"] = "RSA"
+        form["account__order_default_private_key_technology"] = "RSA_2048"
         res4 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
         )
@@ -4550,7 +4552,6 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         form["account__contact"] = _test_data["acme-order/new/freeform#1"][
             "account__contact"
         ]
-        form["account__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle"].force_value("account_key_default")
         form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
@@ -5811,7 +5812,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         form = {
             "acme_server_id": 1,
             "account__contact": "AcmeAccount.new.json@example.com",
-            "account__private_key_cycle": "single_certificate",
+            "account__order_default_private_key_cycle": "single_use",
         }
         res3 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/new.json", form
@@ -5825,11 +5826,11 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
             == "There was an error with your form."
         )
         assert (
-            res3.json["form_errors"]["account__private_key_technology"]
+            res3.json["form_errors"]["account__order_default_private_key_technology"]
             == "Missing value"
         )
 
-        form["account__private_key_technology"] = "RSA"
+        form["account__private_key_technology"] = "RSA_2048"
         res4 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/new.json", form
         )
@@ -5854,8 +5855,8 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         form = {
             "acme_server_id": 1,
             "account__contact": generate_random_emailaddress(),
-            "account__private_key_cycle": "single_certificate",
-            "account__private_key_technology": "RSA",
+            "account__order_default_private_key_cycle": "single_use",
+            "account__order_default_private_key_technology": "RSA_2048",
         }
         res4 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/new.json", form
@@ -6164,7 +6165,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         form["account__contact"] = _test_data["acme-order/new/freeform#1"][
             "account__contact"
         ]
-        form["account__private_key_cycle"].force_value("account_daily")
+        form["account__order_default_private_key_cycle"].force_value("account_daily")
         form["private_key_cycle"].force_value("account_key_default")
         form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
@@ -6317,7 +6318,7 @@ class FunctionalTests_AcmeServer_AcmeAccount(AppTest):
         assert len(acme_authorization_ids_2) == 0
 
 
-class FunctionalTests_AcmeServer(AppTest):
+class FunctionalTests_AcmeServer_AcmeOrder(AppTest):
     @routes_tested(("admin:acme_order:new:freeform",))
     def _prep_AcmeOrder_html(self, processing_strategy=None):
         """
@@ -6346,7 +6347,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["account__contact"] = _test_data["acme-order/new/freeform#1"][
             "account__contact"
         ]
-        form["account__private_key_cycle"].force_value("account_daily")
+        form["account__order_default_private_key_cycle"].force_value("account_daily")
         form["private_key_cycle"].force_value("account_key_default")
         form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
@@ -6685,7 +6686,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["account__contact"] = _test_data["acme-order/new/freeform#2"][
             "account__contact"
         ]
-        form["account__private_key_cycle"].force_value("account_daily")
+        form["account__order_default_private_key_cycle"].force_value("account_daily")
         form["private_key_cycle"].force_value("account_key_default")
         form["private_key_option"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
@@ -6947,7 +6948,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["account__contact"] = _test_data["acme-order/new/freeform#1"][
             "account__contact"
         ]
-        form["account__private_key_cycle"] = "account_daily"
+        form["account__order_default_private_key_cycle"] = "account_daily"
         form["private_key_cycle"] = "account_key_default"
         form["private_key_option"] = "account_default"
         form["domain_names_http01"] = ",".join(
@@ -7205,7 +7206,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["processing_strategy"] = "process_multi"
         form["account_key_option"] = "account_key_reuse"
         form["account_key_reuse"] = account_key_reuse
-        form["account__private_key_cycle"] = "single_certificate"
+        form["private_key_cycle"] = "single_use"
         form["private_key_option"] = "private_key_reuse"
         form["private_key_reuse"] = private_key_reuse
         form["private_key_cycle"] = "account_key_default"

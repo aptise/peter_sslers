@@ -8,7 +8,9 @@ import subprocess
 import time
 import traceback
 from typing import Dict
+from typing import Literal
 from typing import Optional
+from typing import overload
 from typing import TYPE_CHECKING
 from typing import Union
 import unittest
@@ -479,7 +481,6 @@ TEST_FILES: Dict = {
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
                 ],
-                "private_key_cycle": "account_key_default",
                 "processing_strategy": "create_order",
             },
             "acme-order/new/freeform#2": {
@@ -493,7 +494,6 @@ TEST_FILES: Dict = {
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
                 ],
-                "private_key_cycle": "account_key_default",
                 "processing_strategy": "create_order",
             },
         },
@@ -502,31 +502,36 @@ TEST_FILES: Dict = {
         "1": {
             "key": "key_technology-rsa/acme_account_1.key",
             "provider": "pebble",
-            "private_key_cycle": "single_certificate",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.a@example.com",
         },
         "2": {
             "key": "key_technology-rsa/acme_account_2.key",
             "provider": "pebble",
-            "private_key_cycle": "single_certificate",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.b@example.com",
         },
         "3": {
             "key": "key_technology-rsa/acme_account_3.key",
             "provider": "pebble",
-            "private_key_cycle": "single_certificate",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.c@example.com",
         },
         "4": {
             "key": "key_technology-rsa/acme_account_4.key",
             "provider": "pebble",
-            "private_key_cycle": "single_certificate",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.d@example.com",
         },
         "5": {
             "key": "key_technology-rsa/acme_account_5.key",
             "provider": "pebble",
-            "private_key_cycle": "single_certificate",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.e@example.com",
         },
     },
@@ -867,10 +872,24 @@ class _Mixin_filedata(object):
             return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
+    @overload
+    def _filedata_testfile(  # noqa: E704
+        self,
+        filename: str,
+        is_binary: Literal[False] = False,
+    ) -> str: ...
+
+    @overload
+    def _filedata_testfile(  # noqa: E704
+        self,
+        filename: str,
+        is_binary: Literal[True] = True,
+    ) -> bytes: ...
+
     def _filedata_testfile(
         self,
-        filename,
-        is_binary=False,
+        filename: str,
+        is_binary: Literal[False, True] = False,
     ) -> Union[str, bytes]:
         _data_root = self._data_root
         if filename.startswith("letsencrypt-certs/"):
@@ -1124,7 +1143,7 @@ class AppTest(AppTestCore):
             cert_domains_expected=_cert_domains_expected,
             dbCertificateCAChain=_dbChain,
             dbPrivateKey=_dbPrivateKey,
-            certificate_type_id=model_utils.CertificateType.RAW_IMPORT,
+            certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
             # optionals
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -1158,24 +1177,30 @@ class AppTest(AppTestCore):
                 _dbAcmeAccount_1: model_objects.AcmeAccount
                 for _id in TEST_FILES["AcmeAccount"]:
                     _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
-                    _private_key_cycle = TEST_FILES["AcmeAccount"][_id][
-                        "private_key_cycle"
+                    _order_default_private_key_cycle = TEST_FILES["AcmeAccount"][_id][
+                        "order_default_private_key_cycle"
                     ]
+                    _order_default_private_key_technology = TEST_FILES["AcmeAccount"][
+                        _id
+                    ]["order_default_private_key_technology"]
                     key_pem = self._filedata_testfile(_key_filename)
                     (
                         _dbAcmeAccount,
                         _is_created,
                     ) = db.getcreate.getcreate__AcmeAccount(
                         self.ctx,
-                        key_pem,
-                        contact=TEST_FILES["AcmeAccount"][_id]["contact"],
-                        acme_server_id=1,  # acme_server_id(1) == pebble
                         acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                             "imported"
                         ),
+                        key_pem=key_pem,
+                        contact=TEST_FILES["AcmeAccount"][_id]["contact"],
+                        acme_server_id=1,  # acme_server_id(1) == pebble
                         event_type="AcmeAccount__insert",
-                        private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
-                            _private_key_cycle
+                        order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                            _order_default_private_key_cycle
+                        ),
+                        order_default_private_key_technology_id=model_utils.KeyTechnology.from_string(
+                            _order_default_private_key_technology
                         ),
                     )
                     # print(_dbAcmeAccount_1, _is_created)
@@ -1245,12 +1270,14 @@ class AppTest(AppTestCore):
                 # note: pre-populate CertificateSigned 1-5
                 # this should create `/certificate-signed/1`
                 #
+                _dbAcmeOrder = None
                 _dbCertificateSigned_1 = None
                 _dbCertificateSigned_2 = None
                 _dbCertificateSigned_3 = None
                 _dbCertificateSigned_4 = None
                 _dbCertificateSigned_5 = None
                 _dbPrivateKey_1 = None
+                _dbRenewalConfiguration = None
                 _dbUniqueFQDNSet_1: model_objects.UniqueFQDNSet
                 for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
                     # note: pre-populate PrivateKey
@@ -1314,7 +1341,7 @@ class AppTest(AppTestCore):
                         cert_pem,
                         cert_domains_expected=_cert_domains_expected,
                         dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
-                        certificate_type_id=model_utils.CertificateType.RAW_IMPORT,
+                        certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
                         dbPrivateKey=_dbPrivateKey,
                         # optionals
                         dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -1334,6 +1361,11 @@ class AppTest(AppTestCore):
                         _dbCertificateSigned_4 = _dbCertificateSigned
                     elif _id == "5":
                         _dbCertificateSigned_5 = _dbCertificateSigned
+
+                if _dbPrivateKey_1 is None:
+                    raise ValueError(
+                        "`_dbPrivateKey_1` should have been set on first iteration"
+                    )
 
                 # note: pre-populate Domain
                 # ensure we have domains?
@@ -1401,12 +1433,14 @@ class AppTest(AppTestCore):
                     model_utils.AcmeOrder_ProcessingStrategy.create_order
                 )
                 _private_key_cycle_id__renewal = (
-                    model_utils.PrivateKeyCycle.from_string("single_certificate")
+                    model_utils.PrivateKeyCycle.from_string("single_use")
                 )
                 _private_key_strategy_id__requested = (
                     model_utils.PrivateKeyStrategy.from_string("specified")
                 )
+                key_technology_id = model_utils.KeyTechnology.from_string("RSA_2048")
                 _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
+
                 _dbAcmeEventLog = model_objects.AcmeEventLog()
                 _dbAcmeEventLog.acme_event_id = _acme_event_id
                 _dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -1423,10 +1457,15 @@ class AppTest(AppTestCore):
                     _dbUniqueFQDNSet_1.domains_as_list
                 )
 
-                raise ValueError("TODO: dbRenewalConfiguration")
-                raise ValueError("TODO: private_key_cycle_id")
+                _dbRenewalConfiguration = db.create.create__RenewalConfiguration(
+                    self.ctx,
+                    dbAcmeAccount=_dbAcmeAccount_1,
+                    private_key_cycle_id=_private_key_cycle_id__renewal,
+                    key_technology_id=_dbPrivateKey_1.key_technology_id,
+                    domains_challenged=_domains_challenged,
+                )
 
-                _dbAcmeOrder_1 = db.create.create__AcmeOrder(
+                _dbAcmeOrder = db.create.create__AcmeOrder(
                     self.ctx,
                     acme_order_response=_acme_order_response,
                     acme_order_type_id=_acme_order_type_id,
@@ -1438,14 +1477,15 @@ class AppTest(AppTestCore):
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
                     dbEventLogged=_dbAcmeEventLog,
-                    dbRenewalConfiguration=dbRenewalConfiguration,
+                    dbRenewalConfiguration=_dbRenewalConfiguration,
                     dbPrivateKey=_dbPrivateKey_1,
-                    private_key_cycle_id=private_key_cycle_id,
+                    private_key_cycle_id=_private_key_cycle_id__renewal,
+                    private_key_strategy_id__requested=_private_key_strategy_id__requested,
                     transaction_commit=True,
                 )
 
                 # merge these items in
-                _dbAcmeOrder_1 = self.ctx.dbSession.merge(_dbAcmeOrder_1, load=False)
+                _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder, load=False)
 
                 _authorization_response = {
                     "status": "pending",
@@ -1464,28 +1504,28 @@ class AppTest(AppTestCore):
                 }
 
                 (
-                    _dbAcmeAuthorization_1,
+                    _dbAcmeAuthorization,
                     _is_created,
                 ) = db.getcreate.getcreate__AcmeAuthorization(
                     self.ctx,
                     authorization_url=_acme_order_response["authorizations"][0],
                     authorization_payload=_authorization_response,
                     authenticatedUser=_authenticatedUser,
-                    dbAcmeOrder=_dbAcmeOrder_1,
+                    dbAcmeOrder=_dbAcmeOrder,
                     transaction_commit=True,
                 )
 
                 # merge this back in
-                _dbAcmeAuthorization_1 = self.ctx.dbSession.merge(
-                    _dbAcmeAuthorization_1, load=False
+                _dbAcmeAuthorization = self.ctx.dbSession.merge(
+                    _dbAcmeAuthorization, load=False
                 )
 
                 # ensure we created a challenge
-                assert _dbAcmeAuthorization_1.acme_challenge_http_01 is not None
+                assert _dbAcmeAuthorization.acme_challenge_http_01 is not None
 
                 _db__AcmeChallengePoll = db.create.create__AcmeChallengePoll(
                     self.ctx,
-                    dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http_01,
+                    dbAcmeChallenge=_dbAcmeAuthorization.acme_challenge_http_01,
                     remote_ip_address="127.1.1.1",
                 )
                 _db__AcmeChallengeUnknownPoll = (

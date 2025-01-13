@@ -221,13 +221,15 @@ PeterSSLers handles several types of CertificateRequests:
 PeterSSLers allows you to control how PrivateKeys are cycled on renewals or new
 orders.
 
-* `single_certificate` - This is the stame strategy the official LetsEncrypt client,
+* `single_use` - This is the stame strategy the official LetsEncrypt client,
   Certbot, uses. A new PrivateKey is generated for each Certificate.
 
 PeterSSLers is designed to host large amounts of websites, and aggressively cache
 the Certificates and keys into OpenResty/Nginx and Redis. Being able to recycle
 keys will use less memory and support more sites. The following options are available:
 
+* `single_use__reuse_1_year` - The certificate will be re-used for 1 year from date of
+  creation, then be replaced by a new certificate with the same lifetime.
 * `account_daily` - The AcmeOrder/Certificate should use a PrivateKey generated for a
   unique ACME Account for the DAY the AcmeOrder is finalized.
 * `account_weekly` - The AcmeOrder/Certificate should use a PrivateKey generated for a

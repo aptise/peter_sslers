@@ -2,6 +2,15 @@ URGENT
 =====
 
 
+Drop or Re-align
+    is_auto_renew: bool = True,
+    is_save_alternate_chains: bool = True,
+    dbAcmeOrder_renewal_of: Optional["AcmeOrder"] = None,
+    dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+Drop
+    tempfiles
+    
+
 
 * Finish Migration to RenewalConfiguration
 	They work and are tested, but the UX could potentially be cleaner

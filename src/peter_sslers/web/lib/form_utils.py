@@ -579,10 +579,10 @@ def form_key_selection(
     if acmeAccountSelection.selection == "upload":
         assert acmeAccountSelection.upload_parsed
         key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
-        key_create_args["event_type"] = "AcmeAccount__insert"
         key_create_args["acme_account_key_source_id"] = (
             model_utils.AcmeAccountKeySource.from_string("imported")
         )
+        key_create_args["event_type"] = "AcmeAccount__insert"
         (
             dbAcmeAccount,
             _is_created,

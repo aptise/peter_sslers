@@ -13,6 +13,8 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.sql import expression
 import sqlalchemy.types
 
+from ..lib.errors import UnsupportedKeyTechnology
+
 
 if TYPE_CHECKING:
     from .objects.objects import Domain
@@ -1018,6 +1020,7 @@ class KeyTechnology(_mixin_mapping):
                 return cls.EC_P256
             elif cu_args[1][0] == "P-384":
                 return cls.EC_P384
+            raise UnsupportedKeyTechnology("EC Recognized; unknown: %s" % cu_args[1][0])
         elif cu_args[0] == "RSA":
             if cu_args[1][0] == 2048:
                 return cls.RSA_2048
@@ -1025,6 +1028,9 @@ class KeyTechnology(_mixin_mapping):
                 return cls.RSA_3072
             elif cu_args[1][0] == 4096:
                 return cls.RSA_4096
+            raise UnsupportedKeyTechnology(
+                "RSA Recognized; unknown: %s" % cu_args[1][0]
+            )
         raise ValueError("unknown cu_args: %s", cu_args)
 
 

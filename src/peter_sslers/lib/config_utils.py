@@ -15,7 +15,13 @@ import cert_utils
 
 
 class ApplicationSettings(dict):
-    def __init__(self, config_uri: str):
+    def __init__(
+        self,
+        config_uri: Optional[str] = None,
+    ):
+        """
+        `config_url` might be empty in a test harness
+        """
         for _opt in (
             "acme_dns_support",
             "admin_prefix",
@@ -46,18 +52,21 @@ class ApplicationSettings(dict):
             "redis.timeout.pkey"
             "redis.timeout.domain"
             "requests.disable_ssl_warning",
+            # config_uri data
+            "config_uri",
+            "config_uri-path",
+            "config_uri-contents",
         ):
             self[_opt] = None
-        if not config_uri:
-            raise ValueError("must submit a `config_url`")
 
-        self["config_uri"] = config_uri
-        _hash = hashlib.md5(config_uri.encode()).hexdigest()
-        self["config_uri-path"] = _hash
-        with open(config_uri, "rb") as f:
-            _contents = f.read()
-            _hash = hashlib.md5(_contents).hexdigest()
-            self["config_uri-contents"] = _hash
+        if config_uri:
+            self["config_uri"] = config_uri
+            _hash = hashlib.md5(config_uri.encode()).hexdigest()
+            self["config_uri-path"] = _hash
+            with open(config_uri, "rb") as f:
+                _contents = f.read()
+                _hash = hashlib.md5(_contents).hexdigest()
+                self["config_uri-contents"] = _hash
         mac = uuid.getnode()
         self["mac_uuid"] = str(uuid.UUID(int=mac))
 

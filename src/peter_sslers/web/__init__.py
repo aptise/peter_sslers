@@ -116,7 +116,8 @@ def main(global_config, **settings):
     config.add_renderer("json", json_renderer)
 
     # Parse settings
-    app_settings = ApplicationSettings(global_config["__file__"])
+    config_uri = global_config["__file__"] if global_config else None
+    app_settings = ApplicationSettings(config_uri)
     app_settings.from_settings_dict(settings)
     config.registry.settings["app_settings"] = app_settings
 

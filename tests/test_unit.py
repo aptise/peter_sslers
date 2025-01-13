@@ -44,6 +44,9 @@ class _MixIn_AcmeAccount(object):
             _kwargs["private_key_technology_id"] = (
                 model_utils.KeyTechnology.from_string(private_key_technology)
             )
+            _kwargs["order_default_private_key_technology_id"] = (
+                model_utils.KeyTechnology.from_string(private_key_technology)
+            )
         if not existing_account_key:
             key_pem = cert_utils.new_account_key()
         else:
@@ -54,13 +57,13 @@ class _MixIn_AcmeAccount(object):
 
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
-            key_pem=key_pem,
-            acme_server_id=1,  # pebble
             acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                 "imported"
             ),
+            key_pem=key_pem,
+            acme_server_id=1,  # pebble
             contact=contact,
-            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+            order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
             ),
             **_kwargs,
@@ -82,12 +85,12 @@ class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
     python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling
     """
 
-    def test__single_certificate(self):
+    def test__single_use(self):
         """
         auto-generate a new key for an account
         """
         dbAcmeAccount = self._makeOne_AcmeAccount(
-            private_key_cycle="single_certificate", existing_account_key=True
+            private_key_cycle="single_use", existing_account_key=True
         )
         self.assertEqual(
             dbAcmeAccount.private_key_technology,
@@ -108,10 +111,10 @@ class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
         self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
         self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_use")
         self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_use")
 
     def test__account_weekly(self, existing_account_key=True):
         """
@@ -197,7 +200,7 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
     python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology
     """
 
-    def _test__single_certificate(self, private_key_technology=None):
+    def _test__single_use(self, private_key_technology=None):
         """
         auto-generate a new key for an account
         """
@@ -205,10 +208,10 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
             private_key_technology or model_utils.KeyTechnology._DEFAULT_AcmeAccount
         )
         dbAcmeAccount = self._makeOne_AcmeAccount(
-            private_key_cycle="single_certificate",
+            private_key_cycle="single_use",
             private_key_technology=private_key_technology,
             existing_account_key=False,
-            contact="single_certificate-%s-%s@example.com"
+            contact="single_use-%s-%s@example.com"
             % (
                 private_key_technology,
                 self.__class__.__name__,
@@ -233,27 +236,27 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
         self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
         self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_use")
         self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_use")
 
     def test__key_technology__none(self):
         """
         python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology.test__key_technology__none
         """
-        self._test__single_certificate(
+        self._test__single_use(
             private_key_technology=None,
         )
 
     def test__key_technology__rsa(self):
-        self._test__single_certificate(
-            private_key_technology="RSA",
+        self._test__single_use(
+            private_key_technology="RSA_2048",
         )
 
     def test__key_technology__ec(self):
-        self._test__single_certificate(
-            private_key_technology="EC",
+        self._test__single_use(
+            private_key_technology="EC_P256",
         )
 
 
@@ -263,11 +266,11 @@ class _MockedFP(BytesIO):
     this does nothing but avoid errors!
     """
 
-    def read(self):
-        return ""
+    def read(self, size=-1) -> bytes:
+        return b""
 
-    def readline(self):
-        return ""
+    def readline(self, hint=None) -> bytes:
+        return b""
 
     def close(self):
         pass

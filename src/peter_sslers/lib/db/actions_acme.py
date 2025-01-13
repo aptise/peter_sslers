@@ -2612,11 +2612,11 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
                 dbRenewalConfiguration=dbRenewalConfiguration,
                 dbPrivateKey=dbPrivateKey,
                 private_key_cycle_id=private_key_cycle_id,
+                private_key_strategy_id__requested=private_key_strategy_id__requested,
                 transaction_commit=True,
                 # optionals
                 # dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 # dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
-                private_key_strategy_id__requested=private_key_strategy_id__requested,
                 private_key_deferred_id=private_key_deferred_id,
             )
 

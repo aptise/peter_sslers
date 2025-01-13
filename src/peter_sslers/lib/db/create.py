@@ -127,6 +127,7 @@ def create__AcmeOrder(
     dbRenewalConfiguration: "RenewalConfiguration",
     dbPrivateKey: "PrivateKey",  # could be a Placeholder(0) key
     private_key_cycle_id: int,
+    private_key_strategy_id__requested: int,
     transaction_commit: Literal[True],
     # optionals
     is_auto_renew: bool = True,
@@ -135,7 +136,6 @@ def create__AcmeOrder(
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     private_key_deferred_id: Optional[int] = None,
-    private_key_strategy_id__requested: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -994,7 +994,6 @@ def create__CertificateSigned(
         if dbCertificateRequest:
             dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
 
-        ctx.dbSession.connection().engine.echo = True
         ctx.dbSession.add(dbCertificateSigned)
         ctx.dbSession.flush(objects=[dbCertificateSigned])
 

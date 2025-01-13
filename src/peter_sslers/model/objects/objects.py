@@ -1502,19 +1502,25 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
     certificate_request_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("certificate_request.id", use_alter=True),
+        nullable=True,
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("certificate_signed.id", use_alter=True),
+        nullable=True,
     )
     private_key_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
+        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=False
     )
     private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
     renewal_configuration_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("renewal_configuration.id", use_alter=True),
+        nullable=True,
     )
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
@@ -2598,7 +2604,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     private_key_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
+        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=True
     )
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
@@ -2777,7 +2783,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     # this is the private key
     private_key_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
+        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=False
     )
 
     # tracking
@@ -3897,7 +3903,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )  # if this key replaces a compromised PrivateKey, note it.
     renewal_configuration_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("renewal_configuration.id", use_alter=True),
+        nullable=True,
     )  # the key might be scoped to a renewal_configuration, like single_use__reuse_1_year
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
@@ -4107,10 +4115,10 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     acme_order_id__latest_attempt: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
     acme_order_id__latest_success: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
 
     acme_account = sa_orm_relationship(

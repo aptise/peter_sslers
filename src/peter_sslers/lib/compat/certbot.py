@@ -122,10 +122,10 @@ def import_certbot(
 
             # load the data...
             key_create_args: Dict[str, Union[str, int]] = {}
-            key_create_args["event_type"] = "AcmeAccount__insert"
             key_create_args["acme_account_key_source_id"] = (
                 AcmeAccountKeySource.from_string("imported")
             )
+            key_create_args["event_type"] = "AcmeAccount__insert"
             # key_create_args["acme_server_id"] = do not supply if le_* kwargs are submitted
             with open("%s/meta.json" % _account_dir, "r") as fh:
                 key_create_args["le_meta_jsons"] = fh.read()

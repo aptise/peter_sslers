@@ -271,6 +271,10 @@ class InvalidRequest(_UrlSafeException):
     pass
 
 
+class UnsupportedKeyTechnology(Exception):
+    pass
+
+
 # class TransitionError(_UrlSafeException):
 #    pass
 
