@@ -241,7 +241,7 @@ keys will use less memory and support more sites. The following options are avai
 
 AcmeOrders and Renewals can also specify:
 
-* `account_key_default` - The AcmeOrder/Certificate will use whatever option is set as
+* `account_default` - The AcmeOrder/Certificate will use whatever option is set as
   the default strategy for the active AccountKey.
 
 Using the weekly or daily options will allow you to constantly cycle new keys into

@@ -354,7 +354,8 @@ class View_Focus(Handler):
                     "AcmeAccount": {
                         "id": dbAcmeOrder.acme_account_id,
                         "contact": dbAcmeOrder.acme_account.contact,
-                        "private_key_cycle": dbAcmeOrder.acme_account.private_key_cycle,
+                        "order_default_private_key_cycle": dbAcmeOrder.acme_account.order_default_private_key_cycle,
+                        "order_default_private_key_technology": dbAcmeOrder.acme_account.order_default_private_key_technology,
                     },
                     "AcmeServer": {
                         "id": dbAcmeOrder.acme_account.acme_server_id,
@@ -538,7 +539,13 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
+            # sync the authz
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+            # sync the AcmeOrder just to be safe
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
             )
@@ -607,10 +614,28 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
                 )
+            # deactivate the authz
             result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
             )
+            # then sync the authz
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+            # then sync the AcmeOrder
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+
+            # deactivate any authz potentials
+            lib_db.update.update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -840,8 +865,6 @@ class View_Focus_Manipulate(View_Focus):
                 "action": [
                     "invalid",
                     "deactivate",
-                    "renew_auto",
-                    "renew_manual",
                 ]
             },
         }
@@ -876,20 +899,6 @@ class View_Focus_Manipulate(View_Focus):
                 lib_db.update.update_AcmeOrder_deactivate(
                     self.request.api_context,
                     dbAcmeOrder,
-                )
-
-            elif action == "renew_auto":
-                event_status = lib_db.update.update_AcmeOrder_set_renew_auto(
-                    self.request.api_context,
-                    dbAcmeOrder,
-                )
-
-            elif action == "renew_manual":
-                event_status = (  # noqa: F841
-                    lib_db.update.update_AcmeOrder_set_renew_manual(
-                        self.request.api_context,
-                        dbAcmeOrder,
-                    )
                 )
 
             else:
@@ -939,7 +948,6 @@ class View_Focus_Manipulate(View_Focus):
         """
         Retry should create a new order
         """
-        raise ValueError("REPLACED BY /renewal-configuration/retry-order")
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":
@@ -1017,43 +1025,36 @@ class View_New(Handler):
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "processing_strategy": "How should the order be processed?",
                 "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                "acme_server_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                "account_key_file_le_reg": "LetsEncrypt Certbot file",
                 "private_key_option": "How is the PrivateKey being specified?",
-                "private_key_reuse": "pem_md5 of existing key",
                 "private_key_existing": "pem_md5 of existing key",
-                "private_key_file_pem": "pem to upload",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
-                ["account_key_file_pem", "acme_server_id"],
                 ["domain_names_http01", "domain_names_dns01"],
-                [
-                    "account_key_file_le_meta",
-                    "account_key_file_le_pkey",
-                    "account_key_file_le_reg",
-                ],
             ],
             "valid_options": {
-                "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccountKey_options_b,
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle": model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+                "account_key_option": Form_AcmeOrder_new_freeform.fields[
+                    "account_key_option"
+                ].list,
+                "processing_strategy": Form_AcmeOrder_new_freeform.fields[
+                    "processing_strategy"
+                ].list,
+                "private_key_option": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_option"
+                ].list,
+                "private_key_cycle": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_cycle"
+                ].list,
             },
             "requirements": [
-                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
+                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
                 "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
             ],
             "instructions": [
-                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/acme-order/new/freeform.json""",
+                """curl --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_option=private_key_existing' --form 'private_key_existing=ff00ff00ff00ff00' {ADMIN_PREFIX}/acme-order/new/freeform.json""",
             ],
         }
     )
@@ -1101,12 +1102,14 @@ class View_New(Handler):
                 dbAcmeDnsServer_GlobalDefault=self.dbAcmeDnsServer_GlobalDefault,
             )
 
+            is_duplicate_renewal = None
+
             try:
                 (acmeAccountSelection, privateKeySelection) = (
                     form_utils.form_key_selection(
                         self.request,
                         formStash,
-                        require_contact=None,
+                        require_contact=False,
                         support_upload_AcmeAccount=False,
                         support_upload_PrivateKey=False,
                     )
@@ -1117,13 +1120,7 @@ class View_New(Handler):
 
                 # we may be deferring a private key creation
                 # this is used so we don't have keys laying around for failed orders
-                private_key_deferred_id = None
-                if privateKeySelection.private_key_deferred:
-                    private_key_deferred_id = (
-                        model_utils.PrivateKeyDeferred.from_string(
-                            privateKeySelection.private_key_deferred
-                        )
-                    )
+                private_key_deferred_id = privateKeySelection.private_key_deferred_id
 
                 private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
                     formStash.results["private_key_cycle"]
@@ -1131,17 +1128,7 @@ class View_New(Handler):
 
                 # for the RenewalConfiguration we need the `key_technology`
                 # however this might come from a few places...
-                key_technology_id: int
-                if formStash.results["private_key_option"] == "account_default":
-                    key_technology_id = model_utils.KeyTechnology.ACCOUNT_DEFAULT
-                elif formStash.results["private_key_option"] == "private_key_generate":
-                    key_technology_id = model_utils.KeyTechnology.from_string(
-                        formStash.results["private_key_generate"]
-                    )
-                elif formStash.results["private_key_option"] == "private_key_existing":
-                    key_technology_id = privateKeySelection.PrivateKey.key_technology_id
-                else:
-                    raise ValueError("Unsupported `private_key_option")
+                key_technology_id = privateKeySelection.key_technology_id
 
                 #
                 # validate the domains
@@ -1193,13 +1180,19 @@ class View_New(Handler):
                 # * model_utils.RenewableConfig
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
-                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                    self.request.api_context,
-                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                    private_key_cycle_id=private_key_cycle_id,
-                    key_technology_id=key_technology_id,
-                    domains_challenged=domains_challenged,
-                )
+                try:
+                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                        self.request.api_context,
+                        dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                        private_key_cycle_id=private_key_cycle_id,
+                        key_technology_id=key_technology_id,
+                        domains_challenged=domains_challenged,
+                    )
+                    is_duplicate_renewal = False
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
 
                 # unused because we're not uploading accounts
                 # migrate_a = formStash.results["account__order_default_private_key_technology"]
@@ -1212,9 +1205,10 @@ class View_New(Handler):
                 # this may raise errors.AcmeDomainsBlocklisted
                 for challenge_, domains_ in domains_challenged.items():
                     if domains_:
-                        lib_db.validate.validate_domain_names(
-                            self.request.api_context, domains_
-                        )
+                        # # already validated in the first loop above
+                        # lib_db.validate.validate_domain_names(
+                        #    self.request.api_context, domains_
+                        # )
                         if challenge_ == "dns-01":
                             # check to ensure the domains are configured for dns-01
                             # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
@@ -1222,15 +1216,14 @@ class View_New(Handler):
                                 self.request.api_context, domains_
                             )
                 try:
-                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renewal_configuration(
+                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         self.request.api_context,
                         dbRenewalConfiguration=dbRenewalConfiguration,
                         processing_strategy=processing_strategy,
+                        acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
                         dbPrivateKey=privateKeySelection.PrivateKey,
                         private_key_deferred_id=private_key_deferred_id,
-                        acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                        private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
-                        private_key_cycle_id=private_key_cycle_id,
+                        # private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
                     )
 
                 except Exception as exc:
@@ -1261,30 +1254,42 @@ class View_New(Handler):
                     return {
                         "result": "success",
                         "AcmeOrder": dbAcmeOrder.as_json,
+                        "is_duplicate_renewal_configuration": is_duplicate_renewal,
                     }
 
                 return HTTPSeeOther(
-                    "%s/acme-order/%s"
+                    "%s/acme-order/%s%s"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         dbAcmeOrder.id,
+                        "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
 
             except (errors.ConflictingObject,) as exc:
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
 
             except (
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
 
             except errors.AcmeDuplicateChallenges as exc:
-                if self.request.wants_json:
-                    return {"result": "error", "error": str(exc)}
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
 
+            except errors.AcmeDnsServerError as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server."
+                )
+
+            except (errors.DuplicateRenewalConfiguration,) as exc:
+                message = (
+                    "This appears to be a duplicate of RenewalConfiguration: `%s`."
+                    % exc.args[0].id
+                )
+                formStash.fatal_form(message=message)
             except (
                 errors.AcmeError,
                 errors.InvalidRequest,

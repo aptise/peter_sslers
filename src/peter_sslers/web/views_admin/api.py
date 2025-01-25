@@ -189,10 +189,10 @@ class ViewAdminApi_Domain(Handler):
             "GET": None,
             "instructions": [
                 """POST domain_name for certificates.""",
-                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
+                """curl --form 'domain_name=example.com' --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_option=private_key_existing' --form 'private_key_existing=ff00ff00ff00ff00' {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
             ],
             "requirements": [
-                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
             ],
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
@@ -200,31 +200,32 @@ class ViewAdminApi_Domain(Handler):
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                "acme_server_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                "account_key_file_le_reg": "LetsEncrypt Certbot file",
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
-                "private_key_file_pem": "pem to upload",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
-                ["account_key_file_pem", "acme_server_id"],
-                [
-                    "account_key_file_le_meta",
-                    "account_key_file_le_pkey",
-                    "account_key_file_le_reg",
-                ],
+                ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
-                "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccountKey_options_a,
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
-                "private_key_option": model_utils.PrivateKey_options_a,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle": model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+                # Form_API_Domain_certificate_if_needed
+                "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
+                    "processing_strategy"
+                ].list,
+                "private_key_cycle": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_cycle"
+                ].list,
+                # _form_AcmeAccount_PrivateKey_core
+                "account_key_option": Form_API_Domain_certificate_if_needed.fields[
+                    "account_key_option"
+                ].list,
+                "private_key_option": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_option"
+                ].list,
+                "private_key_generate": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_generate"
+                ].list,
             },
         }
     )
@@ -260,24 +261,11 @@ class ViewAdminApi_Domain(Handler):
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
-                require_contact=None,
+                require_contact=False,
+                support_upload=False,
             )
             if TYPE_CHECKING:
                 assert acmeAccountSelection.upload_parsed is not None
-
-            if acmeAccountSelection.selection == "upload":
-                key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "AcmeAccount__insert"
-                key_create_args["acme_account_key_source_id"] = (
-                    model_utils.AcmeAccountKeySource.from_string("imported")
-                )
-                (
-                    dbAcmeAccount,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccount(
-                    self.request.api_context, **key_create_args
-                )
-                acmeAccountSelection.AcmeAccount = dbAcmeAccount
 
             privateKeySelection = form_utils.parse_PrivateKeySelection(
                 self.request,
@@ -287,52 +275,34 @@ class ViewAdminApi_Domain(Handler):
             if TYPE_CHECKING:
                 assert privateKeySelection.upload_parsed is not None
 
-            if privateKeySelection.selection == "upload":
-                key_create_args = privateKeySelection.upload_parsed.getcreate_args
-                key_create_args["discovery_type"] = "via certificate_if_needed"
-                key_create_args["event_type"] = "PrivateKey__insert"
-                key_create_args["private_key_source_id"] = (
-                    model_utils.PrivateKeySource.from_string("imported")
-                )
-                key_create_args["private_key_type_id"] = (
-                    model_utils.PrivateKeyType.from_string("standard")
-                )
-                # TODO: We should infer the above based on the private_key_cycle
-                (
-                    dbPrivateKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.request.api_context, **key_create_args
-                )
-                privateKeySelection.PrivateKey = dbPrivateKey
-
-            elif privateKeySelection.selection in (
-                "generate",
-                "account_default",
-            ):
-                pass
-
-            else:
+            if not privateKeySelection.PrivateKey:
                 formStash.fatal_field(
                     field="private_key_option",
-                    message="Could not load the default private key",
+                    message="Could not load/configure the private key",
                 )
 
+            # this is locked to `model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE`
+            #   which is only `process_single`
             processing_strategy = formStash.results["processing_strategy"]
+
+            # allow anything in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
             private_key_cycle = formStash.results["private_key_cycle"]
 
             if TYPE_CHECKING:
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
+                assert privateKeySelection.private_key_deferred is not None
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
-                domains_challenged=domains_challenged,
-                private_key_cycle=private_key_cycle,
-                private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
-                processing_strategy=processing_strategy,
                 dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                 dbPrivateKey=privateKeySelection.PrivateKey,
+                domains_challenged=domains_challenged,
+                private_key_cycle=private_key_cycle,
+                # private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
+                private_key_deferred=privateKeySelection.private_key_deferred,
+                key_technology=privateKeySelection.key_technology,
+                processing_strategy=processing_strategy,
             )
             return {"result": "success", "domain_results": api_results}
 
@@ -358,7 +328,7 @@ class ViewAdminApi_Domain(Handler):
         {
             "endpoint": "/api/domain/autocert.json",
             "section": "api",
-            "about": """Initiates a new certificate if needed. only accepts a domain name, uses system defaults""",
+            "about": """Initiates a new certificate if needed. only accepts a sigle domain name, uses system global defaults""",
             "POST": True,
             "GET": None,
             "system.requires": [
@@ -399,9 +369,24 @@ class ViewAdminApi_Domain(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this ensures only one domain
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
             )
+            # validate it, which may raise `peter_sslers.lib.errors.AcmeDomainsBlocklisted`
+            for challenge_, domains_ in domains_challenged.items():
+                if domains_:
+                    try:
+                        lib_db.validate.validate_domain_names(
+                            self.request.api_context, domains_
+                        )
+                    except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
+                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                        formStash.fatal_field(
+                            field="domain_name",
+                            message="This domain_name has been blocklisted",
+                        )
+
             domain_name = domains_challenged["http-01"][0]
 
             # does the domain exist?
@@ -413,46 +398,32 @@ class ViewAdminApi_Domain(Handler):
             if dbDomain:
                 log.debug("autocert - domain known")
                 if dbDomain.has_active_certificates:
-                    # exit early
+                    # exit early if we have active certs
                     rval = dbDomain.as_json_config(id_only=False)
                     rval["result"] = "success"
                     rval["notes"] = "existing certificate(s)"
                     log.debug("autocert - domain known - active certs")
                     return rval
-                else:
-                    # sync the database, just be sure
-                    operations_event = (
-                        lib_db.actions.operations_update_recents__domains(
-                            self.request.api_context,
-                            dbDomains=[
-                                dbDomain,
-                            ],
-                        )
-                    )
-                    # commit so we expire the traits
-                    self.request.api_context.pyramid_transaction_commit()
-                    # and check again...
-                    if dbDomain.has_active_certificates:
-                        # exit early
-                        rval = dbDomain.as_json_config(id_only=False)
-                        rval["result"] = "success"
-                        rval["notes"] = "existing certificate(s), updated recents"
-                        log.debug("autocert - domain known - active certs")
-                        return rval
+
+                # sync the database, then check again
+                operations_event = lib_db.actions.operations_update_recents__domains(
+                    self.request.api_context,
+                    dbDomains=[
+                        dbDomain,
+                    ],
+                )
+                # commit so we expire the traits
+                self.request.api_context.pyramid_transaction_commit()
+                # and check again...
+                if dbDomain.has_active_certificates:
+                    # exit early
+                    rval = dbDomain.as_json_config(id_only=False)
+                    rval["result"] = "success"
+                    rval["notes"] = "existing certificate(s), updated recents"
+                    log.debug("autocert - domain known - active certs")
+                    return rval
 
                 log.debug("autocert - domain known - attempt autocert")
-
-            # Step 1- is the domain_name blocklisted?
-            dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
-                self.request.api_context,
-                domain_name,
-            )
-            if dbDomainBlocklisted:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name",
-                    message="This domain_name has been blocklisted",
-                )
 
             if dbDomain:
                 dbDomainAutocert = lib_db.get.get__DomainAutocert__by_blockingDomainId(
@@ -473,6 +444,8 @@ class ViewAdminApi_Domain(Handler):
                 )
 
             dbAcmeAccount = self.dbAcmeAccount_GlobalDefault
+            assert dbAcmeAccount
+
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
                 self.request.api_context, 0
             )
@@ -485,31 +458,44 @@ class ViewAdminApi_Domain(Handler):
             try:
                 if not dbDomain:
                     # we need to start with a domain name in order to create the Autocert block
-                    dbDomain = lib_db.getcreate.getcreate__Domain__by_domainName(
-                        self.request.api_context,
-                        domain_name,
-                        discovery_type="autocert",
-                    )[
-                        0
-                    ]  # (dbDomain, _is_created)
+                    (dbDomain, _is_created) = (
+                        lib_db.getcreate.getcreate__Domain__by_domainName(
+                            self.request.api_context,
+                            domain_name,
+                            discovery_type="autocert",
+                        )
+                    )
                     self.request.api_context.pyramid_transaction_commit()
 
+                # TODO: tie in the cert we get?
                 dbDomainAutocert = lib_db.create.create__DomainAutocert(
                     self.request.api_context,
                     dbDomain=dbDomain,
                 )
+                is_duplicate_renewal: bool
+                try:
+                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                        self.request.api_context,
+                        dbAcmeAccount=dbAcmeAccount,
+                        private_key_cycle_id=model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT,
+                        key_technology_id=model_utils.KeyTechnology.ACCOUNT_DEFAULT,
+                        domains_challenged=domains_challenged,
+                    )
+                    is_duplicate_renewal = False  # noqa: F841
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True  # noqa: F841
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
 
-                raise ValueError("MIGRATE")
-
+                # run an order
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
-                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                    domains_challenged=domains_challenged,
-                    private_key_cycle="account_default",
-                    private_key_strategy__requested="deferred-associate",
+                    dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy="process_single",
-                    dbAcmeAccount=dbAcmeAccount,
+                    acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
+                    private_key_deferred_id=model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE,
+                    # private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
@@ -545,7 +531,7 @@ class ViewAdminApi_Domain(Handler):
                 rval = {
                     "result": "error",
                     "notes": "new AcmeOrder, invalid",
-                    "domain": None,
+                    "Domain": None,
                     "certificate_signed__latest_single": None,
                     "certificate_signed__latest_multi": None,
                     "AcmeOrder": {
@@ -583,7 +569,7 @@ class ViewAdminApi_Domain(Handler):
             return {
                 "result": "error",
                 "form_errors": formStash.errors,
-                "domain": None,
+                "Domain": None,
                 "certificate_signed__latest_single": None,
                 "certificate_signed__latest_multi": None,
             }

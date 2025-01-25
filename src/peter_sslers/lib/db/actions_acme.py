@@ -25,6 +25,7 @@ from .get import get__AcmeAuthorizationPotentials__by_DomainId__paginated
 from .get import get__AcmeAuthorizations__by_ids
 from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
+from .get import get__AcmeOrder__by_RenewalConfigurationId__active
 from .get import get__PrivateKey__by_id
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
@@ -36,6 +37,7 @@ from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
 from .update import update_AcmeAuthorization_from_payload
+from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
@@ -74,270 +76,6 @@ TEST_CERTIFICATE_CHAIN = True
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__AcmeAccount_AcmeV2_register(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> "AuthenticatedUser":
-    """
-    Registers an AcmeAccount against the LetsEncrypt ACME Directory
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    """
-    try:
-        if not dbAcmeAccount.contact:
-            raise ValueError("no `contact`")
-
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
-
-        # create account, update contact details (if any), and set
-        # the global key identifier
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        authenticatedUser = acme_v2.AuthenticatedUser(
-            acmeLogger=acmeLogger,
-            acmeAccount=dbAcmeAccount,
-            log__OperationsEvent=log__OperationsEvent,
-        )
-        authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
-
-        # update based off the ACME service
-        # the server's TOS should take precedence
-        acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"]
-        if acme_tos:
-            if acme_tos != dbAcmeAccount.terms_of_service:
-                dbAcmeAccount.terms_of_service = acme_tos
-        assert authenticatedUser._api_account_headers
-        acme_account_url = authenticatedUser._api_account_headers["Location"]
-        if acme_account_url != dbAcmeAccount.account_url:
-            # this is a bit tricky
-            # this library defends against most duplicate accounts by checking
-            # the account key for duplication
-            # there are two situations, however, in which a duplicate account
-            # can get past the defenses:
-            # 1) On testing scenarios, the pebble server may lose state and
-            #    reassign the account_url to a different account.
-            # 2) In production scenarios, an account key may be changed one or
-            #    more times, and this library is not notified of the changes
-            #    in those situations, it becomes difficult to reconcile what is
-            #    happening. nevertheless we should try
-            _dbAcmeAccountOther = get__AcmeAccount__by_account_url(
-                ctx, acme_account_url
-            )
-            if _dbAcmeAccountOther and (_dbAcmeAccountOther.id != dbAcmeAccount.id):
-                # another AcmeAccount is registered to this account_url
-                # update this after the get, so it's not flushed and it
-                # does not trigger an IntegrityError
-                dbAcmeAccount.account_url = acme_account_url
-
-                # args[0] MUST be the duplicate AcmeAccount
-                raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
-
-            # this is now safe to set
-            dbAcmeAccount.account_url = acme_account_url
-        return authenticatedUser
-    except Exception as exc:  # noqa: F841
-        raise
-
-
-def do__AcmeAccount_AcmeV2_authenticate(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    onlyReturnExisting: Optional[bool] = None,
-) -> "AuthenticatedUser":
-    """
-    Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
-    """
-    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
-
-    # unless `onlyReturnExisting` is True, this will
-    # create an account, update contact details (if any), and set
-    # the global key identifier
-    # result is either: `new-account` or `existing-account`
-    # failing will raise an exception
-    #
-    # if `onlyReturnExisting` is True,
-    authenticatedUser = acme_v2.AuthenticatedUser(
-        acmeLogger=acmeLogger,
-        acmeAccount=dbAcmeAccount,
-        log__OperationsEvent=log__OperationsEvent,
-    )
-    authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
-    return authenticatedUser
-
-
-def do__AcmeV2_AcmeAccount__deactivate(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    transaction_commit: Optional[bool] = None,
-) -> "AuthenticatedUser":
-    """
-    Deactivates an AcmeAccount against the LetsEncrypt ACME Directory
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param transaction_commit: (required) Boolean. User must indicate they know
-        this will commit, as 3rd party API can not be rolled back.
-    """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
-
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
-    )
-
-    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
-
-    # create account, update contact details (if any), and set
-    # the global key identifier
-    # result is either: `new-account` or `existing-account`
-    # failing will raise an exception
-    authenticatedUser = acme_v2.AuthenticatedUser(
-        acmeLogger=acmeLogger,
-        acmeAccount=dbAcmeAccount,
-        log__OperationsEvent=log__OperationsEvent,
-    )
-    authenticatedUser.authenticate(ctx)
-    is_did_deactivate = authenticatedUser.deactivate(ctx, transaction_commit=True)
-    if is_did_deactivate:
-        if transaction_commit:
-            ctx.pyramid_transaction_commit()
-    return authenticatedUser
-
-
-def do__AcmeV2_AcmeAccount__key_change(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    key_pem_new: Optional[str] = None,
-    transaction_commit: Optional[bool] = None,
-) -> Tuple["AuthenticatedUser", bool]:
-    """
-    Deactivates an AcmeAccount against the LetsEncrypt ACME Directory
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param key_pem_new: (optional) The new key PEM form, will be autogenerated if empty
-    :param transaction_commit: (required) Boolean. User must indicate they know
-        this will commit, as 3rd party API can not be rolled back.
-    """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
-
-    assert ctx.timestamp
-
-    dbOperationsEvent_AcmeAccount = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
-    )
-
-    if key_pem_new is not None:
-        key_pem_new = cert_utils.cleanup_pem_text(key_pem_new)
-        acme_account_key_source_id = model_utils.AcmeAccountKeySource.from_string(
-            "imported"
-        )
-    else:
-        # convert the args
-        cu_new_args = model_utils.KeyTechnology.to_new_args(
-            dbAcmeAccount.private_key_technology_id
-        )
-        key_pem_new = cert_utils.new_account_key(
-            key_technology_id=cu_new_args["key_technology_id"],
-            rsa_bits=cu_new_args.get("rsa_bits"),
-            ec_curve=cu_new_args.get("ec_curve"),
-        )
-        acme_account_key_source_id = model_utils.AcmeAccountKeySource.from_string(
-            "generated"
-        )
-    dbAcmeAccountKeyNew = get__AcmeAccountKey__by_key_pem(ctx, key_pem_new)
-    if dbAcmeAccountKeyNew:
-        raise errors.ConflictingObject(
-            (dbAcmeAccountKeyNew, "The new key already exists")
-        )
-
-    key_pem_new_md5 = cert_utils.utils.md5_text(key_pem_new)
-
-    # scoping
-    key_technology_id: Optional[int] = None
-    acckey__spki_sha256 = None
-
-    # validate + grab the technology
-    cu_key_technology = cert_utils.validate_key(
-        key_pem=key_pem_new,
-    )
-    if TYPE_CHECKING:
-        assert cu_key_technology is not None
-    key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
-        cu_key_technology
-    )
-    assert key_technology_id
-
-    # grab the spki
-    acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-        key_pem=key_pem_new,
-    )
-
-    dbOperationsEvent_AcmeAccountKey_new = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("AcmeAccountKey__create"),
-        dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
-    )
-    dbOperationsEvent_AcmeAccountKey_old = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("AcmeAccountKey__mark__inactive"),
-        dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
-    )
-
-    # grab the old
-    dbAcmeAccountKey_old = dbAcmeAccount.acme_account_key
-
-    # then, create the new AcmeAccountKey
-    # IMPORTANT: with `.is_active = None`
-    dbAcmeAccountKey_new = model_objects.AcmeAccountKey()
-    dbAcmeAccountKey_new.is_active = None
-    dbAcmeAccountKey_new.acme_account_id = dbAcmeAccount.id
-    dbAcmeAccountKey_new.timestamp_created = ctx.timestamp
-    dbAcmeAccountKey_new.key_pem = key_pem_new
-    dbAcmeAccountKey_new.key_pem_md5 = key_pem_new_md5
-    dbAcmeAccountKey_new.key_technology_id = key_technology_id
-    dbAcmeAccountKey_new.spki_sha256 = acckey__spki_sha256
-    dbAcmeAccountKey_new.acme_account_key_source_id = acme_account_key_source_id
-    dbAcmeAccountKey_new.operations_event_id__created = (
-        dbOperationsEvent_AcmeAccountKey_new.id
-    )
-    ctx.dbSession.add(dbAcmeAccountKey_new)
-    ctx.dbSession.flush(objects=[dbAcmeAccountKey_new])
-
-    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
-
-    # create account, update contact details (if any), and set
-    # the global key identifier
-    # result is either: `new-account` or `existing-account`
-    # failing will raise an exception
-    # this will also rotate our keys in the database
-    authenticatedUser = acme_v2.AuthenticatedUser(
-        acmeLogger=acmeLogger,
-        acmeAccount=dbAcmeAccount,
-        log__OperationsEvent=log__OperationsEvent,
-    )
-    authenticatedUser.authenticate(ctx)
-    is_did_keychange = authenticatedUser.key_change(
-        ctx, dbAcmeAccountKey_new, transaction_commit=True
-    )
-    if is_did_keychange:
-        if transaction_commit:
-            ctx.pyramid_transaction_commit()
-    else:
-        # perhaps we raise an error because thi failed?
-        pass
-
-    return authenticatedUser, is_did_keychange
-
-
 def new_Authenticated_user(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
@@ -355,7 +93,7 @@ def new_Authenticated_user(
     # the authenticatedUser will have a `logger.AcmeLogger` object as the
     # `.acmeLogger` attribtue
     # the `acmeLogger` may need to have the `AcmeOrder` registered
-    authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
+    authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
         ctx,
         dbAcmeAccount,
     )
@@ -409,7 +147,7 @@ def update_AcmeAuthorization_status(
         dbAcmeAuthorization.timestamp_updated = timestamp
         if (
             dbAcmeAuthorization.acme_status_authorization_id
-            == model_utils.Acme_Status_Authorization.from_string("deactivated")
+            == model_utils.Acme_Status_Authorization.DEACTIVATED
         ):
             dbAcmeAuthorization.timestamp_deactivated = timestamp
         ctx.pyramid_transaction_commit()
@@ -479,8 +217,11 @@ def updated_AcmeOrder_status(
     :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
         direct ACME Server sync?
     """
+    # print("$$" * 40)
+    # print("updated_AcmeOrder_status", dbAcmeOrder.id, acme_order_object.get("status"))
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
+
     _edited = False
     status_text = acme_order_object.get("status", "").lower()
     if dbAcmeOrder.acme_status_order != status_text:
@@ -489,14 +230,16 @@ def updated_AcmeOrder_status(
                 model_utils.Acme_Status_Order.from_string(status_text)
             )
         except KeyError:
-            dbAcmeOrder.acme_status_order_id = (
-                model_utils.Acme_Status_Order.from_string("*406*")
-            )
+            dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.X_406_X
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
         if dbAcmeOrder.is_processing is True:
             dbAcmeOrder.is_processing = None
             _edited = True
+
+        if update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, dbAcmeOrder):
+            _edited = True
+
     if acme_order_processing_status_id is not None:
         if (
             dbAcmeOrder.acme_order_processing_status_id
@@ -506,6 +249,8 @@ def updated_AcmeOrder_status(
                 acme_order_processing_status_id
             )
             _edited = True
+
+    # only drop this if we haven't above
     if is_processing_False:
         if dbAcmeOrder.is_processing is True:
             dbAcmeOrder.is_processing = False
@@ -548,6 +293,8 @@ def updated_AcmeOrder_ProcessingStatus(
     :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
         direct ACME Server sync?
     """
+    # print("$$" * 40)
+    # print("updated_AcmeOrder_ProcessingStatus", dbAcmeOrder.id, model_utils.Acme_Status_Order.as_string(acme_status_order_id))
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
     _edited = False
@@ -559,6 +306,9 @@ def updated_AcmeOrder_ProcessingStatus(
             if _status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
                 if dbAcmeOrder.is_processing is True:
                     dbAcmeOrder.is_processing = None
+                update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+                    ctx, dbAcmeOrder
+                )
     if acme_order_processing_status_id is not None:
         if (
             dbAcmeOrder.acme_order_processing_status_id
@@ -643,7 +393,7 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
         if not timestamp:
             timestamp = datetime.datetime.utcnow()
         _challenges_edited = False
-        _status_410 = model_utils.Acme_Status_Challenge.from_string("*410*")
+        _status_410 = model_utils.Acme_Status_Challenge.X_410_X
         for _chall_url in _challenges_expected.keys():
             if _chall_url not in authorization_response["challenges"]:
                 _chall = _challenges_expected[_chall_url]
@@ -826,6 +576,341 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     return _task_finalize_order
 
 
+def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    acme_authorization_ids: Iterable[int],
+    authenticatedUser: Optional["AuthenticatedUser"] = None,
+) -> Dict:
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object that owns the authorization ids
+    :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
+    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    """
+    # TODO: sync the AcmeAuthorization objects instead
+    # TODO: sync the AcmeOrder objects instead
+    if not dbAcmeAccount:
+        raise ValueError("Must submit `dbAcmeAccount`")
+
+    if authenticatedUser is None:
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    dbAcmeAuthorizations = get__AcmeAuthorizations__by_ids(
+        ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
+    )
+    results: Dict = {id_: False for id_ in acme_authorization_ids}
+    for dbAcmeAuthorization in dbAcmeAuthorizations:
+        if not dbAcmeAuthorization.is_acme_server_pending:
+            # no need to attempt turning off an auth that is not (potentially) pending
+            continue
+        try:
+            (
+                authorization_response,
+                dbAcmeEventLog_authorization_fetch,
+            ) = authenticatedUser.acme_authorization_deactivate(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
+            )
+            results[dbAcmeAuthorization.id] = True
+        except errors.AcmeServer404 as exc:
+            results[dbAcmeAuthorization.id] = None
+            authorization_response = acme_v2.new_response_404()
+        update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeAuthorization,
+            authorization_response["status"],
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
+
+        if authorization_response["status"] == "deactivated":
+            # disable the missing `AcmeChallenges` (should be all!)
+            disable_missing_AcmeAuthorization_AcmeChallenges(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response,
+                transaction_commit=True,
+            )
+
+            """
+            RFC:
+            The order also moves to the "invalid"
+            state if it expires or one of its authorizations enters a final state
+            other than "valid" ("expired", "revoked", or "deactivated").
+            """
+            for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+                updated_AcmeOrder_status(
+                    ctx,
+                    _to_acme_order.acme_order,
+                    acme_v2.new_response_invalid(),
+                    timestamp=ctx.timestamp,
+                    transaction_commit=True,
+                )
+    return results
+
+
+def do__AcmeV2_AcmeAccount__authenticate(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    onlyReturnExisting: Optional[bool] = None,
+) -> "AuthenticatedUser":
+    """
+    Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
+    """
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+
+    # unless `onlyReturnExisting` is True, this will
+    # create an account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    #
+    # if `onlyReturnExisting` is True,
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
+    return authenticatedUser
+
+
+def do__AcmeV2_AcmeAccount__deactivate(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    transaction_commit: Optional[bool] = None,
+) -> "AuthenticatedUser":
+    """
+    Deactivates an AcmeAccount against the LetsEncrypt ACME Directory
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param transaction_commit: (required) Boolean. User must indicate they know
+        this will commit, as 3rd party API can not be rolled back.
+    """
+    if transaction_commit is not True:
+        raise ValueError("must invoke this knowing it will commit")
+
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeAccount__deactivate"),
+    )
+
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+
+    # create account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx)
+    is_did_deactivate = authenticatedUser.deactivate(ctx, transaction_commit=True)
+    if is_did_deactivate:
+        if transaction_commit:
+            ctx.pyramid_transaction_commit()
+    return authenticatedUser
+
+
+def do__AcmeV2_AcmeAccount__key_change(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    key_pem_new: Optional[str] = None,
+    transaction_commit: Optional[bool] = None,
+) -> Tuple["AuthenticatedUser", bool]:
+    """
+    Deactivates an AcmeAccount against the LetsEncrypt ACME Directory
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param key_pem_new: (optional) The new key PEM form, will be autogenerated if empty
+    :param transaction_commit: (required) Boolean. User must indicate they know
+        this will commit, as 3rd party API can not be rolled back.
+    """
+    if transaction_commit is not True:
+        raise ValueError("must invoke this knowing it will commit")
+
+    assert ctx.timestamp
+
+    dbOperationsEvent_AcmeAccount = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeAccount__key_change"),
+    )
+
+    if key_pem_new is not None:
+        key_pem_new = cert_utils.cleanup_pem_text(key_pem_new)
+        acme_account_key_source_id = model_utils.AcmeAccountKeySource.IMPORTED
+    else:
+        # convert the args
+        cu_new_args = model_utils.KeyTechnology.to_new_args(
+            dbAcmeAccount.private_key_technology_id
+        )
+        key_pem_new = cert_utils.new_account_key(
+            key_technology_id=cu_new_args["key_technology_id"],
+            rsa_bits=cu_new_args.get("rsa_bits"),
+            ec_curve=cu_new_args.get("ec_curve"),
+        )
+        acme_account_key_source_id = model_utils.AcmeAccountKeySource.GENERATED
+    dbAcmeAccountKeyNew = get__AcmeAccountKey__by_key_pem(ctx, key_pem_new)
+    if dbAcmeAccountKeyNew:
+        raise errors.ConflictingObject(
+            (dbAcmeAccountKeyNew, "The new key already exists")
+        )
+
+    key_pem_new_md5 = cert_utils.utils.md5_text(key_pem_new)
+
+    # scoping
+    key_technology_id: Optional[int] = None
+    acckey__spki_sha256 = None
+
+    # validate + grab the technology
+    cu_key_technology = cert_utils.validate_key(
+        key_pem=key_pem_new,
+    )
+    if TYPE_CHECKING:
+        assert cu_key_technology is not None
+    key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+        cu_key_technology
+    )
+    assert key_technology_id
+
+    # grab the spki
+    acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+        key_pem=key_pem_new,
+    )
+
+    dbOperationsEvent_AcmeAccountKey_new = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeAccountKey__create"),
+        dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
+    )
+    dbOperationsEvent_AcmeAccountKey_old = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeAccountKey__mark__inactive"),
+        dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
+    )
+
+    # grab the old
+    dbAcmeAccountKey_old = dbAcmeAccount.acme_account_key
+
+    # then, create the new AcmeAccountKey
+    # IMPORTANT: with `.is_active = None`
+    dbAcmeAccountKey_new = model_objects.AcmeAccountKey()
+    dbAcmeAccountKey_new.is_active = None
+    dbAcmeAccountKey_new.acme_account_id = dbAcmeAccount.id
+    dbAcmeAccountKey_new.timestamp_created = ctx.timestamp
+    dbAcmeAccountKey_new.key_pem = key_pem_new
+    dbAcmeAccountKey_new.key_pem_md5 = key_pem_new_md5
+    dbAcmeAccountKey_new.key_technology_id = key_technology_id
+    dbAcmeAccountKey_new.spki_sha256 = acckey__spki_sha256
+    dbAcmeAccountKey_new.acme_account_key_source_id = acme_account_key_source_id
+    dbAcmeAccountKey_new.operations_event_id__created = (
+        dbOperationsEvent_AcmeAccountKey_new.id
+    )
+    ctx.dbSession.add(dbAcmeAccountKey_new)
+    ctx.dbSession.flush(objects=[dbAcmeAccountKey_new])
+
+    acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+
+    # create account, update contact details (if any), and set
+    # the global key identifier
+    # result is either: `new-account` or `existing-account`
+    # failing will raise an exception
+    # this will also rotate our keys in the database
+    authenticatedUser = acme_v2.AuthenticatedUser(
+        acmeLogger=acmeLogger,
+        acmeAccount=dbAcmeAccount,
+        log__OperationsEvent=log__OperationsEvent,
+    )
+    authenticatedUser.authenticate(ctx)
+    is_did_keychange = authenticatedUser.key_change(
+        ctx, dbAcmeAccountKey_new, transaction_commit=True
+    )
+    if is_did_keychange:
+        if transaction_commit:
+            ctx.pyramid_transaction_commit()
+    else:
+        # perhaps we raise an error because thi failed?
+        pass
+
+    return authenticatedUser, is_did_keychange
+
+
+def do__AcmeV2_AcmeAccount_register(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> "AuthenticatedUser":
+    """
+    Registers an AcmeAccount against the LetsEncrypt ACME Directory
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    """
+    try:
+        if not dbAcmeAccount.contact:
+            raise ValueError("no `contact`")
+
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+
+        # create account, update contact details (if any), and set
+        # the global key identifier
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        authenticatedUser = acme_v2.AuthenticatedUser(
+            acmeLogger=acmeLogger,
+            acmeAccount=dbAcmeAccount,
+            log__OperationsEvent=log__OperationsEvent,
+        )
+        authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
+
+        # update based off the ACME service
+        # the server's TOS should take precedence
+        acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"]
+        if acme_tos:
+            if acme_tos != dbAcmeAccount.terms_of_service:
+                dbAcmeAccount.terms_of_service = acme_tos
+        assert authenticatedUser._api_account_headers
+        acme_account_url = authenticatedUser._api_account_headers["Location"]
+        if acme_account_url != dbAcmeAccount.account_url:
+            # this is a bit tricky
+            # this library defends against most duplicate accounts by checking
+            # the account key for duplication
+            # there are two situations, however, in which a duplicate account
+            # can get past the defenses:
+            # 1) On testing scenarios, the pebble server may lose state and
+            #    reassign the account_url to a different account.
+            # 2) In production scenarios, an account key may be changed one or
+            #    more times, and this library is not notified of the changes
+            #    in those situations, it becomes difficult to reconcile what is
+            #    happening. nevertheless we should try
+            _dbAcmeAccountOther = get__AcmeAccount__by_account_url(
+                ctx, acme_account_url
+            )
+            if _dbAcmeAccountOther and (_dbAcmeAccountOther.id != dbAcmeAccount.id):
+                # another AcmeAccount is registered to this account_url
+                # update this after the get, so it's not flushed and it
+                # does not trigger an IntegrityError
+                dbAcmeAccount.account_url = acme_account_url
+
+                # args[0] MUST be the duplicate AcmeAccount
+                raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
+
+            # this is now safe to set
+            dbAcmeAccount.account_url = acme_account_url
+        return authenticatedUser
+    except Exception as exc:  # noqa: F841
+        raise
+
+
 def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     ctx: "ApiContext",
     dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
@@ -904,9 +989,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 ctx,
                 _to_acme_order.acme_order,
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
-                acme_status_order_id=model_utils.Acme_Status_Order.from_string(
-                    "invalid"
-                ),
+                acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
@@ -1007,6 +1090,103 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             transaction_commit=True,
         )
         return False
+
+
+def do__AcmeV2_AcmeChallenge__acme_server_sync(
+    ctx: "ApiContext",
+    dbAcmeChallenge: Optional["AcmeChallenge"] = None,
+    authenticatedUser: Optional["AuthenticatedUser"] = None,
+) -> bool:
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to refresh against the server
+    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    """
+    # TODO: sync the Authorization objects instead
+    # TODO: sync the AcmeOrder objects instead
+
+    if not dbAcmeChallenge:
+        raise ValueError("Must submit `dbAcmeChallenge`")
+    if not dbAcmeChallenge.is_can_acme_server_sync:
+        raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
+
+    # this is used a bit
+    dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+
+    # the authorization could be on multiple AcmeOrders
+    # see :method:`AcmeAuthorization.to_acme_orders`
+    # however the first order is cached onto the object so we can access the account
+    # the account-key will be the same across linked orders/auths
+    dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
+    if authenticatedUser is None:
+        dbAcmeAccount = dbAcmeOrderCreated.acme_account
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+    # register the AcmeOrder into the logging utility
+    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
+
+    try:
+        (
+            challenge_response,
+            dbAcmeEventLog_challenge_fetch,
+        ) = authenticatedUser.acme_challenge_load(
+            ctx,
+            dbAcmeChallenge=dbAcmeChallenge,
+            transaction_commit=True,
+        )
+
+        # this only logs
+        _audit_AcmeChallenge_against_server_response(
+            ctx, dbAcmeChallenge, challenge_response
+        )
+
+        # update the AcmeChallenge.status if it's not the same on the database
+        _server_status = challenge_response["status"]
+        update_AcmeChallenge_status(
+            ctx,
+            dbAcmeChallenge,
+            _server_status,
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
+
+        if _server_status == "invalid":
+            if dbAcmeChallenge.acme_authorization:
+                # the RFC requires an AcmeAuthorization transitions to "invalid"
+                # if an AcmeChallenge transitions to "invalid"
+                if (
+                    dbAcmeChallenge.acme_authorization.acme_status_authorization
+                    != "invalid"
+                ):
+                    update_AcmeAuthorization_status(
+                        ctx,
+                        dbAcmeChallenge.acme_authorization,
+                        "invalid",
+                        timestamp=ctx.timestamp,
+                        transaction_commit=True,
+                        is_via_acme_sync=False,
+                    )
+                # the RFC requires an AcmeOrder transitions to "invalid"
+                # if an AcmeAuthorization transitions to "invalid"
+                for _to_acme_order in dbAcmeChallenge.acme_authorization.to_acme_orders:
+                    updated_AcmeOrder_ProcessingStatus(
+                        ctx,
+                        _to_acme_order.acme_order,
+                        acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
+                        acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
+                        timestamp=ctx.timestamp,
+                        transaction_commit=True,
+                    )
+    except errors.AcmeServer404 as exc:
+        update_AcmeChallenge_status(
+            ctx,
+            dbAcmeChallenge,
+            "*404*",
+            timestamp=ctx.timestamp,
+            transaction_commit=True,
+        )
+
+    return True
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_trigger(
@@ -1136,112 +1316,11 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 updated_AcmeOrder_ProcessingStatus(
                     ctx,
                     _to_acme_order.acme_order,
-                    acme_status_order_id=model_utils.Acme_Status_Order.from_string(
-                        "invalid"
-                    ),
+                    acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
                     acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
                     timestamp=ctx.timestamp,
                     transaction_commit=True,
                 )
-
-    return True
-
-
-def do__AcmeV2_AcmeChallenge__acme_server_sync(
-    ctx: "ApiContext",
-    dbAcmeChallenge: Optional["AcmeChallenge"] = None,
-    authenticatedUser: Optional["AuthenticatedUser"] = None,
-) -> bool:
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to refresh against the server
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
-    """
-    # TODO: sync the Authorization objects instead
-    # TODO: sync the AcmeOrder objects instead
-
-    if not dbAcmeChallenge:
-        raise ValueError("Must submit `dbAcmeChallenge`")
-    if not dbAcmeChallenge.is_can_acme_server_sync:
-        raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
-
-    # this is used a bit
-    dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-
-    # the authorization could be on multiple AcmeOrders
-    # see :method:`AcmeAuthorization.to_acme_orders`
-    # however the first order is cached onto the object so we can access the account
-    # the account-key will be the same across linked orders/auths
-    dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
-    if authenticatedUser is None:
-        dbAcmeAccount = dbAcmeOrderCreated.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
-
-    # register the AcmeOrder into the logging utility
-    authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
-
-    try:
-        (
-            challenge_response,
-            dbAcmeEventLog_challenge_fetch,
-        ) = authenticatedUser.acme_challenge_load(
-            ctx,
-            dbAcmeChallenge=dbAcmeChallenge,
-            transaction_commit=True,
-        )
-
-        # this only logs
-        _audit_AcmeChallenge_against_server_response(
-            ctx, dbAcmeChallenge, challenge_response
-        )
-
-        # update the AcmeChallenge.status if it's not the same on the database
-        _server_status = challenge_response["status"]
-        update_AcmeChallenge_status(
-            ctx,
-            dbAcmeChallenge,
-            _server_status,
-            timestamp=ctx.timestamp,
-            transaction_commit=True,
-        )
-
-        if _server_status == "invalid":
-            if dbAcmeChallenge.acme_authorization:
-                # the RFC requires an AcmeAuthorization transitions to "invalid"
-                # if an AcmeChallenge transitions to "invalid"
-                if (
-                    dbAcmeChallenge.acme_authorization.acme_status_authorization
-                    != "invalid"
-                ):
-                    update_AcmeAuthorization_status(
-                        ctx,
-                        dbAcmeChallenge.acme_authorization,
-                        "invalid",
-                        timestamp=ctx.timestamp,
-                        transaction_commit=True,
-                        is_via_acme_sync=False,
-                    )
-                # the RFC requires an AcmeOrder transitions to "invalid"
-                # if an AcmeAuthorization transitions to "invalid"
-                for _to_acme_order in dbAcmeChallenge.acme_authorization.to_acme_orders:
-                    updated_AcmeOrder_ProcessingStatus(
-                        ctx,
-                        _to_acme_order.acme_order,
-                        acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
-                        acme_status_order_id=model_utils.Acme_Status_Order.from_string(
-                            "invalid"
-                        ),
-                        timestamp=ctx.timestamp,
-                        transaction_commit=True,
-                    )
-    except errors.AcmeServer404 as exc:
-        update_AcmeChallenge_status(
-            ctx,
-            dbAcmeChallenge,
-            "*404*",
-            timestamp=ctx.timestamp,
-            transaction_commit=True,
-        )
 
     return True
 
@@ -1402,81 +1481,6 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     return dbAcmeOrder
 
 
-def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    acme_authorization_ids: Iterable[int],
-    authenticatedUser: Optional["AuthenticatedUser"] = None,
-) -> Dict:
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object that owns the authorization ids
-    :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
-    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
-    """
-    # TODO: sync the AcmeAuthorization objects instead
-    # TODO: sync the AcmeOrder objects instead
-    if not dbAcmeAccount:
-        raise ValueError("Must submit `dbAcmeAccount`")
-
-    if authenticatedUser is None:
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
-
-    dbAcmeAuthorizations = get__AcmeAuthorizations__by_ids(
-        ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
-    )
-    results: Dict = {id_: False for id_ in acme_authorization_ids}
-    for dbAcmeAuthorization in dbAcmeAuthorizations:
-        if not dbAcmeAuthorization.is_acme_server_pending:
-            # no need to attempt turning off an auth that is not (potentially) pending
-            continue
-        try:
-            (
-                authorization_response,
-                dbAcmeEventLog_authorization_fetch,
-            ) = authenticatedUser.acme_authorization_deactivate(
-                ctx,
-                dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
-            )
-            results[dbAcmeAuthorization.id] = True
-        except errors.AcmeServer404 as exc:
-            results[dbAcmeAuthorization.id] = None
-            authorization_response = acme_v2.new_response_404()
-        update_AcmeAuthorization_status(
-            ctx,
-            dbAcmeAuthorization,
-            authorization_response["status"],
-            timestamp=ctx.timestamp,
-            transaction_commit=True,
-        )
-
-        if authorization_response["status"] == "deactivated":
-            # disable the missing `AcmeChallenges` (should be all!)
-            disable_missing_AcmeAuthorization_AcmeChallenges(
-                ctx,
-                dbAcmeAuthorization,
-                authorization_response,
-                transaction_commit=True,
-            )
-
-            """
-            RFC:
-            The order also moves to the "invalid"
-            state if it expires or one of its authorizations enters a final state
-            other than "valid" ("expired", "revoked", or "deactivated").
-            """
-            for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
-                updated_AcmeOrder_status(
-                    ctx,
-                    _to_acme_order.acme_order,
-                    acme_v2.new_response_invalid(),
-                    timestamp=ctx.timestamp,
-                    transaction_commit=True,
-                )
-    return results
-
-
 def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
@@ -1522,17 +1526,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             is_via_acme_sync=True,
         )
 
-    raise ValueError("DEBUGGING")
-    print("ALL")
-    import pdb
-
-    pdb.set_trace()
-
     for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
-        print("One")
-
-        pdb.set_trace()
-
         try:
             (
                 authorization_response,
@@ -1566,6 +1560,8 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 transaction_commit=True,
                 is_via_acme_sync=True,
             )
+
+    update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, dbAcmeOrder)
 
     # update the AcmeOrder if it's not the same in the database
     if not is_order_404:
@@ -1661,29 +1657,59 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     # Multiple logic lines for `dbAcmeOrder.private_key_strategy__requested`
 
                     private_key_deferred: str = dbAcmeOrder.private_key_deferred
-                    if private_key_deferred == "account_default":
-                        key_technology_id = (
-                            dbAcmeOrder.acme_account.order_default_private_key_technology_id
-                        )
 
                     if (
                         dbAcmeOrder.private_key_strategy__requested
                         == "deferred-generate"
                     ):
                         # what are we generating?
-
-                        key_technology_id = (
-                            model_utils.PrivateKeyDeferred.str_to_KeyTechnology_id(
-                                private_key_deferred
+                        if private_key_deferred == "account_default":
+                            key_technology_id = (
+                                dbAcmeOrder.acme_account.order_default_private_key_technology_id
                             )
-                        )
+
+                        # RESPONSIVE
+                        elif private_key_deferred == "account_associate":
+                            # private_key_cycle = single_use
+
+                            key_technology_id = (
+                                dbAcmeOrder.acme_account.order_default_private_key_technology_id
+                            )
+                            """
+AcmeAccount
+ 'order_default_private_key_cycle': 'single_use',
+ 'order_default_private_key_technology': 'RSA_2048',
+
+RenewalConfiguration:
+  'key_technology': 'account_default',
+  'key_technology__effective': 'RSA_2048',
+  'private_key_cycle__effective': 'single_use',
+  'private_key_cycle': 'account_default',
+
+AcmeOrder
+ 'private_key_cycle': 'single_use',
+ 'private_key_strategy__final': '',
+ 'private_key_strategy__requested': 'deferred-generate',
+ """
+
+                        # what block is this?
+                        else:
+                            try:
+                                key_technology_id = model_utils.PrivateKeyDeferred.str_to_KeyTechnology_id(
+                                    private_key_deferred
+                                )
+                            except Exception:
+                                import pprint
+
+                                pprint.pprint(dbAcmeOrder.as_json)
+                                pprint.pprint(dbAcmeOrder.acme_account.as_json)
+                                pprint.pprint(locals())
+                                raise
 
                         private_key_strategy__final = "deferred-generate"
                         dbPrivateKey_new = create__PrivateKey(
                             ctx,
-                            private_key_source_id=model_utils.PrivateKeySource.from_string(
-                                "generated"
-                            ),
+                            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
                             private_key_type_id=model_utils.PrivateKeyType.from_string(
                                 private_key_type
                             ),
@@ -1697,6 +1723,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     ):
                         # all these items should share the same final strategy
                         private_key_strategy__final = "deferred-associate"
+                        # DEFINING
                         private_key_deferred_id = (
                             model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
                         )
@@ -1704,7 +1731,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
                     else:
                         raise ValueError(
-                            "Invalid `private_key_strategy__requested` for placeholder AcmeAccount"
+                            "Invalid `private_key_strategy__requested` for placeholder AcmeAccount",
+                            dbAcmeOrder.private_key_strategy__requested,
                         )
 
                 else:
@@ -1776,6 +1804,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         domain_names = dbAcmeOrder.domains_as_list
 
         if dbAcmeOrder.certificate_request:
+            raise ValueError("LEGACY - dbAcmeOrder.certificate_request; impossible")
             dbCertificateRequest = dbAcmeOrder.certificate_request
             csr_pem = dbCertificateRequest.csr_pem
         else:
@@ -1832,6 +1861,12 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         if not len(fullchain_pems):
             raise ValueError("Could not load fullchains")
+
+        # deactivate any authz potentials
+        update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+            ctx,
+            dbAcmeOrder=dbAcmeOrder,
+        )
 
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
@@ -2003,7 +2038,6 @@ def do__AcmeV2_AcmeOrder__process(
                     raise ValueError("Can not process the selecte challenge type")
                 if not dbAcmeChallenge:
                     raise ValueError("Can not trigger this `AcmeChallenge`")
-
                 _result = do__AcmeV2_AcmeChallenge__acme_server_trigger(
                     ctx,
                     dbAcmeChallenge=dbAcmeChallenge,
@@ -2122,6 +2156,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         dbAcmeOrder=dbAcmeOrder,
         dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
         discovery_type="ACME Order",
+        is_active=True,
     )
     if dbAcmeOrder.certificate_signed:
         if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:
@@ -2152,16 +2187,15 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__AcmeV2_AcmeOrder__renewal_configuration(
+def do__AcmeV2_AcmeOrder__new(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
     processing_strategy: str,
     acme_order_type_id: int,
     # Optionals
     dbPrivateKey: Optional["PrivateKey"] = None,
-    private_key_strategy_id__requested: Optional[int] = None,
     private_key_deferred_id: Optional[int] = None,
-    private_key_cycle_id: Optional[int] = None,
+    dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2171,16 +2205,25 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
 
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
         this may be a placeholder, or a specific key
-    :param private_key_strategy_id__requested: (optional)  A value from :class:`model.utils.PrivateKeyStrategy`
-
     :param private_key_deferred_id: (optional)  A value from :class:`model.utils.PrivateKeyDeferred`
         this is used if we have a placeholder and requested a specific key for this order
-    :param private_key_cycle_id: (optional) tracked onto the order object, perhaps cert
+
+    :param dbAcmeOrder_retry_of: (Optional) A :class:`model.objects.AcmeOrder` object to associate with this order.  Everything should be pre-computed.
 
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
+
+    # do we have a live order for this?
+    _dbExistingOrder = get__AcmeOrder__by_RenewalConfigurationId__active(
+        ctx, dbRenewalConfiguration.id
+    )
+    if _dbExistingOrder:
+        log.critical(_dbExistingOrder.as_json)
+        raise ValueError(
+            "There is an existing active `AcmeOrder`. %s" % _dbExistingOrder.as_json
+        )
 
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -2196,24 +2239,36 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
     dbAcmeAccount = dbRenewalConfiguration.acme_account
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
 
+    if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrderType.RETRY):
+        if (
+            (not dbAcmeOrder_retry_of)
+            or (acme_order_type_id != model_utils.AcmeOrderType.RETRY)
+            or (dbPrivateKey != dbAcmeOrder_retry_of.private_key)
+            or (dbAcmeOrder_retry_of.private_key_deferred_id != private_key_deferred_id)
+        ):
+            raise ValueError("Retry invokved incorrectly.")
+
     #
     #   Figure out the PrivateKeyCycle
     #
-    private_key_cycle: str
-    if private_key_cycle_id:
-        private_key_cycle = model_utils.PrivateKeyCycle.as_string(private_key_cycle_id)
-    else:
-        # # single_use
-        # private_key_cycle = model_utils.PrivateKeyCycle._DEFAULT_order_logic)
-        private_key_cycle = dbRenewalConfiguration.private_key_cycle
-    if private_key_cycle == "account_default":
-        private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
+    key_technology = dbRenewalConfiguration.key_technology__effective
+    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+
+    private_key_cycle = dbRenewalConfiguration.private_key_cycle__effective
     private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
 
-    key_technology = dbRenewalConfiguration.key_technology
-    if key_technology == "account_default":
-        key_technology = dbAcmeAccount.order_default_private_key_technology
-    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+    # Calculate a `private_key_deferred_id`
+    if not private_key_deferred_id:
+        # this only comes from a RenewalConfiguration/NewOrder
+        if private_key_cycle == "account_default":
+            private_key_deferred_id = model_utils.PrivateKeyDeferred.ACCOUNT_DEFAULT
+        elif private_key_cycle == "single_use":
+            private_key_deferred_id = model_utils.PrivateKeyDeferred.ACCOUNT_DEFAULT
+
+        raise ValueError("ugh")
+
+    # scoping
+    private_key_strategy_id__requested: int
 
     #
     # Domains Check
@@ -2255,6 +2310,12 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
             if _active_preauthzs:
                 active_preauthzs.extend(_active_preauthzs)
         if active_preauthzs:
+            if True:
+                log.critical("#" * 40)
+                log.critical("Existing PreAuthz")
+                for item in active_preauthzs:
+                    log.critical(item.as_json)
+                log.critical("#" * 40)
             raise errors.AcmeDuplicateChallengesExisting_PreAuthz(active_preauthzs)
 
     # There are two contexts for a PrivateKey:
@@ -2263,7 +2324,7 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
     # Path B - "Renewal" via "RenewalConfiguration"
     #           There may not be a PrivateKey, so we need to figure it out
 
-    if dbPrivateKey:
+    if dbPrivateKey and (dbPrivateKey.id != 0):
         # ensure the PrivateKey is usable
         # raise if the dbPrivateKey is specified
         # if we compute the key, we can likely generate a replacement
@@ -2282,12 +2343,15 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
         #
         # and possibly
         # * private_key_deferred_id
-        # * private_key_strategy_id__requested
+        # # * private_key_strategy_id__requested
         #
+        """
+        # DEPRECATED
+        # this data is now routinely passed in
         if private_key_strategy_id__requested or private_key_deferred_id:
             log.critical("This logic should not happen:")
             log.critical(
-                " - private_key_strategy_id__requested:",
+                " - private_key_strategy_id__requested: %s",
                 private_key_strategy_id__requested,
             )
             log.critical(" - private_key_deferred_id:", private_key_deferred_id)
@@ -2295,88 +2359,64 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
                 "This logic should not happen? %s|%s"
                 % (private_key_strategy_id__requested, private_key_deferred_id)
             )
+        """
+
+        # we have the following, but they may need adjustments...:
+        # `private_key_deferred_id`
+        # `private_key_strategy_id__requested`
 
         # temp assign everything to the default key
-        dbPrivateKey = get__PrivateKey__by_id(ctx, 0)
+        if not dbPrivateKey:
+            dbPrivateKey = get__PrivateKey__by_id(ctx, 0)
 
-        if private_key_cycle == "single_use__reuse_1_year":
-            # load the last pkey, decide if we're going to use it or not
-            _dbPreviousOrders = dbRenewalConfiguration.acme_orders__5
-            if _dbPreviousOrders:
-                _last_order = _dbPreviousOrders[0]
-                if _last_order.private_key_cycle == "single_use__reuse_1_year":
-                    _dbPrivateKey = _last_order.private_key
-                    private_key_deferred_id = (
-                        model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                            _dbPrivateKey.key_technology_id
-                        )
-                    )
-                    if (
-                        (_dbPrivateKey.is_key_usable)
-                        and (
-                            _dbPrivateKey.private_key_cycle
-                            == "single_use__reuse_1_year"
-                        )
-                        and (
-                            (
-                                _dbPrivateKey.timestamp_created
-                                + datetime.timedelta(days=365)
-                            )
-                            < datetime.datetime.utcnow()
-                        )
-                    ):
-                        dbPrivateKey = _dbPrivateKey
-                        private_key_strategy_id__requested = (
-                            model_utils.PrivateKeyStrategy.from_string("reused")
-                        )
-
-            # the following might be common to additional `private_key_cycle`
-
-            if private_key_strategy_id__requested:
-                raise ValueError("GARFIELD-GARFIELD")
+        # !!!: determine the private_key_strategy_id__requested
+        # * SPECIFIED = 1
+        # * DEFERRED_GENERATE = 2
+        # * DEFERRED_ASSOCIATE = 3
+        # * BACKUP = 4
+        # * REUSED = 5
+        if dbPrivateKey.id != 0:
             private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.from_string("deferred-generate")
+                model_utils.PrivateKeyStrategy.SPECIFIED
             )
-
-            if not private_key_deferred_id:
-                # Calculate it from the default tech
-                private_key_deferred_id = (
-                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                        key_technology_id
-                    )
-                )
-
-        elif private_key_cycle == "single_use":
-
-            if private_key_strategy_id__requested:
-                raise ValueError("GARFIELD-GARFIELD")
-            private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.from_string("deferred-generate")
-            )
-
-            if not private_key_deferred_id:
-                # Calculate it from the default tech
-                private_key_deferred_id = (
-                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                        key_technology_id
-                    )
-                )
-
         else:
+            if dbAcmeOrder_retry_of:
+                private_key_strategy_id__requested = (
+                    dbAcmeOrder_retry_of.private_key_strategy_id__requested
+                )
+            else:
+                # are we doing a "deferred-generate" or "deferred-associate" ?
+                if (
+                    private_key_deferred_id
+                    == model_utils.PrivateKeyDeferred.ACCOUNT_DEFAULT
+                ):
+                    private_key_strategy_id__requested = (
+                        model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE
+                    )
+                elif (
+                    private_key_deferred_id
+                    == model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
+                ):
+                    private_key_strategy_id__requested = (
+                        model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE
+                    )
+                elif (
+                    private_key_deferred_id
+                    in model_utils.PrivateKeyDeferred.options_generate_ids
+                ):
+                    private_key_strategy_id__requested = (
+                        model_utils.PrivateKeyStrategy.DEFERRED_GENERATE
+                    )
+                else:
+                    raise ValueError(
+                        "unexpected `private_key_deferred_id`:`%s`"
+                        % private_key_deferred_id
+                    )
 
-            # dbAcmeOrder.private_key_deferred
-            #   ['account_default', 'generate__rsa_2048', 'generate__rsa_3072', 'generate__rsa_4096', 'generate__ec_p256', 'generate__ec_p384'])
-            #
-            #   we should see any of these values here
-            #
-            # dbAcmeOrder.renewal_configuration.private_key_cycle
-            #   ['account_default', 'single_use', 'account_daily', 'global_daily', 'account_weekly', 'global_weekly', 'single_use__reuse_1_year']
-            #   This may affect how we generate the key
-            #
-            private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.from_string("deferred-associate")
-            )
-            private_key_deferred_id = model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
+    raise ValueError(
+        "private_key_strategy_id__requested %s \n" "private_key_deferred_id %s \n",
+        (private_key_strategy_id__requested, private_key_deferred_id),
+    )
 
     assert dbPrivateKey is not None
 
@@ -2398,6 +2438,7 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
             dbRenewalConfiguration.acme_order_id__latest_success
             and dbRenewalConfiguration.acme_order__latest_success.certificate_signed_id
         ):
+            log.info("constructing `replaces`")
             replaces = (
                 dbRenewalConfiguration.acme_order__latest_success.certificate_signed.ari_identifier
             )
@@ -2421,7 +2462,7 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
             # this is a new AcmeOrder
             # in the current application design, `authenticatedUser.acme_order_new` created the order on the acme server
             acme_order_processing_status_id = (
-                model_utils.AcmeOrder_ProcessingStatus.from_string("created_acme")
+                model_utils.AcmeOrder_ProcessingStatus.created_acme
             )
 
             assert private_key_strategy_id__requested is not None
@@ -2445,9 +2486,8 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 transaction_commit=True,
                 # optionals
-                # dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
-                # dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
                 private_key_deferred_id=private_key_deferred_id,
+                is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
             )
 
             # register the AcmeOrder into the logging utility
@@ -2543,6 +2583,45 @@ def do__AcmeV2_AcmeOrder__renewal_configuration(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def do__AcmeV2_AcmeOrder__retry(
+    ctx: "ApiContext",
+    dbAcmeOrder: "AcmeOrder",
+) -> "AcmeOrder":
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+
+    :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
+    """
+    if not dbAcmeOrder:
+        raise ValueError("Must submit `dbAcmeOrder`")
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
+    )
+
+    # can we retry this order:
+
+    if not dbAcmeOrder.is_can_retry:
+        raise ValueError("AcmeOrder not eligible for retry.")
+
+    if not dbAcmeOrder.renewal_configuration:
+        raise ValueError("AcmeOrder missing renewal_configuration.")
+
+    return do__AcmeV2_AcmeOrder__new(
+        ctx,
+        dbRenewalConfiguration=dbAcmeOrder.renewal_configuration,
+        processing_strategy=dbAcmeOrder.acme_order_processing_strategy,
+        acme_order_type_id=model_utils.AcmeOrderType.RETRY,
+        # Optionals
+        dbPrivateKey=dbAcmeOrder.private_key,
+        # private_key_strategy_id__requested=dbAcmeOrder.private_key_strategy_id__requested,
+        private_key_deferred_id=dbAcmeOrder.private_key_deferred_id,
+        dbAcmeOrder_retry_of=dbAcmeOrder,
+    )
 
 
 def do__AcmeV2_AriCheck(

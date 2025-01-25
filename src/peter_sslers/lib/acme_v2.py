@@ -28,6 +28,7 @@ import cert_utils
 from cert_utils.model import AccountKeyData
 import josepy
 from requests.utils import parse_header_links
+from typing_extensions import NotRequired
 
 # localapp
 from . import acmedns as lib_acmedns
@@ -60,6 +61,9 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+log_api = logging.getLogger("acme_api")
+log_api.setLevel(logging.INFO)
+
 # ------------------------------------------------------------------------------
 
 
@@ -73,8 +77,13 @@ class AriCheckResult(TypedDict):
     headers: "CaseInsensitiveDict"
     status_code: int
 
-    def as_json(self):
+    def as_json(self):  # type: ignore[misc]
         return self["payload"]
+
+
+class AcmeOrderPayload(TypedDict):
+    identifiers: List[Dict[str, str]]
+    replaces: NotRequired[str]
 
 
 def new_response_404() -> Dict:
@@ -102,7 +111,10 @@ def url_request(
 
     returns (resp_data, status_code, headers)
     """
-    log.info("acme_v2.url_request(%s, %s", url, post_data)
+    log_api.info("acme_v2.url_request(")
+    log_api.info(" REQUEST-")
+    log_api.info("  url       > %s", url)
+    log_api.info("  post_data > %s", post_data)
     context = None
     try:
         headers = {
@@ -115,14 +127,15 @@ def url_request(
             ctx.verify_mode = ssl.CERT_NONE
             context = ctx
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
+        log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),
             resp.headers,
         )
-        log.info(") url_request < status_code < %s", status_code)
-        log.info(") url_request < resp_data   < %s", resp_data)
-        log.info(") url_request < headers     < %s", headers)
+        log_api.info("  status_code < %s", status_code)
+        log_api.info("  resp_data   < %s", resp_data)
+        log_api.info("  headers     < %s", headers)
     except IOError as exc:
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
         status_code, headers = getattr(exc, "code", None), {}
@@ -132,7 +145,6 @@ def url_request(
         # TODO: log this error to the database
         if cert_utils.TESTING_ENVIRONMENT:
             raise
-            raise ValueError("LOG THIS EXCEPTION?")
         raise errors.AcmeCommunicationError(str(exc))
     try:
         resp_data = json.loads(resp_data)  # try to parse json results
@@ -152,12 +164,13 @@ def url_request(
         raise IndexError(resp_data)  # allow 100 retrys for bad nonces
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
-            raise errors.AcmeServerError(status_code, resp_data)
+            # (status_code, resp_data, url) = exc
+            raise errors.AcmeServerError(status_code, resp_data, url)
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
         )
-        # raise ValueError(msg)
-        raise errors.AcmeServerError(msg)
+        # (status_code, resp_data, url) = exc
+        raise errors.AcmeServerError(status_code, msg, url)
     return resp_data, status_code, headers
 
 
@@ -252,7 +265,7 @@ def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
 
     :param acmeAccount: (required) a :class:`model.objects.AcmeAccount` instance
     """
-    log.info("acme_v2.acme_directory_get(")
+    log_api.info("acme_v2.acme_directory_get(")
     url_directory = acmeAccount.acme_server.directory
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
@@ -261,7 +274,7 @@ def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
     )
     if not directory_payload:
         raise ValueError("no directory data for the CERTIFICATE_AUTHORITY")
-    log.info(") acme_directory_get success")
+    log_api.info(") acme_directory_get success")
     return directory_payload
 
 
@@ -598,7 +611,7 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         _result, _t0 = None, time.time()
-        while _result is None or _result["status"] in _pending_statuses:
+        while (_result is None) or (_result["status"] in _pending_statuses):
             log.debug(") polling...")
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
@@ -732,7 +745,7 @@ class AuthenticatedUser(object):
                  "orders": "https://example.com/acme/acct/evOfKhNU60wg/orders"
                }
         """
-        log.info("acme_v2.AuthenticatedUser.authenticate(")
+        log_api.info("acme_v2.AuthenticatedUser.authenticate(")
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
 
@@ -776,12 +789,13 @@ class AuthenticatedUser(object):
             except errors.AcmeServerError as exc:
                 # only catch this if `onlyReturnExisting` and there is an DNE error
                 if onlyReturnExisting:
+                    # (status_code, resp_data, url) = exc
                     if exc.args[0] == 400:
                         if (
                             exc.args[1]["type"]
                             == "urn:ietf:params:acme:error:accountDoesNotExist"
                         ):
-                            log.debug(
+                            log_api.debug(
                                 ") authenticate | check failed. key is unknown to server"
                             )
                             event_payload_dict = utils.new_event_payload_dict()
@@ -799,11 +813,13 @@ class AuthenticatedUser(object):
 
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
-            log.debug(") authenticate | acme_account_object: %s" % acme_account_object)
-            log.debug(
+            log_api.debug(
+                ") authenticate | acme_account_object: %s" % acme_account_object
+            )
+            log_api.debug(
                 ") authenticate | acme_account_headers: %s" % acme_account_headers
             )
-            log.info(
+            log_api.info(
                 ") authenticate = %s"
                 % (
                     "acme_v2 Registered!"
@@ -866,7 +882,7 @@ class AuthenticatedUser(object):
 
         https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
         """
-        log.info("acme_v2.AuthenticatedUser.deactivate(")
+        log_api.info("acme_v2.AuthenticatedUser.deactivate(")
         if transaction_commit is not True:
             # required for the `AcmeLogger`
             raise ValueError("we must invoke this knowing it will commit")
@@ -894,9 +910,13 @@ class AuthenticatedUser(object):
             # this is a flag
             is_did_deactivate = True
 
-            log.debug(") deactivate | acme_account_object: %s" % acme_account_object)
-            log.debug(") deactivate | acme_account_headers: %s" % acme_account_headers)
-            log.info(
+            log_api.debug(
+                ") deactivate | acme_account_object: %s" % acme_account_object
+            )
+            log_api.debug(
+                ") deactivate | acme_account_headers: %s" % acme_account_headers
+            )
+            log_api.info(
                 ") deactivate = %s"
                 % ("acme_v2 DEACTIVATED!" if status_code == 200 else "ERROR")
             )
@@ -1119,22 +1139,53 @@ class AuthenticatedUser(object):
             # required for the `AcmeLogger`
             raise ValueError("we must invoke this knowing it will commit")
 
-        payload_order = {
+        # the payload can have a dict or strings
+        payload_order: AcmeOrderPayload = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]
         }
-        if self.supports_ari:
-            if replaces is not None:
-                payload_order["replaces"] = replaces
-        (
-            acme_order_object,
-            _status_code,
-            acme_order_headers,
-        ) = self._send_signed_request(
-            self.acme_directory["newOrder"],
-            payload=payload_order,
-        )
-        log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
-        log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
+        if self.supports_ari and (replaces is not None):
+            payload_order["replaces"] = replaces
+        try:
+            (
+                acme_order_object,
+                _status_code,
+                acme_order_headers,
+            ) = self._send_signed_request(
+                self.acme_directory["newOrder"],
+                payload=payload_order,
+            )
+            log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
+            log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
+        except errors.AcmeServerError as exc:
+            log.debug(") acme_order_new | AcmeServerError: %s" % exc)
+            # (status_code, resp_data, url) = exc
+            _raise = True
+            if isinstance(exc.args[1], dict):
+                if (exc.args[1]["type"] == "urn:ietf:params:acme:error:malformed") and (
+                    exc.args[1]["detail"].startswith("parsing ARI CertID failed")
+                ):
+                    if payload_order["replaces"]:
+                        log.debug(") acme_order_new | retrying without `replaces`:")
+                        del payload_order["replaces"]
+                        (
+                            acme_order_object,
+                            _status_code,
+                            acme_order_headers,
+                        ) = self._send_signed_request(
+                            self.acme_directory["newOrder"],
+                            payload=payload_order,
+                        )
+                        log.debug(
+                            ") acme_order_new | acme_order_object: %s"
+                            % acme_order_object
+                        )
+                        log.debug(
+                            ") acme_order_new | acme_order_headers: %s"
+                            % acme_order_headers
+                        )
+                        _raise = False
+            if _raise:
+                raise exc
 
         # log the event to the db
         dbEventLogged = self.acmeLogger.log_newOrder(
@@ -1178,8 +1229,10 @@ class AuthenticatedUser(object):
                 dbAcmeAuthorization=dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
             )
-        elif dbAcmeChallenge.acme_challenge_type == "tls-alpn-01":
-            # TODO: tls-alpn-01
+        # elif dbAcmeChallenge.acme_challenge_type == "tls-alpn-01":
+        #    # TODO: tls-alpn-01
+        #    raise NotImplementedError()
+        else:
             raise NotImplementedError()
 
         return True
@@ -1302,16 +1355,17 @@ class AuthenticatedUser(object):
 
         try:
             # initialize a client
-            client = lib_acmedns.new_client(
+            acmeDnsClient = lib_acmedns.new_client(
                 dbAcmeDnsServerAccount.acme_dns_server.root_url
             )
 
             # update the acmedns server
-            client.update_txt_record(
+            acmeDnsClient.update_txt_record(
                 dbAcmeDnsServerAccount.pyacmedns_dict, dns_keyauthorization
             )
 
         except Exception as exc:
+            # ???: should be this `errors.AcmeDnsServerError`
             raise errors.DomainVerificationError(str(exc))
 
     def acme_order_process_authorizations(
@@ -1918,55 +1972,64 @@ class AuthenticatedUser(object):
         acme_challenge_type = dbAcmeChallenge.acme_challenge_type
 
         # handle this in a loop, so we can retry
-        _attempt = 0
-        max_attempts = 5
-        while _attempt < max_attempts:
-            _attempt += 1
 
-            # note that we are about to trigger the challenge:
-            self.acmeLogger.log_challenge_trigger(
-                "v2",
-                dbAcmeChallenge,
-                transaction_commit=True,
+        # trigger the challenge!
+        # if we had a 'valid' challenge, the payload would be `None`
+        # to invoke a GET-as-POST functionality and load the challenge resource
+        # POSTing an empty `dict` will trigger the challenge
+
+        # note that we are about to trigger the challenge:
+        self.acmeLogger.log_challenge_trigger(
+            "v2",
+            dbAcmeChallenge,
+            transaction_commit=True,
+        )
+        try:
+            (
+                challenge_response,
+                _status_code,
+                _challenge_headers,
+            ) = self._send_signed_request(
+                dbAcmeChallenge.challenge_url,
+                payload={},  # `{}` will trigger; `None` will poll
             )
-            # trigger the challenge!
-            # if we had a 'valid' challenge, the payload would be `None`
-            # to invoke a GET-as-POST functionality and load the challenge resource
-            # POSTing an empty `dict` will trigger the challenge
-            try:
-                (
-                    challenge_response,
-                    _status_code,
-                    _challenge_headers,
-                ) = self._send_signed_request(
-                    dbAcmeChallenge.challenge_url,
-                    payload={},
-                )
-                log.debug(
-                    ") acme_challenge_trigger | challenge_response: %s"
-                    % challenge_response
-                )
-                log.debug(
-                    ") acme_challenge_trigger | _challenge_headers: %s"
-                    % _challenge_headers
-                )
-            except errors.AcmeServerError as exc:
-                (_status_code, _resp) = exc.args
-                if isinstance(_resp, dict):
-                    if _resp["type"].startswith("urn:ietf:params:acme:error:"):
-                        # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
-                        # can this be caught?
-                        pass
-                raise
-            if challenge_response["status"] == "processing":
-                time.sleep(1)
-            elif challenge_response["status"] not in ("pending", "valid"):
-                # this should ALMOST ALWAYS be "pending"
-                # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"
-                raise ValueError(
-                    "AcmeChallenge is not 'pending' or 'valid' on the ACME server; received `%s`"
-                    % challenge_response["status"]
-                )
+            log.debug(
+                ") acme_challenge_trigger | challenge_response: %s" % challenge_response
+            )
+            log.debug(
+                ") acme_challenge_trigger | _challenge_headers: %s" % _challenge_headers
+            )
+        except errors.AcmeServerError as exc:
+            # (status_code, resp_data, url) = exc
+            (_status_code, _resp, _url) = exc.args
+            """
+            if isinstance(_resp, dict):
+                if _resp["type"].startswith("urn:ietf:params:acme:error:"):
+                    # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
+                    # {'type': 'urn:ietf:params:acme:error:malformed', 'detail': 'Cannot update challenge with status valid, only status pending', 'status': 400},
+                    # can this be caught?
+            """
+            raise
+        if challenge_response["status"] == "processing":
+            # we're going to have to poll for changes, so give this a few seconds
+            time.sleep(3)
+        elif challenge_response["status"] not in ("pending", "valid"):
+            # this should ALMOST ALWAYS be "pending" as we just requested it
+            # this could possibly be "valid" due to cached authorizations
+            # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"
+
+            raise ValueError(
+                "AcmeChallenge is not 'pending' or 'valid' on the ACME server; received `%s`"
+                % challenge_response["status"]
+            )
+
+            # perhaps we should do a:
+            # raise errors.AcmeAuthorizationFailure(
+            #     "{0} challenge did not pass: {1}".format(
+            #         dbAcmeChallenge.acme_authorization.domain.domain_name,
+            #         authorization_response,
+            #     )
+            # )
 
         # TODO: COULD an accepted challenge be here?
         log.info(
@@ -1988,7 +2051,7 @@ class AuthenticatedUser(object):
                  u'status': u'invalid',
                  u'token': u'zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U',
                  u'type': u'http-01',
-                 u'url': u'https://0.0.0.0:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
+                 u'url': u'https://127.0.0.1:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
                  u'validated': u'2020-02-28T20:14:56Z'}
 
         Option B-
@@ -2001,7 +2064,7 @@ class AuthenticatedUser(object):
                                   u'status': u'invalid',
                                   u'token': u'zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U',
                                   u'type': u'http-01',
-                                  u'url': u'https://0.0.0.0:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
+                                  u'url': u'https://127.0.0.1:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
                                   u'validated': u'2020-02-28T20:14:56Z'}],
                  u'expires': u'2020-02-28T20:25:02Z',
                  u'identifier': {u'type': u'dns', u'value': u'a.example.com'},
@@ -2012,7 +2075,7 @@ class AuthenticatedUser(object):
         """
         authorization_response = self._poll_until_not(
             dbAcmeChallenge.acme_authorization.authorization_url,
-            ["pending"],
+            ["pending", "processing"],
             "checking challenge status for {0}".format(
                 dbAcmeChallenge.acme_authorization.domain.domain_name
             ),
@@ -2062,56 +2125,56 @@ class AuthenticatedUser(object):
             )
             return _acme_challenge_selected
 
-        elif authorization_response["status"] != "valid":
-            self.acmeLogger.log_challenge_error(
-                "v2",
-                dbAcmeChallenge,
-                "fail-2",
-                transaction_commit=True,
-            )
+        # # the following elif condition is implied
+        # elif authorization_response["status"] != "valid":
+        self.acmeLogger.log_challenge_error(
+            "v2",
+            dbAcmeChallenge,
+            "fail-2",
+            transaction_commit=True,
+        )
 
-            # update the challenge
-            # 1. find the challenge
-            acme_challenges = get_authorization_challenges(
+        # update the challenge
+        # 1. find the challenge
+        acme_challenges = get_authorization_challenges(
+            authorization_response,
+            required_challenges=[
+                acme_challenge_type,
+            ],
+        )
+        _acme_challenge_selected = filter_specific_challenge(
+            acme_challenges, acme_challenge_type
+        )
+        if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
+            raise ValueError(
+                "IntegryError on challenge payload; this should never happen."
+            )
+        # 2. update the challenge
+        update_AcmeChallenge_status(
+            ctx,
+            dbAcmeChallenge,
+            _acme_challenge_selected["status"],
+            transaction_commit=True,
+        )
+
+        # update the authorization, since we can
+        update_AcmeAuthorization_status(
+            ctx,
+            dbAcmeChallenge.acme_authorization,
+            authorization_response["status"],
+            transaction_commit=True,
+        )
+
+        # a future version may want to log this failure somewhere
+        # why? the timestamp on our AuthorizationObject
+        # may get replaced during a server-sync
+
+        raise errors.AcmeAuthorizationFailure(
+            "{0} challenge did not pass: {1}".format(
+                dbAcmeChallenge.acme_authorization.domain.domain_name,
                 authorization_response,
-                required_challenges=[
-                    acme_challenge_type,
-                ],
             )
-            _acme_challenge_selected = filter_specific_challenge(
-                acme_challenges, acme_challenge_type
-            )
-            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
-                raise ValueError(
-                    "IntegryError on challenge payload; this should never happen."
-                )
-            # 2. update the challenge
-            update_AcmeChallenge_status(
-                ctx,
-                dbAcmeChallenge,
-                _acme_challenge_selected["status"],
-                transaction_commit=True,
-            )
-
-            # update the authorization, since we can
-            update_AcmeAuthorization_status(
-                ctx,
-                dbAcmeChallenge.acme_authorization,
-                authorization_response["status"],
-                transaction_commit=True,
-            )
-
-            # a future version may want to log this failure somewhere
-            # why? the timestamp on our AuthorizationObject
-            # may get replaced during a server-sync
-
-            raise errors.AcmeAuthorizationFailure(
-                "{0} challenge did not pass: {1}".format(
-                    dbAcmeChallenge.acme_authorization.domain.domain_name,
-                    authorization_response,
-                )
-            )
-        raise ValueError("This should never run")
+        )
 
 
 def check_endpoint_for_renewalInfo(

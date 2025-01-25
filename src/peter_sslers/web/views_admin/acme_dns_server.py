@@ -1,5 +1,6 @@
 # stdlib
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -28,12 +29,16 @@ from ...lib.utils import new_BrowserSession
 from ...model import utils as model_utils
 from ...model.objects import AcmeDnsServer
 
+if TYPE_CHECKING:
+    from ...lib.db.associate import TYPE_DomainName_2_AcmeDnsServerAccount
+    from ...lib.db.associate import TYPE_DomainName_2_DomainObject
+
 # ==============================================================================
 
 
-def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap) -> Dict:
+def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap: List) -> Dict:
     domain_matrix: Dict = {}
-    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap.values():
+    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap:
         _dbDomain = _dbAcmeDnsServerAccount.domain
         domain_matrix[_dbDomain.domain_name] = {
             "Domain": {
@@ -270,7 +275,11 @@ class View_Focus(Handler):
             return HTTPSeeOther(url_success)
         except Exception as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "health": None}
+                return {
+                    "result": "error",
+                    "health": None,
+                    "error": "Error communicating with the acme-dns server.",
+                }
             url_failure = "%s?result=error&operation=check" % (self._focus_url,)
             return HTTPSeeOther(url_failure)
 
@@ -401,17 +410,30 @@ class View_Focus(Handler):
                     message="More than 100 domain names. There is a max of 100 domains per certificate.",
                 )
 
-            (domainObjectsMap, dbAcmeDnsServerAccountsMap) = (
-                lib_db.associate.ensure_domain_names_to_acmeDnsServer(
-                    self.request.api_context,
-                    domain_names,
-                    dbAcmeDnsServer,
-                    discovery_type="via acme_dns_server._ensure_domains__submit",
+            # Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]
+            # TYPE_DomainName_2_DomainObject = Dict[str, "Domain"]
+            # TYPE_DomainName_2_AcmeDnsServerAccount = Dict[str, "AcmeDnsServerAccount"]
+            domainObjectsMap: TYPE_DomainName_2_DomainObject
+            dbAcmeDnsServerAccountsMap: TYPE_DomainName_2_AcmeDnsServerAccount
+            try:
+                (domainObjectsMap, dbAcmeDnsServerAccountsMap) = (
+                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
+                        self.request.api_context,
+                        domain_names,
+                        dbAcmeDnsServer,
+                        discovery_type="via acme_dns_server._ensure_domains__submit",
+                    )
                 )
-            )
+            except errors.AcmeDnsServerError as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server.",
+                )
 
             if self.request.wants_json:
-                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap)
+                result_matrix = encode_AcmeDnsServerAccounts(
+                    list(dbAcmeDnsServerAccountsMap.values())
+                )
                 return {"result": "success", "result_matrix": result_matrix}
 
             acme_dns_server_accounts = ",".join(
@@ -638,7 +660,9 @@ class View_Focus_Manipulate(View_Focus):
                 """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
             ],
             "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["active", "inactive", "global_default"]},
+            "valid_options": {
+                "action": Form_AcmeDnsServer_mark.fields["action"].list,
+            },
         }
     )
     def mark(self):

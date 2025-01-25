@@ -348,20 +348,49 @@ class _AcmeAccountSelection(object):
 
 
 class _PrivateKeySelection(object):
+    private_key_option: str
     selection: Optional[str] = None
     upload_parsed: Optional["_PrivateKeyUploadParser"] = None
-    private_key_strategy__requested: str
     PrivateKey: Optional["PrivateKey"] = None
-    key_technology_id__generate: Optional[str] = None
+    private_key_strategy__requested: str
+    private_key_deferred: Optional[str] = None  # see model_utils.PrivateKeyDeferred
 
-    # see model_utils.PrivateKeyDeferred
-    private_key_deferred: Optional[str] = None
+    # this should be set by the parser
+    private_key_generate: Optional[str] = None  # see model_utils.KeyTechnology
+
+    def __init__(self, private_key_option: str):
+        self.private_key_option = private_key_option
 
     @property
     def private_key_strategy_id__requested(self) -> int:
         return model_utils.PrivateKeyStrategy.from_string(
             self.private_key_strategy__requested
         )
+
+    @property
+    def key_technology_id(self) -> int:
+        if TYPE_CHECKING:
+            # this will be set before this function is run
+            assert self.private_key_generate
+            assert self.PrivateKey
+        if self.private_key_option == "account_default":
+            return model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        elif self.private_key_option == "private_key_generate":
+            return model_utils.KeyTechnology.from_string(self.private_key_generate)
+        elif self.private_key_option == "private_key_existing":
+            return self.PrivateKey.key_technology_id
+        else:
+            raise ValueError("Unsupported `private_key_option")
+
+    @property
+    def key_technology(self) -> str:
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def private_key_deferred_id(self) -> Optional[int]:
+        if not self.private_key_deferred:
+            return None
+        return model_utils.PrivateKeyDeferred.from_string(self.private_key_deferred)
 
 
 def parse_AcmeAccountSelection(
@@ -376,7 +405,8 @@ def parse_AcmeAccountSelection(
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param account_key_option:
     :param allow_none:
-    :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+    :param require_contact: ``True`` if required; ``False`` if not;
+    :param support_upload: ``True`` if supported; ``False`` if not;
     """
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
@@ -458,14 +488,14 @@ def parse_AcmeAccountSelection(
 def parse_PrivateKeySelection(
     request: "Request",
     formStash: FormStash,
-    private_key_option: Optional[str] = None,
+    private_key_option: str,
     support_upload: Optional[bool] = None,
 ) -> _PrivateKeySelection:
     private_key_pem_md5: Optional[str] = None
     # PrivateKey = None  # :class:`model.objects.PrivateKey`
 
     # handle the explicit-option
-    privateKeySelection = _PrivateKeySelection()
+    privateKeySelection = _PrivateKeySelection(private_key_option)
     if private_key_option == "private_key_file":
         if not support_upload:
             # `formStash.fatal_form()` will raise `FormInvalid()`
@@ -482,80 +512,83 @@ def parse_PrivateKeySelection(
             model_utils.PrivateKeySelection_2_PrivateKeyStrategy["upload"]
         )
 
+        # Return Early
         return privateKeySelection
 
-    else:
-        if private_key_option == "private_key_existing":
-            privateKeySelection.selection = "existing"
-            privateKeySelection.private_key_strategy__requested = (
-                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["existing"]
-            )
-            private_key_pem_md5 = formStash.results["private_key_existing"]
-        elif private_key_option == "private_key_reuse":
-            privateKeySelection.selection = "reuse"
-            privateKeySelection.private_key_strategy__requested = (
-                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["reuse"]
-            )
-            private_key_pem_md5 = formStash.results["private_key_reuse"]
-        elif private_key_option in (
-            "private_key_generate",
-            "account_default",
-        ):
-            dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
-            if not dbPrivateKey:
-                formStash.fatal_field(
-                    field=private_key_option,
-                    message="Could not load the placeholder PrivateKey.",
-                )
-            privateKeySelection.PrivateKey = dbPrivateKey
-            if private_key_option == "private_key_generate":
-                privateKeySelection.selection = "generate"
-                key_technology_str = formStash.results[
-                    "private_key_generate"
-                ]  # this is a model_utils.KeyTechnology
-                _deferred_id, _deferred_str = (
-                    model_utils.PrivateKeyDeferred.generate_from_key_technology_str(
-                        key_technology_str
-                    )
-                )
-                privateKeySelection.private_key_deferred = _deferred_str
-                privateKeySelection.private_key_strategy__requested = (
-                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
-                )
-            elif private_key_option == "account_default":
-                privateKeySelection.selection = "account_default"
-                privateKeySelection.private_key_deferred = "account_default"
-                privateKeySelection.private_key_strategy__requested = (
-                    model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
-                        "account_default"
-                    ]
-                )
-            return privateKeySelection
-        else:
-            # `formStash.fatal_form()` will raise `FormInvalid()`
-            formStash.fatal_form("Invalid `private_key_option`")
-
-        if not private_key_pem_md5:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field=private_key_option, message="You did not provide a value"
-            )
-        if TYPE_CHECKING:
-            assert private_key_pem_md5 is not None
-        dbPrivateKey = lib_db.get.get__PrivateKey__by_pemMd5(
-            request.api_context, private_key_pem_md5, is_active=True
-        )
+    elif private_key_option in (
+        "private_key_generate",
+        "account_default",
+    ):
+        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
         if not dbPrivateKey:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=private_key_option,
-                message="The selected PrivateKey is not enrolled in the system.",
+                message="Could not load the placeholder PrivateKey.",
             )
         privateKeySelection.PrivateKey = dbPrivateKey
+        if private_key_option == "private_key_generate":
+            privateKeySelection.selection = "generate"
+            key_technology_str = formStash.results[
+                "private_key_generate"
+            ]  # this is a model_utils.KeyTechnology
+            privateKeySelection.private_key_generate = key_technology_str
+            _deferred_id, _deferred_str = (
+                model_utils.PrivateKeyDeferred.generate_from_key_technology_str(
+                    key_technology_str
+                )
+            )
+            privateKeySelection.private_key_deferred = _deferred_str
+            privateKeySelection.private_key_strategy__requested = (
+                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
+            )
+        elif private_key_option == "account_default":
+            privateKeySelection.selection = "account_default"
+            privateKeySelection.private_key_deferred = "account_default"
+            privateKeySelection.private_key_strategy__requested = (
+                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["account_default"]
+            )
+
+        # Return Early
         return privateKeySelection
 
-    # `formStash.fatal_form()` will raise `FormInvalid()`
-    formStash.fatal_form("There was an error validating your form.")
+    # The following do not return early and share some logic:
+
+    if private_key_option == "private_key_existing":
+        privateKeySelection.selection = "existing"
+        privateKeySelection.private_key_strategy__requested = (
+            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["existing"]
+        )
+        private_key_pem_md5 = formStash.results["private_key_existing"]
+
+    elif private_key_option == "private_key_reuse":
+        privateKeySelection.selection = "reuse"
+        privateKeySelection.private_key_strategy__requested = (
+            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["reuse"]
+        )
+        private_key_pem_md5 = formStash.results["private_key_reuse"]
+
+    else:
+        # `formStash.fatal_form()` will raise `FormInvalid()`
+        formStash.fatal_form("Invalid `private_key_option`")
+
+    if not private_key_pem_md5:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field=private_key_option, message="You did not provide a value"
+        )
+    if TYPE_CHECKING:
+        assert private_key_pem_md5 is not None
+    dbPrivateKey = lib_db.get.get__PrivateKey__by_pemMd5(
+        request.api_context, private_key_pem_md5, is_active=True
+    )
+    if not dbPrivateKey:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field=private_key_option,
+            message="The selected PrivateKey is not enrolled in the system.",
+        )
+    privateKeySelection.PrivateKey = dbPrivateKey
+    return privateKeySelection
 
 
 def form_key_selection(
@@ -568,6 +601,8 @@ def form_key_selection(
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+
+    note: currently only used by `acme_order/new-freeform`
     """
     acmeAccountSelection = parse_AcmeAccountSelection(
         request,
@@ -580,7 +615,7 @@ def form_key_selection(
         assert acmeAccountSelection.upload_parsed
         key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
         key_create_args["acme_account_key_source_id"] = (
-            model_utils.AcmeAccountKeySource.from_string("imported")
+            model_utils.AcmeAccountKeySource.IMPORTED
         )
         key_create_args["event_type"] = "AcmeAccount__insert"
         (
@@ -604,12 +639,8 @@ def form_key_selection(
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
         key_create_args["discovery_type"] = "upload"
         key_create_args["event_type"] = "PrivateKey__insert"
-        key_create_args["private_key_source_id"] = (
-            model_utils.PrivateKeySource.from_string("imported")
-        )
-        key_create_args["private_key_type_id"] = model_utils.PrivateKeyType.from_string(
-            "standard"
-        )
+        key_create_args["private_key_source_id"] = model_utils.PrivateKeySource.IMPORTED
+        key_create_args["private_key_type_id"] = model_utils.PrivateKeyType.STANDARD
         # TODO: We should infer the above based on the private_key_cycle
         (
             dbPrivateKey,
@@ -656,18 +687,14 @@ def form_domains_challenge_typed(
 
         # 2: ensure there are domains
         if not domain_names_all:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field="Error_Main",
-                message="no domain names submitted",
-            )
+            # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_form(message="no domain names submitted")
 
         # 3: ensure there is no overlap
         domain_names_all_set = set(domain_names_all)
         if len(domain_names_all) != len(domain_names_all_set):
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field="Error_Main",
+            # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_form(
                 message="a domain name can only be associated to one challenge type",
             )
 
@@ -677,9 +704,8 @@ def form_domains_challenge_typed(
                 if k == "http-01":
                     continue
                 if v:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="Error_Main",
+                    # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_form(
                         message="only http-01 domains are accepted by this form",
                     )
 
@@ -690,9 +716,8 @@ def form_domains_challenge_typed(
             if ds:
                 for d in ds:
                     if d[0] == "*":
-                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                        formStash.fatal_field(
-                            field="Error_Main",
+                        # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                        formStash.fatal_form(
                             message="wildcards (*) must use `dns-01`.",
                         )
 
@@ -706,10 +731,8 @@ def form_domains_challenge_typed(
 
     except ValueError as exc:  # noqa: F841
         raise
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-        formStash.fatal_field(
-            field="Error_Main", message="invalid domain names detected"
-        )
+        # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_form(message="invalid domain names detected")
 
     return domains_challenged
 

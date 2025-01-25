@@ -107,7 +107,7 @@ RE_AcmeDnsServer_import_domain_existing = re.compile(
 # note: AcmeOrder
 
 RE_AcmeOrder = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)(?:\?is_duplicate_renewal=true)?$"""
 )
 RE_AcmeOrder_retry = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=retry\+order$"""
@@ -126,7 +126,7 @@ RE_AcmeOrder_processed = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=acme\+process$"""
 )
 RE_AcmeOrder_btn_acme_process__can = re.compile(
-    r"""<button class="btn btn-xs btn-info " id="btn-acme_process">"""
+    r"""<button class="btn btn-xs btn-info" id="btn-acme_process">"""
 )
 
 
@@ -134,8 +134,8 @@ RE_AcmeOrder_downloaded_certificate = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=acme\+server\+download\+certificate$"""
 )
 
-RE_AcmeOrder_renew_quick = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=renew\+quick$"""
+RE_AcmeOrder_renewal_configuration = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=renewal\+configuration$"""
 )
 
 RE_AcmeOrder_renew_custom = re.compile(
@@ -145,13 +145,16 @@ RE_AcmeOrder_renew_custom = re.compile(
 
 # note the space after `btn-info ` and no `disabled` class
 RE_AcmeOrder_btn_deactive_authorizations = re.compile(
-    r"""<button class="btn btn-xs btn-info " id="btn-deactivate_authorizations">"""
+    r"""<button class="btn btn-xs btn-info\s?" id="btn-deactivate_authorizations">"""
 )
 
 # note the `disabled` class
 RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
     r"""<button class="btn btn-xs btn-info disabled" id="btn-deactivate_authorizations">"""
 )
+
+# this should be hinted better...
+RE_AcmeOrder_status = re.compile(r"<th>status</th>\s*<td><code>(\w+)</code>")
 
 
 # note: CertificateCA
@@ -208,6 +211,16 @@ RE_Domain_operation_nginx_expire = re.compile(
 RE_Domain_operation_nginx_expire__GET = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/domain/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
 )
+
+# note: RenewalConfiguration
+RE_RenewalConfiguration = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/renewal-configuration/(\d+)(?:\?is_duplicate_renewal=true)?$"""
+)
+
+RE_RenewalConfiguration_link = re.compile(
+    r'''href="/\.well-known/peter_sslers/renewal-configuration/(\d+)"'''
+)
+
 
 # note: UniqueFQDNSet
 

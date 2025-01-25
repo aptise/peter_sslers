@@ -554,8 +554,6 @@
         cols = ("id",
                 "is_processing",
                 "status",
-                "is_auto_renew",
-                "is_renewed",
                 "timestamp_created",
                 "timestamp_finalized",
                 "acme_account_id",
@@ -615,14 +613,6 @@
                                         <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                     </div>
                                 % endif
-                            % elif c == 'is_auto_renew':
-                                <div class="label label-${'success' if acme_order.is_auto_renew else 'warning'}">
-                                    ${'AutoRenew' if acme_order.is_auto_renew else 'manual'}
-                                </div>
-                            % elif c == 'is_renewed':
-                                <div class="label label-${'success' if acme_order.is_renewed else 'default'}">
-                                    ${'Renewed' if acme_order.is_renewed else 'not-renewed-yet'}
-                                </div>
                             % elif c == 'status':
                                 <code>${acme_order.acme_status_order or ''}</code>
                             % elif c == 'timestamp_created':
@@ -860,7 +850,6 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>auto-renew?</th>
-                <th>is renewed?</th>
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
                 % if show_expiring_days:
@@ -899,11 +888,6 @@
                             unavailable
                         </span>
                     % endif
-                </td>
-                <td>
-                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
-                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
-                    </div>
                 </td>
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
@@ -1532,7 +1516,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=True,)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False,)">
     <%
         checked = {
             "none": "",

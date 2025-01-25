@@ -948,7 +948,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
     def _new_print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/domain/new.json")
+            return formatted_get_docs(self, "/domain/{ID}/acme-dns-server/new.json")
         return render_to_response(
             "/admin/domain-focus-acme_dns_server-new.mako",
             {
@@ -1017,14 +1017,14 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
             # wonderful! now we need to "register" against acme-dns
             try:
-                if lib_acmedns.pyacmedns is None:
-                    raise formhandling.FormInvalid("`pyacmedns` is not installed")
-
                 # initialize a client
-                client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
-                account = client.register_account(None)  # arg = allowlist ips
+                acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
+                account = acmeDnsClient.register_account(None)  # arg = allowlist ips
             except Exception as exc:  # noqa: F841
-                raise ValueError("error registering an account with AcmeDns")
+                # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server."
+                )
 
             dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
                 self.request.api_context,

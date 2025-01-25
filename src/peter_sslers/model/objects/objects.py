@@ -243,6 +243,14 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "account_url": self.account_url,
         }
 
+    @property
+    def as_json_minimal(self) -> Dict:
+        rval = self.as_json
+        rval["AcmeAccountKey"] = (
+            self.acme_account_key.as_json_minimal if self.acme_account_key else None
+        )
+        return rval
+
 
 class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
@@ -357,6 +365,12 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "acme_account_key_source": self.acme_account_key_source,
             "is_active": self.is_active,
         }
+
+    @property
+    def as_json_minimal(self) -> Dict:
+        rval = self.as_json
+        del rval["key_pem"]
+        return rval
 
 
 # ==============================================================================
@@ -501,7 +515,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.from_string("http-01")
+            ")" % model_utils.AcmeChallengeType.http_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -512,7 +526,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.from_string("dns-01")
+            ")" % model_utils.AcmeChallengeType.dns_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -523,7 +537,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.from_string("tls-alpn-01")
+            ")" % model_utils.AcmeChallengeType.tls_alpn_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -627,7 +641,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
         admin_url = request.admin_url if request else ""
 
         return {
@@ -639,7 +653,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_dns_01_id": (
                 self.acme_challenge_dns_01.id if self.acme_challenge_dns_01 else None
             ),
-            "domain": (
+            "Domain": (
                 {
                     "id": self.domain_id,
                     "domain_name": self.domain.domain_name,
@@ -696,11 +710,12 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     )  # `model_utils.AcmeChallengeType`
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # this is only used to easily grab an AcmeAccount
+    # this is used to easily grab an AcmeAccount, and also deactivate orders on backref
     acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="AcmeAuthorizationPotential.acme_order_id==AcmeOrder.id",
         uselist=False,
+        back_populates="acme_authorization_potentials",
     )
     domain = sa_orm_relationship(
         "Domain",
@@ -718,6 +733,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         return {
+            "id": self.id,
             "acme_order_id": self.acme_order_id,
             "domain_id": self.domain_id,
             "acme_challenge_type": self.acme_challenge_type,
@@ -951,14 +967,14 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
         admin_url = request.admin_url if request else ""
 
         return {
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
             "acme_status_challenge": self.acme_status_challenge,
-            "domain": {
+            "Domain": {
                 "id": self.domain_id,
                 "domain_name": self.domain.domain_name,
             },
@@ -1255,7 +1271,7 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
             "password": self.password,
             "fulldomain": self.fulldomain,
             "subdomain": self.subdomain,
-            "allowfrom": json.loads(self.allowfrom or ""),
+            "allowfrom": json.loads(self.allowfrom) if self.allowfrom else [],
         }
 
     @property
@@ -1447,12 +1463,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     is_processing: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # see notes above
-    is_auto_renew: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=True
-    )
-    is_renewed: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
+    # this should always be true; maybe one day it will be a toggle
     is_save_alternate_chains: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, default=True
     )
@@ -1554,6 +1565,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeOrder.acme_account_id==AcmeAccount.id",
         uselist=False,
         back_populates="acme_orders",
+    )
+    acme_authorization_potentials = sa_orm_relationship(
+        "AcmeAuthorizationPotential",
+        primaryjoin="AcmeOrder.id==AcmeAuthorizationPotential.acme_order_id",
+        back_populates="acme_order",
     )
     acme_order_submissions = sa_orm_relationship(
         "AcmeOrderSubmission",
@@ -1849,7 +1865,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
         admin_url = request.admin_url if request else ""
 
         return {
@@ -1870,7 +1886,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "finalize_url": self.finalize_url,
             "certificate_url": self.certificate_url,
             "is_processing": True if self.is_processing else False,
-            "is_auto_renew": True if self.is_auto_renew else False,
             "is_can_acme_process": self.is_can_acme_process,
             "is_can_mark_invalid": self.is_can_mark_invalid,
             "is_can_retry": self.is_can_retry,
@@ -1879,7 +1894,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "is_can_acme_server_deactivate_authorizations": (
                 True if self.is_can_acme_server_deactivate_authorizations else False
             ),
-            "is_renewed": True if self.is_renewed else False,
             "order_url": self.order_url,
             "PrivateKey": {
                 "id": self.private_key_id,
@@ -1887,14 +1901,20 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                     self.private_key.key_pem_md5 if self.private_key_id else None
                 ),
             },
+            "private_key_cycle": self.private_key_cycle,
+            "private_key_strategy__requested": self.private_key_strategy__requested,
+            "private_key_strategy__final": self.private_key_strategy__final,
             "certificate_signed_id": self.certificate_signed_id,
             "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
+            "renewal_configuration_id": self.renewal_configuration_id,
+            "RenewalConfiguration": self.renewal_configuration.as_json,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
+            "acme_authorization_ids": self.acme_authorization_ids,
             "url_acme_server_sync": (
                 "%s/acme-order/%s/acme-server/sync.json" % (admin_url, self.id)
                 if self.is_can_acme_server_sync
@@ -1911,10 +1931,17 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.is_can_acme_process
                 else None
             ),
-            "private_key_cycle": self.private_key_cycle,
-            "private_key_strategy__requested": self.private_key_strategy__requested,
-            "private_key_strategy__final": self.private_key_strategy__final,
-            "acme_authorization_ids": self.acme_authorization_ids,
+            "url_deactivate": (
+                "%s/acme-order/%s/mark.json" % (admin_url, self.id)
+                if self.is_processing
+                else None
+            ),
+            "url_deactivate_authorizations": (
+                "%s/acme-order/%s/acme-server/deactivate-authorizations.json"
+                % (admin_url, self.id)
+                if self.is_can_acme_server_deactivate_authorizations
+                else None
+            ),
         }
 
 
@@ -2102,6 +2129,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "is_enabled": self.is_enabled or False,
             "protocol": self.protocol,
             "is_supports_ari__version": self.is_supports_ari__version,
+            "is_unlimited_pending_authz": self.is_unlimited_pending_authz,
         }
 
 
@@ -2285,7 +2313,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
 
         if not request:
             return "<!-- ERROR. could not derive the `request` -->"
@@ -2317,7 +2345,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
 
         if not request:
             return "<!-- ERROR. could not derive the `request` -->"
@@ -2450,7 +2478,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
 
         if not request:
             return "<!-- ERROR. could not derive the `request` -->"
@@ -2473,7 +2501,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        request = dbSession.info["request"]
+        request = dbSession.info.get("request")
 
         if not request:
             return "<!-- ERROR. could not derive the `request` -->"
@@ -2776,9 +2804,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.Text, nullable=False, unique=False
     )  # the serial is only unique within an acme-provider
 
-    # as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
-    # is_auto_renew: Mapped[Optional[bool]] = mapped_column(sa.Boolean, nullable=True, default=None)
-
     # acme_order_id__generated_by: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
 
     # this is the private key
@@ -2977,7 +3002,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             dbSession = sa_Session.object_session(self)
             if TYPE_CHECKING:
                 assert dbSession
-            request = dbSession.info["request"]
+            request = dbSession.info.get("request")
 
             # only search for a preference if they exist
             if request and request.dbCertificateCAPreferences:
@@ -3158,9 +3183,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @property
     def as_json(self) -> Dict:
         return {
-            "acme_order.is_auto_renew": (
-                self.acme_order.is_auto_renew if self.acme_order else None
-            ),
             "certificate_type": self.certificate_type,
             "domains_as_list": self.domains_as_list,
             "id": self.id,
@@ -3483,7 +3505,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         * id is a string
         """
         rval = {
-            "domain": {
+            "Domain": {
                 "id": str(self.id),
                 "domain_name": self.domain_name,
             },
@@ -4096,6 +4118,10 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    # this should always be true; maybe one day it will be a toggle
+    is_save_alternate_chains: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=True
+    )
     private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
@@ -4136,12 +4162,12 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     acme_order__latest_attempt = sa.orm.relationship(
         "AcmeOrder",
         primaryjoin="RenewalConfiguration.acme_order_id__latest_attempt==AcmeOrder.id",
-        uselist=True,
+        uselist=False,
     )
     acme_order__latest_success = sa.orm.relationship(
         "AcmeOrder",
         primaryjoin="RenewalConfiguration.acme_order_id__latest_success==AcmeOrder.id",
-        uselist=True,
+        uselist=False,
     )
     # only used for reused key cycles
     private_key_reuse = sa_orm_relationship(
@@ -4222,8 +4248,9 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            "is_active": self.is_active,
             "private_key_cycle": self.private_key_cycle,
-            "key_technology«private_key_cycle__effective": self.private_key_cycle__effective,
+            "private_key_cycle__effective": self.private_key_cycle__effective,
             "key_technology": self.key_technology,
             "key_technology__effective": self.key_technology__effective,
             "acme_account_id": self.acme_account_id,
@@ -4646,8 +4673,8 @@ class UniquelyChallengedFQDNSet2Domain(Base):
     @property
     def as_json(self) -> Dict:
         return {
-            "renewal_configuration_id": self.renewal_configuration_id,
             "domain_id": self.domain_id,
+            "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
             "acme_challenge_type": self.acme_challenge_type,
         }
 

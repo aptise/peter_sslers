@@ -86,8 +86,11 @@
                         <td><timestamp>${AcmeOrder.timestamp_expires or ''}</timestamp>
                         </td>
                     </tr>
-
-
+                    <tr>
+                        <th>is_save_alternate_chains</th>
+                        <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                        </td>
+                    </tr>
                     <tr>
                         <th>RenewalConfiguration</th>
                         <td>

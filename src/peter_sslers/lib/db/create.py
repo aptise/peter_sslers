@@ -7,6 +7,7 @@ from typing import List
 from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 import cert_utils
@@ -130,9 +131,7 @@ def create__AcmeOrder(
     private_key_strategy_id__requested: int,
     transaction_commit: Literal[True],
     # optionals
-    is_auto_renew: bool = True,
     is_save_alternate_chains: bool = True,
-    dbAcmeOrder_renewal_of: Optional["AcmeOrder"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     private_key_deferred_id: Optional[int] = None,
@@ -157,10 +156,8 @@ def create__AcmeOrder(
     :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
 
-    :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
     :param private_key_deferred_id: (optional) See `model.utils.PrivateKeyDeferred`
@@ -209,11 +206,6 @@ def create__AcmeOrder(
         else:
             dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
 
-    if all((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
-        raise ValueError(
-            "`create__AcmeOrder` must be invoked with one or None of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of`)."
-        )
-
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
             raise ValueError("The specified PrivateKey belongs to another AcmeAccount.")
@@ -256,7 +248,6 @@ def create__AcmeOrder(
 
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.is_processing = True
-    dbAcmeOrder.is_auto_renew = is_auto_renew
     dbAcmeOrder.is_save_alternate_chains = is_save_alternate_chains
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.order_url = order_url
@@ -285,8 +276,6 @@ def create__AcmeOrder(
     dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
-    if dbAcmeOrder_renewal_of:
-        dbAcmeOrder.acme_order_id__renewal_of = dbAcmeOrder_renewal_of.id
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -528,7 +517,7 @@ def create__AcmeDnsServerAccount(
     password: str,
     fulldomain: str,
     subdomain: str,
-    allowfrom: str,
+    allowfrom: Union[str, List[str]],
 ) -> "AcmeDnsServerAccount":
     """
     create wrapping an acms-dns Server and Domain (AcmeDnsServerAccount)
@@ -558,7 +547,12 @@ def create__AcmeDnsServerAccount(
 
     # sometimes an empty list pops in
     if isinstance(allowfrom, list):
-        allowfrom = str(allowfrom)
+        allowfrom = json.dumps(allowfrom)
+    else:
+        if (allowfrom[0] != "[") or (allowfrom[-1] != "]"):
+            raise ValueError("`allowfrom` string is not a serialized list")
+    if TYPE_CHECKING:
+        assert isinstance(allowfrom, str)
 
     # bookkeeping
     dbOperationsEvent = log__OperationsEvent(ctx, event_type_id, event_payload_dict)
@@ -1115,7 +1109,7 @@ def create__CoverageAssuranceEvent(
         )
     if coverage_assurance_resolution_id is None:
         coverage_assurance_resolution_id = (
-            model_utils.CoverageAssuranceResolution.from_string("unresolved")
+            model_utils.CoverageAssuranceResolution.UNRESOLVED
         )
     else:
         if (

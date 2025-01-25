@@ -713,7 +713,7 @@ def get__AcmeChallenges__by_DomainId__active(
         .filter(
             AcmeChallenge.domain_id == domain_id,
             # ???: http challenges only
-            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.from_string("http-01"),
+            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.http_01,
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
@@ -1198,6 +1198,21 @@ def get__AcmeOrder__by_DomainId__paginated(
     )
     dbAcmeOrders = query.all()
     return dbAcmeOrders
+
+
+def get__AcmeOrder__by_RenewalConfigurationId__active(
+    ctx: "ApiContext", renewal_configuration_id: int
+) -> Optional[AcmeOrder]:
+    item = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(
+            AcmeOrder.renewal_configuration_id == renewal_configuration_id,
+            AcmeOrder.is_processing.is_(True),
+        )
+        .order_by(AcmeOrder.id.desc())
+        .first()
+    )
+    return item
 
 
 def get__AcmeOrder__by_RenewalConfigurationId__count(
@@ -2082,7 +2097,7 @@ def get__CertificateSigned__by_RenewalConfigurationId__count(
         ctx.dbSession.query(CertificateSigned)
         .join(
             AcmeOrder,
-            CertificateSigned.acme_order_id == AcmeOrder.id,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
         )
         .join(
             RenewalConfiguration,
@@ -2104,7 +2119,7 @@ def get__CertificateSigned__by_RenewalConfigurationId__paginated(
         ctx.dbSession.query(CertificateSigned)
         .join(
             AcmeOrder,
-            CertificateSigned.acme_order_id == AcmeOrder.id,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
         )
         .join(
             RenewalConfiguration,
@@ -2204,7 +2219,7 @@ def get__CoverageAssuranceEvent__count(
     if unresolved_only:
         q = q.filter(
             CoverageAssuranceEvent.coverage_assurance_resolution_id
-            == model_utils.CoverageAssuranceResolution.from_string("unresolved")
+            == model_utils.CoverageAssuranceResolution.UNRESOLVED
         )
     counted = q.count()
     return counted
@@ -2221,7 +2236,7 @@ def get__CoverageAssuranceEvent__paginated(
     if unresolved_only:
         q = q.filter(
             CoverageAssuranceEvent.coverage_assurance_resolution_id
-            == model_utils.CoverageAssuranceResolution.from_string("unresolved")
+            == model_utils.CoverageAssuranceResolution.UNRESOLVED
         )
     q = q.order_by(CoverageAssuranceEvent.id.desc())
     q = q.limit(limit).offset(offset)
@@ -2448,7 +2463,7 @@ def _get__Domains_challenged__core(ctx: "ApiContext"):
         # shared filters
         .filter(
             # ???: http challenges only
-            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.from_string("http-01"),
+            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.http_01,
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
@@ -2799,8 +2814,7 @@ def get__PrivateKey__by_id(
 
 def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id
-        == model_utils.PrivateKeyType.from_string("global_weekly"),
+        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.GLOBAL_WEEKLY,
         model_utils.year_week(PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2812,8 +2826,7 @@ def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey
 
 def get__PrivateKey_CurrentDay_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id
-        == model_utils.PrivateKeyType.from_string("global_daily"),
+        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.GLOBAL_DAILY,
         model_utils.year_day(PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2827,8 +2840,7 @@ def get__PrivateKey_CurrentWeek_AcmeAccount(
     ctx: "ApiContext", acme_account_id: int
 ) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id
-        == model_utils.PrivateKeyType.from_string("account_weekly"),
+        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.ACCOUNT_WEEKLY,
         model_utils.year_week(PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2843,8 +2855,7 @@ def get__PrivateKey_CurrentDay_AcmeAccount(
     ctx: "ApiContext", acme_account_id: int
 ) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id
-        == model_utils.PrivateKeyType.from_string("account_daily"),
+        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.ACCOUNT_DAILY,
         model_utils.year_day(PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2963,11 +2974,11 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
 
 def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__count(
     ctx: "ApiContext",
-    unique_challenged_fqdn_set_id: int,
+    uniquely_challenged_fqdn_set_id: int,
 ) -> int:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.unique_challenged_fqdn_set_id
-        == unique_challenged_fqdn_set_id
+        RenewalConfiguration.uniquely_challenged_fqdn_set_id
+        == uniquely_challenged_fqdn_set_id
     )
     counted = q.count()
     return counted
@@ -2975,13 +2986,13 @@ def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__count(
 
 def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__paginated(
     ctx: "ApiContext",
-    unique_challenged_fqdn_set_id: int,
+    uniquely_challenged_fqdn_set_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.unique_challenged_fqdn_set_id
-        == unique_challenged_fqdn_set_id
+        RenewalConfiguration.uniquely_challenged_fqdn_set_id
+        == uniquely_challenged_fqdn_set_id
     )
     q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
     items_paged = q.all()

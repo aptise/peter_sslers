@@ -55,11 +55,11 @@ acme_servers: Dict[int, DictProvider] = {
         "id": 1,
         "name": "pebble",
         "endpoint": None,
-        "directory": "https://0.0.0.0:14000/dir",
+        "directory": "https://127.0.0.1:14000/dir",
         "is_default": None,
         "protocol": "acme-v2",
         "is_enabled": False,
-        "server": "0.0.0.0:14000",
+        "server": "127.0.0.1:14000",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "allow_insecure": True,
     },
@@ -152,10 +152,8 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
     dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
-    dbObject.private_key_source_id = model_utils.PrivateKeySource.from_string(
-        "placeholder"
-    )
-    dbObject.private_key_type_id = model_utils.PrivateKeyType.from_string("placeholder")
+    dbObject.private_key_source_id = model_utils.PrivateKeySource.PLACEHOLDER
+    dbObject.private_key_type_id = model_utils.PrivateKeyType.PLACEHOLDER
     # SYSTEM_DEFAULT
     dbObject.key_technology_id = model_utils.KeyTechnology._DEFAULT_id
     ctx.dbSession.add(dbObject)
@@ -230,7 +228,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
             attrs = ("display_name",)
             for _k in attrs:
                 if getattr(dbCertificateCA, _k) is None:
-                    setattr(dbCertificateCA, _k, cert_data[_k])
+                    setattr(dbCertificateCA, _k, cert_data[_k])  # type: ignore[literal-required]
                     if dbCertificateCA not in certs_discovered:
                         certs_modified.append(dbCertificateCA)
 

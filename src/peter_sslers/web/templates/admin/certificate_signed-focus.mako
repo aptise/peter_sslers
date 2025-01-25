@@ -85,7 +85,12 @@
                             </span>
                             &nbsp;
                             % if CertificateSigned.is_active:
-                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                <form 
+                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" 
+                                    method="POST" 
+                                    style="display:inline;" 
+                                    id="form-certificate_signed-mark-inactive"
+                                >
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-warning" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -93,7 +98,12 @@
                                     </button>
                                 </form>
                                 &nbsp;
-                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                <form
+                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" 
+                                    method="POST" 
+                                    style="display:inline;" 
+                                    id="form-certificate_signed-mark-revoked"
+                                >
                                     <input type="hidden" name="action" value="revoked"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -120,14 +130,24 @@
                                     ##     </form>
                                     ## % endif
                                     % if not CertificateSigned.is_revoked:
-                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                        <form
+                                            action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark"
+                                            method="POST"
+                                            style="display:inline;"
+                                            id="form-certificate_signed-mark-active"
+                                        >
                                             <input type="hidden" name="action" value="active"/>
                                             <button class="btn btn-xs btn-success" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                                 activate
                                             </button>
                                         </form>
-                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                        <form
+                                            action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark"
+                                            method="POST"
+                                            style="display:inline;"
+                                            id="form-certificate_signed-mark-revoked"
+                                        >
                                             <input type="hidden" name="action" value="revoked"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -309,7 +329,12 @@
                                             <th>Manual Check</th>
                                             <td>
                                                 % if CertificateSigned.is_ari_check_timely:
-                                                    <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" method="POST" style="display:inline;">
+                                                    <form
+                                                        action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
+                                                        method="POST"
+                                                        style="display:inline;"
+                                                        id="form-certificate_signed-ari_check"
+                                                    >
                                                         <button class="btn btn-xs btn-success" type="submit">
                                                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                                             Check ARI
@@ -634,7 +659,11 @@
                             <th>Nginx cache</th>
                             <td>
                                 <span class="btn-group">
-                                    <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire" method="POST">
+                                    <form
+                                        action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire"
+                                        method="POST"
+                                        id="form-certificate_signed-nginx_cache_expire"
+                                    >
                                         <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
                                             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                             nginx-cache-expire

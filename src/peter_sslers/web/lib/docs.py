@@ -109,11 +109,12 @@ def formatted_get_docs(view_instance, endpoint):
         try:
             if "AcmeAccount_GlobalDefault" in docs["valid_options"]:
                 docs["valid_options"]["AcmeAccount_GlobalDefault"] = (
-                    view_instance.dbAcmeAccount_GlobalDefault.as_json
+                    view_instance.dbAcmeAccount_GlobalDefault.as_json_minimal
                     if view_instance.dbAcmeAccount_GlobalDefault
                     else None
                 )
         except Exception as exc:  # noqa: F841
+            print(exc)
             log.critical(
                 "@docify error: valid_options:AcmeAccount_GlobalDefault %s", endpoint
             )

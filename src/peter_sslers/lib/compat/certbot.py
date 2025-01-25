@@ -123,7 +123,7 @@ def import_certbot(
             # load the data...
             key_create_args: Dict[str, Union[str, int]] = {}
             key_create_args["acme_account_key_source_id"] = (
-                AcmeAccountKeySource.from_string("imported")
+                AcmeAccountKeySource.IMPORTED
             )
             key_create_args["event_type"] = "AcmeAccount__insert"
             # key_create_args["acme_server_id"] = do not supply if le_* kwargs are submitted
@@ -203,10 +203,8 @@ def import_certbot(
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 ctx,
                 private_key_pem,
-                private_key_source_id=PrivateKeySource.from_string("imported"),
-                private_key_type_id=PrivateKeyType.from_string(
-                    "standard"
-                ),  # certbot does not reuse by default, but might
+                private_key_source_id=PrivateKeySource.IMPORTED,
+                private_key_type_id=PrivateKeyType.STANDARD,  # certbot does not reuse by default, but might
                 acme_account_id__owner=_acme_account_id,
                 discovery_type="Certbot Import",
             )
@@ -267,6 +265,7 @@ def import_certbot(
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
                 discovery_type="Certbot Import",
+                is_active=False,
             )
 
             print("yay")

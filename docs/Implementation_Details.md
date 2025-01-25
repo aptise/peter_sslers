@@ -166,13 +166,6 @@ One or more CertificateAuthority Certificates
 If a Domain is "active", then it is actively managed and should be included in
 ACME Order renewals or generating `Nginx` configuration.
 
-#### AcmeOrder
-
-##### `is_auto_renew`
-
-Set to `True` by default. If `True`, this Certificate will be auto-renewed by the
-renewal queue. If `False`, renewals must be manual.
-
 #### CertificateSigned
 
 ##### `is_active`

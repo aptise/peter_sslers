@@ -1,17 +1,10 @@
 URGENT
 =====
 
-
-Drop or Re-align
-    is_auto_renew: bool = True,
-    is_save_alternate_chains: bool = True,
-    dbAcmeOrder_renewal_of: Optional["AcmeOrder"] = None,
-    dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
-Drop
-    tempfiles
+* update API logging;
+    [x] dedicated outlet
+    [ ] formatting check
     
-
-
 * Finish Migration to RenewalConfiguration
 	They work and are tested, but the UX could potentially be cleaner
 	- automatic renewal - update to create queues
@@ -29,6 +22,52 @@ Drop
 * AcmeDNS
     dev docs
     tests    
+
+Audit
+    private_key_reuse - make sure correct forms check for it
+    tests don't seem to run ApplicationSettings.from_settings_dict ?
+    audit docify form fields
+    admin:api:domain:certificate-if-needed
+    
+Tests
+    selfsigned-1.example.com - disable authz/order
+    
+    use setup/teardown to reset dbs?
+    
+    split out functional under_pebble that are really integrated
+    
+    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeOrder.test_AcmeOrder_mark_html
+
+
+    create test:
+        private_key_reuse on new/retry order
+    
+    /renewal_configuration.py
+        key_technology_id might be wrong on new; should this be detectd via parsed?
+    autocert
+        missing some args to create__RenewalConfiguration
+                private_key_deferred_id = privateKeySelection.private_key_deferred_id
+    
+    tests
+        ensure ansswer http challenge
+        
+    
+Docs
+    application design
+
+Errors:
+    tests can somehow create a second acme-dns server
+    transition concerns for acme-dns global servers (set_default)
+    
+Improve
+
+
+
+    AcmeAccountKeyOption
+        better deprecate PEM uploads
+            options_a = (
+            options_a_simple = (
+
 
 
 
@@ -52,7 +91,8 @@ Development
 Bugs
 ----
 
-Processing an ACME order can generate an error. I thought it was a timing issue, but it mgiht be debug code.
+# Processing an ACME order can generate an error. I thought it was a timing issue, but it mgiht be debug code.
+This was a change on polling behavior; fixed
 
 The authz do not sync on exit. (still pending when valid)
 

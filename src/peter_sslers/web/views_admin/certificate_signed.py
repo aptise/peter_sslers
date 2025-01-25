@@ -482,10 +482,8 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "imported"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+                private_key_type_id=model_utils.PrivateKeyType.STANDARD,
                 # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="via upload certificate_signed",
             )
@@ -546,6 +544,7 @@ class View_New(Handler):
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
                 discovery_type="via upload certificate_signed",
+                is_active=False,
             )
             if self.request.wants_json:
                 return {
@@ -916,19 +915,19 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check-history",
+        route_name="admin:certificate_signed:focus:ari_check_history",
         renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check-history__paginated",
+        route_name="admin:certificate_signed:focus:ari_check_history__paginated",
         renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check-history|json",
+        route_name="admin:certificate_signed:focus:ari_check_history|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check-history__paginated|json",
+        route_name="admin:certificate_signed:focus:ari_check_history__paginated|json",
         renderer="json",
     )
     def ari_check_history(self):
@@ -1198,7 +1197,7 @@ class View_Focus_Manipulate(View_Focus):
                 dbCertificateSigned=dbCertificateSigned,
             )
             if self.request.wants_json:
-                return {"result": "success", "AriCheck": {dbAriObject.as_json}}
+                return {"result": "success", "AriCheck": dbAriObject.as_json}
             return HTTPSeeOther(
                 "%s?result=success&operation=ari-check&AriCheck=%s"
                 % (self._focus_url, utils.urlify(dbAriObject.as_json))

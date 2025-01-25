@@ -142,9 +142,7 @@ class View_Focus(Handler):
         for extensions, see `cert_utils.EXTENSION_TO_MIME`
         """
         dbPrivateKey = self._focus()
-        if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.from_string(
-            "placeholder"
-        ):
+        if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.PLACEHOLDER:
             return "*placeholder*"
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -380,9 +378,11 @@ class View_New(Handler):
             "instructions": [
                 """curl --form "bits=4096" {ADMIN_PREFIX}/private-key/new.json""",
             ],
-            "form_fields": {"bits": "bits for the PrivateKey"},
+            "form_fields": {"private_key_generate": "generation type"},
             "valid_options": {
-                "private_key_generate": model_utils.KeyTechnology._options_Generate
+                "private_key_generate": Form_PrivateKey_new__autogenerate.fields[
+                    "private_key_generate"
+                ].list,
             },
         }
     )
@@ -415,12 +415,8 @@ class View_New(Handler):
 
                 dbPrivateKey = lib_db.create.create__PrivateKey(
                     self.request.api_context,
-                    private_key_source_id=model_utils.PrivateKeySource.from_string(
-                        "generated"
-                    ),
-                    private_key_type_id=model_utils.PrivateKeyType.from_string(
-                        "standard"
-                    ),
+                    private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                    private_key_type_id=model_utils.PrivateKeyType.STANDARD,
                     key_technology_id=key_technology_id,
                     discovery_type="interface-new",
                 )
@@ -434,7 +430,7 @@ class View_New(Handler):
                     "PrivateKey": dbPrivateKey.as_json,
                 }
             return HTTPSeeOther(
-                "%s/private-key/%s?result=success%s&operstion=new"
+                "%s/private-key/%s?result=success%s&operation=new"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbPrivateKey.id,
@@ -493,10 +489,8 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "imported"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+                private_key_type_id=model_utils.PrivateKeyType.STANDARD,
                 # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="upload",
             )

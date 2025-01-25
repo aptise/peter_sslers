@@ -435,33 +435,30 @@ def update_AcmeOrder_deactivate(
     dbAcmeOrder.is_processing = False
     dbAcmeOrder.timestamp_updated = ctx.timestamp
     ctx.dbSession.flush(objects=[dbAcmeOrder])
+
+    res = update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(  # noqa: F841
+        ctx, dbAcmeOrder
+    )
     return True
 
 
-def update_AcmeOrder_set_renew_auto(
+def update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
-) -> str:
-    if dbAcmeOrder.is_auto_renew:
-        raise errors.InvalidTransition("Can not mark this `AcmeOrder` for renewal.")
-    # set the renewal
-    dbAcmeOrder.is_auto_renew = True
-    # cleanup options
-    event_status = "AcmeOrder__mark__renew_auto"
-    return event_status
-
-
-def update_AcmeOrder_set_renew_manual(
-    ctx: "ApiContext",
-    dbAcmeOrder: "AcmeOrder",
-) -> str:
-    if not dbAcmeOrder.is_auto_renew:
-        raise errors.InvalidTransition("Can not unmark this `AcmeOrder` for renewal.")
-    # unset the renewal
-    dbAcmeOrder.is_auto_renew = False
-    # cleanup options
-    event_status = "AcmeOrder__mark__renew_manual"
-    return event_status
+) -> bool:
+    """
+    This will only deactivate the authorization blocks...
+    """
+    if dbAcmeOrder.acme_authorization_potentials:
+        _updates = [
+            dbAcmeOrder,
+        ]
+        for _pending in dbAcmeOrder.acme_authorization_potentials:
+            ctx.dbSession.delete(_pending)
+            _updates.append(_pending)
+        ctx.dbSession.flush(objects=_updates)
+        return True
+    return False
 
 
 def update_AcmeServer__activate_default(

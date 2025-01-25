@@ -57,9 +57,7 @@ class _MixIn_AcmeAccount(object):
 
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
-            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                "imported"
-            ),
+            acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
             key_pem=key_pem,
             acme_server_id=1,  # pebble
             contact=contact,

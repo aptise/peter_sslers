@@ -255,7 +255,9 @@ class View_Focus(Handler):
                 "resolution": "the intended resolution",
             },
             "valid_options": {
-                "resolution": model_utils.CoverageAssuranceResolution.OPTIONS_ALL,
+                "resolution": Form_CoverageAssuranceEvent_mark.fields[
+                    "resolution"
+                ].list,
                 "action": "resolved",
             },
         }

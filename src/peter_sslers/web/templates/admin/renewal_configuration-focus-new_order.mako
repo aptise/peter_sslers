@@ -35,7 +35,9 @@
 
             <h4>Renew the following?</h4>
 
-            <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-order" method="POST" style="display:inline;">
+            <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-order" method="POST" style="display:inline;"
+                id="form-renewal_configuration-new_order"
+            >
 
             <table class="table table-striped table-condensed">
                 <tbody>

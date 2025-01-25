@@ -30,7 +30,7 @@ For (most) testing and (all) development you need to follow a few initial steps.
 It should look something like this:
 
     certificate_authority = pebble
-    certificate_authority_directory = https://0.0.0.0:14000/dir
+    certificate_authority_directory = https://127.0.0.1:14000/dir
     certificate_authority_protocol = acme-v2
     certificate_authority_testing = True
 
@@ -121,6 +121,22 @@ has a public dns record to `127.0.0.1` you don't need to do any fancy iptables s
 The testing environment will wrap certain tests with spinning up a dedicated instance
 of Redis and/or Pebble for each test. This strategy is necessary to ensure there
 is no stale data in these platforms.
+
+
+## Testing Database
+
+Tests will create/use a database file named `ssl_minnow_test.sqlite`
+
+To streamline overhead, the tests will create and utilize database snapshots:
+
+    `ssl_minnow_test.sqlite-AppTest`
+    `ssl_minnow_test.sqlite-AppTestCore`
+
+To ensure fresh tests, all 3 files can be removed:
+
+    `ssl_minnow_test.sqlite`
+    `ssl_minnow_test.sqlite-AppTest`
+    `ssl_minnow_test.sqlite-AppTestCore`
 
 
 ## ACME-DNS Testing

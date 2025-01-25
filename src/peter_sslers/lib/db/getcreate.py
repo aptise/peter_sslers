@@ -1379,8 +1379,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string("single_use"),
+            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE,
             key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
@@ -1393,10 +1393,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         # ???: how is create scoped - within an order?
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string(
-                "single_use__reuse_1_year"
-            ),
+            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE__REUSE_1_YEAR,
             key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
@@ -1412,12 +1410,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "account_daily"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_DAILY,
                 key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
@@ -1429,12 +1423,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_daily"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_DAILY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
@@ -1448,12 +1438,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "account_weekly"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_WEEKLY,
                 key_technology_id=dbAcmeAccount.private_key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
@@ -1465,12 +1451,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_weekly"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_WEEKLY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new

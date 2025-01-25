@@ -122,8 +122,8 @@ documentation_grid = {
             "show_on_settings": True,
         },
     },
-    "SqlAlchemy Configuration": {
-        "sqlalchemy.url": {"docstring": "The SqlAlchemy URL", "show_on_settings": True}
+    "SQLAlchemy Configuration": {
+        "sqlalchemy.url": {"docstring": "The SQLAlchemy URL", "show_on_settings": True}
     },
     "Experimental Configuration": {
         "acme_dns_support": {

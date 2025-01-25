@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from .create import create__AcmeDnsServerAccount
 from .get import get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId
 from .getcreate import getcreate__Domain__by_domainName
+from ..errors import AcmeDnsServerError
 from ...lib import acmedns as lib_acmedns
 from ...model.objects import AcmeOrder
 
@@ -39,7 +40,7 @@ def ensure_domain_names_to_acmeDnsServer(
     dbAcmeDnsServer: "AcmeDnsServer",
     discovery_type: str,
 ) -> Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]:
-    client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
+    acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
     domainObjectsMap: TYPE_DomainName_2_DomainObject = {}
     accountObjectsMap: TYPE_DomainName_2_AcmeDnsServerAccount = {}
     for _domain_name in domain_names:
@@ -63,9 +64,13 @@ def ensure_domain_names_to_acmeDnsServer(
             )
         if not _dbAcmeDnsServerAccount:
             try:
-                account = client.register_account(None)  # arg = allowlist ips
+                account = acmeDnsClient.register_account(None)  # arg = allowlist ips
             except Exception as exc:  # noqa: F841
-                raise ValueError("error registering an account with AcmeDns")
+                log.critical("Error communicating with acme-dns")
+                log.critical(exc)
+                raise AcmeDnsServerError(
+                    "error registering an account with AcmeDns", exc
+                )
             _dbAcmeDnsServerAccount = create__AcmeDnsServerAccount(
                 ctx,
                 dbAcmeDnsServer=dbAcmeDnsServer,

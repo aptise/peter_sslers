@@ -152,10 +152,7 @@ class View_Focus(Handler):
             "example": "curl --form 'action=is_unlimited_pending_authz-true' {ADMIN_PREFIX}/acme-server/1/mark.json",
             "form_fields": {"action": "the intended action"},
             "valid_options": {
-                "action": [
-                    "is_unlimited_pending_authz-true",
-                    "is_unlimited_pending_authz-false",
-                ]
+                "action": Form_AcmeServer_mark.fields["action"].list,
             },
         }
     )

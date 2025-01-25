@@ -278,6 +278,14 @@ class View_Focus(Handler):
         route_name="admin:renewal_configuration:focus:acme_orders_paginated",
         renderer="/admin/renewal_configuration-focus-acme_orders.mako",
     )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:acme_orders|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:acme_orders_paginated|json",
+        renderer="json",
+    )
     @docify(
         {
             "endpoint": "/renewal-configuration/{ID}/acme-orders.json",
@@ -309,6 +317,12 @@ class View_Focus(Handler):
             limit=items_per_page,
             offset=offset,
         )
+        if self.request.wants_json:
+            _AcmeOrders = [k.as_json for k in items_paged]
+            return {
+                "AcmeOrders": _AcmeOrders,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "RenewalConfiguration": dbRenewalConfiguration,
@@ -327,6 +341,14 @@ class View_Focus(Handler):
         route_name="admin:renewal_configuration:focus:certificate_signeds_paginated",
         renderer="/admin/renewal_configuration-focus-certificate_signeds.mako",
     )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:certificate_signeds|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:certificate_signeds_paginated|json",
+        renderer="json",
+    )
     def related__CertificateSigneds(self):
         dbRenewalConfiguration = self._focus()
         items_count = (
@@ -344,6 +366,12 @@ class View_Focus(Handler):
                 offset=offset,
             )
         )
+        if self.request.wants_json:
+            _CertificateSigneds = [k.as_json for k in items_paged]
+            return {
+                "CertificateSigneds": _CertificateSigneds,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "RenewalConfiguration": dbRenewalConfiguration,
@@ -375,7 +403,9 @@ class View_Focus_Order(View_Focus):
                 "processing_strategy": "How should the order be processed?",
             },
             "valid_options": {
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                "processing_strategy": Form_RenewalConfig_new_order.fields[
+                    "processing_strategy"
+                ].list,
             },
             "instructions": [
                 """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-order.json""",
@@ -425,8 +455,9 @@ class View_Focus_Order(View_Focus):
                 raise formhandling.FormInvalid()
 
             processing_strategy = formStash.results["processing_strategy"]
+            # ???: shouldn't this supply dbPrivateKey and private_key_deferred_id ?
             try:
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renewal_configuration(
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
@@ -487,13 +518,31 @@ class View_Focus_Order(View_Focus):
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
             "form_fields": {
-                "processing_strategy": "How should the order be processed?",
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "key_technology": "what kind of keys to use?",
+                "domain_names_http01": "required; a comma separated list of domain names to process",
+                "domain_names_dns01": "required; a comma separated list of domain names to process",
             },
             "valid_options": {
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "account_key_option": Form_RenewalConfig_new_configuration.fields[
+                    "account_key_option"
+                ].list,
+                "private_key_cycle": Form_RenewalConfig_new_configuration.fields[
+                    "private_key_cycle"
+                ].list,
+                "key_technology": Form_RenewalConfig_new_configuration.fields[
+                    "key_technology"
+                ].list,
             },
+            "form_fields_related": [
+                ["domain_names_http01", "domain_names_dns01"],
+            ],
             "instructions": [
-                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json""",
+                """curl --form 'account_key_option=global_default' {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json""",
             ],
         }
     )
@@ -550,6 +599,7 @@ class View_Focus_Order(View_Focus):
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
+                support_upload=False,
             )
             assert acmeAccountSelection.AcmeAccount is not None
             private_key_cycle = formStash.results["private_key_cycle"]
@@ -609,25 +659,34 @@ class View_Focus_Order(View_Focus):
                 # * model_utils.RenewableConfig
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
-                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                    self.request.api_context,
-                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                    private_key_cycle_id=private_key_cycle_id,
-                    key_technology_id=key_technology_id,
-                    domains_challenged=domains_challenged,
-                )
+                is_duplicate_renewal = None
+                try:
+                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                        self.request.api_context,
+                        dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                        private_key_cycle_id=private_key_cycle_id,
+                        key_technology_id=key_technology_id,
+                        domains_challenged=domains_challenged,
+                    )
+                    is_duplicate_renewal = False
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
 
                 if self.request.wants_json:
                     return {
                         "result": "success",
                         "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                        "is_duplicate_renewal": is_duplicate_renewal,
                     }
 
                 return HTTPSeeOther(
-                    "%s/renewal-configuration/%s"
+                    "%s/renewal-configuration/%s%s"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         dbRenewalConfiguration.id,
+                        "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
 
@@ -635,19 +694,25 @@ class View_Focus_Order(View_Focus):
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
-                formStash.fatal_field(
-                    field="Error_Main",
-                    message="""This appears to be a duplicate of """
-                    """RenewalConfiguration: %s.""" % exc.args[0].id,
+                message = (
+                    "This appears to be a duplicate of RenewalConfiguration: `%s`."
+                    % exc.args[0].id
                 )
+                formStash.fatal_form(message=message)
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
+
+            except errors.AcmeDnsServerError as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server."
+                )
 
             except (
                 errors.AcmeError,
@@ -781,6 +846,8 @@ class View_Focus_Manipulate(View_Focus):
                 return {
                     "result": "success",
                     "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                    "operation": "mark",
+                    "action": action,
                 }
             url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
@@ -807,54 +874,39 @@ class View_New(Handler):
     @view_config(route_name="admin:renewal_configuration:new|json", renderer="json")
     @docify(
         {
-            "endpoint": "/renewal-configuration/new/freeform.json",
+            "endpoint": "/renewal-configuration/new.json",
             "section": "renewal-configuration",
             "about": """AcmeOrder: New Freeform""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/renewal-configuration/new/freeform.json",
+            "example": "curl {ADMIN_PREFIX}/renewal-configuration/new.json",
             "form_fields": {
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
-                "processing_strategy": "How should the order be processed?",
                 "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                "acme_server_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                "account_key_file_le_reg": "LetsEncrypt Certbot file",
-                "private_key_option": "How is the PrivateKey being specified?",
-                "private_key_reuse": "pem_md5 of existing key",
-                "private_key_existing": "pem_md5 of existing key",
-                "private_key_file_pem": "pem to upload",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "key_technology": "what kind of keys to use?",
             },
             "form_fields_related": [
-                ["account_key_file_pem", "acme_server_id"],
                 ["domain_names_http01", "domain_names_dns01"],
-                [
-                    "account_key_file_le_meta",
-                    "account_key_file_le_pkey",
-                    "account_key_file_le_reg",
-                ],
             ],
             "valid_options": {
-                "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccountKey_options_b,
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
-                "private_key_option": model_utils.PrivateKey_options_b,
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle": model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+                "account_key_option": Form_RenewalConfig_new.fields[
+                    "account_key_option"
+                ].list,
+                "private_key_cycle": Form_RenewalConfig_new.fields[
+                    "private_key_cycle"
+                ].list,
+                "key_technology": Form_RenewalConfig_new.fields["key_technology"].list,
             },
             "requirements": [
-                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
                 "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
             ],
             "instructions": [
-                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/renewal-configuration/new/freeform.json""",
+                """curl --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_cycle=account_default' {ADMIN_PREFIX}/renewal-configuration/new.json""",
             ],
         }
     )
@@ -907,6 +959,7 @@ class View_New(Handler):
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
+                support_upload=False,
             )
             assert acmeAccountSelection.AcmeAccount is not None
             private_key_cycle = formStash.results["private_key_cycle"]
@@ -966,25 +1019,33 @@ class View_New(Handler):
                 # * model_utils.RenewableConfig
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
-                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                    self.request.api_context,
-                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                    private_key_cycle_id=private_key_cycle_id,
-                    key_technology_id=key_technology_id,
-                    domains_challenged=domains_challenged,
-                )
+                is_duplicate_renewal = None
+                try:
+                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                        self.request.api_context,
+                        dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                        private_key_cycle_id=private_key_cycle_id,
+                        key_technology_id=key_technology_id,
+                        domains_challenged=domains_challenged,
+                    )
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
 
                 if self.request.wants_json:
                     return {
                         "result": "success",
                         "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                        "is_duplicate_renewal": is_duplicate_renewal,
                     }
 
                 return HTTPSeeOther(
-                    "%s/renewal-configuration/%s"
+                    "%s/renewal-configuration/%s%s"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         dbRenewalConfiguration.id,
+                        "is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
 
@@ -992,19 +1053,25 @@ class View_New(Handler):
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
-                formStash.fatal_field(
-                    field="Error_Main",
-                    message="""This appears to be a duplicate of """
-                    """RenewalConfiguration: %s.""" % exc.args[0].id,
+                message = (
+                    "This appears to be a duplicate of RenewalConfiguration: `%s`."
+                    % exc.args[0].id
                 )
+                formStash.fatal_form(message=message)
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_field(field="Error_Main", message=str(exc))
+                formStash.fatal_form(message=str(exc))
+
+            except errors.AcmeDnsServerError as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server."
+                )
 
             except (
                 errors.AcmeError,

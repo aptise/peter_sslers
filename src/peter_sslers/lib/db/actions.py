@@ -16,12 +16,14 @@ from sqlalchemy import or_ as sqlalchemy_or
 
 # localapp
 from . import actions_acme
+from . import create
 from . import getcreate
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .. import errors
 from .. import events
 from ... import lib
+from ...lib import db as lib_db
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -569,23 +571,27 @@ def operations_update_recents__global(
 
 def api_domains__certificate_if_needed(
     ctx: "ApiContext",
-    domains_challenged: "DomainsChallenged",
-    processing_strategy: str,
-    private_key_cycle: str,
-    private_key_strategy__requested: str,
     dbAcmeAccount: "AcmeAccount",
     dbPrivateKey: "PrivateKey",
+    domains_challenged: "DomainsChallenged",
+    private_key_cycle: str,
+    # private_key_strategy__requested: str,
+    private_key_deferred: str,
+    key_technology: str,
+    processing_strategy: str,
 ) -> Dict:
     """
     Adds Domains if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
-    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
-    :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
+    :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    # :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
+    :param private_key_deferred: (required)  A value from :class:`model.utils.PrivateKeyDeferred`
+    :param key_technology: (required)  A value from :class:`model.utils.KeyTechnology`
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
 
     results will be a dict:
 
@@ -601,17 +607,17 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
-    raise ValueError("MIGRATE")
-
     # validate this first!
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
-    private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
-        private_key_cycle
-    )
-    private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
-        private_key_strategy__requested
+    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+
+    # private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
+    #    private_key_strategy__requested
+    # )
+    private_key_deferred_id = model_utils.PrivateKeyDeferred.from_string(
+        private_key_deferred
     )
 
     # bookkeeping
@@ -715,15 +721,31 @@ def api_domains__certificate_if_needed(
                         _domain_name,
                     ]
                 )
-                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__new(
+
+                try:
+                    dbRenewalConfiguration = create.create__RenewalConfiguration(
+                        ctx,
+                        dbAcmeAccount=dbAcmeAccount,
+                        private_key_cycle_id=private_key_cycle_id,
+                        key_technology_id=model_utils.KeyTechnology.from_string(
+                            key_technology
+                        ),
+                        domains_challenged=_domains_challenged__single,
+                    )
+                    is_duplicate_renewal = False
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
+
+                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
-                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
-                    domains_challenged=_domains_challenged__single,
-                    private_key_cycle=private_key_cycle,
-                    private_key_strategy__requested=private_key_strategy__requested,
+                    dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
-                    dbAcmeAccount=dbAcmeAccount,
+                    acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey,
+                    private_key_deferred_id=private_key_deferred_id,
+                    # private_key_strategy_id__requested=private_key_strategy_id__requested,
                 )
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
@@ -891,10 +913,10 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
         )
         .filter(
-            CertificateSigned.is_active is True,
+            CertificateSigned.is_active.is_(True),
             sqlalchemy_or(
-                CertificateSigned.is_ari_supported__cert is True,
-                CertificateSigned.is_ari_supported__order is True,
+                CertificateSigned.is_ari_supported__cert.is_(True),
+                CertificateSigned.is_ari_supported__order.is_(True),
             ),
             CertificateSigned.timestamp_not_after < timely_date,
             sqlalchemy_or(

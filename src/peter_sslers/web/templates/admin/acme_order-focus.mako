@@ -82,16 +82,22 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% _btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
-                                        <form method="POST"
-                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
-                                            id="form-acme_process"
-                                        >
-                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_process">
+                                        % if AcmeOrder.is_can_acme_process:
+                                            <form method="POST"
+                                                action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
+                                                id="form-acme_process"
+                                            >
+                                                <button class="btn btn-xs btn-info" id="btn-acme_process">
+                                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                    Process on AcmeServer
+                                                </button>
+                                            </form>
+                                        % else:
+                                            <button class="btn btn-xs btn-info disabled" id="btn-acme_process">
                                                 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                                 Process on AcmeServer
                                             </button>
-                                        </form>
+                                        % endif
                                     </td>
                                     <td>
                                         Starts processing
@@ -158,16 +164,22 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% _btn_class = '' if AcmeOrder.is_can_acme_finalize else 'disabled' %>
-                                        <form method="POST"
-                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-finalize"
-                                            id="form-acme_finalize"
-                                        >
-                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_finalize">
+                                        % if AcmeOrder.is_can_acme_finalize:
+                                            <form method="POST"
+                                                action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-finalize"
+                                                id="form-acme_finalize"
+                                            >
+                                                <button class="btn btn-xs btn-info" id="btn-acme_finalize">
+                                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                    Finalize Order
+                                                </button>
+                                            </form>
+                                        % else:
+                                            <button class="btn btn-xs btn-info disabled" id="btn-acme_finalize">
                                                 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                                 Finalize Order
                                             </button>
-                                        </form>
+                                        % endif
                                     </td>
                                     <td>
                                         Only available if the order is "ready" to be finalized.
@@ -258,7 +270,11 @@
                         <th>Processing Status</th>
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
                     </tr>
-
+                    <tr>
+                        <th>is_save_alternate_chains</th>
+                        <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                        </td>
+                    </tr>
                     <tr>
                         <th>is_processing</th>
                         <td>
@@ -290,39 +306,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_auto_renew</th>
+                        <th>Renewals</th>
                         <td>
-                            <span class="label label-${'success' if AcmeOrder.is_auto_renew else 'warning'}">
-                                ${'AutoRenew' if AcmeOrder.is_auto_renew else 'manual'}
-                            </span>
-                            &nbsp;
-                            % if AcmeOrder.is_auto_renew:
-                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_manual">
-                                    <input type="hidden" name="action" value="renew_manual"/>
-                                    <button class="btn btn-xs btn-warning" type="submit" name="submit" value="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        deactivate auto-renew
-                                    </button>
-                                </form>
-                            % else:
-                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_auto">
-                                    <input type="hidden" name="action" value="renew_auto"/>
-                                    <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        enable auto-renew
-                                    </button>
-                                </form>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_renewed</th>
-                        <td>
-                            <span class="label label-${'success' if AcmeOrder.is_renewed else 'default'}">
-                                ${'Renewed' if AcmeOrder.is_renewed else 'not-renewed-yet'}
-                            </span>
-                            &nbsp;
-
                             <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${quick_btn_class}"
                                 href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-order"

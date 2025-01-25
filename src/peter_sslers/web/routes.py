@@ -895,19 +895,19 @@ def _admin_views(config: "Configurator") -> None:
         r"/certificate-signed/{@id}/ari-check.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check-history",
+        "admin:certificate_signed:focus:ari_check_history",
         r"/certificate-signed/{@id}/ari-check-history",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check-history|json",
+        "admin:certificate_signed:focus:ari_check_history|json",
         r"/certificate-signed/{@id}/ari-check-history.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check-history__paginated",
+        "admin:certificate_signed:focus:ari_check_history__paginated",
         r"/certificate-signed/{@id}/ari-check-history/{@page}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check-history__paginated|json",
+        "admin:certificate_signed:focus:ari_check_history__paginated|json",
         r"/certificate-signed/{@id}/ari-check-history/{@page}.json",
     )
     config.add_route_7(
@@ -1310,6 +1310,14 @@ def _admin_views(config: "Configurator") -> None:
         "/renewal-configuration/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
+        "admin:renewal_configuration:focus:acme_orders|json",
+        "/renewal-configuration/{@id}/acme-orders.json",
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:acme_orders_paginated|json",
+        "/renewal-configuration/{@id}/acme-orders/{@page}.json",
+    )
+    config.add_route_7(
         "admin:renewal_configuration:focus:certificate_signeds",
         "/renewal-configuration/{@id}/certificate-signeds",
     )
@@ -1348,14 +1356,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:renewal_configuration:focus:new_configuration|json",
         "/renewal-configuration/{@id}/new-configuration.json",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:retry_order",
-        "/renewal-configuration/{@id}/retry-order",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:retry_order|json",
-        "/renewal-configuration/{@id}/retry-order.json",
     )
 
     # !!!: Root Stores

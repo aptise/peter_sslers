@@ -208,7 +208,7 @@ class _mixin_mapping(object):
     def as_string(cls, mapping_id: int) -> str:
         if mapping_id in cls._mapping:
             return cls._mapping[mapping_id]
-        return "unknown"
+        return "***unknown***"
 
     @classmethod
     def from_string(cls, mapping_text: str) -> int:
@@ -259,8 +259,8 @@ class _OperationsUnified(_mixin_mapping):
         651: "AcmeOrder_Renew_Custom",
         652: "AcmeOrder_Renew_Quick",
         653: "AcmeOrder_New_RenewalConfiguration",
-        661: "AcmeOrder__mark__renew_auto",
-        662: "AcmeOrder__mark__renew_manual",
+        # 661: "AcmeOrder__mark__renew_auto",
+        # 662: "AcmeOrder__mark__renew_manual",
         1100: "AcmeServer__activate_default",
         1101: "AcmeServer__mark",
         1102: "AcmeServer__mark__is_enabled",
@@ -332,8 +332,8 @@ class _OperationsUnified(_mixin_mapping):
         723: "CertificateSigned__mark__revoked",
         724: "CertificateSigned__mark__compromised",  # the PrivateKey has been compromised
         726: "CertificateSigned__mark__unrevoked",
-        727: "CertificateSigned__mark__renew_auto",
-        728: "CertificateSigned__mark__renew_manual",
+        # 727: "CertificateSigned__mark__renew_auto",
+        # 728: "CertificateSigned__mark__renew_manual",
         740: "CertificateSigned__revoke",
         751: "CertificateSigned__deactivate_expired",
         752: "CertificateSigned__deactivate_duplicate",
@@ -403,6 +403,10 @@ class _Acme_Status_All(_mixin_mapping):
         the test ACME server may not implement the ACME Specification fully.
         For example, certain versions of the Pebble test server are known to mark
         an ACME Order as "deactivated" when the specification states is should be "invalid".
+
+    * 410: "*410*"
+        Inspired by the HTTP 410 Code "Gone".
+        This should only occur in testing environments
     """
 
     ID_DEFAULT = 0
@@ -419,7 +423,14 @@ class _Acme_Status_All(_mixin_mapping):
         8: "ready",
         404: "*404*",  # "Not Found"; resource is not on the server
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
+        410: "*410*",  # "Gone"; usually used by testing for something that was disabled
     }
+
+    INVALID = 3
+    DEACTIVATED = 4
+    X_404_X = 404
+    X_406_X = 406
+    X_410_X = 410
 
 
 class Acme_Status_Authorization(_Acme_Status_All):
@@ -543,6 +554,12 @@ class Acme_Status_Order(_Acme_Status_All):
        o  "valid": The server has issued the certificate and provisioned its
           URL to the "certificate" field of the order.  Download the
           certificate.
+
+    PeterSSLers Extensions
+        see _Acme_Status_All
+        404 - not on the server (anymore? ever)
+        406 - the status does not seem to be a valid transition
+        410 - "Gone"; usually from testing
     """
 
     OPTIONS_FINALIZE = ("ready",)
@@ -564,6 +581,8 @@ class Acme_Status_Order(_Acme_Status_All):
         "valid",  # valid means we're done!
         "invalid",
         "*404*",
+        "*406*",
+        "*410*",
     )
     OPTIONS_X_ACME_SYNC = ("*404",)
     OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = (
@@ -631,8 +650,8 @@ if True:
     # see https://github.com/letsencrypt/pebble/issues/300
     # see https://github.com/letsencrypt/boulder/issues/4887
     Acme_Status_Order._mapping[999] = "deactivated"
-    Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE = Acme_Status_Order.OPTIONS_RETRY + (
-        "deactivated",
+    Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE = (
+        Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE + ("deactivated",)
     )
     Acme_Status_Order.OPTIONS_RETRY = Acme_Status_Order.OPTIONS_RETRY + ("deactivated",)
     Acme_Status_Order.OPTIONS_X_MARK_INVALID = (
@@ -653,6 +672,28 @@ Acme_Status_Order.IDS_finished = [
 ]
 
 
+class AcmeAccountKeyOption(object):
+
+    # legacy options
+    options_all = (
+        "account_key_global_default",
+        "account_key_existing",
+        "account_key_reuse",
+        "account_key_file",
+    )
+
+    options_basic = (
+        "account_key_global_default",
+        "account_key_existing",
+    )
+
+    options_basic_reuse = (
+        "account_key_global_default",
+        "account_key_existing",
+        "account_key_reuse",
+    )
+
+
 class AcmeAccountKeySource(_mixin_mapping):
     """
     How was the AcmeAccountKey generated?
@@ -662,6 +703,9 @@ class AcmeAccountKeySource(_mixin_mapping):
         1: "generated",
         2: "imported",
     }
+
+    GENERATED = 1
+    IMPORTED = 2
 
 
 class AcmeChallengeType(_mixin_mapping):
@@ -686,7 +730,10 @@ class AcmeChallengeFailType(_mixin_mapping):
     Used for Acme Logging
     """
 
-    _mapping = {1: "setup-prevalidation", 2: "upstream-validation"}
+    _mapping = {
+        1: "setup-prevalidation",
+        2: "upstream-validation",
+    }
 
 
 class AcmeEvent(_mixin_mapping):
@@ -763,21 +810,23 @@ class AcmeOrderType(_mixin_mapping):
     How was the AcmeOrder created?
     """
 
-    ACME_AUTOMATED_NEW = 1
-    ACME_AUTOMATED_RETRY = 2
+    ACME_ORDER_NEW_FREEFORM = 1
+    RETRY = 2
     # ACME_AUTOMATED_RENEW_QUICK = 3
     # ACME_AUTOMATED_RENEW_CUSTOM = 4
-    # ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
+    CERTIFICATE_IF_NEEDED = 5  # CIN=Certificate-If-Needed
+    AUTOCERT = 6
     # QUEUE_CERTIFICATE = 11
     # QUEUE_DOMAINS = 12
     RENEWAL_CONFIGURATION_REQUEST = 21
     RENEWAL_CONFIGURATION_AUTOMATED = 22
     _mapping = {
-        1: "ACME Automated (New)",
-        2: "ACME Automated (Retry)",
+        1: "ACME (New Freeform Order)",
+        2: "ACME (Retry)",
         # 3: "ACME Automated (Renew Quick)",
         # 4: "ACME Automated (Renew Custom)",
-        # 5: "ACME Automated (New - Certificate if Needed)",
+        5: "ACME (New - Certificate if Needed)",
+        6: "ACME (New - Autocert)",
         # 11: "Queue - Certificate Renewal",
         # 12: "Queue - Domains",
         21: "RenewalConfiguration - Request",
@@ -854,6 +903,8 @@ class CoverageAssuranceResolution(_mixin_mapping):
         4: "CertificateSigned_replaced",
     }
     OPTIONS_ALL: List[str]
+
+    UNRESOLVED = 1
 
 
 CoverageAssuranceResolution.OPTIONS_ALL = list(
@@ -949,7 +1000,7 @@ class KeyTechnology(_mixin_mapping):
     What kind of Certificate/Key is this?
     """
 
-    ACCOUNT_DEFAULT = 0
+    ACCOUNT_DEFAULT = 0  # PlaceHolder
     RSA_2048 = 1
     RSA_3072 = 2
     RSA_4096 = 3
@@ -965,9 +1016,9 @@ class KeyTechnology(_mixin_mapping):
         5: "EC_P384",
     }
 
+    _options_all_id = (0, 1, 2, 3, 4, 5)
     _options_AcmeAccount_private_key_technology_id = (1, 2, 3, 4, 5)
     _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
-    _options_all = (0, 1, 2, 3, 4, 5)
     _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
     _options_Generate_id = (1, 2, 3, 4, 5)
     _options_RSA_id = (1, 2, 3)
@@ -988,9 +1039,9 @@ class KeyTechnology(_mixin_mapping):
     _DEFAULT_PrivateKey_id: int
     _DEFAULT_RenewalConfiguration = "account_default"
     _DEFAULT_RenewalConfiguration_id: int
+    _options_all: List[str]
     _options_AcmeAccount_private_key_technology: List[str]
     _options_AcmeAccount_order_default: List[str]
-    _options_all: List[str]
     _options_Generate: List[str]
     _options_RenewalConfiguration_private_key_technology: List[str]
 
@@ -1034,6 +1085,9 @@ class KeyTechnology(_mixin_mapping):
         raise ValueError("unknown cu_args: %s", cu_args)
 
 
+KeyTechnology._options_all = [
+    KeyTechnology._mapping[_id] for _id in KeyTechnology._options_all_id
+]
 KeyTechnology._options_AcmeAccount_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_AcmeAccount_private_key_technology_id
@@ -1076,9 +1130,13 @@ class PrivateKeyCycle(_mixin_mapping):
     How should a PrivateKey be cycled on renewal?
     """
 
-    ACCOUNT_DEFAULT = 1
+    ACCOUNT_DEFAULT = 1  # Placeholder
     SINGLE_USE = 2
-    SINGLE_USE__REUSE_1_YEAR = 3
+    ACCOUNT_DAILY = 3
+    GLOBAL_DAILY = 4
+    ACCOUNT_WEEKLY = 5
+    GLOBAL_WEEKLY = 6
+    SINGLE_USE__REUSE_1_YEAR = 7
 
     _mapping = {
         1: "account_default",  # use the Account Default
@@ -1130,10 +1188,20 @@ PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle = [
 class PrivateKeyDeferred(_mixin_mapping):
     """
     What kind of PrivateKeyDeferred is this?
+
+    When creating an order, we have a few ways to specify the key
+
+    1- Specify an Actual Key for the order
+    2- Defer the key
+        1. use the AcmeAccount.order_default [account_default]
+        2. use a weekly/daily key [account_associate]
+        3. make a new key with a specific algorithm [generate__*]
     """
 
-    ACCOUNT_DEFAULT = 1
+    ACCOUNT_DEFAULT = 1  # Placeholder
     ACCOUNT_ASSOCIATE = 2
+
+    # Specifically Requested Keys
     GENERATE__RSA_2048 = 5
     GENERATE__RSA_3072 = 6
     GENERATE__RSA_4096 = 7
@@ -1143,6 +1211,7 @@ class PrivateKeyDeferred(_mixin_mapping):
     _mapping = {
         1: "account_default",
         2: "account_associate",
+        # Specifically Requested Keys
         5: "generate__rsa_2048",
         6: "generate__rsa_3072",
         7: "generate__rsa_4096",
@@ -1170,7 +1239,7 @@ class PrivateKeyDeferred(_mixin_mapping):
             return KeyTechnology.EC_P256
         elif str_ == "generate__ec_p384":
             return KeyTechnology.EC_P384
-        raise ValueError("unsupported")
+        raise ValueError("unsupported: `%s`" % str_)
 
     @classmethod
     def id_from_KeyTechnology_id(cls, key_technology_id) -> int:
@@ -1185,7 +1254,24 @@ class PrivateKeyDeferred(_mixin_mapping):
             return cls.GENERATE__EC_P256
         elif key_technology == "EC_P384":
             return cls.GENERATE__EC_P384
-        raise ValueError("unsupported")
+        raise ValueError("unsupported: `%s`" % key_technology_id)
+
+
+class PrivateKeyOption(object):
+
+    options_all = (
+        "account_default",
+        "private_key_existing",
+        "private_key_file",
+        "private_key_generate",
+        "private_key_reuse",
+    )
+
+    options_basic = (
+        "account_default",
+        "private_key_existing",
+        "private_key_generate",
+    )
 
 
 class PrivateKeySource(_mixin_mapping):
@@ -1195,9 +1281,13 @@ class PrivateKeySource(_mixin_mapping):
 
     _mapping = {
         0: "placeholder",  # application setup only
-        2: "imported",
         1: "generated",
+        2: "imported",
     }
+
+    PLACEHOLDER = 0
+    GENERATED = 1
+    IMPORTED = 2
 
 
 class PrivateKeyStrategy(_mixin_mapping):
@@ -1213,6 +1303,12 @@ class PrivateKeyStrategy(_mixin_mapping):
         5: "reused",  # only used for single_use__reuse_1_year
     }
     _DEFAULT_system_renewal = "deferred-generate"
+
+    SPECIFIED = 1
+    DEFERRED_GENERATE = 2
+    DEFERRED_ASSOCIATE = 3
+    BACKUP = 4
+    REUSED = 5
 
 
 class PrivateKeyType(_mixin_mapping):
@@ -1230,6 +1326,15 @@ class PrivateKeyType(_mixin_mapping):
         6: "account_weekly",
         7: "single_use__reuse_1_year",
     }
+
+    PLACEHOLDER = 0
+    STANDARD = 1
+    SINGLE_USE = 2
+    GLOBAL_DAILY = 3
+    GLOBAL_WEEKLY = 4
+    ACCOUNT_DAILY = 5
+    ACCOUNT_WEEKLY = 6
+    SINGLE_USE__REUSE_1_YEAR = 7
 
     @classmethod
     def from_private_key_cycle(cls, private_key_cycle) -> str:
@@ -1264,47 +1369,6 @@ class PrivateKeyType(_mixin_mapping):
 # Consolidate the options for forms here, as they are often printed out for JSON endpoints
 #
 
-
-AcmeAccountKey_options_a = (
-    "account_key_global_default",
-    "account_key_existing",
-    "account_key_file",
-)
-
-
-AcmeAccountKey_options_b = (
-    "account_key_reuse",
-    "account_key_global_default",
-    "account_key_existing",
-    "account_key_file",
-)
-
-AcmeAccountKey_options_c = (
-    "account_key_reuse",
-    "account_key_global_default",
-    "account_key_existing",
-    "account_key_file",
-    "none",  # not the Python `None`
-)
-
-
-PrivateKey_options_a = (
-    "private_key_existing",
-    "private_key_file",
-    "private_key_generate",
-    "account_default",
-)
-
-
-PrivateKey_options_b = (
-    "private_key_reuse",
-    "private_key_existing",
-    "private_key_file",
-    "private_key_generate",
-    "account_default",
-)
-
-
 PrivateKeySelection_2_PrivateKeyStrategy = {
     "upload": "specified",
     "existing": "specified",
@@ -1312,7 +1376,6 @@ PrivateKeySelection_2_PrivateKeyStrategy = {
     "generate": "deferred-generate",
     "account_default": "deferred-associate",
 }
-
 
 PrivateKeyCycle_2_PrivateKeyStrategy = {
     "single_use": "deferred-generate",

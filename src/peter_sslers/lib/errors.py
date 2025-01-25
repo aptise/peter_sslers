@@ -133,6 +133,15 @@ class AcmeDuplicateChallenge_PreAuthz(AcmeDuplicateChallenge):
     pass
 
 
+class AcmeDnsServerError(AcmeError):
+    """
+    args[0] == String message
+    args[1] == raised exception
+    """
+
+    pass
+
+
 class AcmeServerError(AcmeError):
     pass
 

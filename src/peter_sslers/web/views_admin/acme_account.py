@@ -21,7 +21,7 @@ from ..lib.forms import Form_AcmeAccount_edit
 from ..lib.forms import Form_AcmeAccount_key_change
 from ..lib.forms import Form_AcmeAccount_mark
 from ..lib.forms import Form_AcmeAccount_new__auth
-from ..lib.forms import Form_AcmeAccount_new__file
+from ..lib.forms import Form_AcmeAccount_new__upload
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -108,16 +108,20 @@ class View_New(Handler):
                 "account_key_file_le_pkey": "Group B",
                 "account_key_file_le_reg": "Group B",
                 "account__contact": "the contact's email address for the ACME Server",
-                "account__order_default_private_key_cycle_id": "what should orders default to?",
-                "account__order_default_private_key_technology_id": "what should orders default to?",
+                "account__order_default_private_key_cycle": "what should orders default to?",
+                "account__order_default_private_key_technology": "what should orders default to?",
             },
             "notes": [
                 "You must submit ALL items from Group A or Group B",
             ],
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account__order_default_private_key_cycle_id": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
-                "account__order_default_private_key_technology_id": model_utils.KeyTechnology._options_AcmeAccount_order_default,
+                "account__order_default_private_key_cycle": Form_AcmeAccount_new__upload.fields[
+                    "account__order_default_private_key_cycle"
+                ].list,
+                "account__order_default_private_key_technology": Form_AcmeAccount_new__upload.fields[
+                    "account__order_default_private_key_technology"
+                ].list,
             },
         }
     )
@@ -140,7 +144,7 @@ class View_New(Handler):
     def _upload__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeAccount_new__file, validate_get=False
+                self.request, schema=Form_AcmeAccount_new__upload, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -170,7 +174,7 @@ class View_New(Handler):
 
             key_create_args["event_type"] = "AcmeAccount__insert"
             key_create_args["acme_account_key_source_id"] = (
-                model_utils.AcmeAccountKeySource.from_string("imported")
+                model_utils.AcmeAccountKeySource.IMPORTED
             )
             try:
                 (
@@ -223,14 +227,20 @@ class View_New(Handler):
                 "acme_server_id": "which provider",
                 "account__contact": "the contact's email address for the ACME Server",
                 "account__private_key_technology": "what is the key technology preference for this account?",
-                "account__order_default_private_key_cycle_id": "what should orders default to?",
-                "account__order_default_private_key_technology_id": "what should orders default to?",
+                "account__order_default_private_key_cycle": "what should orders default to?",
+                "account__order_default_private_key_technology": "what should orders default to?",
             },
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
-                "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-                "account__order_default_private_key_cycle_id": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
-                "account__order_default_private_key_technology_id": model_utils.KeyTechnology._options_AcmeAccount_order_default,
+                "account__private_key_technology": Form_AcmeAccount_new__auth.fields[
+                    "account__private_key_technology"
+                ].list,
+                "account__order_default_private_key_cycle": Form_AcmeAccount_new__auth.fields[
+                    "account__order_default_private_key_cycle"
+                ].list,
+                "account__order_default_private_key_technology": Form_AcmeAccount_new__auth.fields[
+                    "account__order_default_private_key_technology"
+                ].list,
             },
         }
     )
@@ -305,7 +315,7 @@ class View_New(Handler):
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccount__create"
             key_create_args["acme_account_key_source_id"] = (
-                model_utils.AcmeAccountKeySource.from_string("generated")
+                model_utils.AcmeAccountKeySource.GENERATED
             )
             dbAcmeAccount = None
             _dbAcmeAccount = None
@@ -320,7 +330,7 @@ class View_New(Handler):
                 # result is either: `new-account` or `existing-account`
                 # failing will raise an exception
                 authenticatedUser = (  # noqa: F841
-                    lib_db.actions_acme.do__AcmeAccount_AcmeV2_register(
+                    lib_db.actions_acme.do__AcmeV2_AcmeAccount_register(
                         self.request.api_context, _dbAcmeAccount
                     )
                 )
@@ -338,7 +348,7 @@ class View_New(Handler):
                 )
 
             except errors.AcmeDuplicateAccount as exc:
-                # this happens via `do__AcmeAccount_AcmeV2_register`
+                # this happens via `do__AcmeV2_AcmeAccount_register`
                 # args[0] MUST be the duplicate AcmeAccount
                 _dbAcmeAccountDuplicate = exc.args[0]
                 # the 'Duplicate' account was the earlier account and therefore
@@ -370,18 +380,25 @@ class View_New(Handler):
             )
 
         except errors.AcmeServerError as exc:
+            # (status_code, resp_data, url) = exc
+            self.request.tm.abort()
             if _dbAcmeAccount and not dbAcmeAccount:
                 # we've created an AcmeAccount locally but not on the server
-                # right now, this will persist to the DB, which causes issues
-                raise ValueError("Account Local but not Upstream")
-
+                # right now, this will persist to the DB ( which causes issues)
+                # unless we raise an exception or set an error
+                formStash.set_error(
+                    field=formStash.error_main_key,
+                    message="Can not validate on upstream ACME Server.",
+                    message_prepend=True,
+                )
+            else:
+                formStash.set_error(
+                    field=formStash.error_main_key,
+                    message=str(exc.args[1]),
+                    message_prepend=True,
+                )
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            formStash.set_error(
-                field=formStash.error_main_key,
-                message=exc.args[0],
-                message_prepend=True,
-            )
             return formhandling.form_reprint(self.request, self._new__print)
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -1066,13 +1083,13 @@ class View_Focus_Manipulate(View_Focus):
         # failing will raise an exception
         try:
             authenticatedUser = (  # noqa: F841
-                lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
                     self.request.api_context, dbAcmeAccount
                 )
             )
         except errors.AcmeServerError as exc:
-            if not self._handle_potentially_deactivated(exc):
-                raise
+            # (status_code, resp_data, url) = exc
+            raise exc
         if self.request.wants_json:
             return {"AcmeAccount": dbAcmeAccount.as_json}
         return HTTPSeeOther(
@@ -1142,12 +1159,13 @@ class View_Focus_Manipulate(View_Focus):
         _message = None
         try:
             checkedUser = (  # noqa: F841
-                lib_db.actions_acme.do__AcmeAccount_AcmeV2_authenticate(
+                lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
                     self.request.api_context, dbAcmeAccount, onlyReturnExisting=True
                 )
             )
             _result = "success"
         except errors.AcmeServerError as exc:
+            # (status_code, resp_data, url) = exc
             # only catch this if `onlyReturnExisting` and there is an DNE error
             if (exc.args[0] == 400) and (
                 exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
@@ -1488,6 +1506,7 @@ class View_Focus_Manipulate(View_Focus):
                     transaction_commit=True,
                 )
             except errors.AcmeServerError as exc:
+                # (status_code, resp_data, url) = exc
                 if self._handle_potentially_deactivated(exc):
                     formStash.fatal_form(message=str(exc.args[1]))
                 raise

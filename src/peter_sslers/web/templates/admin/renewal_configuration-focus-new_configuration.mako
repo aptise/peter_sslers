@@ -36,6 +36,7 @@
                 action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-configuration"
                 method="POST"
                 enctype="multipart/form-data"
+                id="form-renewal_configuration-new_configuration"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}

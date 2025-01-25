@@ -89,74 +89,7 @@ class _Form_Schema_Base(_Schema):
     filter_extra_fields = True
 
 
-class _form_AcmeAccount_core(_Form_Schema_Base):
-    # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
-    account_key_option = OneOf(
-        model_utils.AcmeAccountKey_options_a,
-        not_empty=True,
-    )
-    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
-
-    # these are via Form_AcmeAccount_new__file
-    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    account_key_file_le_meta = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    account_key_file_le_pkey = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    account_key_file_le_reg = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    acme_server_id = Int(not_empty=False, if_missing=None)
-
-
-class _form_PrivateKey_core(_Form_Schema_Base):
-    private_key_option = OneOf(
-        model_utils.PrivateKey_options_a,
-        not_empty=True,
-    )
-    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    private_key_generate = OneOf(
-        model_utils.KeyTechnology._options_Generate,
-        not_empty=False,
-        if_missing=None,
-    )
-
-
-"""
-class _form_AcmeAccount_reuse(_form_AcmeAccount_core):
-    # this doesn't seem to subclass correctly as a mixin
-    # so just overwrite these two fields
-    account_key_option = OneOf(
-        model_utils.AcmeAccountKey_options_b,
-        not_empty=True,
-    )
-    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
-
-
-class _form_PrivateKey_reuse(_form_PrivateKey_core):
-    # this doesn't seem to subclass correctly as a mixin
-    # so just overwrite these two fields
-    private_key_option = OneOf(model_utils.PrivateKey_options_b, not_empty=True)
-    private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
-"""
-
-
-class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
-    """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance"""
-
-    account_key_option = OneOf(
-        ("account_key_global_default", "account_key_existing", "account_key_file"),
-        not_empty=True,
-    )
-    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
-
-    account__contact = Email(not_empty=False, if_missing=None)  # required if key_pem
-
+class _form_AcmeAccount_PrivateKey_extended:
     # this is the `private_key_technology` of the AcmeAccount
     # this is not required on Upload, only New
     account__private_key_technology = OneOf(
@@ -178,7 +111,7 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
         if_missing=None,
     )
 
-    # these are via Form_AcmeAccount_new__file
+    # these are via Form_AcmeAccount_new__upload
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_meta = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
@@ -190,32 +123,37 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
         not_empty=False, if_missing=None
     )
     acme_server_id = Int(not_empty=False, if_missing=None)
+
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
+    """
+    this is a mix of two forms, because FormEncode doesn't support multiple class inheritance
+
+    Base for:
+        Form_AcmeOrder_new_freeform
+        Form_API_Domain_certificate_if_needed
+
+    """
+
+    account_key_option = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic,
+        not_empty=True,
+    )
+    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
     private_key_option = OneOf(
-        model_utils.PrivateKey_options_a,
+        model_utils.PrivateKeyOption.options_basic,
         not_empty=True,
     )
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     private_key_generate = OneOf(
         model_utils.KeyTechnology._options_Generate,
         not_empty=False,
         if_missing=None,
     )
-
-
-class _form_AcmeAccount_PrivateKey_reuse(_form_AcmeAccount_PrivateKey_core):
-    """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance"""
-
-    account_key_option = OneOf(
-        model_utils.AcmeAccountKey_options_b,
-        not_empty=True,
-    )
-    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
-    private_key_option = OneOf(
-        model_utils.PrivateKey_options_b,
-        not_empty=True,
-    )
-    private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_AcmeAccount_edit(_Form_Schema_Base):
@@ -259,7 +197,7 @@ class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     )
 
 
-class Form_AcmeAccount_new__file(_Form_Schema_Base):
+class Form_AcmeAccount_new__upload(_Form_Schema_Base):
     """
     copied into a few other forms
         * Form_AcmeOrder_new_freeform
@@ -352,17 +290,24 @@ class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
 
 
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
-    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
-    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
 
-    processing_strategy = OneOf(
-        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+    # redefine this
+    account_key_option = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic,
         not_empty=True,
     )
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+        not_empty=True,
+    )
+
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
+
+    processing_strategy = OneOf(
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
         not_empty=True,
     )
 
@@ -445,8 +390,6 @@ class Form_CertificateSigned_mark(_Form_Schema_Base):
             "active",
             "inactive",
             "revoked",
-            # "renew_manual",
-            # "renew_auto",
             "unrevoke",
         ),
         not_empty=True,
@@ -518,7 +461,7 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
 
 class Form_RenewalConfig_new(_Form_Schema_Base):
     account_key_option = OneOf(
-        ("account_key_global_default", "account_key_existing"),
+        model_utils.AcmeAccountKeyOption.options_basic,
         not_empty=True,
     )
     account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
@@ -545,7 +488,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
 
 class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     account_key_option = OneOf(
-        model_utils.AcmeAccountKey_options_b,
+        model_utils.AcmeAccountKeyOption.options_basic_reuse,
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)

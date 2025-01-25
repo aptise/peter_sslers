@@ -61,7 +61,7 @@
 
 
                             % if not RenewalConfiguration.is_active:
-                                <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-active">
                                     <input type="hidden" name="action" value="active"/>
                                     <button class="btn btn-xs btn-info" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -69,7 +69,7 @@
                                     </button>
                                 </form>
                             % else:
-                                <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-inactive">
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -170,8 +170,11 @@
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 Custom Renewal
                             </a>
-
-
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_save_alternate_chains</th>
+                        <td><code>${RenewalConfiguration.is_save_alternate_chains or ''}</code>
                         </td>
                     </tr>
                     <tr>
