@@ -14,7 +14,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import TypedDict
 from typing import Union
 from urllib.request import Request
 from urllib.request import urlopen
@@ -29,6 +28,7 @@ from cert_utils.model import AccountKeyData
 import josepy
 from requests.utils import parse_header_links
 from typing_extensions import NotRequired
+from typing_extensions import TypedDict
 
 # localapp
 from . import acmedns as lib_acmedns
