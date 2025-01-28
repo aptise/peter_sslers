@@ -63,7 +63,9 @@ jobs:
       # several tests require a Pebble instance (ACME Server)
       run: |
         export GOPATH=$HOME/go
-        go install github.com/letsencrypt/pebble/cmd/pebble@HEAD
+        git clone https://github.com/letsencrypt/pebble/
+        cd pebble
+        go install ./cmd/pebble
 
     - name: Install ACME-DNS
       # several tests require an ACME-DNS installation
