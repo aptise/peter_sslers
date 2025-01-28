@@ -116,8 +116,15 @@
     Testing
         The test suite was overhauled
         unit tests-
-            now support database snapshots for sqlite    
+            now support database snapshots on sqlite
+            so expensive  core data does not need to be rebuilt for local tests. 
         py313 testing supported
+        
+    Bugs
+        Processing an ACME order could randomly generate an error. 
+        This was due to a change on polling; fixed.
+        
+    
 
 
 0.6.0

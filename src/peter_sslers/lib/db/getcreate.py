@@ -4,7 +4,6 @@ import json
 import logging
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -12,6 +11,8 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 import sqlalchemy
+from typing_extensions import Literal
+
 
 # localapp
 from .create import create__AcmeChallenge

@@ -10,7 +10,6 @@ import subprocess
 import time
 import traceback
 from typing import Dict
-from typing import Literal
 from typing import Optional
 from typing import overload
 from typing import TYPE_CHECKING
@@ -32,6 +31,7 @@ import requests
 import sqlalchemy
 from sqlalchemy.orm import Session
 import transaction
+from typing_extensions import Literal
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 

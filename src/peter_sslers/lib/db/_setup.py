@@ -2,13 +2,13 @@
 import datetime
 import logging
 from typing import Dict
-from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
 import sqlalchemy
+from typing_extensions import Literal
 from typing_extensions import TypedDict
 
 # local

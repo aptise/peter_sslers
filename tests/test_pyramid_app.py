@@ -5,7 +5,6 @@ from io import StringIO  # noqa: F401
 import json
 import logging
 from typing import Dict
-from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -17,6 +16,7 @@ import cert_utils
 import packaging.version
 import requests
 import sqlalchemy
+from typing_extensions import Literal
 from webtest import Upload
 
 # local

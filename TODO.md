@@ -1,6 +1,32 @@
 URGENT
 =====
 
+Add a "note" to:
+    RenewalConfiguration
+    AcmeOrder
+
+
+* CertificateSigned-Focus:
+- If there is no acme_order/renewal_configuration SUCH AS AN IMPORT link to create one
+
+
+*   Add a unit test to ensure every object with an `.as_json` property can be encoded.
+		Context: AcmeOrder.as_json has an `acme_process_steps` method
+			     `acme_process_steps` did not properly encode an AcmeAuthorization item
+			     This caused AcmeOrder to not encode, but the tracebacks buried the underlying
+			     cause of this. A direct test should prevent this from happening again.
+
+* CertificateSigned
+	* TESTS
+	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
+	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
+
+*   api/domain/autocert
+		test against different strategies to ensure correct behavior
+		- dogpile defense
+		- repeat request, correct data
+
+
 * update API logging;
     [x] dedicated outlet
     [ ] formatting check
@@ -43,10 +69,6 @@ Docs
     RenewalConfiguration not support Edit for a reason.
 
 
-Add a "note" to:
-    RenewalConfiguration
-    AcmeOrder
-
 Errors:
     tests can somehow create a second acme-dns server
     transition concerns for acme-dns global servers (set_default)
@@ -74,27 +96,12 @@ systems with large numbers of rows
 
 should this allow an option to attempt renewals
 
-
-Development
-------------
-
-* Build a tool that can generate/save/load a new testdb, so it does not need to
-  be continually rebuilt for local tests.
-  - Migrating cert_utils to cryptography might drop this need
-
   
 Bugs
 ----
 
-# Processing an ACME order can generate an error. I thought it was a timing issue, but it mgiht be debug code.
-This was a change on polling behavior; fixed
+# The authz do not sync on exit. (still pending when valid)
 
-The authz do not sync on exit. (still pending when valid)
-
-
-CertificateSigned-Focus:
-
-- If there is no acme_order/renewal_configuration, link to create one
 
 
 
@@ -111,45 +118,34 @@ Application
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
 
-
-
-
     
 Questions:
 ----------
 * Should we ensure an AcmeAccountKey is unique (not used across servers)
-
-
 * ACME Client
     better track nonces from headers
     track header metadata hook, as LetsEncrypt wil offer info
 
-
 # Private Keys
     [] should "new" be locked to an account?
 
-    
 * Create a "Renewable Configuration"; renewals should be based on that.
     [x] create object and routes
-    [-] remap as central object for renewals
-    [ ] import letsencrypt
+    [x] remap as central object for renewals
+    [ ] import letsencrypt renewals
 
 AuthorizationPotential
     [x] focus page to remove manually
     [x] domains view needs access to this
     [x] deactivate on AcmeAuthz sync
-    [] deactivate on AcmeOrder deactivate authz
-    [] deactivate on AcmeAccount deactivate authz
+    [x] deactivate on AcmeOrder deactivate authz
+    [x] deactivate on AcmeAccount deactivate authz
     [] remove on syncs
     []list view on domains page is unusable; needs alternate table
 
 
 Testing
 ------------
-
-* Broken
-    update_AcmeAccount_from_new_duplicate
-    
 
 * Tests Needed:
 	UNIT Tests
@@ -173,6 +169,7 @@ Not Finished Yet
 
 [ ] Trigger invalid "no row for one" when adding a CA Preference
 
+
 Almost done:
 ===============
 
@@ -188,7 +185,7 @@ TODO:
 * acme_account: sidenav_option is unused?
 
 * "# TODO: reintegrate"
-  * the setup routine did not add soon-to-expire ca certificates
+  * the setup routine did not add soon-to-expire CA certificates
     however, our tests do not account for this and expect them to be loaded in the database
 
 * ECDSA Support
@@ -231,18 +228,7 @@ Deferred
 	They are not necessarily written to RFC right now, but lax rules by parsers
 	just seem to work.
 
-TESTS:
-
-	api/domain/autocert
-		test against different strategies to ensure correct behavior
-		- dogpile defense
-		- repeat request, correct data
 		
-	Add a unit test to ensure every object with an `.as_json` property can be encoded.
-		Context: AcmeOrder.as_json has an `acme_process_steps` method
-			     `acme_process_steps` did not properly encode an AcmeAuthorization item
-			     This caused AcmeOrder to not encode, but the tracebacks buried the underlying
-			     cause of this. A direct test should prevent this from happening again.
 	
 EDIT:
 	AcmeOrder:
@@ -251,17 +237,13 @@ EDIT:
 
 ensure_chain_order 
 	The pure-python does not correctly ensure the chain order. it just looks at the subject/issuer for matches
+
 ensure_chain
 	not leveraged yet
 
-* CertificateCAs / AcmeOrders
 
 ====
 
-* CertificateSigned
-	* TESTS
-	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
-	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
 
 * CoverageAssuranceEvent
 	- on form display, show only eligible transitions(resolutions)

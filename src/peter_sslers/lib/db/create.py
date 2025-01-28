@@ -4,7 +4,6 @@ import json
 import logging
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
@@ -12,6 +11,7 @@ from typing import Union
 # pypi
 import cert_utils
 from dateutil import parser as dateutil_parser
+from typing_extensions import Literal
 
 # from typing_extensions import Required
 # from typing_extensions import TypedDict

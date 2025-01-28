@@ -8,14 +8,14 @@
 Nothing is truly secure, is it?
 
 PeterSSLers stores Certificates and PrivateKeys in plaintext - just like Certbot
-and most LetsEncrypt clients store their assets.
+and most LetsEncrypt Clients store their assets.
 
 The project splits the web-based views into two concepts: Public and Admin.
 
 The
 [Public Views](https://github.com/aptise/peter_sslers/tree/main/peter_sslers/web/views_public)
 are isolated to the '/.well-known/acme-challenge` directory, and expose the same
-information as every other LetsEncrypt client. These routes are generally safe.
+information as every other LetsEncrypt Client. These routes are generally safe.
 
 The
 [Admin Views](https://github.com/aptise/peter_sslers/tree/main/peter_sslers/web/views_admin)
@@ -68,26 +68,10 @@ the most widely usable Certificate.
 ## How does this handle Certbot AccountKeys?
 
 Certbot stores RSA AccountKeys in a JWK (JSON Web Key) format.  AccountKeys from the
-Certbot client are reformatted into PEM-encoded RSA key.  The data from the various
+Certbot Client are reformatted into PEM-encoded RSA key.  The data from the various
 json files are archived into the database for use later. The account data is anayzed
 for the actual environment it is registered with, and that becomes part of the
 AcmeAccount record.
-
-
-## Why use OpenSSL directly? / Does this work on Windows?
-
-When this package was first developed, installing the necessary python packages for
-cryptography required a lot of work and downloading. OpenSSL should already be
-running on any machine PeterSslers needs to work on, so it was chosen for easy in quick
-deployment.
-
-It was also much easier to peg this to `openssl` in a linux environment for now;
-which ruled out Windows.
-
-The current version only uses `openssl` if the requisite Python modules are not
-installed. That should work on Windows.
-
-If someone wants to make a PR to fully support Windows, it will be reviewed!
 
 
 ## Where does the various data associated with Certificates come from?
