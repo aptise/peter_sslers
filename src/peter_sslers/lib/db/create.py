@@ -129,12 +129,12 @@ def create__AcmeOrder(
     dbPrivateKey: "PrivateKey",  # could be a Placeholder(0) key
     private_key_cycle_id: int,
     private_key_strategy_id__requested: int,
+    private_key_deferred_id: int,
     transaction_commit: Literal[True],
     # optionals
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
-    private_key_deferred_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -155,12 +155,12 @@ def create__AcmeOrder(
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
     :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_deferred_id: (required) See `model.utils.PrivateKeyDeferred`
 
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
-    :param private_key_deferred_id: (optional) See `model.utils.PrivateKeyDeferred`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.

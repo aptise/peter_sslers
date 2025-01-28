@@ -67,6 +67,9 @@ log_api.setLevel(logging.INFO)
 # ------------------------------------------------------------------------------
 
 
+MAX_DEPTH = 150
+
+
 class AriCheckResult(TypedDict):
     """
     AriCheck[payload] will be null if there is an error
@@ -115,6 +118,9 @@ def url_request(
     log_api.info(" REQUEST-")
     log_api.info("  url       > %s", url)
     log_api.info("  post_data > %s", post_data)
+    log_api.info("  depth     > %s", depth)
+    if depth > MAX_DEPTH:
+        raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
     context = None
     try:
         headers = {
@@ -550,6 +556,8 @@ class AuthenticatedUser(object):
         This proxies `url_request` with a signed payload
         returns (resp_data, status_code, headers)
         """
+        if depth > MAX_DEPTH:
+            raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
         if self._next_nonce:
             nonce = self._next_nonce
         else:
@@ -1161,29 +1169,63 @@ class AuthenticatedUser(object):
             # (status_code, resp_data, url) = exc
             _raise = True
             if isinstance(exc.args[1], dict):
-                if (exc.args[1]["type"] == "urn:ietf:params:acme:error:malformed") and (
-                    exc.args[1]["detail"].startswith("parsing ARI CertID failed")
-                ):
-                    if payload_order["replaces"]:
-                        log.debug(") acme_order_new | retrying without `replaces`:")
-                        del payload_order["replaces"]
-                        (
-                            acme_order_object,
-                            _status_code,
-                            acme_order_headers,
-                        ) = self._send_signed_request(
-                            self.acme_directory["newOrder"],
-                            payload=payload_order,
-                        )
-                        log.debug(
-                            ") acme_order_new | acme_order_object: %s"
-                            % acme_order_object
-                        )
-                        log.debug(
-                            ") acme_order_new | acme_order_headers: %s"
-                            % acme_order_headers
-                        )
-                        _raise = False
+                """
+                Neither the ACME RFC, nor any extensions, standardize an invalid `replaces` field.
+                Different ACME Servers will handle an invalid "replaces" field differently.
+
+                    ACME Server
+                        exc.args[1]["type"]
+                        exc.args[1]["detail"]
+                    ------------------------------
+                    LetsEncrypt - Boulder
+                        "urn:ietf:params:acme:error:malformed"
+                        "parsing ARI CertID failed"
+                    LetsEncrypt - Pebble
+                        "urn:ietf:params:acme:error:serverInternal"
+                        "could not find an order for the given certificate: could not find order resulting in the given certificate serial number"
+
+                While these could be tested to ensure this error might be happening,
+                the status quo across clients right now is to just try again:
+                """
+                if payload_order["replaces"]:
+                    # logging only
+                    _type_details = {
+                        "LetsEncrypt - Boulder": {
+                            "type": "urn:ietf:params:acme:error:malformed",
+                            "detaul": "parsing ARI CertID failed",
+                        },
+                        "LetsEncrypt - Pebble": {
+                            "type": "urn:ietf:params:acme:error:serverInternal",
+                            "detail": "could not find an order for the given certificate: "
+                            "could not find order resulting in the given certificate serial number",
+                        },
+                    }
+                    for _server, _expects in _type_details.items():
+                        if (exc.args[1]["type"] == _expects["type"]) and exc.args[1][
+                            "detail"
+                        ].startswith(_expects["detail"]):
+                            # just log this, we will retry regardless
+                            log.info("ARI `replaces` Probable Mismatch")
+                            log.info("Server: %s", _server)
+                            log.info("replaces: `%s`", replaces)
+                            break
+                    log.debug(") acme_order_new | retrying without `replaces`:")
+                    del payload_order["replaces"]
+                    (
+                        acme_order_object,
+                        _status_code,
+                        acme_order_headers,
+                    ) = self._send_signed_request(
+                        self.acme_directory["newOrder"],
+                        payload=payload_order,
+                    )
+                    log.debug(
+                        ") acme_order_new | acme_order_object: %s" % acme_order_object
+                    )
+                    log.debug(
+                        ") acme_order_new | acme_order_headers: %s" % acme_order_headers
+                    )
+                    _raise = False
             if _raise:
                 raise exc
 

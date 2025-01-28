@@ -239,6 +239,23 @@ The following domains are also recommended for development testing:
     a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
 
 
+
+# Application Design
+
+The application design of PeterSSLers is designed to be extensible and reusable,
+so the library can be used for both commandline work and web based tools.
+
+* `/lib` - main library functions
+* `/lib/db` - All database manipulation happens here, so it can be leveraged
+outside of the web context
+* `/model` - SQLAlchemy Model
+* `/web` - A Pyramid Application
+
+With the exception of the testing system, no SqlAlchemy code should exist in the
+web section.
+
+
+
 # CI Setup Benchmarks
 
 ## Installing Go
@@ -264,6 +281,12 @@ Go is already installed, however if we need to do a new version...
     from acme_dns_server_account a
     join domain d on a.domain_id = d.id
     ;
+
+
+
+
+
+
 
 
 

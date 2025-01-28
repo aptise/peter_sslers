@@ -114,6 +114,7 @@
             dev-reset_db-post.sh    - runs setup routines against live install
 
     Testing
+        The test suite was overhauled
         unit tests-
             now support database snapshots for sqlite    
         py313 testing supported

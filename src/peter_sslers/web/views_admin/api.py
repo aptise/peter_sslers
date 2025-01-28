@@ -291,7 +291,6 @@ class ViewAdminApi_Domain(Handler):
             if TYPE_CHECKING:
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
-                assert privateKeySelection.private_key_deferred is not None
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
@@ -299,8 +298,6 @@ class ViewAdminApi_Domain(Handler):
                 dbPrivateKey=privateKeySelection.PrivateKey,
                 domains_challenged=domains_challenged,
                 private_key_cycle=private_key_cycle,
-                # private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
-                private_key_deferred=privateKeySelection.private_key_deferred,
                 key_technology=privateKeySelection.key_technology,
                 processing_strategy=processing_strategy,
             )
@@ -494,8 +491,6 @@ class ViewAdminApi_Domain(Handler):
                     processing_strategy="process_single",
                     acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
-                    private_key_deferred_id=model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE,
-                    # private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]

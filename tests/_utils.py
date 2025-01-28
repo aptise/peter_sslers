@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 from functools import wraps
+from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
@@ -16,6 +17,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 import unittest
 import uuid
+import warnings
 
 # pypi
 import cert_utils
@@ -25,6 +27,7 @@ import packaging.version
 import psutil
 from pyramid import testing
 from pyramid.paster import get_appsettings
+from pyramid.router import Router
 import requests
 import sqlalchemy
 from sqlalchemy.orm import Session
@@ -175,6 +178,14 @@ OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERS
 # export this for some better debugging
 DEBUG_ACMEORDERS = bool(int(os.environ.get("DEBUG_ACMEORDERS", 0)))
 DEBUG_TESTHARNESS = bool(int(os.environ.get("DEBUG_TESTHARNESS", 0)))
+DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
+DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
+DEBUG_DBFREEZE = bool(int(os.environ.get("DEBUG_DBFREEZE", 0)))
+
+
+DISABLE_WARNINGS = bool(int(os.environ.get("DISABLE_WARNINGS", 0)))
+if DISABLE_WARNINGS:
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 # override to "test_local.ini" if needed
@@ -188,26 +199,36 @@ cert_utils.update_from_appsettings(_appsettings)
 # SEMAPHORE?
 PEBBLE_RUNNING = None
 
+# RUN_ID
+RUN_START = datetime.datetime.now()
+RUN_START_STR = RUN_START.strftime("%Y_%m_%d-%H_%M_%S")
+
+
 # ==============================================================================
+
+
+if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
+    if not os.path.exists("X_TESTRUN_DATA"):
+        os.mkdir("X_TESTRUN_DATA")
+    os.mkdir(os.path.join("X_TESTRUN_DATA", RUN_START_STR))
 
 
 if DEBUG_ACMEORDERS:
     # lower noise for debugging
 
     # silence the ACME api
-    import peter_sslers.lib.acme_v2  # noqa: F401
+    import peter_sslers.lib.acme_v2
 
-    log_api = logging.getLogger("acme_api")
-    log_api.setLevel(logging.CRITICAL)
+    peter_sslers.lib.acme_v2.log.setLevel(100)
+    peter_sslers.lib.acme_v2.log_api.setLevel(100)
 
     # silence cert_utils
-    import cert_utils  # noqa: F401, F811
+    import cert_utils
 
-    log_cert_utils = logging.getLogger("cert_utils")
-    log_cert_utils.setLevel(logging.CRITICAL)
+    cert_utils.log.setLevel(100)
 
 
-def clear_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
     """
     inverse to clear data
     """
@@ -223,6 +244,7 @@ def clear_testing_data(testCase: unittest.TestCase) -> Literal[True]:
             aap.acme_order.is_processing = False
             update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, aap.acme_order)
             ctx.dbSession.commit()
+    return True
 
 
 def _debug_TestHarness(ctx: ApiContext, name: str):
@@ -291,7 +313,7 @@ def process_pebble_roots():
     We need to load them from the pebble server, otherwise we have no idea
     what they are.
     """
-    log.info("`pebble`: process_pebble_roots")
+    log.info("`process_pebble_roots()`")
 
     # the first root is guaranteed to be here:
 
@@ -334,7 +356,7 @@ def archive_pebble_data():
     pebble account urls have a serial that restarts on each load
     this causes issues with tests
     """
-    log.info("`pebble`: archive_pebble_data")
+    log.info("`archive_pebble_data()`")
     ctx = new_test_connections()
     # model_objects.AcmeAccount
     # migration strategy - append a `@{UUID}` to the url, so it will not match
@@ -371,8 +393,13 @@ def handle_new_pebble():
     When pebble restarts
         * the database may have old pebble data
     """
+    log.info("`handle_new_pebble()`")
     process_pebble_roots()
     archive_pebble_data()
+
+
+# ACME_CHECK_MSG = b"Listening on: 0.0.0.0:14000"
+ACME_CHECK_MSG = b"ACME directory available at: https://0.0.0.0:14000/dir"
 
 
 def under_pebble(_function):
@@ -382,7 +409,7 @@ def under_pebble(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`pebble`: spinning up")
+        log.info("`pebble`: spinning up for `%s`" % _function.__qualname__)
         log.info("`pebble`: PEBBLE_BIN : %s", PEBBLE_BIN)
         log.info("`pebble`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
         log.info("`pebble`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
@@ -390,11 +417,20 @@ def under_pebble(_function):
         # after layout updates, changing to the CWD will break this from running
         # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = "X_TESTRUN_DATA/%s/%s-pebble.txt" % (
+                RUN_START_STR,
+                _function.__qualname__,
+            )
+            stdout = open(fname, "wb")
+
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
             # cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV,
         ) as proc:
@@ -403,32 +439,34 @@ def under_pebble(_function):
             _waits = 0
             while not ready:
                 log.info("`pebble`: waiting for ready | %s" % _waits)
-                for line in iter(proc.stdout.readline, b""):
-                    # if b"Listening on: 0.0.0.0:14000" in line:
-                    if (
-                        b"ACME directory available at: https://0.0.0.0:14000/dir"
-                        in line
-                    ):
-                        log.info("`pebble`: ready")
-                        ready = True
-                        break
                 _waits += 1
-                if _waits >= 10:
+                if _waits >= 30:
                     raise ValueError("`pebble`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG in line:
+                                log.info("`pebble`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        # if b"Listening on: 0.0.0.0:14000" in line:
+                        if ACME_CHECK_MSG in line:
+                            log.info("`pebble`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             global PEBBLE_RUNNING
             try:
                 PEBBLE_RUNNING = True
-                handle_new_pebble()
+                # catch in app_test so we don't recycle the roots
+                # handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
                 log.info("`pebble`: finished. terminating")
-                # debugging info; DANGER this can freeze the process
-                if False:
-                    for line in iter(proc.stdout.readline, b""):
-                        print(line)
                 proc.terminate()
                 PEBBLE_RUNNING = False
         return res
@@ -443,7 +481,7 @@ def under_pebble_strict(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`pebble[strict]`: spinning up")
+        log.info("`pebble[strict]`: spinning up for `%s`" % _function.__qualname__)
         log.info("`pebble[strict]`: PEBBLE_BIN : %s", PEBBLE_BIN)
         log.info("`pebble[strict]`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
         log.info("`pebble[strict]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
@@ -451,11 +489,19 @@ def under_pebble_strict(_function):
         # after layout updates, changing to the CWD will break this from running
         # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = "X_TESTRUN_DATA/%s/%s-pebble_strict.txt" % (
+                RUN_START_STR,
+                _function.__qualname__,
+            )
+            stdout = open(fname, "wb")
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
             # cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV_STRICT,
         ) as proc:
@@ -464,19 +510,28 @@ def under_pebble_strict(_function):
             _waits = 0
             while not ready:
                 log.info("`pebble[strict]`: waiting for ready | %s" % _waits)
-                for line in iter(proc.stdout.readline, b""):
-                    if b"Listening on: 0.0.0.0:14000" in line:
-                        log.info("`pebble[strict]`: ready")
-                        ready = True
-                        break
                 _waits += 1
-                if _waits >= 10:
+                if _waits >= 30:
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG in line:
+                                log.info("`pebble[strict]`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        if ACME_CHECK_MSG in line:
+                            log.info("`pebble[strict]`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             global PEBBLE_RUNNING
             try:
                 PEBBLE_RUNNING = True
-                handle_new_pebble()
+                # catch in app_test so we don't recycle the roots
+                # handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -498,37 +553,61 @@ def under_redis(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`redis`: spinning up")
+        log.info("`redis`: spinning up for `%s`" % _function.__qualname__)
         log.info("`redis`: SSL_BIN_REDIS_SERVER  : %s", SSL_BIN_REDIS_SERVER)
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = "X_TESTRUN_DATA/%s/%s-redis.txt" % (
+                RUN_START_STR,
+                _function.__qualname__,
+            )
+            stdout = open(fname, "wb")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
         ) as proc:
             # ensure the `redis` server is running
             ready = False
             _waits = 0
             while not ready:
                 log.info("`redis`: waiting for ready")
-                for line in iter(proc.stdout.readline, b""):
-                    if b"Can't chdir to" in line:
-                        raise ValueError(line)
-                    # Redis 5.x
-                    if b"Ready to accept connections" in line:
-                        log.info("`redis`: ready")
-                        ready = True
-                        break
-                    # Redis2.x
-                    if b"The server is now ready to accept connections" in line:
-                        log.info("`redis`: ready")
-                        ready = True
-                        break
                 _waits += 1
-                if _waits >= 5:
+                if _waits >= 20:
                     raise ValueError("`redis`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if b"Can't chdir to" in line:
+                                raise ValueError(line)
+                            # Redis 5.x
+                            if b"Ready to accept connections" in line:
+                                log.info("`redis`: ready")
+                                ready = True
+                                break
+                            # Redis2.x
+                            if b"The server is now ready to accept connections" in line:
+                                log.info("`redis`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        if b"Can't chdir to" in line:
+                            raise ValueError(line)
+                        # Redis 5.x
+                        if b"Ready to accept connections" in line:
+                            log.info("`redis`: ready")
+                            ready = True
+                            break
+                        # Redis2.x
+                        if b"The server is now ready to accept connections" in line:
+                            log.info("`redis`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
@@ -547,8 +626,11 @@ def under_redis(_function):
 
 def testdb_freeze(
     dbSession: Session,
-    file_extension: Literal["AppTestCore", "AppTest"],
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
+    """ """
+    if DEBUG_DBFREEZE:
+        print("testdb_freeze>>>>>%s" % savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
@@ -557,7 +639,7 @@ def testdb_freeze(
         # in-memory sqlite
         return False
 
-    backup_filename = "%s-%s" % (_engine.url.database, file_extension)
+    backup_filename = "%s-%s" % (_engine.url.database, savepoint)
     backupDb = sqlite3.connect(backup_filename)
     _connection.connection.backup(backupDb)  # type: ignore[attr-defined]
 
@@ -566,8 +648,10 @@ def testdb_freeze(
 
 def testdb_unfreeze(
     dbSession: Session,
-    file_extension: Literal["AppTestCore", "AppTest"],
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
+    if DEBUG_DBFREEZE:
+        print("testdb_unfreeze>>>%s" % savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
@@ -576,7 +660,7 @@ def testdb_unfreeze(
         # in-memory sqlite
         return False
     active_filename = _engine.url.database
-    backup_filename = "%s-%s" % (active_filename, file_extension)
+    backup_filename = "%s-%s" % (active_filename, savepoint)
     if not os.path.exists(backup_filename):
         return False
 
@@ -1081,13 +1165,43 @@ class _Mixin_filedata(object):
 
 
 class AppTestCore(unittest.TestCase, _Mixin_filedata):
-    testapp: TestApp
-    testapp_http = None
+    """
+    AppTestCore provides the main support for testing.
+
+    It should never be used directly, but instead subclassed.
+
+    When subclassing Follow a wrapper style ingress/egress:
+
+        def setUp(self):
+            AppTestCore.setUp(self)
+            # subclass work
+
+        def tearDown(self):
+            # subclass work
+            AppTestCore.tearDown(self)
+    """
+
+    MOUNT_TESTAPP: bool = True
+    _testapp: Optional[TestApp] = None
+    _testapp_wsgi: Optional[StopableWSGIServer] = None
+    _pyramid_app: Router
     _session_factory = None
     _DB_INTIALIZED = False
     _settings: Dict
 
+    @property
+    def testapp(self) -> Union[TestApp, StopableWSGIServer]:
+        if self._testapp:
+            return self._testapp
+        elif self._testapp_wsgi:
+            return self._testapp_wsgi
+        raise RuntimeError("no testapp configured")
+
     def setUp(self):
+        log.critical(
+            "%s.%s | AppTestCore.setUp"
+            % (self.__class__.__name__, self._testMethodName)
+        )
         self._settings = settings = get_appsettings(
             TEST_INI, name="main"
         )  # this can cause an unclosed resource
@@ -1124,16 +1238,53 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 dbSession.close()
                 testdb_freeze(dbSession, "AppTestCore")
 
-        app = main(global_config=None, **settings)
-        self.testapp = TestApp(
-            app,
-            extra_environ={
-                "HTTP_HOST": "peter-sslers.example.com",
-            },
-        )
+        self._pyramid_app = app = main(global_config=None, **settings)
+        if self.MOUNT_TESTAPP:
+            self._testapp = TestApp(
+                app,
+                extra_environ={
+                    "HTTP_HOST": "peter-sslers.example.com",
+                },
+            )
         AppTestCore._DB_INTIALIZED = True
+        if DEBUG_METRICS:
+            self._db_filename = self.ctx.dbSession.connection().engine.url.database
+            self._db_filesize = {
+                "setUp": os.path.getsize(self._db_filename),
+            }
+            self._wrapped_start = time.time()
 
     def tearDown(self):
+        if DEBUG_METRICS:
+            """
+            The filegrowth of the db is due to how Pebble wraps each run
+            """
+            testname = "%s.%s" % (self.__class__.__name__, self._testMethodName)
+            count_acme_order = self.ctx.dbSession.query(model_objects.AcmeOrder).count()
+            count_certificate_ca = self.ctx.dbSession.query(
+                model_objects.CertificateCA
+            ).count()
+            self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
+            self._wrapped_end = time.time()
+
+            fname = "X_TESTRUN_DATA/%s/_METRICS.txt" % RUN_START_STR
+            if not os.path.exists(fname):
+                with open(fname, "w") as fh:
+                    fh.write(
+                        "TestName\tCount[AcmeOrder]\tCount[CertificateCA]\tDBFilesize[setUp]\tDBFilesize[tearDown]\tWrappedTiming\n"
+                    )
+            with open(fname, "a") as fh:
+                fh.write(
+                    "%s\t%s\t%s\t%s\t%s\t%s\n"
+                    % (
+                        testname,
+                        count_acme_order,
+                        count_certificate_ca,
+                        self._db_filesize["setUp"],
+                        self._db_filesize["tearDown"],
+                        (self._wrapped_end - self._wrapped_start),
+                    )
+                )
         self._session_factory = None
         self._turnoff_items()
 
@@ -1145,7 +1296,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         originally in `AppTest`, not `AppTestCore` but some functions here need it
         """
         if self._ctx is None:
-            dbSession_factory = self.testapp.app.registry["dbSession_factory"]
+            dbSession_factory = self._pyramid_app.registry["dbSession_factory"]
             request = FakeRequest()
             self._ctx = utils.ApiContext(
                 request=request,
@@ -1155,7 +1306,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             # merge in the settings
             if TYPE_CHECKING:
                 assert self._ctx.request is not None
-            self._ctx.request.registry.settings = self.testapp.app.registry.settings
+            self._ctx.request.registry.settings = self._pyramid_app.registry.settings
         return self._ctx
 
     def _turnoff_items(self):
@@ -1239,6 +1390,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
 
 class AppTest(AppTestCore):
+    """
+    The main Testing class
+    """
+
     _DB_SETUP_RECORDS = False
 
     def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
@@ -1336,8 +1491,13 @@ class AppTest(AppTestCore):
         self.ctx.pyramid_transaction_commit()
 
     def setUp(self):
+        log.critical(
+            "%s.%s | AppTest.setUp" % (self.__class__.__name__, self._testMethodName)
+        )
         AppTestCore.setUp(self)
         if not AppTest._DB_SETUP_RECORDS:
+            # Freezepoint- AppTest
+            # This freezepoint wraps the core system setup data
             if testdb_unfreeze(self.ctx.dbSession, "AppTest"):
                 print("AppTest.setUp | using frozen database")
             else:
@@ -1655,6 +1815,9 @@ class AppTest(AppTestCore):
                         domains_challenged=_domains_challenged,
                     )
 
+                    _private_key_deferred_id = (
+                        model_utils.PrivateKeyDeferred.NOT_DEFERRED
+                    )
                     _dbAcmeOrder = db.create.create__AcmeOrder(
                         self.ctx,
                         acme_order_response=_acme_order_response,
@@ -1671,6 +1834,7 @@ class AppTest(AppTestCore):
                         dbPrivateKey=_dbPrivateKey_1,
                         private_key_cycle_id=_private_key_cycle_id__renewal,
                         private_key_strategy_id__requested=_private_key_strategy_id__requested,
+                        private_key_deferred_id=_private_key_deferred_id,
                         transaction_commit=True,
                         is_save_alternate_chains=_dbRenewalConfiguration.is_save_alternate_chains,
                     )
@@ -1781,6 +1945,10 @@ class AppTest(AppTestCore):
                     raise
             print("DB INITIALIZED")
             AppTest._DB_SETUP_RECORDS = True
+
+        if PEBBLE_RUNNING:
+            handle_new_pebble()
+
         _debug_TestHarness(
             self.ctx, "%s.%s|setUp" % (self.__class__.__name__, self._testMethodName)
         )
@@ -1789,40 +1957,68 @@ class AppTest(AppTestCore):
         _debug_TestHarness(
             self.ctx, "%s.%s|tearDown" % (self.__class__.__name__, self._testMethodName)
         )
-        AppTestCore.tearDown(self)
         if self._ctx is not None:
             self._ctx.dbSession.commit()
             self._ctx.dbSession.close()
+        AppTestCore.tearDown(self)
 
     @classmethod
     def tearDownClass(cls):
         """
         the test data created by `_ensure_one` can persist; it must be removed
         """
-        clear_testing_data(cls)
+        clear_testing_setup_data(cls)
 
 
 # ==============================================================================
 
 
 class AppTestWSGI(AppTest, _Mixin_filedata):
+    """
+    A support testing class to `AppTest`
+
+    These tests EXPOSE the PeterSSLers application by also mounting it to a
+    `StopableWSGIServer` instance running on port 5002.
+
+    5002 is the default Pebble high port;
+
+    This will require an nginx/other block to route the ports:
+
+        location /.well-known/acme-challenge/ {
+            proxy_pass  http://127.0.0.1:8001;
+            proxy_set_header   Host $host;
+            proxy_set_header   X-Real-IP $remote_addr;
+            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Host $server_name;
+        }
+    """
+
     # Inherited from AppTest:
-    # * testapp
-    # * testapp_http
+    # * _testapp
+    # * _testapp_wsgi
     # * _session_factory
     # * _DB_INTIALIZED
+    MOUNT_TESTAPP = True
 
     def setUp(self):
+        log.critical(
+            "%s.%s | AppTestWSGI.setUp"
+            % (self.__class__.__name__, self._testMethodName)
+        )
         AppTest.setUp(self)
-        app = main(global_config=None, **self._settings)
-        self.testapp_wsgi = StopableWSGIServer.create(
-            app, host="peter-sslers.example.com", port=5002
+        # app = main(global_config=None, **self._settings)
+        # load this on the side to RESPOND
+        # this is
+        self._testapp_wsgi = StopableWSGIServer.create(
+            self._pyramid_app,  # we can mount the existing app
+            host="peter-sslers.example.com",  # /etc/hosts maps this to localhost
+            port=5002,  # this corresponts to pebble-config.json `"httpPort": 5002`
         )
 
     def tearDown(self):
+        if self._testapp_wsgi is not None:
+            self._testapp_wsgi.shutdown()
         AppTest.tearDown(self)
-        if self.testapp_wsgi is not None:
-            self.testapp_wsgi.shutdown()
 
 
 # ==============================================================================

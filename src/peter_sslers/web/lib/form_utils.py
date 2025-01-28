@@ -352,20 +352,12 @@ class _PrivateKeySelection(object):
     selection: Optional[str] = None
     upload_parsed: Optional["_PrivateKeyUploadParser"] = None
     PrivateKey: Optional["PrivateKey"] = None
-    private_key_strategy__requested: str
-    private_key_deferred: Optional[str] = None  # see model_utils.PrivateKeyDeferred
 
     # this should be set by the parser
     private_key_generate: Optional[str] = None  # see model_utils.KeyTechnology
 
     def __init__(self, private_key_option: str):
         self.private_key_option = private_key_option
-
-    @property
-    def private_key_strategy_id__requested(self) -> int:
-        return model_utils.PrivateKeyStrategy.from_string(
-            self.private_key_strategy__requested
-        )
 
     @property
     def key_technology_id(self) -> int:
@@ -385,12 +377,6 @@ class _PrivateKeySelection(object):
     @property
     def key_technology(self) -> str:
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
-
-    @property
-    def private_key_deferred_id(self) -> Optional[int]:
-        if not self.private_key_deferred:
-            return None
-        return model_utils.PrivateKeyDeferred.from_string(self.private_key_deferred)
 
 
 def parse_AcmeAccountSelection(
@@ -508,9 +494,6 @@ def parse_PrivateKeySelection(
         # update our object
         privateKeySelection.selection = "upload"
         privateKeySelection.upload_parsed = parser
-        privateKeySelection.private_key_strategy__requested = (
-            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["upload"]
-        )
 
         # Return Early
         return privateKeySelection
@@ -532,21 +515,9 @@ def parse_PrivateKeySelection(
                 "private_key_generate"
             ]  # this is a model_utils.KeyTechnology
             privateKeySelection.private_key_generate = key_technology_str
-            _deferred_id, _deferred_str = (
-                model_utils.PrivateKeyDeferred.generate_from_key_technology_str(
-                    key_technology_str
-                )
-            )
-            privateKeySelection.private_key_deferred = _deferred_str
-            privateKeySelection.private_key_strategy__requested = (
-                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["generate"]
-            )
+
         elif private_key_option == "account_default":
             privateKeySelection.selection = "account_default"
-            privateKeySelection.private_key_deferred = "account_default"
-            privateKeySelection.private_key_strategy__requested = (
-                model_utils.PrivateKeySelection_2_PrivateKeyStrategy["account_default"]
-            )
 
         # Return Early
         return privateKeySelection
@@ -555,16 +526,10 @@ def parse_PrivateKeySelection(
 
     if private_key_option == "private_key_existing":
         privateKeySelection.selection = "existing"
-        privateKeySelection.private_key_strategy__requested = (
-            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["existing"]
-        )
         private_key_pem_md5 = formStash.results["private_key_existing"]
 
     elif private_key_option == "private_key_reuse":
         privateKeySelection.selection = "reuse"
-        privateKeySelection.private_key_strategy__requested = (
-            model_utils.PrivateKeySelection_2_PrivateKeyStrategy["reuse"]
-        )
         private_key_pem_md5 = formStash.results["private_key_reuse"]
 
     else:

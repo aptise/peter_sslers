@@ -1540,7 +1540,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
     )
     private_key_deferred_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=True
+        sa.Integer, nullable=False
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
@@ -3146,13 +3146,15 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             _private_key_cycle = self.acme_order.private_key_cycle
             if _private_key_cycle != "account_default":
                 _private_key_strategy = (
-                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[_private_key_cycle]
+                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
+                        _private_key_cycle
+                    )
                 )
             else:
                 _private_key_strategy = (
-                    model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
                         self.acme_order.acme_account.private_key_cycle
-                    ]
+                    )
                 )
             return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
         else:
@@ -4227,10 +4229,14 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     @property
     def key_technology__effective(self) -> str:
         if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
-            return model_utils.KeyTechnology.as_string(
-                self.acme_account.order_default_private_key_technology_id
-            )
+            return self.acme_account.order_default_private_key_technology
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def key_technology_id__effective(self) -> int:
+        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            return self.acme_account.order_default_private_key_technology_id
+        return self.key_technology_id
 
     @property
     def private_key_cycle(self) -> str:
@@ -4239,10 +4245,14 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     @property
     def private_key_cycle__effective(self) -> str:
         if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
-            return model_utils.PrivateKeyCycle.as_string(
-                self.acme_account.order_default_private_key_cycle_id
-            )
+            return self.acme_account.order_default_private_key_cycle
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+
+    @property
+    def private_key_cycle_id__effective(self) -> int:
+        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            return self.acme_account.order_default_private_key_cycle_id
+        return self.private_key_cycle_id
 
     @property
     def as_json(self) -> Dict:

@@ -575,8 +575,6 @@ def api_domains__certificate_if_needed(
     dbPrivateKey: "PrivateKey",
     domains_challenged: "DomainsChallenged",
     private_key_cycle: str,
-    # private_key_strategy__requested: str,
-    private_key_deferred: str,
     key_technology: str,
     processing_strategy: str,
 ) -> Dict:
@@ -588,8 +586,6 @@ def api_domains__certificate_if_needed(
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
     :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
-    # :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-    :param private_key_deferred: (required)  A value from :class:`model.utils.PrivateKeyDeferred`
     :param key_technology: (required)  A value from :class:`model.utils.KeyTechnology`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
 
@@ -612,13 +608,6 @@ def api_domains__certificate_if_needed(
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
     private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
-
-    # private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
-    #    private_key_strategy__requested
-    # )
-    private_key_deferred_id = model_utils.PrivateKeyDeferred.from_string(
-        private_key_deferred
-    )
 
     # bookkeeping
     event_payload_dict = lib.utils.new_event_payload_dict()
@@ -744,8 +733,6 @@ def api_domains__certificate_if_needed(
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey,
-                    private_key_deferred_id=private_key_deferred_id,
-                    # private_key_strategy_id__requested=private_key_strategy_id__requested,
                 )
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder

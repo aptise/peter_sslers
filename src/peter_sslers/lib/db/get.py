@@ -2942,7 +2942,7 @@ def get__RenewalConfiguration__paginated(
     q = ctx.dbSession.query(RenewalConfiguration)
     if active_status in (True, False):
         q = q.filter(RenewalConfiguration.is_active == active_status)
-    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
@@ -2967,7 +2967,7 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
     q = ctx.dbSession.query(RenewalConfiguration).filter(
         RenewalConfiguration.acme_account_id == acme_account_id
     )
-    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
@@ -2994,7 +2994,7 @@ def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__paginated(
         RenewalConfiguration.uniquely_challenged_fqdn_set_id
         == uniquely_challenged_fqdn_set_id
     )
-    q = q.order_by(RenewalConfiguration.id.asc()).limit(limit).offset(offset)
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 

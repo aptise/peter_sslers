@@ -1120,7 +1120,6 @@ class View_New(Handler):
 
                 # we may be deferring a private key creation
                 # this is used so we don't have keys laying around for failed orders
-                private_key_deferred_id = privateKeySelection.private_key_deferred_id
 
                 private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
                     formStash.results["private_key_cycle"]
@@ -1222,8 +1221,6 @@ class View_New(Handler):
                         processing_strategy=processing_strategy,
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
                         dbPrivateKey=privateKeySelection.PrivateKey,
-                        private_key_deferred_id=private_key_deferred_id,
-                        # private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
                     )
 
                 except Exception as exc:

@@ -22,6 +22,7 @@ from webtest import Upload
 # local
 from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from . import _utils
@@ -36,6 +37,7 @@ from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
 from ._utils import TEST_FILES
 from ._utils import testdb_freeze
+from ._utils import testdb_unfreeze
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
 from ._utils import under_redis
@@ -151,9 +153,9 @@ def make_one__AcmeAccount__random(
     form = {
         "acme_server_id": 1,
         "account__contact": generate_random_emailaddress(),
-        "account__private_key_technology": "RSA_2048",
+        "account__private_key_technology": "EC_P256",
         "account__order_default_private_key_cycle": "single_use",
-        "account__order_default_private_key_technology": "RSA_2048",
+        "account__order_default_private_key_technology": "EC_P256",
     }
     res4 = testCase.testapp.post(
         "/.well-known/peter_sslers/acme-account/new.json", form
@@ -183,9 +185,9 @@ def make_one__AcmeAccount__pem(
         "account_key_file_pem": Upload(testCase._filepath_testfile(pem_file_name)),
         "acme_server_id": 1,
         "account__contact": account__contact,
-        "account__private_key_technology": "RSA_2048",
+        "account__private_key_technology": "EC_P256",
         "account__order_default_private_key_cycle": "account_daily",
-        "account__order_default_private_key_technology": "RSA_2048",
+        "account__order_default_private_key_technology": "EC_P256",
     }
     res4 = testCase.testapp.post(
         "/.well-known/peter_sslers/acme-account/upload.json", form
@@ -230,6 +232,45 @@ def make_one__AcmeOrder__random(
     return dbAcmeOrder
 
 
+def make_one__RenewalConfiguration(
+    testCase: unittest.TestCase,
+    dbAcmeAccount: model_objects.AcmeAccount,
+    domain_names_http01: str,
+    private_key_cycle: Optional[str] = "account_default",
+    key_technology: Optional[str] = "account_default",
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/renewal-configuration/new.json", status=200
+    )
+    assert "form_fields" in res.json
+
+    form: Dict[str, Optional[str]] = {}
+    form["account_key_option"] = "account_key_existing"
+    form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
+    form["private_key_cycle"] = private_key_cycle
+    form["key_technology"] = key_technology
+    form["domain_names_http01"] = domain_names_http01
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/renewal-configuration/new.json",
+        form,
+    )
+    assert res2.json["result"] == "success"
+    assert "RenewalConfiguration" in res2.json
+
+    dbRenewalConfiguration = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .filter(
+            model_objects.RenewalConfiguration.id
+            == res2.json["RenewalConfiguration"]["id"]
+        )
+        .first()
+    )
+    assert dbRenewalConfiguration
+    return dbRenewalConfiguration
+
+
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
     message = "Error communicating with the acme-dns server."
     if response_type == "html":
@@ -249,6 +290,19 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
 # =====
 
 
+def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+
+    dbAcmeOrders = (
+        testCase.ctx.dbSession.query(model_objects.AcmeOrder)
+        .order_by(model_objects.AcmeOrder.id.asc())
+        .filter(model_objects.AcmeOrder.is_processing.is_(True))
+        .all()
+    )
+    for _dbAcmeOrder in dbAcmeOrders:
+        result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    return True
+
+
 def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     """
     This function is used to setup some of the testing data under pebble.
@@ -260,52 +314,61 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     """
 
     def _actual():
-        _orders = []
-        for i in range(0, 4):
-            dbAcmeOrder = make_one__AcmeOrder__random(testCase)
-            _orders.append(dbAcmeOrder)
+        if testdb_unfreeze(
+            testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data"
+        ):
+            print("setup_testing_data | using frozen database")
+        else:
+            print("setup_testing_data | creating new database records")
+            _orders = []
+            for i in range(0, 3):
+                dbAcmeOrder = make_one__AcmeOrder__random(testCase)
+                _orders.append(dbAcmeOrder)
 
-        # This is all to generate a valid ARI Check
-        for dbAcmeOrder in _orders:
-            res = testCase.testapp.get(
-                "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
-                status=200,
-            )
-            if "form-acme_process" in res.forms:
-                # the first acme_process should validate challenges
-                form = res.forms["form-acme_process"]
-                res2 = form.submit()
-                assert res2.status_code == 303
-                assert res2.location.endswith("?result=success&operation=acme+process")
-                res3 = testCase.testapp.get(res2.location, status=200)
-                if "form-acme_process" in res3.forms:
-                    # the second form should finalize and download the cert
-                    form = res3.forms["form-acme_process"]
-                    res4 = form.submit()
-                    assert res4.status_code == 303
-                    assert res4.location.endswith(
+            # This is all to generate a valid ARI Check
+            for dbAcmeOrder in _orders:
+                res = testCase.testapp.get(
+                    "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
+                    status=200,
+                )
+                if "form-acme_process" in res.forms:
+                    # the first acme_process should validate challenges
+                    form = res.forms["form-acme_process"]
+                    res2 = form.submit()
+                    assert res2.status_code == 303
+                    assert res2.location.endswith(
                         "?result=success&operation=acme+process"
                     )
-                    res5 = testCase.testapp.get(res4.location, status=200)
-                    assert "certificate_downloaded" in res5.text
-                    matched = RE_CertificateSigned_main.search(res5.text)
-                    if matched:
-                        certificate_id = matched.groups()[0]
-                        res = testCase.testapp.get(
-                            "/.well-known/peter_sslers/certificate-signed/%s"
-                            % certificate_id,
-                            status=200,
+                    res3 = testCase.testapp.get(res2.location, status=200)
+                    if "form-acme_process" in res3.forms:
+                        # the second form should finalize and download the cert
+                        form = res3.forms["form-acme_process"]
+                        res4 = form.submit()
+                        assert res4.status_code == 303
+                        assert res4.location.endswith(
+                            "?result=success&operation=acme+process"
                         )
-                        if "form-certificate_signed-ari_check" in res.forms:
-                            form = res.forms["form-certificate_signed-ari_check"]
-                            res2 = form.submit()
-                            assert res2.status_code == 303
-                            assert (
-                                "?result=success&operation=ari-check" in res2.location
+                        res5 = testCase.testapp.get(res4.location, status=200)
+                        assert "certificate_downloaded" in res5.text
+                        matched = RE_CertificateSigned_main.search(res5.text)
+                        if matched:
+                            certificate_id = matched.groups()[0]
+                            res = testCase.testapp.get(
+                                "/.well-known/peter_sslers/certificate-signed/%s"
+                                % certificate_id,
+                                status=200,
                             )
-                            break
+                            if "form-certificate_signed-ari_check" in res.forms:
+                                form = res.forms["form-certificate_signed-ari_check"]
+                                res2 = form.submit()
+                                assert res2.status_code == 303
+                                assert (
+                                    "?result=success&operation=ari-check"
+                                    in res2.location
+                                )
+                                break
 
-        testdb_freeze(testCase.ctx.dbSession, "AppTest")
+            testdb_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
 
     if _utils.PEBBLE_RUNNING:
         _actual()
@@ -345,7 +408,20 @@ class FunctionalTests_Passes(AppTest):
     this is only used to test setup
     """
 
+    @under_pebble
     def test_passes(self):
+        return True
+
+    @under_pebble
+    def test_passes_alt(self):
+        return True
+
+    @under_pebble
+    def test_passes_alt_2(self):
+        return True
+
+    @under_pebble
+    def test_passes_alt_3(self):
         return True
 
 
@@ -1064,6 +1140,10 @@ class FunctionalTests_AcmeAuthorizationPotential(AppTest):
         )
         assert focus_item is not None
         return focus_item
+
+    def tearDown(self):
+        unset_testing_data(self)
+        AppTest.tearDown(self)
 
     @routes_tested(
         (
@@ -7417,6 +7497,10 @@ class FunctionalTests_API(AppTest):
 
 class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
 
+    def tearDown(self):
+        unset_testing_data(self)
+        AppTest.tearDown(self)
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     @routes_tested("admin:acme_account:new")
@@ -7823,7 +7907,9 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         obj_id = matched.groups()[0]
 
         # "admin:acme_order:focus|json",
-        res = self.testapp.get("%s.json" % res2.location, status=200)
+        # this could be an: `?is_duplicate_renewal=true'
+        url_json = "%s.json" % res2.location.split("?")[0]
+        res = self.testapp.get(url_json, status=200)
         assert "AcmeOrder" in res.json
         acme_account_id = res.json["AcmeOrder"]["AcmeAccount"]["id"]
         assert acme_account_id
@@ -7876,9 +7962,42 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             i["id"]
             for i in res2.json["AcmeAuthorizations"]
             if i["acme_status_authorization"]
-            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
-        assert len(acme_authorization_ids) == 2
+        try:
+            assert len(acme_authorization_ids) == 2
+
+            """
+            print([i.as_json for i in self.ctx.dbSession.query(model_objects.AcmeAuthorization).join(model_objects.AcmeOrder2AcmeAuthorization, model_objects.AcmeAuthorization.id==model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id).join(model_objects.AcmeOrder, model_objects.AcmeOrder2AcmeAuthorization.acme_order_id == model_objects.AcmeOrder.id).filter(model_objects.AcmeOrder.is_processing.is_(True)).all()])
+            res3 = self.testapp.get("/.well-known/peter_sslers/acme-authorization/47.json")
+            print(res3.json)
+
+            export DEBUG_ACMEORDERS=1
+            export DEBUG_TESTHARNESS=1
+            export DEBUG_PEBBLE=1
+            export DISABLE_WARNINGS=1
+
+            python -m unittest \
+                tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_multiple_domains \
+                tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeAccount.test_deactivate_pending_authorizations_html
+            """
+        except Exception as exc:
+            print(
+                "::: model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING :::"
+            )
+            print(acme_authorization_ids)
+            for i in res2.json["AcmeAuthorizations"]:
+                if (
+                    i["acme_status_authorization"]
+                    in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
+                ):
+                    import pprint
+
+                    pprint.pprint(i)
+            import pdb
+
+            pdb.set_trace()
+            raise
         form = res.form
         form["acme_authorization_id"] = acme_authorization_ids
         res3 = form.submit()
@@ -7895,7 +8014,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             i["id"]
             for i in res4.json["AcmeAuthorizations"]
             if i["acme_status_authorization"]
-            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
         assert len(acme_authorization_ids_2) == 0
 
@@ -7932,9 +8051,15 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             i["id"]
             for i in res2.json["AcmeAuthorizations"]
             if i["acme_status_authorization"]
-            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
-        assert len(acme_authorization_ids) == 2
+        try:
+            assert len(acme_authorization_ids) == 2
+        except:
+            import pdb
+
+            pdb.set_trace()
+            raise
 
         post_data = [
             ("acme_authorization_id", acme_authorization_id)
@@ -7956,7 +8081,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             i["id"]
             for i in res4.json["AcmeAuthorizations"]
             if i["acme_status_authorization"]
-            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
         assert len(acme_authorization_ids_2) == 0
 
@@ -8515,7 +8640,9 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-order/%s" % obj_id, status=200
         )
-        self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id).as_json
+        obj = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert obj
+        # obj.as_json
 
         # "mark" deactivate
         # the raw html has a lot of whitespace, which may not show up in the test response
@@ -8578,11 +8705,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
             """
             assert matched
-            obj_id__4 = matched.groups()[0]
+            obj_id__4 = int(matched.groups()[0])
 
         else:
             # now look for a "new order" option
             dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+            assert dbAcmeOrder
             url_expected = (
                 '/renewal-configuration/%s/new-order"'
                 % dbAcmeOrder.renewal_configuration_id
@@ -8666,6 +8794,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # !!!: admin:certificate_signed:focus:ari_check
         dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert dbAcmeOrder
         certificate_signed_id = dbAcmeOrder.certificate_signed_id
         res = self.testapp.get(
             "/.well-known/peter_sslers/certificate-signed/%s" % certificate_signed_id,
@@ -9331,29 +9460,43 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         # "mark" manual
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-            % renewal_configuration_id,
-            {"action": "inactive"},
-            status=200,
-        )
+        try:
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+                % renewal_configuration_id,
+                {"action": "inactive"},
+                status=200,
+            )
+        except Exception as exc:
+            import pdb
+
+            pdb.set_trace()
+            raise exc
         assert res.json["result"] == "success"
         assert res.json["operation"] == "mark"
         assert res.json["action"] == "inactive"
 
         # and toggle it the other way
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json" % obj_id,
-            {"action": "active"},
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "mark"
-        assert res.json["action"] == "active"
+        try:
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+                % renewal_configuration_id,
+                {"action": "active"},
+                status=200,
+            )
+            assert res.json["result"] == "success"
+            assert res.json["operation"] == "mark"
+            assert res.json["action"] == "active"
+        except:
+            import pdb
+
+            pdb.set_trace()
+            raise
 
         # lets make sure we can't do it again!
         res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json" % obj_id,
+            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+            % renewal_configuration_id,
             {"action": "active"},
             status=200,
         )
@@ -10132,6 +10275,154 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "Domain" in res.json
 
 
+class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
+    """
+    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKeyCycles
+    """
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    def test_PrivateKey_options(self):
+
+        # this tests a new order using every PrivateKey Option
+
+        domain_names_http01 = "test-AcmeOrder-multiple-domains-1.example.com"
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__random(self)
+
+        def _update_AcmeAccount(acc__pkey_cycle: str, acc__pkey_technology: str):
+            dbAcmeAccount.order_default_private_key_cycle_id = (
+                model_utils.PrivateKeyCycle.from_string(acc__pkey_cycle)
+            )
+            dbAcmeAccount.order_default_private_key_technology_id = (
+                model_utils.KeyTechnology.from_string(acc__pkey_technology)
+            )
+            self.ctx.dbSession.commit()
+
+        # # original idea was to edit a RenewalConfiguration, but RCs do not support edit
+        # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
+        #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(rc__pkey_cycle)
+        #    dbRenewalConfiguration.private_key_technology_id = model_utils.KeyTechnology.from_string(rc__pkey_technology)
+        #    self.ctx.dbSession.commit()
+
+        def _new_AcmeOrder(
+            dbRenewalConfiguration: model_objects.RenewalConfiguration,
+        ) -> model_objects.AcmeOrder:
+            # print("_new_AcmeOrder(", dbRenewalConfiguration)
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % dbRenewalConfiguration.id,
+                {"processing_strategy": "process_single"},
+            )
+            assert res.status_code == 200
+            try:
+                assert res.json["result"] == "success"
+            except Exception as exc:
+                import pprint
+
+                pprint.pprint(res.json)
+                import pdb
+
+                pdb.set_trace()
+                raise exc
+            assert "AcmeOrder" in res.json
+            acme_order_id = res.json["AcmeOrder"]["id"]
+
+            dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(
+                acme_order_id
+            )
+            assert dbAcmeOrder
+            return dbAcmeOrder
+
+        # we don't need to test the WHOLE matrix, just the unique settings:
+        # always run for account_default
+        # otherwise, we just need to run 1x of the RenewalConfiguration options
+        # current permutations:
+        # TESTED :  216
+        # SKIPPED:  1044
+        seen_RenewalConfiguration: Dict[str, Dict[str, int]] = {}
+        _skips = 0
+        _testeds = 0
+
+        # iterate: AcmeAccount.private_key_cycle
+        for (
+            acc__pkey_cycle
+        ) in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default:
+            # iterate: AcmeAccount.private_key_technology
+            for (
+                acc__pkey_technology
+            ) in model_utils.KeyTechnology._options_AcmeAccount_order_default:
+                _update_AcmeAccount(acc__pkey_cycle, acc__pkey_technology)
+
+                # global_weekly, RSA_2048
+                #       account_default, account_default
+                #       account_default, RSA_2048
+
+                # iterate: RenewalConfiguration.private_key_cycle
+                for (
+                    rc__pkey_cycle
+                ) in (
+                    model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
+                ):
+
+                    # iterate: RenewalConfiguration.private_key_technology
+                    for (
+                        rc__pkey_technology
+                    ) in (
+                        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology
+                    ):
+
+                        # try to skip out early:
+                        # AcmeAccount(single_use, RSA_3072), RenewalConfiguration(global_daily, RSA_2048)
+                        if (rc__pkey_cycle != "account_default") and (
+                            rc__pkey_cycle != "account_default"
+                        ):
+                            if rc__pkey_cycle not in seen_RenewalConfiguration:
+                                seen_RenewalConfiguration[rc__pkey_cycle] = {}
+                            if (
+                                rc__pkey_technology
+                                not in seen_RenewalConfiguration[rc__pkey_cycle]
+                            ):
+                                seen_RenewalConfiguration[rc__pkey_cycle][
+                                    rc__pkey_technology
+                                ] = 1
+                            else:
+                                log.debug(
+                                    "Skipping: AcmeAccount(%s, %s), RenewalConfiguration(%s, %s)"
+                                    % (
+                                        acc__pkey_cycle,
+                                        acc__pkey_technology,
+                                        rc__pkey_cycle,
+                                        rc__pkey_technology,
+                                    )
+                                )
+                                _skips += 1
+                                continue
+
+                        log.debug(
+                            "Testing: AcmeAccount(%s, %s), RenewalConfiguration(%s, %s)"
+                            % (
+                                acc__pkey_cycle,
+                                acc__pkey_technology,
+                                rc__pkey_cycle,
+                                rc__pkey_technology,
+                            )
+                        )
+
+                        _dbRenewalConfiguration = make_one__RenewalConfiguration(
+                            self,
+                            dbAcmeAccount=dbAcmeAccount,
+                            domain_names_http01=domain_names_http01,
+                            private_key_cycle=rc__pkey_cycle,
+                            key_technology=rc__pkey_technology,
+                        )
+
+                        _dbAcmeOrder = _new_AcmeOrder(_dbRenewalConfiguration)
+                        _testeds += 1
+
+            log.info("TESTED : ", _testeds)
+            log.info("SKIPPED: ", _skips)
+
+
 class IntegratedTests_AcmeServer(AppTestWSGI):
     """
     This test suite runs against a Pebble instance, which will try to validate the domains.
@@ -10139,6 +10430,10 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
     python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer
     """
+
+    def tearDown(self):
+        unset_testing_data(self)
+        AppTestWSGI.tearDown(self)
 
     def _calculate_stats(self):
         stats = {}
@@ -10236,9 +10531,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             acme_account_key_id = _json["AcmeAccount"]["AcmeAccountKey"]["id"]
 
             dbAcmeAccountKey = lib_db_get.get__AcmeAccountKey__by_key_pem(self.ctx, pem)
+            assert dbAcmeAccountKey
 
             assert dbAcmeAccountKey.id == acme_account_key_id
 
+        assert dbAcmeAccountKey
         form = {}
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccountKey.key_pem_md5
@@ -10292,11 +10589,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         this test is not focused on routes, but cleaning up an order
         """
-        # Functional Tests: self.testapp.app.registry.settings
-        # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+        # ALL TESTS: self._pyramid_app
+        # Functional Tests: self._testapp.app.registry.settings
+        # Integrated Tests: self._testapp_wsgi.test_app.registry.settings
         # by default, this should be True
         assert (
-            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["app_settings"][
                 "cleanup_pending_authorizations"
             ]
             is True
@@ -10369,17 +10667,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         must use pebble_strict so there are no reused auths
         """
         try:
-            # Functional Tests: self.testapp.app.registry.settings
-            # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+            # ALL TESTS: self._pyramid_app
+            # Functional Tests: self._testapp.app.registry.settings
+            # Integrated Tests: self._testapp_wsgi.test_app.registry.settings
             # by default, this should be True
             assert (
-                self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                self._pyramid_app.registry.settings["app_settings"][
                     "cleanup_pending_authorizations"
                 ]
                 is True
             )
             # now set this as False
-            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["app_settings"][
                 "cleanup_pending_authorizations"
             ] = False
 
@@ -10501,7 +10800,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         finally:
             # reset
-            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["app_settings"][
                 "cleanup_pending_authorizations"
             ] = True
 
@@ -10553,7 +10852,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             )
             assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
         except:
-            # pprint.pprint(res3.json)
+            import pdb
+
+            pdb.set_trace()
+            import pprint
+
+            pprint.pprint(res3.json)
             raise
         assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
 

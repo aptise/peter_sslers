@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 
 class year_week(expression.FunctionElement):
+    inherit_cache = False
     type = sqlalchemy.types.String()
     name = "year_week"
 
@@ -69,6 +70,7 @@ def year_week__sqlite(element, compiler, **kw) -> str:
 
 
 class year_day(expression.FunctionElement):
+    inherit_cache = False
     type = sqlalchemy.types.String()
     name = "year_day"
 
@@ -121,6 +123,7 @@ def year_day__sqlite(element, compiler, **kw) -> str:
 
 
 class min_date(expression.FunctionElement):
+    inherit_cache = False
     type = sqlalchemy.types.DateTime()
     name = "min_date"
 
@@ -157,6 +160,7 @@ def min_date__sqlite(element, compiler, **kw) -> str:
 
 
 class utcnow(expression.FunctionElement):
+    inherit_cache = True
     type = sqlalchemy.types.DateTime()
     name = "utcnow"
 
@@ -176,6 +180,7 @@ def utcnow__postgresql(element, compiler, **kw) -> str:
 
 
 class indexable_lower(expression.FunctionElement):
+    inherit_cache = False
     type = sqlalchemy.types.String()
     name = "indexable_lower"
 
@@ -439,6 +444,10 @@ class Acme_Status_Authorization(_Acme_Status_All):
     OPTIONS_DEACTIVATE = (
         "pending",
         "valid",  # a valid auth can be deactivated to uncache it
+        "*discovered*",
+    )
+    OPTIONS_DEACTIVATE_TESTING = (  # tests don't care about valid
+        "pending",
         "*discovered*",
     )
     OPTIONS_POSSIBLY_PENDING = (
@@ -1198,6 +1207,7 @@ class PrivateKeyDeferred(_mixin_mapping):
         3. make a new key with a specific algorithm [generate__*]
     """
 
+    NOT_DEFERRED = 0
     ACCOUNT_DEFAULT = 1  # Placeholder
     ACCOUNT_ASSOCIATE = 2
 
@@ -1209,6 +1219,7 @@ class PrivateKeyDeferred(_mixin_mapping):
     GENERATE__EC_P384 = 9
 
     _mapping = {
+        0: "not_deferred",
         1: "account_default",
         2: "account_associate",
         # Specifically Requested Keys
@@ -1218,6 +1229,14 @@ class PrivateKeyDeferred(_mixin_mapping):
         8: "generate__ec_p256",
         9: "generate__ec_p384",
     }
+
+    _options_generate = (
+        "generate__rsa_2048",
+        "generate__rsa_3072",
+        "generate__rsa_4096",
+        "generate__ec_p256",
+        "generate__ec_p384",
+    )
 
     @classmethod
     def generate_from_key_technology_str(
@@ -1248,7 +1267,7 @@ class PrivateKeyDeferred(_mixin_mapping):
             return cls.GENERATE__RSA_2048
         elif key_technology == "RSA_3072":
             return cls.GENERATE__RSA_3072
-        elif key_technology == "RSA_409":
+        elif key_technology == "RSA_4096":
             return cls.GENERATE__RSA_4096
         elif key_technology == "EC_P256":
             return cls.GENERATE__EC_P256
@@ -1310,6 +1329,19 @@ class PrivateKeyStrategy(_mixin_mapping):
     BACKUP = 4
     REUSED = 5
 
+    @classmethod
+    def from_private_key_cycle(cls, private_key_cycle: str) -> str:
+        _PrivateKeyCycle_2_PrivateKeyStrategy = {
+            "single_use": "deferred-generate",
+            "single_use__reuse_1_year": "deferred-associate",
+            "account_daily": "deferred-associate",
+            "global_daily": "deferred-associate",
+            "account_weekly": "deferred-associate",
+            "global_weekly": "deferred-associate",
+            "account_default": "*lookup*",
+        }
+        return _PrivateKeyCycle_2_PrivateKeyStrategy[private_key_cycle]
+
 
 class PrivateKeyType(_mixin_mapping):
     """
@@ -1337,7 +1369,7 @@ class PrivateKeyType(_mixin_mapping):
     SINGLE_USE__REUSE_1_YEAR = 7
 
     @classmethod
-    def from_private_key_cycle(cls, private_key_cycle) -> str:
+    def from_private_key_cycle(cls, private_key_cycle: str) -> str:
         if private_key_cycle == "account_default":
             raise ValueError("`account_default` invalid")
         elif private_key_cycle in (
@@ -1363,26 +1395,3 @@ class PrivateKeyType(_mixin_mapping):
         "account_weekly",
     )
     _options_calendar_daily = ("global_daily" "account_daily",)
-
-
-#
-# Consolidate the options for forms here, as they are often printed out for JSON endpoints
-#
-
-PrivateKeySelection_2_PrivateKeyStrategy = {
-    "upload": "specified",
-    "existing": "specified",
-    "reuse": "specified",
-    "generate": "deferred-generate",
-    "account_default": "deferred-associate",
-}
-
-PrivateKeyCycle_2_PrivateKeyStrategy = {
-    "single_use": "deferred-generate",
-    "single_use__reuse_1_year": "deferred-associate",
-    "account_daily": "deferred-associate",
-    "global_daily": "deferred-associate",
-    "account_weekly": "deferred-associate",
-    "global_weekly": "deferred-associate",
-    "account_default": "*lookup*",
-}

@@ -7,11 +7,11 @@ URGENT
     
 * Finish Migration to RenewalConfiguration
 	They work and are tested, but the UX could potentially be cleaner
-	- automatic renewal - update to create queues
-	- queue certificates - process
-	- creating queue-certificates/freeform (domains)
+	[x] cert renewal
+	[x] autocert
+	[x] certificate if needed
 
-* Blocs
+* Blocks
     New Order - check to see if there is a live order:
         same order
         fqdns
@@ -31,36 +31,25 @@ Audit
     
 Tests
     selfsigned-1.example.com - disable authz/order
-    
-    use setup/teardown to reset dbs?
-    
     split out functional under_pebble that are really integrated
-    
-    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeOrder.test_AcmeOrder_mark_html
-
-
     create test:
         private_key_reuse on new/retry order
-    
     /renewal_configuration.py
         key_technology_id might be wrong on new; should this be detectd via parsed?
-    autocert
-        missing some args to create__RenewalConfiguration
-                private_key_deferred_id = privateKeySelection.private_key_deferred_id
-    
-    tests
-        ensure ansswer http challenge
-        
     
 Docs
     application design
+    ValueError: ('Authorization status should be `deactivated`; instead it is `%s`', '*404*')
+    RenewalConfiguration not support Edit for a reason.
+
+
+Add a "note" to:
+    RenewalConfiguration
+    AcmeOrder
 
 Errors:
     tests can somehow create a second acme-dns server
     transition concerns for acme-dns global servers (set_default)
-    
-Improve
-
 
 
     AcmeAccountKeyOption
@@ -69,15 +58,21 @@ Improve
             options_a_simple = (
 
 
-
-
 Routines
 --------
+
+# routine__renew_expired
+
+run a routine to renew expired certs
+
+
 
 # routine__run_ari_checks
 
 This should be migrated to use a ranged or windowed query to better handle
 systems with large numbers of rows
+
+should this allow an option to attempt renewals
 
 
 Development

@@ -455,7 +455,6 @@ class View_Focus_Order(View_Focus):
                 raise formhandling.FormInvalid()
 
             processing_strategy = formStash.results["processing_strategy"]
-            # ???: shouldn't this supply dbPrivateKey and private_key_deferred_id ?
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
@@ -1045,7 +1044,7 @@ class View_New(Handler):
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         dbRenewalConfiguration.id,
-                        "is_duplicate_renewal=true" if is_duplicate_renewal else "",
+                        "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
 
