@@ -1826,6 +1826,26 @@
 </%def>
 
 
+<%def name="formgroup__key_technology(default=None, options=None)">
+    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
+    <% options = options or model_websafe.KeyTechnology._options_all %>
+    <div class="form-group">
+        <label for="key_technology">Key Technology</label>
+        <select class="form-control" name="key_technology">
+            % for _option_text in options:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__note()">
+    <label for="note">Note</label>
+    <textarea class="form-control" rows="4" name="note" id="note"></textarea>
+</%def>
+
+
 <%def name="formgroup__processing_strategy()">
     <div class="form-group clearfix">
         <label for="processing_strategy">Processing Strategy</label>
@@ -1870,20 +1890,6 @@
         <label for="private_key_cycle">Private Key Cycle</label>
         <select class="form-control" name="private_key_cycle">
             % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
-                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
-            % endfor
-        </select>
-    </div>
-</%def>
-
-
-<%def name="formgroup__key_technology(default=None, options=None)">
-    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
-    <% options = options or model_websafe.KeyTechnology._options_all %>
-    <div class="form-group">
-        <label for="key_technology">Key Technology</label>
-        <select class="form-control" name="key_technology">
-            % for _option_text in options:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
         </select>

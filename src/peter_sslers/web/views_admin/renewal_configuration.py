@@ -383,7 +383,7 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-class View_Focus_Order(View_Focus):
+class View_Focus_New(View_Focus):
 
     @view_config(
         route_name="admin:renewal_configuration:focus:new_order", renderer=None
@@ -398,8 +398,9 @@ class View_Focus_Order(View_Focus):
             "about": """AcmeOrder focus: Renew Quick""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-order.json",
+            "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-order.json",
             "form_fields": {
+                "note": "A string to associate with the AcmeOrder.",
                 "processing_strategy": "How should the order be processed?",
             },
             "valid_options": {
@@ -407,8 +408,10 @@ class View_Focus_Order(View_Focus):
                     "processing_strategy"
                 ].list,
             },
-            "instructions": [
-                """curl --form 'processing_strategy=create_order' {ADMIN_PREFIX}/renewal-configuration/1/new-order.json""",
+            "examples": [
+                """curl """
+                """--form 'processing_strategy=create_order' """
+                """{ADMIN_PREFIX}/renewal-configuration/1/new-order.json""",
             ],
         }
     )
@@ -454,6 +457,7 @@ class View_Focus_Order(View_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
+            note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
@@ -461,6 +465,7 @@ class View_Focus_Order(View_Focus):
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
+                    note=note,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -515,7 +520,7 @@ class View_Focus_Order(View_Focus):
             "about": """AcmeOrder focus: Renew Quick""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
+            "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
             "form_fields": {
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
@@ -524,6 +529,7 @@ class View_Focus_Order(View_Focus):
                 "key_technology": "what kind of keys to use?",
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
+                "note": "A string to associate with the RenewalConfiguration.",
             },
             "valid_options": {
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
@@ -540,8 +546,10 @@ class View_Focus_Order(View_Focus):
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
             ],
-            "instructions": [
-                """curl --form 'account_key_option=global_default' {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json""",
+            "examples": [
+                """curl """
+                """--form 'account_key_option=global_default' """
+                """{ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json""",
             ],
         }
     )
@@ -659,6 +667,7 @@ class View_Focus_Order(View_Focus):
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
                 is_duplicate_renewal = None
+                note = formStash.results["note"]
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
@@ -666,6 +675,7 @@ class View_Focus_Order(View_Focus):
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
+                        note=note,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -759,9 +769,16 @@ class View_Focus_Manipulate(View_Focus):
             "about": """RenewalConfiguration: Focus. Mark""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'action=active' {ADMIN_PREFIX}/renewal-configuration/1/mark.json",
-            "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["active", "inactive"]},
+            "instructions": "curl --form 'action=active' {ADMIN_PREFIX}/renewal-configuration/1/mark.json",
+            "example": "curl "
+            "--form 'action=active' "
+            "{ADMIN_PREFIX}/renewal-configuration/1/mark.json",
+            "form_fields": {
+                "action": "the intended action",
+            },
+            "valid_options": {
+                "action": ["active", "inactive"],
+            },
         }
     )
     def focus_mark(self):
@@ -878,7 +895,7 @@ class View_New(Handler):
             "about": """AcmeOrder: New Freeform""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/renewal-configuration/new.json",
+            "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/new.json",
             "form_fields": {
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
@@ -887,6 +904,7 @@ class View_New(Handler):
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
                 "key_technology": "what kind of keys to use?",
+                "note": "A string to associate with the RenewalConfiguration.",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
@@ -904,8 +922,12 @@ class View_New(Handler):
             "requirements": [
                 "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
             ],
-            "instructions": [
-                """curl --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_cycle=account_default' {ADMIN_PREFIX}/renewal-configuration/new.json""",
+            "examples": [
+                """curl """
+                """--form 'account_key_option=account_key_existing' """
+                """--form 'account_key_existing=ff00ff00ff00ff00' """
+                """--form 'private_key_cycle=account_default' """
+                """{ADMIN_PREFIX}/renewal-configuration/new.json""",
             ],
         }
     )
@@ -1019,6 +1041,7 @@ class View_New(Handler):
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
                 is_duplicate_renewal = None
+                note = formStash.results["note"]
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
@@ -1026,6 +1049,7 @@ class View_New(Handler):
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
+                        note=note,
                     )
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True

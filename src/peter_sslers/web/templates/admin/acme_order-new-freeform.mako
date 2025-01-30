@@ -68,6 +68,7 @@
                     )}
                 <hr/>
 
+                ${admin_partials.formgroup__note()}
 
                 ${admin_partials.formgroup__processing_strategy()}
                 <hr/>

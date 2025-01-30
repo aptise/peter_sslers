@@ -44,7 +44,7 @@ DictProvider = TypedDict(
         "server": str,
         "is_supports_ari__version": Optional[str],
         "is_unlimited_pending_authz": Optional[bool],
-        "allow_insecure": bool,
+        "filepath_ca_cert_bundle": Optional[str],
     },
     total=False,
 )
@@ -61,7 +61,7 @@ acme_servers: Dict[int, DictProvider] = {
         "is_enabled": False,
         "server": "127.0.0.1:14000",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
-        "allow_insecure": True,
+        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert.pem",
     },
     2: {
         "id": 2,
@@ -114,6 +114,16 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
     timestamp_now = datetime.datetime.utcnow()
 
     for id, item in acme_servers.items():
+
+        server_ca_cert_bundle: Optional[str] = None
+        filepath_ca_cert_bundle = item.get("filepath_ca_cert_bundle")
+        if filepath_ca_cert_bundle:
+            with open(filepath_ca_cert_bundle) as fh:
+                server_ca_cert_bundle = fh.read()
+                server_ca_cert_bundle = cert_utils.cleanup_pem_text(
+                    server_ca_cert_bundle
+                )
+
         dbObject = model_objects.AcmeServer()
         dbObject.id = item["id"]
         dbObject.timestamp_created = timestamp_now
@@ -128,7 +138,8 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
         dbObject.is_unlimited_pending_authz = item.get(
             "is_unlimited_pending_authz", None
         )
-        dbObject.allow_insecure = item.get("allow_insecure", False)
+        dbObject.is_custom_ca_certs = item.get("is_custom_ca_certs", None)
+        dbObject.server_ca_cert_bundle = server_ca_cert_bundle
         ctx.dbSession.add(dbObject)
         ctx.dbSession.flush(
             objects=[

@@ -53,4 +53,4 @@ def main(argv=sys.argv):
         config_uri=config_uri,
     )
 
-    lib_db.actions.routine__run_ari_checks(ctx)
+    lib_db.actions.refresh_pebble_ca_certs(ctx)

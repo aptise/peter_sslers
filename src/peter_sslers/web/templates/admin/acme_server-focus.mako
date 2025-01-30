@@ -104,12 +104,6 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>allow_insecure</th>
-                    <td>
-                        <code>${AcmeServer.allow_insecure}</code>
-                    </td>
-                </tr>
-                <tr>
                     <th>is_unlimited_pending_authz</th>
                     <td>
                         <code>${AcmeServer.is_unlimited_pending_authz}</code>
@@ -132,7 +126,12 @@
                                 </button>
                             </form>
                         % endif
-                        
+                    </td>
+                </tr>
+                <tr>
+                    <th>server_ca_cert_bundle</th>
+                    <td>
+                        <code>${AcmeServer.server_ca_cert_bundle}</code>
                     </td>
                 </tr>
             </table>

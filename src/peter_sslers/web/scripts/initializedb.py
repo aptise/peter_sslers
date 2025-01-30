@@ -54,6 +54,7 @@ def main(argv=sys.argv):
             timestamp=datetime.datetime.utcnow(),
             dbSession=dbSession,
             request=None,
+            config_uri=config_uri,
         )
 
         # this will setup the initial AcmeServers and the placeholder PrivateKey

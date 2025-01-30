@@ -61,6 +61,9 @@
                     domain_names_dns01=domain_names_dns01,
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
+                    
+                ${admin_partials.formgroup__note()}
+                    
                 <hr/>
 
                 <hr/>

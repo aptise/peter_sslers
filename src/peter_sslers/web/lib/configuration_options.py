@@ -98,7 +98,7 @@ documentation_grid = {
             "show_on_settings": True,
         },
         "nginx.servers_pool_allow_invalid": {
-            "docstring": "This controls SSL verification against the Nginx servers.",
+            "docstring": "This disables SSL verification against the Nginx servers; alternatively set `ca_bundle_pem`",
             "show_on_settings": True,
         },
         "nginx.timeout": {
@@ -108,6 +108,10 @@ documentation_grid = {
         },
         "nginx.userpass": {
             "docstring": "The `username:password` combination used for simple HTTP auth against the Nginx endpoints.",
+            "show_on_settings": True,
+        },
+        "nginx.ca_bundle_pem": {
+            "docstring": "A path to a PEM encoded list of Root Certificates used by the `nginx.servers_pool` if connecting via https.",
             "show_on_settings": True,
         },
     },

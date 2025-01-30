@@ -121,8 +121,11 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>note</th>
+                        <td>${admin_partials.formgroup__note()}</td>
+                    </tr>
+                    <tr>
                         <th></th>
-                        <td></td>
                         <td>
                             ${admin_partials.formgroup__processing_strategy()}
                         </td>

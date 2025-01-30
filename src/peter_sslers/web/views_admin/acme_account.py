@@ -97,9 +97,22 @@ class View_New(Handler):
             "about": """upload an AcmeAccount and AcmeAccountKey""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/upload.json",
             "examples": [
-                "curl --form 'account_key_file_pem=@key.pem' --form 'acme_server_id=1' {ADMIN_PREFIX}/acme-account/upload.json",
-                "curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' {ADMIN_PREFIX}/acme-account/upload.json",
+                "curl "
+                "--form 'account__order_default_private_key_cycle=single_use' "
+                "--form 'account__order_default_private_key_technology=EC_P256' "
+                "--form 'acme_server_id=1' "
+                "--form 'account_key_file_pem=@key.pem' "
+                "--form 'account__contact=a@example.com' "
+                "{ADMIN_PREFIX}/acme-account/upload.json",
+                "curl "
+                "--form 'account__order_default_private_key_cycle=single_use' "
+                "--form 'account__order_default_private_key_technology=EC_P256' "
+                "--form 'account_key_file_le_meta=@meta.json' "
+                "--form 'account_key_file_le_pkey=@private_key.json' "
+                "--form 'account_key_file_le_reg=@regr.json' "
+                "{ADMIN_PREFIX}/acme-account/upload.json",
             ],
             "form_fields": {
                 "account_key_file_pem": "Group A",
@@ -220,8 +233,15 @@ class View_New(Handler):
             "about": """Create a new AcmeAccount""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl --form 'account_key_file_pem=@key.pem' --form 'acme_server_id=1' {ADMIN_PREFIX}/acme-account/new.json""",
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/new.json",
+            "examples": [
+                """curl """
+                """--form 'acme_server_id=1' """
+                """--form 'account__contact=a@example.com' """
+                """--form 'account__private_key_technology=ECP256' """
+                """--form 'account__order_default_private_key_cycle=single_use' """
+                """--form 'account__order_default_private_key_technology=EC_P256' """
+                """{ADMIN_PREFIX}/acme-account/new.json""",
             ],
             "form_fields": {
                 "acme_server_id": "which provider",
@@ -854,8 +874,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeAccount: Edit""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-account/1/edit.json",
-            "instructions": [
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/1/edit.json",
+            "examples": [
                 """curl"""
                 """ --form 'account__private_key_technology=rsa'"""
                 """ {ADMIN_PREFIX}/acme-account/{ID}/edit.json""",
@@ -1037,9 +1057,9 @@ class View_Focus_Manipulate(View_Focus):
             "summary": """Authenticate the key against the provider's new-reg endpoint""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/authenticate.json""",
-            ],
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/{ID}/acme-server/authenticate.json",
+            "example": """curl -X POST """
+            """{ADMIN_PREFIX}/acme-account/{ID}/acme-server/authenticate.json""",
         }
     )
     def focus__acme_server_authenticate(self):
@@ -1115,9 +1135,9 @@ class View_Focus_Manipulate(View_Focus):
             "summary": """Check the key against the provider's new-reg endpoint""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/check.json""",
-            ],
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/{ID}/acme-server/check.json",
+            "example": """curl -X POST """
+            """{ADMIN_PREFIX}/acme-account/{ID}/acme-server/check.json""",
         }
     )
     def focus__acme_server_check(self):
@@ -1199,7 +1219,12 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeAccount: Focus. Mark""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'action=active' {ADMIN_PREFIX}/acme-account/1/mark.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/1/mark.json",
+            "examples": [
+                "curl "
+                "--form 'action=active' "
+                "{ADMIN_PREFIX}/acme-account/1/mark.json",
+            ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {"action": ["global_default", "active", "inactive"]},
         }
@@ -1334,8 +1359,12 @@ class View_Focus_Manipulate(View_Focus):
             "summary": """deactivate pending authorizations on the acme server, must supply the authorization_ids""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl --form 'acme_authorization_id=1' --form 'acme_authorization_id=2'  {ADMIN_PREFIX}/acme-account/1/acme-server/deactivate-pending-authorizations.json""",
+            "instructions": "curl {ADMIN_PREFIX}/acme-account/1/acme-server/deactivate-pending-authorizations.json",
+            "examples": [
+                "curl "
+                "--form 'acme_authorization_id=1' "
+                "--form 'acme_authorization_id=2' "
+                "{ADMIN_PREFIX}/acme-account/1/acme-server/deactivate-pending-authorizations.json",
             ],
             "form_fields": {
                 "authorization_id": "the pending authorization id to delete ",
@@ -1442,9 +1471,8 @@ class View_Focus_Manipulate(View_Focus):
             "form_fields": {
                 "key_pem": "the active key as md5(PEM) or PEM",
             },
-            "instructions": [
-                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/deactivate.json""",
-            ],
+            "example": """curl -X POST """
+            """{ADMIN_PREFIX}/acme-account/{ID}/acme-server/deactivate.json""",
         }
     )
     def focus__acme_server_deactivate(self):
@@ -1544,8 +1572,9 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeAccount: Focus. ACME Server - KeyChange""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl -X POST {ADMIN_PREFIX}/acme-account/{ID}/acme-server/key-change.json""",
+            "examples": [
+                """curl -X POST """
+                """{ADMIN_PREFIX}/acme-account/{ID}/acme-server/key-change.json""",
             ],
             "form_fields": {
                 "key_pem_existing": "the active key as md5(PEM) or PEM",

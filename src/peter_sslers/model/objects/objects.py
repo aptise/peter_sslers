@@ -1,6 +1,21 @@
+"""
+Style note:
+
+    as_json should be:
+        id          # id
+        ObjectA     # CameCaseObjects, alphabetical
+        ObjectB
+        # - -       # comment line
+        a           # attributes, alphabetical
+        b
+        c
+        d
+"""
+
 # stdlib
 import datetime
 import json
+import os
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -23,6 +38,9 @@ from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
 from ..meta import Base
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
+
+if TYPE_CHECKING:
+    from ...lib.utils import ApiContext
 
 
 # ==============================================================================
@@ -225,6 +243,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         return {
+            "id": self.id,
+            "AcmeAccountKey": (
+                self.acme_account_key.as_json if self.acme_account_key else None
+            ),
+            # - -
             "is_active": True if self.is_active else False,
             "is_deactivated": self.timestamp_deactivated or False,
             "is_global_default": True if self.is_global_default else False,
@@ -232,10 +255,6 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "acme_server_name": self.acme_server.name,
             "acme_server_url": self.acme_server.url,
             "acme_server_protocol": self.acme_server.protocol,
-            "AcmeAccountKey": (
-                self.acme_account_key.as_json if self.acme_account_key else None
-            ),
-            "id": self.id,
             "private_key_technology": self.private_key_technology,
             "order_default_private_key_cycle": self.order_default_private_key_cycle,
             "order_default_private_key_technology": self.order_default_private_key_technology,
@@ -359,11 +378,11 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
+            "is_active": self.is_active,
             "key_pem": self.key_pem,
             "key_pem_md5": self.key_pem_md5,
             "spki_sha256": self.spki_sha256,
-            "acme_account_key_source": self.acme_account_key_source,
-            "is_active": self.is_active,
         }
 
     @property
@@ -646,13 +665,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
         return {
             "id": self.id,
-            "acme_status_authorization": self.acme_status_authorization,
-            "acme_challenge_http_01_id": (
-                self.acme_challenge_http_01.id if self.acme_challenge_http_01 else None
-            ),
-            "acme_challenge_dns_01_id": (
-                self.acme_challenge_dns_01.id if self.acme_challenge_dns_01 else None
-            ),
             "Domain": (
                 {
                     "id": self.domain_id,
@@ -660,6 +672,14 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
                 }
                 if self.domain_id
                 else None
+            ),
+            # - -
+            "acme_status_authorization": self.acme_status_authorization,
+            "acme_challenge_http_01_id": (
+                self.acme_challenge_http_01.id if self.acme_challenge_http_01 else None
+            ),
+            "acme_challenge_dns_01_id": (
+                self.acme_challenge_dns_01.id if self.acme_challenge_dns_01 else None
             ),
             "url_acme_server_sync": (
                 "%s/acme-authorization/%s/acme-server/sync.json" % (admin_url, self.id)
@@ -734,6 +754,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "acme_order_id": self.acme_order_id,
             "domain_id": self.domain_id,
             "acme_challenge_type": self.acme_challenge_type,
@@ -972,12 +993,13 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 
         return {
             "id": self.id,
-            "acme_challenge_type": self.acme_challenge_type,
-            "acme_status_challenge": self.acme_status_challenge,
             "Domain": {
                 "id": self.domain_id,
                 "domain_name": self.domain.domain_name,
             },
+            # - -
+            "acme_challenge_type": self.acme_challenge_type,
+            "acme_status_challenge": self.acme_status_challenge,
             "keyauthorization": self.keyauthorization,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
@@ -1100,6 +1122,7 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "AcmeChallenge": self.acme_challenge.as_json,
+            # - -
             "timestamp_polled": self.timestamp_polled_isoformat,
             "remote_ip_address": {
                 "id": self.remote_ip_address_id,
@@ -1263,9 +1286,10 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self) -> Dict:
         return {
+            "id": self.id,
             "AcmeDnsServer": self.acme_dns_server.as_json,
             "Domain": self.domain.as_json,
-            "id": self.id,
+            # - -
             "timestamp_created": self.timestamp_created_isoformat,
             "username": self.username,
             "password": self.password,
@@ -1348,6 +1372,7 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "timestamp_event": self.timestamp_event_isoformat,
             "acme_event": self.acme_event,
             "acme_account_id": self.acme_account_id,
@@ -1542,6 +1567,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     private_key_deferred_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=False
     )
+    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
@@ -1874,6 +1900,15 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 "id": self.acme_account_id,
                 "key_pem_md5": self.acme_account.acme_account_key.key_pem_md5,
             },
+            "PrivateKey": {
+                "id": self.private_key_id,
+                "key_pem_md5": (
+                    self.private_key.key_pem_md5 if self.private_key_id else None
+                ),
+            },
+            "RenewalConfiguration": self.renewal_configuration.as_json,
+            # - -
+            "acme_authorization_ids": self.acme_authorization_ids,
             "acme_status_order": self.acme_status_order,
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
@@ -1881,6 +1916,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_process_steps": self.acme_process_steps,
             "certificate_request_id": self.certificate_request_id,
             "certificate_type": self.certificate_type,
+            "certificate_signed_id": self.certificate_signed_id,
+            "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -1894,27 +1931,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "is_can_acme_server_deactivate_authorizations": (
                 True if self.is_can_acme_server_deactivate_authorizations else False
             ),
+            "note": self.note,
             "order_url": self.order_url,
-            "PrivateKey": {
-                "id": self.private_key_id,
-                "key_pem_md5": (
-                    self.private_key.key_pem_md5 if self.private_key_id else None
-                ),
-            },
             "private_key_cycle": self.private_key_cycle,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_strategy__final": self.private_key_strategy__final,
-            "certificate_signed_id": self.certificate_signed_id,
-            "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "renewal_configuration_id": self.renewal_configuration_id,
-            "RenewalConfiguration": self.renewal_configuration.as_json,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
-            "acme_authorization_ids": self.acme_authorization_ids,
             "url_acme_server_sync": (
                 "%s/acme-order/%s/acme-server/sync.json" % (admin_url, self.id)
                 if self.is_can_acme_server_sync
@@ -2072,11 +2100,8 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         sa.Boolean, nullable=True, default=None
     )
     protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
-
-    # we need to disable ssl verification on test/local servers
-    # this should NEVER be used for real servers
-    allow_insecure: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, default=False
+    server_ca_cert_bundle: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2113,6 +2138,37 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     def is_supports_ari(self) -> bool:
         return bool(self.is_supports_ari__version)
 
+    def local_ca_bundle(
+        self,
+        ctx: "ApiContext",
+        force_refresh: bool = False,
+    ) -> Optional[str]:
+        """
+        requests may need this
+        """
+        if not self.server_ca_cert_bundle:
+            return None
+
+        request = ctx.dbSession.info.get("request")
+        assert request
+        data_dir = request.registry.settings["app_settings"]["data_dir"]
+
+        assert ctx.config_uri
+        _config_uri = ctx.config_uri
+        config_uri = _config_uri.split("/")[-1]
+        config_uri = config_uri.replace(".", "-")
+
+        bundle_dir = "%s/_ACME_SERVER_BUNDLE" % data_dir
+        if not os.path.exists(bundle_dir):
+            os.mkdir(bundle_dir)
+
+        bundle_file = "%s/%s-%s.pem" % (bundle_dir, config_uri, self.id)
+        if not os.path.exists(bundle_file) or force_refresh:
+            with open(bundle_file, "w") as fh:
+                fh.write(self.server_ca_cert_bundle)
+
+        return bundle_file
+
     @property
     def url(self) -> str:
         return self.directory or self.endpoint or ""
@@ -2121,6 +2177,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "timestamp_created": self.timestamp_created_isoformat,
             "name": self.name,
             "endpoint": self.endpoint,
@@ -2130,6 +2187,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "protocol": self.protocol,
             "is_supports_ari__version": self.is_supports_ari__version,
             "is_unlimited_pending_authz": self.is_unlimited_pending_authz,
+            "server_ca_cert_bundle": self.server_ca_cert_bundle,
         }
 
 
@@ -2177,9 +2235,10 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "certificate_signed_id": self.certificate_signed_id,
-            "timestamp_created": self.timestamp_created_isoformat,
+            # - -
             "ari_check_status": self.ari_check_status,
+            "certificate_signed_id": self.certificate_signed_id,
+            "raw_response": self.raw_response,
             "suggested_window_start": (
                 self.suggested_window_start.isoformat()
                 if self.suggested_window_start
@@ -2195,7 +2254,7 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
                 if self.timestamp_retry_after
                 else None
             ),
-            "raw_response": self.raw_response,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
 
 
@@ -2398,14 +2457,15 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "display_name": self.display_name,
+            # - -
             "cert_pem_md5": self.cert_pem_md5,
             "cert_pem": self.cert_pem,
             "cert_subject": self.cert_subject,
             "cert_issuer": self.cert_issuer,
+            "display_name": self.display_name,
             "fingerprint_sha1": self.fingerprint_sha1,
-            "spki_sha256": self.spki_sha256,
             "key_technology": self.key_technology,
+            "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
@@ -2544,12 +2604,13 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "display_name": self.display_name,
-            "chain_pem_md5": self.chain_pem_md5,
-            "chain_pem": self.chain_pem,
-            "timestamp_created": self.timestamp_created_isoformat,
+            # - -
             "certificate_ca_ids": self.certificate_ca_ids,
             "certificate_cas": [i.as_json for i in self.certificate_cas_all],
+            "chain_pem_md5": self.chain_pem_md5,
+            "chain_pem": self.chain_pem,
+            "display_name": self.display_name,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
 
 
@@ -2720,6 +2781,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "certificate_request_source": self.certificate_request_source,
             "csr_pem_md5": self.csr_pem_md5,
             "private_key_id": self.private_key_id,
@@ -2732,6 +2794,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def as_json_extended(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "certificate_request_source": self.certificate_request_source,
             "certificate_signed_id__latest": self.certificate_signed_id__latest,
             "csr_pem": self.csr_pem,
@@ -2781,8 +2844,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
     spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
     fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    cert_subject: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    cert_issuer: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_deactivated: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -2801,7 +2864,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
     cert_serial: Mapped[str] = mapped_column(
-        sa.Text, nullable=False, unique=False
+        sa.Unicode(255), nullable=False, unique=False
     )  # the serial is only unique within an acme-provider
 
     # acme_order_id__generated_by: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
@@ -3185,18 +3248,13 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @property
     def as_json(self) -> Dict:
         return {
-            "certificate_type": self.certificate_type,
-            "domains_as_list": self.domains_as_list,
             "id": self.id,
-            "is_active": True if self.is_active else False,
-            "is_deactivated": True if self.is_deactivated else False,
-            "is_revoked": True if self.is_revoked else False,
-            "is_compromised_private_key": (
-                True if self.is_compromised_private_key else False
+            # - -
+            # "acme_account_id": self.acme_account_id,
+            "ari_check_latest_id": (
+                self.ari_check__latest.id if self.ari_check__latest else None
             ),
-            "timestamp_not_after": self.timestamp_not_after_isoformat,
-            "timestamp_not_before": self.timestamp_not_before_isoformat,
-            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
+            "certificate_type": self.certificate_type,
             "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
             "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
             "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
@@ -3205,16 +3263,22 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "cert_subject": self.cert_subject,
             "cert_issuer": self.cert_issuer,
             "cert_serial": self.cert_serial,
+            "domains_as_list": self.domains_as_list,
             "fingerprint_sha1": self.fingerprint_sha1,
-            "spki_sha256": self.spki_sha256,
+            "is_ari_supported": self.is_ari_supported,
+            "is_active": True if self.is_active else False,
+            "is_deactivated": True if self.is_deactivated else False,
+            "is_revoked": True if self.is_revoked else False,
+            "is_compromised_private_key": (
+                True if self.is_compromised_private_key else False
+            ),
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
-            # "acme_account_id": self.acme_account_id,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "ari_check_latest_id": (
-                self.ari_check__latest.id if self.ari_check__latest else None
-            ),
-            "is_ari_supported": self.is_ari_supported,
         }
 
 
@@ -3347,13 +3411,14 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         payload = {
             "id": self.id,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "private_key_id": self.private_key_id,
+            # - -
             "certificate_signed_id": self.private_key_id,
             "coverage_assurance_event_type": self.coverage_assurance_event_type,
             "coverage_assurance_event_status": self.coverage_assurance_event_status,
             "coverage_assurance_resolution": self.coverage_assurance_resolution,
             "coverage_assurance_event_id__parent": self.coverage_assurance_event_id__parent,
+            "private_key_id": self.private_key_id,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
         return payload
 
@@ -3482,9 +3547,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         payload = {
             "id": self.id,
-            "domain_name": self.domain_name,
+            # - -
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
+            "domain_name": self.domain_name,
         }
         if self.certificate_signed_id__latest_multi:
             payload["certificate__latest_multi"] = {
@@ -3511,6 +3577,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 "id": str(self.id),
                 "domain_name": self.domain_name,
             },
+            # - -
             "certificate_signed__latest_single": None,
             "certificate_signed__latest_multi": None,
         }
@@ -3582,14 +3649,15 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         payload = {
             "id": self.id,
+            "AcmeOrder": {"id": self.acme_order_id} if self.acme_order_id else None,
             "Domain": {
                 "id": self.domain_id,
                 "domain_name": self.domain.domain_name,
             },
+            # - -
+            "is_successful": self.is_successful,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
-            "is_successful": self.is_successful,
-            "AcmeOrder": {"id": self.acme_order_id} if self.acme_order_id else None,
         }
         return payload
 
@@ -4054,6 +4122,11 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
+            "autogenerated_calendar_repr": self.autogenerated_calendar_repr,
+            "private_key_source": self.private_key_source,
+            "private_key_type": self.private_key_type,
+            "private_key_id__replaces": self.private_key_id__replaces,
             "is_active": True if self.is_active else False,
             "is_compromised": True if self.is_compromised else False,
             "key_pem_md5": self.key_pem_md5,
@@ -4061,10 +4134,6 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "key_technology": self.key_technology,
             "spki_sha256": self.spki_sha256,
             "timestamp_created": self.timestamp_created_isoformat,
-            "private_key_source": self.private_key_source,
-            "private_key_type": self.private_key_type,
-            "private_key_id__replaces": self.private_key_id__replaces,
-            "autogenerated_calendar_repr": self.autogenerated_calendar_repr,
         }
 
 
@@ -4148,6 +4217,7 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     acme_order_id__latest_success: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
+    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",
@@ -4258,14 +4328,16 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
+            "acme_account_id": self.acme_account_id,
+            "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
-            "private_key_cycle": self.private_key_cycle,
-            "private_key_cycle__effective": self.private_key_cycle__effective,
             "key_technology": self.key_technology,
             "key_technology__effective": self.key_technology__effective,
-            "acme_account_id": self.acme_account_id,
+            "note": self.note,
+            "private_key_cycle": self.private_key_cycle,
+            "private_key_cycle__effective": self.private_key_cycle__effective,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "domains_challenged": self.domains_challenged,
         }
 
 
@@ -4283,7 +4355,7 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
@@ -4302,6 +4374,7 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "name": self.name,
             "versions": [i.as_json for i in self.root_store_versions],
         }
@@ -4322,7 +4395,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     root_store_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
     )
-    version_string: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    version_string: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )
@@ -4347,6 +4420,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
             "name": self.root_store.name,
             "version_string": self.version_string,
         }
@@ -4485,9 +4559,10 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "timestamp_created": self.timestamp_created_isoformat,
+            # - -
             "count_domains": self.count_domains,
             "domains_as_list": self.domains_as_list,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
 
 
@@ -4635,10 +4710,11 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
+            # - -
+            "discovery_type": self.discovery_type,
+            "domain_challenges_serialized": self.domain_challenges_serialized,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "domain_challenges_serialized": self.domain_challenges_serialized,
-            "discovery_type": self.discovery_type,
         }
 
 
@@ -4683,9 +4759,9 @@ class UniquelyChallengedFQDNSet2Domain(Base):
     @property
     def as_json(self) -> Dict:
         return {
+            "acme_challenge_type": self.acme_challenge_type,
             "domain_id": self.domain_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
-            "acme_challenge_type": self.acme_challenge_type,
         }
 
 

@@ -95,6 +95,11 @@
         routine__run_ari_checks
     
     new QuickStart guide
+    
+    reorganization of files:
+    * the database files for peter_sslers and acme_dns are moved into a
+      `/_data_` subdirectory.
+    * the config files are consolidated into a `/conf` subdirectory.
 
     Name Changes
         AcmeAccountProvider -> AcmeServer
@@ -107,11 +112,13 @@
         now handles polling an acme-order stuck in processing, 1x every 2 seconds for 20 seconds
         fixed testing docs and config to reflect active testing setup
         Better error handling of no acme-dns server
+        json endpoints audited for documentation; @docify now uses the form values
+        added `nginx.ca_bundle_pem` for trusted roots
+        added server pem to AcmeServer
 
-    Development Tools
-        added
-            dev-reset_db.sh         - clears old db, initializes new db
-            dev-reset_db-post.sh    - runs setup routines against live install
+    Added a "note" to:
+        RenewalConfiguration
+        AcmeOrder
 
     Testing
         The test suite was overhauled
@@ -121,11 +128,11 @@
         py313 testing supported
         
     Bugs
-        Processing an ACME order could randomly generate an error. 
-        This was due to a change on polling; fixed.
-        
-    
-
+        * Processing an ACME order could randomly generate an error. 
+          This was due to a change on polling; fixed.
+        * Unit tests were failing because
+          `tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup`
+          would leave the database with blocking auths.
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

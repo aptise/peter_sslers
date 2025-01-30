@@ -150,6 +150,10 @@ class AcmeServer404(AcmeServerError):
     pass
 
 
+class AcmeServerUnsupported(AcmeServerError):
+    pass
+
+
 class AcmeCommunicationError(AcmeError):
     pass
 

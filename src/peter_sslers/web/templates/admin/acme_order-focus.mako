@@ -271,6 +271,11 @@
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
                     </tr>
                     <tr>
+                        <th>note</th>
+                        <td><code>${AcmeOrder.note or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>is_save_alternate_chains</th>
                         <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
                         </td>

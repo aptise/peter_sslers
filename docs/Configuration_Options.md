@@ -37,6 +37,9 @@ These are documented at-length on the in-app settings page.
   to each server in `nginx.servers_pool`
 * `nginx.reset_path` - defaults to `/.peter_sslers/nginx/shared_cache/expire`
 * `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
+* `nginx.ca_bundle_pem` - path to a pem encoded list of root certificates used by the nginx server
+
+
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests
   library
 

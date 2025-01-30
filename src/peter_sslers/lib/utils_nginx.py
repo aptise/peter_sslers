@@ -10,6 +10,7 @@ from typing import Union
 import requests
 
 # local
+from . import cas
 from . import utils
 from ..lib.db.logger import log__OperationsEvent
 from ..model import utils as model_utils
@@ -34,11 +35,19 @@ class NginxSession(object):
         _auth = request.registry.settings["app_settings"].get("nginx.userpass")
         if _auth:
             sess.auth = tuple(_auth.split(":"))  # type: ignore[assignment]
+
         servers_allow_invalid = request.registry.settings["app_settings"].get(
             "nginx.servers_pool_allow_invalid"
         )
         if servers_allow_invalid:
             sess.verify = False
+        else:
+            ca_bundle_pem = request.registry.settings["app_settings"].get(
+                "nginx.ca_bundle_pem"
+            )
+            if ca_bundle_pem:
+                sess.verify = ca_bundle_pem
+
         self.session = sess
 
     def __enter__(self):
@@ -74,7 +83,7 @@ def nginx_flush_cache(
             status = None
             try:
                 reset_url = _server + _reset_path + "/all"
-                response = sess.get(reset_url, timeout=timeout, verify=False)
+                response = sess.get(reset_url, timeout=timeout, verify=cas.CA_NGINX)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     status = response_json
@@ -129,7 +138,7 @@ def nginx_status(
             _status = None
             try:
                 status_url = _server + status_path
-                response = sess.get(status_url, timeout=timeout, verify=False)
+                response = sess.get(status_url, timeout=timeout, verify=cas.CA_NGINX)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     _status = response_json
@@ -175,7 +184,7 @@ def nginx_expire_cache(
                     reset_url = (
                         _server + _reset_path + "/domain/%s" % domain.domain_name
                     )
-                    response = sess.get(reset_url, timeout=timeout, verify=False)
+                    response = sess.get(reset_url, timeout=timeout, verify=cas.CA_NGINX)
                     if response.status_code == 200:
                         response_json = json.loads(response.text)
                         if response_json["result"] == "success":

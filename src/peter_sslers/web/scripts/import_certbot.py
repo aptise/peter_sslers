@@ -61,6 +61,7 @@ def main(argv=sys.argv):
             timestamp=datetime.datetime.utcnow(),
             dbSession=dbSession,
             request=None,
+            config_uri=config_uri,
         )
 
         # load the db providers

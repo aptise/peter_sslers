@@ -177,7 +177,8 @@ class View_Focus(Handler):
             "about": """unique-fqdn-set focus: update-recents""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
         }
     )
     def update_recents(self):
@@ -354,9 +355,12 @@ class View_Focus(Handler):
             "about": """UniqueFQDNSet focus: modify""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/modify.json",
-            "instructions": [
-                """curl --form 'domains_add=[]' --form 'domains_del=[]' {ADMIN_PREFIX}/modify.json"""
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/modify.json",
+            "examples": [
+                """curl """
+                """--form 'domains_add=example.com,foo.example.com' """
+                """--form 'domains_del=bar.example.com' """
+                """{ADMIN_PREFIX}/modify.json"""
             ],
             "form_fields": {
                 "domain_names_add": "a comma separated list of domains to add",
@@ -512,9 +516,11 @@ class ViewNew(Handler):
             "about": """UniqueFQDNSet focus: new""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/new.json",
-            "instructions": [
-                """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/unique-fqdn-set/new.json"""
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/new.json",
+            "examples": [
+                """curl """
+                """--form 'domain_names=domain_names' """
+                """{ADMIN_PREFIX}/unique-fqdn-set/new.json"""
             ],
             "form_fields": {
                 "domain_names": "required; a comma separated list of domain names",

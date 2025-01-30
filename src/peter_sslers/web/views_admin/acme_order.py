@@ -449,7 +449,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: AcmeServer sync""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/sync.json",
+            "instructions": "curl -X {ADMIN_PREFIX}/acme-order/1/acme-server/sync.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-server/sync.json",
         }
     )
     def acme_server_sync(self):
@@ -516,7 +517,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: AcmeServer sync-authorizations""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/sync-authorizations.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/sync-authorizations.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-server/sync-authorizations.json",
         }
     )
     def acme_server_sync_authorizations(self):
@@ -591,7 +593,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: AcmeServer deactivate-authorizations""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/deactivate-authorizations.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/deactivate-authorizations.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-server/deactivate-authorizations.json",
         }
     )
     def acme_server_deactivate_authorizations(self):
@@ -678,7 +681,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: AcmeServer download-certificate""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/download-certificate.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/acme-server/download-certificate.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-server/download-certificate.json",
         }
     )
     def acme_server_download_certificate(self):
@@ -739,7 +743,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: AcmeServer acme-process""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-process.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/acme-process.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-process.json",
         }
     )
     def process_order(self):
@@ -798,7 +803,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: acme-finalize""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/acme-finalize.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/acme-finalize.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/acme-finalize.json",
         }
     )
     def finalize_order(self):
@@ -857,7 +863,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: Mark""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/mark.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/mark.json",
+            "example": "curl --form 'action=invalid' {ADMIN_PREFIX}/acme-order/1/mark.json",
             "form_fields": {
                 "action": "The action",
             },
@@ -941,7 +948,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeOrder focus: Retry""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/1/retry.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/1/retry.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/retry.json",
         }
     )
     def retry_order(self):
@@ -1019,7 +1027,7 @@ class View_New(Handler):
             "about": """AcmeOrder: New Freeform""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
+            "instructions": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
             "form_fields": {
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
@@ -1030,6 +1038,7 @@ class View_New(Handler):
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "note": "A string to associate with the AcmeOrder.",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
@@ -1053,8 +1062,13 @@ class View_New(Handler):
                 "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
                 "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
             ],
-            "instructions": [
-                """curl --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_option=private_key_existing' --form 'private_key_existing=ff00ff00ff00ff00' {ADMIN_PREFIX}/acme-order/new/freeform.json""",
+            "examples": [
+                """curl """
+                """--form 'account_key_option=account_key_existing' """
+                """--form 'account_key_existing=ff00ff00ff00ff00' """
+                """--form 'private_key_option=private_key_existing' """
+                """--form 'private_key_existing=ff00ff00ff00ff00' """
+                """{ADMIN_PREFIX}/acme-order/new/freeform.json""",
             ],
         }
     )
@@ -1116,6 +1130,7 @@ class View_New(Handler):
                 )
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
+                note = formStash.results["note"]
                 processing_strategy = formStash.results["processing_strategy"]
 
                 # we may be deferring a private key creation
@@ -1186,6 +1201,7 @@ class View_New(Handler):
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
+                        note=note,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -1221,6 +1237,7 @@ class View_New(Handler):
                         processing_strategy=processing_strategy,
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
                         dbPrivateKey=privateKeySelection.PrivateKey,
+                        note=note,
                     )
 
                 except Exception as exc:

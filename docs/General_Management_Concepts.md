@@ -6,9 +6,9 @@
 
 ## Intuitive Hierarchy of Related Objects
 
-* With a migration to ACME-2, this project shifted the "core" object from a
-  CertificateSigned to the AcmeOrder.
-* For the 1.0 release, the primary object is now a RenewalConfiguration.  
+* The Core Object for Certificates is a `RenewalConfiguration`:
+    * The intersection of an Account[AcmeServer], Domains, Renewal Options [automatic renewal?, Private Key Technology, Private Key Cycling].
+    * Previous versions used a CertificateSigned and AcmeOrder
 * A RenewalConfiguration's primary relations are:
     AcmeAccount - which account owns the configuration?
     UniqueFQDNSet - a simple listing of the domains, shorthand for compatible certificates

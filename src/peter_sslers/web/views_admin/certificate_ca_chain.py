@@ -179,8 +179,13 @@ class View_New(Handler):
             "about": """upload a CertificateCAChain""",
             "POST": True,
             "GET": None,
-            "instructions": """curl --form 'chain_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
-            "form_fields": {"chain_file": "required"},
+            "instructions": """curl {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "example": """curl """
+            """--form 'chain_file=@chain1.pem' """
+            """{ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "form_fields": {
+                "chain_file": "required",
+            },
         }
     )
     def upload_chain(self):

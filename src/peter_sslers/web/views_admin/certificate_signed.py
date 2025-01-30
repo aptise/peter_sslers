@@ -443,7 +443,12 @@ class View_New(Handler):
             "about": """upload a CertificateSigned""",
             "POST": True,
             "GET": None,
-            "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate-signed/upload.json""",
+            "instructions": """curl {ADMIN_PREFIX}/certificate-signed/upload.json""",
+            "example": """curl """
+            """--form 'private_key_file_pem=@privkey1.pem' """
+            """--form 'certificate_file=@cert1.pem' """
+            """--form 'chain_file=@chain1.pem' """
+            """{ADMIN_PREFIX}/certificate-signed/upload.json""",
             "form_fields": {
                 "private_key_file_pem": "required",
                 "chain_file": "required",
@@ -1175,7 +1180,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """Checks for ARI info. """,
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
         }
     )
     def ari_check(self):
@@ -1203,15 +1209,16 @@ class View_Focus_Manipulate(View_Focus):
                 % (self._focus_url, utils.urlify(dbAriObject.as_json))
             )
 
-        except errors.AcmeAriCheckDeclined as exc:
+        except (errors.AcmeAriCheckDeclined, errors.AcmeServerError) as exc:
+
             if self.request.wants_json:
                 return {
                     "result": "error",
-                    "error": exc.args[0],
+                    "error": str(exc.args[0]),
                 }
             raise HTTPSeeOther(
                 "%s?result=error&operation=ari-check&error-encoded=%s"
-                % (self._focus_url, utils.urlify(exc.args[0]))
+                % (self._focus_url, str(exc.args[0]))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1230,7 +1237,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
         }
     )
     def nginx_expire(self):
@@ -1285,9 +1293,11 @@ class View_Focus_Manipulate(View_Focus):
             "about": """Mark""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/mark.json",
             "examples": [
-                "curl {ADMIN_PREFIX}/certificate-signed/1/mark.json",
-                """curl --form 'action=active' {ADMIN_PREFIX}/certificate-signed/1/mark.json""",
+                """curl """
+                """--form 'action=active' """
+                """{ADMIN_PREFIX}/certificate-signed/1/mark.json""",
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {

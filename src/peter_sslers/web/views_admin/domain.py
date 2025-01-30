@@ -254,8 +254,13 @@ class View_Search(Handler):
             "about": """Search Domain(s)""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domains/search.json",
-            "form_fields": {"domain": "the domain"},
+            "instructions": "curl {ADMIN_PREFIX}/domains/search.json",
+            "example": "curl "
+            "--form 'domain=example.com' "
+            "{ADMIN_PREFIX}/domains/search.json",
+            "form_fields": {
+                "domain": "the domain",
+            },
         }
     )
     @view_config(route_name="admin:domains:search|json", renderer="json")
@@ -321,7 +326,10 @@ class View_New(Handler):
             "about": """New Domain""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domain/new.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/new.json",
+            "example": "curl "
+            "--form 'domain=example.com' "
+            "{ADMIN_PREFIX}/domain/new.json",
             "form_fields": {"domain_name": "the domain"},
         }
     )
@@ -459,7 +467,8 @@ class View_Focus(Handler):
             "about": """Domain focus: nginx-cache-expire""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
         }
     )
     def nginx_cache_expire(self):
@@ -570,7 +579,8 @@ class View_Focus(Handler):
             "about": """Domain focus: update-recents""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/update-recents.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/domain/1/update-recents.json",
         }
     )
     def update_recents(self):
@@ -909,11 +919,15 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             "about": """Domain focus: acme-dns-server/new""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json",
-            "instructions": [
-                """curl --form 'acme_dns_server_id=act1ive' {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json""",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json",
+            "examples": [
+                """curl """
+                """--form 'acme_dns_server_id=act1ive' """
+                """{ADMIN_PREFIX}/domain/1/acme-dns-server/new.json""",
             ],
-            "form_fields": {"acme_dns_server_id": "the AcmeDNS Server"},
+            "form_fields": {
+                "acme_dns_server_id": "the acme-dns Server",
+            },
             "valid_options": {
                 "acme_dns_server_id": "{RENDER_ON_REQUEST}",
             },

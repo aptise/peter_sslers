@@ -178,10 +178,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th></th>
-                        <td>
-                            Last Order
-                            ## TODO - show the last order here
+                        <th>note</th>
+                        <td><code>${RenewalConfiguration.note or ''}</code>
                         </td>
                     </tr>
                 </tbody>

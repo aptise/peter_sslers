@@ -141,17 +141,12 @@ To ensure fresh tests, all 3 files can be removed:
 
 ## ACME-DNS Testing
 
-The testing suite can not reliably spin-up `acme-dns``, so it must run in it's
+The testing suite can not reliably spin-up `acme-dns`, so it must run in it's
 own process.
 
 Use the test-config file:
 
     sudo acme-dns -c ./tests/test_configuration/acme-dns.config
-
-
-## ACME v1 Testing
-
-ACME v1 is no longer supported in peter_sslers.
 
 
 ## Repository Styleguide
@@ -183,7 +178,7 @@ Unit tests will use the `test.ini` file for configuration.
 
 Instead of editing this file, you can overwrite it with an environment variable:
 
-    export SSL_TEST_INI="test_local.ini"
+    export SSL_TEST_INI="conf/test_local.ini"
 
 
 ## check nginx/openresty routes
@@ -283,9 +278,12 @@ Go is already installed, however if we need to do a new version...
     ;
 
 
+## Support for CAs with non-public roots
 
+If a CA has a non-public root, for example a Private CA or testing CA, TLS support
+is achieved by setting a `server_ca_cert_bundle` value on the database record.  
 
-
+This can be provided in the initial configuration.
 
 
 

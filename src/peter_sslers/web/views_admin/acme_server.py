@@ -109,7 +109,9 @@ class View_Focus(Handler):
             "about": """AcmeServer check ARI""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-server/{ID}/check-ari.json""",
+            "instructions": """curl {ADMIN_PREFIX}/acme-server/{ID}/check-ari.json""",
+            "example": """curl -X POST"""
+            """{ADMIN_PREFIX}/acme-server/{ID}/check-ari.json""",
         }
     )
     def check_ari(self):
@@ -128,7 +130,9 @@ class View_Focus(Handler):
 
     def _check_ari__submit(self, dbAcmeServer):
         has_ari = acme_v2.check_endpoint_for_renewalInfo(
-            dbAcmeServer.url, allow_insecure=dbAcmeServer.allow_insecure
+            self.request.api_context,
+            dbAcmeServer.url,
+            dbAcmeServer=dbAcmeServer,
         )
         if self.request.wants_json:
             return {"result": "success", "operation": "check-ari", "check-ari": has_ari}
@@ -149,8 +153,13 @@ class View_Focus(Handler):
             "about": """AcmeServer: Focus. Mark""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'action=is_unlimited_pending_authz-true' {ADMIN_PREFIX}/acme-server/1/mark.json",
-            "form_fields": {"action": "the intended action"},
+            "instructions": "curl {ADMIN_PREFIX}/acme-server/1/mark.json",
+            "example": "curl "
+            "--form 'action=is_unlimited_pending_authz-true' "
+            "{ADMIN_PREFIX}/acme-server/1/mark.json",
+            "form_fields": {
+                "action": "the intended action",
+            },
             "valid_options": {
                 "action": Form_AcmeServer_mark.fields["action"].list,
             },

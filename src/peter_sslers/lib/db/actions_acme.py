@@ -673,6 +673,7 @@ def do__AcmeV2_AcmeAccount__authenticate(
     #
     # if `onlyReturnExisting` is True,
     authenticatedUser = acme_v2.AuthenticatedUser(
+        ctx,
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
@@ -709,6 +710,7 @@ def do__AcmeV2_AcmeAccount__deactivate(
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
     authenticatedUser = acme_v2.AuthenticatedUser(
+        ctx,
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
@@ -827,6 +829,7 @@ def do__AcmeV2_AcmeAccount__key_change(
     # failing will raise an exception
     # this will also rotate our keys in the database
     authenticatedUser = acme_v2.AuthenticatedUser(
+        ctx,
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
@@ -866,6 +869,7 @@ def do__AcmeV2_AcmeAccount_register(
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         authenticatedUser = acme_v2.AuthenticatedUser(
+            ctx,
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             log__OperationsEvent=log__OperationsEvent,
@@ -2212,6 +2216,7 @@ def do__AcmeV2_AcmeOrder__new(
     processing_strategy: str,
     acme_order_type_id: int,
     # Optionals
+    note: Optional[str] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
@@ -2220,21 +2225,10 @@ def do__AcmeV2_AcmeOrder__new(
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
-
+    :param note: (optional)  A string to be associated with this AcmeOrder
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
         this may be a placeholder, or a specific key
-    :param private_key_deferred_id: (optional)  A value from :class:`model.utils.PrivateKeyDeferred`
-        this is used if we have a placeholder and requested a specific key for this order
-
     :param dbAcmeOrder_retry_of: (Optional) A :class:`model.objects.AcmeOrder` object to associate with this order.  Everything should be pre-computed.
-
-
-
-    private_key_deferred_id
-        AcmeOrder - privateKeySelection.private_key_deferred_id
-        CertificateIfNeeded - privateKeySelection.private_key_deferred_id
-        RenewalConfiguration - not submitted
-        Autocert - not submitted
 
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
@@ -2506,6 +2500,7 @@ def do__AcmeV2_AcmeOrder__new(
                 transaction_commit=True,
                 # optionals
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
+                note=note,
             )
 
             # register the AcmeOrder into the logging utility

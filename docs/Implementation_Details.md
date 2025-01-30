@@ -24,6 +24,14 @@ By default, the `example_production.ini` file won't even run the admin tools.
 That is how serious we are about telling you to be careful!
 
 
+## manage custom trust 
+
+To specify the CA Certificate bundles:
+
+    import peter_sslers.lib.cas
+    peter_sslers.lib.cas.CA_ACME = [bool, str]
+    peter_sslers.lib.cas.CA_NGINX = [bool, str]
+
 
 ## why/how?
 

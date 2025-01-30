@@ -2,6 +2,7 @@
 import base64
 import datetime
 import json
+import logging
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -26,6 +27,10 @@ PLACEHOLDER_TEXT__KEY = "*placeholder-key*"
 PLACEHOLDER_TEXT__SHA1 = "*placeholder-sha1*"
 
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+
 # ------------------------------------------------------------------------------
 
 
@@ -47,8 +52,12 @@ def urlify(as_dict: Dict) -> str:
 
 
 def unurlify(_encoded: str) -> Dict:
-    _decoded = base64.b64decode(_encoded)
-    _json_data = json.loads(_decoded)
+    try:
+        _decoded = base64.b64decode(_encoded)
+        _json_data = json.loads(_decoded)
+    except Exception as exc:
+        log.debug(exc)
+        _json_data = {}
     return _json_data
 
 
@@ -114,6 +123,7 @@ class ApiContext(object):
     dbSession: "Session"
     timestamp: datetime.datetime
     request: Optional["Request"] = None
+    config_uri: Optional[str] = None
 
     def __init__(
         self,
@@ -121,6 +131,7 @@ class ApiContext(object):
         dbOperationsEvent=None,
         dbSession: Optional["Session"] = None,
         timestamp: Optional[datetime.datetime] = None,
+        config_uri: Optional[str] = None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent
@@ -129,6 +140,7 @@ class ApiContext(object):
         if timestamp is None:
             timestamp = datetime.datetime.utcnow()
         self.timestamp = timestamp
+        self.config_uri = config_uri
 
     @property
     def transaction_manager(self) -> "transaction.manager":

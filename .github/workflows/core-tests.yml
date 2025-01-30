@@ -45,8 +45,17 @@ jobs:
 
     - name: Setup Hosts
       # several tests require custom domains to point back to 127.0.0.1
+      # several more familiar techniques were tried to manipulate the /etc/hosts
+      #   file, this was the only one that worked reliably.
       run: |
         sudo cat tests/test_configuration/hosts.txt | sudo tee -a /etc/hosts
+
+    - name: Setup Data Directory
+      # the following components will persist data to this directory:
+      # acme-dns: database
+      # peter_sslers: database, pem files
+      run: |
+        mkdir _data_
 
     - name: Install Redis
       # several tests require Redis
@@ -74,6 +83,7 @@ jobs:
         git clone https://github.com/joohoi/acme-dns
         cd acme-dns
         go install
+        cd ..
         sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
 
     - name: Install OpenResty - Prep

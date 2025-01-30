@@ -1,5 +1,6 @@
 # stdlib
 import hashlib
+import os
 from typing import Dict
 from typing import Optional
 import uuid
@@ -12,6 +13,13 @@ import cert_utils
 # from ..model import utils as model_utils
 
 # ==============================================================================
+
+
+def normalize_filepath(fpath: str) -> str:
+    fpath = os.path.normpath(fpath)
+    if fpath[-1] == "/":
+        fpath = fpath[:-1]
+    return fpath
 
 
 class ApplicationSettings(dict):
@@ -33,12 +41,14 @@ class ApplicationSettings(dict):
             "certificate_authority_testing",
             "certificate_authority",
             "cleanup_pending_authorizations",
-            "enable_views_admin",
-            "enable_views_public",
+            "data_dir",
             "enable_nginx",
             "enable_redis",
+            "enable_views_admin",
+            "enable_views_public",
             "exception_redirect",
             "expiring_days",
+            "nginx.ca_bundle_pem",
             "nginx.reset_path",
             "nginx.servers_pool_allow_invalid",
             "nginx.servers_pool",
@@ -46,11 +56,11 @@ class ApplicationSettings(dict):
             "nginx.timeout",
             "nginx.userpass",
             "redis.prime_style",
-            "redis.url",
-            "redis.timeout.certcachain"
             "redis.timeout.cert"
-            "redis.timeout.pkey"
+            "redis.timeout.certcachain"
             "redis.timeout.domain"
+            "redis.timeout.pkey"
+            "redis.url",
             "requests.disable_ssl_warning",
             # config_uri data
             "config_uri",
@@ -92,6 +102,14 @@ class ApplicationSettings(dict):
         self["cleanup_pending_authorizations"] = set_bool_setting(
             settings, "cleanup_pending_authorizations", default=True
         )
+
+        data_dir = settings.get("data_dir", None)
+        if data_dir is None:
+            raise ValueError("`data_dir` is a required setting")
+        data_dir = normalize_filepath(data_dir)
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        self["data_dir"] = data_dir
 
         # will we redirect on error?
         self["exception_redirect"] = set_bool_setting(settings, "exception_redirect")
@@ -151,6 +169,15 @@ class ApplicationSettings(dict):
             self["nginx.servers_pool_allow_invalid"] = set_bool_setting(
                 settings, "nginx.servers_pool_allow_invalid"
             )
+
+        _ca_bundle_pem = settings.get("nginx.ca_bundle_pem")
+        if _ca_bundle_pem:
+            _ca_bundle_pem = normalize_filepath(_ca_bundle_pem)
+            if not os.path.exists(_ca_bundle_pem):
+                raise ValueError(
+                    "`nginx.ca_bundle_pem=%s` does not exist" % _ca_bundle_pem
+                )
+            self["nginx.ca_bundle_pem"] = _ca_bundle_pem
 
         # required, but validate later
         self["certificate_authority"] = settings.get("certificate_authority")

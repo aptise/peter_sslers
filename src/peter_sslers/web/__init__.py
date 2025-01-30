@@ -116,7 +116,9 @@ def main(global_config, **settings):
     config.add_renderer("json", json_renderer)
 
     # Parse settings
-    config_uri = global_config["__file__"] if global_config else None
+    config_uri = settings.get("config_uri")
+    if not config_uri:
+        config_uri = global_config["__file__"] if global_config else None
     app_settings = ApplicationSettings(config_uri)
     app_settings.from_settings_dict(settings)
     config.registry.settings["app_settings"] = app_settings
@@ -150,6 +152,7 @@ def main(global_config, **settings):
             timestamp=request.a_timestamp,
             dbSession=request.dbSession,
             request=request,
+            config_uri=config_uri,
         ),
         "api_context",
         reify=True,
@@ -193,6 +196,7 @@ def main(global_config, **settings):
             timestamp=datetime.datetime.utcnow(),
             dbSession=dbSession,
             request=None,
+            config_uri=config_uri,
         )
 
         # this will do the heavy lifting

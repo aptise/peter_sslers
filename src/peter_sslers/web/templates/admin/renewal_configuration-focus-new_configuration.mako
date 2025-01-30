@@ -62,6 +62,8 @@
                     domain_names_dns01=RenewalConfiguration.domains_challenged_liststr("dns-01"),
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
+
+                ${admin_partials.formgroup__note()}
                 <hr/>
 
                 <hr/>

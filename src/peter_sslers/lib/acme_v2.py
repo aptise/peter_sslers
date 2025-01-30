@@ -32,6 +32,7 @@ from typing_extensions import TypedDict
 
 # localapp
 from . import acmedns as lib_acmedns
+from . import cas
 from . import errors
 from . import utils
 from .db import update as db_update
@@ -45,6 +46,7 @@ if TYPE_CHECKING:
     from ..model.objects import AcmeAuthorization
     from ..model.objects import AcmeChallenge
     from ..model.objects import AcmeOrder
+    from ..model.objects import AcmeServer
     from ..model.objects import CertificateSigned
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
@@ -98,10 +100,12 @@ def new_response_invalid() -> Dict:
 
 
 def url_request(
+    ctx: "ApiContext",
     url: str,
     post_data: Optional[Dict] = None,
     err_msg: str = "Error",
     depth: int = 0,
+    dbAcmeServer: Optional["AcmeServer"] = None,
 ) -> Tuple:
     """
     Originally from acme-tiny
@@ -122,16 +126,16 @@ def url_request(
     if depth > MAX_DEPTH:
         raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
     context = None
+    alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     try:
         headers = {
             "Content-Type": "application/jose+json",
             "User-Agent": USER_AGENT,
         }
-        if cert_utils.TESTING_ENVIRONMENT:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            context = ctx
+        if alt_bundle:
+            context = ssl.create_default_context(cafile=alt_bundle)
+            # context.check_hostname = False
+            # context.verify_mode = ssl.CERT_NONE
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
@@ -265,7 +269,7 @@ def create_dns01_keyauthorization(
 # ------------------------------------------------------------------------------
 
 
-def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
+def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
     """
     Get the ACME directory of urls
 
@@ -276,7 +280,10 @@ def acme_directory_get(acmeAccount: "AcmeAccount") -> Dict:
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
     directory_payload, _status_code, _headers = url_request(
-        url_directory, err_msg="Error getting directory"
+        ctx,
+        url_directory,
+        err_msg="Error getting directory",
+        dbAcmeServer=acmeAccount.acme_server,
     )
     if not directory_payload:
         raise ValueError("no directory data for the CERTIFICATE_AUTHORITY")
@@ -490,6 +497,7 @@ def sign_payload_inner(
 
 class AuthenticatedUser(object):
     # our API guarantees these items
+    ctx: "ApiContext"
     acmeLogger: "AcmeLogger"
     acmeAccount: "AcmeAccount"
     acme_directory: Dict  # the payload from the remote server
@@ -509,6 +517,7 @@ class AuthenticatedUser(object):
 
     def __init__(
         self,
+        ctx: "ApiContext",
         acmeLogger: "AcmeLogger",
         acmeAccount: "AcmeAccount",
         acme_directory: Optional[Dict] = None,
@@ -521,11 +530,12 @@ class AuthenticatedUser(object):
             be generated.
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
+        self.ctx = ctx
         if not all((acmeLogger, acmeAccount)):
             raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         if acme_directory is None:
-            acme_directory = acme_directory_get(acmeAccount)
+            acme_directory = acme_directory_get(self.ctx, acmeAccount)
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
@@ -561,9 +571,11 @@ class AuthenticatedUser(object):
         if self._next_nonce:
             nonce = self._next_nonce
         else:
-            self._next_nonce = nonce = url_request(self.acme_directory["newNonce"])[2][
-                "Replay-Nonce"
-            ]
+            self._next_nonce = nonce = url_request(
+                self.ctx,
+                self.acme_directory["newNonce"],
+                dbAcmeServer=self.acmeAccount.acme_server,
+            )[2]["Replay-Nonce"]
         kid = None
         if self._api_account_headers is not None:
             kid = self._api_account_headers["Location"]
@@ -580,10 +592,12 @@ class AuthenticatedUser(object):
             raise
         try:
             result = url_request(
+                self.ctx,
                 url,
                 post_data=_signed_payload.encode("utf8"),
                 err_msg="_send_signed_request",
                 depth=depth,
+                dbAcmeServer=self.acmeAccount.acme_server,
             )
             try:
                 _next_nonce = result[2]["Replay-Nonce"]
@@ -1192,7 +1206,7 @@ class AuthenticatedUser(object):
                     _type_details = {
                         "LetsEncrypt - Boulder": {
                             "type": "urn:ietf:params:acme:error:malformed",
-                            "detaul": "parsing ARI CertID failed",
+                            "detail": "parsing ARI CertID failed",
                         },
                         "LetsEncrypt - Pebble": {
                             "type": "urn:ietf:params:acme:error:serverInternal",
@@ -2220,43 +2234,79 @@ class AuthenticatedUser(object):
 
 
 def check_endpoint_for_renewalInfo(
+    ctx: "ApiContext",
     acme_directory: str,
-    allow_insecure: Optional[bool] = False,
+    dbAcmeServer: Optional["AcmeServer"] = None,
 ) -> bool:
     sess = new_BrowserSession()
-    _verify = True
-    if allow_insecure:
-        _verify = False
-    r = sess.get(acme_directory, verify=_verify)
-    _renewal_base = r.json().get("renewalInfo")
-    if not _renewal_base:
-        return False
-    return True
+
+    def _actual() -> bool:
+        """
+        wrapped inner, as we may swap out a value here
+        TODO: this would be better with a contextmanager
+        """
+        try:
+            r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
+            _renewal_base = r.json().get("renewalInfo")
+            if not _renewal_base:
+                return False
+            return True
+        except Exception as exc:
+            raise errors.AcmeServerError(exc)
+
+    alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
+    if alt_bundle:
+        _initial = cas.CA_ACME
+        try:
+            cas.CA_ACME = alt_bundle
+            return _actual()
+        finally:
+            cas.CA_ACME = _initial
+
+    return _actual()
 
 
 def _ari_query(
+    ctx: "ApiContext",
     acme_directory: str,
     ari_id: str,
     check_ari_support: Optional[bool] = True,
-    allow_insecure: Optional[bool] = False,
+    dbAcmeServer: Optional["AcmeServer"] = None,
 ) -> AriCheckResult:
-    sess = new_BrowserSession()
-    _verify = True
-    if allow_insecure:
-        _verify = False
-    r = sess.get(acme_directory, verify=_verify)
-    _renewal_base = r.json().get("renewalInfo")
-    if not _renewal_base:
-        raise ValueError("endpoint does not support ARI")
-    _renewal_url = "%s/%s" % (_renewal_base, ari_id)
-    log.info("renewalInfo endpoint: %s", _renewal_url)
-    r = sess.get(_renewal_url, verify=_verify)
-    _data: Optional[Dict] = r.json()
-    _headers: "CaseInsensitiveDict" = r.headers
-    ariCheckResult = AriCheckResult(
-        payload=_data, headers=_headers, status_code=r.status_code
-    )
-    return ariCheckResult
+    def _actual() -> AriCheckResult:
+        """
+        wrapped inner, as we may swap out a value here
+        TODO: this would be better with a contextmanager
+        """
+        try:
+            sess = new_BrowserSession()
+            r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
+            _renewal_base = r.json().get("renewalInfo")
+            if not _renewal_base:
+                raise errors.AcmeAriCheckDeclined("no `renewalInfo` endpoint")
+            _renewal_url = "%s/%s" % (_renewal_base, ari_id)
+            log.info("renewalInfo endpoint: %s", _renewal_url)
+
+            r = sess.get(_renewal_url, verify=cas.path(ctx, "CA_ACME"))
+            _data: Optional[Dict] = r.json()
+            _headers: "CaseInsensitiveDict" = r.headers
+            ariCheckResult = AriCheckResult(
+                payload=_data, headers=_headers, status_code=r.status_code
+            )
+            return ariCheckResult
+        except Exception as exc:
+            raise errors.AcmeServerError(exc)
+
+    alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
+    if alt_bundle:
+        _initial = cas.CA_ACME
+        try:
+            cas.CA_ACME = alt_bundle
+            return _actual()
+        finally:
+            cas.CA_ACME = _initial
+
+    return _actual()
 
 
 def ari_check(
@@ -2279,15 +2329,13 @@ def ari_check(
 
     ari_identifier: Optional[str] = None
     check_ari_support: bool = True
+    dbAcmeServer: Optional["AcmeServer"] = None
 
-    allow_insecure = False
     if dbCertificateSigned.acme_account:
         if dbCertificateSigned.acme_account.acme_server:
+            dbAcmeServer = dbCertificateSigned.acme_account.acme_server
             if dbCertificateSigned.acme_account.acme_server.is_supports_ari:
                 acme_directory = dbCertificateSigned.acme_account.acme_server.url
-                allow_insecure = (
-                    dbCertificateSigned.acme_account.acme_server.allow_insecure
-                )
                 check_ari_support = False
     else:
         # let's try to pull the cert info..
@@ -2308,10 +2356,11 @@ def ari_check(
 
     log.debug("ari_check: ")
     ariCheckResult = _ari_query(
+        ctx,
         acme_directory,
         ari_identifier,
         check_ari_support=check_ari_support,
-        allow_insecure=allow_insecure,
+        dbAcmeServer=dbAcmeServer,
     )
     return ariCheckResult
 

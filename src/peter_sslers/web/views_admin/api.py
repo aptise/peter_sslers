@@ -73,6 +73,8 @@ class ViewAdminApi(Handler):
             "about": """deactivates expired certificates; runs update-recents""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/deactivate-expired.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/deactivate-expired.json",
         }
     )
     def deactivate_expired(self):
@@ -117,6 +119,8 @@ class ViewAdminApi(Handler):
             "about": """updates the database to reflect the most recent Certificate for each Domain""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/update-recents.json",
         }
     )
     def update_recents(self):
@@ -151,6 +155,8 @@ class ViewAdminApi(Handler):
             "about": """Reconcile outstanding CertificateCA records by downloading and enrolling the CertificateCA presented in their "AuthorityKeyIdentifier".""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/reconcile-cas.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/reconcile-cas.json",
         }
     )
     def reconcile_cas(self):
@@ -189,7 +195,16 @@ class ViewAdminApi_Domain(Handler):
             "GET": None,
             "instructions": [
                 """POST domain_name for certificates.""",
-                """curl --form 'domain_name=example.com' --form 'account_key_option=account_key_existing' --form 'account_key_existing=ff00ff00ff00ff00' 'private_key_option=private_key_existing' --form 'private_key_existing=ff00ff00ff00ff00' {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
+                """curl {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
+            ],
+            "examples": [
+                "curl "
+                "--form 'domain_name=example.com' "
+                "--form 'account_key_option=account_key_existing' "
+                "--form 'account_key_existing=ff00ff00ff00ff00' "
+                "--form 'private_key_option=private_key_existing' "
+                "--form 'private_key_existing=ff00ff00ff00ff00'"
+                "{ADMIN_PREFIX}/api/domain/certificate-if-needed.json",
             ],
             "requirements": [
                 "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
@@ -333,7 +348,12 @@ class ViewAdminApi_Domain(Handler):
             ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
-                """curl --form 'domain_name=example.com' {ADMIN_PREFIX}/api/domain/autocert.json""",
+            ],
+            "examples": [
+                "curl "
+                "--form 'domain_name=example.com' "
+                "{ADMIN_PREFIX}/api/domain/autocert.json"
+                "",
             ],
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
@@ -596,6 +616,8 @@ class ViewAdminApi_Redis(Handler):
             "about": """Primes the Redis cache""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/redis/prime.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/redis/prime.json",
         }
     )
     def prime(self):
@@ -821,6 +843,8 @@ class ViewAdminApi_Nginx(Handler):
             "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/nginx/cache-flush.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/nginx/cache-flush.json",
         }
     )
     def cache_flush(self):
@@ -875,6 +899,8 @@ class ViewAdminApi_Nginx(Handler):
             "about": """Checks Nginx servers for status via background requests""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/nginx/status.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/nginx/status.json",
         }
     )
     def status(self):

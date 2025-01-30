@@ -132,6 +132,7 @@ def create__AcmeOrder(
     private_key_deferred_id: int,
     transaction_commit: Literal[True],
     # optionals
+    note: Optional[str] = None,
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
@@ -157,6 +158,7 @@ def create__AcmeOrder(
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_deferred_id: (required) See `model.utils.PrivateKeyDeferred`
 
+    :param note: (optional) A string to be associated with this order
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
@@ -265,6 +267,7 @@ def create__AcmeOrder(
     dbAcmeOrder.certificate_request_id = (
         dbCertificateRequest.id if dbCertificateRequest else None
     )
+    dbAcmeOrder.note = note or None
     dbAcmeOrder.private_key_id = dbPrivateKey.id
     dbAcmeOrder.private_key_cycle_id = private_key_cycle_id
     dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
@@ -1233,6 +1236,7 @@ def create__RenewalConfiguration(
     private_key_cycle_id: int,
     key_technology_id: int,
     domains_challenged: "DomainsChallenged",
+    note: Optional[str] = None,
 ) -> "RenewalConfiguration":
     """
     Sets params for AcmeOrders and Renewals
@@ -1244,6 +1248,7 @@ def create__RenewalConfiguration(
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
+    :param note: (optional) A string to be associated with this record
     :returns :class:`model.objects.RenewalConfiguration`
     """
     if (
@@ -1336,6 +1341,7 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id
     )
+    dbRenewalConfiguration.note = note or None
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])

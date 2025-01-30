@@ -9,6 +9,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 # local
+from peter_sslers.lib import cas
 from peter_sslers.lib.config_utils import ApplicationSettings
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import RUN_NGINX_TESTS
@@ -46,8 +47,12 @@ class FunctionalTests_Main(unittest.TestCase):
 
     def setUp(self):
         self._settings = settings = get_appsettings(TEST_INI, name="main")
-        self._app_settings = app_settings = ApplicationSettings()
+        self._app_settings = app_settings = ApplicationSettings(config_uri=TEST_INI)
         app_settings.from_settings_dict(settings)
+        cas.CA_NGINX = False
+
+    def tearDown(self):
+        cas.CA_NGINX = True
 
     def _check_version(self, response_json, response_headers):
         """
@@ -81,7 +86,7 @@ class FunctionalTests_Main(unittest.TestCase):
         for server in nginx_servers:
             url_status = URL_STATUS % server
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_status, auth=auth, verify=False)
+            result = requests.get(url_status, auth=auth, verify=cas.CA_NGINX)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
@@ -99,7 +104,7 @@ class FunctionalTests_Main(unittest.TestCase):
         for server in nginx_servers:
             url_expire = URL_EXPIRE_ALL % server
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_expire, auth=auth, verify=False)
+            result = requests.get(url_expire, auth=auth, verify=cas.CA_NGINX)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
@@ -119,7 +124,7 @@ class FunctionalTests_Main(unittest.TestCase):
         for server in nginx_servers:
             url_expire = URL_EXPIRE_DOMAIN % (server, domain)
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_expire, auth=auth, verify=False)
+            result = requests.get(url_expire, auth=auth, verify=cas.CA_NGINX)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")

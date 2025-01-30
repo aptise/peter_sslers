@@ -1,9 +1,18 @@
 URGENT
 =====
 
-Add a "note" to:
-    RenewalConfiguration
-    AcmeOrder
+docify=
+
+update_AcmeAccount_from_new_duplicate
+    ValueError: TESTING NEEDED
+    
+raise ValueError("endpoint does not support ARI")
+
+nginx servers should have CA files
+
+blocking authz
+    acme-dns
+        block should only last during trigger
 
 
 * CertificateSigned-Focus:

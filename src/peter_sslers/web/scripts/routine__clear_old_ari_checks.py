@@ -50,6 +50,7 @@ def main(argv=sys.argv):
         timestamp=datetime.datetime.utcnow(),
         dbSession=dbSession,
         request=None,
+        config_uri=config_uri,
     )
 
     lib_db.actions.routine__clear_old_ari_checks(ctx)

@@ -248,9 +248,11 @@ class View_Focus_Manipulate(View_Focus):
             "about": """PrivateKey focus: mark""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/private-key/1/mark.json",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/private-key/1/mark.json""",
+            "instructions": "curl {ADMIN_PREFIX}/private-key/1/mark.json",
+            "examples": [
+                """curl """
+                """--form 'action=active' """
+                """{ADMIN_PREFIX}/private-key/1/mark.json""",
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {
@@ -375,8 +377,11 @@ class View_New(Handler):
             "about": """Create a new PrivateKey""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl --form "bits=4096" {ADMIN_PREFIX}/private-key/new.json""",
+            "instructions": "curl {ADMIN_PREFIX}/private-key/new.json",
+            "examples": [
+                """curl """
+                """--form "bits=4096" """
+                """{ADMIN_PREFIX}/private-key/new.json""",
             ],
             "form_fields": {"private_key_generate": "generation type"},
             "valid_options": {
@@ -454,8 +459,11 @@ class View_New(Handler):
             "about": """upload a PrivateKey""",
             "POST": True,
             "GET": None,
-            "instructions": [
-                """curl --form "private_key_file_pem=@privkey1.pem" {ADMIN_PREFIX}/private-key/new.json""",
+            "instructions": """curl {ADMIN_PREFIX}/private-key/new.json""",
+            "examples": [
+                """curl """
+                """--form "private_key_file_pem=@privkey1.pem" """
+                """{ADMIN_PREFIX}/private-key/new.json""",
             ],
             "form_fields": {"private_key_file_pem": "required"},
         }

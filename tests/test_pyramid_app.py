@@ -21,6 +21,7 @@ from webtest import Upload
 
 # local
 from peter_sslers.lib import errors as lib_errors
+from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.model import objects as model_objects
@@ -386,19 +387,19 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     return True
 
 
-class TestingSetup(AppTest):
+class ATestingSetup(AppTest):
     """
     python -m unittest tests.test_pyramid_app.TestingSetup
     this is only used to generate a testing database
+
+    this should be used in conjunction with other tests that require it
     """
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     def test_setup_database(self):
         """
         this will freeze a database with some objects in it
         """
-        raise unittest.SkipTest("this should be disabled")
         setup_testing_data(self)
 
 
@@ -453,6 +454,9 @@ class FunctionalTests_Main(AppTest):
 
     @routes_tested("admin:api")
     def test_api_docs(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_Main.test_api_docs
+        """
         res = self.testapp.get("/.well-known/peter_sslers/api", status=200)
 
     @routes_tested(("admin:api:version", "admin:api:version|json"))
@@ -2930,8 +2934,6 @@ class FunctionalTests_AriCheck(AppTest):
         )
         assert "AriChecks" in res.json
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
     @routes_tested(("admin:ari_check:focus",))
     def test_focus_html(self):
         dbAriCheck = self._ensure_one()
@@ -2940,10 +2942,11 @@ class FunctionalTests_AriCheck(AppTest):
             status=200,
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    @under_pebble
     @routes_tested(("admin:ari_check:focus|json",))
     def test_focus_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AriCheck.test_focus_json
+        """
         dbAriCheck = self._ensure_one()
         res = self.testapp.get(
             "/.well-known/peter_sslers/ari-check/%s.json" % dbAriCheck.id,
@@ -6040,18 +6043,23 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
 
         # !!!: new order
+        note = generate_random_domain(testCase=self)
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-order" % focus_id,
             status=200,
         )
         form = res.forms["form-renewal_configuration-new_order"]
         form["processing_strategy"].force_value("create_order")
+        form["note"].force_value(note)
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location.endswith("?result=success&operation=renewal+configuration")
         assert "/.well-known/peter_sslers/acme-order/" in res2.location
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
 
         # !!!: new configuration
+        note = generate_random_domain(testCase=self)
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration"
             % focus_id,
@@ -6062,11 +6070,14 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form["domain_names_http01"] = ",".join(
             [focus_item.domains_as_list[0], generate_random_domain(testCase=self)]
         )
+        form["note"] = note
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -6078,6 +6089,10 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
     )
     def test_manipulate_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_manipulate_json
+        """
+
         focus_item = self._make_one()
         focus_id = focus_item.id
 
@@ -6125,31 +6140,33 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         assert res4.json["result"] == "success"
 
         # !!!: new order
-
+        note = generate_random_domain(testCase=self)
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
             % focus_id,
             status=200,
         )
-
         res = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
             % focus_id,
-            {"processing_strategy": "create_order"},
+            {
+                "processing_strategy": "create_order",
+                "note": note,
+            },
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "AcmeOrder" in res.json
         acme_order_id = res.json["AcmeOrder"]["id"]
+        assert res.json["AcmeOrder"]["note"] == note
 
         # !!!: new configuration
-
+        note = generate_random_domain(testCase=self)
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration.json"
             % focus_id,
             status=200,
         )
-
         form = {
             "account_key_option": "account_key_global_default",
             "account_key_global_default": res.json["valid_options"][
@@ -6161,6 +6178,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             "domain_names_http01": ",".join(
                 [focus_item.domains_as_list[0], generate_random_domain(testCase=self)]
             ),
+            "note": note,
         }
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration.json"
@@ -6170,6 +6188,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
 
     @routes_tested(("admin:renewal_configuration:new",))
     def test_new_html(self):
@@ -6180,6 +6199,9 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/new", status=200
         )
+
+        note = generate_random_domain(testCase=self)
+
         form = res.form
         form["account_key_option"].force_value("account_key_global_default")
         # this is rendered in the html
@@ -6187,6 +6209,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form["private_key_cycle"].force_value("account_default")
         form["key_technology"].force_value("account_default")
         form["domain_names_http01"] = generate_random_domain(testCase=self)
+        form["note"] = note
 
         res2 = form.submit()
         assert res2.status_code == 303
@@ -6194,6 +6217,9 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         matched = RE_RenewalConfiguration.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
 
     @routes_tested(("admin:renewal_configuration:new|json",))
     def test_new_json(self):
@@ -6207,12 +6233,15 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             "AcmeAccount_GlobalDefault"
         ]["AcmeAccountKey"]["key_pem_md5"]
 
+        note = generate_random_domain(testCase=self)
+
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = account_key_global_default
         form["private_key_cycle"] = "account_default"
         form["key_technology"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
+        form["note"] = note
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/new.json",
@@ -6220,6 +6249,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert res2.json["result"] == "success"
         assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
 
     def test_post_required_html(self):
         (focus_item, focus_id) = self._get_one()
@@ -7490,9 +7520,9 @@ class FunctionalTests_API(AppTest):
             )
             assert "instructions" in res.json
             assert "HTTP POST required" in res.json["instructions"]
-        except:
+        except Exception as exc:
             if RUN_REDIS_TESTS:
-                raise
+                raise exc
 
 
 class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
@@ -7964,40 +7994,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             if i["acme_status_authorization"]
             in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
-        try:
-            assert len(acme_authorization_ids) == 2
-
-            """
-            print([i.as_json for i in self.ctx.dbSession.query(model_objects.AcmeAuthorization).join(model_objects.AcmeOrder2AcmeAuthorization, model_objects.AcmeAuthorization.id==model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id).join(model_objects.AcmeOrder, model_objects.AcmeOrder2AcmeAuthorization.acme_order_id == model_objects.AcmeOrder.id).filter(model_objects.AcmeOrder.is_processing.is_(True)).all()])
-            res3 = self.testapp.get("/.well-known/peter_sslers/acme-authorization/47.json")
-            print(res3.json)
-
-            export DEBUG_ACMEORDERS=1
-            export DEBUG_TESTHARNESS=1
-            export DEBUG_PEBBLE=1
-            export DISABLE_WARNINGS=1
-
-            python -m unittest \
-                tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_multiple_domains \
-                tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeAccount.test_deactivate_pending_authorizations_html
-            """
-        except Exception as exc:
-            print(
-                "::: model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING :::"
-            )
-            print(acme_authorization_ids)
-            for i in res2.json["AcmeAuthorizations"]:
-                if (
-                    i["acme_status_authorization"]
-                    in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
-                ):
-                    import pprint
-
-                    pprint.pprint(i)
-            import pdb
-
-            pdb.set_trace()
-            raise
+        assert len(acme_authorization_ids) == 2
         form = res.form
         form["acme_authorization_id"] = acme_authorization_ids
         res3 = form.submit()
@@ -8053,13 +8050,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             if i["acme_status_authorization"]
             in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE_TESTING
         ]
-        try:
-            assert len(acme_authorization_ids) == 2
-        except:
-            import pdb
-
-            pdb.set_trace()
-            raise
+        assert len(acme_authorization_ids) == 2
 
         post_data = [
             ("acme_authorization_id", acme_authorization_id)
@@ -8114,6 +8105,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         form = res.form
+        note = generate_random_domain(testCase=self)
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_existing")
@@ -8128,8 +8120,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         if processing_strategy is None:
             processing_strategy = "create_order"
         form["processing_strategy"].force_value(processing_strategy)
+        form["note"].force_value(note)
         res2 = form.submit()
         assert res2.status_code == 303
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
 
         # "admin:acme_order:focus",
         matched = RE_AcmeOrder.match(res2.location)
@@ -8803,6 +8799,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = res.forms["form-certificate_signed-ari_check"]
         res2 = form.submit()
         assert res2.status_code == 303
+        print(res2.location)
         assert "?result=success&operation=ari-check" in res2.location
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -8880,6 +8877,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # "admin:acme_order:new:freeform",
         form = {}
+        note = generate_random_domain(testCase=self)
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
@@ -8890,19 +8888,15 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         if processing_strategy is None:
             processing_strategy = "create_order"
         form["processing_strategy"] = processing_strategy
-
+        form["note"] = note
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/acme-order/new/freeform.json", form
         )
         assert res2.status_code == 200
-        try:
-            assert res2.json["result"] == "success"
-        except Exception as exc:
-            # import pdb; pdb.set_trace()
-            raise ValueError(res2.json)
-
+        assert res2.json["result"] == "success"
         assert "AcmeOrder" in res2.json
         obj_id = res2.json["AcmeOrder"]["id"]
+        assert res2.json["AcmeOrder"]["note"] == note
 
         return obj_id
 
@@ -9460,38 +9454,26 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         # "mark" manual
-        try:
-            res = self.testapp.post(
-                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-                % renewal_configuration_id,
-                {"action": "inactive"},
-                status=200,
-            )
-        except Exception as exc:
-            import pdb
-
-            pdb.set_trace()
-            raise exc
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+            % renewal_configuration_id,
+            {"action": "inactive"},
+            status=200,
+        )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "mark"
         assert res.json["action"] == "inactive"
 
         # and toggle it the other way
-        try:
-            res = self.testapp.post(
-                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-                % renewal_configuration_id,
-                {"action": "active"},
-                status=200,
-            )
-            assert res.json["result"] == "success"
-            assert res.json["operation"] == "mark"
-            assert res.json["action"] == "active"
-        except:
-            import pdb
-
-            pdb.set_trace()
-            raise
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+            % renewal_configuration_id,
+            {"action": "active"},
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "mark"
+        assert res.json["action"] == "active"
 
         # lets make sure we can't do it again!
         res = self.testapp.post(
@@ -10307,23 +10289,13 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         def _new_AcmeOrder(
             dbRenewalConfiguration: model_objects.RenewalConfiguration,
         ) -> model_objects.AcmeOrder:
-            # print("_new_AcmeOrder(", dbRenewalConfiguration)
             res = self.testapp.post(
                 "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
                 % dbRenewalConfiguration.id,
                 {"processing_strategy": "process_single"},
             )
             assert res.status_code == 200
-            try:
-                assert res.json["result"] == "success"
-            except Exception as exc:
-                import pprint
-
-                pprint.pprint(res.json)
-                import pdb
-
-                pdb.set_trace()
-                raise exc
+            assert res.json["result"] == "success"
             assert "AcmeOrder" in res.json
             acme_order_id = res.json["AcmeOrder"]["id"]
 
@@ -10666,6 +10638,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         must use pebble_strict so there are no reused auths
         """
+        obj_id: Optional[int] = None
         try:
             # ALL TESTS: self._pyramid_app
             # Functional Tests: self._testapp.app.registry.settings
@@ -10804,6 +10777,17 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 "cleanup_pending_authorizations"
             ] = True
 
+            if obj_id:
+                dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(
+                    obj_id
+                )
+                assert dbAcmeOrder
+                lib_db_actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
+                    self.ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                )
+                self.ctx.dbSession.commit()
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     @routes_tested(("admin:api:domain:certificate-if-needed",))
@@ -10845,20 +10829,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res3.json["result"] == "success"
         assert "domain_results" in res3.json
         assert _domain_name in res3.json["domain_results"]
-        try:
-            assert (
-                res3.json["domain_results"][_domain_name]["certificate_signed.status"]
-                == "new"
-            )
-            assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
-        except:
-            import pdb
-
-            pdb.set_trace()
-            import pprint
-
-            pprint.pprint(res3.json)
-            raise
+        assert (
+            res3.json["domain_results"][_domain_name]["certificate_signed.status"]
+            == "new"
+        )
+        assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
         assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
 
         # Pass 2 - Try multiple domains

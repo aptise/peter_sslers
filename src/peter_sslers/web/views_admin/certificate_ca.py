@@ -160,10 +160,12 @@ class View_Preferred(Handler):
             "about": """add preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/add.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/add.json",
             # -----
-            "instructions": [
-                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/add.json""",
+            "examples": [
+                """curl """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/add.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -261,10 +263,13 @@ class View_Preferred(Handler):
             "about": """delete preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/delete.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/delete.json",
             # -----
-            "instructions": [
-                """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/delete.json""",
+            "examples": [
+                """curl """
+                """--form 'slot=slot' """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/delete.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -328,10 +333,12 @@ class View_Preferred(Handler):
             "about": """prioritize preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json",
             # -----
-            "instructions": [
-                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json""",
+            "examples": [
+                """curl """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -698,7 +705,9 @@ class View_New(Handler):
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
             # -----
             "instructions": [
-                """curl --form 'cert_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
+                """curl """
+                """--form 'cert_file=@chain1.pem' """
+                """{ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
             ],
             "form_fields": {
                 "cert_file": "required",

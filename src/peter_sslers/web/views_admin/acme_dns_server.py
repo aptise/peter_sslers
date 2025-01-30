@@ -128,7 +128,9 @@ class View_New(Handler):
             "POST": True,
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/acme-dns-server/new.json",
-            "form_fields": {"root_url": "The root url of the api"},
+            "form_fields": {
+                "root_url": "The root url of the api",
+            },
         }
     )
     def new(self):
@@ -246,7 +248,7 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer check""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/check.json""",
+            "example": """curl -X POST {ADMIN_PREFIX}/acme-dns-server/{ID}/check.json""",
         }
     )
     def check(self):
@@ -351,8 +353,12 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer ensure domains""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains.json""",
-            "form_fields": {"domain_names": "A comma separated list of domain names"},
+            "example": """curl """
+            """--form 'domain_names=domain_names' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains.json""",
+            "form_fields": {
+                "domain_names": "A comma separated list of domain names",
+            },
         }
     )
     def ensure_domains(self):
@@ -468,7 +474,9 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer ensure domains - results""",
             "POST": None,
             "GET": True,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
+            "example": """curl """
+            """--form 'acme-dns-server-accounts=1,2,3,4,5' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
             "form_fields": {
                 "acme-dns-server-accounts": "A comma separated list of acme-dns-server-accounts. these are returned by `/acme-dns-server/{ID}/ensure-domains.json`"
             },
@@ -521,7 +529,14 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer import domain""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/import-domain.json""",
+            "example": """curl """
+            """--form 'domain_name=domain_name' """
+            """--form 'username=username' """
+            """--form 'password=password' """
+            """--form 'fulldomain=fulldomain' """
+            """--form 'subdomain=subdomain' """
+            """--form 'allowfrom=allowfrom' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/import-domain.json""",
             "form_fields": {
                 "domain_name": "The domain name",
                 "username": "The acme-dns username",
@@ -655,10 +670,12 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeDnsServer mark""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
+            "examples": [
+                """curl """
+                """--form 'action=active' """
+                """{ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
             ],
+            "instructions": """curl {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
             "form_fields": {"action": "the intended action"},
             "valid_options": {
                 "action": Form_AcmeDnsServer_mark.fields["action"].list,
@@ -779,10 +796,12 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeDnsServer edit""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
+            "examples": [
+                """curl """
+                """--form 'action=root_url' """
+                """{ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
             ],
+            "instructions": """curl {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
             "form_fields": {"root_url": "the url"},
         }
     )

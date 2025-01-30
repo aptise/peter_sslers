@@ -22,11 +22,13 @@ from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .. import errors
 from .. import events
+from ..acme_v2 import get_header_links
 from ... import lib
 from ...lib import db as lib_db
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 from ...model import objects as model_objects
 from ...model import utils as model_utils
+from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
 from ...model.objects import CertificateSigned
 
@@ -276,9 +278,13 @@ def operations_update_recents__domains(
     updates A SINGLE dbDomain record with recent values
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomains: (required) A list of :class:`model.objects.Domain` instances
+    :param dbDomains: (optional) A list of :class:`model.objects.Domain` instances
     :param dbUniqueFQDNSets: (optional) A list of :class:`model.objects.UniqueFQDNSet` instances
     """
+    if (not dbDomains) and (not dbUniqueFQDNSets):
+        raise ValueError(
+            "must submit at least one of `dbDomains` or `dbUniqueFQDNSets`"
+        )
     # we need a list of domain ids
     _domain_ids = [i.id for i in dbDomains] if dbDomains else []
     _unique_fqdn_set_ids = [i.id for i in dbUniqueFQDNSets] if dbUniqueFQDNSets else []
@@ -793,6 +799,53 @@ def api_domains__certificate_if_needed(
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     return results
+
+
+def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
+    """
+    pebble uses a new ca_cert bundle each time it runs
+    """
+    log.info("refresh_pebble_ca_certs")
+
+    pebbleServer = (
+        ctx.dbSession.query(AcmeServer)
+        .filter(
+            AcmeServer.name == "pebble",
+        )
+        .first()
+    )
+    if not pebbleServer:
+        log.info("> refresh_pebble_ca_certs X no pebble")
+        return False
+
+    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=False)
+    if r0.status_code != 200:
+        raise ValueError("Could not load first root")
+    root_pems = [
+        r0.text,
+    ]
+    alternates = get_header_links(r0.headers, "alternate")
+    if alternates:
+        for _alt in alternates:
+            _r = requests.get(_alt, verify=False)
+            if _r.status_code != 200:
+                raise ValueError("Could not load additional root")
+            root_pems.append(_r.text)
+
+    dbCACerts = []
+    for _root_pem in root_pems:
+        (
+            _dbCACert,
+            _is_created,
+        ) = getcreate.getcreate__CertificateCA__by_pem_text(
+            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+        )
+        dbCACerts.append(_dbCACert)
+
+    # touching this will generate if needed;
+    # force_refresh will update
+    pebbleServer.local_ca_bundle(ctx, force_refresh=True)
+    return True
 
 
 def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:

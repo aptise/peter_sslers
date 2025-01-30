@@ -311,6 +311,8 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
         not_empty=True,
     )
 
+    note = UnicodeString(not_empty=False, if_missing=None)
+
     chained_validators = [
         RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
         RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
@@ -457,6 +459,7 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
         not_empty=True,
     )
+    note = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_RenewalConfig_new(_Form_Schema_Base):
@@ -480,6 +483,8 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
 
+    note = UnicodeString(not_empty=False, if_missing=None)
+
     chained_validators = [
         RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
         RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
@@ -492,6 +497,7 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    note = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):

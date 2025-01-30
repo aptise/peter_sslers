@@ -99,6 +99,16 @@
                     <td><code>${request.registry.settings["app_settings"]['nginx.status_path']}</code></td>
                 </tr>
                 <tr>
+                    <th>nginx.ca_bundle_pem</th>
+                    <td>
+                        % if request.registry.settings["app_settings"]['nginx.ca_bundle_pem']:
+                            <code>${request.registry.settings["app_settings"]['nginx.ca_bundle_pem']}</code>
+                        % else
+                            <code></code>                            
+                        % endif
+                    </td>
+                </tr>
+                <tr>
                     <th>redis enabled?</th>
                     <td>${'Yes' if request.registry.settings["app_settings"]['enable_redis'] else 'No'}</td>
                 </tr>

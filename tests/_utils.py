@@ -37,6 +37,7 @@ from webtest.http import StopableWSGIServer
 
 # local
 from peter_sslers.lib import acme_v2
+from peter_sslers.lib import cas
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import utils
@@ -189,7 +190,7 @@ if DISABLE_WARNINGS:
 
 
 # override to "test_local.ini" if needed
-TEST_INI = os.environ.get("SSL_TEST_INI", "test.ini")
+TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
 
 # This is some fancy footwork to update our settings
 _appsettings = get_appsettings(TEST_INI, name="main")
@@ -207,10 +208,12 @@ RUN_START_STR = RUN_START.strftime("%Y_%m_%d-%H_%M_%S")
 # ==============================================================================
 
 
-if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
-    if not os.path.exists("X_TESTRUN_DATA"):
-        os.mkdir("X_TESTRUN_DATA")
-    os.mkdir(os.path.join("X_TESTRUN_DATA", RUN_START_STR))
+# # Always create this, as we need to maintain a CA-Cert file here
+# if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
+if not os.path.exists("X_TESTRUN_DATA"):
+    os.mkdir("X_TESTRUN_DATA")
+DIR_TESTRUN = os.path.join("X_TESTRUN_DATA", RUN_START_STR)
+os.mkdir(DIR_TESTRUN)
 
 
 if DEBUG_ACMEORDERS:
@@ -303,6 +306,7 @@ def new_test_connections():
         request=request,
         dbSession=dbSession,
         timestamp=datetime.datetime.utcnow(),
+        config_uri=TEST_INI,
     )
     return ctx
 
@@ -342,12 +346,13 @@ def process_pebble_roots():
             ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
         )
         if _is_created is not True:
-            raise ValueError(
+            log.critical(
                 "Detected a previously encountered Pebble root. "
                 "This should not be possible"
             )
     ctx.dbSession.commit()
     ctx.dbSession.close()
+
     return True
 
 
@@ -406,6 +411,7 @@ def under_pebble(_function):
     """
     decorator to spin up an external pebble server
     """
+    global PEBBLE_RUNNING
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
@@ -420,8 +426,8 @@ def under_pebble(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "X_TESTRUN_DATA/%s/%s-pebble.txt" % (
-                RUN_START_STR,
+            fname = "%s/%s-pebble.txt" % (
+                DIR_TESTRUN,
                 _function.__qualname__,
             )
             stdout = open(fname, "wb")
@@ -457,11 +463,10 @@ def under_pebble(_function):
                             ready = True
                             break
                 time.sleep(1)
-            global PEBBLE_RUNNING
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                # handle_new_pebble()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -469,6 +474,7 @@ def under_pebble(_function):
                 log.info("`pebble`: finished. terminating")
                 proc.terminate()
                 PEBBLE_RUNNING = False
+                cas.CA_ACME = True
         return res
 
     return _wrapper
@@ -478,6 +484,7 @@ def under_pebble_strict(_function):
     """
     decorator to spin up an external pebble server
     """
+    global PEBBLE_RUNNING
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
@@ -492,8 +499,8 @@ def under_pebble_strict(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "X_TESTRUN_DATA/%s/%s-pebble_strict.txt" % (
-                RUN_START_STR,
+            fname = "%s/%s-pebble_strict.txt" % (
+                DIR_TESTRUN,
                 _function.__qualname__,
             )
             stdout = open(fname, "wb")
@@ -527,11 +534,10 @@ def under_pebble_strict(_function):
                             ready = True
                             break
                 time.sleep(1)
-            global PEBBLE_RUNNING
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                # handle_new_pebble()
+                handle_new_pebble()
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -539,6 +545,7 @@ def under_pebble_strict(_function):
                 log.info("`pebble[strict]`: finished. terminating")
                 proc.terminate()
                 PEBBLE_RUNNING = False
+                cas.CA_ACME = True
         return res
 
     return _wrapper
@@ -560,8 +567,8 @@ def under_redis(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "X_TESTRUN_DATA/%s/%s-redis.txt" % (
-                RUN_START_STR,
+            fname = "%s/%s-redis.txt" % (
+                DIR_TESTRUN,
                 _function.__qualname__,
             )
             stdout = open(fname, "wb")
@@ -1114,6 +1121,7 @@ class FakeAuthenticatedUser(object):
     """
 
     accountKeyData = None  # an instance conforming to `AccountKeyData`
+    ctx = None  # ApiContext
 
     def __init__(self, accountkey_thumbprint=None):
         self.accountKeyData = FakeAccountKeyData(thumbprint=accountkey_thumbprint)
@@ -1181,7 +1189,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             AppTestCore.tearDown(self)
     """
 
-    MOUNT_TESTAPP: bool = True
     _testapp: Optional[TestApp] = None
     _testapp_wsgi: Optional[StopableWSGIServer] = None
     _pyramid_app: Router
@@ -1205,6 +1212,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         self._settings = settings = get_appsettings(
             TEST_INI, name="main"
         )  # this can cause an unclosed resource
+        settings["config_uri"] = TEST_INI
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         # settings["sqlalchemy.url"] = "sqlite://"
@@ -1229,6 +1237,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                     timestamp=datetime.datetime.utcnow(),
                     dbSession=dbSession,
                     request=None,
+                    config_uri=TEST_INI,
                 )
                 # this would have been invoked by `initialize_database`
                 db._setup.initialize_AcmeServers(ctx)
@@ -1239,13 +1248,12 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 testdb_freeze(dbSession, "AppTestCore")
 
         self._pyramid_app = app = main(global_config=None, **settings)
-        if self.MOUNT_TESTAPP:
-            self._testapp = TestApp(
-                app,
-                extra_environ={
-                    "HTTP_HOST": "peter-sslers.example.com",
-                },
-            )
+        self._testapp = TestApp(
+            app,
+            extra_environ={
+                "HTTP_HOST": "peter-sslers.example.com",
+            },
+        )
         AppTestCore._DB_INTIALIZED = True
         if DEBUG_METRICS:
             self._db_filename = self.ctx.dbSession.connection().engine.url.database
@@ -1267,7 +1275,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
             self._wrapped_end = time.time()
 
-            fname = "X_TESTRUN_DATA/%s/_METRICS.txt" % RUN_START_STR
+            fname = "%s/_METRICS.txt" % DIR_TESTRUN
             if not os.path.exists(fname):
                 with open(fname, "w") as fh:
                     fh.write(
@@ -1302,6 +1310,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
                 timestamp=datetime.datetime.utcnow(),
+                config_uri=TEST_INI,
             )
             # merge in the settings
             if TYPE_CHECKING:
@@ -1813,6 +1822,7 @@ class AppTest(AppTestCore):
                         private_key_cycle_id=_private_key_cycle_id__renewal,
                         key_technology_id=_dbPrivateKey_1.key_technology_id,
                         domains_challenged=_domains_challenged,
+                        note="setUp",
                     )
 
                     _private_key_deferred_id = (
@@ -1946,9 +1956,6 @@ class AppTest(AppTestCore):
             print("DB INITIALIZED")
             AppTest._DB_SETUP_RECORDS = True
 
-        if PEBBLE_RUNNING:
-            handle_new_pebble()
-
         _debug_TestHarness(
             self.ctx, "%s.%s|setUp" % (self.__class__.__name__, self._testMethodName)
         )
@@ -1998,7 +2005,6 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
     # * _testapp_wsgi
     # * _session_factory
     # * _DB_INTIALIZED
-    MOUNT_TESTAPP = True
 
     def setUp(self):
         log.critical(
@@ -2008,7 +2014,6 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
         AppTest.setUp(self)
         # app = main(global_config=None, **self._settings)
         # load this on the side to RESPOND
-        # this is
         self._testapp_wsgi = StopableWSGIServer.create(
             self._pyramid_app,  # we can mount the existing app
             host="peter-sslers.example.com",  # /etc/hosts maps this to localhost
