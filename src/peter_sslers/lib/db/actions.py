@@ -20,9 +20,9 @@ from . import create
 from . import getcreate
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
+from .. import acme_v2
 from .. import errors
 from .. import events
-from ..acme_v2 import get_header_links
 from ... import lib
 from ...lib import db as lib_db
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
@@ -824,7 +824,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     root_pems = [
         r0.text,
     ]
-    alternates = get_header_links(r0.headers, "alternate")
+    alternates = acme_v2.get_header_links(r0.headers, "alternate")
     if alternates:
         for _alt in alternates:
             _r = requests.get(_alt, verify=False)
