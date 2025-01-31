@@ -125,14 +125,15 @@
         unit tests-
             now support database snapshots on sqlite
             so expensive  core data does not need to be rebuilt for local tests. 
-        py313 testing supported
+        py313 testing integrated, then removed due to compat issues
         
-    Bugs
+    Bugs Addressed
         * Processing an ACME order could randomly generate an error. 
           This was due to a change on polling; fixed.
         * Unit tests were failing because
           `tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup`
           would leave the database with blocking auths.
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

@@ -15,6 +15,18 @@ blocking authz
         block should only last during trigger
 
 
+# routine__renew_expired
+
+run a routine to renew expired certs
+
+
+# backup CA selection
+
+
+freezedb (tests) broken on py313
+
+
+
 * CertificateSigned-Focus:
 - If there is no acme_order/renewal_configuration SUCH AS AN IMPORT link to create one
 
@@ -58,6 +70,9 @@ blocking authz
     dev docs
     tests    
 
+
+
+
 Audit
     private_key_reuse - make sure correct forms check for it
     tests don't seem to run ApplicationSettings.from_settings_dict ?
@@ -91,11 +106,6 @@ Errors:
 
 Routines
 --------
-
-# routine__renew_expired
-
-run a routine to renew expired certs
-
 
 
 # routine__run_ari_checks
