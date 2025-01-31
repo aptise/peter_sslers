@@ -191,15 +191,15 @@ jobs:
     - name: Test with tox/pytest
       # tox is used to run pytest
       run: |
-        export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
-        export SSL_RUN_API_TESTS__PEBBLE=1
-        export SSL_RUN_NGINX_TESTS=1
-        export SSL_RUN_REDIS_TESTS=1
-        export SSL_RUN_API_TESTS__ACME_DNS_API=1
+        export GOPATH=$HOME/go
         export SSL_ACME_DNS_API=http://127.0.0.1:8011
         export SSL_ACME_DNS_BINARY=acme-dns
         export SSL_ACME_DNS_CONFIG=/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config 
+        export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
+        export SSL_RUN_API_TESTS__ACME_DNS_API=1
+        export SSL_RUN_API_TESTS__PEBBLE=1
+        export SSL_RUN_NGINX_TESTS=1
+        export SSL_RUN_REDIS_TESTS=1
 
-        export GOPATH=$HOME/go
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}

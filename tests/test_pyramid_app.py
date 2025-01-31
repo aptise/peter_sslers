@@ -387,15 +387,16 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     return True
 
 
-class ATestingSetup(AppTest):
+class AAA_TestingSetup(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.TestingSetup
+    python -m unittest tests.test_pyramid_app.AAA_TestingSetup
     this is only used to generate a testing database
 
     this should be used in conjunction with other tests that require it
+
+    the "AAA_" prefix is to ensure this class runs first.
     """
 
-    @under_pebble
     def test_setup_database(self):
         """
         this will freeze a database with some objects in it

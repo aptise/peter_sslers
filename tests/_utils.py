@@ -143,7 +143,6 @@ if RUN_API_TESTS__PEBBLE:
     if not os.path.exists(PEBBLE_BIN):
         raise ValueError("PEBBLE_BIN (%s) does not exist" % PEBBLE_BIN)
 
-
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
 PEBBLE_ENV["PEBBLE_VA_NOSLEEP"] = "1"
@@ -229,6 +228,35 @@ if DEBUG_ACMEORDERS:
     import cert_utils
 
     cert_utils.log.setLevel(100)
+
+
+DEBUG_GITHUB_ENV = True
+if DEBUG_GITHUB_ENV:
+    print("ENV VARS:")
+    print("RUN_NGINX_TESTS:", RUN_NGINX_TESTS)
+    print("RUN_REDIS_TESTS:", RUN_REDIS_TESTS)
+    print("RUN_API_TESTS__PEBBLE:", RUN_API_TESTS__PEBBLE)
+    print("LETSENCRYPT_API_VALIDATES:", LETSENCRYPT_API_VALIDATES)
+    print("SSL_TEST_DOMAINS:", SSL_TEST_DOMAINS)
+    print("SSL_TEST_PORT:", SSL_TEST_PORT)
+    print("SSL_BIN_REDIS_SERVER:", SSL_BIN_REDIS_SERVER)
+    print("SSL_CONF_REDIS_SERVER:", SSL_CONF_REDIS_SERVER)
+    print("PEBBLE_DIR:", PEBBLE_DIR)
+    print("PEBBLE_BIN:", PEBBLE_BIN)
+    print("PEBBLE_CONFIG_FILE:", PEBBLE_CONFIG_FILE)
+    print("PEBBLE_ENV:", PEBBLE_ENV)
+    print("PEBBLE_ENV_STRICT:", PEBBLE_ENV_STRICT)
+    print("RUN_API_TESTS__ACME_DNS_API:", RUN_API_TESTS__ACME_DNS_API)
+    print("ACME_DNS_API:", ACME_DNS_API)
+    print("ACME_DNS_BINARY:", ACME_DNS_BINARY)
+    print("ACME_DNS_CONFIG:", ACME_DNS_CONFIG)
+    print("DEBUG_ACMEORDERS:", DEBUG_ACMEORDERS)
+    print("DEBUG_TESTHARNESS:", DEBUG_TESTHARNESS)
+    print("DEBUG_PEBBLE_REDIS:", DEBUG_PEBBLE_REDIS)
+    print("DEBUG_METRICS:", DEBUG_METRICS)
+    print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
+    print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
+    print("TEST_INI:", TEST_INI)
 
 
 def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
@@ -431,6 +459,12 @@ def under_pebble(_function):
                 _function.__qualname__,
             )
             stdout = open(fname, "wb")
+
+        print("-----")
+        print(PEBBLE_BIN)
+        print(PEBBLE_CONFIG_FILE)
+        print(stdout)
+        print(stderr)
 
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
