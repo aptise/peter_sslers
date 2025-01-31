@@ -259,6 +259,9 @@ if DEBUG_GITHUB_ENV:
     print("TEST_INI:", TEST_INI)
 
 
+raise ValueError("done")
+
+
 def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
     """
     inverse to clear data
