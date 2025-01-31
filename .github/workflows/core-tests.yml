@@ -200,6 +200,7 @@ jobs:
         export SSL_RUN_API_TESTS__PEBBLE=1
         export SSL_RUN_NGINX_TESTS=1
         export SSL_RUN_REDIS_TESTS=1
+        export DEBUG_GITHUB_ENV=1
 
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}

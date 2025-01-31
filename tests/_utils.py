@@ -177,10 +177,11 @@ OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERS
 
 # export this for some better debugging
 DEBUG_ACMEORDERS = bool(int(os.environ.get("DEBUG_ACMEORDERS", 0)))
-DEBUG_TESTHARNESS = bool(int(os.environ.get("DEBUG_TESTHARNESS", 0)))
-DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
-DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
 DEBUG_DBFREEZE = bool(int(os.environ.get("DEBUG_DBFREEZE", 0)))
+DEBUG_GITHUB_ENV = bool(int(os.environ.get("DEBUG_GITHUB_ENV", 0)))
+DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
+DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
+DEBUG_TESTHARNESS = bool(int(os.environ.get("DEBUG_TESTHARNESS", 0)))
 
 
 DISABLE_WARNINGS = bool(int(os.environ.get("DISABLE_WARNINGS", 0)))
@@ -230,7 +231,6 @@ if DEBUG_ACMEORDERS:
     cert_utils.log.setLevel(100)
 
 
-DEBUG_GITHUB_ENV = True
 if DEBUG_GITHUB_ENV:
     print("ENV VARS:")
     print("RUN_NGINX_TESTS:", RUN_NGINX_TESTS)
@@ -257,9 +257,6 @@ if DEBUG_GITHUB_ENV:
     print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
     print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
     print("TEST_INI:", TEST_INI)
-
-
-raise ValueError("done")
 
 
 def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
