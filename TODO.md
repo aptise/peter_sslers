@@ -25,6 +25,8 @@ run a routine to renew expired certs
 
 freezedb (tests) broken on py313
 
+tests should use an nginx ca bundle
+
 
 
 * CertificateSigned-Focus:
