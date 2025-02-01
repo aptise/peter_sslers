@@ -111,7 +111,7 @@ acme_servers: Dict[int, DictProvider] = {
 
 
 def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
-    timestamp_now = datetime.datetime.utcnow()
+    timestamp_now = datetime.datetime.now(datetime.UTC)
 
     for id, item in acme_servers.items():
 
@@ -328,7 +328,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     # now install the default preference chain
-    # _now = datetime.datetime.utcnow()
+    # _now = datetime.datetime.now(datetime.UTC)
     # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
 

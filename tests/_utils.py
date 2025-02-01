@@ -333,7 +333,7 @@ def new_test_connections():
     ctx = utils.ApiContext(
         request=request,
         dbSession=dbSession,
-        timestamp=datetime.datetime.utcnow(),
+        timestamp=datetime.datetime.now(datetime.UTC),
         config_uri=TEST_INI,
     )
     return ctx
@@ -1306,7 +1306,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             else:
                 print("AppTestCore.setUp | recreating the database")
                 ctx = utils.ApiContext(
-                    timestamp=datetime.datetime.utcnow(),
+                    timestamp=datetime.datetime.now(datetime.UTC),
                     dbSession=dbSession,
                     request=None,
                     config_uri=TEST_INI,
@@ -1381,7 +1381,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             self._ctx = utils.ApiContext(
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
-                timestamp=datetime.datetime.utcnow(),
+                timestamp=datetime.datetime.now(datetime.UTC),
                 config_uri=TEST_INI,
             )
             # merge in the settings
@@ -1874,7 +1874,9 @@ class AppTest(AppTestCore):
 
                     _dbAcmeEventLog = model_objects.AcmeEventLog()
                     _dbAcmeEventLog.acme_event_id = _acme_event_id
-                    _dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+                    _dbAcmeEventLog.timestamp_event = datetime.datetime.now(
+                        datetime.UTC
+                    )
                     _dbAcmeEventLog.acme_account_id = _dbAcmeAccount_1.id
                     _dbAcmeEventLog.unique_fqdn_set_id = _dbUniqueFQDNSet_1.id
                     self.ctx.dbSession.add(_dbAcmeEventLog)

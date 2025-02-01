@@ -245,9 +245,9 @@ def acme_newcert(request):
         status_code=201,
         headers={
             "Link": '<https://acme-v01.api.letsencrypt.org/acme/issuer-cert>;rel="up";title="issuer"',
-            "Date": datetime.datetime.utcnow().isoformat(),
+            "Date": datetime.datetime.now(datetime.UTC).isoformat(),
             "Expires": (
-                datetime.datetime.utcnow() + datetime.timedelta(days=90)
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=90)
             ).isoformat(),
             "Content-Type": "application/pkix-cert",
         },
@@ -296,7 +296,7 @@ def acme_newreg(request):
         status_code=201,
         headers={
             "Link": '<https://127.0.0.1/acme/terms>;rel="terms-of-service"',
-            "Date": datetime.datetime.utcnow().isoformat(),
+            "Date": datetime.datetime.now(datetime.UTC).isoformat(),
         },
     )
 

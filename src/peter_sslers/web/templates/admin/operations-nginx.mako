@@ -103,7 +103,7 @@
                     <td>
                         % if request.registry.settings["app_settings"]['nginx.ca_bundle_pem']:
                             <code>${request.registry.settings["app_settings"]['nginx.ca_bundle_pem']}</code>
-                        % else
+                        % else:
                             <code></code>                            
                         % endif
                     </td>

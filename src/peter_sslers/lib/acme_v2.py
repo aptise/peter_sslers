@@ -136,6 +136,7 @@ def url_request(
             context = ssl.create_default_context(cafile=alt_bundle)
             # context.check_hostname = False
             # context.verify_mode = ssl.CERT_NONE
+        print("Making a request with alt_bundle:", alt_bundle)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (

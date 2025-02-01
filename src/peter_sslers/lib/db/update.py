@@ -343,7 +343,7 @@ def update_AcmeAuthorization_from_payload(
             ctx.dbSession.delete(_potential)
 
     if _updated:
-        dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()
+        dbAcmeAuthorization.timestamp_updated = datetime.datetime.now(datetime.UTC)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         return True
 
@@ -620,7 +620,7 @@ def update_DomainAutocert_without_AcmeOrder(
     ctx: "ApiContext",
     dbDomainAutocert: "DomainAutocert",
 ) -> bool:
-    dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
+    dbDomainAutocert.timestamp_finished = datetime.datetime.now(datetime.UTC)
     dbDomainAutocert.is_successful = False
     ctx.dbSession.flush(objects=[dbDomainAutocert])
     return True
@@ -634,7 +634,7 @@ def update_DomainAutocert_with_AcmeOrder(
     if not dbAcmeOrder:
         raise errors.InvalidTransition("missing `AcmeOrder`")
     dbDomainAutocert.acme_order_id = dbAcmeOrder.id
-    dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
+    dbDomainAutocert.timestamp_finished = datetime.datetime.now(datetime.UTC)
     if dbAcmeOrder.acme_status_order == "valid":
         dbDomainAutocert.is_successful = True
     else:

@@ -782,6 +782,12 @@ def api_domains__certificate_if_needed(
                     raise
 
         # log domain event
+        print("=====================")
+        print("DEBUGGING CONCEPT")
+        print(dbOperationsEvent.__dict__)
+        print("-----")
+        print(_logger_args)
+        print("=====================")
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
 
         # do commit, just because THE LOGGGING
@@ -856,7 +862,7 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(datetime.UTC)
 
     """
     # The SQL we want (for now):
@@ -897,7 +903,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.utcnow()
+    NOW = datetime.datetime.now(datetime.UTC)
     timely_date = NOW - timedelta_ARI_CHECKS_TIMELY
 
     """
