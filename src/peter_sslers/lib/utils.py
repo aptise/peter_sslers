@@ -114,7 +114,7 @@ class ApiContext(object):
     This implements an interface that guarantees several properties.  Substitutes may be used-
 
     :param request: - Pyramid `request` object
-    :param timestamp: `datetime.datetime.now(datetime.UTC)`
+    :param timestamp: `datetime.datetime.now(datetime.timezone.utc)`
     :param dbSession: - SqlAlchemy `Session` object
     :param dbOperationsEvent: - the top OperationsEvent object for the active `request`, if any
     """
@@ -138,7 +138,7 @@ class ApiContext(object):
         if dbSession:
             self.dbSession = dbSession
         if timestamp is None:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.timestamp = timestamp
         self.config_uri = config_uri
 

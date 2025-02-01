@@ -47,7 +47,7 @@ def main(argv=sys.argv):
 
     dbSession = session_factory()
     ctx = ApiContext(
-        timestamp=datetime.datetime.now(datetime.UTC),
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
         dbSession=dbSession,
         request=None,
         config_uri=config_uri,

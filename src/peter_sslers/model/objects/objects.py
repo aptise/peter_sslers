@@ -3161,7 +3161,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def expiring_days(self) -> Optional[int]:
         if self._expiring_days is None:
             self._expiring_days = (
-                self.timestamp_not_after - datetime.datetime.now(datetime.UTC)
+                self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
             ).days
         return self._expiring_days
 
@@ -3186,7 +3186,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def is_ari_check_timely(self):
-        timely_date = datetime.datetime.now(datetime.UTC) - timedelta_ARI_CHECKS_TIMELY
+        timely_date = (
+            datetime.datetime.now(datetime.timezone.utc) - timedelta_ARI_CHECKS_TIMELY
+        )
         if self.timestamp_not_after < timely_date:
             return False
         return True

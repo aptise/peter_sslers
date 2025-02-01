@@ -96,7 +96,7 @@ class AcmeLogger(object):
         acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -125,7 +125,7 @@ class AcmeLogger(object):
         acme_event_id = model_utils.AcmeEvent.from_string("v2|Account-deactivate")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -159,7 +159,7 @@ class AcmeLogger(object):
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.unique_fqdn_set_id = dbUniqueFQDNSet.id
         self.dbSession.add(dbAcmeEventLog)
@@ -195,7 +195,7 @@ class AcmeLogger(object):
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_order_id = dbAcmeOrder.id
         dbAcmeEventLog.unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
@@ -225,7 +225,7 @@ class AcmeLogger(object):
             raise ValueError("invalid version: %s" % acme_version)
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-request"
         )
@@ -254,7 +254,7 @@ class AcmeLogger(object):
             raise ValueError("invalid version: %s" % acme_version)
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-deactivate"
         )
@@ -290,7 +290,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-PostAsGet"
         )
@@ -329,7 +329,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-trigger"
         )
@@ -381,7 +381,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-fail"
         )
@@ -420,7 +420,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-pass"
         )
@@ -460,7 +460,7 @@ class AcmeLogger(object):
             )
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Order-finalize"
         )
@@ -504,7 +504,7 @@ class AcmeLogger(object):
             )
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.UTC)
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Certificate-procured"
         )

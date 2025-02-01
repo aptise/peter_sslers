@@ -143,7 +143,7 @@ def update_AcmeAuthorization_status(
 
     if _edited:
         if not timestamp:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeAuthorization.timestamp_updated = timestamp
         if (
             dbAcmeAuthorization.acme_status_authorization_id
@@ -185,7 +185,7 @@ def update_AcmeChallenge_status(
         _edited = True
     if _edited:
         if not timestamp:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeChallenge.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -263,7 +263,7 @@ def updated_AcmeOrder_status(
 
     if _edited:
         if not timestamp:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeOrder.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -320,7 +320,7 @@ def updated_AcmeOrder_ProcessingStatus(
             _edited = True
     if _edited:
         if not timestamp:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeOrder.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -391,7 +391,7 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
     }
     if _challenges_expected:
         if not timestamp:
-            timestamp = datetime.datetime.now(datetime.UTC)
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
         _challenges_edited = False
         _status_410 = model_utils.Acme_Status_Challenge.X_410_X
         for _chall_url in _challenges_expected.keys():
@@ -1773,7 +1773,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                         _dbPrivateKey.timestamp_created
                                         + datetime.timedelta(days=365)
                                     )
-                                    < datetime.datetime.now(datetime.UTC)
+                                    < datetime.datetime.now(datetime.timezone.utc)
                                 )
                             ):
                                 dbPrivateKey_new = _dbPrivateKey

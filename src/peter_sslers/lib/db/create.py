@@ -276,7 +276,7 @@ def create__AcmeOrder(
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
-    dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.UTC)
+    dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
     ctx.dbSession.add(dbAcmeOrder)
@@ -1173,7 +1173,7 @@ def create__DomainAutocert(
     assert ctx.timestamp
     dbDomainAutocert = model_objects.DomainAutocert()
     dbDomainAutocert.domain_id = dbDomain.id
-    dbDomainAutocert.timestamp_created = datetime.datetime.now(datetime.UTC)
+    dbDomainAutocert.timestamp_created = datetime.datetime.now(datetime.timezone.utc)
     ctx.dbSession.add(dbDomainAutocert)
     ctx.dbSession.flush(objects=[dbDomainAutocert])
     return dbDomainAutocert

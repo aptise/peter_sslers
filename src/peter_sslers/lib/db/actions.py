@@ -862,7 +862,7 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.now(datetime.UTC)
+    NOW = datetime.datetime.now(datetime.timezone.utc)
 
     """
     # The SQL we want (for now):
@@ -903,7 +903,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.now(datetime.UTC)
+    NOW = datetime.datetime.now(datetime.timezone.utc)
     timely_date = NOW - timedelta_ARI_CHECKS_TIMELY
 
     """

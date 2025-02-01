@@ -700,7 +700,9 @@ def getcreate__AcmeChallenges_via_payload(
         else:
             if _dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
                 _dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
-                _dbAcmeChallenge.timestamp_updated = datetime.datetime.now(datetime.UTC)
+                _dbAcmeChallenge.timestamp_updated = datetime.datetime.now(
+                    datetime.timezone.utc
+                )
                 ctx.dbSession.add(_dbAcmeChallenge)
                 ctx.dbSession.flush(objects=[_dbAcmeChallenge])
         dbAcmeChallenges.append((_dbAcmeChallenge, _is_created_AcmeChallenge))

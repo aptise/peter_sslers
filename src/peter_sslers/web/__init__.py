@@ -145,7 +145,9 @@ def main(global_config, **settings):
     )
 
     config.add_request_method(
-        lambda request: datetime.datetime.now(datetime.UTC), "a_timestamp", reify=True
+        lambda request: datetime.datetime.now(datetime.timezone.utc),
+        "a_timestamp",
+        reify=True,
     )
     config.add_request_method(
         lambda request: ApiContext(
@@ -193,7 +195,7 @@ def main(global_config, **settings):
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.now(datetime.UTC),
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,
