@@ -689,7 +689,7 @@ def testdb_freeze(
 
 
 def _sqlite_backup_progress(status, remaining, total):
-    print(f"Copied {total-remaining} of {total} pages...")
+    print(f"Copied {total - remaining} of {total} pages...")
 
 
 def _testdb_unfreeze__actual(
@@ -746,14 +746,19 @@ def testdb_unfreeze(
         return False
     active_filename = _engine.url.database
 
+    # # close the connection
+    # # while many options will work to close it,
+    # # they can create issues afterwards.
+    # # `Engine.dispose` works the best
     # _connection.connection.close()
     # _connection.connection.detach()
     # _connection.connection.invalidate()
+    # _connection.close()
     # _connection.detach()
     # _connection.invalidate()
     # _engine.dispose()
     # _engine.pool.dispose()
-    _connection.close()
+    _engine.dispose()
 
     return _testdb_unfreeze__actual(active_filename, savepoint)
 
