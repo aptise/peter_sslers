@@ -688,11 +688,53 @@ def testdb_freeze(
     return True
 
 
+def _sqlite_backup_progress(status, remaining, total):
+    print(f"Copied {total-remaining} of {total} pages...")
+
+
+def _testdb_unfreeze__actual(
+    active_filename: str,
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+) -> bool:
+
+    backup_filename = "%s-%s" % (active_filename, savepoint)
+    if not os.path.exists(backup_filename):
+        return False
+
+    clearDb = sqlite3.connect(
+        active_filename,
+        isolation_level=None,
+    )
+    cursor = clearDb.cursor()
+    # clear the database
+    cursor.execute(("PRAGMA writable_schema = 1;"))
+    cursor.execute(("DELETE FROM sqlite_master;"))
+    cursor.execute(("PRAGMA writable_schema = 0;"))
+    cursor.execute(("VACUUM;"))
+    cursor.execute(("PRAGMA integrity_check;"))
+    clearDb.close()
+
+    # Py3.10 and below do not need the cursor+vacuum
+    # Py3.13 needs the cursor+vaccume
+    with sqlite3.connect(
+        active_filename,
+        isolation_level="EXCLUSIVE",
+    ) as activeDb:
+        with sqlite3.connect(
+            backup_filename,
+            isolation_level="EXCLUSIVE",
+        ) as backupDb:
+            cursor = backupDb.cursor()
+            cursor.execute(("VACUUM;"))
+            backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
+
+    return True
+
+
 def testdb_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
-    return False
     if DEBUG_DBFREEZE:
         print("testdb_unfreeze>>>%s" % savepoint)
     _connection = dbSession.connection()
@@ -703,28 +745,17 @@ def testdb_unfreeze(
         # in-memory sqlite
         return False
     active_filename = _engine.url.database
-    backup_filename = "%s-%s" % (active_filename, savepoint)
-    if not os.path.exists(backup_filename):
-        return False
 
-    # connect to the database as a new connection:
-    newDb = sqlite3.connect(active_filename, isolation_level=None)
-    cursor = newDb.cursor()
+    # _connection.connection.close()
+    # _connection.connection.detach()
+    # _connection.connection.invalidate()
+    # _connection.detach()
+    # _connection.invalidate()
+    # _engine.dispose()
+    # _engine.pool.dispose()
+    _connection.close()
 
-    # clear the database
-    cursor.execute(("PRAGMA writable_schema = 1;"))
-    cursor.execute(("DELETE FROM sqlite_master;"))
-    cursor.execute(("PRAGMA writable_schema = 0;"))
-    cursor.execute(("VACUUM;"))
-    cursor.execute(("PRAGMA integrity_check;"))
-    newDb.close()
-
-    newDb = sqlite3.connect(active_filename)
-    backupDb = sqlite3.connect(backup_filename)
-    backupDb.backup(newDb)
-    backupDb.close()
-    newDb.close()
-    return True
+    return _testdb_unfreeze__actual(active_filename, savepoint)
 
 
 # !!!: TEST_FILES
