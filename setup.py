@@ -51,6 +51,7 @@ tests_require = [
     "redis",
     "types-invoke",
     "types-urllib3",
+    "urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []

@@ -58,7 +58,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
@@ -77,13 +77,13 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
-        mapped_column(sa.DateTime, nullable=True)
+        mapped_column(sa.DateTime(timezone=True), nullable=True)
     )
     timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
-        mapped_column(sa.DateTime, nullable=True)
+        mapped_column(sa.DateTime(timezone=True), nullable=True)
     )
     timestamp_last_authenticated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
 
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
@@ -107,7 +107,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.PrivateKeyCycle
 
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
 
     operations_event_id__created: Mapped[int] = mapped_column(
@@ -296,10 +296,10 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
 
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -491,7 +491,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         sa.Unicode(255), nullable=False, unique=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     acme_status_authorization_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -500,13 +500,13 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("domain.id"), nullable=True
     )
     timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     wildcard: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -720,7 +720,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
         nullable=False,
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     domain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("domain.id"), nullable=True
@@ -874,10 +874,10 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     )
 
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
 
     token: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=False)
@@ -1027,7 +1027,7 @@ class AcmeChallengeCompeting(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     domain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("domain.id"), nullable=True
@@ -1094,7 +1094,7 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
     )
     timestamp_polled: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     remote_ip_address_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
@@ -1145,7 +1145,7 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
     domain: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     challenge: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_polled: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     remote_ip_address_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
@@ -1183,7 +1183,7 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_dns_server"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_global_default: Mapped[Optional[bool]] = mapped_column(
@@ -1237,7 +1237,7 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_dns_server_account"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     acme_dns_server_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=False
@@ -1323,7 +1323,7 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_event_log"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_event: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     acme_event_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)  # AcmeEvent
     acme_account_id: Mapped[Optional[int]] = mapped_column(
@@ -1493,7 +1493,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Boolean, nullable=False, default=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     acme_order_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -1516,10 +1516,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Unicode(255), nullable=True
     )
     timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     timestamp_updated: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     private_key_strategy_id__requested: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
@@ -1532,7 +1532,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )  # When was this created?  AcmeEvent['v2|newOrder']
 
     timestamp_finalized: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
@@ -1988,7 +1988,7 @@ class AcmeOrderSubmission(Base):
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     acme_order = sa_orm_relationship(
@@ -2076,7 +2076,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     )
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
     endpoint: Mapped[Optional[str]] = mapped_column(
@@ -2203,16 +2203,16 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
         nullable=False,
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     suggested_window_start: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=True, default=None
+        sa.DateTime(timezone=True), nullable=True, default=None
     )
     suggested_window_end: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=True, default=None
+        sa.DateTime(timezone=True), nullable=True, default=None
     )
     timestamp_retry_after: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=True, default=None
+        sa.DateTime(timezone=True), nullable=True, default=None
     )
 
     # originally intended to track success of the check
@@ -2293,10 +2293,10 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
 
     timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
     cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -2328,7 +2328,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )  # internal tracking
 
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2484,7 +2484,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         sa.Unicode(255), nullable=True, default=None
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     # this is the PEM encoding of the ENTIRE chain, not just element 0
@@ -2648,7 +2648,7 @@ class CertificateCAReconciliation(Base):
     __tablename__ = "certificate_ca_reconciliation"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_operation: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     certificate_ca_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
@@ -2677,7 +2677,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     certificate_request_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -2823,13 +2823,13 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     __tablename__ = "certificate_signed"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     is_single_domain_cert: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -2860,7 +2860,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
     timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
     cert_serial: Mapped[str] = mapped_column(
@@ -3341,7 +3341,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
@@ -3445,7 +3445,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
@@ -3618,10 +3618,10 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("domain.id"), nullable=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     timestamp_finished: Mapped[Optional[datetime.datetime]] = mapped_column(
-        sa.DateTime, nullable=True
+        sa.DateTime(timezone=True), nullable=True
     )
     is_successful: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -3706,7 +3706,7 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
         sa.Integer, nullable=False
     )  # references OperationsEventType
     timestamp_event: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     event_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
     operations_event_id__child_of: Mapped[Optional[int]] = mapped_column(
@@ -3950,7 +3950,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     __tablename__ = "private_key"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -3975,10 +3975,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.Integer, nullable=False, default=0
     )
     timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
-        mapped_column(sa.DateTime, nullable=True)
+        mapped_column(sa.DateTime(timezone=True), nullable=True)
     )
     timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
-        mapped_column(sa.DateTime, nullable=True)
+        mapped_column(sa.DateTime(timezone=True), nullable=True)
     )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -4158,7 +4158,7 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     remote_ip_address: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4188,7 +4188,7 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "renewal_configuration"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     # this should always be true; maybe one day it will be a toggle
@@ -4359,7 +4359,7 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4399,7 +4399,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     )
     version_string: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4479,7 +4479,7 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     domain_ids_string: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
     count_domains: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -4614,7 +4614,7 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
         sa.Text, nullable=False, unique=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime, nullable=False
+        sa.DateTime(timezone=True), nullable=False
     )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False

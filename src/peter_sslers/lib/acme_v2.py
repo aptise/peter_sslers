@@ -29,6 +29,7 @@ import josepy
 from requests.utils import parse_header_links
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
+from urllib3.util.ssl_ import create_urllib3_context
 
 # localapp
 from . import acmedns as lib_acmedns
@@ -133,9 +134,8 @@ def url_request(
             "User-Agent": USER_AGENT,
         }
         if alt_bundle:
-            context = ssl.create_default_context(cafile=alt_bundle)
-            # context.check_hostname = False
-            # context.verify_mode = ssl.CERT_NONE
+            context = create_urllib3_context()
+            context.load_verify_locations(cafile=alt_bundle)
         print("Making a request with alt_bundle:", alt_bundle)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         log_api.info(" RESPONSE-")

@@ -84,6 +84,8 @@ jobs:
         cd acme-dns
         go install
         cd ..
+        ls -alh acme-dns
+        which acme-dns
         sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
 
     - name: Install OpenResty - Prep
