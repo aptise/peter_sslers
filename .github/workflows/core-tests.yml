@@ -86,7 +86,9 @@ jobs:
         cd ..
         ls -alh acme-dns
         printenv
+        ls -alh /home/runner/go
         sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
+        which go
 
     - name: Install OpenResty - Prep
       # several tests require an OpenResty server
