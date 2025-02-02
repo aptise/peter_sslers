@@ -52,7 +52,6 @@ def _certificate_parse_to_record(
         raise ValueError("unexpected notBefore: %s" % datetime_signed)
     datetime_signed = datetime_signed[10:]
     datetime_signed = dateutil_parser.parse(datetime_signed)
-    datetime_signed = datetime_signed.replace(tzinfo=None)
     dbCertificateSigned.timestamp_not_before = datetime_signed
 
     datetime_expires = cert_dates["enddate"]
@@ -60,7 +59,6 @@ def _certificate_parse_to_record(
         raise ValueError("unexpected notAfter: %s" % datetime_expires)
     datetime_expires = datetime_expires[9:]
     datetime_expires = dateutil_parser.parse(datetime_expires)
-    datetime_expires = datetime_expires.replace(tzinfo=None)
     dbCertificateSigned.timestamp_not_after = datetime_expires
     """
     # everything is in here

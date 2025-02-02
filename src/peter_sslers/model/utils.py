@@ -1,4 +1,5 @@
 # stdlib
+import datetime
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -20,6 +21,23 @@ if TYPE_CHECKING:
     from .objects.objects import Domain
 
 # ==============================================================================
+
+
+class TZDateTime(sqlalchemy.types.TypeDecorator):
+    impl = sqlalchemy.types.DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if not value.tzinfo or value.tzinfo.utcoffset(value) is None:
+                raise TypeError("tzinfo is required")
+            value = value.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = value.replace(tzinfo=datetime.timezone.utc)
+        return value
 
 
 class year_week(expression.FunctionElement):

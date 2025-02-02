@@ -308,7 +308,6 @@ def update_AcmeAuthorization_from_payload(
         timestamp_expires = authorization_payload.get("expires")
         if timestamp_expires:
             timestamp_expires = dateutil_parser.parse(timestamp_expires)
-            timestamp_expires = timestamp_expires.replace(tzinfo=None)
 
         identifer = authorization_payload["identifier"]
         if identifer["type"] != "dns":

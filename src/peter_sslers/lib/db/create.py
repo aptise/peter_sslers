@@ -246,7 +246,6 @@ def create__AcmeOrder(
     timestamp_expires = acme_order_response.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
-        timestamp_expires = timestamp_expires.replace(tzinfo=None)
 
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.is_processing = True
