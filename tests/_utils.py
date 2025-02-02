@@ -670,7 +670,6 @@ def testdb_freeze(
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
     """ """
-    return False
     if DEBUG_DBFREEZE:
         print("testdb_freeze>>>>>%s" % savepoint)
     _connection = dbSession.connection()

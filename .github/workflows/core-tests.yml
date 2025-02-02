@@ -82,13 +82,16 @@ jobs:
         export GOPATH=$HOME/go
         git clone https://github.com/joohoi/acme-dns
         cd acme-dns
+        go build
         go install
+        go install acme-dns
         cd ..
         ls -alh acme-dns
         printenv
         ls -alh /home/runner/go
-        sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
         which go
+        which acme-dns
+        sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
 
     - name: Install OpenResty - Prep
       # several tests require an OpenResty server
@@ -204,7 +207,12 @@ jobs:
         export SSL_RUN_API_TESTS__PEBBLE=1
         export SSL_RUN_NGINX_TESTS=1
         export SSL_RUN_REDIS_TESTS=1
+        export DEBUG_ACMEORDERS=1
+        export DEBUG_DBFREEZE=1
         export DEBUG_GITHUB_ENV=1
+        export DEBUG_METRICS=1
+        export DEBUG_PEBBLE_REDIS=1
+        export DEBUG_TESTHARNESS=1
 
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
