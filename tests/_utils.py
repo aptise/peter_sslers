@@ -702,6 +702,7 @@ def _db_unfreeze__actual(
         return False
 
     try:
+        # try to clear the database itself
         clearDb = sqlite3.connect(
             active_filename,
             isolation_level="EXCLUSIVE",
@@ -715,25 +716,32 @@ def _db_unfreeze__actual(
         cursor.execute(("VACUUM;"))
         cursor.execute(("PRAGMA integrity_check;"))
         clearDb.close()
-
-        # Py3.10 and below do not need the cursor+vacuum
-        # Py3.13 needs the cursor+vaccume
-        with sqlite3.connect(
-            active_filename,
-            isolation_level="EXCLUSIVE",
-        ) as activeDb:
-            with sqlite3.connect(
-                backup_filename,
-                isolation_level="EXCLUSIVE",
-            ) as backupDb:
-                cursor = backupDb.cursor()
-                cursor.execute(("VACUUM;"))
-                backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
     except Exception as exc:
+        # if that doesn't work, log it to an artifact
         if AppTestCore._currentTest:
+            # prefer the name
             failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
-            shutil.copy(active_filename, failname)
-        raise exc
+        else:
+            # otherwise, save it do a UUID
+            failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+        shutil.copy(active_filename, failname)
+        # instead of raising an exc, just delete it
+        # TODO: bugfix how/why this is only breaking in CI on
+        os.unlink(active_filename)
+
+    # Py3.10 and below do not need the cursor+vacuum
+    # Py3.13 needs the cursor+vaccume
+    with sqlite3.connect(
+        active_filename,
+        isolation_level="EXCLUSIVE",
+    ) as activeDb:
+        with sqlite3.connect(
+            backup_filename,
+            isolation_level="EXCLUSIVE",
+        ) as backupDb:
+            cursor = backupDb.cursor()
+            cursor.execute(("VACUUM;"))
+            backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
     return True
 
 
