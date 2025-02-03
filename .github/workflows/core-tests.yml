@@ -55,8 +55,14 @@ jobs:
       # acme-dns: database
       # peter_sslers: database, pem files
       run: |
-        pwd
         mkdir _data_
+        # debugging lines
+        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        echo "pwd"
+        pwd
+        echo "github.workspace"
+        echo "${{ github.workspace }}"
+        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
     - name: Install Redis
       # several tests require Redis
@@ -228,6 +234,7 @@ jobs:
         tox -e py -- ${{ matrix.pytest-args }}
 
     - name: Upload Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: artifact
