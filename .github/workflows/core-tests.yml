@@ -227,8 +227,8 @@ jobs:
         tox -e py -- ${{ matrix.pytest-args }}
 
 
-    - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifact
-          path: ${{ github.workspace }}/_data_
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact
+        path: ${{ github.workspace }}/_data_
