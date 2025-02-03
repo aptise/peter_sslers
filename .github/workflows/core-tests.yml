@@ -83,14 +83,22 @@ jobs:
         git clone https://github.com/joohoi/acme-dns
         cd acme-dns
         go build
+        ls -alh .
         go install
-        go install acme-dns
         cd ..
+        echo "################################################################"
+        echo "ls -alh acme-dns"
         ls -alh acme-dns
+        echo "################################################################"
+        echo "printenv"
         printenv
+        echo "################################################################"
+        echo "ls -alh /home/runner/go"
         ls -alh /home/runner/go
-        which go
+        echo "################################################################"
+        echo "which acme-dns"
         which acme-dns
+        echo "################################################################"
         sudo acme-dns -c /home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config & 
 
     - name: Install OpenResty - Prep
