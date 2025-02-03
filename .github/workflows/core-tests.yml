@@ -57,10 +57,15 @@ jobs:
       # peter_sslers: database, pem files
       run: |
         mkdir _data_
+        sudo cat tests/test_configuration/ssl_selfsigned_fullchain.pem | sudo tee -a _data_/nginx_ca_bundle.pem
         # debugging lines
+        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        echo "ls -alh _data_"
+        ls -alh data
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "pwd"
         pwd
+        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "github.workspace"
         echo "${{ github.workspace }}"
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -240,3 +245,10 @@ jobs:
       with:
         name: artifact
         path: ${{ github.workspace }}/_data_
+
+    - name: Upload Artifacts - X_TESTRUN_DATA
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact
+        path: ${{ github.workspace }}/X_TESTRUN_DATA

@@ -345,6 +345,10 @@ def _audit_AcmeChallenge_against_server_response(
     # - token
     # - status
 
+    if challenge_response["status"] == "*404*":
+        log.critical("AcmeChallenge(%s) sync is a 404")
+        return False
+
     # pretty much everything should match up
     # audit all fields EXCEPT status
     _mismatch = {}  # key = field; value=(expected, received)

@@ -601,6 +601,9 @@ class AuthenticatedUser(object):
                 dbAcmeServer=self.acmeAccount.acme_server,
             )
             try:
+                print("*******************************************************")
+                print(result[2]._headers)
+                print("*******************************************************")
                 _next_nonce = result[2]["Replay-Nonce"]
                 if (not _next_nonce) or (nonce == _next_nonce):
                     self._next_nonce = None

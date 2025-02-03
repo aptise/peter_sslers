@@ -689,19 +689,25 @@ def db_freeze(
 
 
 def _sqlite_backup_progress(status, remaining, total):
-    print(f"Copied {total - remaining} of {total} pages...")
+    if DEBUG_DBFREEZE:
+        print(f"Copied {total - remaining} of {total} pages...")
 
 
 def _db_unfreeze__actual(
     active_filename: str,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
+    if DEBUG_DBFREEZE:
+        print("_db_unfreeze__actual>>>%s" % savepoint)
 
     backup_filename = "%s-%s" % (active_filename, savepoint)
     if not os.path.exists(backup_filename):
         return False
 
     try:
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: Attempted to clear database")
+
         # try to clear the database itself
         clearDb = sqlite3.connect(
             active_filename,
@@ -724,13 +730,19 @@ def _db_unfreeze__actual(
         else:
             # otherwise, save it do a UUID
             failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname)
         shutil.copy(active_filename, failname)
         # instead of raising an exc, just delete it
         # TODO: bugfix how/why this is only breaking in CI on
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: unlinking old database for rewrite")
         os.unlink(active_filename)
 
     # Py3.10 and below do not need the cursor+vacuum
     # Py3.13 needs the cursor+vaccume
+    if DEBUG_DBFREEZE:
+        print("DEBUG_DBFREEZE: Attempted to backup")
     with sqlite3.connect(
         active_filename,
         isolation_level="EXCLUSIVE",
@@ -742,6 +754,8 @@ def _db_unfreeze__actual(
             cursor = backupDb.cursor()
             cursor.execute(("VACUUM;"))
             backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
+    if DEBUG_DBFREEZE:
+        print("DEBUG_DBFREEZE: backup successful")
     return True
 
 
