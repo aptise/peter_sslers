@@ -79,16 +79,17 @@ jobs:
     - name: Install ACME-DNS
       # several tests require an ACME-DNS installation
       run: |
+        echo "################################################################"
+        echo "ls -alh ."
+        ls -alh .
+        echo "################################################################"
+
         export GOPATH=$HOME/go
         git clone https://github.com/joohoi/acme-dns
         cd acme-dns
         go build
-        ls -alh .
-        go install
-        cd ..
-        echo "################################################################"
-        echo "ls -alh acme-dns"
-        ls -alh acme-dns
+        sudo mv acme-dns /usr/local/bin
+
         echo "################################################################"
         echo "printenv"
         printenv
