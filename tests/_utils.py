@@ -706,6 +706,7 @@ def _testdb_unfreeze__actual(
     )
     cursor = clearDb.cursor()
     # clear the database
+    cursor.execute(("VACUUM;"))
     cursor.execute(("PRAGMA writable_schema = 1;"))
     cursor.execute(("DELETE FROM sqlite_master;"))
     cursor.execute(("PRAGMA writable_schema = 0;"))
