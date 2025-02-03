@@ -5,6 +5,7 @@ from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
+import shutil
 import sqlite3
 import subprocess
 import time
@@ -665,13 +666,13 @@ def under_redis(_function):
 # ==============================================================================
 
 
-def testdb_freeze(
+def db_freeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
     """ """
     if DEBUG_DBFREEZE:
-        print("testdb_freeze>>>>>%s" % savepoint)
+        print("db_freeze>>>>>%s" % savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
@@ -691,7 +692,7 @@ def _sqlite_backup_progress(status, remaining, total):
     print(f"Copied {total - remaining} of {total} pages...")
 
 
-def _testdb_unfreeze__actual(
+def _db_unfreeze__actual(
     active_filename: str,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
@@ -700,43 +701,48 @@ def _testdb_unfreeze__actual(
     if not os.path.exists(backup_filename):
         return False
 
-    clearDb = sqlite3.connect(
-        active_filename,
-        isolation_level=None,
-    )
-    cursor = clearDb.cursor()
-    # clear the database
-    cursor.execute(("VACUUM;"))
-    cursor.execute(("PRAGMA writable_schema = 1;"))
-    cursor.execute(("DELETE FROM sqlite_master;"))
-    cursor.execute(("PRAGMA writable_schema = 0;"))
-    cursor.execute(("VACUUM;"))
-    cursor.execute(("PRAGMA integrity_check;"))
-    clearDb.close()
+    try:
+        clearDb = sqlite3.connect(
+            active_filename,
+            isolation_level=None,
+        )
+        cursor = clearDb.cursor()
+        # clear the database
+        cursor.execute(("VACUUM;"))
+        cursor.execute(("PRAGMA writable_schema = 1;"))
+        cursor.execute(("DELETE FROM sqlite_master;"))
+        cursor.execute(("PRAGMA writable_schema = 0;"))
+        cursor.execute(("VACUUM;"))
+        cursor.execute(("PRAGMA integrity_check;"))
+        clearDb.close()
 
-    # Py3.10 and below do not need the cursor+vacuum
-    # Py3.13 needs the cursor+vaccume
-    with sqlite3.connect(
-        active_filename,
-        isolation_level="EXCLUSIVE",
-    ) as activeDb:
+        # Py3.10 and below do not need the cursor+vacuum
+        # Py3.13 needs the cursor+vaccume
         with sqlite3.connect(
-            backup_filename,
+            active_filename,
             isolation_level="EXCLUSIVE",
-        ) as backupDb:
-            cursor = backupDb.cursor()
-            cursor.execute(("VACUUM;"))
-            backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
-
+        ) as activeDb:
+            with sqlite3.connect(
+                backup_filename,
+                isolation_level="EXCLUSIVE",
+            ) as backupDb:
+                cursor = backupDb.cursor()
+                cursor.execute(("VACUUM;"))
+                backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
+    except Exception as exc:
+        if AppTestCore._currentTest:
+            failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
+            shutil.copy(active_filename, failname)
+        raise exc
     return True
 
 
-def testdb_unfreeze(
+def db_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
 ) -> bool:
     if DEBUG_DBFREEZE:
-        print("testdb_unfreeze>>>%s" % savepoint)
+        print("db_unfreeze>>>%s" % savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
@@ -760,7 +766,7 @@ def testdb_unfreeze(
     # _engine.pool.dispose()
     _engine.dispose()
 
-    return _testdb_unfreeze__actual(active_filename, savepoint)
+    return _db_unfreeze__actual(active_filename, savepoint)
 
 
 # !!!: TEST_FILES
@@ -1268,6 +1274,8 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
     _DB_INTIALIZED = False
     _settings: Dict
 
+    _currentTest: Optional[str] = None
+
     @property
     def testapp(self) -> Union[TestApp, StopableWSGIServer]:
         if self._testapp:
@@ -1280,6 +1288,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         log.critical(
             "%s.%s | AppTestCore.setUp"
             % (self.__class__.__name__, self._testMethodName)
+        )
+        AppTestCore._currentTest = "%s.%s" % (
+            self.__class__.__name__,
+            self._testMethodName,
         )
         self._settings = settings = get_appsettings(
             TEST_INI, name="main"
@@ -1301,7 +1313,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             model_meta.Base.metadata.create_all(engine)
             request = FakeRequest()
             dbSession = self._session_factory(info={"request": request})
-            if testdb_unfreeze(dbSession, "AppTestCore"):
+            if db_unfreeze(dbSession, "AppTestCore"):
                 print("AppTestCore.setUp | using frozen database")
             else:
                 print("AppTestCore.setUp | recreating the database")
@@ -1317,7 +1329,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 db._setup.initialize_DomainBlocklisted(ctx)
                 dbSession.commit()
                 dbSession.close()
-                testdb_freeze(dbSession, "AppTestCore")
+                db_freeze(dbSession, "AppTestCore")
 
         self._pyramid_app = app = main(global_config=None, **settings)
         self._testapp = TestApp(
@@ -1579,7 +1591,7 @@ class AppTest(AppTestCore):
         if not AppTest._DB_SETUP_RECORDS:
             # Freezepoint- AppTest
             # This freezepoint wraps the core system setup data
-            if testdb_unfreeze(self.ctx.dbSession, "AppTest"):
+            if db_unfreeze(self.ctx.dbSession, "AppTest"):
                 print("AppTest.setUp | using frozen database")
             else:
                 print("---------------")
@@ -2012,7 +2024,7 @@ class AppTest(AppTestCore):
 
                     self.ctx.pyramid_transaction_commit()
 
-                    testdb_freeze(self.ctx.dbSession, "AppTest")
+                    db_freeze(self.ctx.dbSession, "AppTest")
                 except Exception as exc:
                     print("")
                     print("")

@@ -37,8 +37,8 @@ from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
 from ._utils import TEST_FILES
-from ._utils import testdb_freeze
-from ._utils import testdb_unfreeze
+from ._utils import db_freeze
+from ._utils import db_unfreeze
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
 from ._utils import under_redis
@@ -315,9 +315,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     """
 
     def _actual():
-        if testdb_unfreeze(
-            testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data"
-        ):
+        if db_unfreeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data"):
             print("setup_testing_data | using frozen database")
         else:
             print("setup_testing_data | creating new database records")
@@ -369,7 +367,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
                                 )
                                 break
 
-            testdb_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
+            db_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
 
     if _utils.PEBBLE_RUNNING:
         _actual()
