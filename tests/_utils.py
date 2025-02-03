@@ -704,7 +704,7 @@ def _db_unfreeze__actual(
     try:
         clearDb = sqlite3.connect(
             active_filename,
-            isolation_level=None,
+            isolation_level="EXCLUSIVE",
         )
         cursor = clearDb.cursor()
         # clear the database

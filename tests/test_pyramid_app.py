@@ -7420,6 +7420,11 @@ class FunctionalTests_API(AppTest):
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/nginx/cache-flush.json", {}, status=200
         )
+        print("################################################################")
+        import pprint
+
+        pprint.pprint(res.json)
+        print("################################################################")
         assert res.json["result"] == "success"
         assert "servers_status" in res.json
         assert "errors" in res.json["servers_status"]

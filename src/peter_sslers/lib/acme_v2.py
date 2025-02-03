@@ -600,6 +600,9 @@ class AuthenticatedUser(object):
                 depth=depth,
                 dbAcmeServer=self.acmeAccount.acme_server,
             )
+            import pdb
+
+            pdb.set_trace()
             try:
                 _next_nonce = result[2]["Replay-Nonce"]
                 if (not _next_nonce) or (nonce == _next_nonce):
