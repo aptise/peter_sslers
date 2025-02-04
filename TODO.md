@@ -15,6 +15,19 @@ blocking authz
         block should only last during trigger
 
 
+acme-account register
+    https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.3
+
+    log the subscriber agreement
+    
+    chnges to terms of service
+        urn:ietf:params:acme:error:userActionRequired
+    
+     Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
+
+
+
+
 # routine__renew_expired
 
 run a routine to renew expired certs

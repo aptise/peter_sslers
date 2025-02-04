@@ -229,7 +229,11 @@ def make_one__AcmeOrder__random(
     assert matched
     obj_id = matched.groups()[0]
 
+    print("make_one__AcmeOrder__random:")
+    print(matched.groups())
+
     dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+    assert dbAcmeOrder
     return dbAcmeOrder
 
 

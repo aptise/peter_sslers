@@ -71,6 +71,7 @@ log_api.setLevel(logging.INFO)
 
 
 MAX_DEPTH = 150
+DEBUG_HEADERS = False
 
 
 class AriCheckResult(TypedDict):
@@ -136,7 +137,7 @@ def url_request(
         if alt_bundle:
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
-        print("Making a request with alt_bundle:", alt_bundle)
+        log_api.info("Making a request with alt_bundle:", alt_bundle)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
@@ -601,9 +602,10 @@ class AuthenticatedUser(object):
                 dbAcmeServer=self.acmeAccount.acme_server,
             )
             try:
-                print("*******************************************************")
-                print(result[2]._headers)
-                print("*******************************************************")
+                if DEBUG_HEADERS:
+                    print("*******************************************************")
+                    print(result[2]._headers)
+                    print("*******************************************************")
                 _next_nonce = result[2]["Replay-Nonce"]
                 if (not _next_nonce) or (nonce == _next_nonce):
                     self._next_nonce = None
