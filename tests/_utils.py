@@ -725,6 +725,8 @@ def _db_unfreeze__actual(
     if not os.path.exists(backup_filename):
         return False
 
+    is_failure = False
+
     try:
         if DEBUG_DBFREEZE:
             print("DEBUG_DBFREEZE: Attempted to clear database")
@@ -744,6 +746,10 @@ def _db_unfreeze__actual(
         cursor.execute(("PRAGMA integrity_check;"))
         clearDb.close()
     except Exception as exc:
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: exception clearing old database:", active_filename)
+            print(exc)
+
         # if that doesn't work, log it to an artifact
         if AppTestCore._currentTest:
             # prefer the name
@@ -761,6 +767,7 @@ def _db_unfreeze__actual(
         os.unlink(active_filename)
 
         # Do not `return` here; as we need to copy the db next...
+        is_failure = True
 
     # Py3.10 and below do not need the cursor+vacuum
     # Py3.13 needs the cursor+vaccume
@@ -779,13 +786,17 @@ def _db_unfreeze__actual(
             backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
     if DEBUG_DBFREEZE:
         print("DEBUG_DBFREEZE: backup successful")
+
+    if is_failure:
+        return None
+
     return True
 
 
 def db_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
-) -> bool:
+) -> Optional[bool]:
     if DEBUG_DBFREEZE:
         print("db_unfreeze>>>%s" % savepoint)
     _connection = dbSession.connection()
@@ -808,11 +819,11 @@ def db_unfreeze(
     # _connection.detach()
     # _connection.invalidate()
     # _engine.dispose()
-    # _engine.pool.dispose()
     _engine.pool.dispose()
     _engine.dispose()
 
-    return _db_unfreeze__actual(active_filename, savepoint)
+    unfreeze_result = _db_unfreeze__actual(active_filename, savepoint)
+    return unfreeze_result
 
 
 # !!!: TEST_FILES

@@ -233,6 +233,22 @@ def make_one__AcmeOrder__random(
     return dbAcmeOrder
 
 
+def make_one__DomainBlocklisted(
+    testCase: unittest.TestCase,
+    domain_name: str,
+):
+    dbDomainBlocklisted = model_objects.DomainBlocklisted()
+    dbDomainBlocklisted.domain_name = domain_name
+    testCase.ctx.dbSession.add(dbDomainBlocklisted)
+    testCase.ctx.dbSession.flush(
+        objects=[
+            dbDomainBlocklisted,
+        ]
+    )
+    testCase.ctx.pyramid_transaction_commit()
+    return dbDomainBlocklisted
+
+
 def make_one__RenewalConfiguration(
     testCase: unittest.TestCase,
     dbAcmeAccount: model_objects.AcmeAccount,
@@ -10227,15 +10243,11 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "AcmeOrder" not in res.json
 
         # Test 3 -- blocklist a domain, then try to autocert
-        dbDomainBlocklisted = model_objects.DomainBlocklisted()
-        dbDomainBlocklisted.domain_name = "test-domain-autocert-2.example.com"
-        self.ctx.dbSession.add(dbDomainBlocklisted)
-        self.ctx.dbSession.flush(
-            objects=[
-                dbDomainBlocklisted,
-            ]
+        dbDomainBlocklisted = make_one__DomainBlocklisted(
+            testCase=self,
+            domain_name="test-domain-autocert-2.example.com",
         )
-        self.ctx.pyramid_transaction_commit()
+
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-2.example.com"},
