@@ -331,12 +331,15 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
 
     Several routines require valid AcmeOrders, blocking authorizations, or
     live ari-check endpoints.  This is designed to build that data.
-
-    TODO: we can freeze it into the database, but no plans yet on unfreezing it
     """
+    print("setup_testing_data")
 
     def _actual():
-        if db_unfreeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data"):
+        if db_unfreeze(
+            testCase.ctx.dbSession,
+            "test_pyramid_app-setup_testing_data",
+            testCase=testCase,
+        ):
             print("setup_testing_data | using frozen database")
         else:
             print("setup_testing_data | creating new database records")

@@ -9,8 +9,6 @@ from pyramid.renderers import JSON
 from pyramid.tweens import EXCVIEW
 import transaction
 
-# from sqlalchemy import engine_from_config
-
 # local
 from . import models
 from ..lib.config_utils import ApplicationSettings
@@ -20,14 +18,6 @@ from ..lib.db import get
 from ..lib.utils import ApiContext
 from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
-
-# from ..lib import acme_v2
-# from ..lib import cert_utils
-# from ..lib.config_utils import set_int_setting
-# from ..lib.db import create
-# from ..lib.db import update
-# from ..model import objects as model_objects
-# from ..model import utils as model_utils
 
 # ==============================================================================
 

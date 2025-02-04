@@ -694,6 +694,7 @@ def db_freeze(
     """ """
     if DEBUG_DBFREEZE:
         print("db_freeze>>>>>%s" % savepoint)
+    log.info("db_freeze[%s]", savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
@@ -702,7 +703,11 @@ def db_freeze(
         # in-memory sqlite
         return False
 
-    backup_filename = "%s-%s" % (_engine.url.database, savepoint)
+    active_filename = _engine.url.database
+    # normalize this...
+    active_filename = os.path.normpath(active_filename)
+
+    backup_filename = "%s-%s" % (active_filename, savepoint)
     backupDb = sqlite3.connect(backup_filename)
     _connection.connection.backup(backupDb)  # type: ignore[attr-defined]
 
@@ -712,6 +717,7 @@ def db_freeze(
 def _sqlite_backup_progress(status, remaining, total):
     if DEBUG_DBFREEZE:
         print(f"Copied {total - remaining} of {total} pages...")
+    return
 
 
 def _db_unfreeze__actual(
@@ -720,9 +726,14 @@ def _db_unfreeze__actual(
 ) -> bool:
     if DEBUG_DBFREEZE:
         print("_db_unfreeze__actual>>>%s" % savepoint)
+    log.info("_db_unfreeze__actual[%s]", savepoint)
 
     backup_filename = "%s-%s" % (active_filename, savepoint)
     if not os.path.exists(backup_filename):
+        log.info(
+            "_db_unfreeze__actual[%s] | not os.path.exists(%s)"
+            % (savepoint, backup_filename)
+        )
         return False
 
     is_failure = False
@@ -745,10 +756,14 @@ def _db_unfreeze__actual(
         cursor.execute(("VACUUM;"))
         cursor.execute(("PRAGMA integrity_check;"))
         clearDb.close()
-    except Exception as exc:
+    except Exception as excc:
+        log.info(
+            "_db_unfreeze__actual[%s] | exception clearing old database: %s"
+            % (savepoint, active_filename)
+        )
         if DEBUG_DBFREEZE:
             print("DEBUG_DBFREEZE: exception clearing old database:", active_filename)
-            print(exc)
+            print(excc)
 
         # if that doesn't work, log it to an artifact
         if AppTestCore._currentTest:
@@ -788,7 +803,7 @@ def _db_unfreeze__actual(
         print("DEBUG_DBFREEZE: backup successful")
 
     if is_failure:
-        return None
+        pass
 
     return True
 
@@ -796,17 +811,31 @@ def _db_unfreeze__actual(
 def db_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+    testCase: Optional[unittest.TestCase] = None,
 ) -> Optional[bool]:
+    """
+    pass in the testCase to ensure we close those database connections
+    those lingering pooled connections may have been the database issue all along
+    """
+
     if DEBUG_DBFREEZE:
         print("db_unfreeze>>>%s" % savepoint)
+    log.info("db_unfreeze[%s]", savepoint)
     _connection = dbSession.connection()
     _engine = _connection.engine
     if _engine.url.drivername != "sqlite":
+        log.info(
+            "db_unfreeze[%s]: _engine.url.drivername != sqlite | `%s`"
+            % (savepoint, _engine.url.drivername)
+        )
         return False
     if _engine.url.database is None:
+        log.info("db_unfreeze[%s]: _engine.url.database is None", savepoint)
         # in-memory sqlite
         return False
     active_filename = _engine.url.database
+    # normalize this...
+    active_filename = os.path.normpath(active_filename)
 
     # # close the connection
     # # while many options will work to close it,
@@ -822,7 +851,12 @@ def db_unfreeze(
     _engine.pool.dispose()
     _engine.dispose()
 
+    # drop the embedded app as well
+    if testCase:
+        testCase._pyramid_app.registry["dbSession_factory"].close_all()
+
     unfreeze_result = _db_unfreeze__actual(active_filename, savepoint)
+    log.info("db_unfreeze[%s]: _db_unfreeze__actual: %s" % (savepoint, unfreeze_result))
     return unfreeze_result
 
 
@@ -1328,10 +1362,11 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
     _testapp_wsgi: Optional[StopableWSGIServer] = None
     _pyramid_app: Router
     _session_factory = None
-    _DB_INTIALIZED = False
     _settings: Dict
-
     _currentTest: Optional[str] = None
+
+    # AppTestCore Class Variable
+    _DB_INTIALIZED = False
 
     @property
     def testapp(self) -> Union[TestApp, StopableWSGIServer]:
@@ -1342,6 +1377,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         raise RuntimeError("no testapp configured")
 
     def setUp(self):
+        print("AppTestCore.setUp")
         log.critical(
             "%s.%s | AppTestCore.setUp"
             % (self.__class__.__name__, self._testMethodName)
@@ -1359,18 +1395,31 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         # settings["sqlalchemy.url"] = "sqlite://"
 
         self._session_factory = get_session_factory(get_engine(settings))
+        engine = self._session_factory().bind
+        assert isinstance(engine, sqlalchemy.engine.base.Engine)
+        assert engine.driver == "pysqlite"
+
+        # have we initialized the database?
+        # IMPORTANT: we can't connect first, even just to vacuum
+        # that will trigger these checks to pass
+        dbfile = os.path.normpath(engine.url.database)
+        if os.path.exists(dbfile):
+            if os.path.getsize(dbfile):
+                AppTestCore._DB_INTIALIZED = True
+
+        print(
+            "AppTestCore.setUp | AppTestCore._DB_INTIALIZED==",
+            AppTestCore._DB_INTIALIZED,
+        )
         if not AppTestCore._DB_INTIALIZED:
-            print("---------------")
             print("AppTestCore.setUp | initialize db")
-            engine = self._session_factory().bind
-            assert isinstance(engine, sqlalchemy.engine.base.Engine)
             model_meta.Base.metadata.drop_all(engine)
             with engine.begin() as connection:
                 connection.execute(sqlalchemy.text("VACUUM"))
             model_meta.Base.metadata.create_all(engine)
             request = FakeRequest()
             dbSession = self._session_factory(info={"request": request})
-            if db_unfreeze(dbSession, "AppTestCore"):
+            if db_unfreeze(dbSession, "AppTestCore", testCase=self):
                 print("AppTestCore.setUp | using frozen database")
             else:
                 print("AppTestCore.setUp | recreating the database")
@@ -1387,7 +1436,9 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 dbSession.commit()
                 dbSession.close()
                 db_freeze(dbSession, "AppTestCore")
-
+        else:
+            with engine.begin() as connection:
+                connection.execute(sqlalchemy.text("VACUUM"))
         self._pyramid_app = app = main(global_config=None, **settings)
         self._testapp = TestApp(
             app,
@@ -1544,6 +1595,7 @@ class AppTest(AppTestCore):
     The main Testing class
     """
 
+    # AppTest Class Variable
     _DB_SETUP_RECORDS = False
 
     def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
@@ -1641,17 +1693,20 @@ class AppTest(AppTestCore):
         self.ctx.pyramid_transaction_commit()
 
     def setUp(self):
+        print("AppTest.setUp")
         log.critical(
             "%s.%s | AppTest.setUp" % (self.__class__.__name__, self._testMethodName)
         )
         AppTestCore.setUp(self)
+        print("AppTest.setUp | AppTest._DB_SETUP_RECORDS==", AppTest._DB_SETUP_RECORDS)
         if not AppTest._DB_SETUP_RECORDS:
             # Freezepoint- AppTest
             # This freezepoint wraps the core system setup data
-            if db_unfreeze(self.ctx.dbSession, "AppTest"):
+            unfrozen = db_unfreeze(self.ctx.dbSession, "AppTest", testCase=self)
+            print("unfrozen?", unfrozen)
+            if unfrozen:
                 print("AppTest.setUp | using frozen database")
             else:
-                print("---------------")
                 print("AppTest.setUp | setup sample db records")
                 try:
                     """
@@ -2079,9 +2134,9 @@ class AppTest(AppTestCore):
                         allowfrom=TEST_FILES["AcmeDnsServerAccount"]["1"]["allowfrom"],
                     )
 
-                    self.ctx.pyramid_transaction_commit()
-
+                    self.ctx.dbSession.commit()
                     db_freeze(self.ctx.dbSession, "AppTest")
+
                 except Exception as exc:
                     print("")
                     print("")
@@ -2096,9 +2151,8 @@ class AppTest(AppTestCore):
                     print("")
                     self.ctx.pyramid_transaction_rollback()
                     raise
-            print("DB INITIALIZED")
+            print("AppTest: DB INITIALIZED")
             AppTest._DB_SETUP_RECORDS = True
-
         _debug_TestHarness(
             self.ctx, "%s.%s|setUp" % (self.__class__.__name__, self._testMethodName)
         )

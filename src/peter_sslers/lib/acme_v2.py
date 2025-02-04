@@ -137,7 +137,7 @@ def url_request(
         if alt_bundle:
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
-        log_api.info("Making a request with alt_bundle:", alt_bundle)
+        log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
