@@ -467,7 +467,7 @@ def under_pebble(_function):
                 .replace(">", "_")
             )
             if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
             stdout = open(fname, "wb")
 
         with psutil.Popen(
@@ -549,7 +549,7 @@ def under_pebble_strict(_function):
                 .replace(">", "_")
             )
             if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
             stdout = open(fname, "wb")
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
@@ -626,7 +626,7 @@ def under_redis(_function):
                 .replace(">", "_")
             )
             if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
             stdout = open(fname, "wb")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],

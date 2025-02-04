@@ -1,6 +1,12 @@
 README DEVELOPMENT
 ================================
 
+## prep the data dir
+
+mkdir _data_
+cp tests/test_configuration/pebble/test/certs/cert.pem nginx_ca_bundle.pem
+
+
 ## install with testing extras
 
 Instead of a normal pip install...

@@ -10,7 +10,6 @@ from typing import Union
 import requests
 
 # local
-from . import cas
 from . import utils
 from ..lib.db.logger import log__OperationsEvent
 from ..model import utils as model_utils
@@ -47,6 +46,9 @@ class NginxSession(object):
             )
             if ca_bundle_pem:
                 sess.verify = ca_bundle_pem
+            print("=============================")
+            print("ca_bundle_pem", ca_bundle_pem)
+            print("=============================")
 
         self.session = sess
 
@@ -83,7 +85,7 @@ def nginx_flush_cache(
             status = None
             try:
                 reset_url = _server + _reset_path + "/all"
-                response = sess.get(reset_url, timeout=timeout, verify=cas.CA_NGINX)
+                response = sess.get(reset_url, timeout=timeout)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     status = response_json
@@ -138,7 +140,7 @@ def nginx_status(
             _status = None
             try:
                 status_url = _server + status_path
-                response = sess.get(status_url, timeout=timeout, verify=cas.CA_NGINX)
+                response = sess.get(status_url, timeout=timeout)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     _status = response_json
@@ -184,7 +186,7 @@ def nginx_expire_cache(
                     reset_url = (
                         _server + _reset_path + "/domain/%s" % domain.domain_name
                     )
-                    response = sess.get(reset_url, timeout=timeout, verify=cas.CA_NGINX)
+                    response = sess.get(reset_url, timeout=timeout)
                     if response.status_code == 200:
                         response_json = json.loads(response.text)
                         if response_json["result"] == "success":

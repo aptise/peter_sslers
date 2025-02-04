@@ -30,7 +30,9 @@ To specify the CA Certificate bundles:
 
     import peter_sslers.lib.cas
     peter_sslers.lib.cas.CA_ACME = [bool, str]
-    peter_sslers.lib.cas.CA_NGINX = [bool, str]
+
+    # use ca_bundle_pem in configuration
+    # peter_sslers.lib.cas.CA_NGINX = [bool, str]
 
 
 ## why/how?

@@ -9,7 +9,7 @@ from peter_sslers.lib.utils import ApiContext
 #   str - filepath of CaCert bundle for verification
 
 CA_ACME: Union[bool, str] = True
-CA_NGINX: Union[bool, str] = True
+# CA_NGINX: Union[bool, str] = True
 
 
 def path(
@@ -26,8 +26,8 @@ def path(
         if isinstance(CA_ACME, (bool, str)):
             return CA_ACME
         raise ValueError("Invalid `CA_ACME`")
-    elif ca_context == "CA_NGINX":
-        if isinstance(CA_NGINX, (bool, str)):
-            return CA_NGINX
-        raise ValueError("Invalid `CA_NGINX`")
+    # elif ca_context == "CA_NGINX":
+    #    if isinstance(CA_NGINX, (bool, str)):
+    #        return CA_NGINX
+    #    raise ValueError("Invalid `CA_NGINX`")
     raise ValueError("unknown ca_context")

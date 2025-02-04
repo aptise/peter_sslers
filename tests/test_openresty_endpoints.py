@@ -1,5 +1,6 @@
 # stdlib
 import logging
+import os
 import unittest
 
 # pypi
@@ -9,7 +10,6 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 # local
-from peter_sslers.lib import cas
 from peter_sslers.lib.config_utils import ApplicationSettings
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import RUN_NGINX_TESTS
@@ -49,10 +49,8 @@ class FunctionalTests_Main(unittest.TestCase):
         self._settings = settings = get_appsettings(TEST_INI, name="main")
         self._app_settings = app_settings = ApplicationSettings(config_uri=TEST_INI)
         app_settings.from_settings_dict(settings)
-        cas.CA_NGINX = False
-
-    def tearDown(self):
-        cas.CA_NGINX = True
+        assert "nginx.ca_bundle_pem" in app_settings
+        assert os.path.exists(app_settings["nginx.ca_bundle_pem"])
 
     def _check_version(self, response_json, response_headers):
         """
@@ -80,13 +78,14 @@ class FunctionalTests_Main(unittest.TestCase):
         nginx_servers = self._app_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         nginx_userpass = self._app_settings.get("nginx.userpass", "")
+        nginx_ca_bundle = self._app_settings["nginx.ca_bundle_pem"]
         auth = None
         if nginx_userpass:
             auth = HTTPBasicAuth(*nginx_userpass.split(":"))
         for server in nginx_servers:
             url_status = URL_STATUS % server
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_status, auth=auth, verify=cas.CA_NGINX)
+            result = requests.get(url_status, auth=auth, verify=nginx_ca_bundle)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
@@ -98,13 +97,14 @@ class FunctionalTests_Main(unittest.TestCase):
         nginx_servers = self._app_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         nginx_userpass = self._app_settings.get("nginx.userpass", "")
+        nginx_ca_bundle = self._app_settings["nginx.ca_bundle_pem"]
         auth = None
         if nginx_userpass:
             auth = HTTPBasicAuth(*nginx_userpass.split(":"))
         for server in nginx_servers:
             url_expire = URL_EXPIRE_ALL % server
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_expire, auth=auth, verify=cas.CA_NGINX)
+            result = requests.get(url_expire, auth=auth, verify=nginx_ca_bundle)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
@@ -117,6 +117,7 @@ class FunctionalTests_Main(unittest.TestCase):
         nginx_servers = self._app_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         nginx_userpass = self._app_settings.get("nginx.userpass", "")
+        nginx_ca_bundle = self._app_settings["nginx.ca_bundle_pem"]
         auth = None
         if nginx_userpass:
             auth = HTTPBasicAuth(*nginx_userpass.split(":"))
@@ -124,7 +125,7 @@ class FunctionalTests_Main(unittest.TestCase):
         for server in nginx_servers:
             url_expire = URL_EXPIRE_DOMAIN % (server, domain)
             # if we are requesting a https endpoint, allow invalid matches
-            result = requests.get(url_expire, auth=auth, verify=cas.CA_NGINX)
+            result = requests.get(url_expire, auth=auth, verify=nginx_ca_bundle)
             self.assertEqual(200, result.status_code)
             as_json = result.json()
             self.assertEqual(as_json["result"], "success")
