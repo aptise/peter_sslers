@@ -853,7 +853,8 @@ def db_unfreeze(
 
     # drop the embedded app as well
     if testCase:
-        testCase._pyramid_app.registry["dbSession_factory"].close_all()
+        if hasattr(testCase, "_pyramid_app") and testCase._pyramid_app:
+            testCase._pyramid_app.registry["dbSession_factory"].close_all()
 
     unfreeze_result = _db_unfreeze__actual(active_filename, savepoint)
     log.info("db_unfreeze[%s]: _db_unfreeze__actual: %s" % (savepoint, unfreeze_result))
