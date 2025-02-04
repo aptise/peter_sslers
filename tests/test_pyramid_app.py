@@ -325,6 +325,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
                 _orders.append(dbAcmeOrder)
 
             # This is all to generate a valid ARI Check
+            # only 1 is needed
             for dbAcmeOrder in _orders:
                 res = testCase.testapp.get(
                     "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
@@ -383,6 +384,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
             db_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
 
     if _utils.PEBBLE_RUNNING:
+        print("setup_testing_data | pebble already running, using that!")
         _actual()
     else:
 
@@ -391,6 +393,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
 
         @under_pebble
         def _wrapped():
+            print("setup_testing_data | spun up a new pebble")
             _actual()
 
         _wrapped()

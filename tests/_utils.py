@@ -455,12 +455,17 @@ def under_pebble(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "%s/%s-pebble.txt" % (
-                DIR_TESTRUN,
-                _function.__qualname__,
-            ).replace(
-                "<", "_"
-            ).replace(">", "_")
+            fname = (
+                (
+                    "%s/%s-pebble.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
             stdout = open(fname, "wb")
 
         print("-----")
@@ -536,10 +541,17 @@ def under_pebble_strict(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "%s/%s-pebble_strict.txt" % (
-                DIR_TESTRUN,
-                _function.__qualname__,
-            ).replace("<", "_").replace(">", "_")
+            fname = (
+                (
+                    "%s/%s-pebble_strict.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
             stdout = open(fname, "wb")
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
@@ -604,12 +616,17 @@ def under_redis(_function):
         stdout: Union[int, BufferedWriter] = subprocess.PIPE
         stderr: Union[int, BufferedWriter] = subprocess.PIPE
         if DEBUG_PEBBLE_REDIS:
-            fname = "%s/%s-redis.txt" % (
-                DIR_TESTRUN,
-                _function.__qualname__,
-            ).replace(
-                "<", "_"
-            ).replace(">", "_")
+            fname = (
+                (
+                    "%s/%s-redis.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
             stdout = open(fname, "wb")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
