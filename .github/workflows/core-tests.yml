@@ -58,7 +58,7 @@ jobs:
       run: |
         mkdir _data_
         touch _data_/acme-dns.db
-        sudo cat tests/test_configuration/ssl_selfsigned_fullchain.pem | sudo tee -a _data_/nginx_ca_bundle.pem
+        sudo cat tests/test_configuration/pebble/test/certs/cert.pem | sudo tee -a _data_/nginx_ca_bundle.pem
         # debugging lines
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "ls -alh _data_"
