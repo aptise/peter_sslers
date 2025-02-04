@@ -466,13 +466,9 @@ def under_pebble(_function):
                 .replace("<", "_")
                 .replace(">", "_")
             )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
             stdout = open(fname, "wb")
-
-        print("-----")
-        print(PEBBLE_BIN)
-        print(PEBBLE_CONFIG_FILE)
-        print(stdout)
-        print(stderr)
 
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
@@ -552,6 +548,8 @@ def under_pebble_strict(_function):
                 .replace("<", "_")
                 .replace(">", "_")
             )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
             stdout = open(fname, "wb")
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
@@ -627,6 +625,8 @@ def under_redis(_function):
                 .replace("<", "_")
                 .replace(">", "_")
             )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", uuid.uuid4())
             stdout = open(fname, "wb")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
@@ -759,6 +759,9 @@ def _db_unfreeze__actual(
         if DEBUG_DBFREEZE:
             print("DEBUG_DBFREEZE: unlinking old database for rewrite")
         os.unlink(active_filename)
+
+        # return False to trigger a Failure and repopulation
+        return False
 
     # Py3.10 and below do not need the cursor+vacuum
     # Py3.13 needs the cursor+vaccume
