@@ -760,8 +760,7 @@ def _db_unfreeze__actual(
             print("DEBUG_DBFREEZE: unlinking old database for rewrite")
         os.unlink(active_filename)
 
-        # return False to trigger a Failure and repopulation
-        return False
+        # Do not `return` here; as we need to copy the db next...
 
     # Py3.10 and below do not need the cursor+vacuum
     # Py3.13 needs the cursor+vaccume
@@ -810,6 +809,7 @@ def db_unfreeze(
     # _connection.invalidate()
     # _engine.dispose()
     # _engine.pool.dispose()
+    _engine.pool.dispose()
     _engine.dispose()
 
     return _db_unfreeze__actual(active_filename, savepoint)

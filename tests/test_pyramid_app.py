@@ -292,7 +292,7 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
 
 
 def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
-
+    testCase.ctx.dbSession.commit()
     dbAcmeOrders = (
         testCase.ctx.dbSession.query(model_objects.AcmeOrder)
         .order_by(model_objects.AcmeOrder.id.asc())
@@ -301,6 +301,7 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    testCase.ctx.dbSession.commit()
     return True
 
 
