@@ -8,7 +8,6 @@ update_AcmeAccount_from_new_duplicate
     
 raise ValueError("endpoint does not support ARI")
 
-nginx servers should have CA files
 
 blocking authz
     acme-dns
@@ -18,9 +17,6 @@ blocking authz
 acme-account register
     https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.3
 
-    log the subscriber agreement
-    
-    chnges to terms of service
         urn:ietf:params:acme:error:userActionRequired
     
      Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
@@ -35,6 +31,7 @@ run a routine to renew expired certs
 
 # backup CA selection
 
+update_AcmeAccount_from_new_duplicate
 
 freezedb (tests) broken on py313
 

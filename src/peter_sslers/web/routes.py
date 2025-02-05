@@ -138,6 +138,14 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_account:focus:renewal_configurations_paginated",
         "/acme-account/{@id}/renewal-configurations/{@page}",
     )
+    config.add_route_7(
+        "admin:acme_account:focus:terms_of_service",
+        "/acme-account/{@id}/terms-of-service",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:terms_of_service_paginated",
+        "/acme-account/{@id}/terms-of-service/{@page}",
+    )
     config.add_route_7("admin:acme_account:focus:mark", "/acme-account/{@id}/mark")
     config.add_route_7(
         "admin:acme_account:focus:mark|json", "/acme-account/{@id}/mark.json"

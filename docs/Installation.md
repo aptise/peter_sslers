@@ -27,8 +27,8 @@ Here we go...
     git clone https://github.com/aptise/peter_sslers.git
     cd peter_sslers
     python setup.py develop
-    initialize_peter_sslers_db example_development.ini
-    pserve --reload example_development.ini
+    initialize_peter_sslers_db conf/example_development.ini
+    pserve --reload conf/example_development.ini
 
 Then you can visit `http://127.0.0.1:7201`
 
@@ -36,7 +36,7 @@ If you have an active Certbot install, you can import the enture dataset two way
 
 1. On the same machine, you can invoke a quick command:
 
-    import_certbot example_development.ini dir=/etc/letsencrypt
+    import_certbot conf/example_development.ini dir=/etc/letsencrypt
 
 2. On remote machines, you can import onto a central installation's database via
 an `invoke` command and the web API.  Details are below.
@@ -66,7 +66,7 @@ It is recommended to open up a new terminal and do the following commands:
     cd certificate_admin
     source peter_sslers-venv/bin/activate
     cd peter_sslers
-    pserve example_development.ini
+    pserve  conf/example_development.ini
 
 Then, in a second terminal window, you have two options:
 
@@ -78,7 +78,7 @@ Certbot directory structure from the local machine.   You can invoke
 
     cd certificate_admin
     source peter_sslers-venv/bin/activate
-    import_certbot example_development.ini dir=/path/to/etc/letsencrypt
+    import_certbot conf/example_development.ini dir=/path/to/etc/letsencrypt
 
 ## Option B - HTTP import (from any machine)
 

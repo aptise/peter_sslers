@@ -115,6 +115,8 @@
         json endpoints audited for documentation; @docify now uses the form values
         added `nginx.ca_bundle_pem` for trusted roots
         added server pem to AcmeServer
+        AcmeAccount
+        - changes to Terms Of Service are better logged and tracked
 
     Added a "note" to:
         RenewalConfiguration

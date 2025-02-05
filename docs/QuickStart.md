@@ -21,13 +21,13 @@ If you just want to give this a quick go to explore your Certbot data:
     git clone https://github.com/aptise/peter_sslers.git
     cd peter_sslers
     pip install -e .
-    initialize_peter_sslers_db example_development.ini
-    import_certbot example_development.ini
-    pserve --reload example_development.ini
+    initialize_peter_sslers_db conf/example_development.ini
+    import_certbot conf/example_development.ini
+    pserve --reload  conf/example_development.ini
 
 Then you can visit `http://127.0.0.1:7201/.well-known/peter_sslers`
 
 Note: you can invoke `import_certbot` with any path to a Certbot directory:
 
-    import_certbot example_development.ini dir=/path/to/etc/letsencrypt
+    import_certbot conf/example_development.ini dir=/path/to/etc/letsencrypt
 

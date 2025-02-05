@@ -309,10 +309,10 @@ The abridged version:
 - git clone https://github.com/aptise/peter_sslers.git
 - cd peter_sslers
 - $VENV/bin/python setup.py develop
-- vi example_development.ini
-- $VENV/bin/initialize_peter_sslers_db example_development.ini
-- $VENV/bin/import_certbot example_development.ini dir=/etc/letsencrypt
-- $VENV/bin/pserve example_development.ini
+- vi conf/example_development.ini
+- $VENV/bin/initialize_peter_sslers_db conf/example_development.ini
+- $VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
+- $VENV/bin/pserve conf/example_development.ini
 
 
 

@@ -18,6 +18,7 @@ from sqlalchemy.orm import subqueryload
 # localapp
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
+from ...model.objects import AcmeAccount_2_TermsOfService
 from ...model.objects import AcmeAccountKey
 from ...model.objects import AcmeAuthorization
 from ...model.objects import AcmeAuthorizationPotential
@@ -3035,6 +3036,35 @@ def get__RootStoreVersion__by_id(
         .first()
     )
     return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__TermsOfService__by_AcmeAccountId__count(
+    ctx: "ApiContext",
+    acme_account_id: int,
+) -> int:
+    q = ctx.dbSession.query(AcmeAccount_2_TermsOfService).filter(
+        AcmeAccount_2_TermsOfService.acme_account_id == acme_account_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__TermsOfService__by_AcmeAccountId__paginated(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAccount_2_TermsOfService]:
+    q = ctx.dbSession.query(AcmeAccount_2_TermsOfService).filter(
+        AcmeAccount_2_TermsOfService.acme_account_id == acme_account_id
+    )
+    q = q.order_by(AcmeAccount_2_TermsOfService.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

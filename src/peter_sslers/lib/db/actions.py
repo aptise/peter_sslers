@@ -966,7 +966,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             ),
             CertificateSigned.timestamp_not_after < timely_date,
             sqlalchemy_or(
-                latest_ari_checks.c.latest_ari_id.op("IS")(None),
+                latest_ari_checks.c.latest_ari_id.is_(None),
                 latest_ari_checks.c.timestamp_retry_after < NOW,
             ),
         )

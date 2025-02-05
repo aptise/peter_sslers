@@ -63,9 +63,6 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
-    terms_of_service: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True
-    )
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
@@ -169,6 +166,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id",
         back_populates="acme_account",
     )
+    tos = sa_orm_relationship(
+        "AcmeAccount_2_TermsOfService",
+        primaryjoin="and_(AcmeAccount.id==AcmeAccount_2_TermsOfService.acme_account_id, AcmeAccount_2_TermsOfService.is_active.is_(True))",
+        uselist=False,
+        back_populates="acme_account",
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -242,6 +245,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
+    def terms_of_service(self) -> str:
+        if not self.tos:
+            return "<no TOS recorded>"
+        return self.tos.terms_of_service
+
+    @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
@@ -261,6 +270,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "order_default_private_key_technology": self.order_default_private_key_technology,
             "contact": self.contact,
             "account_url": self.account_url,
+            "terms_of_service": self.terms_of_service,
         }
 
     @property
@@ -270,6 +280,39 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             self.acme_account_key.as_json_minimal if self.acme_account_key else None
         )
         return rval
+
+
+class AcmeAccount_2_TermsOfService(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "acme_account_2_terms_of_service"
+    __table_args__ = (
+        sa.Index(
+            "uidx_acme_account_2_terms_of_service",
+            "acme_account_id",
+            "is_active",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_account_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )  # allow NULL because of the index
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    terms_of_service: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True
+    )
+
+    acme_account = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="AcmeAccount.id==AcmeAccount_2_TermsOfService.acme_account_id",
+        uselist=False,
+        back_populates="tos",
+    )
 
 
 class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
@@ -4773,6 +4816,7 @@ class UniquelyChallengedFQDNSet2Domain(Base):
 
 __all__ = (
     "AcmeAccount",
+    "AcmeAccount_2_TermsOfService",
     "AcmeAccountKey",
     "AcmeServer",
     "AcmeAuthorization",

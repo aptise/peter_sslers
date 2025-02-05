@@ -267,5 +267,3 @@ def import_certbot(
                 discovery_type="Certbot Import",
                 is_active=False,
             )
-
-            print("yay")

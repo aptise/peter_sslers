@@ -36,6 +36,7 @@ from .getcreate import getcreate__PrivateKey_for_AcmeAccount
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
+from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .. import errors
@@ -43,6 +44,7 @@ from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
 from ...lib import acme_v2
+from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -580,6 +582,33 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     return _task_finalize_order
 
 
+def handle_AcmeAccount_Updates(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    authenticatedUser: "acme_v2.AuthenticatedUser",
+) -> bool:
+    # update based off the ACME service
+    # the server's TOS should take precedence
+    acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"].strip()
+    if acme_tos:
+        if acme_tos != dbAcmeAccount.terms_of_service:
+            updated = update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)
+
+            if updated:
+                event_payload_dict = lib_utils.new_event_payload_dict()
+                event_payload_dict["acme_account.id"] = dbAcmeAccount.id
+                dbOperationsEvent = log__OperationsEvent(
+                    ctx,
+                    model_utils.OperationsEventType.from_string(
+                        "AcmeAccount__tos_change"
+                    ),
+                    event_payload_dict,
+                )
+
+            return updated
+    return False
+
+
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
@@ -675,12 +704,12 @@ def do__AcmeV2_AcmeAccount__authenticate(
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
     #
-    # if `onlyReturnExisting` is True,
     authenticatedUser = acme_v2.AuthenticatedUser(
         ctx,
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
+        func_account_updates=handle_AcmeAccount_Updates,
     )
     authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
     return authenticatedUser
@@ -718,6 +747,7 @@ def do__AcmeV2_AcmeAccount__deactivate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
+        func_account_updates=handle_AcmeAccount_Updates,
     )
     authenticatedUser.authenticate(ctx)
     is_did_deactivate = authenticatedUser.deactivate(ctx, transaction_commit=True)
@@ -837,6 +867,7 @@ def do__AcmeV2_AcmeAccount__key_change(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
+        func_account_updates=handle_AcmeAccount_Updates,
     )
     authenticatedUser.authenticate(ctx)
     is_did_keychange = authenticatedUser.key_change(
@@ -877,15 +908,10 @@ def do__AcmeV2_AcmeAccount_register(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             log__OperationsEvent=log__OperationsEvent,
+            func_account_updates=handle_AcmeAccount_Updates,
         )
         authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
 
-        # update based off the ACME service
-        # the server's TOS should take precedence
-        acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"]
-        if acme_tos:
-            if acme_tos != dbAcmeAccount.terms_of_service:
-                dbAcmeAccount.terms_of_service = acme_tos
         assert authenticatedUser._api_account_headers
         acme_account_url = authenticatedUser._api_account_headers["Location"]
         if acme_account_url != dbAcmeAccount.account_url:

@@ -93,9 +93,12 @@ def update_AcmeAccount_from_new_duplicate(
         ctx.dbSession.flush([dbAcmeAccountDuplicate])
 
         # Transfer the Account fields:
+        # PART-1 this will fail; see part 2
         dbAcmeAccountTarget.account_url = account_url
         dbAcmeAccountTarget.terms_of_service = dbAcmeAccountDuplicate.terms_of_service
         ctx.dbSession.flush([dbAcmeAccountTarget])
+        # # PART-2 the above was descoped onto this:
+        # update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)
 
         # Transfer the AcmeAccountKey
         # alias the keys
@@ -272,6 +275,45 @@ def update_AcmeAccount__set_global_default(
     dbAcmeAccount.is_global_default = True
     event_status = "AcmeAccount__mark__default"
     return event_status, alt_info
+
+
+def update_AcmeAccount__terms_of_service(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    terms_of_service: str,
+) -> bool:
+    """
+    returns True if an update was done; False if not
+    """
+    log.debug("update_AcmeAccount__terms_of_service", dbAcmeAccount.id)
+
+    terms_of_service = terms_of_service.strip()
+    if dbAcmeAccount.terms_of_service == terms_of_service:
+        return False
+
+    # import pdb; pdb.set_trace()
+
+    _to_flush = [
+        dbAcmeAccount,
+    ]
+
+    oldTos = dbAcmeAccount.tos
+    if oldTos:
+        oldTos.is_active = None
+        _to_flush.append(oldTos)
+
+    newTos = model_objects.AcmeAccount_2_TermsOfService()
+    newTos.acme_account_id = dbAcmeAccount.id
+    newTos.is_active = True
+    newTos.timestamp_created = ctx.timestamp
+    newTos.terms_of_service = terms_of_service
+    ctx.dbSession.add(newTos)
+    _to_flush.append(newTos)
+
+    # dbAcmeAccount.tos = newTos
+
+    ctx.dbSession.flush(objects=_to_flush)
+    return True
 
 
 def update_AcmeAccount__unset_active(

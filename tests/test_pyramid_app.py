@@ -649,6 +649,8 @@ class FunctionalTests_AcmeAccount(AppTest):
             "admin:acme_account:focus:certificate_signeds_paginated",
             "admin:acme_account:focus:renewal_configurations",
             "admin:acme_account:focus:renewal_configurations_paginated",
+            "admin:acme_account:focus:terms_of_service",
+            "admin:acme_account:focus:terms_of_service_paginated",
         )
     )
     def test_focus_html(self):
@@ -713,6 +715,15 @@ class FunctionalTests_AcmeAccount(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/renewal-configurations/1"
             % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/terms-of-service" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/terms-of-service/1" % focus_id,
             status=200,
         )
 

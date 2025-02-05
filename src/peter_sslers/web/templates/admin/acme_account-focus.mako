@@ -167,7 +167,17 @@
                     </tr>
                     <tr>
                         <th>terms of service</th>
-                        <td><code>${AcmeAccount.terms_of_service or ''}</code></td>
+                        <td>
+                            <code>${AcmeAccount.terms_of_service or ''}</code>
+
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/acme-account/${AcmeAccount.id}/terms-of-service"
+                            >
+                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                            </a>
+
+                        </td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>

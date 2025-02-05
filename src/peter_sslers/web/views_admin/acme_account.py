@@ -863,6 +863,35 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:acme_account:focus:terms_of_service",
+        renderer="/admin/acme_account-focus-terms_of_service.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:terms_of_service_paginated",
+        renderer="/admin/acme_account-focus-terms_of_service.mako",
+    )
+    def related__TermsOfService(self):
+        dbAcmeAccount = self._focus()
+        items_count = lib_db.get.get__TermsOfService__by_AcmeAccountId__count(
+            self.request.api_context, dbAcmeAccount.id
+        )
+        url_template = "%s/terms-of-service/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__TermsOfService__by_AcmeAccountId__paginated(
+            self.request.api_context,
+            dbAcmeAccount.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount": dbAcmeAccount,
+            "TermsOfService_count": items_count,
+            "TermsOfService": items_paged,
+            "pager": pager,
+        }
+
 
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_account:focus:edit")

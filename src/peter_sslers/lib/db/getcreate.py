@@ -221,7 +221,6 @@ def getcreate__AcmeAccount(
             log.critical("Could not parse `contact` from LetsEncrypt payload")
             contact = "invalid.contact.import@example.com"
 
-        terms_of_service = le_reg_json.get("terms_of_service", "")
         account_url = le_reg_json.get("uri")
         if not account_url:
             raise ValueError("could not detect an uri from LetsEncrypt payload")
@@ -230,6 +229,7 @@ def getcreate__AcmeAccount(
             raise ValueError(
                 "could not detect an AcmeServer server from LetsEncrypt payload"
             )
+        terms_of_service = le_reg_json.get("terms_of_service", "").strip()
 
         # derive the api server
         dbAcmeServer = get__AcmeServer__by_server(ctx, _account_server)
@@ -345,7 +345,6 @@ def getcreate__AcmeAccount(
     dbAcmeAccount = model_objects.AcmeAccount()
     dbAcmeAccount.timestamp_created = ctx.timestamp
     dbAcmeAccount.contact = contact
-    dbAcmeAccount.terms_of_service = terms_of_service
     dbAcmeAccount.account_url = account_url
     dbAcmeAccount.acme_server_id = acme_server_id
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
@@ -358,6 +357,15 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
+
+    if terms_of_service:
+        dbTermsOfService = model_objects.AcmeAccount_2_TermsOfService()
+        dbTermsOfService.acme_account_id = dbAcmeAccount.id
+        dbTermsOfService.is_active = True
+        dbTermsOfService.timestamp_created = ctx.timestamp
+        dbTermsOfService.terms_of_service = terms_of_service
+        ctx.dbSession.add(dbTermsOfService)
+        ctx.dbSession.flush(objects=[dbTermsOfService])
 
     # next, create the AcmeAccountKey
     dbAcmeAccountKey = model_objects.AcmeAccountKey()

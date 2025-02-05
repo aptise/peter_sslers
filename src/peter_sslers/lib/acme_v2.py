@@ -524,6 +524,7 @@ class AuthenticatedUser(object):
         acmeAccount: "AcmeAccount",
         acme_directory: Optional[Dict] = None,
         log__OperationsEvent: Optional[Callable] = None,
+        func_account_updates: Optional[Callable] = None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
@@ -552,6 +553,9 @@ class AuthenticatedUser(object):
         self._next_nonce = None
         if acmeAccount.acme_server and acmeAccount.acme_server.is_supports_ari:
             self.supports_ari = True
+
+        if func_account_updates:
+            func_account_updates(ctx, acmeAccount, self)
 
     def _send_signed_request(
         self,
