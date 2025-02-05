@@ -141,74 +141,6 @@ def update_AcmeAccount_from_new_duplicate(
     return True
 
 
-def update_AcmeAccount__set_active(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> str:
-    if dbAcmeAccount.is_active:
-        raise errors.InvalidTransition("Already activated.")
-    if dbAcmeAccount.timestamp_deactivated:
-        raise errors.InvalidTransition("AccountKey was deactivated.")
-    dbAcmeAccount.is_active = True
-    event_status = "AcmeAccount__mark__active"
-    return event_status
-
-
-def update_AcmeAccount__set_deactivated(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> str:
-    log.debug("update_AcmeAccount__set_deactivated", dbAcmeAccount.id)
-    if dbAcmeAccount.timestamp_deactivated:
-        raise errors.InvalidTransition("Already deactivated.")
-    dbAcmeAccount.is_active = False
-    dbAcmeAccount.timestamp_deactivated = ctx.timestamp
-    event_status = "AcmeAccount__mark__deactivated"
-    return event_status
-
-
-def update_AcmeAccount__unset_active(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> str:
-    log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
-    if not dbAcmeAccount.is_active:
-        raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeAccount.is_global_default:
-        raise errors.InvalidTransition(
-            "You can not deactivate the global default. Set another `AcmeAccount` as the global default first."
-        )
-    dbAcmeAccount.is_active = False
-    event_status = "AcmeAccount__mark__inactive"
-    return event_status
-
-
-def update_AcmeAccount__set_global_default(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> Tuple[str, Dict]:
-    if dbAcmeAccount.is_global_default:
-        # `formStash.fatal_form(` will raise a `FormInvalid()`
-        raise errors.InvalidTransition("Already global default.")
-
-    if not dbAcmeAccount.acme_server.is_default:
-        raise errors.InvalidTransition(
-            "This AcmeAccount is not from the default AcmeServer."
-        )
-
-    alt_info: Dict = {}
-    formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
-    if formerDefaultAccount:
-        formerDefaultAccount.is_global_default = False
-        alt_info["event_payload_dict"] = {
-            "acme_account_id.former_default": formerDefaultAccount.id,
-        }
-        alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
-    dbAcmeAccount.is_global_default = True
-    event_status = "AcmeAccount__mark__default"
-    return event_status, alt_info
-
-
 def update_AcmeAccount__order_defaults(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
@@ -290,6 +222,74 @@ def update_AcmeAccount__private_key_technology(
     return event_status
 
 
+def update_AcmeAccount__set_active(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> str:
+    if dbAcmeAccount.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    if dbAcmeAccount.timestamp_deactivated:
+        raise errors.InvalidTransition("AccountKey was deactivated.")
+    dbAcmeAccount.is_active = True
+    event_status = "AcmeAccount__mark__active"
+    return event_status
+
+
+def update_AcmeAccount__set_deactivated(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> str:
+    log.debug("update_AcmeAccount__set_deactivated", dbAcmeAccount.id)
+    if dbAcmeAccount.timestamp_deactivated:
+        raise errors.InvalidTransition("Already deactivated.")
+    dbAcmeAccount.is_active = False
+    dbAcmeAccount.timestamp_deactivated = ctx.timestamp
+    event_status = "AcmeAccount__mark__deactivated"
+    return event_status
+
+
+def update_AcmeAccount__set_global_default(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> Tuple[str, Dict]:
+    if dbAcmeAccount.is_global_default:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("Already global default.")
+
+    if not dbAcmeAccount.acme_server.is_default:
+        raise errors.InvalidTransition(
+            "This AcmeAccount is not from the default AcmeServer."
+        )
+
+    alt_info: Dict = {}
+    formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
+    if formerDefaultAccount:
+        formerDefaultAccount.is_global_default = False
+        alt_info["event_payload_dict"] = {
+            "acme_account_id.former_default": formerDefaultAccount.id,
+        }
+        alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
+    dbAcmeAccount.is_global_default = True
+    event_status = "AcmeAccount__mark__default"
+    return event_status, alt_info
+
+
+def update_AcmeAccount__unset_active(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> str:
+    log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
+    if not dbAcmeAccount.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    if dbAcmeAccount.is_global_default:
+        raise errors.InvalidTransition(
+            "You can not deactivate the global default. Set another `AcmeAccount` as the global default first."
+        )
+    dbAcmeAccount.is_active = False
+    event_status = "AcmeAccount__mark__inactive"
+    return event_status
+
+
 def update_AcmeAuthorization_from_payload(
     ctx: "ApiContext",
     dbAcmeAuthorization: "AcmeAuthorization",
@@ -351,34 +351,6 @@ def update_AcmeAuthorization_from_payload(
     return False
 
 
-def update_AcmeDnsServer__set_active(
-    ctx: "ApiContext",
-    dbAcmeDnsServer: "AcmeDnsServer",
-) -> str:
-    if dbAcmeDnsServer.is_active:
-        raise errors.InvalidTransition("Already activated.")
-    dbAcmeDnsServer.is_active = True
-    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
-    event_status = "AcmeDnsServer__mark__active"
-    return event_status
-
-
-def update_AcmeDnsServer__unset_active(
-    ctx: "ApiContext",
-    dbAcmeDnsServer: "AcmeDnsServer",
-) -> str:
-    if not dbAcmeDnsServer.is_active:
-        raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeDnsServer.is_global_default:
-        raise errors.InvalidTransition(
-            "You can not deactivate the global default. Set another `AcmeDnsServer` as the global default first."
-        )
-    dbAcmeDnsServer.is_active = False
-    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
-    event_status = "AcmeDnsServer__mark__inactive"
-    return event_status
-
-
 def update_AcmeDnsServer__set_global_default(
     ctx: "ApiContext",
     dbAcmeDnsServer: "AcmeDnsServer",
@@ -421,6 +393,34 @@ def update_AcmeDnsServer__root_url(
     dbAcmeDnsServer.root_url = root_url
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     return True
+
+
+def update_AcmeDnsServer__set_active(
+    ctx: "ApiContext",
+    dbAcmeDnsServer: "AcmeDnsServer",
+) -> str:
+    if dbAcmeDnsServer.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    dbAcmeDnsServer.is_active = True
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
+    event_status = "AcmeDnsServer__mark__active"
+    return event_status
+
+
+def update_AcmeDnsServer__unset_active(
+    ctx: "ApiContext",
+    dbAcmeDnsServer: "AcmeDnsServer",
+) -> str:
+    if not dbAcmeDnsServer.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    if dbAcmeDnsServer.is_global_default:
+        raise errors.InvalidTransition(
+            "You can not deactivate the global default. Set another `AcmeDnsServer` as the global default first."
+        )
+    dbAcmeDnsServer.is_active = False
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
+    event_status = "AcmeDnsServer__mark__inactive"
+    return event_status
 
 
 def update_AcmeOrder_deactivate(
@@ -483,17 +483,6 @@ def update_AcmeServer__activate_default(
     return event_status
 
 
-def update_AcmeServer__set_is_enabled(
-    ctx: "ApiContext",
-    dbAcmeServer: "AcmeServer",
-) -> str:
-    if dbAcmeServer.is_enabled:
-        raise errors.InvalidTransition("Already enabled")
-    dbAcmeServer.is_enabled = True
-    event_status = "AcmeServer__mark__is_enabled"
-    return event_status
-
-
 def update_AcmeServer__is_unlimited_pending_authz(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
@@ -514,6 +503,17 @@ def update_AcmeServer__is_unlimited_pending_authz(
         dbAcmeServer.is_unlimited_pending_authz = False
         event_status = "AcmeServer__mark__is_unlimited_authz_false"
     ctx.dbSession.flush([dbAcmeServer])
+    return event_status
+
+
+def update_AcmeServer__set_is_enabled(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+) -> str:
+    if dbAcmeServer.is_enabled:
+        raise errors.InvalidTransition("Already enabled")
+    dbAcmeServer.is_enabled = True
+    event_status = "AcmeServer__mark__is_enabled"
     return event_status
 
 
@@ -592,6 +592,132 @@ def update_CertificateCAPreference_reprioritize(
     return True
 
 
+def update_CertificateSigned__mark_compromised(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+    via_PrivateKey_compromised: Optional[bool] = None,
+) -> str:
+    # the PrivateKey has been compromised
+    dbCertificateSigned.is_compromised_private_key = True
+    dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
+    if dbCertificateSigned.is_active:
+        dbCertificateSigned.is_active = False
+    event_status = "CertificateSigned__mark__compromised"
+    return event_status
+
+
+def update_CertificateSigned__set_active(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> str:
+    if dbCertificateSigned.is_active:
+        raise errors.InvalidTransition("Already active.")
+
+    if dbCertificateSigned.is_revoked:
+        raise errors.InvalidTransition(
+            "Certificate is revoked; `active` status can not be changed."
+        )
+
+    if dbCertificateSigned.is_compromised_private_key:
+        raise errors.InvalidTransition(
+            "Certificate has a compromised PrivateKey; `active` status can not be changed."
+        )
+
+    if dbCertificateSigned.is_deactivated:
+        raise errors.InvalidTransition(
+            "Certificate was deactivated; `active` status can not be changed."
+        )
+
+    # now make it active!
+    dbCertificateSigned.is_active = True
+
+    # cleanup options
+    event_status = "CertificateSigned__mark__active"
+    return event_status
+
+
+"""
+as of 1.0, AcmeOrders do not; must use a RenewalConfiguration
+as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
+
+def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned,):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if dbCertificateSigned.is_auto_renew:
+        raise errors.InvalidTransition("Already active.")
+    # activate!
+    dbCertificateSigned.is_auto_renew = True
+    event_status = "CertificateSigned__mark__renew_auto"
+    return event_status
+
+
+def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned,):
+    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if not dbCertificateSigned.is_auto_renew:
+        raise errors.InvalidTransition("Already inactive.")
+    # deactivate!
+    dbCertificateSigned.is_auto_renew = False
+    event_status = "CertificateSigned__mark__renew_manual"
+    return event_status
+"""
+
+
+def update_CertificateSigned__set_revoked(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> str:
+    if dbCertificateSigned.is_revoked:
+        raise errors.InvalidTransition("Certificate is already revoked")
+
+    # mark revoked
+    dbCertificateSigned.is_revoked = True
+
+    # inactivate it
+    dbCertificateSigned.is_active = False
+
+    # deactivate it, permanently
+    dbCertificateSigned.is_deactivated = True
+
+    # cleanup options
+    event_status = "CertificateSigned__mark__revoked"
+    return event_status
+
+
+def update_CertificateSigned__unset_active(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> str:
+    if not dbCertificateSigned.is_active:
+        raise errors.InvalidTransition("Already inactive.")
+
+    # inactivate it
+    dbCertificateSigned.is_active = False
+
+    event_status = "CertificateSigned__mark__inactive"
+    return event_status
+
+
+def update_CertificateSigned__unset_revoked(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+) -> str:
+    """
+    this is currently not supported
+    """
+
+    if not dbCertificateSigned.is_revoked:
+        raise errors.InvalidTransition("Certificate is not revoked")
+
+    # unset the revoke
+    dbCertificateSigned.is_revoked = False
+
+    # lead is_active and is_deactivated as-is
+    # cleanup options
+    event_status = "CertificateSigned__mark__unrevoked"
+    return event_status
+
+
 def update_CoverageAssuranceEvent__set_resolution(
     ctx: "ApiContext",
     dbCoverageAssuranceEvent: "CoverageAssuranceEvent",
@@ -660,17 +786,6 @@ def update_PrivateKey__set_active(
     return event_status
 
 
-def update_PrivateKey__unset_active(
-    ctx: "ApiContext",
-    dbPrivateKey: "PrivateKey",
-) -> str:
-    if not dbPrivateKey.is_active:
-        raise errors.InvalidTransition("Already deactivated")
-    dbPrivateKey.is_active = False
-    event_status = "PrivateKey__mark__inactive"
-    return event_status
-
-
 def update_PrivateKey__set_compromised(
     ctx: "ApiContext",
     dbPrivateKey: "PrivateKey",
@@ -692,133 +807,18 @@ def update_PrivateKey__set_compromised(
     return event_status
 
 
+def update_PrivateKey__unset_active(
+    ctx: "ApiContext",
+    dbPrivateKey: "PrivateKey",
+) -> str:
+    if not dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Already deactivated")
+    dbPrivateKey.is_active = False
+    event_status = "PrivateKey__mark__inactive"
+    return event_status
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def update_CertificateSigned__mark_compromised(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-    via_PrivateKey_compromised: Optional[bool] = None,
-) -> str:
-    # the PrivateKey has been compromised
-    dbCertificateSigned.is_compromised_private_key = True
-    dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
-    if dbCertificateSigned.is_active:
-        dbCertificateSigned.is_active = False
-    event_status = "CertificateSigned__mark__compromised"
-    return event_status
-
-
-def update_CertificateSigned__set_active(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if dbCertificateSigned.is_active:
-        raise errors.InvalidTransition("Already active.")
-
-    if dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition(
-            "Certificate is revoked; `active` status can not be changed."
-        )
-
-    if dbCertificateSigned.is_compromised_private_key:
-        raise errors.InvalidTransition(
-            "Certificate has a compromised PrivateKey; `active` status can not be changed."
-        )
-
-    if dbCertificateSigned.is_deactivated:
-        raise errors.InvalidTransition(
-            "Certificate was deactivated; `active` status can not be changed."
-        )
-
-    # now make it active!
-    dbCertificateSigned.is_active = True
-
-    # cleanup options
-    event_status = "CertificateSigned__mark__active"
-    return event_status
-
-
-def update_CertificateSigned__unset_active(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if not dbCertificateSigned.is_active:
-        raise errors.InvalidTransition("Already inactive.")
-
-    # inactivate it
-    dbCertificateSigned.is_active = False
-
-    event_status = "CertificateSigned__mark__inactive"
-    return event_status
-
-
-"""
-as of 1.0, AcmeOrders do not; must use a RenewalConfiguration
-as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
-
-def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned,):
-    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
-        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if dbCertificateSigned.is_auto_renew:
-        raise errors.InvalidTransition("Already active.")
-    # activate!
-    dbCertificateSigned.is_auto_renew = True
-    event_status = "CertificateSigned__mark__renew_auto"
-    return event_status
-
-
-def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned,):
-    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
-        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if not dbCertificateSigned.is_auto_renew:
-        raise errors.InvalidTransition("Already inactive.")
-    # deactivate!
-    dbCertificateSigned.is_auto_renew = False
-    event_status = "CertificateSigned__mark__renew_manual"
-    return event_status
-"""
-
-
-def update_CertificateSigned__set_revoked(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition("Certificate is already revoked")
-
-    # mark revoked
-    dbCertificateSigned.is_revoked = True
-
-    # inactivate it
-    dbCertificateSigned.is_active = False
-
-    # deactivate it, permanently
-    dbCertificateSigned.is_deactivated = True
-
-    # cleanup options
-    event_status = "CertificateSigned__mark__revoked"
-    return event_status
-
-
-def update_CertificateSigned__unset_revoked(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    """
-    this is currently not supported
-    """
-
-    if not dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition("Certificate is not revoked")
-
-    # unset the revoke
-    dbCertificateSigned.is_revoked = False
-
-    # lead is_active and is_deactivated as-is
-    # cleanup options
-    event_status = "CertificateSigned__mark__unrevoked"
-    return event_status
 
 
 def update_RenewalConfiguration__set_active(
