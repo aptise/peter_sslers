@@ -93,7 +93,11 @@ def upload_account(server_url_root: str, fset: FileSet) -> None:
                 "--form",
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
                 "--form",
-                "account__private_key_technology=RSA",
+                "account__private_key_technology=RSA_2048",
+                "--form",
+                "account__order_default_private_key_cycle=single_use",
+                "--form",
+                "account__order_default_private_key_technology=RSA_2048",
                 url,
             ],
             stdin=subprocess.PIPE,
@@ -105,6 +109,7 @@ def upload_account(server_url_root: str, fset: FileSet) -> None:
                 print(err)
                 raise ValueError("error")
             json_response = json_response.decode("utf8")
+            print(json_response)
             json_response = json.loads(json_response)
             if ("result" not in json_response) or (
                 json_response["result"] != "success"

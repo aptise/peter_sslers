@@ -167,13 +167,13 @@ class View_New(Handler):
 
             key_create_args = parser.getcreate_args
             for _field in (
-                "acme_server_id",
                 "contact",
                 "order_default_private_key_cycle_id",
                 "order_default_private_key_technology_id",
             ):
                 assert _field in key_create_args
 
+            # not required if uploading LE json fields
             acme_server_id = key_create_args.get("acme_server_id")
             if acme_server_id:
                 self._load_AcmeServers()

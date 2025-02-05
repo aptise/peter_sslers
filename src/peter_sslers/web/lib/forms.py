@@ -14,6 +14,7 @@ from formencode.validators import Int
 from formencode.validators import Invalid
 from formencode.validators import OneOf
 from formencode.validators import RequireIfMissing
+from formencode.validators import RequireIfPresent
 from formencode.validators import UnicodeString
 
 # local app
@@ -205,14 +206,6 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
 
     account__contact = Email(not_empty=False, if_missing=None)  # required if key_pem
 
-    # this is the `private_key_technology` of the AcmeAccount
-    # this is not required on Upload, only New
-    account__private_key_technology = OneOf(
-        model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-        not_empty=False,
-        if_missing=None,
-    )
-
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     acme_server_id = Int(not_empty=False, if_missing=None)
@@ -238,6 +231,21 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
         model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
         not_empty=True,
     )
+
+    chained_validators = [
+        # these are bonded
+        RequireIfPresent("acme_server_id", present="account_key_file_pem"),
+        RequireIfPresent("account_key_file_pem", present="acme_server_id"),
+        # these are opposed
+        OnlyOneOf(("account_key_file_pem", "account_key_file_le_meta"), not_empty=True),
+        OnlyOneOf(("account_key_file_pem", "account_key_file_le_pkey"), not_empty=True),
+        OnlyOneOf(("account_key_file_pem", "account_key_file_le_reg"), not_empty=True),
+        # these are bonded
+        RequireIfPresent(
+            "account_key_file_le_meta", present="account_key_file_le_pkey"
+        ),
+        RequireIfPresent("account_key_file_le_meta", present="account_key_file_le_reg"),
+    ]
 
 
 class Form_AcmeAccount_mark(_Form_Schema_Base):

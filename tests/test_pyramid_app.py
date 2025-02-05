@@ -186,7 +186,6 @@ def make_one__AcmeAccount__pem(
         "account_key_file_pem": Upload(testCase._filepath_testfile(pem_file_name)),
         "acme_server_id": 1,
         "account__contact": account__contact,
-        "account__private_key_technology": "EC_P256",
         "account__order_default_private_key_cycle": "account_daily",
         "account__order_default_private_key_technology": "EC_P256",
     }
@@ -568,9 +567,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         form = {}
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
-        form["account__private_key_technology"] = TEST_FILES["AcmeAccount"]["2"][
-            "private_key_technology"
-        ]
         form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/upload.json", form
@@ -10445,6 +10441,107 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
 
             log.info("TESTED : ", _testeds)
             log.info("SKIPPED: ", _skips)
+
+
+class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
+    """
+    python -m unittest tests.test_pyramid_app.IntegratedTests_EdgeCases_AcmeServer
+    """
+
+    def test_AcmeAccount_new(self):
+
+        # note: NEW without a required field
+        form = {
+            "acme_server_id": 1,
+            "account__contact": generate_random_emailaddress(),
+            "account__private_key_technology": "EC_P256",
+            "account__order_default_private_key_cycle": "single_use",
+            "account__order_default_private_key_technology": "EC_P256",
+        }
+        for field in list(form.keys()):
+            print("testing new: %s" % field)
+            _form = form.copy()
+            del _form[field]
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/new.json", _form
+            )
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "form_errors" in res.json
+            assert field in res.json["form_errors"]
+
+        # note: UPLOAD without a required field - PEM
+        form = {
+            "account_key_file_pem": Upload(
+                self._filepath_testfile("pebble-certs/privkey1.pem")
+            ),
+            "acme_server_id": 1,
+            "account__contact": generate_random_emailaddress(),
+            "account__order_default_private_key_cycle": "account_daily",
+            "account__order_default_private_key_technology": "EC_P256",
+        }
+        for field in list(form.keys()):
+            print("testing upload PEM: %s" % field)
+            _form = form.copy()
+            del _form[field]
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/upload.json", _form
+            )
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "form_errors" in res.json
+            assert field in res.json["form_errors"]
+
+        # note: UPLOAD without a required field - LE
+        form_le = {
+            "account_key_file_le_meta": Upload(
+                self._filepath_testfile("unit_tests/account_001/meta.json")
+            ),
+            "account_key_file_le_pkey": Upload(
+                self._filepath_testfile("unit_tests/account_001/private_key.json")
+            ),
+            "account_key_file_le_reg": Upload(
+                self._filepath_testfile("unit_tests/account_001/regr.json")
+            ),
+            "account__order_default_private_key_cycle": "account_daily",
+            "account__order_default_private_key_technology": "EC_P256",
+        }
+        for field in list(form_le.keys()):
+            print("testing upload LE: %s" % field)
+            _form = form_le.copy()
+            del _form[field]
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/upload.json", _form
+            )
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "form_errors" in res.json
+            assert field in res.json["form_errors"]
+
+        # note: UPLOAD with an unrequired field - LE
+        form_le_bad = {
+            "acme_server_id": 1,
+            "account__contact": generate_random_emailaddress(),
+            "account_key_file_pem": Upload(
+                self._filepath_testfile("pebble-certs/privkey1.pem")
+            ),
+        }
+        for field in list(form_le_bad.keys()):
+            print("testing upload MISC: %s" % field)
+            _form = form_le.copy()
+            _form[field] = form_le_bad[field]
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/upload.json", _form
+            )
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "form_errors" in res.json
+            if field == "acme_server_id":
+                assert "account_key_file_pem" in res.json["form_errors"]
+            elif field == "account_key_file_pem":
+                assert "acme_server_id" in res.json["form_errors"]
+            else:
+                assert field in res.json["form_errors"]
 
 
 class IntegratedTests_AcmeServer(AppTestWSGI):

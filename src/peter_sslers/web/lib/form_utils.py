@@ -170,7 +170,7 @@ class AcmeAccountUploadParser(object):
         requirements_either_or = (
             (
                 "account_key_file_pem",
-                # "acme_server_id",
+                "acme_server_id",
             ),
             (
                 "account_key_file_le_meta",
@@ -295,6 +295,15 @@ class AcmeAccountUploadParser(object):
             self.le_reg_jsons = getcreate_args["le_reg_jsons"] = (
                 formhandling.slurp_file_field(formStash, "account_key_file_le_reg")
             )
+
+        # okay some more sanity checks...
+        if getcreate_args["le_meta_jsons"]:
+            if contact is not None:
+                formStash.fatal_field(
+                    field="account__contact",
+                    message="`account__contact` must not be submitted with LE data.",
+                )
+
         self.getcreate_args = decode_args(getcreate_args)
 
 
