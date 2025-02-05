@@ -189,17 +189,47 @@ class View_New(Handler):
             key_create_args["acme_account_key_source_id"] = (
                 model_utils.AcmeAccountKeySource.IMPORTED
             )
+            dbAcmeAccount = None
+            _dbAcmeAccount = None
             try:
                 (
-                    dbAcmeAccount,
+                    _dbAcmeAccount,
                     _is_created,
                 ) = lib_db.getcreate.getcreate__AcmeAccount(
                     self.request.api_context, **key_create_args
                 )
+
+                # result is either: `new-account` or `existing-account`
+                # failing will raise an exception
+                authenticatedUser = (  # noqa: F841
+                    lib_db.actions_acme.do__AcmeV2_AcmeAccount_register(
+                        self.request.api_context, _dbAcmeAccount
+                    )
+                )
+
+                print("==========")
+                print(_dbAcmeAccount.account_url)
+
+                # copy this over to signify a total success
+                dbAcmeAccount = _dbAcmeAccount
+
             except errors.ConflictingObject as exc:
                 # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
-                # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_form(message=exc.args[0][1])
+                #
+                # this happens via `getcreate__AcmeAccount`
+                # * args[0] = tuple(conflicting_object, error_message_string)
+                # _dbAcmeAccountDuplicate = exc.args[0][0]
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="Error_Main",
+                    message=exc.args[0][1],
+                )
+            except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="Error_Main",
+                    message="AcmeDuplicateAccount condition was detected.",
+                )
 
             if self.request.wants_json:
                 return {
@@ -358,27 +388,34 @@ class View_New(Handler):
                 dbAcmeAccount = _dbAcmeAccount
 
             except errors.ConflictingObject as exc:
+                # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
+                #
                 # this happens via `getcreate__AcmeAccount`
                 # * args[0] = tuple(conflicting_object, error_message_string)
-                _dbAcmeAccountDuplicate = exc.args[0][0]
+                # _dbAcmeAccountDuplicate = exc.args[0][0]
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="account__contact",
                     message=exc.args[0][1],
                 )
 
-            except errors.AcmeDuplicateAccount as exc:
-                # this happens via `do__AcmeV2_AcmeAccount_register`
-                # args[0] MUST be the duplicate AcmeAccount
-                _dbAcmeAccountDuplicate = exc.args[0]
-                # the 'Duplicate' account was the earlier account and therefore
-                # it is our merge Target
-                if TYPE_CHECKING:
-                    assert _dbAcmeAccount is not None
-                lib_db.update.update_AcmeAccount_from_new_duplicate(
-                    self.request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
+            except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="Error_Main",
+                    message="AcmeDuplicateAccount condition was detected.",
                 )
-                dbAcmeAccount = _dbAcmeAccountDuplicate
+                ## this happens via `do__AcmeV2_AcmeAccount_register`
+                ## args[0] MUST be the duplicate AcmeAccount
+                # _dbAcmeAccountDuplicate = exc.args[0]
+                ## the 'Duplicate' account was the earlier account and therefore
+                ## it is our merge Target
+                # if TYPE_CHECKING:
+                #    assert _dbAcmeAccount is not None
+                # lib_db.update.update_AcmeAccount_from_new_duplicate(
+                #    self.request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
+                # )
+                # dbAcmeAccount = _dbAcmeAccountDuplicate
 
             if TYPE_CHECKING:
                 assert dbAcmeAccount is not None
@@ -1133,8 +1170,15 @@ class View_Focus_Manipulate(View_Focus):
         try:
             authenticatedUser = (  # noqa: F841
                 lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
-                    self.request.api_context, dbAcmeAccount
+                    self.request.api_context, dbAcmeAccount, onlyReturnExisting=False
                 )
+            )
+        except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "error": "AcmeDuplicateAccount detected"}
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme-server--authenticate&error=AcmeDuplicateAccount+detected"
+                % self._focus_url
             )
         except errors.AcmeServerError as exc:
             # (status_code, resp_data, url) = exc
@@ -1213,6 +1257,13 @@ class View_Focus_Manipulate(View_Focus):
                 )
             )
             _result = "success"
+        except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "error": "AcmeDuplicateAccount detected"}
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme-server--check&error=AcmeDuplicateAccount+detected"
+                % self._focus_url
+            )
         except errors.AcmeServerError as exc:
             # (status_code, resp_data, url) = exc
             # only catch this if `onlyReturnExisting` and there is an DNE error

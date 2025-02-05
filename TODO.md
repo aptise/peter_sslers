@@ -2,9 +2,6 @@ URGENT
 =====
 
 docify=
-
-update_AcmeAccount_from_new_duplicate
-    ValueError: TESTING NEEDED
     
 raise ValueError("endpoint does not support ARI")
 

@@ -609,6 +609,37 @@ def handle_AcmeAccount_Updates(
     return False
 
 
+def handle_AcmeAccount_AcmeServer_url_change(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    authenticatedUser: acme_v2.AuthenticatedUser,
+) -> None:
+    assert authenticatedUser._api_account_headers
+    acme_account_url = authenticatedUser._api_account_headers["Location"]
+    if acme_account_url != dbAcmeAccount.account_url:
+        # this is a bit tricky
+        # this library defends against most duplicate accounts by checking
+        # the account key for duplication
+        # there are two situations, however, in which a duplicate account
+        # can get past the defenses:
+        # 1) On testing scenarios, the pebble server may lose state and
+        #    reassign the account_url to a different account.
+        # 2) In production scenarios, an account key may be changed one or
+        #    more times, and this library is not notified of the changes
+        #    in those situations, it becomes difficult to reconcile what is
+        #    happening. nevertheless we should try
+
+        _dbAcmeAccountOther = get__AcmeAccount__by_account_url(ctx, acme_account_url)
+        if _dbAcmeAccountOther and (_dbAcmeAccountOther.id != dbAcmeAccount.id):
+            # args[0] MUST be the duplicate AcmeAccount
+            raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
+
+        # this is now safe to set
+        dbAcmeAccount.account_url = acme_account_url
+        ctx.dbSession.add(dbAcmeAccount)
+    return None
+
+
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
@@ -704,6 +735,7 @@ def do__AcmeV2_AcmeAccount__authenticate(
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
     #
+    # `onlyReturnExisting=True` will not create a new account, and only lookup
     authenticatedUser = acme_v2.AuthenticatedUser(
         ctx,
         acmeLogger=acmeLogger,
@@ -712,6 +744,7 @@ def do__AcmeV2_AcmeAccount__authenticate(
         func_account_updates=handle_AcmeAccount_Updates,
     )
     authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
+    handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
     return authenticatedUser
 
 
@@ -911,35 +944,7 @@ def do__AcmeV2_AcmeAccount_register(
             func_account_updates=handle_AcmeAccount_Updates,
         )
         authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
-
-        assert authenticatedUser._api_account_headers
-        acme_account_url = authenticatedUser._api_account_headers["Location"]
-        if acme_account_url != dbAcmeAccount.account_url:
-            # this is a bit tricky
-            # this library defends against most duplicate accounts by checking
-            # the account key for duplication
-            # there are two situations, however, in which a duplicate account
-            # can get past the defenses:
-            # 1) On testing scenarios, the pebble server may lose state and
-            #    reassign the account_url to a different account.
-            # 2) In production scenarios, an account key may be changed one or
-            #    more times, and this library is not notified of the changes
-            #    in those situations, it becomes difficult to reconcile what is
-            #    happening. nevertheless we should try
-            _dbAcmeAccountOther = get__AcmeAccount__by_account_url(
-                ctx, acme_account_url
-            )
-            if _dbAcmeAccountOther and (_dbAcmeAccountOther.id != dbAcmeAccount.id):
-                # another AcmeAccount is registered to this account_url
-                # update this after the get, so it's not flushed and it
-                # does not trigger an IntegrityError
-                dbAcmeAccount.account_url = acme_account_url
-
-                # args[0] MUST be the duplicate AcmeAccount
-                raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
-
-            # this is now safe to set
-            dbAcmeAccount.account_url = acme_account_url
+        handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
         return authenticatedUser
     except Exception as exc:  # noqa: F841
         raise

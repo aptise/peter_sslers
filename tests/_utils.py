@@ -1276,6 +1276,15 @@ KEY_SETS = {
 # ==============================================================================
 
 
+class ResponseFailureOkay(Exception):
+    """
+    used to catch a response failure
+    args[0] should be the response
+    """
+
+    pass
+
+
 class FakeAccountKeyData(AccountKeyData):
     """
     implements minimum amount of `cert_utils.model.AccountKeyData`

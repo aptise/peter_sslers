@@ -297,7 +297,7 @@ class AcmeAccountUploadParser(object):
             )
 
         # okay some more sanity checks...
-        if getcreate_args["le_meta_jsons"]:
+        if self.le_meta_jsons:
             if contact is not None:
                 formStash.fatal_field(
                     field="account__contact",

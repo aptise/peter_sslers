@@ -32,6 +32,7 @@ from ._utils import AppTestWSGI
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
+from ._utils import ResponseFailureOkay
 from ._utils import RUN_API_TESTS__ACME_DNS_API
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
@@ -179,6 +180,7 @@ def make_one__AcmeAccount__pem(
     testCase: unittest.TestCase,
     account__contact: str,
     pem_file_name: str,
+    expect_failure: bool = False,
 ) -> Tuple[model_objects.AcmeAccount, int]:
     """use the json api!"""
     form = {
@@ -189,14 +191,17 @@ def make_one__AcmeAccount__pem(
         "account__order_default_private_key_cycle": "account_daily",
         "account__order_default_private_key_technology": "EC_P256",
     }
-    res4 = testCase.testapp.post(
+    res = testCase.testapp.post(
         "/.well-known/peter_sslers/acme-account/upload.json", form
     )
-    assert res4.json["result"] == "success"
-    assert "AcmeAccount" in res4.json
+    if expect_failure:
+        raise ResponseFailureOkay(res)
+
+    assert res.json["result"] == "success"
+    assert "AcmeAccount" in res.json
     focus_item = (
         testCase.ctx.dbSession.query(model_objects.AcmeAccount)
-        .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
+        .filter(model_objects.AcmeAccount.id == res.json["AcmeAccount"]["id"])
         .filter(model_objects.AcmeAccount.is_active.is_(True))
         .filter(model_objects.AcmeAccount.acme_server_id == 1)
         .first()
@@ -10459,7 +10464,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             "account__order_default_private_key_technology": "EC_P256",
         }
         for field in list(form.keys()):
-            print("testing new: %s" % field)
+            log.info("testing new: %s" % field)
             _form = form.copy()
             del _form[field]
             res = self.testapp.post(
@@ -10481,7 +10486,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             "account__order_default_private_key_technology": "EC_P256",
         }
         for field in list(form.keys()):
-            print("testing upload PEM: %s" % field)
+            log.info("testing upload PEM: %s" % field)
             _form = form.copy()
             del _form[field]
             res = self.testapp.post(
@@ -10507,7 +10512,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             "account__order_default_private_key_technology": "EC_P256",
         }
         for field in list(form_le.keys()):
-            print("testing upload LE: %s" % field)
+            log.info("testing upload LE: %s" % field)
             _form = form_le.copy()
             del _form[field]
             res = self.testapp.post(
@@ -10527,7 +10532,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             ),
         }
         for field in list(form_le_bad.keys()):
-            print("testing upload MISC: %s" % field)
+            log.info("testing upload MISC: %s" % field)
             _form = form_le.copy()
             _form[field] = form_le_bad[field]
             res = self.testapp.post(
@@ -10542,6 +10547,119 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
                 assert "acme_server_id" in res.json["form_errors"]
             else:
                 assert field in res.json["form_errors"]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    def test_AcmeAccount_duplicate(self):
+        """
+        this test is designed to trigger the AcmeAccount duplicate error
+
+        1- Create an Account on PeterSSLers that is linked to Pebble
+        2- Update the dbAccount to have a different AcmeURL
+        3- Authenticate the dbAccount to Pebble
+
+        this should trip the conflicting account
+        perhaps instead of auto migration, we do a warning and offer a manual
+        migration tool
+        """
+        # Scenario A
+        # step 1 - create the account
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+            self,
+            account__contact="dbAcmeAccount@example.com",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+        )
+
+        # step 1b - create the account AGAIN, this should work
+        (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem(
+            self,
+            account__contact="dbAcmeAccount@example.com",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+        )
+
+        assert dbAcmeAccount.id == dbAcmeAccount2.id
+
+        # Scenario B
+        # same key, different contact
+        try:
+            (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem(
+                self,
+                account__contact="dbAcmeAccount3@example.com",
+                pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+                expect_failure=True,
+            )
+        except ResponseFailureOkay as exc_ok:
+            res = exc_ok.args[0]
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "Error_Main" in res.json["form_errors"]
+            assert (
+                res.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. The submited AcmeAccountKey is already associated with another AcmeAccount."
+            )
+
+        # Scenario C
+        # different key, same contact
+        try:
+            (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem(
+                self,
+                account__contact="dbAcmeAccount@example.com",
+                pem_file_name="key_technology-rsa/AcmeAccountKey-2.pem",
+                expect_failure=True,
+            )
+        except ResponseFailureOkay as exc_ok:
+            res = exc_ok.args[0]
+            assert res.status_code == 200
+            assert res.json["result"] == "error"
+            assert "Error_Main" in res.json["form_errors"]
+            assert (
+                res.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. The submitted AcmeServer and contact info is already associated with another AcmeAccountKey."
+            )
+
+        # Scenario D
+        # The account URL has changed
+        _account_url = dbAcmeAccount.account_url
+        _account_url_altered = "%s?altered=1" % dbAcmeAccount.account_url
+
+        # alter the database
+        dbAcmeAccount.account_url = _account_url_altered
+        self.ctx.dbSession.flush(
+            objects=[
+                dbAcmeAccount,
+            ]
+        )
+        self.ctx.dbSession.commit()
+
+        # authenticate should reset it
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate.json"
+            % dbAcmeAccount.id,
+        )
+        assert res.status_code == 200
+        assert res.location is None  # no redirect
+        assert "AcmeAccount" in res.json
+        assert res.json["AcmeAccount"]["account_url"] == _account_url
+
+        # Scenario E
+        # alter the database, so db1 has db5s AcmeAccountKey and url
+        (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem(
+            self,
+            account__contact="dbAcmeAccount5@example.com",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-2.pem",
+        )
+
+        assert dbAcmeAccount.id != dbAcmeAccount5.id
+        dbAcmeAccount.acme_account_key.is_active = False
+        dbAcmeAccount5.acme_account_key.acme_account_id = dbAcmeAccount.id
+        self.ctx.dbSession.flush(objects=[dbAcmeAccount, dbAcmeAccount5])
+        self.ctx.dbSession.commit()
+
+        # authenticate should trigger this
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate.json"
+            % dbAcmeAccount.id,
+        )
 
 
 class IntegratedTests_AcmeServer(AppTestWSGI):
