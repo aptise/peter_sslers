@@ -9,4 +9,5 @@ repos:
     rev: 7.1.1
     hooks:
       - id: flake8
-        pass_filenames: false
+        args: ['--config=setup.cfg']
+
