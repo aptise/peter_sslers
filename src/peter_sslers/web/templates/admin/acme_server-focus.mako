@@ -54,18 +54,36 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>endpoint</th>
-                    <td>
-                        <code>${AcmeServer.endpoint}</code>
-                    </td>
-                </tr>
-                <tr>
                     <th>directory</th>
                     <td>
                         <code>${AcmeServer.directory}</code>
                     </td>
                 </tr>
+                <tr>
+                    <th>directory example</th>
+                    <td>
+                        % if AcmeServer.directory_latest:
+                            <timestamp>${AcmeServer.directory_latest.timestamp_created_isoformat}</timestamp>
+                            <p>
+                            <code>${AcmeServer.directory_latest.directory_pretty}</code>
+                            </p>
+                        % endif
 
+                        <form action="${admin_prefix}/acme-server/${AcmeServer.id}/check-support" method="POST" style="display:inline;" id="form-check">
+                            <input type="hidden" name="action" value="active"/>
+                            <button class="btn btn-xs btn-primary" type="submit">
+                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                Refresh
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr>
+                    <th>profiles</th>
+                    <td>
+                        <code>${AcmeServer.profiles}</code>
+                    </td>
+                </tr>
                 <tr>
                     <th>server</th>
                     <td>
@@ -82,13 +100,6 @@
                     <th>is_supports_ari__version</th>
                     <td>
                         <code>${AcmeServer.is_supports_ari__version}</code>
-                        <form action="${admin_prefix}/acme-server/${AcmeServer.id}/check-ari" method="POST" style="display:inline;" id="form-check">
-                            <input type="hidden" name="action" value="active"/>
-                            <button class="btn btn-xs btn-primary" type="submit">
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                Check
-                            </button>
-                        </form>
                     </td>
                 </tr>
                 <tr>

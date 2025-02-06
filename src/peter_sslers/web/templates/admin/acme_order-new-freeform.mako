@@ -46,7 +46,10 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>AcmeAccount</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced(support_upload=False)}
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                    support_upload=False,
+                    support_profiles=True,
+                )}
                 <hr/>
 
                 <h3>PrivateKey</h3>

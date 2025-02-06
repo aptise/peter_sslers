@@ -1130,6 +1130,7 @@ class View_New(Handler):
                 )
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
+                acme_profile = formStash.results["acme_profile"]
                 note = formStash.results["note"]
                 processing_strategy = formStash.results["processing_strategy"]
 
@@ -1202,6 +1203,7 @@ class View_New(Handler):
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
                         note=note,
+                        acme_profile=acme_profile,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -1318,6 +1320,14 @@ class View_New(Handler):
                         exc.as_querystring,
                     )
                 )
+            except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_field(
+                    field="acme_profile",
+                    message="Unknown acme_profile (%s); not one of: %s."
+                    % (exc.args[0], exc.args[1]),
+                )
+
             except Exception as exc:  # noqa: F841
                 raise
                 # note: allow this on testing

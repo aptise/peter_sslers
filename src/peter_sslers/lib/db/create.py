@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeOrderSubmission
     from ...model.objects import AcmeServer
+    from ...model.objects import AcmeServerConfiguration
     from ...model.objects import AriCheck
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
@@ -111,6 +112,34 @@ def create__AcmeServer(
         ]
     )
     return dbAcmeServer
+
+
+def create__AcmeServerConfiguration(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    directory_string: str,
+) -> "AcmeServerConfiguration":
+    directoryOld: Optional["AcmeServerConfiguration"] = None
+    if dbAcmeServer.directory_latest:
+        directoryOld = dbAcmeServer.directory_latest
+        directoryOld.is_active = None
+
+    directoryLatest = model_objects.AcmeServerConfiguration()
+    directoryLatest.acme_server_id = dbAcmeServer.id
+    directoryLatest.timestamp_created = ctx.timestamp
+    directoryLatest.is_active = True
+    directoryLatest.directory = directory_string
+
+    ctx.dbSession.add(directoryLatest)
+    dbAcmeServer.directory_latest = directoryLatest
+    ctx.dbSession.flush(
+        objects=[
+            dbAcmeServer,
+            directoryLatest,
+        ]
+    )
+
+    return directoryLatest
 
 
 def create__AcmeOrder(
@@ -1235,6 +1264,7 @@ def create__RenewalConfiguration(
     private_key_cycle_id: int,
     key_technology_id: int,
     domains_challenged: "DomainsChallenged",
+    acme_profile: Optional[str] = None,
     note: Optional[str] = None,
 ) -> "RenewalConfiguration":
     """
@@ -1264,6 +1294,12 @@ def create__RenewalConfiguration(
         raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
     if not dbAcmeAccount.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
+
+    if acme_profile:
+        if acme_profile not in dbAcmeAccount.acme_server.profiles_list:
+            raise errors.UnknownAcmeProfile_Local(
+                acme_profile, dbAcmeAccount.acme_server.profiles_list
+            )
 
     assert ctx.timestamp
 

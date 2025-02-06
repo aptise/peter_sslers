@@ -16,6 +16,7 @@ Style note:
 import datetime
 import json
 import os
+import pprint
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -171,6 +172,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="and_(AcmeAccount.id==AcmeAccount_2_TermsOfService.acme_account_id, AcmeAccount_2_TermsOfService.is_active.is_(True))",
         uselist=False,
         back_populates="acme_account",
+        viewonly=True,  # the `AcmeAccount_2_TermsOfService.is_active` join complicates things
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1612,6 +1614,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    replaces: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
@@ -2108,13 +2112,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_server"
     __table_args__ = (
         sa.CheckConstraint(
-            "(endpoint IS NOT NULL AND directory IS NULL)"
-            " OR "
-            " (endpoint IS NULL AND directory IS NOT NULL)",
-            name="check_endpoint_or_directory",
-        ),
-        sa.CheckConstraint(
-            "(protocol = 'acme-v1')" " OR " "(protocol = 'acme-v2')",
+            "(protocol = 'acme-v2')",
             name="check_protocol",
         ),
     )
@@ -2123,12 +2121,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
-    endpoint: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, unique=True
-    )  # either/or: A
     directory: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, unique=True
-    )  # either/or: A
+        sa.Unicode(255), nullable=False, unique=True
+    )
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
     is_default: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -2147,7 +2142,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     server_ca_cert_bundle: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )
-
+    profiles: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
+    )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_accounts = sa_orm_relationship(
@@ -2161,6 +2158,17 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         "OperationsObjectEvent",
         primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
         back_populates="acme_server",
+    )
+    directory_latest = sa_orm_relationship(
+        "AcmeServerConfiguration",
+        primaryjoin=(
+            "and_("
+            "AcmeServer.id==AcmeServerConfiguration.acme_server_id,"
+            "AcmeServerConfiguration.is_active.is_(True)"
+            ")"
+        ),
+        uselist=False,
+        viewonly=True,  # the `AcmeServerConfiguration.is_active` join complicates things
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2214,24 +2222,73 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         return bundle_file
 
     @property
+    def profiles_list(self) -> List[str]:
+        if not self.profiles:
+            return []
+        return self.profiles.split(",")
+
+    @property
     def url(self) -> str:
-        return self.directory or self.endpoint or ""
+        return self.directory or ""
 
     @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
             # - -
-            "timestamp_created": self.timestamp_created_isoformat,
-            "name": self.name,
-            "endpoint": self.endpoint,
             "directory": self.directory,
+            "directory_latest": (
+                self.directory_latest.as_json_minimal if self.directory_latest else None
+            ),
             "is_default": self.is_default or False,
             "is_enabled": self.is_enabled or False,
-            "protocol": self.protocol,
             "is_supports_ari__version": self.is_supports_ari__version,
             "is_unlimited_pending_authz": self.is_unlimited_pending_authz,
+            "name": self.name,
+            "profiles": self.profiles_list,
+            "protocol": self.protocol,
             "server_ca_cert_bundle": self.server_ca_cert_bundle,
+            "timestamp_created": self.timestamp_created_isoformat,
+        }
+
+
+class AcmeServerConfiguration(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "acme_server_configuration"
+    __table_args__ = (
+        sa.Index(
+            "uidx_acme_server_configuration",
+            "acme_server_id",
+            "is_active",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    acme_server_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("acme_server.id", use_alter=True),
+        nullable=False,
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )  # allow NULL because of the index
+    directory: Mapped[str] = mapped_column(sa.Text, nullable=False)
+
+    @property
+    def directory_pretty(self):
+        if not self.directory:
+            return ""
+        d_json = json.loads(self.directory)
+        return pprint.pformat(d_json)
+
+    @property
+    def as_json_minimal(self):
+        return {
+            "timestamp_created": self.timestamp_created_isoformat,
+            "directory": self.directory,
         }
 
 
@@ -3543,6 +3600,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         ),
         uselist=False,
         overlaps="acme_dns_server_accounts,domain",
+        viewonly=True,  # the `AcmeDnsServerAccount.is_active` join complicates things
     )
     certificate_signed__latest_single = sa_orm_relationship(
         "CertificateSigned",
@@ -4264,6 +4322,7 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",
@@ -4819,6 +4878,7 @@ __all__ = (
     "AcmeAccount_2_TermsOfService",
     "AcmeAccountKey",
     "AcmeServer",
+    "AcmeServerConfiguration",
     "AcmeAuthorization",
     "AcmeAuthorizationPotential",
     "AcmeChallenge",

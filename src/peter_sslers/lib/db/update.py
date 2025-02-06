@@ -448,6 +448,17 @@ def update_AcmeServer__is_unlimited_pending_authz(
     return event_status
 
 
+def update_AcmeServer_profiles(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    profiles: str,
+) -> bool:
+    # TODO: anaylize/notify that profiles have changed
+    # _profiles_old = dbAcmeServer.profiles  # noqa: F841
+    dbAcmeServer.profiles = profiles
+    return True
+
+
 def update_AcmeServer__set_is_enabled(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",

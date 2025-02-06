@@ -542,12 +542,12 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:acme_server:focus", "/acme-server/{@id}")
     config.add_route_7("admin:acme_server:focus|json", "/acme-server/{@id}.json")
     config.add_route_7(
-        "admin:acme_server:focus:check_ari",
-        "/acme-server/{@id}/check-ari",
+        "admin:acme_server:focus:check_support",
+        "/acme-server/{@id}/check-support",
     )
     config.add_route_7(
-        "admin:acme_server:focus:check_ari|json",
-        "/acme-server/{@id}/check-ari.json",
+        "admin:acme_server:focus:check_support|json",
+        "/acme-server/{@id}/check-support.json",
     )
     config.add_route_7("admin:acme_server:focus:mark", "/acme-server/{@id}/mark")
     config.add_route_7(

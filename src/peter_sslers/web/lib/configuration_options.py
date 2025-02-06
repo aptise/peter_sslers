@@ -57,12 +57,6 @@ documentation_grid = {
             "default-notes": "The default is set in `lib.acme_v2`. You MUST set this in settings to opt-in with a valid agreement. such as: `certificate_authority_agreement=https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`",
             "show_on_settings": True,
         },
-        "certificate_authority_endpoint": {
-            "docstring": "The URL of the endpoint if `certificate_authority='custom'`.",
-            "default": "None",
-            "default-notes": "Acme v1. This must be supplied if the `certificate_authority` is set to `custom` or `pebble`.",
-            "show_on_settings": True,
-        },
         "certificate_authority_directory": {
             "docstring": "The URL of the endpoint directory if `certificate_authority='custom'`.",
             "default": "None",

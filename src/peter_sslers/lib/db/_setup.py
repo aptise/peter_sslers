@@ -36,7 +36,6 @@ DictProvider = TypedDict(
     {
         "id": int,
         "name": str,
-        "endpoint": Optional[str],
         "directory": Optional[str],
         "is_default": Optional[bool],
         "protocol": str,
@@ -54,7 +53,6 @@ acme_servers: Dict[int, DictProvider] = {
     1: {
         "id": 1,
         "name": "pebble",
-        "endpoint": None,
         "directory": "https://127.0.0.1:14000/dir",
         "is_default": None,
         "protocol": "acme-v2",
@@ -63,30 +61,9 @@ acme_servers: Dict[int, DictProvider] = {
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert.pem",
     },
-    2: {
-        "id": 2,
-        "name": "letsencrypt-v1",
-        "endpoint": "https://acme-v01.api.letsencrypt.org",
-        "directory": None,
-        "is_default": None,
-        "protocol": "acme-v1",
-        "is_enabled": False,
-        "server": "acme-v01.api.letsencrypt.org",
-    },
-    3: {
-        "id": 3,
-        "name": "letsencrypt-v1-staging",
-        "endpoint": "https://acme-staging.api.letsencrypt.org",
-        "directory": None,
-        "is_default": None,
-        "protocol": "acme-v1",
-        "is_enabled": False,
-        "server": "acme-staging.api.letsencrypt.org",
-    },
     4: {
         "id": 4,
         "name": "letsencrypt-v2",
-        "endpoint": None,
         "directory": "https://acme-v02.api.letsencrypt.org/directory",
         "is_default": None,
         "protocol": "acme-v2",
@@ -98,7 +75,6 @@ acme_servers: Dict[int, DictProvider] = {
     5: {
         "id": 5,
         "name": "letsencrypt-v2-staging",
-        "endpoint": None,
         "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
         "is_default": None,
         "protocol": "acme-v2",
@@ -128,7 +104,6 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
         dbObject.id = item["id"]
         dbObject.timestamp_created = timestamp_now
         dbObject.name = item["name"]
-        dbObject.endpoint = item["endpoint"]
         dbObject.directory = item["directory"]
         dbObject.is_default = item["is_default"]
         dbObject.is_enabled = item["is_enabled"]

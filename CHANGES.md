@@ -107,7 +107,7 @@
         acme-account-provider -> acme-sever
     Added:
         /acme-server/{id} - focus
-        /acme-server/{id}/check-ari - focus & check ari
+        /acme-server/{id}/check-support - focus & check ari / profiles
     Improved
         now handles polling an acme-order stuck in processing, 1x every 2 seconds for 20 seconds
         fixed testing docs and config to reflect active testing setup
@@ -123,6 +123,11 @@
     Added a "note" to:
         RenewalConfiguration
         AcmeOrder
+
+    Supported on:
+        RenewalConfiguraiton new
+        RenewalConfiguraiton new-config
+        AcmeOrder new-freeform
 
     Testing
         The test suite was overhauled

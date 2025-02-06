@@ -1516,7 +1516,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False,)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile=None)">
     <%
         checked = {
             "none": "",
@@ -1603,6 +1603,14 @@
                     Upload a new AcmeAccount
                     ${formgroup__AcmeAccount_file()}
                 </label>
+            </div>
+        % endif
+        % if support_profiles:
+            <label for="acme_profile">
+                [Optional] The name of an ACME Profile on the server
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_profile" id="acme_profile" type="text" value="${default_profile or ""}"/>
             </div>
         % endif
     </div>
@@ -2274,6 +2282,11 @@
         % if request.params.get('check-ari'):
             <p>
                 Check-Ari Result: `${request.params.get('check-ari')}`
+            </p>
+        % endif
+        % if request.params.get('check-support'):
+            <p>
+                Check-Support Result: `${request.params.get('check-support')}`
             </p>
         % endif
         </div>

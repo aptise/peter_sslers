@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from .utils import ApiContext
     from email.message import Message
     from http.client import HTTPMessage
+    from requests import Response
     from requests.structures import CaseInsensitiveDict
 
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
@@ -1154,12 +1155,14 @@ class AuthenticatedUser(object):
         domain_names: List[str],
         dbUniqueFQDNSet: "UniqueFQDNSet",
         transaction_commit: bool,
+        profile: Optional[str] = None,
         replaces: Optional[str] = None,
     ) -> Tuple:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param domain_names: (required) The domains for our order
         :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
+        :param profile: (optional) an optional server profile
         :param replaces: (optional) an optional ARI identifier
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
@@ -1175,6 +1178,8 @@ class AuthenticatedUser(object):
         payload_order: AcmeOrderPayload = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]
         }
+        if profile is not None:
+            payload_order["profile"] = profile
         if self.supports_ari and (replaces is not None):
             payload_order["replaces"] = replaces
         try:
@@ -2243,24 +2248,22 @@ class AuthenticatedUser(object):
         )
 
 
-def check_endpoint_for_renewalInfo(
+def check_endpoint(
     ctx: "ApiContext",
     acme_directory: str,
     dbAcmeServer: Optional["AcmeServer"] = None,
-) -> bool:
+) -> "Response":
+
     sess = new_BrowserSession()
 
-    def _actual() -> bool:
+    def _actual() -> "Response":
         """
         wrapped inner, as we may swap out a value here
         TODO: this would be better with a contextmanager
         """
         try:
-            r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
-            _renewal_base = r.json().get("renewalInfo")
-            if not _renewal_base:
-                return False
-            return True
+            resp = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
+            return resp
         except Exception as exc:
             raise errors.AcmeServerError(exc)
 
@@ -2274,6 +2277,49 @@ def check_endpoint_for_renewalInfo(
             cas.CA_ACME = _initial
 
     return _actual()
+
+
+def sanitize_directory_object(directory: Dict) -> Dict:
+    """
+    ACME directories might contain random key entries to keep clients from
+    developing software that is hardcoded to that dict structure.
+    This unfortunately makes it harder to detect changes, such as new fields.
+    We can, at least, monitor existing fields:
+    """
+    _allowed_fields = [
+        "keyChange",
+        "meta",
+        "newAccount",
+        "newNonce",
+        "newOrder",
+        "renewalInfo",
+        "revokeCert",
+    ]
+    d2 = {k: v for k, v in directory.items() if k in _allowed_fields}
+    return d2
+
+
+def check_endpoint_for_meta(
+    ctx: "ApiContext",
+    acme_directory: str,
+    dbAcmeServer: Optional["AcmeServer"] = None,
+) -> Dict:
+    resp = check_endpoint(ctx, acme_directory, dbAcmeServer=dbAcmeServer)
+    resp_json = resp.json()
+    return resp_json.get("meta")
+
+
+def check_endpoint_for_renewalInfo(
+    ctx: "ApiContext",
+    acme_directory: str,
+    dbAcmeServer: Optional["AcmeServer"] = None,
+) -> bool:
+    resp = check_endpoint(ctx, acme_directory, dbAcmeServer=dbAcmeServer)
+    resp_json = resp.json()
+    _renewal_base = resp_json.get("renewalInfo")
+    if not _renewal_base:
+        return False
+    return True
 
 
 def _ari_query(

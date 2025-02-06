@@ -2684,7 +2684,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @routes_tested(
         (
             "admin:acme_server:focus",
-            "admin:acme_server:focus:check_ari",
+            "admin:acme_server:focus:check_support",
             "admin:acme_server:focus:mark",
         )
     )
@@ -2698,7 +2698,7 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-ari&check-ari=True"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True"
         )
 
         _action = form_mark.fields["action"][0].value
@@ -2722,29 +2722,29 @@ class FunctionalTests_AcmeServer(AppTest):
         (
             "admin:acme_server:focus|json",
             "admin:acme_account:focus:edit|json",
-            "admin:acme_server:focus:check_ari|json",
+            "admin:acme_server:focus:check_support|json",
             "admin:acme_server:focus:mark|json",
         )
     )
     def test_manipulate_json(self):
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-server/1/check-ari.json", status=200
+            "/.well-known/peter_sslers/acme-server/1/check-support.json", status=200
         )
         assert "instructions" in res.json
 
         res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-server/1/check-ari.json"
+            "/.well-known/peter_sslers/acme-server/1/check-support.json"
         )
 
         assert "result" in res.json
         assert res.json["result"] == "success"
 
         assert "operation" in res.json
-        assert res.json["operation"] == "check-ari"
+        assert res.json["operation"] == "check-support"
 
-        assert "check-ari" in res.json
-        assert res.json["check-ari"] is True
+        assert "check-support" in res.json
+        assert res.json["check-support"] is True
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-server/1/mark.json", status=200
@@ -2774,13 +2774,13 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeServer"]["is_unlimited_pending_authz"] == expected
 
     def test_post_required_html(self):
-        # !!!: test `POST required` `acme-server/{ID}/check-ari`
+        # !!!: test `POST required` `acme-server/{ID}/check-support`
         res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-server/1/check-ari", status=303
+            "/.well-known/peter_sslers/acme-server/1/check-support", status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=error&error=post+required&operation=check-ari"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=error&error=post+required&operation=check-support"
         )
 
         res = self.testapp.get(
@@ -2792,9 +2792,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
     def test_post_required_json(self):
-        # !!!: test `POST required` `acme-server/{ID}/check-ari.json`
+        # !!!: test `POST required` `acme-server/{ID}/check-support.json`
         res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-server/1/check-ari.json", status=200
+            "/.well-known/peter_sslers/acme-server/1/check-support.json", status=200
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
@@ -7588,6 +7588,8 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "AcmeAccount" in res4.json
         return True
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
     @routes_tested("admin:acme_account:upload")
     def test_upload_html(self):
         """
@@ -7618,6 +7620,8 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         res3 = self.testapp.get(res2.location, status=200)
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
     @routes_tested("admin:acme_account:upload|json")
     def test_upload_json(self):
         _key_filename = TEST_FILES["AcmeAccount"]["2"]["key"]

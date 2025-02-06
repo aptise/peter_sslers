@@ -667,6 +667,7 @@ class View_Focus_New(View_Focus):
                 # * model_utils.UniquelyChallengedFQDNSet2Domain
                 # * model_utils.UniqueFQDNSet
                 is_duplicate_renewal = None
+                acme_profile = formStash.results["acme_profile"]
                 note = formStash.results["note"]
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
@@ -676,6 +677,7 @@ class View_Focus_New(View_Focus):
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
                         note=note,
+                        acme_profile=acme_profile,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -737,6 +739,15 @@ class View_Focus_New(View_Focus):
                         exc.as_querystring,
                     )
                 )
+
+            except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_field(
+                    field="acme_profile",
+                    message="Unknown acme_profile (%s); not one of: %s."
+                    % (exc.args[0], exc.args[1]),
+                )
+
             except Exception as exc:  # noqa: F841
                 raise
                 # note: allow this on testing
@@ -904,6 +915,7 @@ class View_New(Handler):
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
                 "key_technology": "what kind of keys to use?",
+                "acme_profile": "The name of an ACME Profile on the ACME Server",
                 "note": "A string to associate with the RenewalConfiguration.",
             },
             "form_fields_related": [
@@ -1042,6 +1054,7 @@ class View_New(Handler):
                 # * model_utils.UniqueFQDNSet
                 is_duplicate_renewal = None
                 note = formStash.results["note"]
+                acme_profile = formStash.results["acme_profile"]
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
@@ -1050,6 +1063,7 @@ class View_New(Handler):
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
                         note=note,
+                        acme_profile=acme_profile,
                     )
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True
@@ -1110,6 +1124,15 @@ class View_New(Handler):
                         exc.as_querystring,
                     )
                 )
+
+            except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_field(
+                    field="acme_profile",
+                    message="Unknown acme_profile (%s); not one of: %s."
+                    % (exc.args[0], exc.args[1]),
+                )
+
             except Exception as exc:  # noqa: F841
                 raise
                 # note: allow this on testing

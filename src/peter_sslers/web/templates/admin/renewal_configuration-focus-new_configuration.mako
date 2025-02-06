@@ -45,6 +45,8 @@
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
                     dbAcmeAccountReuse=RenewalConfiguration.acme_account,
+                    support_profiles=True,
+                    default_profile=RenewalConfiguration.acme_profile,
                 )}
                 <hr/>
 

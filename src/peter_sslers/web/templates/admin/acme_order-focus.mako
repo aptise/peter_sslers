@@ -276,6 +276,16 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>replaces</th>
+                        <td><code>${AcmeOrder.replaces or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>profile</th>
+                        <td><code>${AcmeOrder.profile or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>is_save_alternate_chains</th>
                         <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
                         </td>

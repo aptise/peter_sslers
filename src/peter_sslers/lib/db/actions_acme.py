@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import json
 import logging
 from typing import Callable
 from typing import Dict
@@ -14,6 +15,7 @@ import cert_utils
 # localapp
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
+from .create import create__AcmeServerConfiguration
 from .create import create__AriCheck
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
@@ -39,6 +41,7 @@ from .logger import log__OperationsEvent
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
+from .update import update_AcmeServer_profiles
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
@@ -56,6 +59,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeChallenge
     from ...model.objects import AriCheck
     from ...model.objects import AcmeOrder
+    from ...model.objects import AcmeServer
     from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
@@ -638,6 +642,36 @@ def handle_AcmeAccount_AcmeServer_url_change(
         dbAcmeAccount.account_url = acme_account_url
         ctx.dbSession.add(dbAcmeAccount)
     return None
+
+
+def check_endpoint_support(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+) -> bool:
+
+    resp = acme_v2.check_endpoint(
+        ctx, dbAcmeServer.directory, dbAcmeServer=dbAcmeServer
+    )
+    directory = acme_v2.sanitize_directory_object(resp.json())
+    directory_string = json.dumps(directory, sort_keys=True)
+
+    if not dbAcmeServer.directory_latest or (
+        directory_string != dbAcmeServer.directory_latest.directory
+    ):
+        directoryLatest = create__AcmeServerConfiguration(
+            ctx,
+            dbAcmeServer,
+            directory_string,
+        )
+
+    _meta = directory.get("meta")
+    if _meta:
+        _profiles = _meta.get("profiles")
+        if _profiles:
+            profiles = ",".join(sorted(_profiles.keys()))
+            if profiles != dbAcmeServer.profiles:
+                dbAcmeServer = update_AcmeServer_profiles(ctx, dbAcmeServer, profiles)
+    return True
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
@@ -2490,6 +2524,13 @@ def do__AcmeV2_AcmeOrder__new(
                 dbRenewalConfiguration.acme_order__latest_success.certificate_signed.ari_identifier
             )
 
+        profile = dbRenewalConfiguration.acme_profile
+        if profile:
+            # check against user auth
+            import pdb
+
+            pdb.set_trace()
+
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
@@ -2497,6 +2538,7 @@ def do__AcmeV2_AcmeOrder__new(
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=True,
             replaces=replaces,
+            profile=profile,
         )
         order_url = acmeOrderRfcObject.response_headers["location"]
         if not order_url:

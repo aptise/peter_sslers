@@ -288,6 +288,10 @@ class UnsupportedKeyTechnology(Exception):
     pass
 
 
+class UnknownAcmeProfile_Local(Exception):
+    pass
+
+
 # class TransitionError(_UrlSafeException):
 #    pass
 

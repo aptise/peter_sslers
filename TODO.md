@@ -1,15 +1,9 @@
 URGENT
 =====
 
-docify=
-    
-raise ValueError("endpoint does not support ARI")
-
-
 blocking authz
     acme-dns
         block should only last during trigger
-
 
 acme-account register
     https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.3
@@ -18,13 +12,12 @@ acme-account register
     
      Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
 
-
-BuyPass
+Enable BuyPass
     https://api.buypass.com/acme/directory
     https://api.test4.buypass.no/acme/directory
 
- 
 
+Streamline Onboarding
 
 
 # routine__renew_expired
@@ -32,13 +25,29 @@ BuyPass
 run a routine to renew expired certs
 
 
+# profiles
+    Todo: if requesting an order with a profile:
+        checkt o see if the server offers it
+        if the server doesn't, raise an execption
+        allow a chance to inspect the server too
+    Todo:
+        test with valid profile
+        test with invalid profile
+
 # backup CA selection
+    select account
+    
 
-update_AcmeAccount_from_new_duplicate
+# script for renewals:
+    spin up a test server (stopable wsgi) that only serves the public routes
 
-freezedb (tests) broken on py313
+# loading of initial CAs
+    revisit
 
-tests should use an nginx ca bundle
+# tool to assign CA roots
+
+
+
 test to property handle:
     sync acme challenge against a 404 challenge
 

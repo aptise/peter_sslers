@@ -491,6 +491,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
 
+    acme_profile = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 
     chained_validators = [

@@ -13,7 +13,6 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeServer_mark
 from ..lib.handler import Handler
-from ...lib import acme_v2
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -100,45 +99,51 @@ class View_Focus(Handler):
             }
         return {"project": "peter_sslers", "AcmeServer": dbAcmeServer}
 
-    @view_config(route_name="admin:acme_server:focus:check_ari", renderer=None)
-    @view_config(route_name="admin:acme_server:focus:check_ari|json", renderer="json")
+    @view_config(route_name="admin:acme_server:focus:check_support", renderer=None)
+    @view_config(
+        route_name="admin:acme_server:focus:check_support|json", renderer="json"
+    )
     @docify(
         {
-            "endpoint": "/acme-server/{ID}/check-ari.json",
+            "endpoint": "/acme-server/{ID}/check-support.json",
             "section": "acme-server",
             "about": """AcmeServer check ARI""",
             "POST": True,
             "GET": None,
-            "instructions": """curl {ADMIN_PREFIX}/acme-server/{ID}/check-ari.json""",
+            "instructions": """curl {ADMIN_PREFIX}/acme-server/{ID}/check-support.json""",
             "example": """curl -X POST"""
-            """{ADMIN_PREFIX}/acme-server/{ID}/check-ari.json""",
+            """{ADMIN_PREFIX}/acme-server/{ID}/check-support.json""",
         }
     )
-    def check_ari(self):
+    def check_support(self):
         dbAcmeServer = self._focus()
         if self.request.method == "POST":
-            return self._check_ari__submit(dbAcmeServer)
-        return self._check_ari__print(dbAcmeServer)
+            return self._check_support__submit(dbAcmeServer)
+        return self._check_support__print(dbAcmeServer)
 
-    def _check_ari__print(self, dbAcmeServer):
+    def _check_support__print(self, dbAcmeServer):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/acme-server/{ID}/check-ari.json")
+            return formatted_get_docs(self, "/acme-server/{ID}/check-support.json")
         url_post_required = (
-            "%s?result=error&error=post+required&operation=check-ari" % self._focus_url
+            "%s?result=error&error=post+required&operation=check-support"
+            % self._focus_url
         )
         return HTTPSeeOther(url_post_required)
 
-    def _check_ari__submit(self, dbAcmeServer):
-        has_ari = acme_v2.check_endpoint_for_renewalInfo(
+    def _check_support__submit(self, dbAcmeServer):
+        result = lib_db.actions_acme.check_endpoint_support(
             self.request.api_context,
-            dbAcmeServer.url,
-            dbAcmeServer=dbAcmeServer,
+            dbAcmeServer,
         )
         if self.request.wants_json:
-            return {"result": "success", "operation": "check-ari", "check-ari": has_ari}
-        url_result = "%s?result=success&operation=check-ari&check-ari=%s" % (
+            return {
+                "result": "success",
+                "operation": "check-support",
+                "check-support": result,
+            }
+        url_result = "%s?result=success&operation=check-support&check-support=%s" % (
             self._focus_url,
-            has_ari,
+            result,
         )
         return HTTPSeeOther(url_result)
 
