@@ -319,6 +319,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
         not_empty=True,
     )
 
+    acme_profile = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 
     chained_validators = [
@@ -506,6 +507,7 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    acme_profile = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 
 

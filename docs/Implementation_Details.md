@@ -13,6 +13,22 @@ The server will respond to requests with the following header to identify it:
 
     X-Peter-SSLers: production
 
+# Configuration and Storage
+
+By default, configuration files are placed in the `conf/` directory.
+
+By default, the configuration files specify a `_data/` directory, which is used
+to contain the following files:
+
+* `_data/ssl_minnow.sqlite` - the core database
+* `_data/_ACME_SERVER_BUNDLE/` - if ACME Servers require a Trusted Root that
+  is not in the default trust store, on-disk bundle files will be created and
+  stored here as needed.
+* `_data/nginx_ca_bundle.pem` - if the nginx servers pool require a Trusted Root
+  that is not in the default trust store, an on-disk bundle files will be looked
+  for in this location.
+* `_data/acme-dns.db` - the testing system is configured to use this location
+   for it's storage.
 
 
 ## Just a friendly reminder:
