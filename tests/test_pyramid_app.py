@@ -534,86 +534,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested("admin:acme_account:upload")
-    def test_upload_html(self):
-        """
-        formecode must be patched for this:
-            https://github.com/formencode/formencode/issues/101
-            https://github.com/valos/formencode/commit/987d29922b2a37eb969fb40658a1057bacbe1129
-        """
-        # this should be creating a new key
-        _key_filename = TEST_FILES["AcmeAccount"]["2"]["key"]
-        key_filepath = self._filepath_testfile(_key_filename)
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/acme-account/upload", status=200
-        )
-        form = res.form
-        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
-        form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_server_id"].force_value(str(1))  # acme_server_id(1) == pebble
-        res2 = form.submit()
-        assert res2.status_code == 303
-        assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/"""
-        )
-        assert res2.location.endswith(
-            """?result=success&operation=upload&is_created=1"""
-        ) or res2.location.endswith(
-            """?result=success&operation=upload&is_existing=1"""
-        )
-        res3 = self.testapp.get(res2.location, status=200)
-
-    @routes_tested("admin:acme_account:upload|json")
-    def test_upload_json(self):
-        _key_filename = TEST_FILES["AcmeAccount"]["2"]["key"]
-        key_filepath = self._filepath_testfile(_key_filename)
-
-        form = {}
-        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
-        form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/upload.json", form
-        )
-        assert res2.status_code == 200
-        assert "result" in res2.json
-        assert res2.json["result"] == "error"
-        assert "form_errors" in res2.json
-
-        assert isinstance(res2.json["form_errors"], dict)
-        assert len(res2.json["form_errors"].keys()) == 3
-        assert (
-            res2.json["form_errors"]["Error_Main"]
-            == "There was an error with your form."
-        )
-        assert (
-            res2.json["form_errors"]["account__order_default_private_key_cycle"]
-            == "Missing value"
-        )
-        assert (
-            res2.json["form_errors"]["account__order_default_private_key_technology"]
-            == "Missing value"
-        )
-
-        form = {}
-        form["account_key_file_pem"] = Upload(key_filepath)
-        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
-        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
-        form["account__order_default_private_key_cycle"] = TEST_FILES["AcmeAccount"][
-            "2"
-        ]["order_default_private_key_cycle"]
-        form["account__order_default_private_key_technology"] = TEST_FILES[
-            "AcmeAccount"
-        ]["2"]["order_default_private_key_technology"]
-        res3 = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/upload.json", form
-        )
-        assert res3.status_code == 200
-        res3_json = json.loads(res3.text)
-        assert "result" in res3_json
-        assert res3_json["result"] == "success"
-
     @routes_tested(("admin:acme_accounts", "admin:acme_accounts_paginated"))
     def test_list_html(self):
         # root
@@ -7668,6 +7588,86 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "AcmeAccount" in res4.json
         return True
 
+    @routes_tested("admin:acme_account:upload")
+    def test_upload_html(self):
+        """
+        formecode must be patched for this:
+            https://github.com/formencode/formencode/issues/101
+            https://github.com/valos/formencode/commit/987d29922b2a37eb969fb40658a1057bacbe1129
+        """
+        # this should be creating a new key
+        _key_filename = TEST_FILES["AcmeAccount"]["2"]["key"]
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/upload", status=200
+        )
+        form = res.form
+        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_server_id"].force_value(str(1))  # acme_server_id(1) == pebble
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/"""
+        )
+        assert res2.location.endswith(
+            """?result=success&operation=upload&is_created=1"""
+        ) or res2.location.endswith(
+            """?result=success&operation=upload&is_existing=1"""
+        )
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @routes_tested("admin:acme_account:upload|json")
+    def test_upload_json(self):
+        _key_filename = TEST_FILES["AcmeAccount"]["2"]["key"]
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        form = {}
+        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/upload.json", form
+        )
+        assert res2.status_code == 200
+        assert "result" in res2.json
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+
+        assert isinstance(res2.json["form_errors"], dict)
+        assert len(res2.json["form_errors"].keys()) == 3
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res2.json["form_errors"]["account__order_default_private_key_cycle"]
+            == "Missing value"
+        )
+        assert (
+            res2.json["form_errors"]["account__order_default_private_key_technology"]
+            == "Missing value"
+        )
+
+        form = {}
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_server_id"] = "1"  # acme_server_id(1) == pebble
+        form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
+        form["account__order_default_private_key_cycle"] = TEST_FILES["AcmeAccount"][
+            "2"
+        ]["order_default_private_key_cycle"]
+        form["account__order_default_private_key_technology"] = TEST_FILES[
+            "AcmeAccount"
+        ]["2"]["order_default_private_key_technology"]
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/upload.json", form
+        )
+        assert res3.status_code == 200
+        res3_json = json.loads(res3.text)
+        assert "result" in res3_json
+        assert res3_json["result"] == "success"
+
     def _get_one_AcmeAccount(self):
         # grab an item
         focus_item = (
@@ -10567,14 +10567,14 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
             self,
             account__contact="dbAcmeAccount@example.com",
-            pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
         )
 
         # step 1b - create the account AGAIN, this should work
         (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem(
             self,
             account__contact="dbAcmeAccount@example.com",
-            pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
         )
 
         assert dbAcmeAccount.id == dbAcmeAccount2.id
@@ -10585,7 +10585,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem(
                 self,
                 account__contact="dbAcmeAccount3@example.com",
-                pem_file_name="key_technology-rsa/AcmeAccountKey-1.pem",
+                pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
                 expect_failure=True,
             )
         except ResponseFailureOkay as exc_ok:
@@ -10604,7 +10604,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
             (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem(
                 self,
                 account__contact="dbAcmeAccount@example.com",
-                pem_file_name="key_technology-rsa/AcmeAccountKey-2.pem",
+                pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
                 expect_failure=True,
             )
         except ResponseFailureOkay as exc_ok:
@@ -10646,7 +10646,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem(
             self,
             account__contact="dbAcmeAccount5@example.com",
-            pem_file_name="key_technology-rsa/AcmeAccountKey-2.pem",
+            pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
         )
 
         assert dbAcmeAccount.id != dbAcmeAccount5.id
