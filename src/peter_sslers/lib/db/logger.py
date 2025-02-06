@@ -366,7 +366,7 @@ class AcmeLogger(object):
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
-        if failtype in ("pretest-1", "pretest-2"):
+        if failtype in ("precheck-1", "precheck-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = (
                 model_utils.AcmeChallengeFailType.from_string("setup-prevalidation")
             )

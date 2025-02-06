@@ -32,6 +32,7 @@ from ...model import utils as model_utils
 # from typing import Optional
 
 if TYPE_CHECKING:
+    from ...lib.acme_v2 import AcmeOrderRFC
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
@@ -146,7 +147,7 @@ def create__AcmeServerConfiguration(
 
 def create__AcmeOrder(
     ctx: "ApiContext",
-    acme_order_response: Dict,
+    acme_order_response: "AcmeOrderRFC",
     acme_order_type_id: int,
     acme_order_processing_status_id: int,
     acme_order_processing_strategy_id: int,
@@ -272,8 +273,10 @@ def create__AcmeOrder(
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
         acme_order_response["status"]
     )
-    finalize_url = acme_order_response.get("finalize")
     certificate_url = acme_order_response.get("certificate")
+    finalize_url = acme_order_response.get("finalize")
+    profile = acme_order_response.get("profile")
+    replaces = acme_order_response.get("replaces")
     timestamp_expires = acme_order_response.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
@@ -305,6 +308,8 @@ def create__AcmeOrder(
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
+    dbAcmeOrder.profile = profile
+    dbAcmeOrder.replaces = replaces
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:

@@ -15,7 +15,6 @@ from typing_extensions import TypedDict
 from . import create as db_create
 from . import get as db_get
 from . import getcreate as db_getcreate
-from . import update as db_update
 from .logger import log__OperationsEvent
 from ...lib import utils
 from ...model import objects as model_objects
@@ -59,7 +58,7 @@ acme_servers: Dict[int, DictProvider] = {
         "is_enabled": False,
         "server": "127.0.0.1:14000",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
-        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert.pem",
+        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
     },
     2: {
         "id": 2,
@@ -70,7 +69,7 @@ acme_servers: Dict[int, DictProvider] = {
         "is_enabled": False,
         "server": "127.0.0.1:14001",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
-        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert-alt.pem",
+        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test-alt/certs/pebble.minica.pem",
     },
     3: {
         "id": 3,
@@ -373,36 +372,6 @@ def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
 
 def startup_AcmeServers(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
     # first handle the Default CertificateAuthority
-
-    dbAcmeServer = db_get.get__AcmeServer__by_name(
-        ctx, app_settings["certificate_authority"]
-    )
-    if not dbAcmeServer:
-        print("Attempting to enroll new `AcmeServer` from config >>>")
-        dbAcmeServer = db_create.create__AcmeServer(
-            ctx,
-            name=app_settings["certificate_authority"],
-            directory=app_settings["certificate_authority_directory"],
-            protocol=app_settings["certificate_authority_protocol"],
-        )
-        print("<<< Enrolled new `AcmeServer` from config")
-
-    if dbAcmeServer.directory != app_settings["certificate_authority_directory"]:
-        raise ValueError(
-            "`dbAcmeServer.directory` ('%s') does not match `certificate_authority_directory` ('%s')"
-            % (
-                dbAcmeServer.directory,
-                app_settings["certificate_authority_directory"],
-            )
-        )
-
-    if dbAcmeServer.protocol != "acme-v2":
-        raise ValueError("`AcmeServer.protocol` is not `acme-v2`")
-
-    if not dbAcmeServer.is_default or not dbAcmeServer.is_enabled:
-        _event_status = db_update.update_AcmeServer__activate_default(  # noqa: F841
-            ctx, dbAcmeServer
-        )
 
     dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
     if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:

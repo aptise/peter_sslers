@@ -283,6 +283,15 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         )
         return rval
 
+    @property
+    def as_json_minimal_extended(self) -> Dict:
+        rval = {"id": self.id, "account_url": self.account_url}
+        rval["AcmeAccountKey"] = (
+            self.acme_account_key.as_json_minimal if self.acme_account_key else None
+        )
+        rval["AcmeServer"] = self.acme_server.as_json_minimal
+        return rval
+
 
 class AcmeAccount_2_TermsOfService(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_account_2_terms_of_service"
@@ -1944,10 +1953,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
         return {
             "id": self.id,
-            "AcmeAccount": {
-                "id": self.acme_account_id,
-                "key_pem_md5": self.acme_account.acme_account_key.key_pem_md5,
-            },
+            "AcmeAccount": self.acme_account.as_json_minimal_extended,
             "PrivateKey": {
                 "id": self.private_key_id,
                 "key_pem_md5": (
@@ -1984,11 +1990,13 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "private_key_cycle": self.private_key_cycle,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_strategy__final": self.private_key_strategy__final,
+            "profile": self.profile,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "renewal_configuration_id": self.renewal_configuration_id,
+            "replaces": self.replaces,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
             "url_acme_server_sync": (
@@ -2249,6 +2257,14 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "protocol": self.protocol,
             "server_ca_cert_bundle": self.server_ca_cert_bundle,
             "timestamp_created": self.timestamp_created_isoformat,
+        }
+
+    @property
+    def as_json_minimal(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "directory": self.directory,
         }
 
 

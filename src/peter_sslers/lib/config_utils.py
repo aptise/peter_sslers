@@ -61,6 +61,9 @@ class ApplicationSettings(dict):
         ):
             self[_opt] = None
 
+        for _opt in ("precheck_acme_challenges",):
+            self[_opt] = []
+
         if config_uri:
             self["config_uri"] = config_uri
             _hash = hashlib.md5(config_uri.encode()).hexdigest()
@@ -170,6 +173,13 @@ class ApplicationSettings(dict):
                     "`nginx.ca_bundle_pem=%s` does not exist" % _ca_bundle_pem
                 )
             self["nginx.ca_bundle_pem"] = _ca_bundle_pem
+
+        _precheck_acme_challenges = settings.get("precheck_acme_challenges")
+        if _precheck_acme_challenges:
+            _precheck_acme_challenges = [
+                i.strip() for i in _precheck_acme_challenges.split(",")
+            ]
+        self["precheck_acme_challenges"] = _precheck_acme_challenges
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")

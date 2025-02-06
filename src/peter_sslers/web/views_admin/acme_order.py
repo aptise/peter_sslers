@@ -1,4 +1,5 @@
 # stdlib
+import logging
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -23,6 +24,8 @@ from ...lib import errors
 from ...model import utils as model_utils
 from ...model.objects import AcmeOrder
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 # ==============================================================================
 
@@ -790,6 +793,18 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=process+order"
                 % (self._focus_url, exc.as_querystring)
+            )
+        except Exception as exc:
+            log.critical("Exception: %s", exc)
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-process",
+                    "error": str(exc),
+                }
+            return HTTPSeeOther(
+                "%s?result=error&error=%s&operation=process+order"
+                % (self._focus_url, str(exc))
             )
 
     @view_config(route_name="admin:acme_order:focus:acme_finalize", renderer=None)

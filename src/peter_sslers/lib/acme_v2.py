@@ -1158,7 +1158,7 @@ class AuthenticatedUser(object):
         transaction_commit: bool,
         profile: Optional[str] = None,
         replaces: Optional[str] = None,
-    ) -> Tuple:
+    ) -> Tuple[AcmeOrderRFC, Any]:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param domain_names: (required) The domains for our order
@@ -1346,11 +1346,17 @@ class AuthenticatedUser(object):
 
         # check that the file is in place
         try:
-            if cert_utils.TESTING_ENVIRONMENT:
+            if ctx.request.registry.settings["app_settings"][
+                "precheck_acme_challenges"
+            ] and (
+                "http-01"
+                in ctx.request.registry.settings["app_settings"][
+                    "precheck_acme_challenges"
+                ]
+            ):
                 log.debug(
-                    "cert_utils.TESTING_ENVIRONMENT, not ensuring the challenge is readable"
+                    "precheck_acme_challenges[http-01] | ensuring the challenge is readable"
                 )
-            else:
                 try:
                     resp = urlopen(wellknown_url)
                     resp_data = resp.read().decode("utf8").strip()
@@ -1359,11 +1365,11 @@ class AuthenticatedUser(object):
                     self.acmeLogger.log_challenge_error(
                         "v2",
                         dbAcmeChallenge,
-                        "pretest-1",
+                        "precheck-1",
                         transaction_commit=True,
                     )
                     raise errors.DomainVerificationError(
-                        "Wrote keyauth challenge, but couldn't download {0}".format(
+                        "Precheck Failure: Wrote keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
@@ -1371,17 +1377,19 @@ class AuthenticatedUser(object):
                     self.acmeLogger.log_challenge_error(
                         "v2",
                         dbAcmeChallenge,
-                        "pretest-2",
+                        "precheck-2",
                         transaction_commit=True,
                     )
                     if str(exc).startswith("hostname") and (
                         "doesn't match" in str(exc)
                     ):
                         raise errors.DomainVerificationError(
-                            "Wrote keyauth challenge, but ssl can't "
+                            "Precheck Failure: Wrote keyauth challenge, but ssl can't "
                             "view {0}. `{1}`".format(wellknown_url, str(exc))
                         )
                     raise
+            else:
+                log.debug("no precheck configured for http-01")
         except (AssertionError, ValueError) as exc:
             raise errors.DomainVerificationError(
                 "couldn't download {0}: {1}".format(wellknown_url, exc)
@@ -2071,6 +2079,10 @@ class AuthenticatedUser(object):
             log.debug(
                 ") acme_challenge_trigger | _challenge_headers: %s" % _challenge_headers
             )
+        except errors.AcmeServer404 as exc:  # noqa: F841
+            # this is a subclass of `errors.AcmeServerError`, but does not have all the args
+            raise
+
         except errors.AcmeServerError as exc:
             # (status_code, resp_data, url) = exc
             (_status_code, _resp, _url) = exc.args

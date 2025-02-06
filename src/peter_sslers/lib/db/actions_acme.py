@@ -530,7 +530,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 transaction_commit=True,
             )
             if not _handled:
-                raise ValueError("Order Authorizations failed")
+                raise errors.InvalidRequest("Order Authorizations failed")
             _task_finalize_order = True
         except errors.AcmeAuthorizationFailure as exc:
             # if an Authorization fails, the entire order fails
@@ -582,7 +582,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             # The server has issued the certificate and provisioned its URL to the "certificate" field of the order
             raise errors.AcmeOrderValid()
         else:
-            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+            raise errors.InvalidRequest(
+                "unsure how to handle this status: `%s`" % _order_status
+            )
     return _task_finalize_order
 
 
@@ -691,7 +693,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     # TODO: sync the AcmeAuthorization objects instead
     # TODO: sync the AcmeOrder objects instead
     if not dbAcmeAccount:
-        raise ValueError("Must submit `dbAcmeAccount`")
+        raise errors.InvalidRequest("Must submit `dbAcmeAccount`")
 
     if authenticatedUser is None:
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
@@ -964,7 +966,7 @@ def do__AcmeV2_AcmeAccount_register(
     """
     try:
         if not dbAcmeAccount.contact:
-            raise ValueError("no `contact`")
+            raise errors.InvalidRequest("no `contact`")
 
         acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
@@ -1001,7 +1003,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
-        raise ValueError("Can not deactivate this `AcmeAuthorization`")
+        raise errors.InvalidRequest("Can not deactivate this `AcmeAuthorization`")
 
     # the authorization could be on multiple AcmeOrders
     # see :method:`AcmeAuthorization.to_acme_orders`
@@ -1027,7 +1029,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
         )
         _server_status = authorization_response["status"]
         if _server_status != "deactivated":
-            raise ValueError(
+            raise errors.InvalidRequest(
                 "Authorization status should be `deactivated`; instead it is `%s`",
                 _server_status,
             )
@@ -1096,7 +1098,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
     if not dbAcmeAuthorization.is_can_acme_server_sync:
-        raise ValueError("Can not sync this `AcmeAuthorization`")
+        raise errors.InvalidRequest("Can not sync this `AcmeAuthorization`")
 
     try:
         # the authorization could be on multiple AcmeOrders
@@ -1183,7 +1185,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_sync:
-        raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
+        raise errors.InvalidRequest("Can not sync this `dbAcmeChallenge` (0)")
 
     # this is used a bit
     dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
@@ -1283,7 +1285,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     if not dbAcmeChallenge.is_can_acme_server_trigger:
         # ensures we have 'pending' status and
         # acme order, with acme_account
-        raise ValueError("Can not trigger this `AcmeChallenge`")
+        raise errors.InvalidRequest("Can not trigger this `AcmeChallenge`")
 
     try:
         # this is used a bit
@@ -1771,7 +1773,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         # assign `private_key_strategy__final` in the next step
                         raise AcmeAccountNeedsPrivateKey()
                     else:
-                        raise ValueError(
+                        raise errors.InvalidRequest(
                             "Invalid `private_key_strategy__requested` for placeholder AcmeAccount",
                             dbAcmeOrder.private_key_strategy__requested,
                         )
@@ -1928,7 +1930,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             submitted_domain_names=domain_names,
         )
         if set(csr_domains) != set(domain_names):
-            raise ValueError(
+            raise errors.InvalidRequest(
                 "The CertificateRequest does not have the expected Domains."
             )
 
@@ -2041,7 +2043,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_finalize:
-        raise ValueError("Can not finalize this `dbAcmeOrder`")
+        raise errors.InvalidRequest("Can not finalize this `dbAcmeOrder`")
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
@@ -2079,7 +2081,7 @@ def do__AcmeV2_AcmeOrder__process(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_process:
-        raise ValueError("Can not process this `dbAcmeOrder`")
+        raise errors.InvalidRequest("Can not process this `dbAcmeOrder`")
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
@@ -2097,7 +2099,7 @@ def do__AcmeV2_AcmeOrder__process(
             if not dbAcmeAuthorization.is_can_acme_server_process:
                 # ensures we have 'pending' status and http-01 challenge; or *discover* status
                 # acme order, with acme_account
-                raise ValueError("Can not trigger the `AcmeAuthorization`")
+                raise errors.InvalidRequest("Can not trigger the `AcmeAuthorization`")
 
             handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
                 ctx, authenticatedUser, dbAcmeOrder
@@ -2129,9 +2131,11 @@ def do__AcmeV2_AcmeOrder__process(
                 elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
                     dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
                 else:
-                    raise ValueError("Can not process the selecte challenge type")
+                    raise errors.InvalidRequest(
+                        "Can not process the selected challenge type"
+                    )
                 if not dbAcmeChallenge:
-                    raise ValueError("Can not trigger this `AcmeChallenge`")
+                    raise errors.InvalidRequest("Can not trigger this `AcmeChallenge`")
                 _result = do__AcmeV2_AcmeChallenge__acme_server_trigger(
                     ctx,
                     dbAcmeChallenge=dbAcmeChallenge,
@@ -2288,6 +2292,7 @@ def do__AcmeV2_AcmeOrder__new(
     acme_order_type_id: int,
     # Optionals
     note: Optional[str] = None,
+    replaces: Optional[str] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
@@ -2297,6 +2302,7 @@ def do__AcmeV2_AcmeOrder__new(
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
     :param note: (optional)  A string to be associated with this AcmeOrder
+    :param replaces: (optional)  ARI idenfifier of to-be-replaced cert
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
         this may be a placeholder, or a specific key
     :param dbAcmeOrder_retry_of: (Optional) A :class:`model.objects.AcmeOrder` object to associate with this order.  Everything should be pre-computed.
@@ -2471,7 +2477,7 @@ def do__AcmeV2_AcmeOrder__new(
 
         # private_key_cycle vs private_key_cycle__effective
         if private_key_cycle__effective == "account_default":
-            raise ValueError("WTF:")
+            raise ValueError("Impossible")
         elif private_key_cycle__effective in (
             "account_daily",
             "global_daily",
@@ -2508,8 +2514,7 @@ def do__AcmeV2_AcmeOrder__new(
     try:
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        # Calculate the replaces
-        replaces: Optional[str] = None
+        _replaces: Optional[str] = None
         # RenewalConfiguration.acme_order_id__latest_attempt
         # RenewalConfiguration.acme_order_id__latest_success
         # AcmeOrder.acme_order_id__retry_of
@@ -2522,13 +2527,16 @@ def do__AcmeV2_AcmeOrder__new(
             and dbRenewalConfiguration.acme_order__latest_success.certificate_signed_id
         ):
             log.info("constructing `replaces`")
-            replaces = (
+            _replaces = (
                 dbRenewalConfiguration.acme_order__latest_success.certificate_signed.ari_identifier
             )
+            if replaces:
+                if _replaces != replaces:
+                    raise errors.InvalidRequest("submitted a mismatch for replaces")
 
-        profile = dbRenewalConfiguration.acme_profile
+        profile: Optional[str] = dbRenewalConfiguration.acme_profile
         if profile:
-            # check against user auth
+            # TODO: Check the profile in the directory
             import pdb
 
             pdb.set_trace()
@@ -2539,7 +2547,7 @@ def do__AcmeV2_AcmeOrder__new(
             domain_names=domain_names,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=True,
-            replaces=replaces,
+            replaces=_replaces,
             profile=profile,
         )
         order_url = acmeOrderRfcObject.response_headers["location"]
@@ -2559,6 +2567,7 @@ def do__AcmeV2_AcmeOrder__new(
             assert private_key_strategy_id__requested is not None
 
             # enroll the Acme Order into our database
+            # replaces and profile will be in the RFC object
             dbAcmeOrder = create__AcmeOrder(
                 ctx,
                 acme_order_response=acmeOrderRfcObject.rfc_object,

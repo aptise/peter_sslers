@@ -373,6 +373,22 @@
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccount-${AcmeOrder.acme_account_id}
+                                |
+                                ${AcmeOrder.acme_account.account_url}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeServer</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/acme-server/${AcmeOrder.acme_account.acme_server_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeServer-${AcmeOrder.acme_account.acme_server_id}
+                                |
+                                ${AcmeOrder.acme_account.acme_server.directory}
                             </a>
                         </td>
                     </tr>
