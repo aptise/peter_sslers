@@ -612,7 +612,7 @@ def handle_AcmeAccount_Updates(
 def handle_AcmeAccount_AcmeServer_url_change(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    authenticatedUser: acme_v2.AuthenticatedUser,
+    authenticatedUser: "AuthenticatedUser",
 ) -> None:
     assert authenticatedUser._api_account_headers
     acme_account_url = authenticatedUser._api_account_headers["Location"]
