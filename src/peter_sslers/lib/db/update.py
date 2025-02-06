@@ -161,10 +161,11 @@ def update_AcmeAccount__set_global_default(
         # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
-    if not dbAcmeAccount.acme_server.is_default:
-        raise errors.InvalidTransition(
-            "This AcmeAccount is not from the default AcmeServer."
-        )
+    # # Is there a reason to require the Default Account to be from the Default Server?
+    # if not dbAcmeAccount.acme_server.is_default:
+    #    raise errors.InvalidTransition(
+    #        "This AcmeAccount is not from the default AcmeServer."
+    #    )
 
     alt_info: Dict = {}
     formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)

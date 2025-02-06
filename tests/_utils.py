@@ -13,6 +13,7 @@ import traceback
 from typing import Dict
 from typing import Optional
 from typing import overload
+from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 import unittest
@@ -38,7 +39,6 @@ from webtest.http import StopableWSGIServer
 
 # local
 from peter_sslers.lib import acme_v2
-from peter_sslers.lib import cas
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import utils
@@ -133,6 +133,14 @@ PEBBLE_CONFIG_FILE = "/".join(
         "pebble-config.json",
     ]
 )
+PEBBLE_ALT_CONFIG_FILE = "/".join(
+    PEBBLE_CONFIG_DIR.split("/")
+    + [
+        "test-alt",
+        "config",
+        "pebble-config.json",
+    ]
+)
 
 
 if RUN_API_TESTS__PEBBLE:
@@ -200,6 +208,7 @@ cert_utils.update_from_appsettings(_appsettings)
 
 # SEMAPHORE?
 PEBBLE_RUNNING = None
+PEBBLE_ALT_RUNNING = None
 
 # RUN_ID
 RUN_START = datetime.datetime.now()
@@ -245,6 +254,7 @@ if DEBUG_GITHUB_ENV:
     print("PEBBLE_DIR:", PEBBLE_DIR)
     print("PEBBLE_BIN:", PEBBLE_BIN)
     print("PEBBLE_CONFIG_FILE:", PEBBLE_CONFIG_FILE)
+    print("PEBBLE_ALT_CONFIG_FILE:", PEBBLE_ALT_CONFIG_FILE)
     print("PEBBLE_ENV:", PEBBLE_ENV)
     print("PEBBLE_ENV_STRICT:", PEBBLE_ENV_STRICT)
     print("RUN_API_TESTS__ACME_DNS_API:", RUN_API_TESTS__ACME_DNS_API)
@@ -340,17 +350,17 @@ def new_test_connections():
     return ctx
 
 
-def process_pebble_roots():
+def process_pebble_roots(pebble_ports: Tuple[int, int]):
     """
     Pebble generates new trusted roots on every run
     We need to load them from the pebble server, otherwise we have no idea
     what they are.
     """
-    log.info("`process_pebble_roots()`")
+    log.info("`process_pebble_roots(%s)`" % str(pebble_ports))
 
     # the first root is guaranteed to be here:
 
-    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=False)
+    r0 = requests.get("https://127.0.0.1:%s/roots/0" % pebble_ports[1], verify=False)
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -385,12 +395,12 @@ def process_pebble_roots():
     return True
 
 
-def archive_pebble_data():
+def archive_pebble_data(pebble_ports: Tuple[int, int]):
     """
     pebble account urls have a serial that restarts on each load
     this causes issues with tests
     """
-    log.info("`archive_pebble_data()`")
+    log.info("`archive_pebble_data(%s)`" % str(pebble_ports))
     ctx = new_test_connections()
     # model_objects.AcmeAccount
     # migration strategy - append a `@{UUID}` to the url, so it will not match
@@ -420,20 +430,21 @@ def archive_pebble_data():
     return True
 
 
-def handle_new_pebble():
+def handle_new_pebble(pebble_ports: Tuple[int, int]):
     """
     When pebble starts:
         * we must inspect the new pebble roots
     When pebble restarts
         * the database may have old pebble data
     """
-    log.info("`handle_new_pebble()`")
-    process_pebble_roots()
-    archive_pebble_data()
+    log.info("`handle_new_pebble(%s)`" % str(pebble_ports))
+    process_pebble_roots(pebble_ports)
+    archive_pebble_data(pebble_ports)
 
 
 # ACME_CHECK_MSG = b"Listening on: 0.0.0.0:14000"
 ACME_CHECK_MSG = b"ACME directory available at: https://0.0.0.0:14000/dir"
+ACME_CHECK_MSG_ALT = b"ACME directory available at: https://0.0.0.0:14001/dir"
 
 
 def under_pebble(_function):
@@ -504,7 +515,7 @@ def under_pebble(_function):
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble()
+                handle_new_pebble((14000, 15000))
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -512,7 +523,6 @@ def under_pebble(_function):
                 log.info("`pebble`: finished. terminating")
                 proc.terminate()
                 PEBBLE_RUNNING = False
-                cas.CA_ACME = True
         return res
 
     return _wrapper
@@ -584,7 +594,7 @@ def under_pebble_strict(_function):
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble()
+                handle_new_pebble((14000, 15000))
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -592,7 +602,87 @@ def under_pebble_strict(_function):
                 log.info("`pebble[strict]`: finished. terminating")
                 proc.terminate()
                 PEBBLE_RUNNING = False
-                cas.CA_ACME = True
+        return res
+
+    return _wrapper
+
+
+def under_pebble_alt(_function):
+    """
+    decorator to spin up an external pebble server
+    """
+    global PEBBLE_ALT_RUNNING
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("`pebble[alt]`: spinning up for `%s`" % _function.__qualname__)
+        log.info("`pebble[alt]`: PEBBLE_BIN : %s", PEBBLE_BIN)
+        log.info("`pebble[alt]`: PEBBLE_ALT_CONFIG_FILE : %s", PEBBLE_ALT_CONFIG_FILE)
+        log.info("`pebble[alt]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
+        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
+        res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-pebble_alt.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
+
+        with psutil.Popen(
+            [PEBBLE_BIN, "-config", PEBBLE_ALT_CONFIG_FILE],
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
+            # cwd=PEBBLE_CONFIG_DIR,
+            env=PEBBLE_ENV,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            _waits = 0
+            while not ready:
+                log.info("`pebble[alt]`: waiting for ready | %s" % _waits)
+                _waits += 1
+                if _waits >= 30:
+                    raise ValueError("`pebble[alt]`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG_ALT in line:
+                                log.info("`pebble[alt]`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        # if b"Listening on: 0.0.0.0:14001" in line:
+                        if ACME_CHECK_MSG in line:
+                            log.info("`pebble[alt]`: ready")
+                            ready = True
+                            break
+                time.sleep(1)
+            try:
+                PEBBLE_ALT_RUNNING = True
+                # catch in app_test so we don't recycle the roots
+                handle_new_pebble((14001, 15001))
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("`pebble[alt]`: finished. terminating")
+                proc.terminate()
+                PEBBLE_ALT_RUNNING = False
         return res
 
     return _wrapper

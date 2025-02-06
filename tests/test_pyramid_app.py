@@ -42,6 +42,7 @@ from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import under_pebble
 from ._utils import under_pebble_strict
+from ._utils import under_pebble_alt
 from ._utils import under_redis
 from .regex_library import RE_AcmeAccount_deactivate_pending_post_required
 from .regex_library import RE_AcmeAccount_deactivate_pending_success
@@ -430,44 +431,58 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     return True
 
 
-class AAA_TestingSetup(AppTest):
-    """
-    python -m unittest tests.test_pyramid_app.AAA_TestingSetup
-    this is only used to generate a testing database
+# The following classes are only used when developing tests
+# They are used to ensure the harnesses work correctly and to preload data
+if False:
 
-    this should be used in conjunction with other tests that require it
-
-    the "AAA_" prefix is to ensure this class runs first.
-    """
-
-    def test_setup_database(self):
+    class AAA_TestingSetup(AppTest):
         """
-        this will freeze a database with some objects in it
+        python -m unittest tests.test_pyramid_app.AAA_TestingSetup
+        this is only used to generate a testing database
+
+        this should be used in conjunction with other tests that require it
+
+        the "AAA_" prefix is to ensure this class runs first.
         """
-        setup_testing_data(self)
 
+        def test_setup_database(self):
+            """
+            this will freeze a database with some objects in it
+            """
+            setup_testing_data(self)
 
-class FunctionalTests_Passes(AppTest):
-    """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_Passes
-    this is only used to test setup
-    """
+    class IntegratedTests_Explore(AppTest):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Explore
+        this is only used to test setup
+        """
 
-    @under_pebble
-    def test_passes(self):
-        return True
+        @under_pebble_alt
+        @under_pebble
+        def test_passes(self):
+            return True
 
-    @under_pebble
-    def test_passes_alt(self):
-        return True
+    class FunctionalTests_Passes(AppTest):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_Passes
+        this is only used to test setup
+        """
 
-    @under_pebble
-    def test_passes_alt_2(self):
-        return True
+        @under_pebble
+        def test_passes(self):
+            return True
 
-    @under_pebble
-    def test_passes_alt_3(self):
-        return True
+        @under_pebble
+        def test_passes_alt(self):
+            return True
+
+        @under_pebble
+        def test_passes_alt_2(self):
+            return True
+
+        @under_pebble
+        def test_passes_alt_3(self):
+            return True
 
 
 class FunctionalTests_Main(AppTest):
