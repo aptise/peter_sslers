@@ -231,6 +231,9 @@ class View_New(Handler):
                     message="AcmeDuplicateAccount condition was detected.",
                 )
 
+            if TYPE_CHECKING:
+                assert dbAcmeAccount
+
             if self.request.wants_json:
                 return {
                     "result": "success",

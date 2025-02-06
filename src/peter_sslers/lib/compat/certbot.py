@@ -6,7 +6,6 @@ from typing import cast
 from typing import Dict
 from typing import Mapping
 from typing import Optional
-from typing import Union
 
 # pypi
 import cert_utils
@@ -121,7 +120,7 @@ def import_certbot(
                 raise ValueError("`%s/private_key.json` does not exist" % _account_dir)
 
             # load the data...
-            key_create_args: Dict[str, Union[str, int]] = {}
+            key_create_args: lib_db.getcreate.getcreate__AcmeAccount__kwargs = {}
             key_create_args["acme_account_key_source_id"] = (
                 AcmeAccountKeySource.IMPORTED
             )

@@ -36,7 +36,7 @@ DictProvider = TypedDict(
     {
         "id": int,
         "name": str,
-        "directory": Optional[str],
+        "directory": str,
         "is_default": Optional[bool],
         "protocol": str,
         "is_enabled": bool,
@@ -61,27 +61,56 @@ acme_servers: Dict[int, DictProvider] = {
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert.pem",
     },
-    4: {
-        "id": 4,
+    2: {
+        "id": 2,
+        "name": "pebble-alt",
+        "directory": "https://127.0.0.1:14001/dir",
+        "is_default": None,
+        "protocol": "acme-v2",
+        "is_enabled": False,
+        "server": "127.0.0.1:14001",
+        "is_supports_ari__version": "draft-ietf-acme-ari-03",
+        "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/cert-alt.pem",
+    },
+    3: {
+        "id": 3,
         "name": "letsencrypt-v2",
         "directory": "https://acme-v02.api.letsencrypt.org/directory",
         "is_default": None,
         "protocol": "acme-v2",
         "is_enabled": False,
-        "server": "acme-v02.api.letsencrypt.org",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
     },
-    5: {
-        "id": 5,
+    4: {
+        "id": 4,
         "name": "letsencrypt-v2-staging",
         "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
         "is_default": None,
         "protocol": "acme-v2",
         "is_enabled": False,
-        "server": "acme-staging-v02.api.letsencrypt.org",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
+    },
+    5: {
+        "id": 5,
+        "name": "buypass",
+        "directory": "https://api.buypass.com/acme/directory",
+        "is_default": None,
+        "protocol": "acme-v2",
+        "is_enabled": False,
+        "is_supports_ari__version": "unknown",
+        "is_unlimited_pending_authz": False,
+    },
+    6: {
+        "id": 6,
+        "name": "buypass-testing",
+        "directory": "https://api.test4.buypass.no/acme/directory",
+        "is_default": None,
+        "protocol": "acme-v2",
+        "is_enabled": False,
+        "is_supports_ari__version": "unknown",
+        "is_unlimited_pending_authz": False,
     },
 }
 
@@ -108,7 +137,7 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
         dbObject.is_default = item["is_default"]
         dbObject.is_enabled = item["is_enabled"]
         dbObject.protocol = item["protocol"]
-        dbObject.server = item["server"]
+        dbObject.server = utils.url_to_server(item["directory"])
         dbObject.is_supports_ari__version = item.get("is_supports_ari__version", None)
         dbObject.is_unlimited_pending_authz = item.get(
             "is_unlimited_pending_authz", None
@@ -371,26 +400,13 @@ def startup_AcmeServers(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
         raise ValueError("`AcmeServer.protocol` is not `acme-v2`")
 
     if not dbAcmeServer.is_default or not dbAcmeServer.is_enabled:
-        _event_status = db_update.update_AcmeServer__activate_default(ctx, dbAcmeServer)
+        _event_status = db_update.update_AcmeServer__activate_default(  # noqa: F841
+            ctx, dbAcmeServer
+        )
 
     dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
     if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
         dbAcmeAccount.is_global_default = False
         ctx.dbSession.flush()
-
-    # fun times.
-    # now enable any other options
-    if app_settings["certificate_authorities_enable"]:
-        for ca_name in app_settings["certificate_authorities_enable"]:
-            dbAcmeServer = db_get.get__AcmeServer__by_name(ctx, ca_name)
-            if not dbAcmeServer:
-                raise ValueError(
-                    "could not load the requested CertificateAuthority via `certificate_authorities_enable`: '%s'"
-                    % ca_name
-                )
-            if not dbAcmeServer.is_enabled:
-                _event_status = (  # noqa: F841
-                    db_update.update_AcmeServer__set_is_enabled(ctx, dbAcmeServer)
-                )
 
     return True

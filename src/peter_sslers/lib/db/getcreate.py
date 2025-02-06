@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import cert_utils
 import sqlalchemy
 from typing_extensions import Literal
+from typing_extensions import TypedDict
 
 
 # localapp
@@ -69,6 +70,26 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
+
+
+class getcreate__AcmeAccount__kwargs(TypedDict, total=False):
+    """
+    this class is used for typing a dict submitted to `getcreate__AcmeAccount`
+    """
+
+    acme_account_key_source_id: int
+    key_pem: Optional[str]
+    le_meta_jsons: Optional[str]
+    le_pkey_jsons: Optional[str]
+    le_reg_jsons: Optional[str]
+    acme_server_id: Optional[int]
+    contact: Optional[str]
+    terms_of_service: Optional[str]
+    account_url: Optional[str]
+    event_type: str
+    private_key_technology_id: Optional[int]
+    order_default_private_key_cycle_id: Optional[int]
+    order_default_private_key_technology_id: Optional[int]
 
 
 def getcreate__AcmeAccount(

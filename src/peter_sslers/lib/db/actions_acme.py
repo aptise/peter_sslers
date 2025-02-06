@@ -670,7 +670,9 @@ def check_endpoint_support(
         if _profiles:
             profiles = ",".join(sorted(_profiles.keys()))
             if profiles != dbAcmeServer.profiles:
-                dbAcmeServer = update_AcmeServer_profiles(ctx, dbAcmeServer, profiles)
+                _result = update_AcmeServer_profiles(
+                    ctx, dbAcmeServer, profiles
+                )  # noqa: F841
     return True
 
 

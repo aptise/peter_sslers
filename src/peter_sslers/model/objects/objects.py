@@ -299,7 +299,7 @@ class AcmeAccount_2_TermsOfService(Base, _Mixin_Timestamps_Pretty):
     acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    is_active: Mapped[bool] = mapped_column(
+    is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # allow NULL because of the index
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -2121,9 +2121,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
-    directory: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=False, unique=True
-    )
+    directory: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    # the server is normalized from the `directory`
+    # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
     is_default: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -2272,7 +2272,7 @@ class AcmeServerConfiguration(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    is_active: Mapped[bool] = mapped_column(
+    is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # allow NULL because of the index
     directory: Mapped[str] = mapped_column(sa.Text, nullable=False)

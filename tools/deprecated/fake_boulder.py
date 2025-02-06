@@ -10,7 +10,6 @@ purpose:
 usage:
     1. edit environment.ini and set the following:
         certificate_authority = http://127.0.0.1:7202
-        certificate_authority_testing = True
     2. export OPENSSL_CA_DIR= /path/to/../../../fake_boulder_config
     3. python fake_boulder.py
         note this uses an openssl system running in `./fake_boulder_config` and will create/edit files in there
@@ -23,7 +22,6 @@ import datetime
 import json
 import os
 import subprocess
-import tempfile
 from wsgiref.simple_server import make_server
 
 # pypi
@@ -62,30 +60,10 @@ def decrypt_acme_newcert(post_data):
     csr_der_b64 = payload_unb64_json["csr"]
     csr_der = _unb64(csr_der_b64)
 
-    _tmpfile_der = None
-    _tmpfile_pem = None
-    # csr_decoded = None
-    try:
-        # store some data in a tempfile
-        _tmpfile_der = tempfile.NamedTemporaryFile()
-        _tmpfile_der.write(csr_der)
-        _tmpfile_der.seek(0)
+    csr_pem = cert_utils.convert_der_to_pem__csr(csr_der)
 
-        csr_pem = cert_utils.convert_der_to_pem__csr(csr_der)
-
-        _tmpfile_pem = tempfile.NamedTemporaryFile()
-        _tmpfile_pem.write(csr_pem.encode())
-        _tmpfile_pem.seek(0)
-
-        domain_names = cert_utils.parse_csr_domains(
-            csr_pem, csr_pem_filepath=_tmpfile_pem.name
-        )
-        return (csr_pem, domain_names)
-    finally:
-        if _tmpfile_der is not None:
-            _tmpfile_der.close()
-        if _tmpfile_pem is not None:
-            _tmpfile_pem.close()
+    domain_names = cert_utils.parse_csr_domains(csr_pem)
+    return (csr_pem, domain_names)
 
 
 def sign_csr(csr_pem):

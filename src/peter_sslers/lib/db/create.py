@@ -122,6 +122,8 @@ def create__AcmeServerConfiguration(
     directoryOld: Optional["AcmeServerConfiguration"] = None
     if dbAcmeServer.directory_latest:
         directoryOld = dbAcmeServer.directory_latest
+        if TYPE_CHECKING:
+            assert directoryOld
         directoryOld.is_active = None
 
     directoryLatest = model_objects.AcmeServerConfiguration()

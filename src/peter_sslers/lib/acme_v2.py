@@ -91,6 +91,7 @@ class AriCheckResult(TypedDict):
 
 class AcmeOrderPayload(TypedDict):
     identifiers: List[Dict[str, str]]
+    profile: NotRequired[str]
     replaces: NotRequired[str]
 
 

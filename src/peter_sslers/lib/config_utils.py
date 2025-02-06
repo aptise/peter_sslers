@@ -5,9 +5,6 @@ from typing import Dict
 from typing import Optional
 import uuid
 
-# pypi
-import cert_utils
-
 # local
 # from ..model import objects as model_objects
 # from ..model import utils as model_utils
@@ -35,11 +32,6 @@ class ApplicationSettings(dict):
             "admin_prefix",
             "api_host",
             "block_competing_challenges",
-            "certificate_authorities_enable",
-            "certificate_authority_directory",
-            "certificate_authority_protocol",
-            "certificate_authority_testing",
-            "certificate_authority",
             "cleanup_pending_authorizations",
             "data_dir",
             "enable_nginx",
@@ -179,33 +171,8 @@ class ApplicationSettings(dict):
                 )
             self["nginx.ca_bundle_pem"] = _ca_bundle_pem
 
-        # required, but validate later
-        self["certificate_authority"] = settings.get("certificate_authority")
-
-        self["certificate_authority_directory"] = settings.get(
-            "certificate_authority_directory"
-        )
-        self["certificate_authority_protocol"] = settings.get(
-            "certificate_authority_protocol"
-        )
-
-        self["certificate_authority_testing"] = set_bool_setting(
-            settings, "certificate_authority_testing"
-        )
-        if self["certificate_authority_testing"]:
-            cert_utils.TESTING_ENVIRONMENT = True
-
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
-
-        self["certificate_authorities_enable"] = [
-            ca
-            for ca in [
-                i.strip()
-                for i in settings.get("certificate_authorities_enable", "").split(",")
-            ]
-            if ca
-        ]
 
         # let's try to validate it!
         self.validate()
@@ -218,14 +185,6 @@ class ApplicationSettings(dict):
         _redis_prime_style = self.get("redis.prime_style")
         if _redis_prime_style and _redis_prime_style not in ("1", "2"):
             raise ValueError("`redis.prime_style` must be one of: (`1`, `2`)")
-
-        ca_selected = self["certificate_authority"]
-        if not ca_selected:
-            raise ValueError("No `certificate_authority` selected")
-
-        ca_protocol = self["certificate_authority_protocol"]
-        if ca_protocol != "acme-v2":
-            raise ValueError("invalid `certificate_authority_protocol` selected")
 
 
 # ------------------------------------------------------------------------------
