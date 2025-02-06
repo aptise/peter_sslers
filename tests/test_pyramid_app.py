@@ -2690,9 +2690,21 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert "AcmeServers" in res.json
 
-    @routes_tested("admin:acme_server:focus")
+    @routes_tested(
+        (
+            "admin:acme_server:focus",
+            "admin:acme_server:focus:acme_accounts",
+            "admin:acme_server:focus:acme_accounts__paginated",
+        )
+    )
     def test_focus_html(self):
         res = self.testapp.get("/.well-known/peter_sslers/acme-server/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/1/acme-accounts", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/1/acme-accounts/1", status=200
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -2725,10 +2737,22 @@ class FunctionalTests_AcmeServer(AppTest):
             % _action
         )
 
-    @routes_tested(("admin:acme_server:focus|json",))
+    @routes_tested(
+        (
+            "admin:acme_server:focus|json",
+            "admin:acme_server:focus:acme_accounts|json",
+            "admin:acme_server:focus:acme_accounts__paginated|json",
+        )
+    )
     def test_focus_json(self):
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-server/1.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/1/acme-accounts.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/1/acme-accounts/1.json", status=200
         )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")

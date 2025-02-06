@@ -542,6 +542,21 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:acme_server:focus", "/acme-server/{@id}")
     config.add_route_7("admin:acme_server:focus|json", "/acme-server/{@id}.json")
     config.add_route_7(
+        "admin:acme_server:focus:acme_accounts", "/acme-server/{@id}/acme-accounts"
+    )
+    config.add_route_7(
+        "admin:acme_server:focus:acme_accounts|json",
+        "/acme-server/{@id}/acme-accounts.json",
+    )
+    config.add_route_7(
+        "admin:acme_server:focus:acme_accounts__paginated",
+        "/acme-server/{@id}/acme-accounts/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_server:focus:acme_accounts__paginated|json",
+        "/acme-server/{@id}/acme-accounts/{@page}.json",
+    )
+    config.add_route_7(
         "admin:acme_server:focus:check_support",
         "/acme-server/{@id}/check-support",
     )

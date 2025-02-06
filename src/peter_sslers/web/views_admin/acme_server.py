@@ -13,6 +13,8 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeServer_mark
 from ..lib.handler import Handler
+from ..lib.handler import items_per_page
+from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -97,6 +99,62 @@ class View_Focus(Handler):
                 "AcmeServer": dbAcmeServer.as_json,
             }
         return {"project": "peter_sslers", "AcmeServer": dbAcmeServer}
+
+    @view_config(
+        route_name="admin:acme_server:focus:acme_accounts",
+        renderer="/admin/acme_server-focus-acme_accounts.mako",
+    )
+    @view_config(
+        route_name="admin:acme_server:focus:acme_accounts__paginated",
+        renderer="/admin/acme_server-focus-acme_accounts.mako",
+    )
+    @view_config(
+        route_name="admin:acme_server:focus:acme_accounts|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:acme_server:focus:acme_accounts__paginated|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-server/{ID}/acme-accounts.json",
+            "section": "acme-server",
+            "about": """AcmeServer: Focus. list AcmeAccount(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-server/1/acme-accounts.json",
+        }
+    )
+    def related_AcmeAccounts(self):
+        dbAcmeServer = self._focus()
+        items_count = lib_db.get.get__AcmeAccount__by_AcmeServerId__count(
+            self.request.api_context,
+            dbAcmeServer.id,
+        )
+        url_template = "%s/acme-accounts/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AcmeAccount__by_AcmeServerId__paginated(
+            self.request.api_context,
+            dbAcmeServer.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        if self.request.wants_json:
+            _accounts = [k.as_json for k in items_paged]
+            return {
+                "AcmeAccounts": _accounts,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "AcmeServer": dbAcmeServer,
+            "AcmeAccounts_count": items_count,
+            "AcmeAccounts": items_paged,
+            "pager": pager,
+        }
 
     @view_config(route_name="admin:acme_server:focus:check_support", renderer=None)
     @view_config(

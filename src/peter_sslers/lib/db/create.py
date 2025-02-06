@@ -77,6 +77,7 @@ def create__AcmeServer(
     name: str,
     directory: str,
     protocol: str,
+    server_ca_cert_bundle: Optional[str] = None,
 ) -> "AcmeServer":
     """
     Create a new AcmeServer
@@ -106,6 +107,7 @@ def create__AcmeServer(
     dbAcmeServer.is_enabled = True
     dbAcmeServer.protocol = protocol
     dbAcmeServer.server = utils.url_to_server(directory)
+    dbAcmeServer.server_ca_cert_bundle = server_ca_cert_bundle
     ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[

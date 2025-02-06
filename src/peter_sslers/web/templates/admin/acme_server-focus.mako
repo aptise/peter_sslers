@@ -24,6 +24,17 @@
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
+
+        <a href="${admin_prefix}/acme-server/${AcmeServer.id}/acme-accounts" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            AcmeAccounts
+        </a>
+
+        <a href="${admin_prefix}/acme-account/new?acme-server-id=${AcmeServer.id}" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            New Account
+        </a>
+
     </p>
 </%block>
 
@@ -146,6 +157,7 @@
                     </td>
                 </tr>
             </table>
+
         </div>
     </div>
 </%block>

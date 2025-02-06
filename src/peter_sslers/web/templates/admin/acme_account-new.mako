@@ -36,8 +36,28 @@
                         ACME Server
                     </label>
                     <select class="form-control" id="acme_server_id" name="acme_server_id">
+                        <%
+                            ## the default will be one of two places...
+                            ## first is the param
+                            ## second is the `option.is_default` attribute
+                            _requested_id = request.params.get("acme-server-id")
+                            if _requested_id:
+                                try:
+                                    _requested_id = int(_requested_id)
+                                except:
+                                    pass
+                            option_status = {}
+                            for option in AcmeServers:
+                                if option.id == _requested_id:
+                                    option_status[option.id] = "selected"
+                                else:
+                                    if option.is_default and not _requested_id:                         
+                                        option_status[option.id] = "selected"
+                                    else:
+                                        option_status[option.id] = ""
+                        %>
                         % for option in AcmeServers:
-                            <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
+                            <option value="${option.id}" ${option_status[option.id]}>${option.name} (${option.url})</option>
                         % endfor
                     </select>
                 </div>

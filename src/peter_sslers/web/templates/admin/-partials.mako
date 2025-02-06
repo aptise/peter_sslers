@@ -51,7 +51,7 @@
                     </td>
                     <td>
                         <span class="label label-info">${account.acme_server.name}</span>
-                        <a class="label label-info" href="${admin_prefix}/acme-servers">
+                        <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             AcmeServer-${account.acme_server_id}</a>
                             ## <code>${account.acme_server.url}</code>

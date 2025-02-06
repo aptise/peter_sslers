@@ -200,6 +200,30 @@ def get__AcmeAccount__by_account_url(
     return item
 
 
+def get__AcmeAccount__by_AcmeServerId__count(
+    ctx: "ApiContext",
+    acme_server_id: int,
+) -> int:
+    query = ctx.dbSession.query(AcmeAccount).filter(
+        AcmeAccount.acme_server_id == acme_server_id
+    )
+    return query.count()
+
+
+def get__AcmeAccount__by_AcmeServerId__paginated(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAccount]:
+    query = ctx.dbSession.query(AcmeAccount).filter(
+        AcmeAccount.acme_server_id == acme_server_id
+    )
+    query = query.order_by(AcmeAccount.id.desc()).limit(limit).offset(offset)
+    dbAcmeAccounts = query.all()
+    return dbAcmeAccounts
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
