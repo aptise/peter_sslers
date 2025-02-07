@@ -55,6 +55,10 @@
                         <td><timestamp>${RenewalConfiguration.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
+                        <th>acme_profile</th>
+                        <td><code>${RenewalConfiguration.acme_profile or ''}</code></td>
+                    </tr>
+                    <tr>
                         <th>is_active</th>
                         <td>
                             <code>${RenewalConfiguration.is_active or ''}</code>

@@ -2536,11 +2536,14 @@ def do__AcmeV2_AcmeOrder__new(
 
         profile: Optional[str] = dbRenewalConfiguration.acme_profile
         if profile:
-            # TODO: Check the profile in the directory
-            import pdb
-
-            pdb.set_trace()
-
+            _meta = authenticatedUser.acme_directory.get("meta")
+            _profiles = _meta.get("profiles")
+            if not _profiles:
+                raise errors.InvalidRequest("The AcmeServer no longer offers profiles")
+            if profile not in _profiles:
+                raise errors.InvalidRequest(
+                    "The AcmeServer no longer offers the selected profile"
+                )
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,

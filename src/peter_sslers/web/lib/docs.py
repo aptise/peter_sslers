@@ -114,7 +114,6 @@ def formatted_get_docs(view_instance, endpoint):
                     else None
                 )
         except Exception as exc:  # noqa: F841
-            print(exc)
             log.critical(
                 "@docify error: valid_options:AcmeAccount_GlobalDefault %s", endpoint
             )

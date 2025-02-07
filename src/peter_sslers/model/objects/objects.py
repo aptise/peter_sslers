@@ -57,6 +57,14 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_account"
+    __table_args__ = (
+        sa.Index(
+            "uidx_acme_account_default",
+            "id",
+            "is_global_default",
+            unique=True,
+        ),
+    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -87,7 +95,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_global_default: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
+        sa.Boolean, nullable=True, default=None  # NONE for uidx
     )
 
     acme_server_id: Mapped[int] = mapped_column(
@@ -2123,7 +2131,14 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "(protocol = 'acme-v2')",
             name="check_protocol",
         ),
+        sa.Index(
+            "uidx_acme_server_default",
+            "id",
+            "is_default",
+            unique=True,
+        ),
     )
+
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
@@ -2134,7 +2149,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
     is_default: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
+        sa.Boolean, nullable=True, default=None  # NONE for uidx
     )
     is_supports_ari__version: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(32), nullable=True, default=None
@@ -2187,7 +2202,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         """
         _changed = 0
         if self.is_default:
-            self.is_default = False
+            self.is_default = None
             _changed += 1
         if self.is_enabled:
             self.is_enabled = False

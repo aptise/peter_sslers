@@ -170,7 +170,7 @@ def update_AcmeAccount__set_global_default(
     alt_info: Dict = {}
     formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
     if formerDefaultAccount:
-        formerDefaultAccount.is_global_default = False
+        formerDefaultAccount.is_global_default = None
         alt_info["event_payload_dict"] = {
             "acme_account_id.former_default": formerDefaultAccount.id,
         }
@@ -309,7 +309,7 @@ def update_AcmeDnsServer__set_global_default(
     alt_info: Dict = {}
     formerDefault = get__AcmeDnsServer__GlobalDefault(ctx)
     if formerDefault:
-        formerDefault.is_global_default = False
+        formerDefault.is_global_default = None
         alt_info["event_payload_dict"] = {
             "acme_dns_server_id.former_default": formerDefault.id,
         }
@@ -416,7 +416,7 @@ def update_AcmeServer__activate_default(
     if dbAcmeServer_default:
         _objs.append(dbAcmeServer_default)
         if dbAcmeServer_default.id != dbAcmeServer_new.id:
-            dbAcmeServer_default.is_default = False
+            dbAcmeServer_default.is_default = None
     if not dbAcmeServer_new.is_default:
         dbAcmeServer_new.is_default = True
     if not dbAcmeServer_new.is_enabled:

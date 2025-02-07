@@ -61,6 +61,15 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccount-${RenewalConfiguration.acme_account_id}
                             </a>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/acme-server/${RenewalConfiguration.acme_account.acme_server_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeServer-${RenewalConfiguration.acme_account.acme_server_id}
+                                |
+                                ${RenewalConfiguration.acme_account.acme_server.server}
+                            </a>
                         </td>
                         <td><code>${RenewalConfiguration.acme_account.acme_account_key.key_pem_sample}</code></td>
                     </tr>
@@ -134,6 +143,10 @@
                                 </a>
                             % endif
                         </td>
+                    </tr>
+                    <tr>
+                        <th>ACME profile</th>
+                        <td><code>${RenewalConfiguration.acme_profile}</code></td>
                     </tr>
                     <tr>
                         <th>note</th>

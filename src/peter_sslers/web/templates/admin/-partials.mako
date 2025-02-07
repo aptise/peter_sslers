@@ -1568,7 +1568,13 @@
                                      >
                                          AcmeAccount-${AcmeAccount_GlobalDefault.id}
                                      </a><br/>
-                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_server.server}</code><br/>
+                    <b>server:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalDefault.acme_server.id}"
+                                     >
+                                         AcmeServer-${AcmeAccount_GlobalDefault.acme_server.id}
+                                         |
+                                        ${AcmeAccount_GlobalDefault.acme_server.server}
+                                     </a><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>

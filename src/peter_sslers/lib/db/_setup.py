@@ -15,7 +15,6 @@ from typing_extensions import TypedDict
 from . import create as db_create
 from . import get as db_get
 from . import getcreate as db_getcreate
-from . import update as db_update
 from .logger import log__OperationsEvent
 from ...lib import utils
 from ...model import objects as model_objects
@@ -372,21 +371,25 @@ def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
 
 
 def startup_AcmeServers(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
+    """
+    initially this hook was used to:
+
+    1- ensure a server listed in the conf file is in the db and active
+    2- ensure the default account is on the default server
+
+    Then:
+        The conf-file based endpoint idea was removed;
+        tests would fail if the global default acme-account got unset
+
+    Right now this remains as a hook, but no code is worth running here.
+
+    """
+
     # first handle the Default CertificateAuthority
 
-    _default_acme_server = "letsencrypt-v2-staging"
-    dbAcmeServer = db_get.get__AcmeServer__by_name(ctx, _default_acme_server)
-    if not dbAcmeServer:
-        raise ValueError("Can not load `_default_acme_server`")
-
-    if not dbAcmeServer.is_default or not dbAcmeServer.is_enabled:
-        _event_status = db_update.update_AcmeServer__activate_default(  # noqa: F841
-            ctx, dbAcmeServer
-        )
-
-    dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
-    if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
-        dbAcmeAccount.is_global_default = False
-        ctx.dbSession.flush()
+    # dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
+    # if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
+    #    dbAcmeAccount.is_global_default = None
+    #    ctx.dbSession.flush()
 
     return True

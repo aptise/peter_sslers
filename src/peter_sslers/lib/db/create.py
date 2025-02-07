@@ -1386,6 +1386,7 @@ def create__RenewalConfiguration(
         dbUniquelyChallengedFQDNSet.id
     )
     dbRenewalConfiguration.note = note or None
+    dbRenewalConfiguration.acme_profile = acme_profile or None
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
