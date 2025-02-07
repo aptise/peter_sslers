@@ -244,16 +244,18 @@ jobs:
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
 
-    - name: Upload Artifacts - _data_
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: _data_-${{ matrix.python-version }}-${{ matrix.os }}
-        path: ${{ github.workspace }}/_data_
-
-    - name: Upload Artifacts - X_TESTRUN_DATA
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: X_TESTRUN_DATA-${{ matrix.python-version }}-${{ matrix.os }}
-        path: ${{ github.workspace }}/X_TESTRUN_DATA
+# These are only needed for debugging
+#
+#    - name: Upload Artifacts - _data_
+#      if: always()
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: _data_-${{ matrix.python-version }}-${{ matrix.os }}
+#        path: ${{ github.workspace }}/_data_
+#
+#    - name: Upload Artifacts - X_TESTRUN_DATA
+#      if: always()
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: X_TESTRUN_DATA-${{ matrix.python-version }}-${{ matrix.os }}
+#        path: ${{ github.workspace }}/X_TESTRUN_DATA
