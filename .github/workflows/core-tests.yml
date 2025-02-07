@@ -58,7 +58,7 @@ jobs:
         mkdir _data_
         mkdir _data_/nginx
         touch _data_/acme-dns.db
-        sudo cat tests/test_configuration/pebble/test/certs/cert.pem | sudo tee -a _data_/nginx_ca_bundle.pem
+        sudo cat tests/test_configuration/pebble/test/certs/pebble.minica.pem | sudo tee -a _data_/nginx_ca_bundle.pem
         # debugging lines
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "ls -alh _data_"
@@ -199,18 +199,23 @@ jobs:
 
         # check the debug log, just to be safe
         # this is defined in ./tests/test_configureation/openresty.conf
-        echo "\n==================\nhttps_localhost-access.log\n"
+        echo "=================="
+        echo "https_localhost-access.log"
+        echo "- - - - -"
         tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-access.log
-
-        echo "\n==================\nhttps_localhost-error.log\n"
+        echo "=================="
+        echo "https_localhost-error.log"
+        echo "- - - - -"
         tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-error.log
-
-        echo "\n==================\nhttps_default-access.log\n"
+        echo "- - - - -"
+        echo "=================="
+        echo "https_default-access.log"
+        echo "- - - - -"
         tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-access.log
-
-        echo "\n==================\nhttps_default-error.log\n"
+        echo "=================="
+        echo "https_default-error.log"
+        echo "- - - - -"
         tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-error.log
-
 
     - name: Check Versions
       run: |
