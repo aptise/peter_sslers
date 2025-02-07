@@ -23,7 +23,6 @@ from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
-import cert_utils
 from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped
@@ -222,9 +221,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             return False
         if not self.acme_account_key.is_active:
             return False
-        if self.acme_server.is_default:
-            return True
-        return False
+        return True
 
     @reify
     def key_spki_search(self) -> str:
@@ -2159,7 +2156,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         sa.Boolean, nullable=True, default=None
     )
     is_enabled: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
+        sa.Boolean, nullable=False, default=True
     )
     protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
     server_ca_cert_bundle: Mapped[Optional[str]] = mapped_column(
@@ -2195,19 +2192,6 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _disable(self) -> bool:
-        """
-        This should only be invoked by commandline tools
-        """
-        _changed = 0
-        if self.is_default:
-            self.is_default = None
-            _changed += 1
-        if self.is_enabled:
-            self.is_enabled = False
-            _changed += 1
-        return True if _changed else False
 
     @property
     def is_supports_ari(self) -> bool:
@@ -3029,6 +3013,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     is_ari_supported__order: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
+    ari_identifier: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    ari_identifier__replaced_by: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    certificate_signed_id__replaced_by: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("certificate_signed.id"),
+        nullable=True,
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3106,16 +3101,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def ari_identifier(self) -> str:
-        try:
-            ari_identifier = cert_utils.ari_construct_identifier(
-                cert_pem=self.cert_pem,
-            )
-        except Exception as exc:
-            raise exc
-        return ari_identifier
 
     @property
     def cert_spki_search(self) -> str:

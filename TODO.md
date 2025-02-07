@@ -12,6 +12,11 @@ acme-account register
     
      Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
 
+cert_utils.NEEDS_TEMPFILES
+cert_utils
+
+Contact
+    relax to not require
 
 Streamline Onboarding
 

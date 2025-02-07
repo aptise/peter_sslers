@@ -990,10 +990,21 @@ def create__CertificateSigned(
                 "CertificateSigned Domains do not match the expected ones! this should never happen!"
             )
 
+        ari_identifier: Optional[str] = None
+        try:
+            ari_identifier = cert_utils.ari_construct_identifier(
+                cert_pem=cert_pem,
+            )
+        except Exception as exc:
+            log.critical("Exception `cert_utils.ari_construct_identifier`")
+            log.critical(str(exc))
+            pass
+
         # ok, now pull the dates off the cert
         dbCertificateSigned = model_objects.CertificateSigned()
         dbCertificateSigned.certificate_type_id = certificate_type_id
         dbCertificateSigned.timestamp_created = ctx.timestamp
+        dbCertificateSigned.ari_identifier = ari_identifier
         dbCertificateSigned.cert_pem = cert_pem
         dbCertificateSigned.cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
         dbCertificateSigned.is_active = is_active
@@ -1036,6 +1047,7 @@ def create__CertificateSigned(
         dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
         dbCertificateSignedChain.certificate_ca_chain_id = dbCertificateCAChain.id
         dbCertificateSignedChain.is_upstream_default = True
+
         ctx.dbSession.add(dbCertificateSignedChain)
         ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 

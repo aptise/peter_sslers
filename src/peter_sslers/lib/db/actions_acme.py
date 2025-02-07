@@ -1964,6 +1964,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbAcmeOrder=dbAcmeOrder,
         )
 
+        # import pdb; pdb.set_trace()
+
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None

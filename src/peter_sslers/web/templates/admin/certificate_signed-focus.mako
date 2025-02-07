@@ -270,6 +270,7 @@
                     <tr>
                         <th>ARI</th>
                         <td>
+                            <code>${CertificateSigned.ari_identifier}</code>
                             % if CertificateSigned.is_ari_supported:
                                 <table>
                                     <tr>
