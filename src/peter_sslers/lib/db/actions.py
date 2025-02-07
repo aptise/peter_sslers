@@ -4,7 +4,6 @@ import logging
 from typing import Dict
 from typing import Iterable
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -13,6 +12,7 @@ import cert_utils
 import requests
 import sqlalchemy
 from sqlalchemy import or_ as sqlalchemy_or
+from typing_extensions import Literal
 
 # from zope.sqlalchemy import mark_changed
 
