@@ -4,7 +4,7 @@ README DEVELOPMENT
 ## prep the data dir
 
 mkdir _data_
-cp tests/test_configuration/pebble/test/certs/cert.pem nginx_ca_bundle.pem
+cp tests/test_configuration/pebble/test/certs/pebble.minica.pem nginx_ca_bundle.pem
 
 
 ## install with testing extras

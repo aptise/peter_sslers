@@ -32,7 +32,6 @@ from ...model import utils as model_utils
 # from typing import Optional
 
 if TYPE_CHECKING:
-    from ...lib.acme_v2 import AcmeOrderRFC
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
@@ -61,6 +60,8 @@ if TYPE_CHECKING:
     from ...model.objects import UniqueFQDNSet
     from ..utils import ApiContext
     from ...model.utils import DomainsChallenged
+
+    # from ...lib.acme_v2 import AcmeOrderRFC
 
     # --
 
@@ -149,7 +150,7 @@ def create__AcmeServerConfiguration(
 
 def create__AcmeOrder(
     ctx: "ApiContext",
-    acme_order_response: "AcmeOrderRFC",
+    acme_order_response: Dict,  # usually wrapped by "AcmeOrderRFC"
     acme_order_type_id: int,
     acme_order_processing_status_id: int,
     acme_order_processing_strategy_id: int,

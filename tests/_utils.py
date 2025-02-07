@@ -1502,7 +1502,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         # have we initialized the database?
         # IMPORTANT: we can't connect first, even just to vacuum
         # that will trigger these checks to pass
-        dbfile = os.path.normpath(engine.url.database)
+        dbfile = engine.url.database
+        if TYPE_CHECKING:
+            assert isinstance(dbfile, str)
+        dbfile = os.path.normpath(dbfile)
         if os.path.exists(dbfile):
             if os.path.getsize(dbfile):
                 AppTestCore._DB_INTIALIZED = True
