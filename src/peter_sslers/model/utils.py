@@ -2,6 +2,7 @@
 import datetime
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Mapped
 from sqlalchemy.sql import expression
 import sqlalchemy.types
+from typing_extensions import TypedDict
 
 from ..lib.errors import UnsupportedKeyTechnology
 
@@ -860,6 +862,22 @@ class AcmeOrderType(_mixin_mapping):
         21: "RenewalConfiguration - Request",
         22: "RenewalConfiguration - Automated",
     }
+
+
+# note: AcmeServerInput
+AcmeServerInput = TypedDict(
+    "AcmeServerInput",
+    {
+        "name": str,
+        "directory": str,
+        "protocol": str,
+        # "is_default": Optional[bool],
+        "is_supports_ari__version": Optional[str],
+        "is_unlimited_pending_authz": Optional[bool],
+        "filepath_ca_cert_bundle": Optional[str],
+    },
+    total=False,
+)
 
 
 class CertificateRequestSource(_mixin_mapping):

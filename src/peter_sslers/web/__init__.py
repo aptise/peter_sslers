@@ -191,8 +191,8 @@ def main(global_config, **settings):
             config_uri=config_uri,
         )
 
-        # this will do the heavy lifting
-        _setup.startup_AcmeServers(ctx, app_settings)
+        # this might do some heavy lifting, or nothing
+        _setup.application_started(ctx, app_settings)
 
     if dbSession:
         dbSession.close()

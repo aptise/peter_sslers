@@ -99,10 +99,10 @@ setup(
       [paste.app_factory]
       main = peter_sslers.web:main
       [console_scripts]
-      disable_acme_servers = peter_sslers.web.scripts.disable_acme_servers:main
       import_certbot = peter_sslers.web.scripts.import_certbot:main
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
       refresh_pebble_ca_certs = peter_sslers.web.scripts.refresh_pebble_ca_certs:main
+      register_acme_servers = peter_sslers.web.scripts.register_acme_servers:main
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       """,

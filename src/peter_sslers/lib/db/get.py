@@ -116,6 +116,11 @@ def get__AcmeServer__by_name(ctx: "ApiContext", name: str) -> Optional[AcmeServe
 
 
 def get__AcmeServer__by_server(ctx: "ApiContext", server: str) -> Optional[AcmeServer]:
+    """
+    lookup by server, not directory
+    all known providers have 1 directory per server
+    this just simplifies searching through normalization
+    """
     query = ctx.dbSession.query(AcmeServer).filter(AcmeServer.server == server)
     return query.first()
 

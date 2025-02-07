@@ -12,10 +12,6 @@ acme-account register
     
      Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
 
-Enable BuyPass
-    https://api.buypass.com/acme/directory
-    https://api.test4.buypass.no/acme/directory
-
 
 Streamline Onboarding
 

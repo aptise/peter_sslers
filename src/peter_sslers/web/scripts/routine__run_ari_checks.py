@@ -23,7 +23,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [var=value]\n"
-        '(example: "%s example_development.ini")' % (cmd, cmd)
+        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 

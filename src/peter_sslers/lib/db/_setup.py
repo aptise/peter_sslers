@@ -1,17 +1,15 @@
 # stdlib
-import datetime
 import logging
 from typing import Dict
-from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
 import sqlalchemy
 from typing_extensions import Literal
-from typing_extensions import TypedDict
 
 # local
+from . import actions as db_actions
 from . import create as db_create
 from . import get as db_get
 from . import getcreate as db_getcreate
@@ -30,126 +28,55 @@ log.setLevel(logging.INFO)
 
 # ------------------------------------------------------------------------------
 
-DictProvider = TypedDict(
-    "DictProvider",
+acme_servers: Dict[int, model_utils.AcmeServerInput] = [
     {
-        "id": int,
-        "name": str,
-        "directory": str,
-        "is_default": Optional[bool],
-        "protocol": str,
-        "is_enabled": bool,
-        "server": str,
-        "is_supports_ari__version": Optional[str],
-        "is_unlimited_pending_authz": Optional[bool],
-        "filepath_ca_cert_bundle": Optional[str],
-    },
-    total=False,
-)
-
-
-acme_servers: Dict[int, DictProvider] = {
-    1: {
-        "id": 1,
         "name": "pebble",
         "directory": "https://127.0.0.1:14000/dir",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
-        "server": "127.0.0.1:14000",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
     },
-    2: {
-        "id": 2,
+    {
         "name": "pebble-alt",
         "directory": "https://127.0.0.1:14001/dir",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
-        "server": "127.0.0.1:14001",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test-alt/certs/pebble.minica.pem",
     },
-    3: {
-        "id": 3,
+    {
         "name": "letsencrypt-v2",
         "directory": "https://acme-v02.api.letsencrypt.org/directory",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
     },
-    4: {
-        "id": 4,
+    {
         "name": "letsencrypt-v2-staging",
         "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
     },
-    5: {
-        "id": 5,
+    {
         "name": "buypass",
         "directory": "https://api.buypass.com/acme/directory",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
     },
-    6: {
-        "id": 6,
+    {
         "name": "buypass-testing",
         "directory": "https://api.test4.buypass.no/acme/directory",
-        "is_default": None,
         "protocol": "acme-v2",
-        "is_enabled": True,
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
     },
-}
+]
 
 
-def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
-    timestamp_now = datetime.datetime.now(datetime.timezone.utc)
+def initialize_database(ctx: "ApiContext") -> Literal[True]:
 
-    for id, item in acme_servers.items():
-
-        server_ca_cert_bundle: Optional[str] = None
-        filepath_ca_cert_bundle = item.get("filepath_ca_cert_bundle")
-        if filepath_ca_cert_bundle:
-            with open(filepath_ca_cert_bundle) as fh:
-                server_ca_cert_bundle = fh.read()
-                server_ca_cert_bundle = cert_utils.cleanup_pem_text(
-                    server_ca_cert_bundle
-                )
-
-        dbObject = model_objects.AcmeServer()
-        dbObject.id = item["id"]
-        dbObject.timestamp_created = timestamp_now
-        dbObject.name = item["name"]
-        dbObject.directory = item["directory"]
-        dbObject.is_default = item["is_default"]
-        dbObject.is_enabled = item["is_enabled"]
-        dbObject.protocol = item["protocol"]
-        dbObject.server = utils.url_to_server(item["directory"])
-        dbObject.is_supports_ari__version = item.get("is_supports_ari__version", None)
-        dbObject.is_unlimited_pending_authz = item.get(
-            "is_unlimited_pending_authz", None
-        )
-        dbObject.is_custom_ca_certs = item.get("is_custom_ca_certs", None)
-        dbObject.server_ca_cert_bundle = server_ca_cert_bundle
-        ctx.dbSession.add(dbObject)
-        ctx.dbSession.flush(
-            objects=[
-                dbObject,
-            ]
-        )
-
+    # !!!: Create an Event
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -157,9 +84,15 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
         event_payload_dict,
     )
 
+    # !!!: AcmeServers
+    db_actions.register_acme_servers(ctx, acme_servers, "initial")
+
+    # !!!: Placeholders
+
+    # Run the PrivateKey placeholder as well
     dbObject = model_objects.PrivateKey()
     dbObject.id = 0
-    dbObject.timestamp_created = timestamp_now
+    dbObject.timestamp_created = ctx.timestamp
     _placeholder_text = utils.PLACEHOLDER_TEXT__KEY
     dbObject.key_pem = _placeholder_text
     dbObject.key_pem_md5 = cert_utils.utils.md5_text(_placeholder_text)
@@ -176,20 +109,11 @@ def initialize_AcmeServers(ctx: "ApiContext") -> Literal[True]:
             dbObject,
         ]
     )
-    return True
 
+    # !!!: CertificateAuthorities
 
-def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
     # nestle this import, so we do not load it on every run
     from cert_utils import letsencrypt_info
-
-    # create a bookkeeping object
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("_DatabaseInitialization"),
-        event_payload_dict,
-    )
 
     certs = letsencrypt_info.CERT_CAS_DATA
     certs_order = letsencrypt_info._CERT_CAS_ORDER
@@ -355,10 +279,7 @@ def initialize_CertificateCAs(ctx: "ApiContext") -> Literal[True]:
         )
         slot_id += 1  # increment the slot
 
-    return True
-
-
-def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
+    # !!!: DomainBlocklisted
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = "always-fail.example.com"
     ctx.dbSession.add(dbDomainBlocklisted)
@@ -370,7 +291,7 @@ def initialize_DomainBlocklisted(ctx: "ApiContext") -> Literal[True]:
     return True
 
 
-def startup_AcmeServers(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
+def application_started(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
     """
     initially this hook was used to:
 

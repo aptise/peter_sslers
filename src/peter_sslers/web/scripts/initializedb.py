@@ -26,7 +26,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [var=value]\n"
-        '(example: "%s example_development.ini")' % (cmd, cmd)
+        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 
@@ -58,8 +58,6 @@ def main(argv=sys.argv):
         )
 
         # this will setup the initial AcmeServers and the placeholder PrivateKey
-        _setup.initialize_AcmeServers(ctx)
-        _setup.initialize_CertificateCAs(ctx)
-        _setup.initialize_DomainBlocklisted(ctx)
+        _setup.initialize_database(ctx)
 
     transaction.commit()

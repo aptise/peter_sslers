@@ -1532,10 +1532,8 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                     request=None,
                     config_uri=TEST_INI,
                 )
-                # this would have been invoked by `initialize_database`
-                db._setup.initialize_AcmeServers(ctx)
-                db._setup.initialize_CertificateCAs(ctx)
-                db._setup.initialize_DomainBlocklisted(ctx)
+                # this would have been invoked by `initializedb`
+                db._setup.initialize_database(ctx)
                 dbSession.commit()
                 dbSession.close()
                 db_freeze(dbSession, "AppTestCore")

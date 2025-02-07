@@ -3,6 +3,8 @@ import datetime
 import logging
 from typing import Dict
 from typing import Iterable
+from typing import List
+from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,7 @@ from sqlalchemy import or_ as sqlalchemy_or
 # localapp
 from . import actions_acme
 from . import create
+from . import get
 from . import getcreate
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
@@ -26,11 +29,13 @@ from .. import events
 from ... import lib
 from ...lib import db as lib_db
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
+from ...lib.utils import url_to_server
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
 from ...model.objects import CertificateSigned
+from ...model.utils import AcmeServerInput
 
 
 if TYPE_CHECKING:
@@ -988,4 +993,59 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             dbCertificateSigned=dbCertificateSigned,
         )
         ctx.dbSession.commit()
+    return True
+
+
+def register_acme_servers(
+    ctx: "ApiContext",
+    acme_servers: List[AcmeServerInput],
+    source: Literal["intial", "ser"],
+):
+    for item in acme_servers:
+
+        # always done
+        server_ca_cert_bundle: Optional[str] = None
+        filepath_ca_cert_bundle = item.get("filepath_ca_cert_bundle")
+        if filepath_ca_cert_bundle:
+            with open(filepath_ca_cert_bundle) as fh:
+                server_ca_cert_bundle = fh.read()
+                server_ca_cert_bundle = cert_utils.cleanup_pem_text(
+                    server_ca_cert_bundle
+                )
+        server = url_to_server(item["directory"])
+
+        def _new_AcmeServer():
+            dbObject = model_objects.AcmeServer()
+            dbObject.is_unlimited_pending_authz = item.get(
+                "is_unlimited_pending_authz", None
+            )
+            dbObject.timestamp_created = ctx.timestamp
+            dbObject.name = item["name"]
+            dbObject.directory = item["directory"]
+            dbObject.protocol = item["protocol"]
+            dbObject.is_supports_ari__version = item.get(
+                "is_supports_ari__version", None
+            )
+            dbObject.server = server
+            dbObject.server_ca_cert_bundle = server_ca_cert_bundle
+            ctx.dbSession.add(dbObject)
+            ctx.dbSession.flush(
+                objects=[
+                    dbObject,
+                ]
+            )
+
+        if source == "initial":
+            print("Adding New ACME Server", server)
+            _new_AcmeServer()
+        else:
+            existingDbServer = get.get__AcmeServer__by_server(ctx, server)
+            if not existingDbServer:
+                print("Adding New ACME Server", server)
+                _new_AcmeServer()
+            else:
+                print("Existing ACME Server", server)
+                if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
+                    print("Updating:", server)
+                    existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
     return True

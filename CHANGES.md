@@ -119,6 +119,9 @@
         - changes to Terms Of Service are better logged and tracked
         - testing edge cases on form submission
 
+    New Bundled CAs
+        - BuyPass was added as an ACME CA
+          BuyPass's Roots & Intermediates are physically located in Norway
 
     Added a "note" to:
         RenewalConfiguration
