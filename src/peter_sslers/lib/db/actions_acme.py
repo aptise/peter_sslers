@@ -2723,6 +2723,7 @@ def do__AcmeV2_AcmeOrder__retry(
         # Optionals
         dbPrivateKey=dbAcmeOrder.private_key,
         dbAcmeOrder_retry_of=dbAcmeOrder,
+        replaces=dbAcmeOrder.replaces,
     )
 
 

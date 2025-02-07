@@ -212,8 +212,9 @@ def make_one__AcmeAccount__pem(
 
 
 @routes_tested("admin:acme_order:new:freeform|json")
-def make_one__AcmeOrder__random(
+def make_one__AcmeOrder(
     testCase: unittest.TestCase,
+    domain_names_http01: str,
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
     res = testCase.testapp.get(
@@ -225,7 +226,7 @@ def make_one__AcmeOrder__random(
     form["account_key_option"].force_value("account_key_global_default")
     form["private_key_option"].force_value("account_default")
     form["private_key_cycle"].force_value("account_default")
-    form["domain_names_http01"] = generate_random_domain(testCase=testCase)
+    form["domain_names_http01"] = domain_names_http01
     form["processing_strategy"].force_value("create_order")
     res2 = form.submit()
     assert res2.status_code == 303
@@ -234,10 +235,20 @@ def make_one__AcmeOrder__random(
     assert matched
     obj_id = matched.groups()[0]
 
-    print("make_one__AcmeOrder__random:")
-    print(matched.groups())
-
     dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+    assert dbAcmeOrder
+    return dbAcmeOrder
+
+
+@routes_tested("admin:acme_order:new:freeform|json")
+def make_one__AcmeOrder__random(
+    testCase: unittest.TestCase,
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    domain_names_http01 = generate_random_domain(testCase=testCase)
+    dbAcmeOrder = make_one__AcmeOrder(
+        testCase=testCase, domain_names_http01=domain_names_http01
+    )
     assert dbAcmeOrder
     return dbAcmeOrder
 
@@ -8248,8 +8259,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             "admin:acme_challenge:focus:acme_server:sync",
             "admin:acme_challenge:focus:acme_server:trigger",
             "admin:acme_order:focus:acme_finalize",
-            "admin:acme_order:focus:renew:custom",
-            "admin:acme_order:focus:renew:quick",
             "admin:acme_order:focus:acme_server:deactivate_authorizations",
         )
     )
@@ -8462,7 +8471,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "form-acme_finalize" not in res.forms
         assert "form-deactivate_order" not in res.forms
 
-        # was "admin:acme_order:focus:renew:quick",
         assert (
             'href="/.well-known/peter_sslers/renewal-configuration/%s/new-order"'
             % renewal_configuration_1__id
@@ -8529,7 +8537,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert matched
         assert matched.groups()[0] == "valid"
 
-        # was "admin:acme_order:focus:renew:custom"
         assert (
             'href="/.well-known/peter_sslers/renewal-configuration/%s/new-configuration"'
             % renewal_configuration_1__id
@@ -8899,7 +8906,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = res.forms["form-certificate_signed-ari_check"]
         res2 = form.submit()
         assert res2.status_code == 303
-        print(res2.location)
         assert "?result=success&operation=ari-check" in res2.location
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -9014,8 +9020,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             "admin:acme_challenge:focus:acme_server:sync|json",
             "admin:acme_challenge:focus:acme_server:trigger|json",
             "admin:acme_order:focus:acme_finalize|json",
-            "admin:acme_order:focus:renew:custom|json",
-            "admin:acme_order:focus:renew:quick|json",
             "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
         )
     )
@@ -9189,7 +9193,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert not res.json["AcmeOrder"]["is_can_acme_process"]
         assert not res.json["AcmeOrder"]["is_can_mark_invalid"]
 
-        # was "admin:acme_order:focus:renew:quick|json",
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
             % renewal_configuration_1__id,
@@ -9257,9 +9260,10 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
                 "http-01"
             ]
         )
-        account_key = res.json["AcmeOrder"]["AcmeAccount"]["key_pem_md5"]
+        account_key = res.json["AcmeOrder"]["AcmeAccount"]["AcmeAccountKey"][
+            "key_pem_md5"
+        ]
 
-        # was "admin:acme_order:focus:renew:custom"
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration.json"
             % renewal_configuration_1__id,

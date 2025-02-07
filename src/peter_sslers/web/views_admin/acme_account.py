@@ -207,9 +207,6 @@ class View_New(Handler):
                     )
                 )
 
-                print("==========")
-                print(_dbAcmeAccount.account_url)
-
                 # copy this over to signify a total success
                 dbAcmeAccount = _dbAcmeAccount
 

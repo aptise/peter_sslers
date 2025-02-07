@@ -469,7 +469,7 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
         not_empty=True,
     )
     note = UnicodeString(not_empty=False, if_missing=None)
-    replaces = UnicodeString(not_empty=False, if_missing=None)
+    # replaces = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_RenewalConfig_new(_Form_Schema_Base):

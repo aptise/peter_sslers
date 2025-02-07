@@ -4461,6 +4461,22 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         return self.private_key_cycle_id
 
     @property
+    def replaces_CertificateSigned(self) -> Optional["CertificateSigned"]:
+        if (
+            self.acme_order_id__latest_success
+            and self.acme_order__latest_success.certificate_signed_id
+        ):
+            return self.acme_order__latest_success.certificate_signed
+        return None
+
+    @property
+    def replaces_identifier(self) -> Optional[str]:
+        _replaces_CertificateSigned = self.replaces_CertificateSigned
+        if _replaces_CertificateSigned:
+            return _replaces_CertificateSigned.ari_identifier
+        return None
+
+    @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
@@ -4473,6 +4489,7 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
             "note": self.note,
             "private_key_cycle": self.private_key_cycle,
             "private_key_cycle__effective": self.private_key_cycle__effective,
+            "replaces_identifier": self.replaces_identifier,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 

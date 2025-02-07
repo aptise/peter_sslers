@@ -406,6 +406,7 @@ class View_Focus_New(View_Focus):
             "form_fields": {
                 "note": "A string to associate with the AcmeOrder.",
                 "processing_strategy": "How should the order be processed?",
+                "replaces": "ARI identifier of Certificate to replace. Will be computed if omitted or null.",
             },
             "valid_options": {
                 "processing_strategy": Form_RenewalConfig_new_order.fields[
@@ -431,14 +432,6 @@ class View_Focus_New(View_Focus):
             )
         )
 
-        if (
-            dbRenewalConfiguration.acme_order_id__latest_success
-            and dbRenewalConfiguration.acme_order__latest_success.certificate_signed_id
-        ):
-            self.replaces_CertificateSigned = (
-                dbRenewalConfiguration.acme_order__latest_success.certificate_signed
-            )
-
         if self.request.method == "POST":
             return self._new_order__submit()
         return self._new_order__print()
@@ -454,7 +447,6 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_order.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
-                "replaces_CertificateSigned": self.replaces_CertificateSigned,
             },
             self.request,
         )
@@ -472,16 +464,7 @@ class View_Focus_New(View_Focus):
 
             note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
-            replaces = formStash.results["replaces"]
-            if replaces or self.replaces_CertificateSigned:
-                if not self.replaces_CertificateSigned:
-                    # raises a `FormInvalid`
-                    formStash.fatal_field(
-                        field="replaces", message="Not a valid candidate."
-                    )
-                if replaces != self.replaces_CertificateSigned.ari_identifier:
-                    # raises a `FormInvalid`
-                    formStash.fatal_field(field="replaces", message="Mismatched")
+            # replaces = formStash.results["replaces"]
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
@@ -489,7 +472,7 @@ class View_Focus_New(View_Focus):
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
                     note=note,
-                    replaces=replaces,
+                    replaces=dbRenewalConfiguration.replaces_identifier,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
