@@ -195,11 +195,22 @@ jobs:
         # show a quick status page.
         # the result should be a "{success}" json payload
         # if the result is a 500 error, we have a permissions issue
-        curl -k https://peter:sslers@127.0.0.1/.peter_sslers/nginx/shared_cache/status
+        curl -k https://peter:sslers@localhost/.peter_sslers/nginx/shared_cache/status
 
         # check the debug log, just to be safe
         # this is defined in ./tests/test_configureation/openresty.conf
-        tail -n 200 /home/runner/work/peter_sslers/logs/openresty/error-https.log
+        echo "\n==================\nhttps_localhost-access.log\n"
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-access.log
+
+        echo "\n==================\nhttps_localhost-error.log\n"
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-error.log
+
+        echo "\n==================\nhttps_default-access.log\n"
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-access.log
+
+        echo "\n==================\nhttps_default-error.log\n"
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-error.log
+
 
     - name: Check Versions
       run: |
