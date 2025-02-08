@@ -157,8 +157,6 @@ def url_request(
         # that is caught below
     except Exception as exc:
         # TODO: log this error to the database
-        if cert_utils.TESTING_ENVIRONMENT:
-            raise
         raise errors.AcmeCommunicationError(str(exc))
     try:
         resp_data = json.loads(resp_data)  # try to parse json results

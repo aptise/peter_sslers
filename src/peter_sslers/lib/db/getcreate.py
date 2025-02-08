@@ -326,32 +326,22 @@ def getcreate__AcmeAccount(
     cu_key_technology = None
     key_technology_id: Optional[int] = None
     acckey__spki_sha256 = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-        # validate + grab the technology
-        cu_key_technology = cert_utils.validate_key(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-        if TYPE_CHECKING:
-            assert cu_key_technology is not None
-        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
-            cu_key_technology
-        )
-        assert key_technology_id
+    # validate + grab the technology
+    cu_key_technology = cert_utils.validate_key(
+        key_pem=key_pem,
+    )
+    if TYPE_CHECKING:
+        assert cu_key_technology is not None
+    key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+        cu_key_technology
+    )
+    assert key_technology_id
 
-        # grab the spki
-        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-
-    finally:
-        if _tmpfile is not None:
-            _tmpfile.close()
+    # grab the spki
+    acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+        key_pem=key_pem,
+    )
 
     dbOperationsEvent_AcmeAccount = log__OperationsEvent(
         ctx,
@@ -1111,32 +1101,12 @@ def getcreate__CertificateSigned(
     cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
 
     # make sure the Certificate Elements match
-    _cert_spki = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-        # grab the spki
-        _cert_spki = cert_utils.parse_cert__spki_sha256(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-        )
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
 
-    _pkey_spki = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
-        # grab the spki
-        _pkey_spki = cert_utils.parse_key__spki_sha256(
-            key_pem=dbPrivateKey.key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
+    # grab the spki
+    _cert_spki = cert_utils.parse_cert__spki_sha256(cert_pem=cert_pem)
+
+    # grab the spki
+    _pkey_spki = cert_utils.parse_key__spki_sha256(key_pem=dbPrivateKey.key_pem)
 
     if not all((_cert_spki, _pkey_spki)):
         raise ValueError("Could not compute the Certificate or Key's SPKI")
@@ -1300,32 +1270,19 @@ def getcreate__PrivateKey__by_pem_text(
     )
     if not dbPrivateKey:
         key_technology_id: Optional[int] = None
-        _tmpfile = None
-        try:
-            if cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-            # validate + grab the technology
-            cu_key_technology = cert_utils.validate_key(
-                key_pem=key_pem,
-                key_pem_filepath=_tmpfile.name if _tmpfile else None,
-            )
-            if TYPE_CHECKING:
-                assert cu_key_technology is not None
-            key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
-                cu_key_technology
-            )
-            assert key_technology_id
+        # validate + grab the technology
+        cu_key_technology = cert_utils.validate_key(
+            key_pem=key_pem,
+        )
+        if TYPE_CHECKING:
+            assert cu_key_technology is not None
+        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+            cu_key_technology
+        )
+        assert key_technology_id
 
-            pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-
-        except Exception as exc:  # noqa: F841
-            raise
-        finally:
-            if _tmpfile:
-                _tmpfile.close()
+        pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(key_pem=key_pem)
 
         event_payload_dict = utils.new_event_payload_dict()
         _event_type_id = model_utils.OperationsEventType.from_string(

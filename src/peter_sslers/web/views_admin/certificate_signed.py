@@ -510,31 +510,19 @@ class View_New(Handler):
             if not isinstance(certificate_pem, str):
                 certificate_pem = certificate_pem.decode("utf8")
 
-            _tmpfileCert = None
-            try:
-                if cert_utils.NEEDS_TEMPFILES:
-                    _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
-                _certificate_domain_names = cert_utils.parse_cert__domains(
-                    cert_pem=certificate_pem,
-                    cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
-                )
-                if not _certificate_domain_names:
-                    raise ValueError(
-                        "could not find any domain names in the certificate"
-                    )
-                (
-                    dbUniqueFQDNSet,
-                    is_created_fqdn,
-                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                    self.request.api_context,
-                    _certificate_domain_names,
-                    discovery_type="via upload certificate_signed",
-                )
-            except Exception as exc:  # noqa: F841
-                raise
-            finally:
-                if _tmpfileCert:
-                    _tmpfileCert.close()
+            _certificate_domain_names = cert_utils.parse_cert__domains(
+                cert_pem=certificate_pem,
+            )
+            if not _certificate_domain_names:
+                raise ValueError("could not find any domain names in the certificate")
+            (
+                dbUniqueFQDNSet,
+                is_created_fqdn,
+            ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                self.request.api_context,
+                _certificate_domain_names,
+                discovery_type="via upload certificate_signed",
+            )
 
             (
                 dbCertificateSigned,
