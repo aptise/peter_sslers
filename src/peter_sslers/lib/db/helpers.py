@@ -1,6 +1,5 @@
 # stdlib
 import logging
-from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
@@ -22,14 +21,12 @@ log = logging.getLogger(__name__)
 
 def _certificate_parse_to_record(
     cert_pem: str,
-    cert_pem_filepath: Optional[str],
     dbCertificateSigned: "CertificateSigned",
 ) -> "CertificateSigned":
     """
     helper utility
 
     :param cert_pem: (required) the PEM encoded certificate
-    :param cert_pem_filepath: (optional) the tempfile to a PEM encoded certificate
     :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
 
     :returns: the inbound `CertificateSigned`, updated.
@@ -64,7 +61,6 @@ def _certificate_parse_to_record(
     # everything is in here
     _cert_data = cert_utils.parse_cert(
         cert_pem=cert_pem,
-        cert_pem_filepath=cert_pem_filepath,
     )
     dbCertificateSigned.timestamp_not_before = _cert_data["startdate"]
     dbCertificateSigned.timestamp_not_after = _cert_data["enddate"]

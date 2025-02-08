@@ -1,46 +1,14 @@
 URGENT
 =====
 
+create-cert needs the fresh replaces obj
+
 set the first acme account and first acme server to be the defaults
-
-tempfiles
-
 
 
 bug:
     if we lose a connection during the db save, we lose the ability to finalize/download
 
-
-replaces-
-    lock to acme_server
-
-    @property
-    def replaces_CertificateSigned(self) -> Optional["CertificateSigned"]:
-        if (
-            self.acme_order_id__latest_success
-            and self.acme_order__latest_success.certificate_signed_id
-        ):
-            return self.acme_order__latest_success.certificate_signed
-        return None
-
-    @property
-    def replaces_identifier(self) -> Optional[str]:
-        _replaces_CertificateSigned = self.replaces_CertificateSigned
-        if _replaces_CertificateSigned:
-            return _replaces_CertificateSigned.ari_identifier
-        return None
-
-                            % if RenewalConfiguration.replaces_CertificateSigned:
-                                <code>${RenewalConfiguration.replaces_CertificateSigned.ari_identifier}</code>
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${RenewalConfiguration.replaces_CertificateSigned.id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${RenewalConfiguration.replaces_CertificateSigned.id}
-                                </a>
-                            % endif
-    _
 
 blocking authz
     acme-dns
@@ -79,12 +47,11 @@ run a routine to renew expired certs
     
 
 # script for renewals:
+    routine__renew_expiring
+        will 
+
     spin up a test server (stopable wsgi) that only serves the public routes
 
-# loading of initial CAs
-    revisit
-
-# tool to assign CA roots
 
 
 
@@ -123,6 +90,7 @@ test to property handle:
 	[x] cert renewal
 	[x] autocert
 	[x] certificate if needed
+	Automatic Renewals need to calculate the "repalces" themselvs
 
 * Blocks
     New Order - check to see if there is a live order:

@@ -31,6 +31,7 @@ from pyramid.paster import get_appsettings
 from pyramid.router import Router
 import requests
 import sqlalchemy
+from sqlalchemy.orm import close_all_sessions
 from sqlalchemy.orm import Session
 import transaction
 from typing_extensions import Literal
@@ -944,7 +945,8 @@ def db_unfreeze(
     # drop the embedded app as well
     if testCase:
         if hasattr(testCase, "_pyramid_app") and testCase._pyramid_app:
-            testCase._pyramid_app.registry["dbSession_factory"].close_all()
+            # testCase._pyramid_app.registry["dbSession_factory"].close_all()
+            close_all_sessions()
 
     unfreeze_result = _db_unfreeze__actual(active_filename, savepoint)
     log.info("db_unfreeze[%s]: _db_unfreeze__actual: %s" % (savepoint, unfreeze_result))

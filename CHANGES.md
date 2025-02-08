@@ -72,6 +72,7 @@
             Valid for Accounts
         * Integrate for Domains: Challenged & AuthorizationPotential
         * ari-check support
+        * ari-replaces support
         * CertificateSigned
             [x] new view of INACTIVE+NOT_EXPIRED
             [x] new view of ACTIVE+EXPIRED
@@ -92,7 +93,12 @@
 
     New commandline routines:
         routine__clear_old_ari_checks
+            low-cost cronjob to check ari as necessary
         routine__run_ari_checks
+            low-cost cronjob to check ari as necessary
+        register_acme_servers can be used to :
+            * load additional CAs through a json file
+            * assign TrustedRoots to existing or new CAs
     
     new QuickStart guide
     
@@ -122,6 +128,7 @@
     New Bundled CAs
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
+
 
     Added a "note" to:
         RenewalConfiguration
