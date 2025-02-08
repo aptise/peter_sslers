@@ -1346,6 +1346,7 @@ class AuthenticatedUser(object):
 
         # check that the file is in place
         try:
+            assert ctx.request
             if ctx.request.registry.settings["app_settings"][
                 "precheck_acme_challenges"
             ] and (

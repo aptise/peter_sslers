@@ -272,22 +272,46 @@
                     </tr>
                     <tr>
                         <th>note</th>
-                        <td><code>${AcmeOrder.note or ''}</code>
+                        <td>
+                            % if AcmeOrder.note:
+                                <code>${AcmeOrder.note or ''}</code>
+                            % endif
                         </td>
                     </tr>
                     <tr>
                         <th>replaces</th>
-                        <td><code>${AcmeOrder.replaces or ''}</code>
+                        <td>
+                            % if AcmeOrder.replaces:
+                                <code>${AcmeOrder.replaces or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_signed_id__replaces</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
+                            </a>
                         </td>
                     </tr>
                     <tr>
                         <th>profile</th>
-                        <td><code>${AcmeOrder.profile or ''}</code>
+                        <td>
+                            % if AcmeOrder.profile:
+                                <code>${AcmeOrder.profile or ''}</code>
+                            % endif
                         </td>
                     </tr>
                     <tr>
                         <th>is_save_alternate_chains</th>
-                        <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                        <td>
+                            % if AcmeOrder.is_save_alternate_chains:
+                                <code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                            % endif
                         </td>
                     </tr>
                     <tr>

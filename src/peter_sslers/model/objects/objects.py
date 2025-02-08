@@ -1630,6 +1630,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     replaces: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    certificate_signed_id__replaces: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("certificate_signed.id"),
+        nullable=True,
+    )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
@@ -1639,11 +1644,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_id__renewal_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
-        nullable=True,
-    )
-    certificate_signed_id__renewal_of: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        sa.ForeignKey("certificate_signed.id", use_alter=True),
         nullable=True,
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1677,10 +1677,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_order",
     )
-    certificate_signed__renewal_of = sa_orm_relationship(
+    certificate_signed__replaces = sa_orm_relationship(
         "CertificateSigned",
-        primaryjoin="AcmeOrder.certificate_signed_id__renewal_of==CertificateSigned.id",
-        back_populates="acme_order__renewals",
+        primaryjoin="AcmeOrder.certificate_signed_id__replaces==CertificateSigned.id",
         uselist=False,
     )
     operations_object_events = sa_orm_relationship(
@@ -1976,7 +1975,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "certificate_request_id": self.certificate_request_id,
             "certificate_type": self.certificate_type,
             "certificate_signed_id": self.certificate_signed_id,
-            "certificate_signed_id__renewal_of": self.certificate_signed_id__renewal_of,
+            "certificate_signed_id__replaces": self.certificate_signed_id__replaces,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -3016,6 +3015,20 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     ari_identifier: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
+
+    #
+    # store the ari identifier, in case the old cert is not here
+    # but also store the local ids, so we don't search for them
+    # storage is cheap
+    #
+    ari_identifier__replaces: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    certificate_signed_id__replaces: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("certificate_signed.id"),
+        nullable=True,
+    )
     ari_identifier__replaced_by: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
@@ -3024,6 +3037,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.ForeignKey("certificate_signed.id"),
         nullable=True,
     )
+    #
+    # end duplicated data
+    #
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3046,12 +3062,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
         uselist=False,
         back_populates="certificate_signed",
-    )
-    acme_order__renewals = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id__renewal_of",
-        back_populates="certificate_signed__renewal_of",
-        uselist=True,
     )
     ari_checks = sa_orm_relationship(
         "AriCheck",
@@ -3373,6 +3383,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "ari_check_latest_id": (
                 self.ari_check__latest.id if self.ari_check__latest else None
             ),
+            "ari_identifier": self.ari_identifier,
+            "ari_identifier__replaced_by": self.ari_identifier__replaced_by,
+            "ari_identifier__replaces": self.ari_identifier__replaces,
+            "certificate_signed_id__replaced_by": self.certificate_signed_id__replaced_by,
+            "certificate_signed_id__replaces": self.certificate_signed_id__replaces,
             "certificate_type": self.certificate_type,
             "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
             "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
@@ -3398,6 +3413,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
+        }
+
+    @property
+    def as_json_replaces_candidate(self) -> Dict:
+        return {
+            "id": self.id,
+            "ari_identifier": self.ari_identifier,
+            "cert_pem_md5": self.cert_pem_md5,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
         }
 
 
@@ -4446,22 +4472,6 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         return self.private_key_cycle_id
 
     @property
-    def replaces_CertificateSigned(self) -> Optional["CertificateSigned"]:
-        if (
-            self.acme_order_id__latest_success
-            and self.acme_order__latest_success.certificate_signed_id
-        ):
-            return self.acme_order__latest_success.certificate_signed
-        return None
-
-    @property
-    def replaces_identifier(self) -> Optional[str]:
-        _replaces_CertificateSigned = self.replaces_CertificateSigned
-        if _replaces_CertificateSigned:
-            return _replaces_CertificateSigned.ari_identifier
-        return None
-
-    @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
@@ -4474,7 +4484,6 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
             "note": self.note,
             "private_key_cycle": self.private_key_cycle,
             "private_key_cycle__effective": self.private_key_cycle__effective,
-            "replaces_identifier": self.replaces_identifier,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 

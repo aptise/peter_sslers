@@ -999,7 +999,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
 def register_acme_servers(
     ctx: "ApiContext",
     acme_servers: List[AcmeServerInput],
-    source: Literal["intial", "ser"],
+    source: Literal["initial", "user"],
 ):
     for item in acme_servers:
 

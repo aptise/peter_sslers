@@ -1255,7 +1255,6 @@ class View_New(Handler):
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
                         dbPrivateKey=privateKeySelection.PrivateKey,
                         note=note,
-                        replaces=dbRenewalConfiguration.replaces_identifier,
                     )
 
                 except Exception as exc:

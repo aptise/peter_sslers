@@ -132,16 +132,35 @@
                     <tr>
                         <th>replaces</th>
                         <td>
-                            % if RenewalConfiguration.replaces_CertificateSigned:
-                                <code>${RenewalConfiguration.replaces_CertificateSigned.ari_identifier}</code>
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${RenewalConfiguration.replaces_CertificateSigned.id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${RenewalConfiguration.replaces_CertificateSigned.id}
-                                </a>
-                            % endif
+                            <%
+                                intended_replacement = request.params.get("replaces.id")
+                                if intended_replacement:
+                                    intended_replacement = int(intended_replacement)
+                            %>
+                            % for dbCert in CertificateSigned_replaces_candidates:
+                                <%
+                                    _selected = ""
+                                    if dbCert.id == intended_replacement:
+                                        _selected = ' checked="checked"'
+                                %>
+                            
+                                <div class="radio">
+                                    <label for="replaces-${dbCert.id}">
+                                        <input type="radio" name="replaces"${_selected} id="replaces-${dbCert.id}" value="${dbCert.ari_identifier}"/>
+                                    </label>
+                                    <div class="form-control-static">
+                                        <a
+                                            class="label label-info"
+                                            href="${admin_prefix}/certificate-signed/${dbCert.id}"
+                                        >
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            CertificateSigned-${dbCert.id} | notAfter ${dbCert.timestamp_not_after_isoformat}
+                                        </a>
+                                    </div>
+                                </div>
+
+
+                            % endfor
                         </td>
                     </tr>
                     <tr>

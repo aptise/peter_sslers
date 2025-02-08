@@ -1,4 +1,5 @@
 # stdlib
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -228,6 +229,19 @@ class View_List(Handler):
 class View_Focus(Handler):
     dbRenewalConfiguration: Optional[RenewalConfiguration] = None
     _competing_dbAcmeOrder: Optional[AcmeOrder] = None
+    _dbCertificateSigned_replaces_candidates: Optional[List["CertificateSigned"]] = None
+
+    @property
+    def dbCertificateSigned_replaces_candidates(self) -> List["CertificateSigned"]:
+        assert self.dbRenewalConfiguration
+        if self._dbCertificateSigned_replaces_candidates is None:
+            self._dbCertificateSigned_replaces_candidates = (
+                lib_db.get.get_CertificateSigned_replaces_candidates(
+                    self.request.api_context,
+                    dbRenewalConfiguration=self.dbRenewalConfiguration,
+                )
+            )
+        return self._dbCertificateSigned_replaces_candidates
 
     def _focus(self) -> RenewalConfiguration:
         if self.dbRenewalConfiguration is None:
@@ -266,6 +280,10 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                "CertificateSigned_replaces_candidates": [
+                    i.as_json_replaces_candidate
+                    for i in self.dbCertificateSigned_replaces_candidates
+                ],
             }
         return {
             "project": "peter_sslers",
@@ -447,6 +465,7 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_order.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
+                "CertificateSigned_replaces_candidates": self.dbCertificateSigned_replaces_candidates,
             },
             self.request,
         )
@@ -464,7 +483,10 @@ class View_Focus_New(View_Focus):
 
             note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
-            # replaces = formStash.results["replaces"]
+
+            # this will be validated in do__AcmeV2_AcmeOrder__new
+            replaces = formStash.results["replaces"]
+
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
@@ -472,7 +494,7 @@ class View_Focus_New(View_Focus):
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
                     note=note,
-                    replaces=dbRenewalConfiguration.replaces_identifier,
+                    replaces=replaces,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars

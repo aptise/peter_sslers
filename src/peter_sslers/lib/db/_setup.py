@@ -1,6 +1,7 @@
 # stdlib
 import logging
 from typing import Dict
+from typing import List
 from typing import TYPE_CHECKING
 
 # pypi
@@ -28,7 +29,7 @@ log.setLevel(logging.INFO)
 
 # ------------------------------------------------------------------------------
 
-acme_servers: Dict[int, model_utils.AcmeServerInput] = [
+acme_servers: List[model_utils.AcmeServerInput] = [
     {
         "name": "pebble",
         "directory": "https://127.0.0.1:14000/dir",

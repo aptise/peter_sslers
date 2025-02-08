@@ -131,10 +131,11 @@ def get__AcmeServers__paginated(
     offset: int = 0,
     is_enabled: Optional[bool] = None,
 ) -> List[AcmeServer]:
+    # ascending order
     query = ctx.dbSession.query(AcmeServer)
     if is_enabled is True:
         query = query.filter(AcmeServer.is_enabled.is_(True))
-    query = query.order_by(AcmeServer.id.desc()).limit(limit).offset(offset)
+    query = query.order_by(AcmeServer.id.asc()).limit(limit).offset(offset)
     return query.all()
 
 
@@ -1886,6 +1887,47 @@ def get__CertificateSigned__by_id(
         .first()
     )
     return dbCertificateSigned
+
+
+def get__CertificateSigned__by_ariIdentifier(
+    ctx: "ApiContext", ari_identifier: str
+) -> Optional[CertificateSigned]:
+    dbCertificateSigned = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.ari_identifier == ari_identifier)
+        .first()
+    )
+    return dbCertificateSigned
+
+
+def get_CertificateSigned_replaces_candidates(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: RenewalConfiguration,
+) -> List[CertificateSigned]:
+    """
+    relevant fields:
+        CertificateSigned.ari_identifier__replaced_by
+        CertificateSigned.certificate_signed_id__replaced_by
+    """
+    candidates = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
+        .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
+        .filter(
+            # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
+            # TODO: - could this be for the UniqueFQDNSet
+            AcmeOrder.renewal_configuration_id == dbRenewalConfiguration.id,
+            # !!!: Filter- narrow down certificates that have not yet been replacd
+            CertificateSigned.ari_identifier__replaced_by.is_(None),
+            CertificateSigned.ari_identifier.is_not(None),
+            # !!!: Filter- lock down to the same AcmeServer
+            AcmeAccount.acme_server_id
+            == dbRenewalConfiguration.acme_account.acme_server_id,
+        )
+        .order_by(CertificateSigned.id.desc())
+        .all()
+    )
+    return candidates
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

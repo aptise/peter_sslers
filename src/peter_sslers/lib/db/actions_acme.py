@@ -28,6 +28,7 @@ from .get import get__AcmeAuthorizations__by_ids
 from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
 from .get import get__AcmeOrder__by_RenewalConfigurationId__active
+from .get import get__CertificateSigned__by_ariIdentifier
 from .get import get__PrivateKey__by_id
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
@@ -2516,43 +2517,44 @@ def do__AcmeV2_AcmeOrder__new(
     try:
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        _replaces: Optional[str] = None
         # RenewalConfiguration.acme_order_id__latest_attempt
         # RenewalConfiguration.acme_order_id__latest_success
         # AcmeOrder.acme_order_id__retry_of
         # AcmeOrder.acme_order_id__renewal_of
         # AcmeOrder.certificate_signed_id
-        # AcmeOrder.certificate_signed_id__renewal_of
-        # CertificateSigned.certificate_signed_id__renewal_of
-        if (
-            dbRenewalConfiguration.acme_order_id__latest_success
-            and dbRenewalConfiguration.acme_order__latest_success.certificate_signed_id
-        ):
-            log.info("constructing `replaces`")
-            _replaces = (
-                dbRenewalConfiguration.acme_order__latest_success.certificate_signed.ari_identifier
+        if replaces:
+            dbCertificateSigned_replaces_candidate = (
+                get__CertificateSigned__by_ariIdentifier(ctx, replaces)
             )
-            if replaces:
-                if _replaces != replaces:
-                    raise errors.InvalidRequest("submitted a mismatch for replaces")
+            if not dbCertificateSigned_replaces_candidate:
+                raise errors.InvalidRequest(
+                    "could not find ARI identifier of `replaces`"
+                )
+            if dbCertificateSigned_replaces_candidate.ari_identifier__replaced_by:
+                raise errors.InvalidRequest(
+                    "the `replaces` candidate has already replaced a certificate"
+                )
 
         profile: Optional[str] = dbRenewalConfiguration.acme_profile
         if profile:
             _meta = authenticatedUser.acme_directory.get("meta")
-            _profiles = _meta.get("profiles")
-            if not _profiles:
-                raise errors.InvalidRequest("The AcmeServer no longer offers profiles")
-            if profile not in _profiles:
-                raise errors.InvalidRequest(
-                    "The AcmeServer no longer offers the selected profile"
-                )
+            if _meta:
+                _profiles = _meta.get("profiles")
+                if not _profiles:
+                    raise errors.InvalidRequest(
+                        "The AcmeServer no longer offers profiles"
+                    )
+                if profile not in _profiles:
+                    raise errors.InvalidRequest(
+                        "The AcmeServer no longer offers the selected profile"
+                    )
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
             domain_names=domain_names,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=True,
-            replaces=_replaces,
+            replaces=replaces,
             profile=profile,
         )
         order_url = acmeOrderRfcObject.response_headers["location"]

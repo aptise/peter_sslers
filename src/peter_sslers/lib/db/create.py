@@ -279,10 +279,18 @@ def create__AcmeOrder(
     certificate_url = acme_order_response.get("certificate")
     finalize_url = acme_order_response.get("finalize")
     profile = acme_order_response.get("profile")
-    replaces = acme_order_response.get("replaces")
     timestamp_expires = acme_order_response.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
+
+    replaces = acme_order_response.get("replaces")
+    certificate_signed_id__replaces = None
+    if replaces:
+        dbCertificateSigned_replaces = _get.get__CertificateSigned__by_ariIdentifier(
+            ctx, replaces
+        )
+        if dbCertificateSigned_replaces:
+            certificate_signed_id__replaces = dbCertificateSigned_replaces.id
 
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.is_processing = True
@@ -313,6 +321,7 @@ def create__AcmeOrder(
     dbAcmeOrder.certificate_url = certificate_url
     dbAcmeOrder.profile = profile
     dbAcmeOrder.replaces = replaces
+    dbAcmeOrder.certificate_signed_id__replaces = certificate_signed_id__replaces
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:
@@ -1018,6 +1027,12 @@ def create__CertificateSigned(
         elif dbUniqueFQDNSet.count_domains >= 1:
             dbCertificateSigned.is_single_domain_cert = False
 
+        if dbAcmeOrder and dbAcmeOrder.replaces:
+            dbCertificateSigned.ari_identifier__replaces = dbAcmeOrder.replaces
+            dbCertificateSigned.certificate_signed_id__replaces = (
+                dbAcmeOrder.certificate_signed_id__replaces
+            )
+
         """
         The following are set by `_certificate_parse_to_record`
             :attr:`model.utils.CertificateSigned.timestamp_not_before`
@@ -1042,6 +1057,15 @@ def create__CertificateSigned(
 
         ctx.dbSession.add(dbCertificateSigned)
         ctx.dbSession.flush(objects=[dbCertificateSigned])
+
+        if dbAcmeOrder and dbAcmeOrder.certificate_signed__replaces:
+            dbAcmeOrder.certificate_signed__replaces.ari_identifier__replaced_by = (
+                ari_identifier
+            )
+            dbAcmeOrder.certificate_signed__replaces.certificate_signed_id__replaced_by = (
+                dbCertificateSigned.id
+            )
+            ctx.dbSession.flush(objects=[dbAcmeOrder])
 
         dbCertificateSignedChain = model_objects.CertificateSignedChain()
         dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id

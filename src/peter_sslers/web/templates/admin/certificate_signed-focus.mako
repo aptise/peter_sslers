@@ -184,8 +184,13 @@
                         <th>Renew?</th>
                         <td>
                             % if CertificateSigned.acme_order:
+                                <%
+                                    _replaces = ""
+                                    if not CertificateSigned.ari_identifier__replaced_by:
+                                        _replaces = "?replaces.id=%s" % CertificateSigned.id
+                                %>
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-order"
+                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-order${_replaces}"
                                     title="Renew Quick"
                                 >
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -270,9 +275,39 @@
                     <tr>
                         <th>ARI</th>
                         <td>
-                            <code>${CertificateSigned.ari_identifier}</code>
-                            % if CertificateSigned.is_ari_supported:
-                                <table>
+                            <table class="table table-striped">
+                                <tr>
+                                    <th>ari_identifier</th>
+                                    <td><code>${CertificateSigned.ari_identifier}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>ari_identifier__replaced_by</th>
+                                    <td>
+                                        % if CertificateSigned.ari_identifier__replaced_by:
+                                            <code>${CertificateSigned.ari_identifier__replaced_by}</code>
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Certificate replaced_by</th>
+                                    <td>
+                                        % if CertificateSigned.certificate_signed_id__replaced_by:
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.certificate_signed_id__replaced_by}">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                CertificateSigned-${CertificateSigned.certificate_signed_id__replaced_by}
+                                            </a>
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>ari_identifier__replaces</th>
+                                    <td>
+                                        % if CertificateSigned.ari_identifier__replaces:
+                                            <code>${CertificateSigned.ari_identifier__replaces}</code>
+                                        % endif
+                                    </td>
+                                </tr>
+                                % if CertificateSigned.is_ari_supported:
                                     <tr>
                                         <th>Latest ARI Check</th>
                                         <td>
@@ -326,30 +361,33 @@
                                             </a>
                                         </td>
                                     </tr>
-                                        <tr>
-                                            <th>Manual Check</th>
-                                            <td>
-                                                % if CertificateSigned.is_ari_check_timely:
-                                                    <form
-                                                        action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
-                                                        method="POST"
-                                                        style="display:inline;"
-                                                        id="form-certificate_signed-ari_check"
-                                                    >
-                                                        <button class="btn btn-xs btn-success" type="submit">
-                                                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                                                            Check ARI
-                                                        </button>
-                                                    </form>
-                                                % else:
-                                                    Too Old for ARI Checks
-                                                % endif
-                                            </td>
-                                        </tr>
-                                </table>
-                            % else:
-                                ARI Does not seem possible for this Certificate
-                            % endif
+                                    <tr>
+                                        <th>Manual Check</th>
+                                        <td>
+                                            % if CertificateSigned.is_ari_check_timely:
+                                                <form
+                                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
+                                                    method="POST"
+                                                    style="display:inline;"
+                                                    id="form-certificate_signed-ari_check"
+                                                >
+                                                    <button class="btn btn-xs btn-success" type="submit">
+                                                        <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                                        Check ARI
+                                                    </button>
+                                                </form>
+                                            % else:
+                                                Too Old for ARI Checks
+                                            % endif
+                                        </td>
+                                    </tr>
+                                % else:
+                                    <tr>
+                                        <th>ARI Checks</th>
+                                        <td>ARI Does not seem possible for this Certificate</td>
+                                    </tr>
+                                % endif
+                            </table>
                         </td>
                     </tr>
                     <tr>
