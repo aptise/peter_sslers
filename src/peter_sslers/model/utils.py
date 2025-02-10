@@ -1432,3 +1432,19 @@ class PrivateKeyType(_mixin_mapping):
         "account_weekly",
     )
     _options_calendar_daily = ("global_daily" "account_daily",)
+
+
+class ReplacesType(_mixin_mapping):
+    """
+    What kind of `replaces` is this?
+    """
+
+    _mapping = {
+        1: "AUTOMATIC",
+        2: "MANUAL",
+        3: "RETRY",
+    }
+
+    AUTOMATIC = 1
+    MANUAL = 2
+    RETRY = 3

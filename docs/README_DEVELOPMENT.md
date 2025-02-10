@@ -158,7 +158,7 @@ own process.
 
 Use the test-config file:
 
-    sudo acme-dns -c ./tests/test_configuration/acme-dns.config
+    sudo acme-dns -c ./tests/test_configuration/acme-dns--local.config
 
 
 ## Repository Styleguide

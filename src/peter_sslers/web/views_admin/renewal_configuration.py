@@ -236,7 +236,7 @@ class View_Focus(Handler):
         assert self.dbRenewalConfiguration
         if self._dbCertificateSigned_replaces_candidates is None:
             self._dbCertificateSigned_replaces_candidates = (
-                lib_db.get.get_CertificateSigned_replaces_candidates(
+                lib_db.get.get__CertificateSigned_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
                 )
@@ -424,7 +424,9 @@ class View_Focus_New(View_Focus):
             "form_fields": {
                 "note": "A string to associate with the AcmeOrder.",
                 "processing_strategy": "How should the order be processed?",
-                "replaces": "ARI identifier of Certificate to replace. Will be computed if omitted or null.",
+                "replaces": "ARI identifier of Certificate to replace."
+                "Eligible candidates are available from the focus endpoint."
+                "If omitted, a duplicate cert will be created.",
             },
             "valid_options": {
                 "processing_strategy": Form_RenewalConfig_new_order.fields[
@@ -495,6 +497,12 @@ class View_Focus_New(View_Focus):
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
                     note=note,
                     replaces=replaces,
+                    replaces_type=model_utils.ReplacesType.MANUAL,
+                )
+            except errors.FieldError as exc:
+                return formStash.fatal_field(
+                    field=exc.args[0],
+                    message=exc.args[1],
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars

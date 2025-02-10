@@ -279,6 +279,14 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>replaces_requested</th>
+                        <td>
+                            % if AcmeOrder.replaces__requested:
+                                <code>${AcmeOrder.replaces__requested or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>replaces</th>
                         <td>
                             % if AcmeOrder.replaces:

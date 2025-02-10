@@ -1534,7 +1534,7 @@ class AuthenticatedUser(object):
         update_order_status: Callable,
         csr_pem: str,
         transaction_commit: Optional[bool] = None,
-    ) -> List[str]:
+    ) -> Tuple[Dict, List[str]]:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
@@ -1543,7 +1543,9 @@ class AuthenticatedUser(object):
 
         :param csr_pem: (required) The CertitificateSigningRequest as PEM
 
-        :returns fullchain_pems: an array of the fullchain pems
+        :returns: a tuple in the form of
+            `FinalizeResponse, FullchainPems`
+            `Dict, List[str]`
 
         # get the new certificate
         """
@@ -1620,7 +1622,7 @@ class AuthenticatedUser(object):
             url_certificate,
             is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
         )
-        return fullchain_pems
+        return (acme_order_finalized, fullchain_pems)
 
     def download_certificate(
         self,

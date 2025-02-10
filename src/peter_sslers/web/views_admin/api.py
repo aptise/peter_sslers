@@ -511,7 +511,7 @@ class ViewAdminApi_Domain(Handler):
                     processing_strategy="process_single",
                     acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
-                    replaces=dbRenewalConfiguration.replaces_identifier,
+                    replaces_type=model_utils.ReplacesType.AUTOMATIC,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]

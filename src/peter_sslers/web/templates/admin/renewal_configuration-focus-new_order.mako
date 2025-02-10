@@ -136,7 +136,27 @@
                                 intended_replacement = request.params.get("replaces.id")
                                 if intended_replacement:
                                     intended_replacement = int(intended_replacement)
+                                _selected = ""
+                                if not CertificateSigned_replaces_candidates:
+                                    _selected = ' checked="checked"'
+                                else:
+                                    _candidate_ids = [i.id for i in CertificateSigned_replaces_candidates]
+                                    if (not intended_replacement) or (intended_replacement not in _candidate_ids):
+                                        intended_replacement = _candidate_ids[-1]
                             %>
+                            <div class="radio">
+                                <div class="form-control-static">
+                                    <label for="replaces-none">
+                                        <input type="radio" name="replaces"${_selected} id="replaces-none" value=""/>
+                                    </label>
+                                    <span
+                                        class="label label-info"
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        New Order/Lineage
+                                    </span>
+                                </div>
+                            </div>
                             % for dbCert in CertificateSigned_replaces_candidates:
                                 <%
                                     _selected = ""
@@ -145,10 +165,10 @@
                                 %>
                             
                                 <div class="radio">
-                                    <label for="replaces-${dbCert.id}">
-                                        <input type="radio" name="replaces"${_selected} id="replaces-${dbCert.id}" value="${dbCert.ari_identifier}"/>
-                                    </label>
                                     <div class="form-control-static">
+                                        <label for="replaces-${dbCert.id}">
+                                            <input type="radio" name="replaces"${_selected} id="replaces-${dbCert.id}" value="${dbCert.ari_identifier}"/>
+                                        </label>
                                         <a
                                             class="label label-info"
                                             href="${admin_prefix}/certificate-signed/${dbCert.id}"
@@ -158,8 +178,6 @@
                                         </a>
                                     </div>
                                 </div>
-
-
                             % endfor
                         </td>
                     </tr>

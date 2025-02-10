@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 # pypi
 from dateutil import parser as dateutil_parser
+from typing_extensions import Literal
 
 # localapp
 from .get import get__AcmeAccount__GlobalDefault
@@ -403,6 +404,32 @@ def update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
         ctx.dbSession.flush(objects=_updates)
         return True
     return False
+
+
+def update_AcmeOrder_finalized(
+    ctx: "ApiContext",
+    dbAcmeOrder: "AcmeOrder",
+    finalize_response: Dict,
+) -> Literal[True]:
+    """
+    This will only deactivate the authorization blocks...
+    """
+
+    _ari_replaces = finalize_response.get("replaces", None)
+    if _ari_replaces:
+        dbAcmeOrder.replaces = _ari_replaces
+        ctx.dbSession.flush(
+            objects=[
+                dbAcmeOrder,
+            ]
+        )
+
+    # deactivate any authz potentials
+    update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+        ctx,
+        dbAcmeOrder=dbAcmeOrder,
+    )
+    return True
 
 
 def update_AcmeServer__activate_default(

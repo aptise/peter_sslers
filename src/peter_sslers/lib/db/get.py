@@ -1900,7 +1900,7 @@ def get__CertificateSigned__by_ariIdentifier(
     return dbCertificateSigned
 
 
-def get_CertificateSigned_replaces_candidates(
+def get__CertificateSigned_replaces_candidates(
     ctx: "ApiContext",
     dbRenewalConfiguration: RenewalConfiguration,
 ) -> List[CertificateSigned]:
@@ -1914,15 +1914,25 @@ def get_CertificateSigned_replaces_candidates(
         .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
         .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
         .filter(
-            # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
-            # TODO: - could this be for the UniqueFQDNSet
-            AcmeOrder.renewal_configuration_id == dbRenewalConfiguration.id,
+            sqlalchemy.or_(
+                sqlalchemy.and_(
+                    # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
+                    # TODO: - could this be for the UniqueFQDNSet
+                    AcmeOrder.renewal_configuration_id
+                    == dbRenewalConfiguration.id,
+                ),
+                sqlalchemy.and_(
+                    CertificateSigned.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id
+                ),
+            ),
             # !!!: Filter- narrow down certificates that have not yet been replacd
             CertificateSigned.ari_identifier__replaced_by.is_(None),
             CertificateSigned.ari_identifier.is_not(None),
             # !!!: Filter- lock down to the same AcmeServer
             AcmeAccount.acme_server_id
             == dbRenewalConfiguration.acme_account.acme_server_id,
+            # !!!: Filter- the Cert needs to be timely
+            CertificateSigned.timestamp_not_after > ctx.timestamp,
         )
         .order_by(CertificateSigned.id.desc())
         .all()

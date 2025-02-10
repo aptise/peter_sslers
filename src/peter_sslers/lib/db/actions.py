@@ -744,7 +744,7 @@ def api_domains__certificate_if_needed(
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey,
-                    replaces=dbRenewalConfiguration.replaces_identifier,
+                    replaces_type=model_utils.ReplacesType.AUTOMATIC,
                 )
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder

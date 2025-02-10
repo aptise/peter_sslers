@@ -616,7 +616,7 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations and False:
+            if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
                 raise errors.InvalidRequest(
                     "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
                 )

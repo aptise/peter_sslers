@@ -284,6 +284,18 @@ class InvalidRequest(_UrlSafeException):
     pass
 
 
+class FieldError(ValueError):
+    """
+    raised when an issue is with a known field
+    this is useful for dealing with forms
+
+    field = args[0]
+    error = args[1]
+    """
+
+    pass
+
+
 class UnsupportedKeyTechnology(Exception):
     pass
 

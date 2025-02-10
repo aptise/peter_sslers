@@ -73,6 +73,8 @@
         * Integrate for Domains: Challenged & AuthorizationPotential
         * ari-check support
         * ari-replaces support
+            * Manual Renewals can select a replaces
+            * Automatic renewals will select the eldest
         * CertificateSigned
             [x] new view of INACTIVE+NOT_EXPIRED
             [x] new view of ACTIVE+EXPIRED

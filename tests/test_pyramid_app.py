@@ -214,7 +214,9 @@ def make_one__AcmeAccount__pem(
 @routes_tested("admin:acme_order:new:freeform|json")
 def make_one__AcmeOrder(
     testCase: unittest.TestCase,
-    domain_names_http01: str,
+    domain_names_http01: Optional[str] = None,
+    domain_names_dns01: Optional[str] = None,
+    processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
     res = testCase.testapp.get(
@@ -226,8 +228,11 @@ def make_one__AcmeOrder(
     form["account_key_option"].force_value("account_key_global_default")
     form["private_key_option"].force_value("account_default")
     form["private_key_cycle"].force_value("account_default")
-    form["domain_names_http01"] = domain_names_http01
-    form["processing_strategy"].force_value("create_order")
+    if domain_names_http01:
+        form["domain_names_http01"] = domain_names_http01
+    if domain_names_dns01:
+        form["domain_names_dns01"] = domain_names_dns01
+    form["processing_strategy"].force_value(processing_strategy)
     res2 = form.submit()
     assert res2.status_code == 303
 
@@ -10355,6 +10360,157 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "result" in res.json
         assert res.json["result"] == "success"
         assert "Domain" in res.json
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "Not Running Against: acme-dns")
+    @under_pebble
+    def test_replaces(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeOrder.test_replaces
+
+        Test to handle `replaces`:
+          1 FAIL replace an unknown certificate
+          2 PASS replace a cert from the same renewal
+          3 FAIL replace a replaced certificate
+          4 PASS replace a cert from a different renewal with the same fqdn set
+          5 FAIL replace a cert from a different renewal with a different fqdn set
+          6 PASS replace an imported cert with the same fqdn set
+          7 FAIL replace an imported cert with a different fqdn set
+
+        These tests will use the following domains:
+            a.example.com
+            b.example.com
+        Uploadable certs for these domains are in the test-data folder
+        """
+
+        def _upload_pebble_cert(pebble_cert_id: int) -> Tuple[int, str]:
+            # returns a Tuple[id, ari_identifier]
+            # upload a test cert
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/certificate-signed/upload.json", status=200
+            )
+            form = {}
+            form["certificate_file"] = Upload(
+                self._filepath_testfile("pebble-certs/cert%s.pem" % pebble_cert_id)
+            )
+            form["chain_file"] = Upload(
+                self._filepath_testfile("pebble-certs/chain%s.pem" % pebble_cert_id)
+            )
+            form["private_key_file_pem"] = Upload(
+                self._filepath_testfile("pebble-certs/privkey%s.pem" % pebble_cert_id)
+            )
+            res2 = self.testapp.post(
+                "/.well-known/peter_sslers/certificate-signed/upload.json", form
+            )
+            assert res2.status_code == 200
+            assert res2.json["result"] == "success"
+            assert res2.json["CertificateSigned"]["created"] in (True, False)
+            certificate_id = res2.json["CertificateSigned"]["id"]
+            res3 = self.testapp.get(
+                "/.well-known/peter_sslers/certificate-signed/%s.json" % certificate_id,
+                status=200,
+            )
+            assert "CertificateSigned" in res3.json
+            ari_identifier = res3.json["CertificateSigned"]["ari_identifier"]
+            return (certificate_id, ari_identifier)
+
+        def _make_one__AcmeOrder_Renewal(
+            _dbAcmeOrder: model_objects.AcmeOrder,
+            _replaces: Optional[str] = None,
+            _expected_result: Literal["FAIL", "PASS"] = None,
+        ):
+            _res = self.testapp.get(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                status=200,
+            )
+            _post_args = {
+                "processing_strategy": "process_single",
+            }
+            if _replaces:
+                _post_args["replaces"] = _replaces
+            _res2 = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                _post_args,
+            )
+            assert _res2.status_code == 200
+            if _expected_result == "FAIL":
+                assert _res2.json["result"] == "error"
+            elif _expected_result == "PASS":
+                assert _res2.json["result"] == "success"
+
+        # prep with some orders of different lineage
+        dbAcmeOrder_1 = make_one__AcmeOrder(
+            self,
+            domain_names_http01="a.example.com",
+            processing_strategy="process_single",
+        )
+        # same UniqueFQDNSet, different UniquelyChallengedFqdnSet
+        dbAcmeOrder_2 = make_one__AcmeOrder(
+            self,
+            domain_names_dns01="a.example.com",
+            processing_strategy="process_single",
+        )
+        # different domains
+        dbAcmeOrder_3 = make_one__AcmeOrder(
+            self,
+            domain_names_http01="b.example.com",
+            processing_strategy="process_single",
+        )
+
+        # we need ARI that is incompatible
+        # 1=a.example.com
+        uploaded_pebble_cert_data = _upload_pebble_cert(1)
+
+        # note: TestCase 1- FAIL replace an unknown `replaces`
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1, _replaces="fake.ari", _expected_result="FAIL"
+        )
+
+        # note: TestCase 2- PASS replace a cert from the same renewal configuration
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
+            _expected_result="PASS",
+        )
+
+        # note: TestCase 3- FAIL replace a replaced certificate
+        # the replacement was just consumed in test 3
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
+            _expected_result="FAIL",
+        )
+
+        # note: TestCase 4- PASS replace a cert from a different config with the same fqdn set
+        # dbAcmeOrder_2 has the same fqdns, but a different config due to the dns challenges
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_2.certificate_signed.ari_identifier,
+            _expected_result="PASS",
+        )
+
+        # note: TestCase 5- FAIL replace a cert from a different renewal with a different fqdn set
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_3.certificate_signed.ari_identifier,
+            _expected_result="FAIL",
+        )
+
+        # note: TestCase 6- PASS replace an imported cert with the same fqdn set
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=uploaded_pebble_cert_data[1],
+            _expected_result="PASS",
+        )
+
+        # note: TestCase 7- FAIL replace an imported cert with a different fqdn set
+        _result = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_3,
+            _replaces=uploaded_pebble_cert_data[1],
+            _expected_result="Fail",
+        )
 
 
 class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):

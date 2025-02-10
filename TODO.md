@@ -1,8 +1,6 @@
 URGENT
 =====
 
-create-cert needs the fresh replaces obj
-
 set the first acme account and first acme server to be the defaults
 
 
@@ -53,10 +51,10 @@ run a routine to renew expired certs
     spin up a test server (stopable wsgi) that only serves the public routes
 
 
-
-
 test to property handle:
     sync acme challenge against a 404 challenge
+
+audit exception classes and usage
 
 
 
@@ -90,7 +88,7 @@ test to property handle:
 	[x] cert renewal
 	[x] autocert
 	[x] certificate if needed
-	Automatic Renewals need to calculate the "repalces" themselvs
+	Automatic Renewals need to calculate the "replaces" themselvs
 
 * Blocks
     New Order - check to see if there is a live order:
@@ -104,6 +102,7 @@ test to property handle:
     dev docs
     tests    
 
+Test the scripts
 
 
 

@@ -150,7 +150,7 @@ def create__AcmeServerConfiguration(
 
 def create__AcmeOrder(
     ctx: "ApiContext",
-    acme_order_response: Dict,  # usually wrapped by "AcmeOrderRFC"
+    acme_order_rfc__original: Dict,  # usually wrapped by "AcmeOrderRFC"
     acme_order_type_id: int,
     acme_order_processing_status_id: int,
     acme_order_processing_strategy_id: int,
@@ -179,7 +179,7 @@ def create__AcmeOrder(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
 
-    :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
+    :param acme_order_rfc__original: (required) dictionary object from the server, representing an ACME payload
     :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrderType`
     :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
@@ -213,9 +213,9 @@ def create__AcmeOrder(
     if certificate_type_id not in model_utils.CertificateType._options_AcmeOrder_id:
         raise ValueError("Unsupported `certificate_type_id`: %s" % certificate_type_id)
 
-    if acme_order_response is None:
+    if acme_order_rfc__original is None:
         raise ValueError(
-            "`create__AcmeOrder` must be invoked with a `acme_order_response`."
+            "`create__AcmeOrder` must be invoked with a `acme_order_rfc__original`."
         )
 
     if not dbAcmeAccount:
@@ -274,16 +274,16 @@ def create__AcmeOrder(
 
     # acme_status_order_id = model_utils.Acme_Status_Order.ID_DEFAULT
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-        acme_order_response["status"]
+        acme_order_rfc__original["status"]
     )
-    certificate_url = acme_order_response.get("certificate")
-    finalize_url = acme_order_response.get("finalize")
-    profile = acme_order_response.get("profile")
-    timestamp_expires = acme_order_response.get("expires")
+    certificate_url = acme_order_rfc__original.get("certificate")
+    finalize_url = acme_order_rfc__original.get("finalize")
+    profile = acme_order_rfc__original.get("profile")
+    timestamp_expires = acme_order_rfc__original.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
 
-    replaces = acme_order_response.get("replaces")
+    replaces = acme_order_rfc__original.get("replaces")
     certificate_signed_id__replaces = None
     if replaces:
         dbCertificateSigned_replaces = _get.get__CertificateSigned__by_ariIdentifier(
@@ -320,7 +320,7 @@ def create__AcmeOrder(
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
     dbAcmeOrder.profile = profile
-    dbAcmeOrder.replaces = replaces
+    dbAcmeOrder.replaces__requested = replaces
     dbAcmeOrder.certificate_signed_id__replaces = certificate_signed_id__replaces
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
@@ -365,7 +365,7 @@ def create__AcmeOrder(
             )
 
     # now loop the authorization URLs to create stub records for this order
-    for authorization_url in acme_order_response.get("authorizations", []):
+    for authorization_url in acme_order_rfc__original.get("authorizations", []):
         (
             _dbAuthPlacholder,
             _is_auth_created,

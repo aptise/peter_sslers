@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
+from typing_extensions import Literal
 
 # localapp
 from .create import create__AcmeOrder
@@ -29,6 +30,7 @@ from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
 from .get import get__AcmeOrder__by_RenewalConfigurationId__active
 from .get import get__CertificateSigned__by_ariIdentifier
+from .get import get__CertificateSigned_replaces_candidates
 from .get import get__PrivateKey__by_id
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
@@ -42,6 +44,7 @@ from .logger import log__OperationsEvent
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
+from .update import update_AcmeOrder_finalized
 from .update import update_AcmeServer_profiles
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
@@ -1937,7 +1940,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # sign and download
         try:
-            fullchain_pems = authenticatedUser.acme_order_finalize(
+            (finalize_response, fullchain_pems) = authenticatedUser.acme_order_finalize(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=updated_AcmeOrder_status,
@@ -1959,13 +1962,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
         if not len(fullchain_pems):
             raise ValueError("Could not load fullchains")
 
-        # deactivate any authz potentials
-        update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+        update_AcmeOrder_finalized(
             ctx,
             dbAcmeOrder=dbAcmeOrder,
+            finalize_response=finalize_response,
         )
-
-        # import pdb; pdb.set_trace()
 
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
@@ -2296,6 +2297,13 @@ def do__AcmeV2_AcmeOrder__new(
     # Optionals
     note: Optional[str] = None,
     replaces: Optional[str] = None,
+    replaces_type: Optional[
+        Literal[
+            model_utils.ReplacesType.AUTOMATIC,
+            model_utils.ReplacesType.MANUAL,
+            model_utils.ReplacesType.RETRY,
+        ]
+    ] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
@@ -2306,6 +2314,8 @@ def do__AcmeV2_AcmeOrder__new(
     :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
     :param note: (optional)  A string to be associated with this AcmeOrder
     :param replaces: (optional)  ARI idenfifier of to-be-replaced cert
+    :param replaces_type: (optional) A :class:`model.model_utils.ReplacesType` object to use for this order;
+         required if `replaces` is present
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
         this may be a placeholder, or a specific key
     :param dbAcmeOrder_retry_of: (Optional) A :class:`model.objects.AcmeOrder` object to associate with this order.  Everything should be pre-computed.
@@ -2346,6 +2356,48 @@ def do__AcmeV2_AcmeOrder__new(
             or (dbPrivateKey != dbAcmeOrder_retry_of.private_key)
         ):
             raise ValueError("Retry invokved incorrectly.")
+
+    # How to handle `replaces_type`
+    # * MANUAL - requires `replaces`
+    # * RETRY - require `replaces`
+    # * AUTOMATIC - no `replaces`
+    # How to handle `replaces`:
+    # * present - `MANUAL` required
+    # * missing - allowed for AUTOATIC/RETRY
+    if replaces_type:
+        if replaces_type in (
+            model_utils.ReplacesType.MANUAL,
+            model_utils.ReplacesType.RETRY,
+        ):
+            if not replaces:
+                raise ValueError(
+                    "`replaces_type` requires a `replaces` when `MANUAL` or `RETRY`."
+                )
+            if replaces_type == model_utils.ReplacesType.RETRY:
+                if not dbAcmeOrder_retry_of:
+                    raise ValueError(
+                        "`replaces_type` requires a `dbAcmeOrder_retry_of` when `RETRY`."
+                    )
+                if replaces != dbAcmeOrder_retry_of.replaces__requested:
+                    raise ValueError(
+                        "`replaces` differrs from `dbAcmeOrder_retry_of.replaces__requested` on `RETRY`."
+                    )
+        elif replaces_type == model_utils.ReplacesType.AUTOMATIC:
+            if replaces:
+                raise ValueError("`replaces_type` forbids `replaces` when `AUTOMATIC`.")
+
+            _candidate_certs = get__CertificateSigned_replaces_candidates(
+                ctx,
+                dbRenewalConfiguration=dbRenewalConfiguration,
+            )
+            if _candidate_certs:
+                # use the oldest cert's ARI identifier
+                replaces = _candidate_certs[-1].ari_identifier
+        else:
+            raise ValueError("Unknown `replaces_type`")
+    else:
+        if replaces:
+            raise ValueError("`replaces_type` is required if `replaces` is submitted")
 
     #
     #   Figure out the PrivateKeyCycle
@@ -2505,34 +2557,78 @@ def do__AcmeV2_AcmeOrder__new(
             )
 
     # if we're doing a retry, we might have already generated a key, so don't test this
-    if False and dbAcmeOrder_retry_of:
-        # print(private_key_strategy_id__requested, dbAcmeOrder_retry_of.private_key_strategy_id__requested)
-        assert (
-            private_key_strategy_id__requested
-            == dbAcmeOrder_retry_of.private_key_strategy_id__requested
-        )
+    # if dbAcmeOrder_retry_of:
+    #    # print(private_key_strategy_id__requested, dbAcmeOrder_retry_of.private_key_strategy_id__requested)
+    #    assert (
+    #        private_key_strategy_id__requested
+    #        == dbAcmeOrder_retry_of.private_key_strategy_id__requested
+    #    )
 
     dbAcmeOrder: Optional["AcmeOrder"] = None
     dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
 
-        # RenewalConfiguration.acme_order_id__latest_attempt
-        # RenewalConfiguration.acme_order_id__latest_success
-        # AcmeOrder.acme_order_id__retry_of
-        # AcmeOrder.acme_order_id__renewal_of
-        # AcmeOrder.certificate_signed_id
+        # check here, because we don't want to create a server order with invalid options
         if replaces:
+            # VALIDATE the `replaces` candidate
+
+            # Test 1 - Does the `replaces` exist?
             dbCertificateSigned_replaces_candidate = (
                 get__CertificateSigned__by_ariIdentifier(ctx, replaces)
             )
             if not dbCertificateSigned_replaces_candidate:
-                raise errors.InvalidRequest(
-                    "could not find ARI identifier of `replaces`"
+                raise errors.FieldError(
+                    "replaces", "could not find ARI identifier of `replaces`"
                 )
+
+            # Test 2 -  has the candidate already been replaced?
             if dbCertificateSigned_replaces_candidate.ari_identifier__replaced_by:
-                raise errors.InvalidRequest(
-                    "the `replaces` candidate has already replaced a certificate"
+                raise errors.FieldError(
+                    "replaces",
+                    "the `replaces` candidate has already replaced a certificate",
+                )
+
+            # Test 3 - is the candidate viable based on lineage?
+            if dbCertificateSigned_replaces_candidate.acme_order:
+                # Certs that are Managed through this application have a straightforward check
+                # was the candidate issued by this renewal configuration?
+                if (
+                    dbCertificateSigned_replaces_candidate.acme_order.renewal_configuration_id
+                    == dbRenewalConfiguration.id
+                ):
+                    # the certs have the same lineage
+                    pass
+                else:
+                    # if this is from another renewal configuration, the UniqueFQDNSet must match
+                    if (
+                        dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
+                        != dbRenewalConfiguration.unique_fqdn_set_id
+                    ):
+                        raise errors.FieldError(
+                            "replaces",
+                            "the `replaces` candidate covers a different set of domains",
+                        )
+            else:
+                # Certs that were imported,
+                # we can allow these as a renewal candidate if they cover the same domains
+                if (
+                    dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
+                    != dbRenewalConfiguration.unique_fqdn_set_id
+                ):
+                    raise errors.FieldError(
+                        "replaces",
+                        "the `replaces` candidate covers a different set of domains",
+                    )
+
+            # Test 4 -  ensure it is timely
+            if (
+                dbCertificateSigned_replaces_candidate.timestamp_not_after
+                > ctx.timestamp
+            ):
+                raise errors.FieldError(
+                    "replaces",
+                    "the `replaces` candidate has expired",
                 )
 
         profile: Optional[str] = dbRenewalConfiguration.acme_profile
@@ -2541,12 +2637,13 @@ def do__AcmeV2_AcmeOrder__new(
             if _meta:
                 _profiles = _meta.get("profiles")
                 if not _profiles:
-                    raise errors.InvalidRequest(
-                        "The AcmeServer no longer offers profiles"
+                    raise errors.FieldError(
+                        "profile", "The AcmeServer no longer offers profiles"
                     )
                 if profile not in _profiles:
-                    raise errors.InvalidRequest(
-                        "The AcmeServer no longer offers the selected profile"
+                    raise errors.FieldError(
+                        "profile",
+                        "The AcmeServer no longer offers the selected profile",
                     )
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
@@ -2577,7 +2674,7 @@ def do__AcmeV2_AcmeOrder__new(
             # replaces and profile will be in the RFC object
             dbAcmeOrder = create__AcmeOrder(
                 ctx,
-                acme_order_response=acmeOrderRfcObject.rfc_object,
+                acme_order_rfc__original=acmeOrderRfcObject.rfc_object,
                 acme_order_type_id=acme_order_type_id,
                 acme_order_processing_status_id=acme_order_processing_status_id,
                 acme_order_processing_strategy_id=acme_order_processing_strategy_id,
@@ -2728,6 +2825,7 @@ def do__AcmeV2_AcmeOrder__retry(
         dbPrivateKey=dbAcmeOrder.private_key,
         dbAcmeOrder_retry_of=dbAcmeOrder,
         replaces=dbAcmeOrder.replaces,
+        replaces_type=model_utils.ReplacesType.RETRY,
     )
 
 

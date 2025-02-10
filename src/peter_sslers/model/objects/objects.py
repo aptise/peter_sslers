@@ -59,7 +59,6 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     __table_args__ = (
         sa.Index(
             "uidx_acme_account_default",
-            "id",
             "is_global_default",
             unique=True,
         ),
@@ -1629,6 +1628,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    replaces__requested: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     replaces: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     certificate_signed_id__replaces: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
@@ -2129,7 +2129,6 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         ),
         sa.Index(
             "uidx_acme_server_default",
-            "id",
             "is_default",
             unique=True,
         ),

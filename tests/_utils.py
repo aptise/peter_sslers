@@ -2131,7 +2131,7 @@ class AppTest(AppTestCore):
                     )
                     _dbAcmeOrder = db.create.create__AcmeOrder(
                         self.ctx,
-                        acme_order_response=_acme_order_response,
+                        acme_order_rfc__original=_acme_order_response,
                         acme_order_type_id=_acme_order_type_id,
                         acme_order_processing_status_id=_acme_order_processing_status_id,
                         acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
