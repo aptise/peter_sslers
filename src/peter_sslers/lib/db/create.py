@@ -986,6 +986,7 @@ def create__CertificateSigned(
     except Exception as exc:
         log.critical("Exception `cert_utils.ari_construct_identifier`")
         log.critical(str(exc))
+        log.critical(str(cert_pem))
         pass
 
     # ok, now pull the dates off the cert

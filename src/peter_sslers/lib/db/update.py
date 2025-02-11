@@ -174,6 +174,11 @@ def update_AcmeAccount__set_global_default(
     formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
     if formerDefaultAccount:
         formerDefaultAccount.is_global_default = None
+        ctx.dbSession.flush(
+            objects=[
+                formerDefaultAccount,
+            ]
+        )
         alt_info["event_payload_dict"] = {
             "acme_account_id.former_default": formerDefaultAccount.id,
         }
@@ -202,6 +207,11 @@ def update_AcmeAccount__set_global_backup(
     formerBackupAccount = get__AcmeAccount__GlobalBackup(ctx)
     if formerBackupAccount:
         formerBackupAccount.is_global_backup = None
+        ctx.dbSession.flush(
+            objects=[
+                formerBackupAccount,
+            ]
+        )
         alt_info["event_payload_dict"] = {
             "acme_account_id.former_backup": formerBackupAccount.id,
         }
@@ -341,11 +351,15 @@ def update_AcmeDnsServer__set_global_default(
     formerDefault = get__AcmeDnsServer__GlobalDefault(ctx)
     if formerDefault:
         formerDefault.is_global_default = None
+        ctx.dbSession.flush(
+            objects=[
+                formerDefault,
+            ]
+        )
         alt_info["event_payload_dict"] = {
             "acme_dns_server_id.former_default": formerDefault.id,
         }
         alt_info["event_alt"] = ("AcmeDnsServer__mark__notdefault", formerDefault)
-        ctx.dbSession.flush(objects=[formerDefault])
     dbAcmeDnsServer.is_global_default = True
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     event_status = "AcmeDnsServer__mark__default"
@@ -462,27 +476,6 @@ def update_AcmeOrder_finalized(
     return True
 
 
-def update_AcmeServer__activate_default(
-    ctx: "ApiContext",
-    dbAcmeServer_new: "AcmeServer",
-) -> str:
-    _objs = [
-        dbAcmeServer_new,
-    ]
-    dbAcmeServer_default = get__AcmeServer__default(ctx)
-    if dbAcmeServer_default:
-        _objs.append(dbAcmeServer_default)
-        if dbAcmeServer_default.id != dbAcmeServer_new.id:
-            dbAcmeServer_default.is_default = None
-    if not dbAcmeServer_new.is_default:
-        dbAcmeServer_new.is_default = True
-    if not dbAcmeServer_new.is_enabled:
-        dbAcmeServer_new.is_enabled = True
-    ctx.dbSession.flush(_objs)
-    event_status = "AcmeServer__activate_default"
-    return event_status
-
-
 def update_AcmeServer__is_unlimited_pending_authz(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
@@ -503,6 +496,31 @@ def update_AcmeServer__is_unlimited_pending_authz(
         dbAcmeServer.is_unlimited_pending_authz = False
         event_status = "AcmeServer__mark__is_unlimited_authz_false"
     ctx.dbSession.flush([dbAcmeServer])
+    return event_status
+
+
+def update_AcmeServer__activate_default(
+    ctx: "ApiContext",
+    dbAcmeServer_new: "AcmeServer",
+) -> str:
+    """
+    TODO: reintegrate
+    this function was used to activate a default server based on the config
+    """
+    _objs = [
+        dbAcmeServer_new,
+    ]
+    dbAcmeServer_default = get__AcmeServer__default(ctx)
+    if dbAcmeServer_default:
+        _objs.append(dbAcmeServer_default)
+        if dbAcmeServer_default.id != dbAcmeServer_new.id:
+            dbAcmeServer_default.is_default = None
+    if not dbAcmeServer_new.is_default:
+        dbAcmeServer_new.is_default = True
+    if not dbAcmeServer_new.is_enabled:
+        dbAcmeServer_new.is_enabled = True
+    ctx.dbSession.flush(_objs)
+    event_status = "AcmeServer__activate_default"
     return event_status
 
 
