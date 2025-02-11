@@ -906,13 +906,12 @@ class FunctionalTests_AcmeAccount(AppTest):
             "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "global_backup"},
         )
-        import pdb
-
-        pdb.set_trace()
         assert res.status_code == 200
-        assert "AcmeAccount" in res.json
-        assert res.json["AcmeAccount"]["id"] == focus_id
-        assert res.json["AcmeAccount"]["is_global_default"] is True
+        assert res.json["result"] == "error"
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Account is global default."
+        )
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, status=200

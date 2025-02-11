@@ -306,6 +306,16 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
         model_utils.AcmeAccountKeyOption.options_basic,
         not_empty=True,
     )
+    # inherited:
+    # account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
+    # account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
+    account_key_option_backup = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic_backup,
+        not_empty=True,
+    )
+    account_key_global_backup = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing_backup = UnicodeString(not_empty=False, if_missing=None)
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle = OneOf(

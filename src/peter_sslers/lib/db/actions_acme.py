@@ -2353,6 +2353,7 @@ def do__AcmeV2_AcmeOrder__new(
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
+    account_selection: Optional[Literal["primary", "backup"]] = None
 
     # re-use these related objects
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
@@ -2415,6 +2416,9 @@ def do__AcmeV2_AcmeOrder__new(
     else:
         if replaces:
             raise ValueError("`replaces_type` is required if `replaces` is submitted")
+        # without a replaces/replaces_type, we assume to be making a `primary` cert
+        # the backup can be generated afterwards
+        account_selection = "primary"
 
     #
     #   Figure out the PrivateKeyCycle
@@ -2585,8 +2589,6 @@ def do__AcmeV2_AcmeOrder__new(
     dbAcmeOrder: Optional["AcmeOrder"] = None
     dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
-
-        account_selection: Optional[Literal["primary", "backup"]] = None
 
         # check here, because we don't want to create a server order with invalid options
         if replaces:
