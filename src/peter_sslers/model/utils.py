@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -277,6 +278,8 @@ class _OperationsUnified(_mixin_mapping):
         137: "AcmeAccount__edit_AcmeAccountKey",
         138: "AcmeAccount__edit__private_key_technology",
         139: "AcmeAccount__mark__deactivated",
+        140: "AcmeAccount__mark__backup",
+        141: "AcmeAccount__mark__notbackup",
         150: "AcmeAccountKey__insert",
         151: "AcmeAccountKey__create",
         152: "AcmeAccountKey__mark__inactive",
@@ -717,8 +720,21 @@ class AcmeAccountKeyOption(object):
         "account_key_existing",
     )
 
+    options_basic_backup = (
+        "none",
+        "account_key_global_backup",
+        "account_key_existing",
+    )
+
     options_basic_reuse = (
         "account_key_global_default",
+        "account_key_existing",
+        "account_key_reuse",
+    )
+
+    options_basic_backup_reuse = (
+        "none",
+        "account_key_global_backup",
         "account_key_existing",
         "account_key_reuse",
     )
@@ -912,6 +928,11 @@ class CertificateType(_mixin_mapping):
     }
 
     _options_AcmeOrder_id = [2, 3]
+
+
+class CertificateType_Enum(Enum):
+    MANAGED_PRIMARY = CertificateType.MANAGED_PRIMARY
+    MANAGED_BACKUP = CertificateType.MANAGED_BACKUP
 
 
 class CoverageAssuranceEventType(_mixin_mapping):
@@ -1448,3 +1469,9 @@ class ReplacesType(_mixin_mapping):
     AUTOMATIC = 1
     MANUAL = 2
     RETRY = 3
+
+
+class ReplacesType_Enum(Enum):
+    AUTOMATIC = ReplacesType.AUTOMATIC
+    MANUAL = ReplacesType.MANUAL
+    RETRY = ReplacesType.RETRY

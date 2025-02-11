@@ -45,9 +45,15 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccount</h3>
+                <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
+                    support_profiles=True,
+                )}
+                <hr/>
+
+                <h3>AcmeAccount - Backup</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__backup(
                     support_profiles=True,
                 )}
                 <hr/>

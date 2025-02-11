@@ -389,16 +389,14 @@ class _PrivateKeySelection(object):
 
 
 def parse_AcmeAccountSelection(
-    request,
+    request: "Request",
     formStash: FormStash,
-    account_key_option: Optional[str] = None,
     allow_none: Optional[bool] = None,
     require_contact: Optional[bool] = None,
     support_upload: Optional[bool] = None,
 ) -> _AcmeAccountSelection:
     """
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
-    :param account_key_option:
     :param allow_none:
     :param require_contact: ``True`` if required; ``False`` if not;
     :param support_upload: ``True`` if supported; ``False`` if not;
@@ -406,6 +404,8 @@ def parse_AcmeAccountSelection(
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
     is_global_default: Optional[bool] = None
+
+    account_key_option = formStash.results["account_key_option"]
 
     # handle the explicit-option
     acmeAccountSelection = _AcmeAccountSelection()
@@ -438,15 +438,14 @@ def parse_AcmeAccountSelection(
         elif account_key_option == "none":
             if not allow_none:
                 # `formStash.fatal_form()` will raise `FormInvalid()`
-                formStash.fatal_form(
-                    "This form does not support no AcmeAccount selection."
-                )
+                formStash.fatal_form("This form requires an AcmeAccount selection.")
             # note the lowercase "none"; this is an explicit "no item" selection
             # only certain routes allow this
             acmeAccountSelection.selection = "none"
             account_key_pem_md5 = None
             return acmeAccountSelection
         else:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_form(
                 message="Invalid `account_key_option`",
             )
@@ -478,6 +477,77 @@ def parse_AcmeAccountSelection(
         return acmeAccountSelection
     # `formStash.fatal_form()` will raise `FormInvalid()`
     formStash.fatal_form("There was an error validating your form.")
+
+
+def parse_AcmeAccountSelection_backup(
+    request: "Request",
+    formStash: FormStash,
+    allow_none: Optional[bool] = True,
+) -> _AcmeAccountSelection:
+    """
+    :param formStash: an instance of `pyramid_formencode_classic.FormStash`
+    :param allow_none:
+    """
+    account_key_pem_md5: Optional[str] = None
+    dbAcmeAccount: Optional["AcmeAccount"] = None
+    is_global_backup: Optional[bool] = None
+
+    account_key_option = formStash.results["account_key_option_backup"]
+
+    # handle the explicit-option
+    acmeAccountSelection = _AcmeAccountSelection()
+    error_field = "Error_Main"
+    if account_key_option == "account_key_global_backup":
+        error_field = "account_key_global_backup"
+        acmeAccountSelection.selection = "global_backup"
+        account_key_pem_md5 = formStash.results["account_key_global_backup"]
+        is_global_backup = True
+    elif account_key_option == "account_key_existing":
+        error_field = "account_key_existing_backup"
+        acmeAccountSelection.selection = "existing"
+        account_key_pem_md5 = formStash.results["account_key_existing_backup"]
+    elif account_key_option == "account_key_reuse":
+        acmeAccountSelection.selection = "reuse"
+        account_key_pem_md5 = formStash.results["account_key_reuse_backup"]
+    elif account_key_option == "none":
+        error_field = "account_key_existing_backup"
+        if not allow_none:
+            formStash.fatal_form("This form requires a backup AcmeAccount selection.")
+        # note the lowercase "none"; this is an explicit "no item" selection
+        # only certain routes allow this
+        acmeAccountSelection.selection = "none"
+        account_key_pem_md5 = None
+        return acmeAccountSelection
+    else:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field="account_key_option_backup",
+            message="Invalid selection.",
+        )
+    if not account_key_pem_md5:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(field=error_field, message="You did not provide a value")
+    if TYPE_CHECKING:
+        assert account_key_pem_md5 is not None
+    dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
+        request.api_context, account_key_pem_md5, is_active=True
+    )
+    if not dbAcmeAccount:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field=error_field,
+            message="The selected AcmeAccount is not enrolled in the system.",
+        )
+    if TYPE_CHECKING:
+        assert dbAcmeAccount is not None
+    if is_global_backup and not dbAcmeAccount.is_global_backup:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field=error_field,
+            message="The selected AcmeAccount is not the current default.",
+        )
+    acmeAccountSelection.AcmeAccount = dbAcmeAccount
+    return acmeAccountSelection
 
 
 def parse_PrivateKeySelection(
@@ -581,7 +651,6 @@ def form_key_selection(
     acmeAccountSelection = parse_AcmeAccountSelection(
         request,
         formStash,
-        account_key_option=formStash.results["account_key_option"],
         require_contact=require_contact,
         support_upload=support_upload_AcmeAccount,
     )

@@ -2299,9 +2299,15 @@ def do__AcmeV2_AcmeOrder__new(
     replaces: Optional[str] = None,
     replaces_type: Optional[
         Literal[
-            model_utils.ReplacesType.AUTOMATIC,
-            model_utils.ReplacesType.MANUAL,
-            model_utils.ReplacesType.RETRY,
+            model_utils.ReplacesType_Enum.MANUAL,
+            model_utils.ReplacesType_Enum.AUTOMATIC,
+            model_utils.ReplacesType_Enum.RETRY,
+        ]
+    ] = None,
+    replaces_certificate_type: Optional[
+        Literal[
+            model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+            model_utils.CertificateType_Enum.MANAGED_BACKUP,
         ]
     ] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
@@ -2313,9 +2319,12 @@ def do__AcmeV2_AcmeOrder__new(
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
     :param note: (optional)  A string to be associated with this AcmeOrder
-    :param replaces: (optional)  ARI idenfifier of to-be-replaced cert
-    :param replaces_type: (optional) A :class:`model.model_utils.ReplacesType` object to use for this order;
+    :param replaces: (optional)  ARI idenfifier of to-be-replaced cert, or "primary", or "backup".
+    :param replaces_type: (optional) A :class:`model.model_utils.ReplacesType_Enum` object to use for this order;
          required if `replaces` is present
+    :param replaces_type: (optional) A :class:`model.model_utils.CertificateType_Enum` object to use for this order;
+         required for imported certs
+
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
         this may be a placeholder, or a specific key
     :param dbAcmeOrder_retry_of: (Optional) A :class:`model.objects.AcmeOrder` object to associate with this order.  Everything should be pre-computed.
@@ -2346,7 +2355,6 @@ def do__AcmeV2_AcmeOrder__new(
     )
 
     # re-use these related objects
-    dbAcmeAccount = dbRenewalConfiguration.acme_account
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
 
     if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrderType.RETRY):
@@ -2357,7 +2365,15 @@ def do__AcmeV2_AcmeOrder__new(
         ):
             raise ValueError("Retry invokved incorrectly.")
 
-    # How to handle `replaces_type`
+    if replaces_certificate_type:
+        if replaces_type != model_utils.ReplacesType_Enum.MANUAL:
+            raise errors.FieldError(
+                "replaces_certificate_type", "Only `MANUAL` replacements eligible."
+            )
+        if not replaces:
+            raise errors.FieldError("replaces_certificate_type", "`replaces` required")
+
+    # How to handle `ReplacesType_Enum`
     # * MANUAL - requires `replaces`
     # * RETRY - require `replaces`
     # * AUTOMATIC - no `replaces`
@@ -2366,29 +2382,30 @@ def do__AcmeV2_AcmeOrder__new(
     # * missing - allowed for AUTOATIC/RETRY
     if replaces_type:
         if replaces_type in (
-            model_utils.ReplacesType.MANUAL,
-            model_utils.ReplacesType.RETRY,
+            model_utils.ReplacesType_Enum.MANUAL,
+            model_utils.ReplacesType_Enum.RETRY,
         ):
             if not replaces:
                 raise ValueError(
                     "`replaces_type` requires a `replaces` when `MANUAL` or `RETRY`."
                 )
-            if replaces_type == model_utils.ReplacesType.RETRY:
+            if replaces_type == model_utils.ReplacesType_Enum.RETRY:
                 if not dbAcmeOrder_retry_of:
                     raise ValueError(
                         "`replaces_type` requires a `dbAcmeOrder_retry_of` when `RETRY`."
                     )
                 if replaces != dbAcmeOrder_retry_of.replaces__requested:
                     raise ValueError(
-                        "`replaces` differrs from `dbAcmeOrder_retry_of.replaces__requested` on `RETRY`."
+                        "`replaces` differs from `dbAcmeOrder_retry_of.replaces__requested` on `RETRY`."
                     )
-        elif replaces_type == model_utils.ReplacesType.AUTOMATIC:
+        elif replaces_type == model_utils.ReplacesType_Enum.AUTOMATIC:
             if replaces:
                 raise ValueError("`replaces_type` forbids `replaces` when `AUTOMATIC`.")
 
             _candidate_certs = get__CertificateSigned_replaces_candidates(
                 ctx,
                 dbRenewalConfiguration=dbRenewalConfiguration,
+                certificate_type=model_utils.CertificateType_Enum.MANAGED_PRIMARY,
             )
             if _candidate_certs:
                 # use the oldest cert's ARI identifier
@@ -2564,43 +2581,84 @@ def do__AcmeV2_AcmeOrder__new(
     #        == dbAcmeOrder_retry_of.private_key_strategy_id__requested
     #    )
 
+    authenticatedUser: "AuthenticatedUser"
     dbAcmeOrder: Optional["AcmeOrder"] = None
     dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+
+        account_selection: Optional[Literal["primary", "backup"]] = None
 
         # check here, because we don't want to create a server order with invalid options
         if replaces:
             # VALIDATE the `replaces` candidate
-
-            # Test 1 - Does the `replaces` exist?
-            dbCertificateSigned_replaces_candidate = (
-                get__CertificateSigned__by_ariIdentifier(ctx, replaces)
-            )
-            if not dbCertificateSigned_replaces_candidate:
-                raise errors.FieldError(
-                    "replaces", "could not find ARI identifier of `replaces`"
+            if replaces == "primary":
+                # this is a new-order for the primary
+                account_selection = "primary"
+                replaces = None
+            elif replaces == "backup":
+                # this is a new-order for the backup
+                account_selection = "backup"
+                replaces = None
+            else:
+                # Test 1 - Does the `replaces` exist?
+                dbCertificateSigned_replaces_candidate = (
+                    get__CertificateSigned__by_ariIdentifier(ctx, replaces)
                 )
+                if not dbCertificateSigned_replaces_candidate:
+                    raise errors.FieldError(
+                        "replaces", "could not find ARI identifier of `replaces`"
+                    )
 
-            # Test 2 -  has the candidate already been replaced?
-            if dbCertificateSigned_replaces_candidate.ari_identifier__replaced_by:
-                raise errors.FieldError(
-                    "replaces",
-                    "the `replaces` candidate has already replaced a certificate",
-                )
+                # Test 2 -  has the candidate already been replaced?
+                if dbCertificateSigned_replaces_candidate.ari_identifier__replaced_by:
+                    raise errors.FieldError(
+                        "replaces",
+                        "the `replaces` candidate has already replaced a certificate",
+                    )
 
-            # Test 3 - is the candidate viable based on lineage?
-            if dbCertificateSigned_replaces_candidate.acme_order:
-                # Certs that are Managed through this application have a straightforward check
-                # was the candidate issued by this renewal configuration?
-                if (
-                    dbCertificateSigned_replaces_candidate.acme_order.renewal_configuration_id
-                    == dbRenewalConfiguration.id
-                ):
-                    # the certs have the same lineage
-                    pass
+                # Test 3 - is the candidate viable based on lineage?
+                if dbCertificateSigned_replaces_candidate.acme_order:
+                    # Certs that are Managed through this application have a straightforward check
+
+                    # regardless of this matching the RenewalConfiguration,
+                    # the AcmeAccount MUST match
+                    if (
+                        dbCertificateSigned_replaces_candidate.acme_order.acme_account_id
+                        == dbRenewalConfiguration.acme_account_id
+                    ):
+                        account_selection = "primary"
+                    elif (
+                        dbCertificateSigned_replaces_candidate.acme_order.acme_account_id
+                        == dbRenewalConfiguration.acme_account_id__backup
+                    ):
+                        account_selection = "backup"
+                    else:
+                        raise errors.FieldError(
+                            "replaces",
+                            "The `replaces` candidate is not from the primary or backup ACME Account.",
+                        )
+
+                    # was the candidate issued by this renewal configuration?
+                    if (
+                        dbCertificateSigned_replaces_candidate.acme_order.renewal_configuration_id
+                        == dbRenewalConfiguration.id
+                    ):
+                        # the certs have the same lineage
+                        pass
+                    else:
+                        # if this is from another renewal configuration, the UniqueFQDNSet must match
+                        if (
+                            dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
+                            != dbRenewalConfiguration.unique_fqdn_set_id
+                        ):
+                            raise errors.FieldError(
+                                "replaces",
+                                "the `replaces` candidate covers a different set of domains",
+                            )
+
                 else:
-                    # if this is from another renewal configuration, the UniqueFQDNSet must match
+                    # Certs that were imported,
+                    # we can allow these as a renewal candidate if they cover the same domains
                     if (
                         dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
                         != dbRenewalConfiguration.unique_fqdn_set_id
@@ -2609,29 +2667,53 @@ def do__AcmeV2_AcmeOrder__new(
                             "replaces",
                             "the `replaces` candidate covers a different set of domains",
                         )
-            else:
-                # Certs that were imported,
-                # we can allow these as a renewal candidate if they cover the same domains
+                    if (
+                        replaces_certificate_type
+                        == model_utils.CertificateType.MANAGED_PRIMARY
+                    ):
+                        account_selection = "primary"
+                    elif (
+                        replaces_certificate_type
+                        == model_utils.CertificateType.MANAGED_BACKUP
+                    ):
+                        account_selection = "backup"
+                    else:
+                        raise ValueError("invalid `replaces_certificate_type`")
+
+                # Test 4 -  ensure it is timely
                 if (
-                    dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
-                    != dbRenewalConfiguration.unique_fqdn_set_id
+                    dbCertificateSigned_replaces_candidate.timestamp_not_after
+                    > ctx.timestamp
                 ):
                     raise errors.FieldError(
                         "replaces",
-                        "the `replaces` candidate covers a different set of domains",
+                        "the `replaces` candidate has expired",
                     )
 
-            # Test 4 -  ensure it is timely
-            if (
-                dbCertificateSigned_replaces_candidate.timestamp_not_after
-                > ctx.timestamp
-            ):
+        if replaces_certificate_type:
+            if replaces_certificate_type != account_selection:
                 raise errors.FieldError(
-                    "replaces",
-                    "the `replaces` candidate has expired",
+                    "replaces_certificate_type",
+                    "conflicting `account_selection`",
                 )
 
-        profile: Optional[str] = dbRenewalConfiguration.acme_profile
+        profile: Optional[str] = None
+        certificate_type_id: int
+        if account_selection == "primary":
+            dbAcmeAccount = dbRenewalConfiguration.acme_account
+            profile = dbRenewalConfiguration.acme_profile
+            certificate_type_id = model_utils.CertificateType.MANAGED_PRIMARY
+        elif account_selection == "backup":
+            dbAcmeAccount = dbRenewalConfiguration.acme_account__backup
+            profile = dbRenewalConfiguration.acme_profile__backup
+            certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
+        else:
+            raise ValueError("could not derive the AcmeAccount for this order")
+
+        if not dbAcmeAccount:
+            raise ValueError("Invalid account_selection")
+
+        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
         if profile:
             _meta = authenticatedUser.acme_directory.get("meta")
             if _meta:
@@ -2680,7 +2762,7 @@ def do__AcmeV2_AcmeOrder__new(
                 acme_order_processing_strategy_id=acme_order_processing_strategy_id,
                 domains_challenged=domains_challenged,
                 order_url=order_url,
-                certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
+                certificate_type_id=certificate_type_id,
                 dbAcmeAccount=dbAcmeAccount,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbEventLogged=dbAcmeOrderEventLogged,
@@ -2825,7 +2907,7 @@ def do__AcmeV2_AcmeOrder__retry(
         dbPrivateKey=dbAcmeOrder.private_key,
         dbAcmeOrder_retry_of=dbAcmeOrder,
         replaces=dbAcmeOrder.replaces,
-        replaces_type=model_utils.ReplacesType.RETRY,
+        replaces_type=model_utils.ReplacesType_Enum.RETRY,
     )
 
 

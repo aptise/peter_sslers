@@ -897,6 +897,41 @@ class View_Focus(Handler):
             "AcmeAccount": dbAcmeAccount,
             "RenewalConfigurations_count": items_count,
             "RenewalConfigurations": items_paged,
+            "RENEWAL_CONTEXT": "Primary",
+            "pager": pager,
+        }
+
+    @view_config(
+        route_name="admin:acme_account:focus:renewal_configurations_backup",
+        renderer="/admin/acme_account-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account:focus:renewal_configurations_backup_paginated",
+        renderer="/admin/acme_account-focus-renewal_configurations.mako",
+    )
+    def related__RenewalConfigurations_backup(self):
+        dbAcmeAccount = self._focus()
+        items_count = (
+            lib_db.get.get__RenewalConfigurations__by_AcmeAccountIdBackup__count(
+                self.request.api_context, dbAcmeAccount.id
+            )
+        )
+        url_template = "%s/renewal-configurations-backup/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__RenewalConfigurations__by_AcmeAccountIdBackup__paginated(
+                self.request.api_context,
+                dbAcmeAccount.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount": dbAcmeAccount,
+            "RenewalConfigurations_count": items_count,
+            "RenewalConfigurations": items_paged,
+            "RENEWAL_CONTEXT": "Backup",
             "pager": pager,
         }
 
@@ -1306,7 +1341,9 @@ class View_Focus_Manipulate(View_Focus):
                 "{ADMIN_PREFIX}/acme-account/1/mark.json",
             ],
             "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["global_default", "active", "inactive"]},
+            "valid_options": {
+                "action": ["global_default", "global_backup", "active", "inactive"]
+            },
         }
     )
     def focus_mark(self):
@@ -1370,6 +1407,19 @@ class View_Focus_Manipulate(View_Focus):
                         for k, v in alt_info["event_payload_dict"].items():
                             event_payload_dict[k] = v
                         event_alt = alt_info["event_alt"]
+
+                elif action == "global_backup":
+                    (
+                        event_status,
+                        alt_info,
+                    ) = lib_db.update.update_AcmeAccount__set_global_backup(
+                        self.request.api_context, dbAcmeAccount
+                    )
+                    if alt_info:
+                        for k, v in alt_info["event_payload_dict"].items():
+                            event_payload_dict[k] = v
+                        event_alt = alt_info["event_alt"]
+
                 else:
                     raise errors.InvalidTransition("Invalid option")
 

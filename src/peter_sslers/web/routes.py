@@ -139,6 +139,14 @@ def _admin_views(config: "Configurator") -> None:
         "/acme-account/{@id}/renewal-configurations/{@page}",
     )
     config.add_route_7(
+        "admin:acme_account:focus:renewal_configurations_backup",
+        "/acme-account/{@id}/renewal-configurations-backup",
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:renewal_configurations_backup_paginated",
+        "/acme-account/{@id}/renewal-configurations-backup/{@page}",
+    )
+    config.add_route_7(
         "admin:acme_account:focus:terms_of_service",
         "/acme-account/{@id}/terms-of-service",
     )

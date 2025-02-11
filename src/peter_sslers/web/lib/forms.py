@@ -249,7 +249,9 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
 
 
 class Form_AcmeAccount_mark(_Form_Schema_Base):
-    action = OneOf(("global_default", "active", "inactive"), not_empty=True)
+    action = OneOf(
+        ("global_default", "global_backup", "active", "inactive"), not_empty=True
+    )
 
 
 class Form_AcmeAccount_deactivate(_Form_Schema_Base):
@@ -320,6 +322,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     )
 
     acme_profile = UnicodeString(not_empty=False, if_missing=None)
+    acme_profile__backup = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 
     chained_validators = [
@@ -470,6 +473,14 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
     )
     note = UnicodeString(not_empty=False, if_missing=None)
     replaces = UnicodeString(not_empty=False, if_missing=None)
+    replaces_certificate_type = OneOf(
+        (
+            "primary",
+            "backup",
+        ),
+        not_empty=False,
+        if_missing=None,
+    )
 
 
 class Form_RenewalConfig_new(_Form_Schema_Base):
@@ -479,6 +490,13 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     )
     account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
+    account_key_option_backup = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic_backup,
+        not_empty=True,
+    )
+    account_key_global_backup = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing_backup = UnicodeString(not_empty=False, if_missing=None)
 
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle = OneOf(
@@ -494,6 +512,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
 
     acme_profile = UnicodeString(not_empty=False, if_missing=None)
+    acme_profile__backup = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 
     chained_validators = [
@@ -508,6 +527,13 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+
+    account_key_option_backup = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic_backup_reuse,
+        not_empty=True,
+    )
+    account_key_reuse_backup = UnicodeString(not_empty=False, if_missing=None)
+
     acme_profile = UnicodeString(not_empty=False, if_missing=None)
     note = UnicodeString(not_empty=False, if_missing=None)
 

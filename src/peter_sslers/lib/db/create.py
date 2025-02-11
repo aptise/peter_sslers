@@ -1280,7 +1280,9 @@ def create__RenewalConfiguration(
     private_key_cycle_id: int,
     key_technology_id: int,
     domains_challenged: "DomainsChallenged",
+    dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
     acme_profile: Optional[str] = None,
+    acme_profile__backup: Optional[str] = None,
     note: Optional[str] = None,
 ) -> "RenewalConfiguration":
     """
@@ -1293,7 +1295,10 @@ def create__RenewalConfiguration(
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
+    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
     :param note: (optional) A string to be associated with this record
+    :param acme_profile: (optional) A string of the server's profile
+    :param acme_profile__backup: (optional) A string of the server's profile
     :returns :class:`model.objects.RenewalConfiguration`
     """
     if (
@@ -1310,11 +1315,25 @@ def create__RenewalConfiguration(
         raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
     if not dbAcmeAccount.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
+    if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
+        raise ValueError("`dbAcmeAccount__backup` is not active")
 
     if acme_profile:
         if acme_profile not in dbAcmeAccount.acme_server.profiles_list:
             raise errors.UnknownAcmeProfile_Local(
-                acme_profile, dbAcmeAccount.acme_server.profiles_list
+                "acme_profile", acme_profile, dbAcmeAccount.acme_server.profiles_list
+            )
+
+    if acme_profile__backup:
+        if not dbAcmeAccount__backup:
+            raise ValueError(
+                "must supply active `dbAcmeAccount__backup` if `acme_profile__backup`"
+            )
+        if acme_profile__backup not in dbAcmeAccount__backup.acme_server.profiles_list:
+            raise errors.UnknownAcmeProfile_Local(
+                "acme_profile__backup",
+                acme_profile__backup,
+                dbAcmeAccount__backup.acme_server.profiles_list,
             )
 
     assert ctx.timestamp
@@ -1357,17 +1376,24 @@ def create__RenewalConfiguration(
     )
 
     # ok, so now let's make sure we don't have a duplicate...
-
+    # ???: Should the dbAcmeAccount__backup be used for duplicate detection?
+    # i.e. does the backup ever matter
+    # e.g. what if the primary/backup are just reversed?
+    _filters = [
+        model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
+        model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
+        == dbUniquelyChallengedFQDNSet.id,
+        model_objects.RenewalConfiguration.private_key_cycle_id == private_key_cycle_id,
+        model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
+    ]
+    if dbAcmeAccount__backup:
+        _filters.append(
+            model_objects.RenewalConfiguration.acme_account_id__backup
+            == dbAcmeAccount__backup.id
+        )
     existingRenewalConfiguration = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .filter(
-            model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
-            model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
-            == dbUniquelyChallengedFQDNSet.id,
-            model_objects.RenewalConfiguration.private_key_cycle_id
-            == private_key_cycle_id,
-            model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
-        )
+        .filter(*_filters)
         .first()
     )
     if existingRenewalConfiguration:
@@ -1388,6 +1414,9 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
     dbRenewalConfiguration.key_technology_id = key_technology_id
     dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
+    if dbAcmeAccount__backup:
+        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
+        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id

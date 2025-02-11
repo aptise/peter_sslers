@@ -20,6 +20,21 @@
             </a>
         </div>
     % endif
+    % if not AcmeAccount_GlobalBackup:
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <b>Setup Not Finished</b>
+            There is no Global Backup AcmeAccount configured.
+            Any AcmeAccount for can be configured as the Global Backup.
+            Browse AcmeAccounts at
+            <a  class="label label-info"
+                href="${admin_prefix}/acme-accounts"
+            >
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                AcmeAccounts
+            </a>
+        </div>
+    % endif
 
 </%block>
 

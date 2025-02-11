@@ -64,6 +64,8 @@ TODO: sqlalchemy 1.4 rename
 _SA_VERSION = None  # parsed version
 _SA_1_4 = None  # Boolean
 
+DEBUG_CONCEPT = False
+
 
 def scalar_subquery(query):
     global _SA_VERSION
@@ -744,7 +746,7 @@ def api_domains__certificate_if_needed(
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey,
-                    replaces_type=model_utils.ReplacesType.AUTOMATIC,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                 )
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
@@ -788,12 +790,13 @@ def api_domains__certificate_if_needed(
                     raise
 
         # log domain event
-        print("=====================")
-        print("DEBUGGING CONCEPT")
-        print(dbOperationsEvent.__dict__)
-        print("-----")
-        print(_logger_args)
-        print("=====================")
+        if DEBUG_CONCEPT:
+            print("=====================")
+            print("DEBUGGING CONCEPT")
+            print(dbOperationsEvent.__dict__)
+            print("-----")
+            print(_logger_args)
+            print("=====================")
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
 
         # do commit, just because THE LOGGGING

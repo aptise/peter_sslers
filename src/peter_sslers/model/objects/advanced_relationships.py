@@ -192,6 +192,26 @@ AcmeAccount.renewal_configurations__5 = sa_orm_relationship(
 )
 
 
+# note: AcmeAccount.renewal_configurations__backup__5
+AcmeAccount.renewal_configurations__backup__5 = sa_orm_relationship(
+    RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccount.id == RenewalConfiguration.acme_account_id__backup,
+            RenewalConfiguration.id.in_(
+                sa.select((RenewalConfiguration.id))
+                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id__backup)
+                .order_by(RenewalConfiguration.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=RenewalConfiguration.id.desc(),
+    viewonly=True,
+)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

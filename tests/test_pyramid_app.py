@@ -601,6 +601,8 @@ class FunctionalTests_AcmeAccount(AppTest):
             "admin:acme_account:focus:certificate_signeds_paginated",
             "admin:acme_account:focus:renewal_configurations",
             "admin:acme_account:focus:renewal_configurations_paginated",
+            "admin:acme_account:focus:renewal_configurations_backup",
+            "admin:acme_account:focus:renewal_configurations_backup_paginated",
             "admin:acme_account:focus:terms_of_service",
             "admin:acme_account:focus:terms_of_service_paginated",
         )
@@ -666,6 +668,17 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/renewal-configurations/1"
+            % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/renewal-configurations-backup"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/renewal-configurations-backup/1"
             % focus_id,
             status=200,
         )
@@ -764,6 +777,9 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
 
+        if focus_item.is_global_backup:
+            raise ValueError("this should not be the global backup")
+
         if focus_item.is_global_default:
             raise ValueError("this should not be the global default")
 
@@ -838,6 +854,9 @@ class FunctionalTests_AcmeAccount(AppTest):
         if focus_item.is_global_default:
             raise ValueError("this should not be the global default")
 
+        if focus_item.is_global_backup:
+            raise ValueError("this should not be the global backup")
+
         if not focus_item.is_active:
             raise ValueError("this should be active")
 
@@ -877,6 +896,19 @@ class FunctionalTests_AcmeAccount(AppTest):
             "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
             {"action": "global_default"},
         )
+        assert res.status_code == 200
+        assert "AcmeAccount" in res.json
+        assert res.json["AcmeAccount"]["id"] == focus_id
+        assert res.json["AcmeAccount"]["is_global_default"] is True
+
+        # trying to be global backup should fail
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
+            {"action": "global_backup"},
+        )
+        import pdb
+
+        pdb.set_trace()
         assert res.status_code == 200
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id

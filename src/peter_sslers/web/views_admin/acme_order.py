@@ -1059,6 +1059,7 @@ class View_New(Handler):
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
+                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_AcmeOrder_new_freeform.fields[
                     "account_key_option"
@@ -1088,6 +1089,7 @@ class View_New(Handler):
         }
     )
     def new_freeform(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeDnsServer_GlobalDefault()
         self._load_AcmeServers()
@@ -1101,6 +1103,7 @@ class View_New(Handler):
         return render_to_response(
             "/admin/acme_order-new-freeform.mako",
             {
+                "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
                 "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.dbAcmeServers,
@@ -1145,7 +1148,16 @@ class View_New(Handler):
                 )
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
+
+                acmeAccountSelection_backup = (
+                    form_utils.parse_AcmeAccountSelection_backup(
+                        self.request,
+                        formStash,
+                    )
+                )
+
                 acme_profile = formStash.results["acme_profile"]
+                acme_profile__backup = formStash.results["acme_profile__backup"]
                 note = formStash.results["note"]
                 processing_strategy = formStash.results["processing_strategy"]
 
@@ -1217,8 +1229,10 @@ class View_New(Handler):
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
-                        note=note,
+                        dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
                         acme_profile=acme_profile,
+                        acme_profile__backup=acme_profile__backup,
+                        note=note,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -1337,10 +1351,11 @@ class View_New(Handler):
                 )
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
                 # raises a `FormInvalid`
+                # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
-                    field="acme_profile",
+                    field=exc.args[0],
                     message="Unknown acme_profile (%s); not one of: %s."
-                    % (exc.args[0], exc.args[1]),
+                    % (exc.args[2], exc.args[2]),
                 )
 
             except Exception as exc:  # noqa: F841

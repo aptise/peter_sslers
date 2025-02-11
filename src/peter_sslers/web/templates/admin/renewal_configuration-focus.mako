@@ -59,6 +59,10 @@
                         <td><code>${RenewalConfiguration.acme_profile or ''}</code></td>
                     </tr>
                     <tr>
+                        <th>acme_profile__backup</th>
+                        <td><code>${RenewalConfiguration.acme_profile__backup or ''}</code></td>
+                    </tr>
+                    <tr>
                         <th>is_active</th>
                         <td>
                             <code>${RenewalConfiguration.is_active or ''}</code>
@@ -126,6 +130,21 @@
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccount-${RenewalConfiguration.acme_account_id}
+                                |
+                                ${RenewalConfiguration.acme_account__backup.acme_server.directory}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>acme_account__backup</th>
+                        <td>
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__backup}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAccount-${RenewalConfiguration.acme_account_id__backup}
+                                |
+                                ${RenewalConfiguration.acme_account__backup.acme_server.directory}
                             </a>
                         </td>
                     </tr>
@@ -169,10 +188,10 @@
 
                             <a  class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/new-configuration"
-                                title="Custom Renewal"
+                                title="New Renewal Configuration"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                Custom Renewal
+                                New Renewal Configuration
                             </a>
                         </td>
                     </tr>

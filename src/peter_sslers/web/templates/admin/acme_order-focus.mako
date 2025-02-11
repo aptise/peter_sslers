@@ -356,8 +356,18 @@
                         <th>Renewals</th>
                         <td>
                             <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
+                            <%
+                                _replaces = ""
+                                if AcmeOrder.certificate_signed and not AcmeOrder.certificate_signed.ari_identifier__replaced_by:
+                                    _replaces = "?replaces.id=%s" % AcmeOrder.certificate_signed_id
+                                else:
+                                    if AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                        _replaces = "?replaces.id=primary"
+                                    elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                        _replaces = "?replaces.id=backup"
+                            %>
                             <a  class="btn btn-xs btn-primary ${quick_btn_class}"
-                                href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-order"
+                                href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-order${_replaces}"
                                 title="Quick Renewal"
                             >
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
@@ -368,10 +378,10 @@
                             <% custom_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${custom_btn_class}"
                                 href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}/new-configuration"
-                                title="Custom Renewal"
+                                title="New Renewal Configuration"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                Custom Renewal
+                                New Renewal Configuration
                             </a>
                         </td>
                     </tr>

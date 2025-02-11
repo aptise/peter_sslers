@@ -223,6 +223,7 @@ class ViewAdminApi_Domain(Handler):
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
+                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 # Form_API_Domain_certificate_if_needed
                 "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
@@ -245,6 +246,7 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def certificate_if_needed(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeServers()
         if self.request.method == "POST":
@@ -275,7 +277,6 @@ class ViewAdminApi_Domain(Handler):
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
-                account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
                 support_upload=False,
             )
@@ -329,9 +330,11 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         return {
             "project": "peter_sslers",
+            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
             "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
         }
 
@@ -361,6 +364,7 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def autocert(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         if self.request.method == "POST":
             return self._autocert__submit()
@@ -511,7 +515,7 @@ class ViewAdminApi_Domain(Handler):
                     processing_strategy="process_single",
                     acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
-                    replaces_type=model_utils.ReplacesType.AUTOMATIC,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]

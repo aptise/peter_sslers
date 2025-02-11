@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
+DEBUG_CONCEPT = False
+
 
 class NginxSession(object):
     session: requests.Session
@@ -46,9 +48,10 @@ class NginxSession(object):
             )
             if ca_bundle_pem:
                 sess.verify = ca_bundle_pem
-            print("=============================")
-            print("ca_bundle_pem", ca_bundle_pem)
-            print("=============================")
+            if DEBUG_CONCEPT:
+                print("=============================")
+                print("ca_bundle_pem", ca_bundle_pem)
+                print("=============================")
 
         self.session = sess
 

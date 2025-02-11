@@ -14,6 +14,7 @@ from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import subqueryload
+from typing_extensions import Literal
 
 # localapp
 from ...model import utils as model_utils
@@ -192,6 +193,16 @@ def get__AcmeAccount__GlobalDefault(
     ctx: "ApiContext", active_only: Optional[bool] = None
 ) -> Optional[AcmeAccount]:
     q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_default.is_(True))
+    if active_only:
+        q = q.filter(AcmeAccount.is_active.is_(True))
+    item = q.first()
+    return item
+
+
+def get__AcmeAccount__GlobalBackup(
+    ctx: "ApiContext", active_only: Optional[bool] = None
+) -> Optional[AcmeAccount]:
+    q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_backup.is_(True))
     if active_only:
         q = q.filter(AcmeAccount.is_active.is_(True))
     item = q.first()
@@ -1903,13 +1914,17 @@ def get__CertificateSigned__by_ariIdentifier(
 def get__CertificateSigned_replaces_candidates(
     ctx: "ApiContext",
     dbRenewalConfiguration: RenewalConfiguration,
+    certificate_type: Literal[
+        model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+        model_utils.CertificateType_Enum.MANAGED_BACKUP,
+    ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
 ) -> List[CertificateSigned]:
     """
     relevant fields:
         CertificateSigned.ari_identifier__replaced_by
         CertificateSigned.certificate_signed_id__replaced_by
     """
-    candidates = (
+    q = (
         ctx.dbSession.query(CertificateSigned)
         .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
         .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
@@ -1928,15 +1943,26 @@ def get__CertificateSigned_replaces_candidates(
             # !!!: Filter- narrow down certificates that have not yet been replacd
             CertificateSigned.ari_identifier__replaced_by.is_(None),
             CertificateSigned.ari_identifier.is_not(None),
-            # !!!: Filter- lock down to the same AcmeServer
-            AcmeAccount.acme_server_id
-            == dbRenewalConfiguration.acme_account.acme_server_id,
             # !!!: Filter- the Cert needs to be timely
             CertificateSigned.timestamp_not_after > ctx.timestamp,
         )
-        .order_by(CertificateSigned.id.desc())
-        .all()
     )
+    if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:
+        # !!!: Filter- lock down to the same AcmeServer
+        q = q.filter(
+            AcmeAccount.acme_server_id
+            == dbRenewalConfiguration.acme_account.acme_server_id,
+        )
+    elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+        # !!!: Filter- lock down to the same AcmeServer
+        q = q.filter(
+            AcmeAccount.acme_server_id
+            == dbRenewalConfiguration.acme_account__backup.acme_server_id,
+        )
+    else:
+        raise ValueError("unknown `certificate_type`")
+    q = q.order_by(CertificateSigned.id.desc())
+    candidates = q.all()
     return candidates
 
 
@@ -3048,6 +3074,31 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
         RenewalConfiguration.acme_account_id == acme_account_id
+    )
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__RenewalConfigurations__by_AcmeAccountIdBackup__count(
+    ctx: "ApiContext",
+    acme_account_id: int,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.acme_account_id__backup == acme_account_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfigurations__by_AcmeAccountIdBackup__paginated(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.acme_account_id__backup == acme_account_id
     )
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()

@@ -44,6 +44,7 @@ class Handler(object):
 
     #: The default :class:`model.objects.AcmeAccount`
     dbAcmeAccount_GlobalDefault = None
+    dbAcmeAccount_GlobalBackup = None
 
     def __init__(self, request: "Request"):
         """
@@ -109,6 +110,15 @@ class Handler(object):
             self.request.api_context, active_only=True
         )
         return self.dbAcmeAccount_GlobalDefault
+
+    def _load_AcmeAccount_GlobalBackup(self):
+        """
+        Loads the default :class:`model.objects.AcmeAccount` into the view's :attr:`.dbAcmeAccount_GlobalBackup`.
+        """
+        self.dbAcmeAccount_GlobalBackup = db.get.get__AcmeAccount__GlobalBackup(
+            self.request.api_context, active_only=True
+        )
+        return self.dbAcmeAccount_GlobalBackup
 
     def _load_AcmeDnsServer_GlobalDefault(self):
         """

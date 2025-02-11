@@ -229,19 +229,42 @@ class View_List(Handler):
 class View_Focus(Handler):
     dbRenewalConfiguration: Optional[RenewalConfiguration] = None
     _competing_dbAcmeOrder: Optional[AcmeOrder] = None
-    _dbCertificateSigned_replaces_candidates: Optional[List["CertificateSigned"]] = None
+    _dbCertificateSigned_replaces_candidates__primary: Optional[
+        List["CertificateSigned"]
+    ] = None
+    _dbCertificateSigned_replaces_candidates__backup: Optional[
+        List["CertificateSigned"]
+    ] = None
 
     @property
-    def dbCertificateSigned_replaces_candidates(self) -> List["CertificateSigned"]:
+    def dbCertificateSigned_replaces_candidates__primary(
+        self,
+    ) -> List["CertificateSigned"]:
         assert self.dbRenewalConfiguration
-        if self._dbCertificateSigned_replaces_candidates is None:
-            self._dbCertificateSigned_replaces_candidates = (
+        if self._dbCertificateSigned_replaces_candidates__primary is None:
+            self._dbCertificateSigned_replaces_candidates__primary = (
                 lib_db.get.get__CertificateSigned_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
+                    certificate_type=model_utils.CertificateType_Enum.MANAGED_PRIMARY,
                 )
             )
-        return self._dbCertificateSigned_replaces_candidates
+        return self._dbCertificateSigned_replaces_candidates__primary
+
+    @property
+    def dbCertificateSigned_replaces_candidates__backup(
+        self,
+    ) -> List["CertificateSigned"]:
+        assert self.dbRenewalConfiguration
+        if self._dbCertificateSigned_replaces_candidates__backup is None:
+            self._dbCertificateSigned_replaces_candidates__backup = (
+                lib_db.get.get__CertificateSigned_replaces_candidates(
+                    self.request.api_context,
+                    dbRenewalConfiguration=self.dbRenewalConfiguration,
+                    certificate_type=model_utils.CertificateType_Enum.MANAGED_BACKUP,
+                )
+            )
+        return self._dbCertificateSigned_replaces_candidates__backup
 
     def _focus(self) -> RenewalConfiguration:
         if self.dbRenewalConfiguration is None:
@@ -280,9 +303,13 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "RenewalConfiguration": dbRenewalConfiguration.as_json,
-                "CertificateSigned_replaces_candidates": [
+                "CertificateSigned_replaces_candidates__primary": [
                     i.as_json_replaces_candidate
-                    for i in self.dbCertificateSigned_replaces_candidates
+                    for i in self.dbCertificateSigned_replaces_candidates__primary
+                ],
+                "CertificateSigned_replaces_candidates__backup": [
+                    i.as_json_replaces_candidate
+                    for i in self.dbCertificateSigned_replaces_candidates__backup
                 ],
             }
         return {
@@ -427,10 +454,15 @@ class View_Focus_New(View_Focus):
                 "replaces": "ARI identifier of Certificate to replace."
                 "Eligible candidates are available from the focus endpoint."
                 "If omitted, a duplicate cert will be created.",
+                "replaces_certificate_type": "Only submit if replacing an imported "
+                "certificate, to instruct which ACME Account should be used",
             },
             "valid_options": {
                 "processing_strategy": Form_RenewalConfig_new_order.fields[
                     "processing_strategy"
+                ].list,
+                "replaces_certificate_type": Form_RenewalConfig_new_order.fields[
+                    "replaces_certificate_type"
                 ].list,
             },
             "examples": [
@@ -467,7 +499,8 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_order.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
-                "CertificateSigned_replaces_candidates": self.dbCertificateSigned_replaces_candidates,
+                "CertificateSigned_replaces_candidates__primary": self.dbCertificateSigned_replaces_candidates__primary,
+                "CertificateSigned_replaces_candidates__backup": self.dbCertificateSigned_replaces_candidates__backup,
             },
             self.request,
         )
@@ -488,6 +521,7 @@ class View_Focus_New(View_Focus):
 
             # this will be validated in do__AcmeV2_AcmeOrder__new
             replaces = formStash.results["replaces"]
+            replaces_certificate_type = formStash.results["replaces_certificate_type"]
 
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
@@ -497,7 +531,8 @@ class View_Focus_New(View_Focus):
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
                     note=note,
                     replaces=replaces,
-                    replaces_type=model_utils.ReplacesType.MANUAL,
+                    replaces_type=model_utils.ReplacesType_Enum.MANUAL,
+                    replaces_certificate_type=replaces_certificate_type,
                 )
             except errors.FieldError as exc:
                 return formStash.fatal_field(
@@ -569,6 +604,7 @@ class View_Focus_New(View_Focus):
                 "note": "A string to associate with the RenewalConfiguration.",
             },
             "valid_options": {
+                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new_configuration.fields[
                     "account_key_option"
@@ -594,6 +630,7 @@ class View_Focus_New(View_Focus):
         """
         This is basically forking the configuration
         """
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeDnsServer_GlobalDefault()
         self._load_AcmeServers()
@@ -612,6 +649,7 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_configuration.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
+                "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
                 "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.dbAcmeServers,
@@ -623,6 +661,7 @@ class View_Focus_New(View_Focus):
         """
         much of this logic is shared with /api/domain-certificate-if-needed
         """
+        dbRenewalConfiguration = self._focus()
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -641,11 +680,16 @@ class View_Focus_New(View_Focus):
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
-                account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
                 support_upload=False,
             )
             assert acmeAccountSelection.AcmeAccount is not None
+
+            acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
+                self.request,
+                formStash,
+            )
+
             private_key_cycle = formStash.results["private_key_cycle"]
             private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
@@ -705,27 +749,38 @@ class View_Focus_New(View_Focus):
                 # * model_utils.UniqueFQDNSet
                 is_duplicate_renewal = None
                 acme_profile = formStash.results["acme_profile"]
+                acme_profile__backup = formStash.results["acme_profile__backup"]
                 note = formStash.results["note"]
                 try:
-                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                    dbRenewalConfiguration_new = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
                         dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
-                        note=note,
+                        dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
                         acme_profile=acme_profile,
+                        acme_profile__backup=acme_profile__backup,
+                        note=note,
                     )
                     is_duplicate_renewal = False
+
+                    # and turn the existing one off...
+                    if dbRenewalConfiguration.is_active:
+                        lib_db.update.update_RenewalConfiguration__unset_active(
+                            self.request.api_context,
+                            dbRenewalConfiguration,
+                        )
+
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True
                     # we could raise exc to abort, but this is likely preferred
-                    dbRenewalConfiguration = exc.args[0]
+                    dbRenewalConfiguration_new = exc.args[0]
 
                 if self.request.wants_json:
                     return {
                         "result": "success",
-                        "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                        "RenewalConfiguration": dbRenewalConfiguration_new.as_json,
                         "is_duplicate_renewal": is_duplicate_renewal,
                     }
 
@@ -733,7 +788,7 @@ class View_Focus_New(View_Focus):
                     "%s/renewal-configuration/%s%s"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
-                        dbRenewalConfiguration.id,
+                        dbRenewalConfiguration_new.id,
                         "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
@@ -779,10 +834,11 @@ class View_Focus_New(View_Focus):
 
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
                 # raises a `FormInvalid`
+                # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
-                    field="acme_profile",
+                    field=exc.args[0],
                     message="Unknown acme_profile (%s); not one of: %s."
-                    % (exc.args[0], exc.args[1]),
+                    % (exc.args[1], exc.args[2]),
                 )
 
             except Exception as exc:  # noqa: F841
@@ -959,6 +1015,7 @@ class View_New(Handler):
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
+                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new.fields[
                     "account_key_option"
@@ -981,6 +1038,7 @@ class View_New(Handler):
         }
     )
     def new(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeDnsServer_GlobalDefault()
         self._load_AcmeServers()
@@ -994,6 +1052,7 @@ class View_New(Handler):
         return render_to_response(
             "/admin/renewal_configuration-new.mako",
             {
+                "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
                 "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
                 "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.dbAcmeServers,
@@ -1015,6 +1074,9 @@ class View_New(Handler):
                 schema=Form_RenewalConfig_new,
                 validate_get=False,
             )
+            import pprint
+
+            pprint.pprint(formStash.results)
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -1027,11 +1089,16 @@ class View_New(Handler):
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
-                account_key_option=formStash.results["account_key_option"],
                 require_contact=False,
                 support_upload=False,
             )
             assert acmeAccountSelection.AcmeAccount is not None
+
+            acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
+                self.request,
+                formStash,
+            )
+
             private_key_cycle = formStash.results["private_key_cycle"]
             private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
@@ -1092,6 +1159,7 @@ class View_New(Handler):
                 is_duplicate_renewal = None
                 note = formStash.results["note"]
                 acme_profile = formStash.results["acme_profile"]
+                acme_profile__backup = formStash.results["acme_profile__backup"]
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
@@ -1099,8 +1167,10 @@ class View_New(Handler):
                         private_key_cycle_id=private_key_cycle_id,
                         key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
-                        note=note,
+                        dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
                         acme_profile=acme_profile,
+                        acme_profile__backup=acme_profile__backup,
+                        note=note,
                     )
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True
@@ -1164,10 +1234,11 @@ class View_New(Handler):
 
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
                 # raises a `FormInvalid`
+                # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
-                    field="acme_profile",
+                    field=exc.args[0],
                     message="Unknown acme_profile (%s); not one of: %s."
-                    % (exc.args[0], exc.args[1]),
+                    % (exc.args[1], exc.args[2]),
                 )
 
             except Exception as exc:  # noqa: F841

@@ -1828,6 +1828,7 @@ class AppTest(AppTestCore):
                     # note: pre-populate AcmeAccount
                     # this should create `/acme-account/1`
                     _dbAcmeAccount_1: model_objects.AcmeAccount
+                    _dbAcmeAccount_2: model_objects.AcmeAccount
                     for _id in TEST_FILES["AcmeAccount"]:
                         _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
                         _order_default_private_key_cycle = TEST_FILES["AcmeAccount"][
@@ -1860,6 +1861,13 @@ class AppTest(AppTestCore):
                             _dbAcmeAccount_1 = _dbAcmeAccount
                             if not _dbAcmeAccount.is_global_default:
                                 db.update.update_AcmeAccount__set_global_default(
+                                    self.ctx, _dbAcmeAccount
+                                )
+                            self.ctx.pyramid_transaction_commit()
+                        if _id == "2":
+                            _dbAcmeAccount_2 = _dbAcmeAccount
+                            if not _dbAcmeAccount.is_global_backup:
+                                db.update.update_AcmeAccount__set_global_backup(
                                     self.ctx, _dbAcmeAccount
                                 )
                             self.ctx.pyramid_transaction_commit()
@@ -2061,6 +2069,9 @@ class AppTest(AppTestCore):
                     # merge these items in
                     _dbAcmeAccount_1 = self.ctx.dbSession.merge(
                         _dbAcmeAccount_1, load=False
+                    )
+                    _dbAcmeAccount_2 = self.ctx.dbSession.merge(
+                        _dbAcmeAccount_2, load=False
                     )
                     _dbPrivateKey_1 = self.ctx.dbSession.merge(
                         _dbPrivateKey_1, load=False

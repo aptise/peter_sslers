@@ -41,12 +41,20 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccount</h3>
+                <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
                     dbAcmeAccountReuse=RenewalConfiguration.acme_account,
                     support_profiles=True,
                     default_profile=RenewalConfiguration.acme_profile,
+                )}
+                <hr/>
+
+                <h3>AcmeAccount - Backup</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__backup(
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
+                    support_profiles=True,
+                    default_profile=RenewalConfiguration.acme_profile__backup,
                 )}
                 <hr/>
 

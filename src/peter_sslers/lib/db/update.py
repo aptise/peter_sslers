@@ -13,6 +13,7 @@ from dateutil import parser as dateutil_parser
 from typing_extensions import Literal
 
 # localapp
+from .get import get__AcmeAccount__GlobalBackup
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__AcmeDnsServer__by_root_url
@@ -158,8 +159,9 @@ def update_AcmeAccount__set_global_default(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
 ) -> Tuple[str, Dict]:
+    if dbAcmeAccount.is_global_backup:
+        raise errors.InvalidTransition("Account is global backup.")
     if dbAcmeAccount.is_global_default:
-        # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
     # # Is there a reason to require the Default Account to be from the Default Server?
@@ -178,6 +180,34 @@ def update_AcmeAccount__set_global_default(
         alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
     dbAcmeAccount.is_global_default = True
     event_status = "AcmeAccount__mark__default"
+    return event_status, alt_info
+
+
+def update_AcmeAccount__set_global_backup(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+) -> Tuple[str, Dict]:
+    if dbAcmeAccount.is_global_backup:
+        raise errors.InvalidTransition("Already global backup.")
+    if dbAcmeAccount.is_global_default:
+        raise errors.InvalidTransition("Account is global default.")
+
+    # # Is there a reason to require the Default Account to be from the Default Server?
+    # if not dbAcmeAccount.acme_server.is_default:
+    #    raise errors.InvalidTransition(
+    #        "This AcmeAccount is not from the default AcmeServer."
+    #    )
+
+    alt_info: Dict = {}
+    formerBackupAccount = get__AcmeAccount__GlobalBackup(ctx)
+    if formerBackupAccount:
+        formerBackupAccount.is_global_backup = None
+        alt_info["event_payload_dict"] = {
+            "acme_account_id.former_backup": formerBackupAccount.id,
+        }
+        alt_info["event_alt"] = ("AcmeAccount__mark__notbackup", formerBackupAccount)
+    dbAcmeAccount.is_global_backup = True
+    event_status = "AcmeAccount__mark__backup"
     return event_status, alt_info
 
 

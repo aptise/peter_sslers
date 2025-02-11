@@ -38,6 +38,20 @@
                         <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
                     </td>
                 </tr>
+                <tr>
+                    <th>Global Backup AcmeAccount</th>
+                    <td>
+                        % if not AcmeAccount_GlobalBackup:
+                            Not configured                        
+                        % else:
+                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}" span class="label label-info">
+                                AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                            </a>
+                            <code>${AcmeAccount_GlobalBackup.key_pem_sample}</code>
+                        % endif
+                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
+                    </td>
+                </tr>
             </table>
         </div>
     </div>

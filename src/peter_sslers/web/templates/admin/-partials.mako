@@ -23,6 +23,7 @@
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
+                <th><!-- global_backup --></th>
                 <th><!-- global_default --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
@@ -42,6 +43,11 @@
                             <span class="label label-success">active</span>
                         % elif account.timestamp_deactivated:
                             <span class="label label-warning">deactivated</span>
+                        % endif
+                    </td>
+                    <td>
+                        % if account.is_global_backup:
+                            <span class="label label-success">global backup</span>
                         % endif
                     </td>
                     <td>
@@ -1530,7 +1536,7 @@
         elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
     %>
-    <p>Select an AcmeAccount with one of the following options</p>
+    <p>Select a Primary AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
         % if dbAcmeAccountReuse:
             <div class="radio">
@@ -1583,8 +1589,9 @@
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-                There is no Global Default AcmeAccount configured. Any key can be configured as the Global Default.
-                Browse keys at
+                There is no Global Default AcmeAccount configured.
+                Any Account can be configured as the Global Default.
+                Browse Accounts at
                 <a  class="label label-info"
                     href="${admin_prefix}/acme-accounts"
                 >
@@ -1621,6 +1628,113 @@
         % endif
     </div>
 </%def>
+
+
+
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile=None)">
+    <%
+        checked = {
+            "none": "",
+            "account_key_reuse_backup": "",
+            "account_key_global_backup": "",
+        }
+        if dbAcmeAccountReuse:
+            checked["account_key_reuse_backup"] = 'checked="checked"'
+        elif not dbAcmeAccountReuse:
+            checked["account_key_global_backup"] = 'checked="checked"'
+        elif not dbAcmeAccountReuse:
+            checked["none"] = 'checked="checked"'
+    %>
+    <p>Select a Backup AcmeAccount with one of the following options</p>
+    <div class="form-horizontal">
+        <div class="radio">
+            <label>
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]}/>
+                No Backup Certificate
+            </label>
+        </div>
+        % if dbAcmeAccountReuse:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]}/>
+                    <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
+                    Select to renew with the same AcmeAccount
+                </label>
+                <p class="form-control-static">
+                    <b>resource:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
+                                     >
+                                         AcmeAccount-${dbAcmeAccountReuse.id}
+                                     </a><br/>
+                    <b>pem md5:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_sample}</code><br/>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeAccount-${dbAcmeAccountReuse.id}
+                    </a>
+                </p>
+            </div>
+        % endif
+        % if AcmeAccount_GlobalBackup:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]}/>
+                    The Global Backup AcmeAccount.
+                </label>
+                <p class="form-control-static">
+                    <b>resource:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}"
+                                     >
+                                         AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                                     </a><br/>
+                    <b>server:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalBackup.acme_server.id}"
+                                     >
+                                         AcmeServer-${AcmeAccount_GlobalBackup.acme_server.id}
+                                         |
+                                        ${AcmeAccount_GlobalBackup.acme_server.server}
+                                     </a><br/>
+                    <b>pem md5:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code>
+                    <input type="hidden" name="account_key_global_backup" value="${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                </p>
+            </div>
+        % else:
+            <div class="alert alert-warning">
+                <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                There is no Global Backup AcmeAccount configured.
+                Any Account can be configured as the Global Backup.
+                Browse Accounts at
+                <a  class="label label-info"
+                    href="${admin_prefix}/acme-accounts"
+                >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    AcmeAccounts
+                </a>
+            </div>
+        % endif
+        <div class="radio">
+            <label for="account_key_option_backup-account_key_existing">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_existing" value="account_key_existing"/>
+                The PEM MD5 of an AcmeAccountKey already enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="account_key_existing_backup" id="account_key_existing_backup-pem_md5" type="text"/>
+            </div>
+        </div>
+        % if support_profiles:
+            <label for="acme_profile">
+                [Optional] The name of an ACME Profile on the server
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_profile__backup" id="acme_profile__backup" type="text" value="${default_profile or ""}"/>
+            </div>
+        % endif
+    </div>
+</%def>
+
 
 
 <%def name="formgroup__AcmeAccount_order_defaults()">

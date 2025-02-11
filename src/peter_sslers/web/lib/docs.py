@@ -89,6 +89,7 @@ def formatted_get_docs(view_instance, endpoint):
 
     if "valid_options" in docs:
         # define these with a placeholder like "{RENDER_ON_REQUEST}"
+        # !!!: Render `acme_server_id`
         try:
             if "acme_server_id" in docs["valid_options"]:
                 docs["valid_options"]["acme_server_id"] = {
@@ -98,6 +99,7 @@ def formatted_get_docs(view_instance, endpoint):
         except Exception as exc:  # noqa: F841
             log.critical("@docify error: valid_options:acme_server_id %s", endpoint)
             pass
+        # !!!: Render `acme_dns_server_id`
         try:
             if "acme_dns_server_id" in docs["valid_options"]:
                 docs["valid_options"]["acme_dns_server_id"] = [
@@ -106,6 +108,7 @@ def formatted_get_docs(view_instance, endpoint):
         except Exception as exc:  # noqa: F841
             log.critical("@docify error: valid_options:acme_dns_server_id %s", endpoint)
             pass
+        # !!!: Render `AcmeAccount_GlobalDefault`
         try:
             if "AcmeAccount_GlobalDefault" in docs["valid_options"]:
                 docs["valid_options"]["AcmeAccount_GlobalDefault"] = (
@@ -116,6 +119,19 @@ def formatted_get_docs(view_instance, endpoint):
         except Exception as exc:  # noqa: F841
             log.critical(
                 "@docify error: valid_options:AcmeAccount_GlobalDefault %s", endpoint
+            )
+            pass
+        # !!!: Render `AcmeAccount_GlobalBackup`
+        try:
+            if "AcmeAccount_GlobalBackup" in docs["valid_options"]:
+                docs["valid_options"]["AcmeAccount_GlobalBackup"] = (
+                    view_instance.dbAcmeAccount_GlobalBackup.as_json_minimal
+                    if view_instance.dbAcmeAccount_GlobalBackup
+                    else None
+                )
+        except Exception as exc:  # noqa: F841
+            log.critical(
+                "@docify error: valid_options:AcmeAccount_GlobalBackup %s", endpoint
             )
             pass
 

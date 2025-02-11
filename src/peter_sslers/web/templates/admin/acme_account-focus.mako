@@ -91,7 +91,7 @@
                                         </button>
                                     </form>
                                 % else:
-                                    % if not AcmeAccount.is_global_default:
+                                    % if not AcmeAccount.is_global_default and not AcmeAccount.is_global_backup:
                                         <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
@@ -104,7 +104,7 @@
                                             class="label label-warning"
                                         >
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            select another default key to deactivate this one
+                                            select another global default and backup key to deactivate this one
                                         </span>
                                     % endif
                                 % endif
@@ -132,6 +132,26 @@
                                     <button class="btn btn-xs btn-primary" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         Set Global Default
+                                    </button>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Global Backup</th>
+                        <td>
+                            % if AcmeAccount.is_global_backup:
+                                <span class="label label-success">Global Backup</span>
+                            % else:
+                                <span class="label label-default"></span>
+                            % endif
+                            &nbsp;
+                            % if AcmeAccount.is_global_backup_candidate:
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="global_backup"/>
+                                    <button class="btn btn-xs btn-primary" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        Set Global Backup
                                     </button>
                                 </form>
                             % endif
@@ -344,11 +364,20 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>RenewalConfigurations(s)</th>
+                        <th>RenewalConfigurations(s) - Primary</th>
                         <td>
                             ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__5, perspective="AcmeAccount")}
                             % if AcmeAccount.renewal_configurations__5:
                                 ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations" % (admin_prefix, AcmeAccount.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>RenewalConfigurations(s) - Backup</th>
+                        <td>
+                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__backup__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.renewal_configurations__backup__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations-backup" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>

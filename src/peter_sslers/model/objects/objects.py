@@ -62,6 +62,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "is_global_default",
             unique=True,
         ),
+        sa.Index(
+            "uidx_acme_account_backup",
+            "is_global_backup",
+            unique=True,
+        ),
     )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
@@ -93,6 +98,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_global_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None  # NONE for uidx
+    )
+    is_global_backup: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None  # NONE for uidx
     )
 
@@ -173,6 +181,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id",
         back_populates="acme_account",
     )
+    renewal_configurations__backup = sa_orm_relationship(
+        "RenewalConfiguration",
+        primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id__backup",
+        back_populates="acme_account__backup",
+    )
     tos = sa_orm_relationship(
         "AcmeAccount_2_TermsOfService",
         primaryjoin="and_(AcmeAccount.id==AcmeAccount_2_TermsOfService.acme_account_id, AcmeAccount_2_TermsOfService.is_active.is_(True))",
@@ -211,7 +224,23 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
+    def is_global_backup_candidate(self) -> bool:
+        if self.is_global_backup:
+            return False
+        if self.is_global_default:
+            return False
+        if not self.is_active:
+            return False
+        if not self.acme_account_key:
+            return False
+        if not self.acme_account_key.is_active:
+            return False
+        return True
+
+    @property
     def is_global_default_candidate(self) -> bool:
+        if self.is_global_backup:
+            return False
         if self.is_global_default:
             return False
         if not self.is_active:
@@ -266,6 +295,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             # - -
             "is_active": True if self.is_active else False,
             "is_deactivated": self.timestamp_deactivated or False,
+            "is_global_backup": True if self.is_global_backup else False,
             "is_global_default": True if self.is_global_default else False,
             "acme_server_id": self.acme_server_id,
             "acme_server_name": self.acme_server.name,
@@ -4347,6 +4377,9 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
+    acme_account_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    )
     uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
     )
@@ -4364,12 +4397,19 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="RenewalConfiguration.acme_account_id==AcmeAccount.id",
         uselist=False,
         back_populates="renewal_configurations",
+    )
+    acme_account__backup = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="RenewalConfiguration.acme_account_id__backup==AcmeAccount.id",
+        uselist=False,
+        back_populates="renewal_configurations__backup",
     )
     acme_orders = sa.orm.relationship(
         "AcmeOrder",
@@ -4476,6 +4516,9 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "acme_account_id": self.acme_account_id,
+            "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_profile": self.acme_profile,
+            "acme_profile__backup": self.acme_profile__backup,
             "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
             "key_technology": self.key_technology,
