@@ -509,7 +509,7 @@ def parse_AcmeAccountSelection_backup(
     elif account_key_option == "account_key_reuse":
         acmeAccountSelection.selection = "reuse"
         account_key_pem_md5 = formStash.results["account_key_reuse_backup"]
-    elif account_key_option == "none":
+    elif account_key_option in ("none", None):
         error_field = "account_key_existing_backup"
         if not allow_none:
             formStash.fatal_form("This form requires a backup AcmeAccount selection.")

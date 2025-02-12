@@ -312,7 +312,8 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
 
     account_key_option_backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
     account_key_global_backup = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing_backup = UnicodeString(not_empty=False, if_missing=None)
@@ -503,7 +504,8 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
 
     account_key_option_backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
     account_key_global_backup = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing_backup = UnicodeString(not_empty=False, if_missing=None)
@@ -540,7 +542,8 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
 
     account_key_option_backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup_reuse,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
     account_key_reuse_backup = UnicodeString(not_empty=False, if_missing=None)
 

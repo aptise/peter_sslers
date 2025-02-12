@@ -131,21 +131,23 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccount-${RenewalConfiguration.acme_account_id}
                                 |
-                                ${RenewalConfiguration.acme_account__backup.acme_server.directory}
+                                ${RenewalConfiguration.acme_account.acme_server.directory}
                             </a>
                         </td>
                     </tr>
                     <tr>
                         <th>acme_account__backup</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__backup}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${RenewalConfiguration.acme_account_id__backup}
-                                |
-                                ${RenewalConfiguration.acme_account__backup.acme_server.directory}
-                            </a>
+                            % if RenewalConfiguration.acme_account_id__backup:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__backup}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${RenewalConfiguration.acme_account_id__backup}
+                                    |
+                                    ${RenewalConfiguration.acme_account__backup.acme_server.directory}
+                                </a>
+                            % endif
                         </td>
                     </tr>
                     <tr>

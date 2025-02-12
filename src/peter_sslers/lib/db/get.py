@@ -1924,20 +1924,22 @@ def get__CertificateSigned_replaces_candidates(
         CertificateSigned.ari_identifier__replaced_by
         CertificateSigned.certificate_signed_id__replaced_by
     """
+    if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+        if not dbRenewalConfiguration.acme_account_id__backup:
+            return []
     q = (
         ctx.dbSession.query(CertificateSigned)
         .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
         .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
         .filter(
             sqlalchemy.or_(
+                # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
+                AcmeOrder.renewal_configuration_id == dbRenewalConfiguration.id,
+                # !!!: Add in Certs with no Order (imports) that have the same FQDNs
                 sqlalchemy.and_(
-                    # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
-                    # TODO: - could this be for the UniqueFQDNSet
-                    AcmeOrder.renewal_configuration_id
-                    == dbRenewalConfiguration.id,
-                ),
-                sqlalchemy.and_(
-                    CertificateSigned.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id
+                    CertificateSigned.unique_fqdn_set_id
+                    == AcmeOrder.unique_fqdn_set_id,
+                    AcmeOrder.renewal_configuration_id.is_(None),
                 ),
             ),
             # !!!: Filter- narrow down certificates that have not yet been replacd

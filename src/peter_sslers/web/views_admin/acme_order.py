@@ -1267,8 +1267,8 @@ class View_New(Handler):
                         dbRenewalConfiguration=dbRenewalConfiguration,
                         processing_strategy=processing_strategy,
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
-                        dbPrivateKey=privateKeySelection.PrivateKey,
                         note=note,
+                        dbPrivateKey=privateKeySelection.PrivateKey,
                     )
 
                 except Exception as exc:

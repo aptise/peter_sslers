@@ -559,6 +559,7 @@ class FunctionalTests_AcmeAccount(AppTest):
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
+            .filter(model_objects.AcmeAccount.is_global_backup.is_not(True))
             .order_by(model_objects.AcmeAccount.id.asc())
             .first()
         )

@@ -2293,7 +2293,7 @@ def do__AcmeV2_AcmeOrder__new(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
     processing_strategy: str,
-    acme_order_type_id: int,
+    acme_order_type_id: int,  # model_utils.AcmeOrderType
     # Optionals
     note: Optional[str] = None,
     replaces: Optional[str] = None,
@@ -2313,16 +2313,22 @@ def do__AcmeV2_AcmeOrder__new(
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
+    print("=============================")
+    import pprint
+
+    pprint.pprint(locals())
+    print("=============================")
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param acme_order_type_id: (required) A :class:`model.model_utils.AcmeOrderType` object to use for this order;
+    :param acme_order_type_id: (required) A :class:`model_utils.AcmeOrderType` object to use for this order;
     :param note: (optional)  A string to be associated with this AcmeOrder
     :param replaces: (optional)  ARI idenfifier of to-be-replaced cert, or "primary", or "backup".
-    :param replaces_type: (optional) A :class:`model.model_utils.ReplacesType_Enum` object to use for this order;
-         required if `replaces` is present
-    :param replaces_type: (optional) A :class:`model.model_utils.CertificateType_Enum` object to use for this order;
+    :param replaces_type: (optional) A :class:`model_utils.ReplacesType_Enum` object to use for this order;
+         required if `replaces` is present and not null
+         this describes how `replaces` was computed
+    :param replaces_certificate_type: (optional) A :class:`model_utils.CertificateType_Enum` object to use for this order;
          required for imported certs
 
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
@@ -2333,6 +2339,9 @@ def do__AcmeV2_AcmeOrder__new(
     """
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
+
+    if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
+        raise ValueError("invalid `acme_order_type_id`")
 
     # do we have a live order for this?
     _dbExistingOrder = get__AcmeOrder__by_RenewalConfigurationId__active(
@@ -2353,7 +2362,6 @@ def do__AcmeV2_AcmeOrder__new(
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
-    account_selection: Optional[Literal["primary", "backup"]] = None
 
     # re-use these related objects
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
@@ -2365,6 +2373,13 @@ def do__AcmeV2_AcmeOrder__new(
             or (dbPrivateKey != dbAcmeOrder_retry_of.private_key)
         ):
             raise ValueError("Retry invokved incorrectly.")
+
+    account_selection: Optional[Literal["primary", "backup"]] = None
+    if acme_order_type_id in (
+        model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
+        model_utils.AcmeOrderType.AUTOCERT,
+    ):
+        account_selection = "primary"
 
     if replaces_certificate_type:
         if replaces_type != model_utils.ReplacesType_Enum.MANUAL:
@@ -2387,9 +2402,13 @@ def do__AcmeV2_AcmeOrder__new(
             model_utils.ReplacesType_Enum.RETRY,
         ):
             if not replaces:
-                raise ValueError(
-                    "`replaces_type` requires a `replaces` when `MANUAL` or `RETRY`."
-                )
+                # # originally this raised an exception
+                # # but that was unnecessary
+                # raise ValueError(
+                #    "`replaces_type` requires a `replaces` when `MANUAL` or `RETRY`."
+                # )
+                account_selection = "primary"
+
             if replaces_type == model_utils.ReplacesType_Enum.RETRY:
                 if not dbAcmeOrder_retry_of:
                     raise ValueError(
@@ -2403,6 +2422,7 @@ def do__AcmeV2_AcmeOrder__new(
             if replaces:
                 raise ValueError("`replaces_type` forbids `replaces` when `AUTOMATIC`.")
 
+            account_selection = "primary"
             _candidate_certs = get__CertificateSigned_replaces_candidates(
                 ctx,
                 dbRenewalConfiguration=dbRenewalConfiguration,
@@ -2411,6 +2431,8 @@ def do__AcmeV2_AcmeOrder__new(
             if _candidate_certs:
                 # use the oldest cert's ARI identifier
                 replaces = _candidate_certs[-1].ari_identifier
+                print(_candidate_certs)
+                print(replaces)
         else:
             raise ValueError("Unknown `replaces_type`")
     else:
@@ -2653,6 +2675,9 @@ def do__AcmeV2_AcmeOrder__new(
                             dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
                             != dbRenewalConfiguration.unique_fqdn_set_id
                         ):
+                            import pdb
+
+                            pdb.set_trace()
                             raise errors.FieldError(
                                 "replaces",
                                 "the `replaces` candidate covers a different set of domains",
@@ -2710,6 +2735,12 @@ def do__AcmeV2_AcmeOrder__new(
             profile = dbRenewalConfiguration.acme_profile__backup
             certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
         else:
+            import pprint
+
+            pprint.pprint(locals())
+            import pdb
+
+            pdb.set_trace()
             raise ValueError("could not derive the AcmeAccount for this order")
 
         if not dbAcmeAccount:

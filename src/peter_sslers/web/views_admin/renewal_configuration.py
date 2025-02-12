@@ -256,14 +256,17 @@ class View_Focus(Handler):
         self,
     ) -> List["CertificateSigned"]:
         assert self.dbRenewalConfiguration
+
         if self._dbCertificateSigned_replaces_candidates__backup is None:
-            self._dbCertificateSigned_replaces_candidates__backup = (
-                lib_db.get.get__CertificateSigned_replaces_candidates(
+            if not self.dbRenewalConfiguration.acme_account_id__backup:
+                # don't bother with an impossible search
+                self._dbCertificateSigned_replaces_candidates__backup = []
+            else:
+                self._dbCertificateSigned_replaces_candidates__backup = lib_db.get.get__CertificateSigned_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
                     certificate_type=model_utils.CertificateType_Enum.MANAGED_BACKUP,
                 )
-            )
         return self._dbCertificateSigned_replaces_candidates__backup
 
     def _focus(self) -> RenewalConfiguration:
@@ -521,8 +524,8 @@ class View_Focus_New(View_Focus):
 
             # this will be validated in do__AcmeV2_AcmeOrder__new
             replaces = formStash.results["replaces"]
+            # this defaults to "primary" if None
             replaces_certificate_type = formStash.results["replaces_certificate_type"]
-
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
