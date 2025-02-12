@@ -302,18 +302,19 @@ There is also a
 
 The abridged version:
 
-- mkdir certificate_admin
-- cd certificate_admin
-- virtualenv peter_sslers-venv
-- source peter_sslers-venv/bin/activate
-- git clone https://github.com/aptise/peter_sslers.git
-- cd peter_sslers
-- $VENV/bin/python setup.py develop
-- vi conf/example_development.ini
-- $VENV/bin/initialize_peter_sslers_db conf/example_development.ini
-- $VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
-- $VENV/bin/pserve conf/example_development.ini
-
+'''
+mkdir certificate_admin
+cd certificate_admin
+virtualenv peter_sslers-venv
+source peter_sslers-venv/bin/activate
+git clone https://github.com/aptise/peter_sslers.git
+cd peter_sslers
+$VENV/bin/python setup.py develop
+vi conf/example_development.ini
+$VENV/bin/initialize_peter_sslers_db conf/example_development.ini
+$VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
+$VENV/bin/pserve conf/example_development.ini
+'''
 
 
 Full Documentation

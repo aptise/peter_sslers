@@ -421,6 +421,11 @@ class Form_CertificateSigned_mark(_Form_Schema_Base):
     )
 
 
+class Form_CertificateSigned_search(_Form_Schema_Base):
+    ari_identifier = UnicodeString(not_empty=False, if_missing=None)
+    serial = UnicodeString(not_empty=False, if_missing=None)
+
+
 class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
     action = OneOf(
         ("resolution"),

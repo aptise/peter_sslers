@@ -196,6 +196,9 @@
             </ul>
             <h3>Tools</h3>
             <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/certificate-signeds/search">
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    search certificates</a></li>
                 <li><a href="${admin_prefix}/domains/search">
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                     search domains</a></li>

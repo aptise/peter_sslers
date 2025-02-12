@@ -1903,12 +1903,27 @@ def get__CertificateSigned__by_id(
 def get__CertificateSigned__by_ariIdentifier(
     ctx: "ApiContext", ari_identifier: str
 ) -> Optional[CertificateSigned]:
+    if not ari_identifier:
+        return None
     dbCertificateSigned = (
         ctx.dbSession.query(CertificateSigned)
         .filter(CertificateSigned.ari_identifier == ari_identifier)
         .first()
     )
     return dbCertificateSigned
+
+
+def get__CertificateSigneds__by_certSerial(
+    ctx: "ApiContext", cert_serial: str
+) -> List[CertificateSigned]:
+    if not cert_serial:
+        return []
+    dbCertificateSigneds = (
+        ctx.dbSession.query(CertificateSigned)
+        .filter(CertificateSigned.cert_serial == cert_serial)
+        .all()
+    )
+    return dbCertificateSigneds
 
 
 def get__CertificateSigned_replaces_candidates(

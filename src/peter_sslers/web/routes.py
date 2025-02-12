@@ -883,6 +883,12 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_signeds:inactive_unexpired_paginated|json",
         "/certificate-signeds/inactive-unexpired/{@page}.json",
     )
+    config.add_route_7(
+        "admin:certificate_signeds:search", "/certificate-signeds/search"
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:search|json", "/certificate-signeds/search.json"
+    )
 
     # !!!: CertificateSigned - Focus
     config.add_route_7("admin:certificate_signed:focus", "/certificate-signed/{@id}")

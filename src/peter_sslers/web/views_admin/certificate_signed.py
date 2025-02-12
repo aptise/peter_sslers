@@ -1,6 +1,7 @@
 # stdlib
 import tempfile
 import time
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 import zipfile
@@ -19,6 +20,7 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.forms import Form_CertificateSigned_mark
+from ..lib.forms import Form_CertificateSigned_search
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -431,6 +433,104 @@ class View_List(Handler):
             "expiring_days": expiring_days,
             "pager": pager,
         }
+
+
+class View_Search(Handler):
+    @view_config(
+        route_name="admin:certificate_signeds:search",
+        renderer="/admin/certificate_signeds-search.mako",
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/search.json",
+            "section": "certificate-signed",
+            "about": """Search certificate-signeds(s)""",
+            "POST": True,
+            "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signeds/search.json",
+            "example": "curl "
+            "--form 'ari_identifier=foo.bar' "
+            "{ADMIN_PREFIX}/certificate-signeds/search.json",
+            "form_fields": {
+                "ari_identifier": "the ari.identifier",
+                "serial": "the serial",
+            },
+            "notes": "only one search type is permitted",
+        }
+    )
+    @view_config(route_name="admin:certificate_signeds:search|json", renderer="json")
+    def search(self):
+        self._search_results = {}
+        self._search_query = {}
+        if self.request.method == "POST":
+            return self._search__submit()
+        return self._search__print()
+
+    def _search__print(self):
+        if self.request.wants_json:
+            return formatted_get_docs(self, "/certificate-signeds/search.json")
+        return render_to_response(
+            "/admin/certificate_signeds-search.mako",
+            {
+                "search_results": self._search_results,
+                "search_query": self._search_query,
+            },
+            self.request,
+        )
+
+    def _search__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_CertificateSigned_search, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            ari_identifier = formStash.results["ari_identifier"]
+            serial = formStash.results["serial"]
+
+            dbCertificateSigned: Optional[CertificateSigned] = None
+            dbCertificateSigneds: List[CertificateSigned] = []
+            if ari_identifier:
+                dbCertificateSigned = (
+                    lib_db.get.get__CertificateSigned__by_ariIdentifier(
+                        self.request.api_context,
+                        ari_identifier,
+                    )
+                )
+            elif serial:
+                dbCertificateSigneds = (
+                    lib_db.get.get__CertificateSigneds__by_certSerial(
+                        self.request.api_context,
+                        serial,
+                    )
+                )
+
+            self._search_results = {
+                "CertificateSigned": dbCertificateSigned,
+                "CertificateSigneds": dbCertificateSigneds,
+            }
+            self._search_query = {
+                "ari_identifier": ari_identifier,
+                "serial": serial,
+            }
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "search_query": self._search_query,
+                    "search_results": {
+                        "CertificateSigned": (
+                            dbCertificateSigned.as_json if dbCertificateSigned else None
+                        ),
+                        "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                    },
+                }
+            return self._search__print()
+
+        except formhandling.FormInvalid as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._search__print)
 
 
 class View_New(Handler):

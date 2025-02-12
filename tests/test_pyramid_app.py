@@ -3983,6 +3983,67 @@ class FunctionalTests_CertificateSigned(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
+    @routes_tested(("admin:certificate_signeds:search",))
+    def test_search_html(self):
+        """
+        python -munittest tests.test_pyramid_app.FunctionalTests_CertificateSigned.test_search_html
+        """
+        (dbCert, cert_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/search", status=200
+        )
+        assert "form-certificate_signeds-search" in res.forms
+        form = res.forms["form-certificate_signeds-search"]
+        form["ari_identifier"] = dbCert.ari_identifier
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert "<h4>Results - Certificate</h4>" in res2.text
+        assert "CertificateSigned-%s" % cert_id in res2.text
+
+        form2 = res2.forms["form-certificate_signeds-search"]
+        form2["serial"] = dbCert.cert_serial
+        res3 = form.submit()
+        assert res3.status_code == 200
+        assert "<h4>Results - Certificate</h4>" in res3.text
+        assert "CertificateSigned-%s" % cert_id in res3.text
+
+    @routes_tested(("admin:certificate_signeds:search|json",))
+    def test_search_json(self):
+        """
+        python -munittest tests.test_pyramid_app.FunctionalTests_CertificateSigned.test_search_json
+        """
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/search.json", status=200
+        )
+        assert "instructions" in res.json
+
+        (dbCert, cert_id) = self._get_one()
+
+        form = {"ari_identifier": dbCert.ari_identifier}
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-signeds/search.json",
+            form,
+            status=200,
+        )
+        assert res2.json["result"] == "success"
+        assert res2.json["search_query"]["ari_identifier"] == dbCert.ari_identifier
+        assert res2.json["search_query"]["serial"] is None
+        assert "CertificateSigned" in res2.json["search_results"]
+        assert res2.json["search_results"]["CertificateSigned"]["id"] == cert_id
+
+        form = {"serial": dbCert.cert_serial}
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-signeds/search.json",
+            form,
+            status=200,
+        )
+        assert res2.json["result"] == "success"
+        assert res2.json["search_query"]["ari_identifier"] is None
+        assert res2.json["search_query"]["serial"] == dbCert.cert_serial
+        assert "CertificateSigneds" in res2.json["search_results"]
+        assert res2.json["search_results"]["CertificateSigneds"][0]["id"] == cert_id
+
     @routes_tested(
         (
             "admin:certificate_signeds",
@@ -10467,10 +10528,18 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
                 _post_args,
             )
             assert _res2.status_code == 200
-            if _expected_result == "FAIL":
-                assert _res2.json["result"] == "error"
-            elif _expected_result == "PASS":
-                assert _res2.json["result"] == "success"
+            try:
+                if _expected_result == "FAIL":
+                    assert _res2.json["result"] == "error"
+                elif _expected_result == "PASS":
+                    assert _res2.json["result"] == "success"
+            except:
+                import pprint
+
+                pprint.pprint(_res2.json)
+                import pdb
+
+                pdb.set_trace()
 
         # prep with some orders of different lineage
         dbAcmeOrder_1 = make_one__AcmeOrder(
@@ -10497,7 +10566,9 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 1- FAIL replace an unknown `replaces`
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1, _replaces="fake.ari", _expected_result="FAIL"
+            dbAcmeOrder_1,
+            _replaces="fake.ari",
+            _expected_result="FAIL",
         )
 
         # note: TestCase 2- PASS replace a cert from the same renewal configuration

@@ -2735,12 +2735,8 @@ def do__AcmeV2_AcmeOrder__new(
             profile = dbRenewalConfiguration.acme_profile__backup
             certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
         else:
-            import pprint
-
-            pprint.pprint(locals())
-            import pdb
-
-            pdb.set_trace()
+            # import pprint; pprint.pprint(locals())
+            # import pdb; pdb.set_trace()
             raise ValueError("could not derive the AcmeAccount for this order")
 
         if not dbAcmeAccount:
