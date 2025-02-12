@@ -69,26 +69,9 @@ class StopableWSGIServer(TcpWSGIServer):
 
     def wrapper(self, environ, start_response):
         """Wrap the wsgi application to override some path:
-
         ``/__application__``: allow to ping the server.
-
-        ``/__file__?__file__={path}``: serve the file found at ``path``
         """
-        if "__file__" in environ["PATH_INFO"]:
-            req = webob.Request(environ)
-            resp = webob.Response()
-            resp.content_type = "text/html; charset=UTF-8"
-            filename = req.params.get("__file__")
-            if os.path.isfile(filename):
-                body = open(filename, "rb").read()
-                body = body.replace(
-                    b"http://localhost/", bytes("http://%s/" % req.host, "UTF-8")
-                )
-                resp.body = body
-            else:
-                resp.status = "404 Not Found"
-            return resp(environ, start_response)
-        elif "__application__" in environ["PATH_INFO"]:
+        if "__application__" in environ["PATH_INFO"]:
             return webob.Response("server started")(environ, start_response)
         return self.test_app(environ, start_response)
 
@@ -122,8 +105,6 @@ class StopableWSGIServer(TcpWSGIServer):
             kwargs["port"] = port
         if "host" not in kwargs:
             kwargs["host"] = host
-        if "expose_tracebacks" not in kwargs:
-            kwargs["expose_tracebacks"] = True
         server = cls(application, **kwargs)
         server.runner = threading.Thread(target=server.run)
         server.runner.daemon = True

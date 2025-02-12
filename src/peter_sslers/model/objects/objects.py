@@ -2358,6 +2358,9 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     timestamp_retry_after: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=True, default=None
     )
+    explanation_url: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
 
     # originally intended to track success of the check
     ari_check_status: Mapped[Optional[bool]] = mapped_column(

@@ -647,6 +647,10 @@ def create__AriCheck(
                 if _end:
                     _end = utils.ari_timestamp_to_python(_end)
                 dbAriCheck.suggested_window_end = _end
+            if ariCheckResult["payload"].get("explanationURL"):
+                dbAriCheck.explanation_url = ariCheckResult["payload"][
+                    "explanation_url"
+                ]
             retry_after_secs = ariCheckResult["headers"].get("Retry-After")
             if retry_after_secs:
                 retry_after = ctx.timestamp + datetime.timedelta(

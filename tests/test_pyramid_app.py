@@ -10448,8 +10448,8 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         def _make_one__AcmeOrder_Renewal(
             _dbAcmeOrder: model_objects.AcmeOrder,
-            _replaces: Optional[str] = None,
-            _expected_result: Literal["FAIL", "PASS"] = None,
+            _replaces: Optional[str],
+            _expected_result: Literal["FAIL", "PASS"],
         ):
             _res = self.testapp.get(
                 "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
@@ -10541,7 +10541,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         _result = _make_one__AcmeOrder_Renewal(
             dbAcmeOrder_3,
             _replaces=uploaded_pebble_cert_data[1],
-            _expected_result="Fail",
+            _expected_result="FAIL",
         )
 
 

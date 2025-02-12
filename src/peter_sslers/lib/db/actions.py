@@ -941,7 +941,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             cert.is_ari_supported__order IS True
         )
         AND
-        cert.timestamp_not_after < timely_date
+        cert.timestamp_not_after > timely_date
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
@@ -973,7 +973,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
             ),
-            CertificateSigned.timestamp_not_after < timely_date,
+            CertificateSigned.timestamp_not_after > timely_date,
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.is_(None),
                 latest_ari_checks.c.timestamp_retry_after < NOW,

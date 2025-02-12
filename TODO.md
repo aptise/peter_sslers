@@ -88,7 +88,7 @@ audit exception classes and usage
 	[x] cert renewal
 	[x] autocert
 	[x] certificate if needed
-	Automatic Renewals need to calculate the "replaces" themselvs
+	[x] Automatic Renewals need to calculate the "replaces" themselvs
 
 * Blocks
     New Order - check to see if there is a live order:
