@@ -2314,6 +2314,7 @@ def do__AcmeV2_AcmeOrder__new(
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
     print("=============================")
+    print("do__AcmeV2_AcmeOrder__new - locals()")
     import pprint
 
     pprint.pprint(locals())
@@ -2675,17 +2676,14 @@ def do__AcmeV2_AcmeOrder__new(
                             dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
                             != dbRenewalConfiguration.unique_fqdn_set_id
                         ):
-                            import pdb
-
-                            pdb.set_trace()
                             raise errors.FieldError(
                                 "replaces",
                                 "the `replaces` candidate covers a different set of domains",
                             )
 
                 else:
-                    # Certs that were imported,
-                    # we can allow these as a renewal candidate if they cover the same domains
+                    # The `dbCertificateSigned_replaces_candidate` certificate was imported,
+                    # we can allow these as a renewal candidate **if** it covers the same domains
                     if (
                         dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
                         != dbRenewalConfiguration.unique_fqdn_set_id
@@ -2694,6 +2692,7 @@ def do__AcmeV2_AcmeOrder__new(
                             "replaces",
                             "the `replaces` candidate covers a different set of domains",
                         )
+                    # but what to do about the account selection?
                     if (
                         replaces_certificate_type
                         == model_utils.CertificateType.MANAGED_PRIMARY
@@ -2704,14 +2703,18 @@ def do__AcmeV2_AcmeOrder__new(
                         == model_utils.CertificateType.MANAGED_BACKUP
                     ):
                         account_selection = "backup"
+                    elif replaces_certificate_type is None:
+                        # consider this a primary
+                        account_selection = "primary"
                     else:
                         raise ValueError("invalid `replaces_certificate_type`")
 
                 # Test 4 -  ensure it is timely
                 if (
                     dbCertificateSigned_replaces_candidate.timestamp_not_after
-                    > ctx.timestamp
+                    < ctx.timestamp
                 ):
+                    # error: "timestamp_not_after < NOW"
                     raise errors.FieldError(
                         "replaces",
                         "the `replaces` candidate has expired",

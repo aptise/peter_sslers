@@ -1077,9 +1077,6 @@ class View_New(Handler):
                 schema=Form_RenewalConfig_new,
                 validate_get=False,
             )
-            import pprint
-
-            pprint.pprint(formStash.results)
             if not result:
                 raise formhandling.FormInvalid()
 

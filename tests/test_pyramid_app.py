@@ -4,6 +4,8 @@ from io import BytesIO  # noqa: F401
 from io import StringIO  # noqa: F401
 import json
 import logging
+import pdb  # noqa: F401
+import pprint
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -7541,11 +7543,10 @@ class FunctionalTests_API(AppTest):
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/nginx/cache-flush.json", {}, status=200
         )
-        print("################################################################")
-        import pprint
-
-        pprint.pprint(res.json)
-        print("################################################################")
+        if False:
+            print("################################################################")
+            pprint.pprint(res.json)
+            print("################################################################")
         assert res.json["result"] == "success"
         assert "servers_status" in res.json
         assert "errors" in res.json["servers_status"]
@@ -10512,6 +10513,11 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces: Optional[str],
             _expected_result: Literal["FAIL", "PASS"],
         ):
+            """
+            _dbAcmeOrder: use this AcmeOrder's RenewalConfiguration for new order
+            _replaces: ari.identifier we are replacing
+            _expected_result: json value
+            """
             _res = self.testapp.get(
                 "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
                 % _dbAcmeOrder.renewal_configuration_id,
@@ -10534,12 +10540,10 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
                 elif _expected_result == "PASS":
                     assert _res2.json["result"] == "success"
             except:
-                import pprint
-
+                print("=============================")
+                print("EXCEPTION _make_one__AcmeOrder_Renewal")
                 pprint.pprint(_res2.json)
-                import pdb
-
-                pdb.set_trace()
+                raise
 
         # prep with some orders of different lineage
         dbAcmeOrder_1 = make_one__AcmeOrder(
@@ -10562,7 +10566,14 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # we need ARI that is incompatible
         # 1=a.example.com
+        # this is a tuple: (certificate_id, ari_identifier)
+        # pebble-certs/cert1.pem: a.example.com
+        # pebble-certs/cert2.pem: b.example.com
         uploaded_pebble_cert_data = _upload_pebble_cert(1)
+        if False:
+            print("=============================")
+            print("uploaded_pebble_cert_data:")
+            print(uploaded_pebble_cert_data)
 
         # note: TestCase 1- FAIL replace an unknown `replaces`
         _result = _make_one__AcmeOrder_Renewal(
@@ -10570,6 +10581,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces="fake.ari",
             _expected_result="FAIL",
         )
+        log.info("test_replaces- Passed: TestCase 1")
 
         # note: TestCase 2- PASS replace a cert from the same renewal configuration
         _result = _make_one__AcmeOrder_Renewal(
@@ -10577,6 +10589,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
+        log.info("test_replaces- Passed: TestCase 2")
 
         # note: TestCase 3- FAIL replace a replaced certificate
         # the replacement was just consumed in test 3
@@ -10585,6 +10598,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
+        log.info("test_replaces- Passed: TestCase 3")
 
         # note: TestCase 4- PASS replace a cert from a different config with the same fqdn set
         # dbAcmeOrder_2 has the same fqdns, but a different config due to the dns challenges
@@ -10593,6 +10607,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces=dbAcmeOrder_2.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
+        log.info("test_replaces- Passed: TestCase 4")
 
         # note: TestCase 5- FAIL replace a cert from a different renewal with a different fqdn set
         _result = _make_one__AcmeOrder_Renewal(
@@ -10600,20 +10615,25 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _replaces=dbAcmeOrder_3.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
+        log.info("test_replaces- Passed: TestCase 5")
 
         # note: TestCase 6- PASS replace an imported cert with the same fqdn set
+        # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
             dbAcmeOrder_1,
             _replaces=uploaded_pebble_cert_data[1],
             _expected_result="PASS",
         )
+        log.info("test_replaces- Passed: TestCase 6")
 
         # note: TestCase 7- FAIL replace an imported cert with a different fqdn set
+        # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
             dbAcmeOrder_3,
             _replaces=uploaded_pebble_cert_data[1],
             _expected_result="FAIL",
         )
+        log.info("test_replaces- Passed: TestCase 7")
 
 
 class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
