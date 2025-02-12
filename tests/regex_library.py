@@ -184,6 +184,19 @@ RE_CertificateSigned_operation_nginx_expire__GET = re.compile(
 )
 
 
+RE_CertificateSigned_button = re.compile(
+    r"""
+    <a\s+
+        class="label\ label-info"\s+
+        href="/.well-known/peter_sslers/certificate-signed/(\d+)"\s+
+    >\s+
+        <span\ class="glyphicon\ glyphicon-file"\ aria-hidden="true"></span>\s+
+        CertificateSigned-(\d+)\s+
+    </a>""",
+    re.X,
+)
+
+
 # note: CoverageAssuranceEvent
 
 RE_CoverageAssuranceEvent_mark = re.compile(

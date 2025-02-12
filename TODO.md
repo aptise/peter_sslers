@@ -3,6 +3,9 @@ URGENT
 
 set the first acme account and first acme server to be the defaults
 
+block repeat requests
+    timeout an order for 10 seconds
+
 
 bug:
     if we lose a connection during the db save, we lose the ability to finalize/download

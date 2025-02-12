@@ -82,6 +82,7 @@ from .regex_library import RE_AcmeOrder_retry
 from .regex_library import RE_AcmeOrder_status
 from .regex_library import RE_CertificateCA_uploaded
 from .regex_library import RE_CertificateCAChain_uploaded
+from .regex_library import RE_CertificateSigned_button
 from .regex_library import RE_CertificateSigned_main
 from .regex_library import RE_CertificateSigned_operation_nginx_expire
 from .regex_library import RE_CertificateSigned_operation_nginx_expire__GET
@@ -8570,9 +8571,13 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "form-acme_finalize" not in res.forms
         assert "form-deactivate_order" not in res.forms
 
+        # what is the certificate_id?
+        matched = RE_CertificateSigned_button.search(res.text)
+        assert matched
+        _certificate_id = matched.groups()[0]
         assert (
-            'href="/.well-known/peter_sslers/renewal-configuration/%s/new-order"'
-            % renewal_configuration_1__id
+            'href="/.well-known/peter_sslers/renewal-configuration/%s/new-order?replaces.id=%s"'
+            % (renewal_configuration_1__id, _certificate_id)
             in res.text
         )
 

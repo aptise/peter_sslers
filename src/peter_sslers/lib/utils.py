@@ -62,6 +62,23 @@ def unurlify(_encoded: str) -> Dict:
 
 
 def ari_timestamp_to_python(timestamp: str) -> datetime.datetime:
+    if "." in timestamp:
+        # are these nanoseconds?
+        _components = timestamp.split(".")
+        _precision = []
+        for char in _components[1]:
+            if char.isdigit():
+                _precision.append(char)
+            else:
+                break
+        if len(_precision) > 6:
+            _tz = _components[1][len(_precision) :]
+            timestamp = _components[0] + "." + "".join(_precision[:6]) + _tz
+        if timestamp[-1].isdigit():
+            return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%Z")
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
+    if timestamp[-1].isdigit():
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%Z")
     return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
 
 
