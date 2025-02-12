@@ -9657,39 +9657,44 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         # "mark" manual
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-            % renewal_configuration_id,
-            {"action": "inactive"},
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "mark"
-        assert res.json["action"] == "inactive"
+        try:
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+                % renewal_configuration_id,
+                {"action": "inactive"},
+                status=200,
+            )
+            assert res.json["result"] == "success"
+            assert res.json["operation"] == "mark"
+            assert res.json["action"] == "inactive"
 
-        # and toggle it the other way
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-            % renewal_configuration_id,
-            {"action": "active"},
-            status=200,
-        )
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "mark"
-        assert res.json["action"] == "active"
+            # and toggle it the other way
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+                % renewal_configuration_id,
+                {"action": "active"},
+                status=200,
+            )
+            assert res.json["result"] == "success"
+            assert res.json["operation"] == "mark"
+            assert res.json["action"] == "active"
 
-        # lets make sure we can't do it again!
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
-            % renewal_configuration_id,
-            {"action": "active"},
-            status=200,
-        )
-        assert res.json["result"] == "error"
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Already activated."
-        )
+            # lets make sure we can't do it again!
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/mark.json"
+                % renewal_configuration_id,
+                {"action": "active"},
+                status=200,
+            )
+            assert res.json["result"] == "error"
+            assert (
+                res.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Already activated."
+            )
+        except Exception as exc:
+            print("EXCEPTION test_AcmeOrder_mark_json")
+            print(res.text)
+            raise
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
