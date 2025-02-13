@@ -113,12 +113,12 @@
                         <code>${AcmeServer.is_supports_ari__version}</code>
                     </td>
                 </tr>
-                <tr>
-                    <th>is_enabled</th>
-                    <td>
-                        <code>${AcmeServer.is_enabled}</code>
-                    </td>
-                </tr>
+                ## <tr>
+                ##     <th>is_enabled</th>
+                ##     <td>
+                ##         <code>${AcmeServer.is_enabled}</code>
+                ##     </td>
+                ## </tr>
                 <tr>
                     <th>protocol</th>
                     <td>

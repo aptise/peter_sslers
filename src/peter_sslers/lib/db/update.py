@@ -18,7 +18,6 @@ from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
-from .get import get__AcmeServer__default
 from .get import get__Domain__by_name
 from .. import errors
 from ... import lib
@@ -499,14 +498,17 @@ def update_AcmeServer__is_unlimited_pending_authz(
     return event_status
 
 
+"""
+
 def update_AcmeServer__activate_default(
     ctx: "ApiContext",
     dbAcmeServer_new: "AcmeServer",
 ) -> str:
-    """
+    '''
     TODO: reintegrate
     this function was used to activate a default server based on the config
-    """
+    '''
+    from .get import get__AcmeServer__default
     _objs = [
         dbAcmeServer_new,
     ]
@@ -524,17 +526,6 @@ def update_AcmeServer__activate_default(
     return event_status
 
 
-def update_AcmeServer_profiles(
-    ctx: "ApiContext",
-    dbAcmeServer: "AcmeServer",
-    profiles: str,
-) -> bool:
-    # TODO: anaylize/notify that profiles have changed
-    # _profiles_old = dbAcmeServer.profiles  # noqa: F841
-    dbAcmeServer.profiles = profiles
-    return True
-
-
 def update_AcmeServer__set_is_enabled(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
@@ -544,6 +535,19 @@ def update_AcmeServer__set_is_enabled(
     dbAcmeServer.is_enabled = True
     event_status = "AcmeServer__mark__is_enabled"
     return event_status
+
+"""
+
+
+def update_AcmeServer_profiles(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    profiles: str,
+) -> bool:
+    # TODO: anaylize/notify that profiles have changed
+    # _profiles_old = dbAcmeServer.profiles  # noqa: F841
+    dbAcmeServer.profiles = profiles
+    return True
 
 
 def update_CertificateCAPreference_reprioritize(

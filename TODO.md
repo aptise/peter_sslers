@@ -1,24 +1,62 @@
 URGENT
 =====
 
+# backup CA selection
+    allow default to be "none"
+    
+# register_acme_servers should have an export flag.
+    
+Use config tool to determine default server;
+    
+    
+Contact
+    relax to not require
+
+Errors:
+    tests can somehow create a second acme-dns server
+    transition concerns for acme-dns global servers (set_default)
+
+UX:
+    do a quick overview of key objects
+    reorganize
+
+* AcmeDNS
+    dev docs
+    tests    
+
+Streamline Onboarding
+
+# routine__renew_expired
+    run a routine to renew expired certs
+
 set the first acme account and first acme server to be the defaults
+    see: update_AcmeServer__activate_default
 
 check to see if we correctly handle this:
     request with an invalid replaces
     is it stripped from the order on a resubmit?
     if it comes back, do we correctly annotate the replaces vs replaces_requested ?
 
-block repeat requests
-    timeout an order for 10 seconds
-    possibly use a nonce
+bug?
+    if we lose a connection during the db save, do we lose the ability to finalize/download
+    sync-order seems to reconcile this
 
-bug:
-    if we lose a connection during the db save, we lose the ability to finalize/download
+Blocking:
+    block repeat requests
+        timeout an order for 10 seconds
+        possibly use a nonce
 
+    blocking authz
+        acme-dns
+            block should only last during trigger
 
-blocking authz
-    acme-dns
-        block should only last during trigger
+    * Blocks
+        New Order - check to see if there is a live order:
+            same order
+            fqdns
+        New Renewal Configuration
+            Block on identical "new"
+            Block on identical "new-configuration"
 
 acme-account register
     https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.3
@@ -26,18 +64,6 @@ acme-account register
         urn:ietf:params:acme:error:userActionRequired
     
      Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
-
-
-Contact
-    relax to not require
-
-Streamline Onboarding
-
-
-# routine__renew_expired
-
-run a routine to renew expired certs
-
 
 # profiles
     Todo: if requesting an order with a profile:
@@ -48,10 +74,6 @@ run a routine to renew expired certs
         test with valid profile
         test with invalid profile
 
-# backup CA selection
-    select account
-    
-
 # script for renewals:
     routine__renew_expiring
         will 
@@ -59,22 +81,21 @@ run a routine to renew expired certs
     spin up a test server (stopable wsgi) that only serves the public routes
 
 
+Not Urgent 
+================
+
 test to property handle:
     sync acme challenge against a 404 challenge
 
 audit exception classes and usage
 
-
-
-* CertificateSigned-Focus:
-- If there is no acme_order/renewal_configuration SUCH AS AN IMPORT link to create one
-
-
 *   Add a unit test to ensure every object with an `.as_json` property can be encoded.
-		Context: AcmeOrder.as_json has an `acme_process_steps` method
-			     `acme_process_steps` did not properly encode an AcmeAuthorization item
-			     This caused AcmeOrder to not encode, but the tracebacks buried the underlying
-			     cause of this. A direct test should prevent this from happening again.
+    Context: AcmeOrder.as_json has an `acme_process_steps` method
+             `acme_process_steps` did not properly encode an AcmeAuthorization item
+             This caused AcmeOrder to not encode, but the tracebacks buried the underlying
+             cause of this. A direct test should prevent this from happening again.
+             While this is inherently tested by the route tests, a unittest will
+             surface issues sooner.
 
 * CertificateSigned
 	* TESTS
@@ -86,39 +107,15 @@ audit exception classes and usage
 		- dogpile defense
 		- repeat request, correct data
 
-
 * update API logging;
     [x] dedicated outlet
     [ ] formatting check
     
-* Finish Migration to RenewalConfiguration
-	They work and are tested, but the UX could potentially be cleaner
-	[x] cert renewal
-	[x] autocert
-	[x] certificate if needed
-	[x] Automatic Renewals need to calculate the "replaces" themselvs
-
-* Blocks
-    New Order - check to see if there is a live order:
-        same order
-        fqdns
-    New Renewal Configuration
-        Block on identical "new"
-        Block on identical "new-configuration"
-
-* AcmeDNS
-    dev docs
-    tests    
-
 Test the scripts
-
-
 
 Audit
     private_key_reuse - make sure correct forms check for it
     tests don't seem to run ApplicationSettings.from_settings_dict ?
-    audit docify form fields
-    admin:api:domain:certificate-if-needed
     
 Tests
     selfsigned-1.example.com - disable authz/order
@@ -132,17 +129,6 @@ Docs
     application design
     ValueError: ('Authorization status should be `deactivated`; instead it is `%s`', '*404*')
     RenewalConfiguration not support Edit for a reason.
-
-
-Errors:
-    tests can somehow create a second acme-dns server
-    transition concerns for acme-dns global servers (set_default)
-
-
-    AcmeAccountKeyOption
-        better deprecate PEM uploads
-            options_a = (
-            options_a_simple = (
 
 
 Routines
@@ -242,7 +228,6 @@ TODO:
 * Alembic
 * DomainAutocert
 	as_json payload was not tested
-* acme_account: sidenav_option is unused?
 
 * "# TODO: reintegrate"
   * the setup routine did not add soon-to-expire CA certificates
@@ -288,15 +273,9 @@ Deferred
 	They are not necessarily written to RFC right now, but lax rules by parsers
 	just seem to work.
 
-		
-	
-EDIT:
-	AcmeOrder:
-		change "PrivateKeyCycle - renewals"
-		??xx?? add "is_via_emergency"
-
 ensure_chain_order 
-	The pure-python does not correctly ensure the chain order. it just looks at the subject/issuer for matches
+	The pure-python does not correctly ensure the chain order.
+	it just looks at the subject/issuer for matches
 
 ensure_chain
 	not leveraged yet
@@ -341,7 +320,6 @@ deferred tasks
 * finish rate limit calendars
     - perhaps drop for now
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
-* migrate testing away from `setup.py`
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
 * search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
@@ -383,9 +361,6 @@ Case B:
 
 Rejected Tasks
 ===============
-* upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
-    Rejection
-    - Dropping CSR and Acme-Flow/Acme-Orderless
 * UniqueFQDNSet
     Idea
 	- allow a set to be decomposed into one or more sets
@@ -398,7 +373,3 @@ Rejected Tasks
 * Take into account the validity of existing LetsEncrypt authz and challenges when requesting certs.
     Rejection
     - The cached validity time may drastically change as short-life certs re introduced.
-* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
-    Rejection
-    - This is external application logic.
-    - Domain Queues are dropped    

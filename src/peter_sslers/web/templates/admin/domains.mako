@@ -44,7 +44,7 @@
             % endif
             % if Domains:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
+                <table class="table table-striped table-condensed">
                     <thead>
                         <tr>
                             <th>id</th>

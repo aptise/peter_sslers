@@ -41,7 +41,7 @@
             <% form = request.pyramid_formencode_classic.get_form() %>
             ${form.html_error_main_fillable()|n}
 
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">

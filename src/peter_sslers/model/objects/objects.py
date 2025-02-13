@@ -2173,7 +2173,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     # the server is normalized from the `directory`
     # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
-    is_default: Mapped[Optional[bool]] = mapped_column(
+    is_default: Mapped[Optional[bool]] = mapped_column(  # legacy; unused
         sa.Boolean, nullable=True, default=None  # NONE for uidx
     )
     is_supports_ari__version: Mapped[Optional[str]] = mapped_column(
@@ -2183,7 +2183,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     is_unlimited_pending_authz: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
-    is_enabled: Mapped[Optional[bool]] = mapped_column(
+    is_enabled: Mapped[Optional[bool]] = mapped_column(  # legacy; unused
         sa.Boolean, nullable=False, default=True
     )
     protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
@@ -2279,8 +2279,8 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "directory_latest": (
                 self.directory_latest.as_json_minimal if self.directory_latest else None
             ),
-            "is_default": self.is_default or False,
-            "is_enabled": self.is_enabled or False,
+            # "is_default": self.is_default or False,    # legacy; unused
+            # "is_enabled": self.is_enabled or False,    # legacy; unused
             "is_supports_ari__version": self.is_supports_ari__version,
             "is_unlimited_pending_authz": self.is_unlimited_pending_authz,
             "name": self.name,

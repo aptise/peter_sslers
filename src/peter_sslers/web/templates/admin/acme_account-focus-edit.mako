@@ -37,7 +37,7 @@
             <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                   method="POST"
                   >
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">

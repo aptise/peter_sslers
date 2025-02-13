@@ -23,7 +23,7 @@
 
             ${admin_partials.handle_querystring_result()}
             
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">

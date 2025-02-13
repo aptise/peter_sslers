@@ -85,7 +85,7 @@
                 </div>
             % endif
 
-            <table class="table">
+            <table class="table table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -188,7 +188,7 @@
                     <tr>
                         <th>CertificateSigneds Recent</th>
                         <td>
-                            <table class="table">
+                            <table class="table table-striped table-condensed">
                                 <tr>
                                     <th>latest_single</th>
                                     <td>

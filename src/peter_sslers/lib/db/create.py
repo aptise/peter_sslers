@@ -104,8 +104,8 @@ def create__AcmeServer(
     dbAcmeServer.timestamp_created = ctx.timestamp
     dbAcmeServer.name = name
     dbAcmeServer.directory = directory
-    dbAcmeServer.is_default = None
-    dbAcmeServer.is_enabled = True
+    dbAcmeServer.is_default = None  # legacy and unused
+    dbAcmeServer.is_enabled = True  # legacy and unused
     dbAcmeServer.protocol = protocol
     dbAcmeServer.server = utils.url_to_server(directory)
     dbAcmeServer.server_ca_cert_bundle = server_ca_cert_bundle

@@ -34,6 +34,7 @@ class ApplicationSettings(dict):
             "block_competing_challenges",
             "cleanup_pending_authorizations",
             "data_dir",
+            "default_backup",
             "enable_nginx",
             "enable_redis",
             "enable_views_admin",
@@ -105,6 +106,11 @@ class ApplicationSettings(dict):
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
         self["data_dir"] = data_dir
+
+        default_backup = settings.get("default_backup")
+        if default_backup not in ("none", "global"):
+            default_backup = "none"
+        self["default_backup"] = default_backup
 
         # will we redirect on error?
         self["exception_redirect"] = set_bool_setting(settings, "exception_redirect")

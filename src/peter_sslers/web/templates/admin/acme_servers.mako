@@ -29,30 +29,21 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-        
+
             <p>
-                If a provider is not enabled, it can not be used to Authenticate or Create new accounts.
+                The following servers are known to this installation.
             </p>
             <p>
-                Only the default provider can be used to set a default AcmeAccount. Changing the provider requires a restart.
+                New servers can be added with the `register_acme_servers` script.
             </p>
-            
-            <p>
-                The Default AcmeServer is specified in the application's active environment file.
-                Additional AcmeServers can be enabled via the environment file as well.
-                AcmeServers can be disabled with a console script that is distributed with this application.
-            </p>
-        
+
             % if AcmeServers:
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>is default</th>
                             <th>id</th>
                             <th>name</th>
-                            <th>enabled?</th>
                             <th>server</th>
-                            <th>ARI?</th>
                             <th>url</th>
                         </tr>
                     </thead>
@@ -60,19 +51,12 @@
                     % for provider_data in AcmeServers:
                         <tr>
                             <td>
-                                % if provider_data.is_default:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                % endif
-                            </td>
-                            <td>
                                 <a class="label label-info" href="${admin_prefix}/acme-server/${provider_data.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeServer-${provider_data.id}</a>
                             </td>
                             <td><code>${provider_data.name}</code></td>
-                            <td><code>${"True" if provider_data.is_enabled else "False"}</code></td>
                             <td><code>${provider_data.server}</code></td>
-                            <td><code>${provider_data.is_supports_ari__version or ''}</code></td>
                             <td><code>${provider_data.url}</code></td>
                         </tr>
                     % endfor

@@ -32,7 +32,7 @@
 
     <div class="row">
         <div class="col-sm-12">
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -110,6 +110,7 @@
                                 % endif
                             % endif
                             % if AcmeAccount.is_can_deactivate:
+                                &nbsp;
                                 <a class="btn btn-xs btn-danger" href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/deactivate">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                     Deactivate on ACME Server

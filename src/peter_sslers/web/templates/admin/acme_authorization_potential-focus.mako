@@ -33,7 +33,7 @@
     
     <div class="row">
         <div class="col-sm-12">
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">

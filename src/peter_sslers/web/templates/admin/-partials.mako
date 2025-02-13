@@ -18,13 +18,12 @@
 
 
 <%def name="table_AcmeAccounts(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
-                <th><!-- global_backup --></th>
-                <th><!-- global_default --></th>
+                <th><!-- global_backup | global_default --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -49,8 +48,6 @@
                         % if account.is_global_backup:
                             <span class="label label-success">global backup</span>
                         % endif
-                    </td>
-                    <td>
                         % if account.is_global_default:
                             <span class="label label-success">global default</span>
                         % endif
@@ -75,7 +72,7 @@
 
 
 <%def name="table_AcmeAccountKeys(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -365,7 +362,7 @@
 
 
 <%def name="table_AcmeChallenges(acme_challenges, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -460,7 +457,7 @@
 
 
 <%def name="table_AcmeEventLogs(acme_event_logs, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -850,7 +847,7 @@
 
 
 <%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -915,7 +912,7 @@
 
 
 <%def name="table_CoverageAssuranceEvents(CoverageAssuranceEvents)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -975,7 +972,7 @@
 
 
 <%def name="table_DomainAutocerts(domain_autocerts, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -1172,7 +1169,7 @@
 
 
 <%def name="table_PrivateKeys(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -1640,9 +1637,12 @@
         }
         if dbAcmeAccountReuse:
             checked["account_key_reuse_backup"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse:
-            checked["account_key_global_backup"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse:
+        elif AcmeAccount_GlobalBackup:
+            if request.registry.settings["app_settings"]["default_backup"] == "global":
+                checked["account_key_global_backup"] = 'checked="checked"'
+            else:
+                checked["none"] = 'checked="checked"'
+        else:
             checked["none"] = 'checked="checked"'
     %>
     <p>Select a Backup AcmeAccount with one of the following options</p>

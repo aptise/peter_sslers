@@ -33,7 +33,7 @@
 
     <div class="row">
         <div class="col-sm-12">
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -271,58 +271,6 @@
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
                     </tr>
                     <tr>
-                        <th>note</th>
-                        <td>
-                            % if AcmeOrder.note:
-                                <code>${AcmeOrder.note or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>replaces_requested</th>
-                        <td>
-                            % if AcmeOrder.replaces__requested:
-                                <code>${AcmeOrder.replaces__requested or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>replaces</th>
-                        <td>
-                            % if AcmeOrder.replaces:
-                                <code>${AcmeOrder.replaces or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>certificate_signed_id__replaces</th>
-                        <td>
-                            <a
-                                class="label label-info"
-                                href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>profile</th>
-                        <td>
-                            % if AcmeOrder.profile:
-                                <code>${AcmeOrder.profile or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_save_alternate_chains</th>
-                        <td>
-                            % if AcmeOrder.is_save_alternate_chains:
-                                <code>${AcmeOrder.is_save_alternate_chains or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>is_processing</th>
                         <td>
                             % if AcmeOrder.is_processing is True:
@@ -351,7 +299,27 @@
                                 </form>
                             % endif
                         </td>
-                    </tr>
+                    </tr>                    
+                    <tr>
+                        <th>status</th>
+                        <td><code>${AcmeOrder.acme_status_order or ''}</code>
+                            % if AcmeOrder.is_can_mark_invalid:
+                                <form
+                                    action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark"
+                                    method="POST"
+                                    id="form-acme_order-mark_invalid"
+                                >
+                                    <input type="hidden" name="action" value="invalid"/>
+                                    <button
+                                        class="btn btn-xs btn-danger"
+                                    >
+                                        <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                                        Mark 'invalid'
+                                    </a>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>                    
                     <tr>
                         <th>Renewals</th>
                         <td>
@@ -385,25 +353,139 @@
                             </a>
                         </td>
                     </tr>
-
+                </tbody>
+                <thead>
                     <tr>
-                        <th>status</th>
-                        <td><code>${AcmeOrder.acme_status_order or ''}</code>
-                            % if AcmeOrder.is_can_mark_invalid:
-                                <form
-                                    action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark"
-                                    method="POST"
-                                    id="form-acme_order-mark_invalid"
-                                >
-                                    <input type="hidden" name="action" value="invalid"/>
-                                    <button
-                                        class="btn btn-xs btn-danger"
-                                    >
-                                        <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                        Mark 'invalid'
-                                    </a>
-                                </form>
+                        <th colspan="2">
+                            Order Object
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>replaces</th>
+                        <td>
+                            % if AcmeOrder.replaces:
+                                <code>${AcmeOrder.replaces or ''}</code>
                             % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>profile</th>
+                        <td>
+                            % if AcmeOrder.profile:
+                                <code>${AcmeOrder.profile or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>order_url</th>
+                        <td><code>${AcmeOrder.order_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>finalize_url</th>
+                        <td><code>${AcmeOrder.finalize_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_url</th>
+                        <td><code>${AcmeOrder.certificate_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_expires</th>
+                        <td><timestamp>${AcmeOrder.timestamp_expires or ''}</timestamp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_updated</th>
+                        <td><timestamp>${AcmeOrder.timestamp_updated or ''}</timestamp>
+                        </td>
+                    </tr>
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            Order Details
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>RenewalConfiguration</th>
+                        <td>
+                            % if AcmeOrder.renewal_configuration_id:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RenewalConfiguration-${AcmeOrder.renewal_configuration_id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigned</th>
+                        <td>
+                            % if AcmeOrder.certificate_signed_id:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateSigned-${AcmeOrder.certificate_signed_id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>note</th>
+                        <td>
+                            % if AcmeOrder.note:
+                                <code>${AcmeOrder.note or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>replaces_requested</th>
+                        <td>
+                            % if AcmeOrder.replaces__requested:
+                                <code>${AcmeOrder.replaces__requested or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_signed_id__replaces</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_save_alternate_chains</th>
+                        <td>
+                            % if AcmeOrder.is_save_alternate_chains:
+                                <code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKey Cycle</th>
+                        <td>
+                            <code>${AcmeOrder.private_key_cycle}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateType</th>
+                        <td>
+                            <code>${AcmeOrder.certificate_type}</code>
                         </td>
                     </tr>
                     <tr>
@@ -432,45 +514,6 @@
                                 |
                                 ${AcmeOrder.acme_account.acme_server.directory}
                             </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>RenewalConfiguration</th>
-                        <td>
-                            % if AcmeOrder.renewal_configuration_id:
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    RenewalConfiguration-${AcmeOrder.renewal_configuration_id}
-                                </a>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>order_url</th>
-                        <td><code>${AcmeOrder.order_url or ''}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>finalize_url</th>
-                        <td><code>${AcmeOrder.finalize_url or ''}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>certificate_url</th>
-                        <td><code>${AcmeOrder.certificate_url or ''}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_expires</th>
-                        <td><timestamp>${AcmeOrder.timestamp_expires or ''}</timestamp>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_updated</th>
-                        <td><timestamp>${AcmeOrder.timestamp_updated or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>
@@ -510,32 +553,6 @@
                             % if AcmeOrder.private_key_deferred_id:
                                 <span class="label label-default">private_key_deferred_id</span>
                                 <code>type: ${model_websafe.PrivateKeyDeferred._mapping[AcmeOrder.private_key_deferred_id]}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>PrivateKey Cycle</th>
-                        <td>
-                            <code>${AcmeOrder.private_key_cycle}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>CertificateType</th>
-                        <td>
-                            <code>${AcmeOrder.certificate_type}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>CertificateSigned</th>
-                        <td>
-                            % if AcmeOrder.certificate_signed_id:
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${AcmeOrder.certificate_signed_id}
-                                </a>
                             % endif
                         </td>
                     </tr>
