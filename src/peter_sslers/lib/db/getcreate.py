@@ -190,8 +190,9 @@ def getcreate__AcmeAccount(
     # quickly audit args/derive info
     if key_pem:
         # _strategy = "key_pem"
-        if not contact:
-            raise ValueError("must supply `contact` when submitting `key_pem`")
+        # # this has been relaxed
+        # if not contact:
+        #    raise ValueError("must supply `contact` when submitting `key_pem`")
         if not acme_server_id:
             raise ValueError("no `acme_server_id`; required if PEM key is submitted.")
 

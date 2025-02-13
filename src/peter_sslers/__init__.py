@@ -1,6 +1,6 @@
 import cert_utils
 
-__VERSION__ = "1.0.0"
+__VERSION__ = "1.0.0dev0"
 USER_AGENT = "peter_sslers/%s" % __VERSION__
 
 

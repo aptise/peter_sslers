@@ -340,7 +340,7 @@ class View_New(Handler):
                 )
 
             parser = AcmeAccountUploadParser(formStash)
-            parser.require_new(require_contact=True)
+            parser.require_new(require_contact=None)
 
             key_create_args = parser.getcreate_args
             for _field in (
@@ -443,9 +443,20 @@ class View_New(Handler):
                 # we've created an AcmeAccount locally but not on the server
                 # right now, this will persist to the DB ( which causes issues)
                 # unless we raise an exception or set an error
+                message = "Can not validate on upstream ACME Server."
+                if exc.args[0] == 400:
+                    if isinstance(exc.args[1], dict):
+                        if (
+                            exc.args[1].get("type")
+                            == "urn:ietf:params:acme:error:unsupportedContact"
+                        ):
+                            message += " Server says `urn:ietf:params:acme:error:unsupportedContact`"
+                            _detail = exc.args[1].get("detail")
+                            if _detail:
+                                message += " " + _detail
                 formStash.set_error(
                     field=formStash.error_main_key,
-                    message="Can not validate on upstream ACME Server.",
+                    message=message,
                     message_prepend=True,
                 )
             else:

@@ -969,8 +969,9 @@ def do__AcmeV2_AcmeAccount_register(
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
     try:
-        if not dbAcmeAccount.contact:
-            raise errors.InvalidRequest("no `contact`")
+        # # this has been relaxed
+        # if not dbAcmeAccount.contact:
+        #    raise errors.InvalidRequest("no `contact`")
 
         acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 

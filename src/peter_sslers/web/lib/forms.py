@@ -7,7 +7,6 @@ from typing import List
 from formencode import Schema as _Schema
 from formencode.foreach import ForEach
 from formencode.validators import _
-from formencode.validators import Email
 from formencode.validators import FieldStorageUploadConverter
 from formencode.validators import FormValidator
 from formencode.validators import Int
@@ -16,6 +15,8 @@ from formencode.validators import OneOf
 from formencode.validators import RequireIfMissing
 from formencode.validators import RequireIfPresent
 from formencode.validators import UnicodeString
+
+# from formencode.validators import Email
 
 # local app
 from ...model import utils as model_utils
@@ -177,8 +178,9 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
 
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
-    acme_server_id = Int(not_empty=True, if_missing=None)
-    account__contact = Email(not_empty=True, if_missing=None)  # use it or don't
+    acme_server_id = Int(not_empty=True)
+    # account__contact = Email(not_empty=True)
+    account__contact = UnicodeString(not_empty=False, if_missing=None)
 
     # this is the `private_key_technology` of the AcmeAccount
     account__private_key_technology = OneOf(
@@ -204,7 +206,8 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
         * Form_AcmeOrder_new_freeform
     """
 
-    account__contact = Email(not_empty=False, if_missing=None)  # required if key_pem
+    # account__contact = Email(not_empty=True)
+    account__contact = UnicodeString(not_empty=False, if_missing=None)
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)

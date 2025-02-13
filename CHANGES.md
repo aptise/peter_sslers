@@ -130,6 +130,7 @@
         AcmeAccount
         - changes to Terms Of Service are better logged and tracked
         - testing edge cases on form submission
+        - `contact` not required by application; better reporting of server error
 
     New Bundled CAs
         - BuyPass was added as an ACME CA

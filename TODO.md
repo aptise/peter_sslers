@@ -1,9 +1,6 @@
 URGENT
 =====
     
-Contact
-    relax to not require
-
 Errors:
     tests can somehow create a second acme-dns server
     transition concerns for acme-dns global servers (set_default)
