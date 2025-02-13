@@ -3,9 +3,14 @@ URGENT
 
 set the first acme account and first acme server to be the defaults
 
+check to see if we correctly handle this:
+    request with an invalid replaces
+    is it stripped from the order on a resubmit?
+    if it comes back, do we correctly annotate the replaces vs replaces_requested ?
+
 block repeat requests
     timeout an order for 10 seconds
-
+    possibly use a nonce
 
 bug:
     if we lose a connection during the db save, we lose the ability to finalize/download
