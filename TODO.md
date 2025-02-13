@@ -123,6 +123,11 @@ Docs
     RenewalConfiguration not support Edit for a reason.
 
 
+Certbot Import
+    Renewal Configurations are not created
+    This is due to not knowing how to parse the DNS-01 vs HTTP-01 challenges in the renewal file
+    The import DOES correlate ownership of the keys to the correct account
+
 Routines
 --------
 
@@ -135,14 +140,6 @@ systems with large numbers of rows
 should this allow an option to attempt renewals
 
   
-Bugs
-----
-
-# The authz do not sync on exit. (still pending when valid)
-
-
-
-
 
 Application
 -----------

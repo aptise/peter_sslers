@@ -62,17 +62,9 @@
                             % endif
                             % if not PrivateKey.is_placeholder:
                                 % if not PrivateKey.is_compromised:
-                                    &nbsp;
-                                    <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="compromised"/>
-                                        <button class="btn btn-xs btn-danger" type="submit">
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            Mark Compromised
-                                        </button>
-                                    </form>
                                     % if not PrivateKey.is_active:
                                         &nbsp;
-                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;" id="form-private_key-mark-active">
                                             <input type="hidden" name="action" value="active"/>
                                             <button class="btn btn-xs btn-success" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -81,7 +73,7 @@
                                         </form>
                                     % else:
                                         &nbsp;
-                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;" id="form-private_key-mark-inactive">
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -106,62 +98,6 @@
                                 </code>
                             % endif
                         </td>
-                    </tr>
-                    <tr>
-                        <th>replaces?</th>
-                        <td>
-                            % if PrivateKey.private_key_id__replaces:
-                                <span class="label label-warning">
-                                    Replaces Compromised
-                                </span>
-                                <a
-                                    class="btn btn-xs btn-info"
-                                    href="${admin_prefix}/private-key/${PrivateKey.private_key_id__replaces}"
-                                >
-                                    PrivateKey-${PrivateKey.private_key_id__replaces}
-                                </a>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_compromised?</th>
-                        <td>
-                            % if PrivateKey.is_compromised:
-                                <span class="label label-danger">
-                                    COMPROMISED
-                                </span>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>source</th>
-                        <td>
-                            <span class="label label-default">${PrivateKey.private_key_source}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_created</th>
-                        <td><timestamp>${PrivateKey.timestamp_created or ''}</timestamp></td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request or ''}</timestamp></td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_last_certificate_issue</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_issue or ''}</timestamp></td>
-                    </tr>
-                    <tr>
-                        <th>count_active_certificates</th>
-                        <td><span class="badge">${PrivateKey.count_active_certificates or ''}</span></td>
-                    </tr>
-                    <tr>
-                        <th>count_acme_orders</th>
-                        <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
-                    </tr>
-                    <tr>
-                        <th>count_certificate_signeds</th>
-                        <td><span class="badge">${PrivateKey.count_certificate_signeds or ''}</span></td>
                     </tr>
                     <tr>
                         <th>key_technology</th>
@@ -203,7 +139,16 @@
                             % endif
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
+                    <tr>
+                        <th>source</th>
+                        <td>
+                            <span class="label label-default">${PrivateKey.private_key_source}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${PrivateKey.timestamp_created or ''}</timestamp></td>
+                    </tr>
                     <tr>
                         <th>AcmeAccount Owner</th>
                         <td>
@@ -212,6 +157,70 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${PrivateKey.acme_account_id__owner}
                                 </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>replaces?</th>
+                        <td>
+                            % if PrivateKey.private_key_id__replaces:
+                                <span class="label label-warning">
+                                    Replaces Compromised
+                                </span>
+                                <a
+                                    class="btn btn-xs btn-info"
+                                    href="${admin_prefix}/private-key/${PrivateKey.private_key_id__replaces}"
+                                >
+                                    PrivateKey-${PrivateKey.private_key_id__replaces}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_compromised?</th>
+                        <td>
+                            % if PrivateKey.is_compromised:
+                                <span class="label label-danger">
+                                    COMPROMISED
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_last_certificate_request</th>
+                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request or ''}</timestamp></td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_last_certificate_issue</th>
+                        <td><timestamp>${PrivateKey.timestamp_last_certificate_issue or ''}</timestamp></td>
+                    </tr>
+                    <tr>
+                        <th>count_active_certificates</th>
+                        <td><span class="badge">${PrivateKey.count_active_certificates or ''}</span></td>
+                    </tr>
+                    <tr>
+                        <th>count_acme_orders</th>
+                        <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
+                    </tr>
+                    <tr>
+                        <th>count_certificate_signeds</th>
+                        <td><span class="badge">${PrivateKey.count_certificate_signeds or ''}</span></td>
+                    </tr>
+                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
+                    <tr>
+                        <th>DANGER</th>
+                        <td>
+                            % if not PrivateKey.is_placeholder:
+                                % if not PrivateKey.is_compromised:
+                                    &nbsp;
+                                    <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;" id="form-private_key-mark-compromised">
+                                        <input type="hidden" name="action" value="compromised"/>
+                                        <button class="btn btn-xs btn-danger" type="submit">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            Mark Compromised
+                                        </button>
+                                    </form>
+                                % endif
                             % endif
                         </td>
                     </tr>
