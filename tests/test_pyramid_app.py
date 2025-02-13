@@ -8291,14 +8291,25 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
 class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
     @routes_tested(("admin:acme_order:new:freeform",))
-    def _prep_AcmeOrder_html(self, processing_strategy=None):
+    def _prep_AcmeOrder_html(
+        self,
+        processing_strategy: str = "create_order",
+    ):
         """
         this runs `@under_pebble`, but the invoking function should wrap it
         """
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
+        # originally these were scripted, but chaining tests might be mucking this up
+        # domain_names_http01 = _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
+        # stash these onto the testCase so the actual test can access them
+        self._domain_names_http01 = [
+            generate_random_domain(testCase=self),
+            generate_random_domain(testCase=self),
+        ]
+        assert len(self._domain_names_http01) == 2
+        domain_names_http01 = ",".join(self._domain_names_http01)
 
         (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
             self,
@@ -8325,11 +8336,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
         form["private_key_option"].force_value("account_default")
         form["private_key_cycle"].force_value("account_default")
-        form["domain_names_http01"] = ",".join(
-            _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
-        )
-        if processing_strategy is None:
-            processing_strategy = "create_order"
+        form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"].force_value(processing_strategy)
         form["note"].force_value(note)
         res2 = form.submit()
@@ -8407,9 +8414,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert _dbAcmeOrder is not None
         renewal_configuration_1__id = _dbAcmeOrder.renewal_configuration_id
 
-        assert len(_dbAcmeOrder.acme_authorizations) == len(
-            _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
-        )
+        assert len(_dbAcmeOrder.acme_authorizations) == len(self._domain_names_http01)
         _authorization_pairs = [
             (i.id, i.acme_challenge_http_01.id)
             for i in _dbAcmeOrder.acme_authorizations
@@ -8943,7 +8948,11 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         # new orders should default to auto-renew on
-        assert "form-renewal_configuration-mark-inactive" in res.forms
+        try:
+            assert "form-renewal_configuration-mark-inactive" in res.forms
+        except:
+            print(res.text)
+            pdb.set_trace()
         form = res.forms["form-renewal_configuration-mark-inactive"]
         res = form.submit()
         assert res.status_code == 303
@@ -8952,7 +8961,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             % renewal_configuration_id
         )
 
-        # grab the order again...
+        # grab the RenewalConfiguration again...
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s"
             % renewal_configuration_id,
@@ -9061,7 +9070,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
     @routes_tested(("admin:acme_order:new:freeform|json",))
-    def _prep_AcmeOrder_json(self, processing_strategy=None):
+    def _prep_AcmeOrder_json(self, processing_strategy: str = "create_order"):
         """
         this runs `@under_pebble`, but the invoking function should wrap it
 
@@ -9069,7 +9078,15 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
+        # originally these were scripted, but chaining tests might be mucking this up
+        # domain_names_http01 = _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
+        # stash these onto the testCase so the actual test can access them
+        self._domain_names_http01 = [
+            generate_random_domain(testCase=self),
+            generate_random_domain(testCase=self),
+        ]
+        assert len(self._domain_names_http01) == 2
+        domain_names_http01 = ",".join(self._domain_names_http01)
 
         (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
             self,
@@ -9092,11 +9109,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
         form["private_key_cycle"] = "account_default"
-        form["domain_names_http01"] = ",".join(
-            _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
-        )
-        if processing_strategy is None:
-            processing_strategy = "create_order"
+        form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"] = processing_strategy
         form["note"] = note
         res2 = self.testapp.post(
@@ -9170,9 +9183,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert _dbAcmeOrder is not None
         renewal_configuration_1__id = _dbAcmeOrder.renewal_configuration_id
 
-        assert len(_dbAcmeOrder.acme_authorizations) == len(
-            _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
-        )
+        assert len(_dbAcmeOrder.acme_authorizations) == len(self._domain_names_http01)
         _authorization_pairs = [
             (i.id, i.acme_challenge_http_01.id)
             for i in _dbAcmeOrder.acme_authorizations

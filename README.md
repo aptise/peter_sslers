@@ -33,6 +33,7 @@ What's in the "box" ?
   * an Admin Dashboard,
   * a fullly programmatic API,
   * commandline tools
+  * cron job "routines"
   * an integrated ACME V2 Client optimized for the
     [LetsEncrypt](https://LetsEncrypt.org) CertificateAuthority.
 * The paired project
@@ -161,6 +162,39 @@ amount of installations/downloads/packages when used for emergency debugging.
 is implemented Python-first, with an OpenSSL fallback.*  This is because an
 initial purpose of Peter was import, troubleshoot and ultimately replace
 complex Certbot installations.
+
+
+How?
+-----
+
+There are 2 main libraries:
+
+* The paired
+  [Lua-Resty Peter_SSLers](https://github.com/aptise/lua-resty-peter_sslers)
+  project, an [OpenResty](https://github.com/openresty/openresty) Lua module
+  that enables Dynamic SSL Certificate Handling on the `Nginx` webserver.
+
+* This Python library, [Peter_SSLers](https://github.com/aptise/peter_sslers),
+  which provides:
+  * Commandline Tools
+  * A webserver application for obtaining and managing certificates
+    * designed for JSON/API programmatic usage
+    * usable by humans with simplified html
+
+Provisioning Certificates and initial orders are currently done through the web
+interface.
+
+Renewing Certificates can be done via two methods:
+
+* If the web application is running, it can renew certificates
+* A commandline cron routine will spin up a webserver to answer challenges if needed
+
+Current support for ACME Challenge Types:
+
+* HTTP-01: answered by the native webserver
+* DNS-01: domains will be registered with a global acme-dns server
+* TLS-ALPN-01: support is not currently planned
+
 
 
 Why?

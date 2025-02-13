@@ -74,12 +74,14 @@ def ari_timestamp_to_python(timestamp: str) -> datetime.datetime:
         if len(_precision) > 6:
             _tz = _components[1][len(_precision) :]
             timestamp = _components[0] + "." + "".join(_precision[:6]) + _tz
-        if timestamp[-1].isdigit():
-            return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%Z")
-        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
-    if timestamp[-1].isdigit():
-        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%Z")
-    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+        if timestamp[-1].isdigit() or (
+            timestamp[-1] == "Z" and timestamp[-2].isdigit()
+        ):
+            return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%Z")
+    if timestamp[-1].isdigit() or (timestamp[-1] == "Z" and timestamp[-2].isdigit()):
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%Z")
 
 
 def new_BrowserSession() -> requests.Session:

@@ -362,3 +362,101 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             _display_name = cert_payload.get("display_name")
             self.assertNotIn(_display_name, seen["display_name"])
             seen["display_name"].append(_display_name)
+
+
+class Test_ARI_DateConversion(unittest.TestCase):
+    """
+    test_rfc_ from: https://datatracker.ietf.org/doc/html/rfc3339
+    """
+
+    def test_seconds(self):
+        ts = "2025-02-13T21:19:27Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_seconds_offset(self):
+        ts = "2025-02-13T21:19:27-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_seconds_timezone(self):
+        ts = "2025-02-13T21:19:27UTC"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds(self):
+        ts = "2025-02-13T21:19:27.333334Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds_offset(self):
+        ts = "2025-02-13T21:19:27.333334-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds_timezone(self):
+        ts = "2025-02-13T21:19:27.333334GMT"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds(self):
+        ts = "2025-02-13T21:19:27.333333334Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds_offset(self):
+        ts = "2025-02-13T21:19:27.333333334-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds_timezone(self):
+        ts = "2025-02-13T21:19:27.333333334EDT"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_1(self):
+        """
+        This represents 20 minutes and 50.52 seconds after the 23rd hour of
+        April 12th, 1985 in UTC.
+        """
+        ts = "1985-04-12T23:20:50.52Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_1_alternate(self):
+        """ """
+        ts = "1985-04-12T23:20:50.52-08:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_2(self):
+        """
+        This represents 39 minutes and 57 seconds after the 16th hour of
+        December 19th, 1996 with an offset of -08:00 from UTC (Pacific
+        Standard Time).  Note that this is equivalent to 1996-12-20T00:39:57Z
+        in UTC.
+        """
+        ts = "1996-12-19T16:39:57-08:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_3(self):
+        """
+        This represents the leap second inserted at the end of 1990.
+
+        Python does not handle this
+        """
+        ts = "1990-12-31T23:59:60Z"
+        with self.assertRaises(ValueError):
+            as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_4(self):
+        """
+        This represents the same leap second in Pacific Standard Time, 8
+        hours behind UTC.
+
+        Python does not handle this
+        """
+        ts = "1990-12-31T15:59:60-08:00"
+        with self.assertRaises(ValueError):
+            as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_5(self):
+        """
+        This represents the same instant of time as noon, January 1, 1937,
+        Netherlands time.  Standard time in the Netherlands was exactly 19
+        minutes and 32.13 seconds ahead of UTC by law from 1909-05-01 through
+        1937-06-30.  This time zone cannot be represented exactly using the
+        HH:MM format, and this timestamp uses the closest representable UTC
+        offset.
+        """
+        ts = "1937-01-01T12:00:27.87+00:20"
+        as_datetime = utils.ari_timestamp_to_python(ts)
