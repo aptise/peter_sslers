@@ -891,6 +891,7 @@ AcmeServerInput = TypedDict(
         "is_supports_ari__version": Optional[str],
         "is_unlimited_pending_authz": Optional[bool],
         "filepath_ca_cert_bundle": Optional[str],
+        "ca_cert_bundle": Optional[str],
     },
     total=False,
 )

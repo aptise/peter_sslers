@@ -1,13 +1,5 @@
 URGENT
 =====
-
-# backup CA selection
-    allow default to be "none"
-    
-# register_acme_servers should have an export flag.
-    
-Use config tool to determine default server;
-    
     
 Contact
     relax to not require

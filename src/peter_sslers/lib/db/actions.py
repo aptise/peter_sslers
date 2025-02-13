@@ -1008,13 +1008,21 @@ def register_acme_servers(
 
         # always done
         server_ca_cert_bundle: Optional[str] = None
+
         filepath_ca_cert_bundle = item.get("filepath_ca_cert_bundle")
+        ca_cert_bundle = item.get("ca_cert_bundle")
+        if filepath_ca_cert_bundle and ca_cert_bundle:
+            raise ValueError(
+                "you may only submit one of: filepath_ca_cert_bundle, ca_cert_bundle"
+            )
+
         if filepath_ca_cert_bundle:
             with open(filepath_ca_cert_bundle) as fh:
                 server_ca_cert_bundle = fh.read()
-                server_ca_cert_bundle = cert_utils.cleanup_pem_text(
-                    server_ca_cert_bundle
-                )
+            server_ca_cert_bundle = cert_utils.cleanup_pem_text(server_ca_cert_bundle)
+        elif ca_cert_bundle:
+            server_ca_cert_bundle = cert_utils.cleanup_pem_text(ca_cert_bundle)
+
         server = url_to_server(item["directory"])
 
         def _new_AcmeServer():

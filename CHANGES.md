@@ -103,6 +103,8 @@
         register_acme_servers can be used to :
             * load additional CAs through a json file
             * assign TrustedRoots to existing or new CAs
+            * export existing acme-server configurations, in a format that can
+              be imported by the same tool
     
     new QuickStart guide
     
