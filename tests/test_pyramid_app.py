@@ -10498,21 +10498,25 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         Uploadable certs for these domains are in the test-data folder
         """
 
-        def _upload_pebble_cert(pebble_cert_id: int) -> Tuple[int, str]:
+        def _upload_pebble_cert(privkey_id: int, lineage_name: str) -> Tuple[int, str]:
             # returns a Tuple[id, ari_identifier]
             # upload a test cert
             res = self.testapp.get(
                 "/.well-known/peter_sslers/certificate-signed/upload.json", status=200
             )
             form = {}
+            form["private_key_file_pem"] = Upload(
+                self._filepath_testfile("pebble-certs/privkey%s.pem" % privkey_id)
+            )
             form["certificate_file"] = Upload(
-                self._filepath_testfile("pebble-certs/cert%s.pem" % pebble_cert_id)
+                self._filepath_testfile(
+                    "pebble-certs/privkey%s/%s/cert.pem" % (privkey_id, lineage_name)
+                )
             )
             form["chain_file"] = Upload(
-                self._filepath_testfile("pebble-certs/chain%s.pem" % pebble_cert_id)
-            )
-            form["private_key_file_pem"] = Upload(
-                self._filepath_testfile("pebble-certs/privkey%s.pem" % pebble_cert_id)
+                self._filepath_testfile(
+                    "pebble-certs/privkey%s/%s/chain.pem" % (privkey_id, lineage_name)
+                )
             )
             res2 = self.testapp.post(
                 "/.well-known/peter_sslers/certificate-signed/upload.json", form
@@ -10566,22 +10570,34 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
                 pprint.pprint(_res2.json)
                 raise
 
+        # these are all single domain certs sharing a single key
+        _existing_certs = (
+            # privkey, lineage
+            (1, "a.test-replaces.example.com"),
+            (1, "b.test-replaces.example.com"),
+            # (1, "c.test-replaces.example.com"),
+        )
+        lineage_2_certdata = {}
+        for _privkey_id, _lineage_name in _existing_certs:
+            _cert_id, _ari_id = _upload_pebble_cert(_privkey_id, _lineage_name)
+            lineage_2_certdata[_lineage_name] = (_cert_id, _ari_id)
+
         # prep with some orders of different lineage
         dbAcmeOrder_1 = make_one__AcmeOrder(
             self,
-            domain_names_http01="a.example.com",
+            domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # same UniqueFQDNSet, different UniquelyChallengedFqdnSet
         dbAcmeOrder_2 = make_one__AcmeOrder(
             self,
-            domain_names_dns01="a.example.com",
+            domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # different domains
         dbAcmeOrder_3 = make_one__AcmeOrder(
             self,
-            domain_names_http01="b.example.com",
+            domain_names_http01="b.test-replaces.example.com",
             processing_strategy="process_single",
         )
 
@@ -10590,11 +10606,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # this is a tuple: (certificate_id, ari_identifier)
         # pebble-certs/cert1.pem: a.example.com
         # pebble-certs/cert2.pem: b.example.com
-        uploaded_pebble_cert_data = _upload_pebble_cert(1)
-        if False:
-            print("=============================")
-            print("uploaded_pebble_cert_data:")
-            print(uploaded_pebble_cert_data)
 
         # note: TestCase 1- FAIL replace an unknown `replaces`
         _result = _make_one__AcmeOrder_Renewal(
@@ -10642,7 +10653,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
             dbAcmeOrder_1,
-            _replaces=uploaded_pebble_cert_data[1],
+            _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="PASS",
         )
         log.info("test_replaces- Passed: TestCase 6")
@@ -10651,7 +10662,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
             dbAcmeOrder_3,
-            _replaces=uploaded_pebble_cert_data[1],
+            _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="FAIL",
         )
         log.info("test_replaces- Passed: TestCase 7")

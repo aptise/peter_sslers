@@ -11,6 +11,7 @@ from pyramid.scripts.common import parse_vars
 # local
 from ..models import get_engine
 from ..models import get_session_factory
+from ...lib.config_utils import ApplicationSettings
 from ...lib.http import StopableWSGIServer
 from ...lib.utils import ApiContext
 from ...model.objects import objects as model_objects
@@ -79,6 +80,9 @@ def main(argv=sys.argv):
 
     settings = get_appsettings(config_uri, options=options)
 
+    app_settings = ApplicationSettings(config_uri)
+    app_settings.from_settings_dict(settings)
+
     engine = get_engine(settings)
 
     Base.metadata.create_all(engine)
@@ -93,6 +97,7 @@ def main(argv=sys.argv):
         dbSession=dbSession,
         request=None,
         config_uri=config_uri,
+        app_settings=app_settings,
     )
 
     expiring_certs = (

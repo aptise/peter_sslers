@@ -113,6 +113,7 @@ def main(argv=sys.argv):
         dbSession=dbSession,
         request=None,
         config_uri=config_uri,
+        app_settings=app_settings,
     )
 
     lib_db.actions.register_acme_servers(ctx, servers, "user")

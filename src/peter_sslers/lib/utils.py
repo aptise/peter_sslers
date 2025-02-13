@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pyramid.request import Request
     from sqlalchemy.orm.session import Session
     import transaction
+    from .config_utils import ApplicationSettings
 
 # ==============================================================================
 
@@ -143,6 +144,7 @@ class ApiContext(object):
     timestamp: datetime.datetime
     request: Optional["Request"] = None
     config_uri: Optional[str] = None
+    app_settings: Optional["ApplicationSettings"] = None
 
     def __init__(
         self,
@@ -151,6 +153,7 @@ class ApiContext(object):
         dbSession: Optional["Session"] = None,
         timestamp: Optional[datetime.datetime] = None,
         config_uri: Optional[str] = None,
+        app_settings: Optional["ApplicationSettings"] = None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent
@@ -160,6 +163,7 @@ class ApiContext(object):
             timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.timestamp = timestamp
         self.config_uri = config_uri
+        self.app_settings = app_settings
 
     @property
     def transaction_manager(self) -> "transaction.manager":

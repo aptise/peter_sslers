@@ -72,3 +72,6 @@
 127.0.0.1 test-domain-autocert-4.example.com
 127.0.0.1 test-domain-autocert-5.example.com
 127.0.0.1 test-redis-1.example.com
+127.0.0.1 a.test-replaces.example.com
+127.0.0.1 b.test-replaces.example.com
+127.0.0.1 c.test-replaces.example.com

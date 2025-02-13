@@ -145,6 +145,7 @@ def main(global_config, **settings):
             dbSession=request.dbSession,
             request=request,
             config_uri=config_uri,
+            app_settings=app_settings,
         ),
         "api_context",
         reify=True,
@@ -189,6 +190,7 @@ def main(global_config, **settings):
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,
+            app_settings=app_settings,
         )
 
         # this might do some heavy lifting, or nothing

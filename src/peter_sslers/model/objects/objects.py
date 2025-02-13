@@ -2236,9 +2236,13 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         if not self.server_ca_cert_bundle:
             return None
 
-        request = ctx.dbSession.info.get("request")
-        assert request
-        data_dir = request.registry.settings["app_settings"]["data_dir"]
+        data_dir: str
+        if ctx.app_settings:
+            data_dir = ctx.app_settings["data_dir"]
+        else:
+            request = ctx.dbSession.info.get("request")
+            assert request
+            data_dir = request.registry.settings["app_settings"]["data_dir"]
 
         assert ctx.config_uri
         _config_uri = ctx.config_uri

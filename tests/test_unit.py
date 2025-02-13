@@ -402,7 +402,8 @@ class Test_ARI_DateConversion(unittest.TestCase):
         as_datetime = utils.ari_timestamp_to_python(ts)
 
     def test_nanoseconds_timezone(self):
-        ts = "2025-02-13T21:19:27.333333334EDT"
+        # py3.8 does not like EDT?!
+        ts = "2025-02-13T21:19:27.333333334EST"
         as_datetime = utils.ari_timestamp_to_python(ts)
 
     def test_rfc3339_1(self):
