@@ -43,6 +43,7 @@ from peter_sslers.lib import acme_v2
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
 from peter_sslers.lib import utils
+from peter_sslers.lib.config_utils import ApplicationSettings
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
@@ -180,6 +181,8 @@ if RUN_API_TESTS__ACME_DNS_API:
     if not any((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
         raise ValueError("Must invoke with env vars for acme-dns services")
 
+RUN_API_TESTS__EXTENDED = bool(int(os.environ.get("SSL_RUN_API_TESTS__EXTENDED", 0)))
+
 
 OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.5.0"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
@@ -203,8 +206,9 @@ if DISABLE_WARNINGS:
 TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
 
 # This is some fancy footwork to update our settings
-_appsettings = get_appsettings(TEST_INI, name="main")
-cert_utils.update_from_appsettings(_appsettings)
+GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
+GLOBAL_appsettings["config_uri"] = TEST_INI
+cert_utils.update_from_appsettings(GLOBAL_appsettings)
 
 
 # SEMAPHORE?
@@ -269,6 +273,11 @@ if DEBUG_GITHUB_ENV:
     print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
     print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
     print("TEST_INI:", TEST_INI)
+
+
+# note: ApplicationSettings can be global
+GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
+GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
 
 
 def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
@@ -336,17 +345,16 @@ class FakeRequest(testing.DummyRequest):
 
 
 def new_test_connections():
-    settings = get_appsettings(
-        TEST_INI, name="main"
-    )  # this can cause an unclosed resource
-    session_factory = get_session_factory(get_engine(settings))
+    session_factory = get_session_factory(get_engine(GLOBAL_appsettings))
     request = FakeRequest()
     dbSession = session_factory(info={"request": request})
+
     ctx = utils.ApiContext(
         request=request,
         dbSession=dbSession,
         timestamp=datetime.datetime.now(datetime.timezone.utc),
         config_uri=TEST_INI,
+        application_settings=GLOBAL_ApplicationSettings,
     )
     return ctx
 
@@ -374,9 +382,6 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]):
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)
-    settings = get_appsettings(
-        TEST_INI, name="main"
-    )  # this can cause an unclosed resource
     ctx = new_test_connections()
     for _root_pem in root_pems:
         (
@@ -1488,15 +1493,12 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             self.__class__.__name__,
             self._testMethodName,
         )
-        self._settings = settings = get_appsettings(
-            TEST_INI, name="main"
-        )  # this can cause an unclosed resource
-        settings["config_uri"] = TEST_INI
+        self._settings = GLOBAL_appsettings
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         # settings["sqlalchemy.url"] = "sqlite://"
 
-        self._session_factory = get_session_factory(get_engine(settings))
+        self._session_factory = get_session_factory(get_engine(GLOBAL_appsettings))
         engine = self._session_factory().bind
         assert isinstance(engine, sqlalchemy.engine.base.Engine)
         assert engine.driver == "pysqlite"
@@ -1528,11 +1530,13 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 print("AppTestCore.setUp | using frozen database")
             else:
                 print("AppTestCore.setUp | recreating the database")
+
                 ctx = utils.ApiContext(
                     timestamp=datetime.datetime.now(datetime.timezone.utc),
                     dbSession=dbSession,
                     request=None,
                     config_uri=TEST_INI,
+                    application_settings=GLOBAL_ApplicationSettings,
                 )
                 # this would have been invoked by `initializedb`
                 db._setup.initialize_database(ctx)
@@ -1542,7 +1546,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         else:
             with engine.begin() as connection:
                 connection.execute(sqlalchemy.text("VACUUM"))
-        self._pyramid_app = app = main(global_config=None, **settings)
+        self._pyramid_app = app = main(global_config=None, **GLOBAL_appsettings)
         self._testapp = TestApp(
             app,
             extra_environ={
@@ -1564,7 +1568,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             """
             testname = "%s.%s" % (self.__class__.__name__, self._testMethodName)
             count_acme_order = self.ctx.dbSession.query(model_objects.AcmeOrder).count()
-            count_certificate_ca = self.ctx.dbSession.query(
+            count_certificate_ca = self.ctx.dbSession.query(  # Pebble certs
                 model_objects.CertificateCA
             ).count()
             self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
@@ -1601,11 +1605,13 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         if self._ctx is None:
             dbSession_factory = self._pyramid_app.registry["dbSession_factory"]
             request = FakeRequest()
+
             self._ctx = utils.ApiContext(
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
                 timestamp=datetime.datetime.now(datetime.timezone.utc),
                 config_uri=TEST_INI,
+                application_settings=GLOBAL_ApplicationSettings,
             )
             # merge in the settings
             if TYPE_CHECKING:
@@ -2223,10 +2229,25 @@ class AppTest(AppTestCore):
                         root_url=ACME_DNS_API,
                         is_global_default=True,
                     )
-                    (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
-                        self.ctx,
-                        root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
-                    )
+
+                    dbAcmeDnsServer_2: Optional[model_objects.AcmeDnsServer] = None
+                    _acme_dns_support = self.ctx.application_settings[
+                        "acme_dns_support"
+                    ]
+                    try:
+                        (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                            self.ctx,
+                            root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                        )
+                        if _acme_dns_support == "basic":
+                            raise ValueError(
+                                "we should not be able to add a second acme-dns server"
+                            )
+                    except ValueError as exc:
+                        if exc.args[0] == "An acme-dns server already exists.":
+                            # this is expected in basic
+                            if _acme_dns_support != "basic":
+                                raise exc
 
                     (
                         _dbAcmeDnsServerAccount_domain,
@@ -2235,9 +2256,10 @@ class AppTest(AppTestCore):
                         self.ctx,
                         domain_name=TEST_FILES["AcmeDnsServerAccount"]["1"]["domain"],
                     )
+                    # use the second server if possible
                     dbAcmeDnsServerAccount = db.create.create__AcmeDnsServerAccount(
                         self.ctx,
-                        dbAcmeDnsServer=dbAcmeDnsServer_2,
+                        dbAcmeDnsServer=(dbAcmeDnsServer_2 or dbAcmeDnsServer),
                         dbDomain=_dbAcmeDnsServerAccount_domain,
                         username=TEST_FILES["AcmeDnsServerAccount"]["1"]["username"],
                         password=TEST_FILES["AcmeDnsServerAccount"]["1"]["password"],

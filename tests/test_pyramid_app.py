@@ -36,6 +36,7 @@ from ._utils import generate_random_emailaddress
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import ResponseFailureOkay
 from ._utils import RUN_API_TESTS__ACME_DNS_API
+from ._utils import RUN_API_TESTS__EXTENDED
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
@@ -1604,7 +1605,9 @@ class FunctionalTests_AcmeDnsServer(AppTest):
     """
 
     def _acme_dns_support(self) -> Optional[str]:
-        return self.testapp.app.registry.settings["app_settings"]["acme_dns_support"]
+        return self.testapp.app.registry.settings["application_settings"][
+            "acme_dns_support"
+        ]
 
     def _get_one(self, id_not=None):
         # grab an order
@@ -1818,41 +1821,51 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert RE_AcmeDnsServer_import_domain_existing.match(res3.location)
 
         # ok our tests!
+        _acme_dns_support = self.testapp.app.registry.settings["application_settings"][
+            "acme_dns_support"
+        ]
+        _SUPPORT_ALT = True if _acme_dns_support == "extended" else False
+        focus_item: model_objects.AcmeDnsServer
+        focus_id: int
+        alt_item: model_objects.AcmeDnsServer
+        alt_id: int
 
         # obj 1
         (focus_item, focus_id) = self._get_one()
 
-        # obj 2
-        (alt_item, alt_id) = self._get_one(id_not=focus_id)
+        if _SUPPORT_ALT:
+            # obj 2
+            (alt_item, alt_id) = self._get_one(id_not=focus_id)
 
         # test mark: global_default
-        if not focus_item.is_global_default:
-            _make_global_default(focus_id)
-            _make_global_default(alt_id)
-        else:
-            _make_global_default(alt_id)
+        if _SUPPORT_ALT:
+            if not focus_item.is_global_default:
+                _make_global_default(focus_id)
+                _make_global_default(alt_id)
+            else:
+                _make_global_default(alt_id)
 
-        # expire these items!
-        self.ctx.dbSession.expire(focus_item)
-        self.ctx.dbSession.expire(alt_item)
+            # expire these items!
+            self.ctx.dbSession.expire(focus_item)
+            self.ctx.dbSession.expire(alt_item)
 
-        # test mark: inactive
-        # the focus item is NOT the global default, so can be turned off
-        _make_inactive(focus_id)
+            # test mark: inactive
+            # the focus item is NOT the global default, so can be turned off
+            _make_inactive(focus_id)
 
-        # test mark: active
-        # the focus item is NOT the global default, so can be turned and back on
-        _make_active(focus_id)
+            # test mark: active
+            # the focus item is NOT the global default, so can be turned and back on
+            _make_active(focus_id)
 
         # test: edit
-        url_og = alt_item.root_url
+        url_og = focus_item.root_url
 
         # fail editing the url
-        _edit_url(alt_id, url_og, expect_failure_nochange=True)
+        _edit_url(focus_id, url_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(alt_id, url_og + "123")
-        _edit_url(alt_id, url_og)
+        _edit_url(focus_id, url_og + "123")
+        _edit_url(focus_id, url_og)
 
         # ensure domains
         _ensure_domains(focus_id)
@@ -2112,41 +2125,51 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
 
         # ok our tests!
+        _acme_dns_support = self.testapp.app.registry.settings["application_settings"][
+            "acme_dns_support"
+        ]
+        _SUPPORT_ALT = True if _acme_dns_support == "extended" else False
+        focus_item: model_objects.AcmeDnsServer
+        focus_id: int
+        alt_item: model_objects.AcmeDnsServer
+        alt_id: int
 
         # obj 1
         (focus_item, focus_id) = self._get_one()
 
-        # obj 2
-        (alt_item, alt_id) = self._get_one(id_not=focus_id)
+        if _SUPPORT_ALT:
+            # obj 2
+            (alt_item, alt_id) = self._get_one(id_not=focus_id)
 
         # test mark: global_default
-        if not focus_item.is_global_default:
-            _make_global_default(focus_id)
-            _make_global_default(alt_id)
-        else:
-            _make_global_default(alt_id)
+        if _SUPPORT_ALT:
+            if not focus_item.is_global_default:
+                _make_global_default(focus_id)
+                _make_global_default(alt_id)
+            else:
+                _make_global_default(alt_id)
 
-        # expire these items!
-        self.ctx.dbSession.expire(focus_item)
-        self.ctx.dbSession.expire(alt_item)
+            # expire these items!
+            self.ctx.dbSession.expire(focus_item)
+            self.ctx.dbSession.expire(alt_item)
 
-        # test mark: inactive
-        # the focus item is NOT the global default, so can be turned off
-        _make_inactive(focus_id)
+            # test mark: inactive
+            # the focus item is NOT the global default, so can be turned off
+            _make_inactive(focus_id)
 
-        # test mark: active
-        # the focus item is NOT the global default, so can be turned and back on
-        _make_active(focus_id)
+            # test mark: active
+            # the focus item is NOT the global default, so can be turned and back on
+            _make_active(focus_id)
 
         # test: edit
-        url_og = alt_item.root_url
+        url_og = focus_item.root_url
 
         # fail editing the url
-        _edit_url(alt_id, url_og, expect_failure_nochange=True)
+        _edit_url(focus_id, url_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(alt_id, url_og + "123")
-        _edit_url(alt_id, url_og)
+        _edit_url(focus_id, url_og + "123")
+        _edit_url(focus_id, url_og)
 
         # ensure_domains
         _ensure_domains(focus_id)
@@ -5540,9 +5563,14 @@ class FunctionalTests_Operations(AppTest):
         _nginx = (
             True
             if (
-                ("enable_nginx" in self.testapp.app.registry.settings["app_settings"])
+                (
+                    "enable_nginx"
+                    in self.testapp.app.registry.settings["application_settings"]
+                )
                 and (
-                    self.testapp.app.registry.settings["app_settings"]["enable_nginx"]
+                    self.testapp.app.registry.settings["application_settings"][
+                        "enable_nginx"
+                    ]
                     is True
                 )
             )
@@ -7553,7 +7581,7 @@ class FunctionalTests_API(AppTest):
         assert "errors" in res.json["servers_status"]
         assert not res.json["servers_status"]["errors"]
 
-        for server in self.testapp.app.registry.settings["app_settings"][
+        for server in self.testapp.app.registry.settings["application_settings"][
             "nginx.servers_pool"
         ]:
             assert server in res.json["servers_status"]["success"]
@@ -7581,7 +7609,7 @@ class FunctionalTests_API(AppTest):
         assert "servers_status" in res.json
         assert "errors" in res.json["servers_status"]
         assert not res.json["servers_status"]["errors"]
-        for server in self.testapp.app.registry.settings["app_settings"][
+        for server in self.testapp.app.registry.settings["application_settings"][
             "nginx.servers_pool"
         ]:
             assert server in res.json["servers_status"]["success"]
@@ -7678,7 +7706,10 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         res2 = form.submit()
         assert res2.status_code == 200
         assert "There was an error with your form." in res2.text
-        assert "Please enter an email address" in res2.text
+        assert (
+            "Can not validate on upstream ACME Server. Server says `urn:ietf:params:acme:error:unsupportedContact` contact method &quot;&quot; is not supported."
+            in res2.text
+        )
 
         form = res2.form
         form["account__contact"].force_value("AcmeAccount.new.html@example.com")
@@ -8952,7 +8983,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             assert "form-renewal_configuration-mark-inactive" in res.forms
         except:
             print(res.text)
-            pdb.set_trace()
         form = res.forms["form-renewal_configuration-mark-inactive"]
         res = form.submit()
         assert res.status_code == 303
@@ -10673,6 +10703,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
     python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKeyCycles
     """
 
+    @unittest.skipUnless(RUN_API_TESTS__EXTENDED, "Not Running Extended Tests")
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
     def test_PrivateKey_options(self):
@@ -11191,7 +11222,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # Integrated Tests: self._testapp_wsgi.test_app.registry.settings
         # by default, this should be True
         assert (
-            self._pyramid_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["application_settings"][
                 "cleanup_pending_authorizations"
             ]
             is True
@@ -11270,13 +11301,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             # Integrated Tests: self._testapp_wsgi.test_app.registry.settings
             # by default, this should be True
             assert (
-                self._pyramid_app.registry.settings["app_settings"][
+                self._pyramid_app.registry.settings["application_settings"][
                     "cleanup_pending_authorizations"
                 ]
                 is True
             )
             # now set this as False
-            self._pyramid_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["application_settings"][
                 "cleanup_pending_authorizations"
             ] = False
 
@@ -11398,7 +11429,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         finally:
             # reset
-            self._pyramid_app.registry.settings["app_settings"][
+            self._pyramid_app.registry.settings["application_settings"][
                 "cleanup_pending_authorizations"
             ] = True
 
@@ -11596,14 +11627,14 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         # okay, loop the prime styles
         _prime_styles = ("1", "2")
-        _existing_prime_style = self.testapp.app.registry.settings["app_settings"][
-            "redis.prime_style"
-        ]
+        _existing_prime_style = self.testapp.app.registry.settings[
+            "application_settings"
+        ]["redis.prime_style"]
         try:
             for _prime_style in _prime_styles:
                 if _prime_style == _existing_prime_style:
                     continue
-                self.testapp.app.registry.settings["app_settings"][
+                self.testapp.app.registry.settings["application_settings"][
                     "redis.prime_style"
                 ] = _prime_style
 
@@ -11614,7 +11645,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         finally:
             # reset
-            self.testapp.app.registry.settings["app_settings"][
+            self.testapp.app.registry.settings["application_settings"][
                 "redis.prime_style"
             ] = _existing_prime_style
 

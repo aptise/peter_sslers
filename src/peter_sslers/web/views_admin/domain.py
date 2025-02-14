@@ -142,7 +142,9 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
+        expiring_days = self.request.registry.settings["application_settings"][
+            "expiring_days"
+        ]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
             "admin:domains:expiring_paginated",
@@ -152,7 +154,7 @@ class View_List(Handler):
             sidenav_option = "expiring"
             url_template = (
                 "%s/domains/expiring/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.registry.settings["application_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -176,7 +178,7 @@ class View_List(Handler):
             sidenav_option = "challenged"
             url_template = (
                 "%s/domains/challenged/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.registry.settings["application_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -198,7 +200,7 @@ class View_List(Handler):
             sidenav_option = "authz-potential"
             url_template = (
                 "%s/domains/authz-potential/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.registry.settings["application_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -215,7 +217,7 @@ class View_List(Handler):
             sidenav_option = "all"
             url_template = (
                 "%s/domains/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.registry.settings["application_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -416,7 +418,7 @@ class View_Focus(Handler):
             self.dbDomain = dbDomain
             self._focus_item = dbDomain
             self._focus_url = "%s/domain/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 self.dbDomain.id,
             )
         return self.dbDomain

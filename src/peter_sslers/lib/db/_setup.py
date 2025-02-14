@@ -292,7 +292,7 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     return True
 
 
-def application_started(ctx: "ApiContext", app_settings: Dict) -> Literal[True]:
+def application_started(ctx: "ApiContext", application_settings: Dict) -> Literal[True]:
     """
     initially this hook was used to:
 

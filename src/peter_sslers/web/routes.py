@@ -8,8 +8,10 @@ if TYPE_CHECKING:
 
 
 def includeme(config: "Configurator") -> None:
-    enable_views_admin = config.registry.settings["app_settings"]["enable_views_admin"]
-    enable_views_public = config.registry.settings["app_settings"][
+    enable_views_admin = config.registry.settings["application_settings"][
+        "enable_views_admin"
+    ]
+    enable_views_public = config.registry.settings["application_settings"][
         "enable_views_public"
     ]
 
@@ -30,7 +32,9 @@ def includeme(config: "Configurator") -> None:
 
     # admin
     if enable_views_admin:
-        route_prefix = config.registry.settings["app_settings"].get("admin_prefix")
+        route_prefix = config.registry.settings["application_settings"].get(
+            "admin_prefix"
+        )
         config.include(_admin_views, route_prefix=route_prefix)
         config.add_route_7("admin", route_prefix)
 

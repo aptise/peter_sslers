@@ -63,7 +63,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__PrivateKey__count(self.request.api_context)
         url_template = (
             "%s/private-keys/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.registry.settings["application_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -100,7 +100,7 @@ class View_Focus(Handler):
             self.dbPrivateKey = dbPrivateKey
             self._focus_item = dbPrivateKey
             self._focus_url = "%s/private-key/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 self.dbPrivateKey.id,
             )
         return self.dbPrivateKey
@@ -437,7 +437,9 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/private-key/%s?result=success%s&operation=new"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     dbPrivateKey.id,
                     "&is_created=1",
                 )
@@ -512,7 +514,9 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/private-key/%s?result=success&operation=upload%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     dbPrivateKey.id,
                     ("&is_created=1" if _is_created else ""),
                 )

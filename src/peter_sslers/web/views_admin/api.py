@@ -52,13 +52,15 @@ class ViewAdminApi(Handler):
         """
         version = {
             "version": __VERSION__,
-            "config_uri-path": self.request.registry.settings["app_settings"][
+            "config_uri-path": self.request.registry.settings["application_settings"][
                 "config_uri-path"
             ],
-            "config_uri-contents": self.request.registry.settings["app_settings"][
-                "config_uri-contents"
+            "config_uri-contents": self.request.registry.settings[
+                "application_settings"
+            ]["config_uri-contents"],
+            "mac_uuid": self.request.registry.settings["application_settings"][
+                "mac_uuid"
             ],
-            "mac_uuid": self.request.registry.settings["app_settings"]["mac_uuid"],
         }
         return version
 
@@ -83,7 +85,11 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/deactivate-expired.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
         operations_event = lib_db.actions.operations_deactivate_expired(
             self.request.api_context
@@ -103,7 +109,7 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--deactivate-expired&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 operations_event.id,
             )
         )
@@ -129,7 +135,11 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/update-recents.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--update-recents&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
         operations_event = lib_db.actions.operations_update_recents__global(
             self.request.api_context
@@ -139,7 +149,7 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--update-recents&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 operations_event.id,
             )
         )
@@ -165,7 +175,11 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/reconcile-cas.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--reconcile-cas&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
         operations_event = lib_db.actions.operations_reconcile_cas(
             self.request.api_context
@@ -175,7 +189,7 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--reconcile-cas&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 operations_event.id,
             )
         )
@@ -631,7 +645,11 @@ class ViewAdminApi_Redis(Handler):
                 return formatted_get_docs(self, "/api/redis/prime.json")
             return HTTPSeeOther(
                 "%s/operations/redis?result=error&operation=api--redis--prime&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
 
         try:
@@ -810,7 +828,9 @@ class ViewAdminApi_Redis(Handler):
             return HTTPSeeOther(
                 "%s/operations/redis?result=success&operation=redis_prime&event.id=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     dbEvent.id,
                 )
             )
@@ -832,7 +852,9 @@ class ViewAdminApi_Redis(Handler):
             raise HTTPFound(
                 "%s/operations/redis?result=error&operation=api--redis--prime&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     msg,
                 )
             )
@@ -858,7 +880,11 @@ class ViewAdminApi_Nginx(Handler):
                 return formatted_get_docs(self, "/api/nginx/cache-flush.json")
             return HTTPSeeOther(
                 "%s/operations/nginx?result=error&operation=api--nginx--cache-flush&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
@@ -875,7 +901,9 @@ class ViewAdminApi_Nginx(Handler):
             return HTTPSeeOther(
                 "%s/operations/nginx?result=success&operation=nginx_cache_flush&event.id=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     dbEvent.id,
                 )
             )
@@ -888,7 +916,9 @@ class ViewAdminApi_Nginx(Handler):
             raise HTTPFound(
                 "%s/operations/nginx?result=error&operation=api--nginx--cache-flush&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     exc.as_querystring,
                 )
             )
@@ -914,7 +944,11 @@ class ViewAdminApi_Nginx(Handler):
                 return formatted_get_docs(self, "/api/nginx/status.json")
             return HTTPSeeOther(
                 "%s/operations/nginx?result=error&operation=api--nginx--status&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
+                )
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
@@ -932,7 +966,9 @@ class ViewAdminApi_Nginx(Handler):
             raise HTTPFound(
                 "%s/operations/nginx?result=error&operation=api--nginx--status&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.registry.settings["application_settings"][
+                        "admin_prefix"
+                    ],
                     exc.as_querystring,
                 )
             )

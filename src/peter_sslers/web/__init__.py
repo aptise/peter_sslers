@@ -33,7 +33,7 @@ def header_tween_factory(handler, registry):
 
 def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
-    event["admin_prefix"] = event["request"].registry.settings["app_settings"][
+    event["admin_prefix"] = event["request"].registry.settings["application_settings"][
         "admin_prefix"
     ]
     event["admin_server"] = event["request"].admin_server
@@ -66,7 +66,7 @@ def db_log_cleanup__tween_factory(handler, registry):
 
 def api_host(request):
     """request method"""
-    _api_host = request.registry.settings["app_settings"].get("api_host")
+    _api_host = request.registry.settings["application_settings"].get("api_host")
     if _api_host:
         return _api_host
     _scheme = request.environ.get("scheme", "http")
@@ -75,7 +75,10 @@ def api_host(request):
 
 def admin_url(request):
     """request method"""
-    return request.api_host + request.registry.settings["app_settings"]["admin_prefix"]
+    return (
+        request.api_host
+        + request.registry.settings["application_settings"]["admin_prefix"]
+    )
 
 
 def load_CertificateCAPreferences(request):
@@ -109,9 +112,9 @@ def main(global_config, **settings):
     config_uri = settings.get("config_uri")
     if not config_uri:
         config_uri = global_config["__file__"] if global_config else None
-    app_settings = ApplicationSettings(config_uri)
-    app_settings.from_settings_dict(settings)
-    config.registry.settings["app_settings"] = app_settings
+    application_settings = ApplicationSettings(config_uri)
+    application_settings.from_settings_dict(settings)
+    config.registry.settings["application_settings"] = application_settings
 
     # let's extend the request too!
     config.add_request_method(
@@ -120,7 +123,7 @@ def main(global_config, **settings):
         reify=True,
     )
     config.add_request_method(
-        lambda request: request.registry.settings["app_settings"].get(
+        lambda request: request.registry.settings["application_settings"].get(
             "admin_server", None
         )
         or request.environ["HTTP_HOST"],
@@ -145,7 +148,7 @@ def main(global_config, **settings):
             dbSession=request.dbSession,
             request=request,
             config_uri=config_uri,
-            app_settings=app_settings,
+            application_settings=application_settings,
         ),
         "api_context",
         reify=True,
@@ -190,11 +193,11 @@ def main(global_config, **settings):
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,
-            app_settings=app_settings,
+            application_settings=application_settings,
         )
 
         # this might do some heavy lifting, or nothing
-        _setup.application_started(ctx, app_settings)
+        _setup.application_started(ctx, application_settings)
 
     if dbSession:
         dbSession.close()

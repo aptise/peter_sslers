@@ -105,7 +105,7 @@ class View_New(Handler):
     _count_servers: int = 0
 
     def _acme_dns_support_check(self):
-        _mode = self.request.registry.settings["acme_dns_support"]
+        _mode = self.request.api_context.application_settings["acme_dns_support"]
         if _mode == "experimental":
             return True
         self._count_servers = lib_db.get.get__AcmeDnsServer__count(
@@ -166,7 +166,10 @@ class View_New(Handler):
 
             # in "basic" mode we only have a single server,
             # so it should be the default
-            if self.request.registry.settings["acme_dns_support"] == "basic":
+            if (
+                self.request.api_context.application_settings["acme_dns_support"]
+                == "basic"
+            ):
                 if self._count_servers == 0:
                     (
                         event_status,

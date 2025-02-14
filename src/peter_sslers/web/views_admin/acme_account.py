@@ -65,7 +65,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
             "%s/acme-accounts/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.registry.settings["application_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -454,6 +454,8 @@ class View_New(Handler):
                             _detail = exc.args[1].get("detail")
                             if _detail:
                                 message += " " + _detail
+                            if message[-1] != ".":
+                                message += "."
                 formStash.set_error(
                     field=formStash.error_main_key,
                     message=message,

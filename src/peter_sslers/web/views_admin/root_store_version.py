@@ -28,7 +28,7 @@ class View_Focus(Handler):
             self.dbRootStoreVersion = dbRootStoreVersion
             self._focus_item = dbRootStoreVersion
             self._focus_url = "%s/root-store-version/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 self.dbRootStoreVersion.id,
             )
         return self.dbRootStoreVersion

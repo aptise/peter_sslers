@@ -456,7 +456,9 @@ def create__AcmeChallenge(
     assert ctx.request
     assert ctx.request.registry
     assert ctx.timestamp
-    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+    if ctx.request.registry.settings["application_settings"][
+        "block_competing_challenges"
+    ]:
         _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
             ctx,
             dbDomain.id,

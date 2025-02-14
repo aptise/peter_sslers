@@ -106,7 +106,7 @@ documentation_grid = {
     },
     "Experimental Configuration": {
         "acme_dns_support": {
-            "docstring": "Default of `basic`, can be set to `experimental`.",
+            "docstring": "Default of `basic`, can be set to `experimental` but should not be.",
             "show_on_settings": False,
         }
     },

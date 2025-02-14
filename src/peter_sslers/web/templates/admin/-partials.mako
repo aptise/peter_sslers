@@ -1638,7 +1638,7 @@
         if dbAcmeAccountReuse:
             checked["account_key_reuse_backup"] = 'checked="checked"'
         elif AcmeAccount_GlobalBackup:
-            if request.registry.settings["app_settings"]["default_backup"] == "global":
+            if request.registry.settings["application_settings"]["default_backup"] == "global":
                 checked["account_key_global_backup"] = 'checked="checked"'
             else:
                 checked["none"] = 'checked="checked"'

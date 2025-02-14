@@ -231,6 +231,7 @@ jobs:
         export SSL_ACME_DNS_CONFIG=/home/runner/work/peter_sslers/peter_sslers/tests/test_configuration/acme-dns.config 
         export SSL_BIN_REDIS_SERVER=/usr/bin/redis-server
         export SSL_RUN_API_TESTS__ACME_DNS_API=1
+        export SSL_RUN_API_TESTS__EXTENDED=1
         export SSL_RUN_API_TESTS__PEBBLE=1
         export SSL_RUN_NGINX_TESTS=1
         export SSL_RUN_REDIS_TESTS=1

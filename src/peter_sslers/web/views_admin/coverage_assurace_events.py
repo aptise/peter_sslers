@@ -30,7 +30,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_all = (
             "%s/coverage-assurance-events/all"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.registry.settings["application_settings"]["admin_prefix"]
         )
         return HTTPSeeOther(url_all)
 
@@ -113,7 +113,7 @@ class View_List(Handler):
             sidenav_option = "unresolved"
             unresolved_only = True
         url_template = "%s/coverage-assurance-events/%s/{0}" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
+            self.request.registry.settings["application_settings"]["admin_prefix"],
             "unresolved" if unresolved_only else "all",
         )
         if self.request.wants_json:
@@ -157,7 +157,7 @@ class View_Focus(Handler):
             self.dbCoverageAssuranceEvent = dbCoverageAssuranceEvent
             self._focus_item = dbCoverageAssuranceEvent
             self._focus_url = "%s/coverage-assurance-event/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.registry.settings["application_settings"]["admin_prefix"],
                 self.dbCoverageAssuranceEvent.id,
             )
         return self.dbCoverageAssuranceEvent

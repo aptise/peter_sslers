@@ -23,6 +23,7 @@ from .create import create__PrivateKey
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__count
 from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
@@ -751,6 +752,12 @@ def getcreate__AcmeDnsServer(
     is_created = False
     dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
     if not dbAcmeDnsServer:
+        _mode = ctx.application_settings["acme_dns_support"]
+        if _mode == "basic":
+            _count_servers = get__AcmeDnsServer__count(ctx)
+            if _count_servers >= 1:
+                raise ValueError("An acme-dns server already exists.")
+
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx, model_utils.OperationsEventType.from_string("AcmeDnsServer__insert")

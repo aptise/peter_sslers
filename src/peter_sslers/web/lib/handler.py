@@ -90,14 +90,14 @@ class Handler(object):
         """
         if nginx is not enabled, raise a HTTPFound to the admin dashboard
         """
-        if not self.request.registry.settings["app_settings"]["enable_nginx"]:
+        if not self.request.registry.settings["application_settings"]["enable_nginx"]:
             raise InvalidRequest("nginx is not enabled")
 
     def _ensure_redis(self):
         """
         if redis is not enabled, raise a HTTPFound to the admin dashboard
         """
-        if not self.request.registry.settings["app_settings"]["enable_redis"]:
+        if not self.request.registry.settings["application_settings"]["enable_redis"]:
             raise InvalidRequest("redis is not enabled")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

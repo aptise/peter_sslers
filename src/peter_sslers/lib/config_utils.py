@@ -20,6 +20,7 @@ def normalize_filepath(fpath: str) -> str:
 
 
 class ApplicationSettings(dict):
+
     def __init__(
         self,
         config_uri: Optional[str] = None,
@@ -88,11 +89,12 @@ class ApplicationSettings(dict):
             self["admin_prefix"] = "/.well-known/peter_sslers"
 
         #
+        self["acme_dns_support"] = "basic"
         if "acme_dns_support" in settings:
-            if settings["acme_dns_support"] not in ("basic", "experimental"):
-                settings["acme_dns_support"] = "basic"
-        else:
-            settings["acme_dns_support"] = "basic"
+            if settings["acme_dns_support"] in ("basic", "experimental"):
+                self["acme_dns_support"] = settings["acme_dns_support"]
+            else:
+                self["acme_dns_support"] = "basic"
 
         # should we cleanup challenges
         self["cleanup_pending_authorizations"] = set_bool_setting(
@@ -217,6 +219,9 @@ def set_bool_setting(
     """
     _bool = None
     if key in settings:
+        # the settings may have been processed already
+        if isinstance(settings[key], bool):
+            return settings[key]
         if settings[key].lower() in ("1", "true"):
             _bool = True
         elif settings[key].lower() in ("0", "false"):
@@ -238,6 +243,9 @@ def set_int_setting(
     """
     value = default
     if key in settings:
+        # the settings may have been processed already
+        if isinstance(settings[key], int):
+            return settings[key]
         _candidate = settings[key]
         if _candidate is not None:
             value = int(_candidate)

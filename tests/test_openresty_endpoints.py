@@ -46,14 +46,16 @@ class FunctionalTests_Main(unittest.TestCase):
     """
 
     _settings = None
-    _app_settings: ApplicationSettings
+    _application_settings: ApplicationSettings
 
     def setUp(self):
         self._settings = settings = get_appsettings(TEST_INI, name="main")
-        self._app_settings = app_settings = ApplicationSettings(config_uri=TEST_INI)
-        app_settings.from_settings_dict(settings)
-        assert "nginx.ca_bundle_pem" in app_settings
-        assert os.path.exists(app_settings["nginx.ca_bundle_pem"])
+        self._application_settings = application_settings = ApplicationSettings(
+            config_uri=TEST_INI
+        )
+        application_settings.from_settings_dict(settings)
+        assert "nginx.ca_bundle_pem" in application_settings
+        assert os.path.exists(application_settings["nginx.ca_bundle_pem"])
 
     def _check_version(self, response_json, response_headers):
         """
@@ -84,8 +86,8 @@ class FunctionalTests_Main(unittest.TestCase):
             auth: Optional[HTTPBasicAuth]
             cafile: True|str
         """
-        nginx_userpass = self._app_settings.get("nginx.userpass", "")
-        nginx_ca_bundle = self._app_settings["nginx.ca_bundle_pem"]
+        nginx_userpass = self._application_settings.get("nginx.userpass", "")
+        nginx_ca_bundle = self._application_settings["nginx.ca_bundle_pem"]
         auth = None
         if nginx_userpass:
             auth = HTTPBasicAuth(*nginx_userpass.split(":"))
@@ -94,7 +96,7 @@ class FunctionalTests_Main(unittest.TestCase):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     def test_nginx_status(self):
-        nginx_servers = self._app_settings.get("nginx.servers_pool")
+        nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         (auth, verify) = self._requests_args()
         for server in nginx_servers:
@@ -109,7 +111,7 @@ class FunctionalTests_Main(unittest.TestCase):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     def test_nginx_expire_all(self):
-        nginx_servers = self._app_settings.get("nginx.servers_pool")
+        nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         (auth, verify) = self._requests_args()
         for server in nginx_servers:
@@ -125,7 +127,7 @@ class FunctionalTests_Main(unittest.TestCase):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "Not Running Against: nginx")
     def test_nginx_expire_domain(self):
-        nginx_servers = self._app_settings.get("nginx.servers_pool")
+        nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
         (auth, verify) = self._requests_args()
         domain = "example.com"

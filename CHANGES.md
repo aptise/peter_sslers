@@ -136,7 +136,6 @@
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
 
-
     Added a "note" to:
         RenewalConfiguration
         AcmeOrder

@@ -42,8 +42,8 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
     session_factory = get_session_factory(engine)
 
-    app_settings = ApplicationSettings(config_uri)
-    app_settings.from_settings_dict(settings)
+    application_settings = ApplicationSettings(config_uri)
+    application_settings.from_settings_dict(settings)
 
     dbSession = session_factory()
     ctx = ApiContext(
@@ -51,7 +51,7 @@ def main(argv=sys.argv):
         dbSession=dbSession,
         request=None,
         config_uri=config_uri,
-        app_settings=app_settings,
+        application_settings=application_settings,
     )
 
     lib_db.actions.routine__clear_old_ari_checks(ctx)

@@ -556,7 +556,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 is_via_acme_sync=True,
             )
             assert ctx.request
-            if ctx.request.registry.settings["app_settings"][
+            if ctx.request.registry.settings["application_settings"][
                 "cleanup_pending_authorizations"
             ]:
                 log.info(
@@ -2476,7 +2476,9 @@ def do__AcmeV2_AcmeOrder__new(
     assert ctx.request
     assert ctx.request.registry
     # this is REQUIRED for DNS-01; we don't really care about HTTP-01
-    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+    if ctx.request.registry.settings["application_settings"][
+        "block_competing_challenges"
+    ]:
         # check each domain for an existing active challenge
         active_challenges = []
         for to_domain in dbUniqueFQDNSet.to_domains:

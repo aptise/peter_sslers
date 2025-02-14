@@ -2237,12 +2237,12 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             return None
 
         data_dir: str
-        if ctx.app_settings:
-            data_dir = ctx.app_settings["data_dir"]
+        if ctx.application_settings:
+            data_dir = ctx.application_settings["data_dir"]
         else:
             request = ctx.dbSession.info.get("request")
             assert request
-            data_dir = request.registry.settings["app_settings"]["data_dir"]
+            data_dir = request.registry.settings["application_settings"]["data_dir"]
 
         assert ctx.config_uri
         _config_uri = ctx.config_uri
@@ -2539,7 +2539,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             """|"""
             """<code>%(cert_issuer)s</code>"""
             % {
-                "admin_prefix": request.registry.settings["app_settings"][
+                "admin_prefix": request.registry.settings["application_settings"][
                     "admin_prefix"
                 ],
                 "id": self.id,
@@ -2565,7 +2565,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
             """</a>"""
             % {
-                "admin_prefix": request.registry.settings["app_settings"][
+                "admin_prefix": request.registry.settings["application_settings"][
                     "admin_prefix"
                 ],
                 "cert_spki_search": self.cert_spki_search,
@@ -2699,7 +2699,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """CertificateCAChain-%(id)s</a>"""
             % {
-                "admin_prefix": request.registry.settings["app_settings"][
+                "admin_prefix": request.registry.settings["application_settings"][
                     "admin_prefix"
                 ],
                 "id": self.id,
@@ -2722,7 +2722,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """CertificateCAChain-%(id)s</a>"""
             % {
-                "admin_prefix": request.registry.settings["app_settings"][
+                "admin_prefix": request.registry.settings["application_settings"][
                     "admin_prefix"
                 ],
                 "id": self.id,

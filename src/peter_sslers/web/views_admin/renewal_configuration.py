@@ -46,7 +46,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_all = (
             "%s/renewal-configurations/active"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.registry.settings["application_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
             url_all = "%s.json" % url_all
@@ -192,7 +192,7 @@ class View_List(Handler):
             active_status = False
 
         url_template = "%s/renewal-configurations/%s/{0}" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
+            self.request.registry.settings["application_settings"]["admin_prefix"],
             "sidenav_option",
         )
         if self.request.wants_json:
@@ -720,7 +720,9 @@ class View_Focus_New(View_Focus):
                                 # in "experimental" mode, we may want to use specific
                                 # acme-dns servers and not the global one
                                 if (
-                                    self.request.registry.settings["acme_dns_support"]
+                                    self.request.api_context.application_settings[
+                                        "acme_dns_support"
+                                    ]
                                     == "experimental"
                                 ):
                                     raise
@@ -790,7 +792,9 @@ class View_Focus_New(View_Focus):
                 return HTTPSeeOther(
                     "%s/renewal-configuration/%s%s"
                     % (
-                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ],
                         dbRenewalConfiguration_new.id,
                         "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
@@ -830,7 +834,9 @@ class View_Focus_New(View_Focus):
                 return HTTPSeeOther(
                     "%s/renewal-configurations/all?result=error&error=%s&operation=new+freeform"
                     % (
-                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ],
                         exc.as_querystring,
                     )
                 )
@@ -851,7 +857,9 @@ class View_Focus_New(View_Focus):
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/renewal-configurations/all?result=error&operation=new-freeform"
-                        % self.request.registry.settings["app_settings"]["admin_prefix"]
+                        % self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ]
                     )
                 raise
 
@@ -1126,7 +1134,9 @@ class View_New(Handler):
                                 # in "experimental" mode, we may want to use specific
                                 # acme-dns servers and not the global one
                                 if (
-                                    self.request.registry.settings["acme_dns_support"]
+                                    self.request.api_context.application_settings[
+                                        "acme_dns_support"
+                                    ]
                                     == "experimental"
                                 ):
                                     raise
@@ -1187,7 +1197,9 @@ class View_New(Handler):
                 return HTTPSeeOther(
                     "%s/renewal-configuration/%s%s"
                     % (
-                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ],
                         dbRenewalConfiguration.id,
                         "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
@@ -1227,7 +1239,9 @@ class View_New(Handler):
                 return HTTPSeeOther(
                     "%s/renewal-configurations/all?result=error&error=%s&operation=new+freeform"
                     % (
-                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ],
                         exc.as_querystring,
                     )
                 )
@@ -1248,7 +1262,9 @@ class View_New(Handler):
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/renewal-configurations/all?result=error&operation=new-freeform"
-                        % self.request.registry.settings["app_settings"]["admin_prefix"]
+                        % self.request.registry.settings["application_settings"][
+                            "admin_prefix"
+                        ]
                     )
                 raise
 
