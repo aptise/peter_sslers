@@ -9,7 +9,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import sqlalchemy
 
 # local
 from ..lib import form_utils as form_utils
@@ -27,8 +26,6 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils_nginx
 from ...lib import utils_redis
-from ...model import objects as model_objects
-from ...model import utils as model_utils
 from ...model.objects import Domain
 
 
@@ -548,22 +545,9 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbDomain = self._focus()
-        weekly_certs = (
-            self.request.api_context.dbSession.query(
-                model_utils.year_week(
-                    model_objects.CertificateSigned.timestamp_not_before
-                ).label("week_num"),
-                sqlalchemy.func.count(model_objects.CertificateSigned.id),
-            )
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(model_objects.UniqueFQDNSet2Domain.domain_id == dbDomain.id)
-            .group_by("week_num")
-            .order_by(sqlalchemy.asc("week_num"))
-            .all()
+        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_domainId(
+            self.request.api_context,
+            dbDomain.id,
         )
         rval["issues"] = {}
         for wc in weekly_certs:

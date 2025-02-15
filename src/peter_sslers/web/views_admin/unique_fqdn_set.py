@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import sqlalchemy
 
 # local
 from ..lib import formhandling
@@ -20,8 +19,6 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model import objects as model_objects
-from ...model import utils as model_utils
 from ...model.objects import UniqueFQDNSet
 
 
@@ -145,19 +142,9 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbUniqueFQDNSet = self._focus()
-        weekly_certs = (
-            self.request.api_context.dbSession.query(
-                model_utils.year_week(
-                    model_objects.CertificateSigned.timestamp_not_before
-                ).label("week_num"),
-                sqlalchemy.func.count(model_objects.CertificateSigned.id),
-            )
-            .filter(
-                model_objects.CertificateSigned.unique_fqdn_set_id == dbUniqueFQDNSet.id
-            )
-            .group_by("week_num")
-            .order_by(sqlalchemy.asc("week_num"))
-            .all()
+        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
+            self.request.api_context,
+            dbUniqueFQDNSet.id,
         )
         rval["issues"] = {}
         for wc in weekly_certs:

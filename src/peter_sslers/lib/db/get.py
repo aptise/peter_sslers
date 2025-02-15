@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import logging
+from typing import Any
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -2332,6 +2333,49 @@ def get__CertificateSigneds__by_UniquelyChallengedFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+def get_CertificateSigned_weeklyData_by_domainId(
+    ctx: "ApiContext",
+    domain_id: int,
+) -> List[Any]:
+    weekly_certs = (
+        ctx.dbSession.query(
+            model_utils.year_week(CertificateSigned.timestamp_not_before).label(
+                "week_num"
+            ),
+            sqlalchemy.func.count(CertificateSigned.id),
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            CertificateSigned.unique_fqdn_set_id
+            == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .group_by("week_num")
+        .order_by(sqlalchemy.asc("week_num"))
+        .all()
+    )
+    return weekly_certs
+
+
+def get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+) -> List[Any]:
+    weekly_certs = (
+        ctx.dbSession.query(
+            model_utils.year_week(CertificateSigned.timestamp_not_before).label(
+                "week_num"
+            ),
+            sqlalchemy.func.count(CertificateSigned.id),
+        )
+        .filter(CertificateSigned.unique_fqdn_set_id == unique_fqdn_set_id)
+        .group_by("week_num")
+        .order_by(sqlalchemy.asc("week_num"))
+        .all()
+    )
+    return weekly_certs
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
