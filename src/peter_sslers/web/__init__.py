@@ -203,5 +203,11 @@ def main(global_config, **settings):
         dbSession.close()
     dbEngine.dispose()  # toss the connection in-case of multi-processing
 
+    print(
+        "PeterSSLers will be serving on:   "
+        + config.registry.settings["admin_server"]
+        + config.registry.settings["application_settings"]["admin_prefix"]
+    )
+
     # exit early
     return config.make_wsgi_app()
