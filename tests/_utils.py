@@ -222,13 +222,12 @@ RUN_START_STR = RUN_START.strftime("%Y_%m_%d-%H_%M_%S")
 
 # ==============================================================================
 
-
-# # Always create this, as we need to maintain a CA-Cert file here
-# if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
-if not os.path.exists("X_TESTRUN_DATA"):
-    os.mkdir("X_TESTRUN_DATA")
-DIR_TESTRUN = os.path.join("X_TESTRUN_DATA", RUN_START_STR)
-os.mkdir(DIR_TESTRUN)
+# we don't need this directory if we're not tracking metrics
+if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
+    if not os.path.exists("X_TESTRUN_DATA"):
+        os.mkdir("X_TESTRUN_DATA")
+    DIR_TESTRUN = os.path.join("X_TESTRUN_DATA", RUN_START_STR)
+    os.mkdir(DIR_TESTRUN)
 
 
 if DEBUG_ACMEORDERS:
