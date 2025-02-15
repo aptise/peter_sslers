@@ -176,6 +176,9 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
         not_empty=True,
     )
 
+    # allow users to label an account
+    name = UnicodeString(not_empty=False, if_missing=None)
+
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     acme_server_id = Int(not_empty=True)

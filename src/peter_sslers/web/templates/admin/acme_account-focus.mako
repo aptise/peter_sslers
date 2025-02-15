@@ -47,6 +47,12 @@
                             <span class="label label-default">
                                 ${AcmeAccount.id}
                             </span>
+                            % if AcmeAccount.name:
+                                &nbsp;
+                                <span class="label label-default">
+                                    ${AcmeAccount.name}
+                                </span>
+                            % endif
                         </td>
                     </tr>
                     <tr>

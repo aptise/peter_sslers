@@ -825,8 +825,18 @@ class FunctionalTests_AcmeAccount(AppTest):
             "?result=success&operation=mark&action=global_default"
         )
 
+        # edit nothing
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-account/%s/edit" % focus_id, status=200
+        )
+        form = res.form
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert "There was an error with your form. No edits submitted." in res2.text
+
         # edit it
-        # only the private_key_cycle
+        unique_name = generate_random_domain()
+        # only the private_key_cycle and name
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/edit" % focus_id, status=200
         )
@@ -838,6 +848,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         else:
             _new = "single_use"
         form["account__order_default_private_key_cycle"] = _new
+        form["name"] = unique_name
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
@@ -846,6 +857,9 @@ class FunctionalTests_AcmeAccount(AppTest):
             % focus_id
         )
         res3 = self.testapp.get(res2.location, status=200)
+        assert unique_name in res3.text
+
+        # edit the name
 
     @routes_tested(
         (
@@ -923,6 +937,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert "form_fields" in res.json
 
+        # submit nothing
         form: Dict = {}
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
@@ -933,11 +948,30 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert len(res2.json["form_errors"]) == 1
         assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        # Account:Edit has 3 items:
+        # edit nothing
+        form["name"] = focus_item.name or ""
+        form["account__private_key_technology"] = focus_item.private_key_technology
+        form["account__order_default_private_key_technology"] = (
+            focus_item.order_default_private_key_technology
+        )
+        form["account__order_default_private_key_cycle"] = (
+            focus_item.order_default_private_key_cycle
+        )
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id,
+            form,
+            status=200,
+        )
+        assert res3.status_code == 200
+        assert "There was an error with your form. No edits submitted." in res3.text
+
+        # Account:Edit has 4 items:
+        # * name
         # * account__private_key_technology
         # * order_default_private_key_cycle
         # * account__order_default_private_key_technology
 
+        unique_name = generate_random_domain()
         _existing_cycle = focus_item.order_default_private_key_cycle
         _new_cycle: str
         if _existing_cycle == "single_use":
@@ -947,6 +981,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         form = {
             "account__private_key_technology": focus_item.private_key_technology,
             "account__order_default_private_key_cycle": _new_cycle,
+            "name": unique_name,
         }
         res3 = self.testapp.post(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, form
@@ -971,6 +1006,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
+        assert res4.json["AcmeAccount"]["name"] == unique_name
 
     def test_post_required_json(self):
         (focus_item, focus_id) = self._get_one()

@@ -47,6 +47,17 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
+def update_AcmeAccount__name(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    name: str,
+) -> str:
+    if dbAcmeAccount.name != name:
+        dbAcmeAccount.name = name
+    event_status = "AcmeAccount__edit__name"
+    return event_status
+
+
 def update_AcmeAccount__order_defaults(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",

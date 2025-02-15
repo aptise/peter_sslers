@@ -1,4 +1,5 @@
 # stlib
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
@@ -996,9 +997,14 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "form_fields": {
                 "account__private_key_technology": "what is the key technology preference for this account?",
+                "name": "A label for the account",
+                "account__order_default_private_key_cycle": "Default private key cycle for orders",
+                "account__order_default_private_key_technology": "Default private key technology for orders",
             },
             "valid_options": {
                 "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
+                "account__order_default_private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
+                "account__order_default_private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_order_default,
             },
         }
     )
@@ -1037,6 +1043,27 @@ class View_Focus_Manipulate(View_Focus):
                 "old": {},
                 "new": {},
             }
+
+            # raise an exception if there are no changes
+            _edits: List[str] = []
+
+            # !!!: edit: private_key_technology
+            name = formStash.results["name"] or None
+            if name != self.dbAcmeAccount.name:
+                try:
+                    event_payload_dict["edit"]["old"]["name"] = self.dbAcmeAccount.name
+                    event_payload_dict["edit"]["new"]["name"] = name
+                    event_status = lib_db.update.update_AcmeAccount__name(
+                        self.request.api_context,
+                        self.dbAcmeAccount,
+                        name,
+                    )
+                    _edits.append(event_status)
+                except errors.InvalidTransition as exc:
+                    # `formStash.fatal_form(` will raise a `FormInvalid()`
+                    formStash.fatal_form(message=exc.args[0])
+
+            # !!!: edit: private_key_technology
             private_key_technology = formStash.results[
                 "account__private_key_technology"
             ]
@@ -1055,10 +1082,13 @@ class View_Focus_Manipulate(View_Focus):
                             private_key_technology,
                         )
                     )
+                    _edits.append(event_status)
                 except errors.InvalidTransition as exc:
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
                     formStash.fatal_form(message=exc.args[0])
 
+            # !!!: edit: order_default_private_key_cycle
+            # !!!: edit: order_default_private_key_technology
             order_default_private_key_cycle = formStash.results[
                 "account__order_default_private_key_cycle"
             ]
@@ -1099,9 +1129,14 @@ class View_Focus_Manipulate(View_Focus):
                         order_default_private_key_cycle,
                         order_default_private_key_technology,
                     )
+                    _edits.append(event_status)
                 except errors.InvalidTransition as exc:
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
                     formStash.fatal_form(message=exc.args[0])
+
+            if not len(_edits):
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(message="No edits submitted.")
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(

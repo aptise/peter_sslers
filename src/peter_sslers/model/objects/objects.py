@@ -75,6 +75,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
+    name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=True, unique=True)
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
@@ -306,6 +307,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             "order_default_private_key_technology": self.order_default_private_key_technology,
             "contact": self.contact,
             "account_url": self.account_url,
+            "name": self.name,
             "terms_of_service": self.terms_of_service,
         }
 

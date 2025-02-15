@@ -36,6 +36,7 @@
 
             <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                   method="POST"
+                  id="form-acme_account-edit"
                   >
             <table class="table table-striped table-condensed">
                 <thead>
@@ -82,6 +83,17 @@
                         <th>key_pem_md5</th>
                         <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                     </tr>
+                    ## <div class="form-group">
+                    <tr>
+                        <th><label for="name">name</label></th>
+                        <td>
+                        
+                                
+                                <input type="text" name="name" value="${AcmeAccount.name or ""}" class="form-control"/>
+                        
+                        </td>
+                    </tr>
+                    ## </div>
                     <tr>
                         <th>PrivateKey Technology</th>
                         <td>
