@@ -36,7 +36,13 @@
                 <tr>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${account.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccount-${account.id}</a></td>
+                        AcmeAccount-${account.id}</a>
+                        
+                        % if account.name:
+                            <span class="label label-default">${account.name}</span>
+                        % endif
+                        
+                        </td>
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
@@ -53,11 +59,11 @@
                         % endif
                     </td>
                     <td>
-                        <span class="label label-info">${account.acme_server.name}</span>
                         <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             AcmeServer-${account.acme_server_id}</a>
                             ## <code>${account.acme_server.url}</code>
+                            <span class="label label-default">${account.acme_server.name}</span>
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>

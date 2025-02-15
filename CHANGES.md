@@ -140,6 +140,8 @@
         RenewalConfiguration
         AcmeOrder
 
+    AcmeAccount can now have a "name"
+
     Supported on:
         RenewalConfiguraiton new
         RenewalConfiguraiton new-config
