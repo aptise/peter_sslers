@@ -11043,7 +11043,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         # note: NEW without a required field
         form = {
             "acme_server_id": 1,
-            "account__contact": generate_random_emailaddress(),
+            # "account__contact": generate_random_emailaddress(),
             "account__private_key_technology": "EC_P256",
             "account__order_default_private_key_cycle": "single_use",
             "account__order_default_private_key_technology": "EC_P256",
@@ -11066,7 +11066,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
                 self._filepath_testfile("pebble-certs/privkey1.pem")
             ),
             "acme_server_id": 1,
-            "account__contact": generate_random_emailaddress(),
+            # "account__contact": generate_random_emailaddress(),
             "account__order_default_private_key_cycle": "account_daily",
             "account__order_default_private_key_technology": "EC_P256",
         }
