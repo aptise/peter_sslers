@@ -1188,10 +1188,9 @@ def routine__order_backups(
     if not dbRenewalConfigurations:
         return None, None
 
-    wsgi_server = create_public_server(settings)
-
     count_renewals = 0
     count_failures = 0
+    wsgi_server = create_public_server(settings)
     try:
         for _dbRenewalConfiguration in dbRenewalConfigurations:
             log.debug("No Backup Certificate for: ", _dbRenewalConfiguration.id)
@@ -1271,10 +1270,9 @@ def routine__renew_expiring(
     if not expiring_certs:
         return None, None
 
-    wsgi_server = create_public_server(settings)
-
     count_renewals = 0
     count_failures = 0
+    wsgi_server = create_public_server(settings)
     try:
         for dbCertificateSigned in expiring_certs:
             if not dbCertificateSigned.acme_order:
