@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import logging
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.config import Configurator
@@ -11,13 +12,21 @@ import transaction
 
 # local
 from . import models
+from .lib.handler import admin_url
+from .lib.handler import api_host
+from .lib.handler import load_CertificateCAPreferences
 from ..lib.config_utils import ApplicationSettings
 from ..lib.config_utils import set_bool_setting
 from ..lib.db import _setup
-from ..lib.db import get
 from ..lib.utils import ApiContext
 from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
+
+if TYPE_CHECKING:
+    # from .utils import ApiContext
+    # from ..model.objects import Domain
+    from pyramid.request import Request
+
 
 # ==============================================================================
 
@@ -64,33 +73,6 @@ def db_log_cleanup__tween_factory(handler, registry):
     return db_log_cleanup__tween
 
 
-def api_host(request):
-    """request method"""
-    _api_host = request.registry.settings["application_settings"].get("api_host")
-    if _api_host:
-        return _api_host
-    _scheme = request.environ.get("scheme", "http")
-    return "%s://%s" % (_scheme, request.environ["HTTP_HOST"])
-
-
-def admin_url(request):
-    """request method"""
-    return (
-        request.api_host
-        + request.registry.settings["application_settings"]["admin_prefix"]
-    )
-
-
-def load_CertificateCAPreferences(request):
-    """
-    loads `model.objects.CertificateCAPreferences` onto the request
-    """
-    dbCertificateCAPreferences = get.get__CertificateCAPreference__paginated(
-        request.api_context
-    )
-    return dbCertificateCAPreferences
-
-
 def main(global_config, **settings):
     """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
@@ -102,7 +84,7 @@ def main(global_config, **settings):
     # custom datetime rendering
     json_renderer = JSON()
 
-    def datetime_adapter(obj, request):
+    def datetime_adapter(obj, request: "Request") -> str:
         return obj.isoformat()
 
     json_renderer.add_adapter(datetime.datetime, datetime_adapter)
@@ -123,7 +105,7 @@ def main(global_config, **settings):
         reify=True,
     )
     config.add_request_method(
-        lambda request: request.registry.settings["application_settings"].get(
+        lambda request: request.api_context.application_settings.get(
             "admin_server", None
         )
         or request.environ["HTTP_HOST"],
@@ -138,13 +120,7 @@ def main(global_config, **settings):
     )
 
     config.add_request_method(
-        lambda request: datetime.datetime.now(datetime.timezone.utc),
-        "a_timestamp",
-        reify=True,
-    )
-    config.add_request_method(
         lambda request: ApiContext(
-            timestamp=request.a_timestamp,
             dbSession=request.dbSession,
             request=request,
             config_uri=config_uri,
@@ -189,7 +165,6 @@ def main(global_config, **settings):
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,
@@ -198,6 +173,9 @@ def main(global_config, **settings):
 
         # this might do some heavy lifting, or nothing
         _setup.application_started(ctx, application_settings)
+
+        # release anything
+        del ctx
 
     if dbSession:
         dbSession.close()

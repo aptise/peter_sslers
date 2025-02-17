@@ -57,7 +57,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
         url_template = (
             "%s/unique-fqdn-sets/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -95,7 +95,7 @@ class View_Focus(Handler):
             self.dbUniqueFQDNSet = dbUniqueFQDNSet
             self._focus_item = dbUniqueFQDNSet
             self._focus_url = "%s/unique-fqdn-set/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbUniqueFQDNSet.id,
             )
         return self.dbUniqueFQDNSet
@@ -481,9 +481,7 @@ class View_Focus(Handler):
             return HTTPSeeOther(
                 "%s/unique-fqdn-set/%s?result=success&operation=modify&is_created=%s"
                 % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbUniqueFQDNSet.id,
                     is_created,
                 )
@@ -591,9 +589,7 @@ class ViewNew(Handler):
             return HTTPSeeOther(
                 "%s/unique-fqdn-set/%s?result=success&operation=new&is_created=%s"
                 % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbUniqueFQDNSet.id,
                     is_created,
                 )

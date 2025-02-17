@@ -60,7 +60,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__CertificateCA__count(self.request.api_context)
         url_template = (
             "%s/certificate-cas/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -244,11 +244,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=add"
-                % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
-                )
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -318,11 +314,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=delete"
-                % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
-                )
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -397,11 +389,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=prioritize"
-                % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
-                )
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -423,7 +411,7 @@ class View_Focus(Handler):
             self.dbCertificateCA = dbCertificateCA
             self.focus_item = dbCertificateCA
             self.focus_url = "%s/certificate-ca/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateCA.id,
             )
         return self.dbCertificateCA
@@ -774,9 +762,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-ca/%s?result=success&is_created=%s"
                 % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateCA.id,
                     (1 if _is_created else 0),
                 )

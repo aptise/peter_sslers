@@ -46,7 +46,7 @@ class View_List(Handler):
     def list(self):
         url_template = (
             "%s/domain-autocerts/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template

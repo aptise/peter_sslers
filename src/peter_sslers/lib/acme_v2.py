@@ -1345,13 +1345,9 @@ class AuthenticatedUser(object):
         # check that the file is in place
         try:
             assert ctx.request
-            if ctx.request.registry.settings["application_settings"][
-                "precheck_acme_challenges"
-            ] and (
-                "http-01"
-                in ctx.request.registry.settings["application_settings"][
-                    "precheck_acme_challenges"
-                ]
+            assert ctx.application_settings
+            if ctx.application_settings["precheck_acme_challenges"] and (
+                "http-01" in ctx.application_settings["precheck_acme_challenges"]
             ):
                 log.debug(
                     "precheck_acme_challenges[http-01] | ensuring the challenge is readable"

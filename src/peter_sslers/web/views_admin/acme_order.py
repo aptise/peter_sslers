@@ -40,7 +40,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_all = (
             "%s/acme-orders/active"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_all = "%s.json" % url_all
@@ -173,7 +173,7 @@ class View_List(Handler):
             active_only = False
 
         url_template = "%s/acme-orders/%s/{0}" % (
-            self.request.registry.settings["application_settings"]["admin_prefix"],
+            self.request.api_context.application_settings["admin_prefix"],
             "sidenav_option",
         )
         if self.request.wants_json:
@@ -221,7 +221,7 @@ class View_List(Handler):
     def active_acme_server_sync(self):
         base_url = (
             "%s/acme-orders/active"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.method != "POST":
             if self.request.wants_json:
@@ -1307,9 +1307,7 @@ class View_New(Handler):
                 return HTTPSeeOther(
                     "%s/acme-order/%s%s"
                     % (
-                        self.request.registry.settings["application_settings"][
-                            "admin_prefix"
-                        ],
+                        self.request.api_context.application_settings["admin_prefix"],
                         dbAcmeOrder.id,
                         "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
@@ -1349,9 +1347,7 @@ class View_New(Handler):
                 return HTTPSeeOther(
                     "%s/acme-orders/all?result=error&error=%s&operation=new+freeform"
                     % (
-                        self.request.registry.settings["application_settings"][
-                            "admin_prefix"
-                        ],
+                        self.request.api_context.application_settings["admin_prefix"],
                         exc.as_querystring,
                     )
                 )
@@ -1371,9 +1367,7 @@ class View_New(Handler):
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/acme-orders/all?result=error&operation=new-freeform"
-                        % self.request.registry.settings["application_settings"][
-                            "admin_prefix"
-                        ]
+                        % self.request.api_context.application_settings["admin_prefix"]
                     )
                 raise
 

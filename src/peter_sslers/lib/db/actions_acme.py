@@ -556,9 +556,8 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 is_via_acme_sync=True,
             )
             assert ctx.request
-            if ctx.request.registry.settings["application_settings"][
-                "cleanup_pending_authorizations"
-            ]:
+            assert ctx.application_settings
+            if ctx.application_settings["cleanup_pending_authorizations"]:
                 log.info(
                     "AcmeOrder failed, going to deactivate remaining authorizations"
                 )
@@ -2314,12 +2313,11 @@ def do__AcmeV2_AcmeOrder__new(
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
-    print("=============================")
-    print("do__AcmeV2_AcmeOrder__new - locals()")
+    print("$" * 40)
     import pprint
 
     pprint.pprint(locals())
-    print("=============================")
+
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
@@ -2384,10 +2382,11 @@ def do__AcmeV2_AcmeOrder__new(
         account_selection = "primary"
 
     if replaces_certificate_type:
-        if replaces_type != model_utils.ReplacesType_Enum.MANUAL:
-            raise errors.FieldError(
-                "replaces_certificate_type", "Only `MANUAL` replacements eligible."
-            )
+        # note: Originally I prohibited this, but that makes little sense now
+        # if replaces_type != model_utils.ReplacesType_Enum.MANUAL:
+        #    raise errors.FieldError(
+        #        "replaces_certificate_type", "Only `MANUAL` replacements eligible."
+        #    )
         if not replaces:
             raise errors.FieldError("replaces_certificate_type", "`replaces` required")
 
@@ -2421,20 +2420,53 @@ def do__AcmeV2_AcmeOrder__new(
                         "`replaces` differs from `dbAcmeOrder_retry_of.replaces__requested` on `RETRY`."
                     )
         elif replaces_type == model_utils.ReplacesType_Enum.AUTOMATIC:
-            if replaces:
-                raise ValueError("`replaces_type` forbids `replaces` when `AUTOMATIC`.")
+            # note: Originally I prohibited this, but that makes little sense now
+            # if replaces:
+            #    raise ValueError("`replaces_type` forbids `replaces` when `AUTOMATIC`.")
+            if not replaces_certificate_type:
+                ValueError(
+                    "`replaces_type[ReplacesType_Enum.AUTOMATIC]` requires `replaces_certificate_type`."
+                )
 
-            account_selection = "primary"
+            if (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+            ):
+                account_selection = "primary"
+
+            elif (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+            ):
+                account_selection = "backup"
+
+            elif replaces_certificate_type is None:
+                if acme_order_type_id not in (
+                    model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
+                    model_utils.AcmeOrderType.AUTOCERT,
+                ):
+                    raise ValueError(
+                        "`replaces_certificate_type` only valid for `AUTOCERT` or `CERTIFICATE_IF_NEEDED`."
+                    )
+                if replaces:
+                    raise ValueError(
+                        "`replaces` invalid for `AUTOCERT` or `CERTIFICATE_IF_NEEDED`."
+                    )
+                account_selection = "primary"
+                replaces_certificate_type = (
+                    model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                )
+            else:
+                raise ValueError("unsupported `replaces_certificate_type`")
+
             _candidate_certs = get__CertificateSigned_replaces_candidates(
                 ctx,
                 dbRenewalConfiguration=dbRenewalConfiguration,
-                certificate_type=model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+                certificate_type=replaces_certificate_type,
             )
             if _candidate_certs:
                 # use the oldest cert's ARI identifier
                 replaces = _candidate_certs[-1].ari_identifier
-                print(_candidate_certs)
-                print(replaces)
         else:
             raise ValueError("Unknown `replaces_type`")
     else:
@@ -2473,12 +2505,9 @@ def do__AcmeV2_AcmeOrder__new(
     # raise a ValueError if `DomainsChallenged` object is incompatible
     domains_challenged.ensure_parity(domain_names)
 
-    assert ctx.request
-    assert ctx.request.registry
+    assert ctx.application_settings
     # this is REQUIRED for DNS-01; we don't really care about HTTP-01
-    if ctx.request.registry.settings["application_settings"][
-        "block_competing_challenges"
-    ]:
+    if ctx.application_settings["block_competing_challenges"]:
         # check each domain for an existing active challenge
         active_challenges = []
         for to_domain in dbUniqueFQDNSet.to_domains:
@@ -2713,9 +2742,13 @@ def do__AcmeV2_AcmeOrder__new(
                         raise ValueError("invalid `replaces_certificate_type`")
 
                 # Test 4 -  ensure it is timely
-                if (
-                    dbCertificateSigned_replaces_candidate.timestamp_not_after
-                    < ctx.timestamp
+                # allow attempts until 45 days
+                # because the RFC does not address uniform error codes for this
+                # the status-quo from ACME developers is to just retry
+                # an order without the `replaces` field if it fails on submission
+                # we follow the industry on this.
+                if dbCertificateSigned_replaces_candidate.timestamp_not_after < (
+                    ctx.timestamp - datetime.timedelta(days=45)
                 ):
                     # error: "timestamp_not_after < NOW"
                     raise errors.FieldError(
@@ -2724,11 +2757,26 @@ def do__AcmeV2_AcmeOrder__new(
                     )
 
         if replaces_certificate_type:
-            if replaces_certificate_type != account_selection:
-                raise errors.FieldError(
-                    "replaces_certificate_type",
-                    "conflicting `account_selection`",
-                )
+            if (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+            ):
+                if account_selection != "primary":
+                    raise errors.FieldError(
+                        "replaces_certificate_type",
+                        "conflicting `account_selection`",
+                    )
+            elif (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+            ):
+                if account_selection != "backup":
+                    raise errors.FieldError(
+                        "replaces_certificate_type",
+                        "conflicting `account_selection`",
+                    )
+            else:
+                raise ValueError("invalid logic")
 
         profile: Optional[str] = None
         certificate_type_id: int

@@ -52,7 +52,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/acme-challenge-unknown-polls/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallengeUnknownPoll__paginated(

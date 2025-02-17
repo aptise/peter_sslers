@@ -84,7 +84,7 @@ def redis_connection_from_registry(request: "Request"):
     """
     :param request: The current Pyramid `request` object
     """
-    redis_url = request.registry.settings["application_settings"]["redis.url"]
+    redis_url = request.api_context.application_settings["redis.url"]
     redis_options: Dict = {}
     redis_client = redis_default_connection(request, redis_url, **redis_options)
     return redis_client
@@ -94,7 +94,7 @@ def redis_prime_style(request: "Request") -> Union[bool, str]:
     """
     :param request: The current Pyramid `request` object
     """
-    prime_style = request.registry.settings["application_settings"]["redis.prime_style"]
+    prime_style = request.api_context.application_settings["redis.prime_style"]
     if prime_style not in ("1", "2"):
         return False
     return prime_style
@@ -112,7 +112,7 @@ def redis_timeouts_from_registry(request: "Request") -> Dict[str, Optional[int]]
     }
     for _t in timeouts.keys():
         key_ini = "redis.timeout.%s" % _t
-        val = request.registry.settings["application_settings"].get(key_ini)
+        val = request.api_context.application_settings.get(key_ini)
         if val is not None:
             timeouts[_t] = int(val)
     return timeouts
@@ -130,7 +130,7 @@ def prime_redis_domain(
     :param request: The current Pyramid `request` object
     :param dbDomain: The :class:`model.objects.Domain` to be primed
     """
-    if not request.registry.settings["application_settings"]["enable_redis"]:
+    if not request.api_context.application_settings["enable_redis"]:
         # don't error out here
         return False
 

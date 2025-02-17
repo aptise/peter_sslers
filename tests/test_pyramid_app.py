@@ -44,8 +44,8 @@ from ._utils import TEST_FILES
 from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import under_pebble
-from ._utils import under_pebble_strict
 from ._utils import under_pebble_alt
+from ._utils import under_pebble_strict
 from ._utils import under_redis
 from .regex_library import RE_AcmeAccount_deactivate_pending_post_required
 from .regex_library import RE_AcmeAccount_deactivate_pending_success
@@ -557,16 +557,22 @@ class FunctionalTests_AcmeAccount(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeAccount
     """
 
-    def _get_one(self):
+    def _get_one(
+        self, not_acme_server_id: Optional[int] = None
+    ) -> Tuple[model_objects.AcmeAccount, int]:
         # grab a Key
-        focus_item = (
+        q_focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.is_active.is_(True))
             .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
             .filter(model_objects.AcmeAccount.is_global_backup.is_not(True))
-            .order_by(model_objects.AcmeAccount.id.asc())
-            .first()
         )
+        if not_acme_server_id:
+            q_focus_item = q_focus_item.filter(
+                model_objects.AcmeAccount.acme_server_id.is_not(not_acme_server_id)
+            )
+        q_focus_item = q_focus_item.order_by(model_objects.AcmeAccount.id.asc())
+        focus_item = q_focus_item.first()
         assert focus_item is not None
         return focus_item, focus_item.id
 
@@ -775,6 +781,9 @@ class FunctionalTests_AcmeAccount(AppTest):
     @routes_tested(("admin:acme_account:focus:edit", "admin:acme_account:focus:mark"))
     def test_manipulate_html(self):
         (focus_item, focus_id) = self._get_one()
+        (alt_focus_item, alt_focus_id) = self._get_one(
+            not_acme_server_id=focus_item.acme_server_id
+        )
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
@@ -869,6 +878,9 @@ class FunctionalTests_AcmeAccount(AppTest):
     )
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
+        (alt_focus_item, alt_focus_id) = self._get_one(
+            not_acme_server_id=focus_item.acme_server_id
+        )
 
         if focus_item.is_global_default:
             raise ValueError("this should not be the global default")

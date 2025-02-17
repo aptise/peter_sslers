@@ -459,13 +459,15 @@
                     <tr>
                         <th>certificate_signed_id__replaces</th>
                         <td>
-                            <a
-                                class="label label-info"
-                                href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
-                            </a>
+                            % if AcmeOrder.certificate_signed_id__replaces:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
+                                </a>
+                            % endif
                         </td>
                     </tr>
                     <tr>

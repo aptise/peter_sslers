@@ -24,7 +24,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_default = (
             "%s/ari-checks/cert-latest-overdue"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_default = "%s.json" % url_default
@@ -159,7 +159,7 @@ class View_List(Handler):
             sidenav_option = "cert-latest-overdue"
 
         url_template = "%s/ari-checks/%s/{0}" % (
-            self.request.registry.settings["application_settings"]["admin_prefix"],
+            self.request.api_context.application_settings["admin_prefix"],
             "sidenav_option",
         )
         if self.request.wants_json:

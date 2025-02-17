@@ -89,7 +89,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_redirect = (
             "%s/certificate-signeds/active"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_redirect = "%s.json" % url_redirect
@@ -282,9 +282,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days = self.request.registry.settings["application_settings"][
-            "expiring_days"
-        ]
+        expiring_days = self.request.api_context.application_settings["expiring_days"]
         if self.request.matched_route.name in (
             "admin:certificate_signeds:expiring",
             "admin:certificate_signeds:expiring_paginated",
@@ -294,7 +292,7 @@ class View_List(Handler):
             sidenav_option = "expiring"
             url_template = (
                 "%s/certificate-signeds/expiring/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -317,7 +315,7 @@ class View_List(Handler):
             sidenav_option = "active"
             url_template = (
                 "%s/certificate-signeds/active/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -340,7 +338,7 @@ class View_List(Handler):
             sidenav_option = "active-expired"
             url_template = (
                 "%s/certificate-signeds/active-expired/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -364,7 +362,7 @@ class View_List(Handler):
             sidenav_option = "inactive"
             url_template = (
                 "%s/certificate-signeds/inactive/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -387,7 +385,7 @@ class View_List(Handler):
             sidenav_option = "inactive-unexpired"
             url_template = (
                 "%s/certificate-signeds/inactive-unexpired/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -406,7 +404,7 @@ class View_List(Handler):
             sidenav_option = "all"
             url_template = (
                 "%s/certificate-signeds/all/{0}"
-                % self.request.registry.settings["application_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -649,7 +647,7 @@ class View_New(Handler):
                         "id": dbCertificateSigned.id,
                         "url": "%s/certificate-signed/%s"
                         % (
-                            self.request.registry.settings["application_settings"][
+                            self.request.api_context.application_settings[
                                 "admin_prefix"
                             ],
                             dbCertificateSigned.id,
@@ -664,9 +662,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-signed/%s"
                 % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateSigned.id,
                 )
             )
@@ -690,7 +686,7 @@ class View_Focus(Handler):
             self.dbCertificateSigned = dbCertificateSigned
             self._focus_item = dbCertificateSigned
             self._focus_url = "%s/certificate-signed/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateSigned.id,
             )
         return self.dbCertificateSigned

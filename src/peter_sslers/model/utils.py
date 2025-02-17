@@ -931,6 +931,16 @@ class CertificateType(_mixin_mapping):
 
     _options_AcmeOrder_id = [2, 3]
 
+    @classmethod
+    def to_CertificateType_Enum(cls, id_) -> Optional["CertificateType_Enum"]:
+        if id_ == CertificateType.RAW_IMPORTED:
+            return None
+        elif id_ == CertificateType.MANAGED_PRIMARY:
+            return CertificateType_Enum.MANAGED_PRIMARY
+        elif id_ == CertificateType.MANAGED_BACKUP:
+            return CertificateType_Enum.MANAGED_BACKUP
+        raise ValueError("invalid id_")
+
 
 class CertificateType_Enum(Enum):
     MANAGED_PRIMARY = CertificateType.MANAGED_PRIMARY

@@ -75,7 +75,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
-    name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=True, unique=True)
+    name: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
+    )
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
@@ -1598,6 +1600,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_processing_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
+    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
+    # AcmeOrder.certificate_type_id MUST never change; CertificateSigned.certificate_type_id MAY change
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     order_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
@@ -2244,7 +2248,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         else:
             request = ctx.dbSession.info.get("request")
             assert request
-            data_dir = request.registry.settings["application_settings"]["data_dir"]
+            data_dir = request.api_context.application_settings["data_dir"]
 
         assert ctx.config_uri
         _config_uri = ctx.config_uri
@@ -2541,7 +2545,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             """|"""
             """<code>%(cert_issuer)s</code>"""
             % {
-                "admin_prefix": request.registry.settings["application_settings"][
+                "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
                 ],
                 "id": self.id,
@@ -2567,7 +2571,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
             """</a>"""
             % {
-                "admin_prefix": request.registry.settings["application_settings"][
+                "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
                 ],
                 "cert_spki_search": self.cert_spki_search,
@@ -2701,7 +2705,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """CertificateCAChain-%(id)s</a>"""
             % {
-                "admin_prefix": request.registry.settings["application_settings"][
+                "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
                 ],
                 "id": self.id,
@@ -2724,7 +2728,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """CertificateCAChain-%(id)s</a>"""
             % {
-                "admin_prefix": request.registry.settings["application_settings"][
+                "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
                 ],
                 "id": self.id,
@@ -3034,7 +3038,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    # utils.CertificateType (imported, primary, backup)
+    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
+    # AcmeOrder.certificate_type_id MUST never change; CertificateSigned.certificate_type_id MAY change
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False

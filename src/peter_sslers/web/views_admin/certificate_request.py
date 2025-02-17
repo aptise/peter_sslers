@@ -53,7 +53,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/certificate-requests/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -88,7 +88,7 @@ class View_Focus(Handler):
             self.dbCertificateRequest = dbCertificateRequest
             self._focus_item = dbCertificateRequest
             self._focus_url = "%s/certificate-request/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateRequest.id,
             )
         return self.dbCertificateRequest
@@ -184,7 +184,7 @@ class View_Focus(Handler):
         )
         url_template = (
             "%s/certificate-request/{0}/acme-orders"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_CertificateRequest__paginated(

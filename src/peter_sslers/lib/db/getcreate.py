@@ -752,7 +752,9 @@ def getcreate__AcmeDnsServer(
     is_created = False
     dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
     if not dbAcmeDnsServer:
-        _mode = ctx.application_settings["acme_dns_support"]
+        if not ctx.application_settings:
+            raise ValueError("Could not load ApplicationSettings")
+        _mode = ctx.application_settings.get("acme_dns_support")
         if _mode == "basic":
             _count_servers = get__AcmeDnsServer__count(ctx)
             if _count_servers >= 1:

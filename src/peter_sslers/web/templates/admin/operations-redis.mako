@@ -69,10 +69,10 @@
                     Redis is enabled for this server.
                 </p>
                 <p>
-                    The prime style is: <em>${request.registry.settings["application_settings"]['redis.prime_style']}</em>
+                    The prime style is: <em>${request.api_context.application_settings['redis.prime_style']}</em>
                 </p>
                 <p>
-                    The database is: <em>${request.registry.settings["application_settings"]['redis.url']}</em>
+                    The database is: <em>${request.api_context.application_settings['redis.url']}</em>
                 </p>
             </div>
             <ul class="nav nav-pills nav-stacked">

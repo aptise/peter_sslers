@@ -50,7 +50,7 @@ log = logging.getLogger(__name__)
 def update_AcmeAccount__name(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    name: str,
+    name: Optional[str],
 ) -> str:
     if dbAcmeAccount.name != name:
         dbAcmeAccount.name = name
@@ -180,6 +180,13 @@ def update_AcmeAccount__set_global_default(
     #        "This AcmeAccount is not from the default AcmeServer."
     #    )
 
+    dbAcmeAccount_backup = get__AcmeAccount__GlobalBackup(ctx)
+    if dbAcmeAccount_backup:
+        if dbAcmeAccount_backup.acme_server_id == dbAcmeAccount.acme_server_id:
+            raise errors.InvalidTransition(
+                "The Global AcmeAccount MUST be on a different server than the Backup AcmeAccount."
+            )
+
     alt_info: Dict = {}
     formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
     if formerDefaultAccount:
@@ -212,6 +219,13 @@ def update_AcmeAccount__set_global_backup(
     #    raise errors.InvalidTransition(
     #        "This AcmeAccount is not from the default AcmeServer."
     #    )
+
+    dbAcmeAccount_global = get__AcmeAccount__GlobalDefault(ctx)
+    if dbAcmeAccount_global:
+        if dbAcmeAccount_global.acme_server_id == dbAcmeAccount.acme_server_id:
+            raise errors.InvalidTransition(
+                "The Backup AcmeAccount MUST be on a different server than the Global AcmeAccount."
+            )
 
     alt_info: Dict = {}
     formerBackupAccount = get__AcmeAccount__GlobalBackup(ctx)

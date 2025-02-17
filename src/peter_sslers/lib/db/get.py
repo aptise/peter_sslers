@@ -2381,6 +2381,60 @@ def get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get_CertificateSigneds_renew_now(
+    ctx: "ApiContext",
+    timestamp_max_expiry: Optional[datetime.datetime] = None,
+) -> List[CertificateSigned]:
+
+    if not timestamp_max_expiry:
+        TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+        TIMEDELTA_runner_interval = datetime.timedelta(minutes=60)
+        timestamp_max_expiry = (
+            ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+        )
+
+    expiring_certs = (
+        ctx.dbSession.query(CertificateSigned)
+        # joinpath 1: CertificateSigned>AriCheck
+        .join(
+            AriCheck,
+            CertificateSigned.id == AriCheck.certificate_signed_id,
+        )
+        # joinpath 1: CertificateSigned>AcmeOrder>RenewalConfiguration
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            # this is MANAGED_PRIMARY & MANAGED_BACKUP
+            AcmeOrder.certificate_type_id.in_(
+                model_utils.CertificateType._options_AcmeOrder_id
+            ),
+            # this is the same info as `AcmeOrder.certificate_type_id`
+            # the cert role might change though; the order role will never change
+            # CertificateSigned.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
+            # only need one of these; ari_identifier is not guaranteed
+            CertificateSigned.certificate_signed_id__replaced_by.is_(None),
+            # CertificateSigned.ari_identifier__replaced_by.is_(None),
+            # ARI is not guaranteed
+            sqlalchemy.or_(
+                CertificateSigned.timestamp_not_after < timestamp_max_expiry,
+                AriCheck.suggested_window_end < timestamp_max_expiry,
+            ),
+        )
+        .all()
+    )
+
+    return expiring_certs
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__CoverageAssuranceEvent__count(
     ctx: "ApiContext", unresolved_only: Optional[bool] = None
 ) -> int:

@@ -995,7 +995,9 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             ctx,
             dbCertificateSigned=dbCertificateSigned,
         )
-        ctx.dbSession.commit()
+        ctx.pyramid_transaction_commit()
+        # ctx.dbSession.commit()
+
     return True
 
 

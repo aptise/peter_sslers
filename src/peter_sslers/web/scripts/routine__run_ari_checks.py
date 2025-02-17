@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import os
 import sys
 
@@ -7,13 +6,16 @@ import sys
 from pyramid.paster import get_appsettings
 from pyramid.paster import setup_logging
 from pyramid.scripts.common import parse_vars
+import transaction
 
 # local
 from ..models import get_engine
 from ..models import get_session_factory
+from ..models import get_tm_session
 from ...lib import db as lib_db
 from ...lib.config_utils import ApplicationSettings
 from ...lib.utils import ApiContext
+from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 
 # ==============================================================================
@@ -45,13 +47,15 @@ def main(argv=sys.argv):
     application_settings = ApplicationSettings(config_uri)
     application_settings.from_settings_dict(settings)
 
-    dbSession = session_factory()
+    dbSession = get_tm_session(None, session_factory, transaction.manager)
     ctx = ApiContext(
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
         dbSession=dbSession,
-        request=None,
+        request=RequestCommandline(
+            dbSession, application_settings=application_settings
+        ),
         config_uri=config_uri,
         application_settings=application_settings,
     )
 
     lib_db.actions.routine__run_ari_checks(ctx)
+    ctx.pyramid_transaction_commit()

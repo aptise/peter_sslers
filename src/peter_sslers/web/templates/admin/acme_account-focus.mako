@@ -175,7 +175,7 @@
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-servers"
+                                href="${admin_prefix}/acme-server/${AcmeAccount.acme_server_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeServer-${AcmeAccount.acme_server_id}

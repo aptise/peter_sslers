@@ -45,7 +45,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__RootStore__count(self.request.api_context)
         url_template = (
             "%s/root-store/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -82,7 +82,7 @@ class View_Focus(Handler):
             self.dbRootStore = dbRootStore
             self._focus_item = dbRootStore
             self._focus_url = "%s/root-store/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbRootStore.id,
             )
         return self.dbRootStore

@@ -1,10 +1,6 @@
 URGENT
 =====
     
-Errors:
-    tests can somehow create a second acme-dns server
-    transition concerns for acme-dns global servers (set_default)
-
 UX:
     do a quick overview of key objects
     reorganize
@@ -68,6 +64,16 @@ acme-account register
         will 
 
     spin up a test server (stopable wsgi) that only serves the public routes
+
+
+Tests:
+    AcmeAccounts:
+        test to ensure a Default can't be set to the same server as Backup
+        test to ensure a Backup can't be set to the same server as Default
+    
+TODO:
+    ensure 2 acme accounts don't have the same key; it messes up the 
+
 
 
 Not Urgent 

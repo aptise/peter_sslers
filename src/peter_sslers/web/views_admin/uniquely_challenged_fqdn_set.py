@@ -54,7 +54,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/uniquely-challenged-fqdn-sets/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -94,7 +94,7 @@ class View_Focus(Handler):
             self.dbUniquelyChallengedFQDNSet = dbUniquelyChallengedFQDNSet
             self._focus_item = dbUniquelyChallengedFQDNSet
             self._focus_url = "%s/uniquely-challenged-fqdn-set/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbUniquelyChallengedFQDNSet.id,
             )
         return self.dbUniquelyChallengedFQDNSet

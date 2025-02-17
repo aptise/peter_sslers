@@ -9,16 +9,20 @@ from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
+from pyramid.decorator import reify
+import pyramid_tm
 import requests
+import transaction
+import zope.sqlalchemy
 from zope.sqlalchemy import mark_changed
 
 # local
+from . import config_utils
 from .. import USER_AGENT
 
 if TYPE_CHECKING:
     from pyramid.request import Request
     from sqlalchemy.orm.session import Session
-    import transaction
     from .config_utils import ApplicationSettings
 
 # ==============================================================================
@@ -169,7 +173,7 @@ class ApiContext(object):
     def transaction_manager(self) -> "transaction.manager":
         # this is the pyramid_tm interface
         if self.request is None:
-            raise ValueError("self.request not set")
+            raise ValueError("`self.request` not set")
         return self.request.tm
 
     def pyramid_transaction_commit(self) -> None:
@@ -186,3 +190,67 @@ class ApiContext(object):
 
 
 # ------------------------------------------------------------------------------
+
+
+class MockedRegistry(object):
+
+    settings: Dict
+
+    def __init__(self, settings: Dict):
+        self.settings = settings
+
+
+class RequestCommandline(object):
+
+    dbSession: "Session"
+    api_context: "ApiContext"
+    environ: Dict
+    registry: MockedRegistry
+
+    def __init__(
+        self,
+        dbSession: "Session",
+        transaction_manager: "transaction.manager" = transaction.manager,
+        application_settings: Optional[config_utils.ApplicationSettings] = None,
+        settings: Optional[Dict] = None,
+    ):
+        # the normal app constructs the request with this; we must inject it
+        dbSession.info["request"] = self
+
+        zope.sqlalchemy.register(
+            dbSession, transaction_manager=transaction_manager, keep_session=True
+        )
+
+        self.dbSession = dbSession
+
+        if settings is None:
+            settings = {}
+        self.registry = MockedRegistry(settings)
+
+        # do we need a cleanup registered here?
+
+        self.environ = {
+            "scheme": "http",
+            "HTTP_HOST": "127.0.0.1",
+        }
+
+    def _cleanup(self):
+        self.dbSession.close()
+
+    @reify
+    def tm(self):
+        # request.environ.get('tm.manager')
+        # request.registry.settings.get('tm.manager_hook')
+        return pyramid_tm.create_tm(self)
+
+    @property
+    def api_host(self) -> str:
+        from ..web.lib.handler import api_host
+
+        return api_host(self)
+
+    @property
+    def admin_url(self) -> str:
+        from ..web.lib.handler import admin_url
+
+        return admin_url(self)

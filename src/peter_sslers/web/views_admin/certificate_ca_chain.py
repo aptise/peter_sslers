@@ -59,7 +59,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/certificate-ca-chains/{0}"
-            % self.request.registry.settings["application_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -94,7 +94,7 @@ class View_Focus(Handler):
             self.dbCertificateCAChain = dbCertificateCAChain
             self.focus_item = dbCertificateCAChain
             self.focus_url = "%s/certificate-ca-chain/%s" % (
-                self.request.registry.settings["application_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateCAChain.id,
             )
         return self.dbCertificateCAChain
@@ -236,9 +236,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-ca-chain/%s?result=success&is_created=%s"
                 % (
-                    self.request.registry.settings["application_settings"][
-                        "admin_prefix"
-                    ],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateCAChain.id,
                     (1 if _is_created else 0),
                 )

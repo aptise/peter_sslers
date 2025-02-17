@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import json
 import os
 import sys
@@ -133,7 +132,6 @@ def main(argv=sys.argv):
 
         dbSession = session_factory()
         ctx = ApiContext(
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,
@@ -160,7 +158,6 @@ def main(argv=sys.argv):
 
         dbSession = session_factory()
         ctx = ApiContext(
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,

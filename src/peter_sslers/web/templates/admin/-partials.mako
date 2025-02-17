@@ -892,6 +892,15 @@
                         <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
+                            
+                            % if cert.certificate_signed_id__replaces:
+                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % endif
+                            % if cert.certificate_signed_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % endif
+                            
+                            
                     % else:
                         <span class="label label-warning">
                             unavailable
@@ -1556,6 +1565,7 @@
                                      </a><br/>
                     <b>pem md5:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${dbAcmeAccountReuse.acme_server.profiles}</code><br/>
                     <a  class="label label-info"
                         href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
                     >
@@ -1585,7 +1595,8 @@
                                         ${AcmeAccount_GlobalDefault.acme_server.server}
                                      </a><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
+                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${AcmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
@@ -1644,7 +1655,7 @@
         if dbAcmeAccountReuse:
             checked["account_key_reuse_backup"] = 'checked="checked"'
         elif AcmeAccount_GlobalBackup:
-            if request.registry.settings["application_settings"]["default_backup"] == "global":
+            if request.api_context.application_settings["default_backup"] == "global":
                 checked["account_key_global_backup"] = 'checked="checked"'
             else:
                 checked["none"] = 'checked="checked"'
@@ -1674,6 +1685,7 @@
                                      </a><br/>
                     <b>pem md5:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${dbAcmeAccountReuse.acme_server.profiles}</code><br/>
                     <a  class="label label-info"
                         href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
                     >
@@ -1703,7 +1715,8 @@
                                         ${AcmeAccount_GlobalBackup.acme_server.server}
                                      </a><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code>
+                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${AcmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
                     <input type="hidden" name="account_key_global_backup" value="${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>

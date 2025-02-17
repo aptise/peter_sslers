@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import os
 import os.path
 import sys
@@ -58,7 +57,6 @@ def main(argv=sys.argv):
         dbSession = get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
             dbSession=dbSession,
             request=None,
             config_uri=config_uri,

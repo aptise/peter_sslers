@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import os
 import sys
 
@@ -7,14 +6,18 @@ import sys
 from pyramid.paster import get_appsettings
 from pyramid.paster import setup_logging
 from pyramid.scripts.common import parse_vars
+import transaction
 
 # local
 from ..models import get_engine
 from ..models import get_session_factory
+from ..models import get_tm_session
+from ...lib import db as lib_db
 from ...lib.config_utils import ApplicationSettings
 from ...lib.http import StopableWSGIServer
 from ...lib.utils import ApiContext
-from ...model.objects import objects as model_objects
+from ...lib.utils import RequestCommandline
+from ...model import utils as model_utils
 from ...model.meta import Base
 from ...web import main as app_main
 
@@ -91,36 +94,62 @@ def main(argv=sys.argv):
     # application_settings = ApplicationSettings(config_uri)
     # application_settings.from_settings_dict(settings)
 
-    dbSession = session_factory()
+    # dbSession = session_factory()
+    dbSession = get_tm_session(None, session_factory, transaction.manager)
+
     ctx = ApiContext(
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
         dbSession=dbSession,
-        request=None,
+        request=RequestCommandline(
+            dbSession, application_settings=application_settings
+        ),
         config_uri=config_uri,
         application_settings=application_settings,
     )
 
-    expiring_certs = (
-        ctx.dbSession.query(model_objects.CertificateSigned)
-        .join(
-            model_objects.AriCheck,
-            model_objects.CertificateSigned.id
-            == model_objects.AriCheck.certificate_signed_id,
-        )
-        .filter(
-            model_objects.AriCheck.suggested_window_end < ctx.timestamp,
-        )
-        .all()
-    )
-    print(expiring_certs)
+    RENEWAL_RUN: str = "RenewExpiring[%s]" % ctx.timestamp
+
+    expiring_certs = lib_db.get.get_CertificateSigneds_renew_now(ctx)
 
     if not expiring_certs:
         print("Nothing to renew")
         exit()
 
     wsgi_server = create_public_server(settings)
-    for cert in expiring_certs:
-        print("renewing...", cert)
+    for dbCertificateSigned in expiring_certs:
+        if not dbCertificateSigned.acme_order:
+            print("No RenewalConfiguration for: ", dbCertificateSigned.id)
+        else:
+            print(
+                "Renewing...",
+                dbCertificateSigned.id,
+                "with RenewalConfiguration:",
+                dbCertificateSigned.acme_order.renewal_configuration_id,
+            )
+            try:
+                replaces_certificate_type = (
+                    model_utils.CertificateType.to_CertificateType_Enum(
+                        dbCertificateSigned.acme_order.certificate_type_id
+                    )
+                )
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    ctx,
+                    dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                    processing_strategy="process_single",
+                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                    note=RENEWAL_RUN,
+                    replaces=dbCertificateSigned.ari_identifier,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                    replaces_certificate_type=replaces_certificate_type,
+                )
+                print("Renewal Result", "AcmeOrder", dbAcmeOrderNew)
+                print(
+                    "Renewal Result",
+                    "CertificateSigned",
+                    dbAcmeOrderNew.certificate_signed_id,
+                )
+            except Exception as exc:
+                print("Exception", exc, "when processing AcmeOrder")
+                raise
 
     wsgi_server.shutdown()
     exit()

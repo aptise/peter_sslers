@@ -351,7 +351,6 @@ def new_test_connections():
     ctx = utils.ApiContext(
         request=request,
         dbSession=dbSession,
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
         config_uri=TEST_INI,
         application_settings=GLOBAL_ApplicationSettings,
     )
@@ -672,7 +671,7 @@ def under_pebble_alt(_function):
                 else:
                     for line in iter(proc.stdout.readline, b""):
                         # if b"Listening on: 0.0.0.0:14001" in line:
-                        if ACME_CHECK_MSG in line:
+                        if ACME_CHECK_MSG_ALT in line:
                             log.info("`pebble[alt]`: ready")
                             ready = True
                             break
@@ -988,7 +987,7 @@ TEST_FILES: Dict = {
         },
         "4": {
             "key": "key_technology-rsa/acme_account_4.key",
-            "provider": "pebble",
+            "provider": "pebble_alt",
             "order_default_private_key_cycle": "single_use",
             "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.d@example.com",
@@ -996,7 +995,7 @@ TEST_FILES: Dict = {
         },
         "5": {
             "key": "key_technology-rsa/acme_account_5.key",
-            "provider": "pebble",
+            "provider": "pebble_alt",
             "order_default_private_key_cycle": "single_use",
             "order_default_private_key_technology": "RSA_2048",
             "contact": "contact.e@example.com",
@@ -1531,7 +1530,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 print("AppTestCore.setUp | recreating the database")
 
                 ctx = utils.ApiContext(
-                    timestamp=datetime.datetime.now(datetime.timezone.utc),
                     dbSession=dbSession,
                     request=None,
                     config_uri=TEST_INI,
@@ -1608,7 +1606,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             self._ctx = utils.ApiContext(
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
-                timestamp=datetime.datetime.now(datetime.timezone.utc),
                 config_uri=TEST_INI,
                 application_settings=GLOBAL_ApplicationSettings,
             )
@@ -1832,6 +1829,14 @@ class AppTest(AppTestCore):
                     """
                     # note: pre-populate AcmeAccount
                     # this should create `/acme-account/1`
+
+                    _dbAcmeServer_1 = db.get.get__AcmeServer__by_name(
+                        self.ctx, "pebble"
+                    )
+                    _dbAcmeServer_2 = db.get.get__AcmeServer__by_name(
+                        self.ctx, "pebble-alt"
+                    )
+
                     _dbAcmeAccount_1: model_objects.AcmeAccount
                     _dbAcmeAccount_2: model_objects.AcmeAccount
                     for _id in TEST_FILES["AcmeAccount"]:
@@ -1851,7 +1856,12 @@ class AppTest(AppTestCore):
                             acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
                             key_pem=key_pem,
                             contact=TEST_FILES["AcmeAccount"][_id]["contact"],
-                            acme_server_id=1,  # acme_server_id(1) == pebble
+                            acme_server_id=(
+                                _dbAcmeServer_1.id
+                                if TEST_FILES["AcmeAccount"][_id]["provider"]
+                                == "pebble"
+                                else _dbAcmeServer_2.id
+                            ),
                             event_type="AcmeAccount__insert",
                             order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
                                 _order_default_private_key_cycle
@@ -1869,11 +1879,12 @@ class AppTest(AppTestCore):
                                     self.ctx, _dbAcmeAccount
                                 )
                             self.ctx.pyramid_transaction_commit()
-                        if _id == "2":
+                        # 11 is same as 1, but on `pebble_alt`
+                        if _id == "5":
                             _dbAcmeAccount_2 = _dbAcmeAccount
                             if not _dbAcmeAccount.is_global_backup:
                                 db.update.update_AcmeAccount__set_global_backup(
-                                    self.ctx, _dbAcmeAccount
+                                    self.ctx, _dbAcmeAccount_2
                                 )
                             self.ctx.pyramid_transaction_commit()
 

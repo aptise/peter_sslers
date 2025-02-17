@@ -72,9 +72,9 @@
                 <tr>
                     <th>nginx.servers_pool</th>
                     <td>
-                        % if request.registry.settings["application_settings"]['nginx.servers_pool']:
+                        % if request.api_context.application_settings['nginx.servers_pool']:
                             <ul>
-                                % for i in request.registry.settings["application_settings"]['nginx.servers_pool']:
+                                % for i in request.api_context.application_settings['nginx.servers_pool']:
                                     <li>${i}</li>
                                 % endfor
                             </ul>
@@ -83,8 +83,8 @@
                 <tr>
                     <th>nginx.userpass</th>
                     <td>
-                        % if request.registry.settings["application_settings"]['nginx.userpass']:
-                            <code>${request.registry.settings["application_settings"]['nginx.userpass']}</code>
+                        % if request.api_context.application_settings['nginx.userpass']:
+                            <code>${request.api_context.application_settings['nginx.userpass']}</code>
                         % else:
                             <code></code>
                         % endif
@@ -92,17 +92,17 @@
                 </tr>
                 <tr>
                     <th>nginx.reset_path</th>
-                    <td><code>${request.registry.settings["application_settings"]['nginx.reset_path']}</code></td>
+                    <td><code>${request.api_context.application_settings['nginx.reset_path']}</code></td>
                 </tr>
                 <tr>
                     <th>nginx.status_path</th>
-                    <td><code>${request.registry.settings["application_settings"]['nginx.status_path']}</code></td>
+                    <td><code>${request.api_context.application_settings['nginx.status_path']}</code></td>
                 </tr>
                 <tr>
                     <th>nginx.ca_bundle_pem</th>
                     <td>
-                        % if request.registry.settings["application_settings"]['nginx.ca_bundle_pem']:
-                            <code>${request.registry.settings["application_settings"]['nginx.ca_bundle_pem']}</code>
+                        % if request.api_context.application_settings['nginx.ca_bundle_pem']:
+                            <code>${request.api_context.application_settings['nginx.ca_bundle_pem']}</code>
                         % else:
                             <code></code>                            
                         % endif
@@ -110,13 +110,13 @@
                 </tr>
                 <tr>
                     <th>redis enabled?</th>
-                    <td>${'Yes' if request.registry.settings["application_settings"]['enable_redis'] else 'No'}</td>
+                    <td>${'Yes' if request.api_context.application_settings['enable_redis'] else 'No'}</td>
                 </tr>
                 <tr>
                     <th>redis prime style</th>
                     <td>
-                        % if 'redis.prime_style' in request.registry.settings["application_settings"]:
-                            ${request.registry.settings["application_settings"]['redis.prime_style']}
+                        % if 'redis.prime_style' in request.api_context.application_settings:
+                            ${request.api_context.application_settings['redis.prime_style']}
                         % endif
                     </td>
                 </tr>
