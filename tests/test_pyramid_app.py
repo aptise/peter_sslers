@@ -24,6 +24,7 @@ from webtest import Upload
 
 # local
 from peter_sslers.lib import errors as lib_errors
+from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
@@ -158,7 +159,11 @@ def do__AcmeServers_sync(
 ) -> bool:
     # both exist after setup
     dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
+    if not dbAcmeAccount_backup:
+        raise ValueError("AcmeAccount__GlobalBackup not configured")
     dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
+    if not dbAcmeAccount_default:
+        raise ValueError("AcmeAccount__GlobalDefault not configured")
 
     for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
         res = testCase.testapp.get(
@@ -10813,10 +10818,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         )
 
         # order the backup...
-        dbRenewalConfiguration = dbAcmeOrder_1.renewal_configuration
         res = self.testapp.get(
             "/.well-known/peter_sslers/renewal-configuration/%s/new-order"
-            % dbRenewalConfiguration.id,
+            % dbAcmeOrder_1.renewal_configuration_id,
             status=200,
         )
         form = res.forms["form-renewal_configuration-new_order"]
@@ -10829,33 +10833,15 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # sleep 5 seconds
         time.sleep(5)
 
-        # `get_CertificateSigneds_renew_now` will compute a buffer,
-        # so we do not have to submit a `timestamp_max_expiry`
-        all_expiring_certs = lib_db_get.get_CertificateSigneds_renew_now(self.ctx)
-        expiring_certs = [
-            i
-            for i in all_expiring_certs
-            if i.acme_order.renewal_configuration_id == dbRenewalConfiguration.id
-        ]
-
-        assert len(expiring_certs) == 2
-
-        for dbCertificateSigned in expiring_certs:
-            replaces_certificate_type = (
-                model_utils.CertificateType.to_CertificateType_Enum(
-                    dbCertificateSigned.acme_order.certificate_type_id
-                )
-            )
-            dbAcmeOrderNew = lib_db_actions_acme.do__AcmeV2_AcmeOrder__new(
-                self.ctx,
-                dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                processing_strategy="process_single",
-                acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                note="RENEWAL_RUN",
-                replaces=dbCertificateSigned.ari_identifier,
-                replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                replaces_certificate_type=replaces_certificate_type,
-            )
+        _results = lib_db_actions.routine__renew_expiring(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            renewal_configuration_ids__only_process=(
+                dbAcmeOrder_1.renewal_configuration_id,
+            ),
+            count_expected_configurations=2,
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
@@ -10879,7 +10865,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # this will generate the primary cert
         dbAcmeOrder_1 = make_one__AcmeOrder(
             self,
-            domain_names_http01="test-multi-pebble-renewal-simple.example.com",
+            domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
             acme_profile="shortlived",
@@ -10889,38 +10875,23 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # sleep 5 seconds
         time.sleep(5)
 
-        # `get_CertificateSigneds_renew_now` will compute a buffer,
-        # so we do not have to submit a `timestamp_max_expiry`
-        all_expiring_certs = lib_db_get.get_CertificateSigneds_renew_now(self.ctx)
-        expiring_certs = [
-            i
-            for i in all_expiring_certs
-            if i.acme_order.renewal_configuration_id
-            == dbAcmeOrder_1.renewal_configuration.id
-        ]
+        # actually, we order the backups first
+        lib_db_actions.routine__order_backups(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+        )
 
-        assert len(expiring_certs) == 2
-
-        for dbCertificateSigned in expiring_certs:
-            replaces_certificate_type = (
-                model_utils.CertificateType.to_CertificateType_Enum(
-                    dbCertificateSigned.acme_order.certificate_type_id
-                )
-            )
-            dbAcmeOrderNew = lib_db_actions_acme.do__AcmeV2_AcmeOrder__new(
-                self.ctx,
-                dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                processing_strategy="process_single",
-                acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                note="RENEWAL_RUN",
-                replaces=dbCertificateSigned.ari_identifier,
-                replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                replaces_certificate_type=replaces_certificate_type,
-            )
-            print("=======================")
-            print(dbCertificateSigned.as_json)
-            print("-----------------------")
-            print(dbAcmeOrderNew.as_json)
+        # then we renew the expiring
+        _results = lib_db_actions.routine__renew_expiring(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            renewal_configuration_ids__only_process=(
+                dbAcmeOrder_1.renewal_configuration_id,
+            ),
+            count_expected_configurations=2,
+        )
 
 
 class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):

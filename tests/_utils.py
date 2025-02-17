@@ -1833,9 +1833,17 @@ class AppTest(AppTestCore):
                     _dbAcmeServer_1 = db.get.get__AcmeServer__by_name(
                         self.ctx, "pebble"
                     )
+                    if not _dbAcmeServer_1:
+                        raise ValueError(
+                            "get__AcmeServer__by_name(pebble) not configured"
+                        )
                     _dbAcmeServer_2 = db.get.get__AcmeServer__by_name(
                         self.ctx, "pebble-alt"
                     )
+                    if not _dbAcmeServer_2:
+                        raise ValueError(
+                            "get__AcmeServer__by_name(pebble) not configured"
+                        )
 
                     _dbAcmeAccount_1: model_objects.AcmeAccount
                     _dbAcmeAccount_2: model_objects.AcmeAccount

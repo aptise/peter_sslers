@@ -1098,7 +1098,7 @@ def _create_public_server(settings: Dict) -> StopableWSGIServer:
 
     try:
         http_port = settings.get("http_port.renewals")
-        http_port = int(http_port)
+        http_port = int(http_port)  # type: ignore[arg-type]
     except Exception:
         http_port = 7202
 
@@ -1115,11 +1115,23 @@ def _create_public_server(settings: Dict) -> StopableWSGIServer:
     return app_wsgi
 
 
+class FakeStopableWSGIServer(object):
+    # used to mock interface for `StopableWSGIServer`
+    def shutdown(self):
+        pass
+
+
+def _create_public_server__fake(settings: Dict) -> FakeStopableWSGIServer:
+    # used to mock interface for `StopableWSGIServer`
+    fake_wsgi = FakeStopableWSGIServer()
+    return fake_wsgi
+
+
 def routine__order_backups(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
-) -> Tuple[Optional[bool], Optional[bool]]:
+) -> Tuple[Optional[int], Optional[int]]:
     """
     returns a tuple of:
         (count_success, count_failures)
@@ -1221,7 +1233,9 @@ def routine__renew_expiring(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
-) -> Tuple[Optional[bool], Optional[bool]]:
+    renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
+    count_expected_configurations: Optional[int] = None,
+) -> Tuple[Optional[int], Optional[int]]:
     """
     returns a tuple of:
         (count_success, count_failures)
@@ -1234,7 +1248,18 @@ def routine__renew_expiring(
 
     RENEWAL_RUN: str = "RenewExpiring[%s]" % ctx.timestamp
 
+    # `get_CertificateSigneds_renew_now` will compute a buffer,
+    # so we do not have to submit a `timestamp_max_expiry`
     expiring_certs = get.get_CertificateSigneds_renew_now(ctx)
+    if renewal_configuration_ids__only_process:
+        expiring_certs = [
+            i
+            for i in expiring_certs
+            if i.acme_order.renewal_configuration_id
+            in renewal_configuration_ids__only_process
+        ]
+        if count_expected_configurations:
+            assert len(expiring_certs) == count_expected_configurations
 
     if False:
         print("---")
