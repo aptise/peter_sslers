@@ -43,7 +43,9 @@ class Test_CommandlineScripts(unittest.TestCase):
     def test__initializedb(self):
         pass
 
-    @unittest.skip("TODO")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @under_pebble_alt
     def test__routine__renew_expiring(self):
         pass
 

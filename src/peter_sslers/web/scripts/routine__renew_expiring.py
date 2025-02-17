@@ -14,12 +14,9 @@ from ..models import get_session_factory
 from ..models import get_tm_session
 from ...lib import db as lib_db
 from ...lib.config_utils import ApplicationSettings
-from ...lib.http import StopableWSGIServer
 from ...lib.utils import ApiContext
 from ...lib.utils import RequestCommandline
-from ...model import utils as model_utils
 from ...model.meta import Base
-from ...web import main as app_main
 
 # from ...lib import db as lib_db
 # from ...lib.config_utils import ApplicationSettings
@@ -34,44 +31,6 @@ def usage(argv):
         '(example: "%s conf/example_development.ini")' % (cmd, cmd)
     )
     sys.exit(1)
-
-
-def create_public_server(settings):
-    """
-    def tearDown(self):
-        if self._testapp_wsgi is not None:
-            self._testapp_wsgi.shutdown()
-        AppTest.tearDown(self)
-    """
-
-    #
-    # sanitize the settings
-    #
-    pryamid_bools = (
-        "pyramid.debug_authorization"
-        "pyramid.debug_notfound"
-        "pyramid.debug_routematch"
-    )
-    for field in pryamid_bools:
-        if field in settings:
-            settings[field] = "false"
-    if "pyramid.includes" in settings:
-        settings["pyramid.includes"] = settings["pyramid.includes"].replace(
-            "pyramid_debugtoolbar", ""
-        )
-
-    # ensure what the public can and can't see
-    settings["enable_views_admin"] = "false"
-    settings["enable_views_public"] = "true"
-
-    app = app_main(global_config=None, **settings)
-    app_wsgi = StopableWSGIServer.create(
-        app,
-        host="localhost",
-        port=7202,
-    )
-
-    return app_wsgi
 
 
 def main(argv=sys.argv):
@@ -106,50 +65,16 @@ def main(argv=sys.argv):
         application_settings=application_settings,
     )
 
-    RENEWAL_RUN: str = "RenewExpiring[%s]" % ctx.timestamp
+    # actually, we order the backups first
+    lib_db.actions.routine__order_backups(
+        ctx,
+        settings=settings,
+    )
 
-    expiring_certs = lib_db.get.get_CertificateSigneds_renew_now(ctx)
+    # then we renew the expiring
+    lib_db.actions.routine__renew_expiring(
+        ctx,
+        settings=settings,
+    )
 
-    if not expiring_certs:
-        print("Nothing to renew")
-        exit()
-
-    wsgi_server = create_public_server(settings)
-    for dbCertificateSigned in expiring_certs:
-        if not dbCertificateSigned.acme_order:
-            print("No RenewalConfiguration for: ", dbCertificateSigned.id)
-        else:
-            print(
-                "Renewing...",
-                dbCertificateSigned.id,
-                "with RenewalConfiguration:",
-                dbCertificateSigned.acme_order.renewal_configuration_id,
-            )
-            try:
-                replaces_certificate_type = (
-                    model_utils.CertificateType.to_CertificateType_Enum(
-                        dbCertificateSigned.acme_order.certificate_type_id
-                    )
-                )
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                    ctx,
-                    dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                    processing_strategy="process_single",
-                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                    note=RENEWAL_RUN,
-                    replaces=dbCertificateSigned.ari_identifier,
-                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                    replaces_certificate_type=replaces_certificate_type,
-                )
-                print("Renewal Result", "AcmeOrder", dbAcmeOrderNew)
-                print(
-                    "Renewal Result",
-                    "CertificateSigned",
-                    dbAcmeOrderNew.certificate_signed_id,
-                )
-            except Exception as exc:
-                print("Exception", exc, "when processing AcmeOrder")
-                raise
-
-    wsgi_server.shutdown()
     exit()

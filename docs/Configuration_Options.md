@@ -44,5 +44,7 @@ These are documented at-length on the in-app settings page.
 * `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/peter_sslers`
 * `admin_url` (optional) used for display in instructions. If omitted,
   scheme+server+prefix will be used.
+* `http_port.renewals` (optional) Default: 7202; the port used to answer
+  http-01 challenges; traffic must be proxied to it from port 80.
 
 These options are used by the server AND by the test suite.

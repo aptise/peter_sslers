@@ -6,6 +6,7 @@ import json
 import logging
 import pdb  # noqa: F401
 import pprint
+import time
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -152,6 +153,29 @@ def routes_tested(*args):
 # =====
 
 
+def do__AcmeServers_sync(
+    testCase: unittest.TestCase,
+) -> bool:
+    # both exist after setup
+    dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
+    dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
+
+    for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
+        res = testCase.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s" % _dbAcmeAccount.acme_server_id,
+            status=200,
+        )
+        form = res.forms["form-check_support"]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.endswith(
+            "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
+            % _dbAcmeAccount.acme_server_id
+        )
+
+    return True
+
+
 @routes_tested("admin:acme_account:new|json")
 def make_one__AcmeAccount__random(
     testCase: unittest.TestCase,
@@ -220,6 +244,9 @@ def make_one__AcmeOrder(
     testCase: unittest.TestCase,
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
+    account_key_option_backup: Optional[str] = None,
+    acme_profile: Optional[str] = None,
+    acme_profile__backup: Optional[str] = None,
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
@@ -236,6 +263,12 @@ def make_one__AcmeOrder(
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
         form["domain_names_dns01"] = domain_names_dns01
+    if acme_profile:
+        form["acme_profile"] = acme_profile
+    if acme_profile__backup:
+        form["acme_profile__backup"] = acme_profile__backup
+    if account_key_option_backup:
+        form["account_key_option_backup"].force_value(account_key_option_backup)
     form["processing_strategy"].force_value(processing_strategy)
     res2 = form.submit()
     assert res2.status_code == 303
@@ -10744,6 +10777,150 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _expected_result="FAIL",
         )
         log.info("test_replaces- Passed: TestCase 7")
+
+
+class IntegratedTests_Renewals(AppTestWSGI):
+    """
+    python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals
+    """
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
+    def test_multi_pebble_renewal__simple(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals.test_multi_pebble_renewal__simple
+
+        This tests a SIMPLE renewal situation:
+
+        1- create `RenewalConfiguration.1` with Primary and Backup
+        2- Manually order the Primary
+        3- Manually order the Backup
+        4- Run Renewal Script, which should:
+            Renew BOTH certs
+        """
+
+        do__AcmeServers_sync(self)
+
+        # this will generate the primary cert
+        dbAcmeOrder_1 = make_one__AcmeOrder(
+            self,
+            domain_names_http01="test-multi-pebble-renewal-simple.example.com",
+            processing_strategy="process_single",
+            account_key_option_backup="account_key_global_backup",
+            acme_profile="shortlived",
+            acme_profile__backup="shortlived",
+        )
+
+        # order the backup...
+        dbRenewalConfiguration = dbAcmeOrder_1.renewal_configuration
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/new-order"
+            % dbRenewalConfiguration.id,
+            status=200,
+        )
+        form = res.forms["form-renewal_configuration-new_order"]
+        form["replaces"].force_value("backup")
+        form["processing_strategy"].force_value("process_single")
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.endswith("?result=success&operation=renewal+configuration")
+
+        # sleep 5 seconds
+        time.sleep(5)
+
+        # `get_CertificateSigneds_renew_now` will compute a buffer,
+        # so we do not have to submit a `timestamp_max_expiry`
+        all_expiring_certs = lib_db_get.get_CertificateSigneds_renew_now(self.ctx)
+        expiring_certs = [
+            i
+            for i in all_expiring_certs
+            if i.acme_order.renewal_configuration_id == dbRenewalConfiguration.id
+        ]
+
+        assert len(expiring_certs) == 2
+
+        for dbCertificateSigned in expiring_certs:
+            replaces_certificate_type = (
+                model_utils.CertificateType.to_CertificateType_Enum(
+                    dbCertificateSigned.acme_order.certificate_type_id
+                )
+            )
+            dbAcmeOrderNew = lib_db_actions_acme.do__AcmeV2_AcmeOrder__new(
+                self.ctx,
+                dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                processing_strategy="process_single",
+                acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                note="RENEWAL_RUN",
+                replaces=dbCertificateSigned.ari_identifier,
+                replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                replaces_certificate_type=replaces_certificate_type,
+            )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
+    def test_multi_pebble_renewal__realistic(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals.test_multi_pebble_renewal__realistic
+
+        This tests a SIMPLE renewal situation:
+
+        1- create `RenewalConfiguration.1` with Primary and Backup
+        2- Manually order the Primary
+        3- DO NOT order the Backup
+        4- Run Renewal Script, which should:
+            Renew PRIMARY
+            Issue Backup
+        """
+
+        do__AcmeServers_sync(self)
+
+        # this will generate the primary cert
+        dbAcmeOrder_1 = make_one__AcmeOrder(
+            self,
+            domain_names_http01="test-multi-pebble-renewal-simple.example.com",
+            processing_strategy="process_single",
+            account_key_option_backup="account_key_global_backup",
+            acme_profile="shortlived",
+            acme_profile__backup="shortlived",
+        )
+
+        # sleep 5 seconds
+        time.sleep(5)
+
+        # `get_CertificateSigneds_renew_now` will compute a buffer,
+        # so we do not have to submit a `timestamp_max_expiry`
+        all_expiring_certs = lib_db_get.get_CertificateSigneds_renew_now(self.ctx)
+        expiring_certs = [
+            i
+            for i in all_expiring_certs
+            if i.acme_order.renewal_configuration_id
+            == dbAcmeOrder_1.renewal_configuration.id
+        ]
+
+        assert len(expiring_certs) == 2
+
+        for dbCertificateSigned in expiring_certs:
+            replaces_certificate_type = (
+                model_utils.CertificateType.to_CertificateType_Enum(
+                    dbCertificateSigned.acme_order.certificate_type_id
+                )
+            )
+            dbAcmeOrderNew = lib_db_actions_acme.do__AcmeV2_AcmeOrder__new(
+                self.ctx,
+                dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                processing_strategy="process_single",
+                acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                note="RENEWAL_RUN",
+                replaces=dbCertificateSigned.ari_identifier,
+                replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                replaces_certificate_type=replaces_certificate_type,
+            )
+            print("=======================")
+            print(dbCertificateSigned.as_json)
+            print("-----------------------")
+            print(dbAcmeOrderNew.as_json)
 
 
 class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):

@@ -80,7 +80,7 @@
                             </p>
                         % endif
 
-                        <form action="${admin_prefix}/acme-server/${AcmeServer.id}/check-support" method="POST" style="display:inline;" id="form-check">
+                        <form action="${admin_prefix}/acme-server/${AcmeServer.id}/check-support" method="POST" style="display:inline;" id="form-check_support">
                             <input type="hidden" name="action" value="active"/>
                             <button class="btn btn-xs btn-primary" type="submit">
                                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

@@ -73,6 +73,10 @@ Tests:
     
 TODO:
     ensure 2 acme accounts don't have the same key; it messes up the 
+    
+this needs the exc caught when servers are down
+
+http://127.0.0.1:7201/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True    
 
 
 

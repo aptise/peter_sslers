@@ -188,20 +188,35 @@ class View_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _check_support__submit(self, dbAcmeServer):
-        result = lib_db.actions_acme.check_endpoint_support(
-            self.request.api_context,
-            dbAcmeServer,
-        )
-        if self.request.wants_json:
-            return {
-                "result": "success",
-                "operation": "check-support",
-                "check-support": result,
-            }
-        url_result = "%s?result=success&operation=check-support&check-support=%s" % (
-            self._focus_url,
-            result,
-        )
+        try:
+            result = lib_db.actions_acme.check_endpoint_support(
+                self.request.api_context,
+                dbAcmeServer,
+            )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "check-support",
+                    "check-support": result,
+                }
+            url_result = (
+                "%s?result=success&operation=check-support&check-support=%s"
+                % (
+                    self._focus_url,
+                    result,
+                )
+            )
+        except Exception as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": str(exc),
+                }
+            url_result = "%s?result=error&error=%s" % (
+                self._focus_url,
+                str(exc),
+            )
+
         return HTTPSeeOther(url_result)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

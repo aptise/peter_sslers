@@ -2387,16 +2387,21 @@ def get_CertificateSigneds_renew_now(
 ) -> List[CertificateSigned]:
 
     if not timestamp_max_expiry:
+        # construct a max expiry based on...
+        # clockdrift; servers get out of sync
         TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+        # runner interval; assume the next time we run this is in an houur
+        # TODO: make this configurable
         TIMEDELTA_runner_interval = datetime.timedelta(minutes=60)
+        # maths: subtract these times from the current timestamp
         timestamp_max_expiry = (
-            ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+            ctx.timestamp - TIMEDELTA_clockdrift - TIMEDELTA_runner_interval
         )
 
     expiring_certs = (
         ctx.dbSession.query(CertificateSigned)
         # joinpath 1: CertificateSigned>AriCheck
-        .join(
+        .outerjoin(
             AriCheck,
             CertificateSigned.id == AriCheck.certificate_signed_id,
         )
@@ -2420,10 +2425,10 @@ def get_CertificateSigneds_renew_now(
             # only need one of these; ari_identifier is not guaranteed
             CertificateSigned.certificate_signed_id__replaced_by.is_(None),
             # CertificateSigned.ari_identifier__replaced_by.is_(None),
-            # ARI is not guaranteed
+            # again, ARI is not guaranteed - but it also might be in the future like pebble
             sqlalchemy.or_(
-                CertificateSigned.timestamp_not_after < timestamp_max_expiry,
-                AriCheck.suggested_window_end < timestamp_max_expiry,
+                CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
+                AriCheck.suggested_window_end >= timestamp_max_expiry,
             ),
         )
         .all()
