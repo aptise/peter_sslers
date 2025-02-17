@@ -2338,12 +2338,12 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
     These tests EXPOSE the PeterSSLers application by also mounting it to a
     `StopableWSGIServer` instance running on port 5002.
 
-    5002 is the default Pebble high port;
+    5002 is the default high port pebble uses to authenticate against;
 
-    This will require an nginx/other block to route the ports:
+    This may require an nginx/other block to route the ports:
 
         location /.well-known/acme-challenge/ {
-            proxy_pass  http://127.0.0.1:8001;
+            proxy_pass  http://127.0.0.1:5002;
             proxy_set_header   Host $host;
             proxy_set_header   X-Real-IP $remote_addr;
             proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;

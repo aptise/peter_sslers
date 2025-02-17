@@ -2878,7 +2878,7 @@ class FunctionalTests_AcmeServer(AppTest):
     def test_manipulate_html(self):
 
         res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
-        form_check = res.forms["form-check"]
+        form_check = res.forms["form-check_support"]
         form_mark = res.forms["form-mark"]
 
         res2 = form_check.submit()
