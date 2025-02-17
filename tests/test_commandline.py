@@ -10,6 +10,7 @@ import unittest
 import psutil
 
 # local
+from ._utils import AppTest
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import TEST_INI
 from ._utils import under_pebble
@@ -31,6 +32,23 @@ log.setLevel(logging.CRITICAL)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
+
+
+class AAA_TestingSetup(AppTest):
+    """
+    This testclass exists to leverage the database setup routines in AppTest
+    for CI environments.
+
+    `AAA_TestingSetup` will run before anything else in this package.
+    Although `test_passes` does nothing itself, it will cause `AppTest.setUp`
+    to run, which will create the sqlite3 database that is necessary for these
+    tests.
+
+    If this does not run first, the CI environment can get jammed.
+    """
+
+    def test_passes(self):
+        pass
 
 
 class Test_CommandlineScripts(unittest.TestCase):

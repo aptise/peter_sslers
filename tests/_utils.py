@@ -1842,7 +1842,7 @@ class AppTest(AppTestCore):
                     )
                     if not _dbAcmeServer_2:
                         raise ValueError(
-                            "get__AcmeServer__by_name(pebble) not configured"
+                            "get__AcmeServer__by_name(pebble-alt) not configured"
                         )
 
                     _dbAcmeAccount_1: model_objects.AcmeAccount
