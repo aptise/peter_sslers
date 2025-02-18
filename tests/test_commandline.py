@@ -84,7 +84,10 @@ class Test_CommandlineScripts(unittest.TestCase):
                 if False:
                     print(response)
                     print(err)
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
                 if err:
                     raise ValueError("Exception", err)
         except Exception as exc:  # noqa: F841
@@ -107,7 +110,10 @@ class Test_CommandlineScripts(unittest.TestCase):
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
                 response, err = proc.communicate()
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
                 if err:
                     raise ValueError("Exception", err)
 
@@ -134,7 +140,10 @@ class Test_CommandlineScripts(unittest.TestCase):
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
                 response, err = proc.communicate()
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
                 if err:
                     raise ValueError("Exception", err)
 
@@ -158,7 +167,10 @@ class Test_CommandlineScripts(unittest.TestCase):
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
                 response, err = proc.communicate()
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
                 if err:
                     if "Error" in err:
                         raise ValueError("Exception", err)
@@ -185,7 +197,10 @@ class Test_CommandlineScripts(unittest.TestCase):
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
                 response, err = proc.communicate()
-                proc.terminate()
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
                 if err:
                     if "Error" in err:
                         raise ValueError("Exception", err)
