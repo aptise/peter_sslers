@@ -1311,14 +1311,12 @@ def routine__order_missing(
         for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
             _order_missing(
                 _dbRenewalConfiguration,
-                "backup",
                 model_utils.CertificateType_Enum.MANAGED_BACKUP,
             )
 
         for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
             _order_missing(
                 _dbRenewalConfiguration,
-                "primary",
                 model_utils.CertificateType_Enum.MANAGED_PRIMARY,
             )
 

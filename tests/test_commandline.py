@@ -172,7 +172,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 except psutil.NoSuchProcess:
                     pass
                 if err:
-                    if "Error" in err:
+                    if b"Error" in err:
                         raise ValueError("Exception", err)
 
         except Exception as exc:  # noqa: F841
@@ -202,7 +202,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 except psutil.NoSuchProcess:
                     pass
                 if err:
-                    if "Error" in err:
+                    if b"Error" in err:
                         raise ValueError("Exception", err)
 
         except Exception as exc:  # noqa: F841
