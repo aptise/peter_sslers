@@ -10790,6 +10790,14 @@ class IntegratedTests_Renewals(AppTestWSGI):
     python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals
     """
 
+    def setUp(self):
+        AppTest.setUp(self)
+        unset_testing_data(testCase=self)
+
+    def tearDown(self):
+        unset_testing_data(testCase=self)
+        AppTest.setUp(self)
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
     @under_pebble
@@ -11422,6 +11430,10 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
     python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer
     """
+
+    def setUp(self):
+        AppTestWSGI.tearDown(self)
+        unset_testing_data(self)
 
     def tearDown(self):
         unset_testing_data(self)
