@@ -17,6 +17,7 @@ from ...lib import db as lib_db
 from ...lib.compat import certbot as compat_certbot
 from ...lib.config_utils import ApplicationSettings
 from ...lib.utils import ApiContext
+from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 
 # ==============================================================================
@@ -58,7 +59,9 @@ def main(argv=sys.argv):
 
         ctx = ApiContext(
             dbSession=dbSession,
-            request=None,
+            request=RequestCommandline(
+                dbSession, application_settings=application_settings
+            ),
             config_uri=config_uri,
             application_settings=application_settings,
         )

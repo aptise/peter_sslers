@@ -14,6 +14,7 @@ from ..models import get_session_factory
 from ...lib import db as lib_db
 from ...lib.config_utils import ApplicationSettings
 from ...lib.utils import ApiContext
+from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 from ...model.utils import AcmeServerInput
 
@@ -133,7 +134,9 @@ def main(argv=sys.argv):
         dbSession = session_factory()
         ctx = ApiContext(
             dbSession=dbSession,
-            request=None,
+            request=RequestCommandline(
+                dbSession, application_settings=application_settings
+            ),
             config_uri=config_uri,
             application_settings=application_settings,
         )
@@ -159,7 +162,9 @@ def main(argv=sys.argv):
         dbSession = session_factory()
         ctx = ApiContext(
             dbSession=dbSession,
-            request=None,
+            request=RequestCommandline(
+                dbSession, application_settings=application_settings
+            ),
             config_uri=config_uri,
             application_settings=application_settings,
         )

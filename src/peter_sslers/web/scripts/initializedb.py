@@ -15,6 +15,7 @@ from ..models import get_tm_session
 from ...lib.config_utils import ApplicationSettings
 from ...lib.db import _setup
 from ...lib.utils import ApiContext
+from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 
 
@@ -51,7 +52,9 @@ def main(argv=sys.argv):
 
         ctx = ApiContext(
             dbSession=dbSession,
-            request=None,
+            request=RequestCommandline(
+                dbSession, application_settings=application_settings
+            ),
             config_uri=config_uri,
             application_settings=application_settings,
         )

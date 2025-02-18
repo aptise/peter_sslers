@@ -240,7 +240,7 @@ jobs:
         export DEBUG_GITHUB_ENV=1
         export DEBUG_METRICS=1
         export DEBUG_PEBBLE_REDIS=1
-        export DEBUG_TESTHARNESS=1
+        export DEBUG_TESTHARNESS=0
 
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
