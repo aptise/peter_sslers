@@ -55,6 +55,8 @@ from peter_sslers.web import main
 from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
 
+# from peter_sslers.lib.utils import RequestCommandline
+
 
 # ==============================================================================
 
@@ -294,7 +296,7 @@ def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
         for aap in domain.acme_authorization_potentials:
             aap.acme_order.is_processing = False
             update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, aap.acme_order)
-            ctx.dbSession.commit()
+            ctx.pyramid_transaction_commit()
     return True
 
 
@@ -393,7 +395,7 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]):
                 "Detected a previously encountered Pebble root. "
                 "This should not be possible"
             )
-    ctx.dbSession.commit()
+    ctx.pyramid_transaction_commit()
     ctx.dbSession.close()
 
     return True
@@ -429,7 +431,7 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]):
                     _dbAcmeAccount.id,
                     _dbAcmeAccount.account_url,
                 )
-    ctx.dbSession.commit()
+    ctx.pyramid_transaction_commit()
     ctx.dbSession.close()
     return True
 
@@ -1529,15 +1531,16 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             else:
                 print("AppTestCore.setUp | recreating the database")
 
+                request = FakeRequest()
                 ctx = utils.ApiContext(
                     dbSession=dbSession,
-                    request=None,
+                    request=request,
                     config_uri=TEST_INI,
                     application_settings=GLOBAL_ApplicationSettings,
                 )
                 # this would have been invoked by `initializedb`
                 db._setup.initialize_database(ctx)
-                dbSession.commit()
+                ctx.pyramid_transaction_commit()
                 dbSession.close()
                 db_freeze(dbSession, "AppTestCore")
         else:
@@ -1636,7 +1639,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 # don't fret on this having an invalid
                 pass
         if _changed:
-            self.ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
 
     def _has_active_challenges(self):
         """
@@ -1815,7 +1818,7 @@ class AppTest(AppTestCore):
                 print("AppTest.setUp | setup sample db records")
                 try:
                     """
-                    This setup pre-populates the DB with some objects needed for routes to work:
+                    This setup pre-populates the DB with some mocked objects needed for routes to work:
 
                         AccountKey:
                             account_1.key
@@ -1824,8 +1827,8 @@ class AppTest(AppTestCore):
                             selfsigned_1-server.crt
                         PrivateKey
                             selfsigned_1-server.key
-
                         AcmeEventLog
+                        AcmeOrder
                     """
                     # note: pre-populate AcmeAccount
                     # this should create `/acme-account/1`
@@ -2185,7 +2188,7 @@ class AppTest(AppTestCore):
                         is_save_alternate_chains=_dbRenewalConfiguration.is_save_alternate_chains,
                     )
 
-                    # merge these items in
+                    # merge these items back in, as the session was commited
                     _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder, load=False)
 
                     _authorization_response = {
@@ -2220,8 +2223,9 @@ class AppTest(AppTestCore):
                     )
 
                     # merge this back in
+                    _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder)
                     _dbAcmeAuthorization = self.ctx.dbSession.merge(
-                        _dbAcmeAuthorization, load=False
+                        _dbAcmeAuthorization
                     )
 
                     # ensure we created a challenge
@@ -2288,7 +2292,23 @@ class AppTest(AppTestCore):
                         allowfrom=TEST_FILES["AcmeDnsServerAccount"]["1"]["allowfrom"],
                     )
 
-                    self.ctx.dbSession.commit()
+                    self.ctx.pyramid_transaction_commit()
+
+                    # Turn of the AcmeOrder and RenewalConfiguration
+                    _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder)
+                    db.update.update_RenewalConfiguration__unset_active(
+                        self.ctx, _dbAcmeOrder.renewal_configuration
+                    )
+                    _result = db.actions_acme.updated_AcmeOrder_status(
+                        self.ctx,
+                        _dbAcmeOrder,
+                        {
+                            "status": "invalid",
+                        },
+                        transaction_commit=True,
+                    )
+
+                    self.ctx.pyramid_transaction_commit()
                     db_freeze(self.ctx.dbSession, "AppTest")
 
                 except Exception as exc:
@@ -2316,7 +2336,7 @@ class AppTest(AppTestCore):
             self.ctx, "%s.%s|tearDown" % (self.__class__.__name__, self._testMethodName)
         )
         if self._ctx is not None:
-            self._ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
             self._ctx.dbSession.close()
         AppTestCore.tearDown(self)
 

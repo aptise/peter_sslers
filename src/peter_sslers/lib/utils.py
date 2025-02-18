@@ -3,7 +3,6 @@ import base64
 import datetime
 import json
 import logging
-from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
     from pyramid.request import Request
     from sqlalchemy.orm.session import Session
     from .config_utils import ApplicationSettings
+    from ..model.objects import OperationsEvent
 
 # ==============================================================================
 
@@ -143,7 +143,7 @@ class ApiContext(object):
     :param dbOperationsEvent: - the top OperationsEvent object for the active `request`, if any
     """
 
-    dbOperationsEvent: Optional[Any] = None
+    dbOperationsEvent: Optional["OperationsEvent"] = None
     dbSession: "Session"
     timestamp: datetime.datetime
     request: Optional["Request"] = None
@@ -153,7 +153,7 @@ class ApiContext(object):
     def __init__(
         self,
         request: Optional["Request"] = None,
-        dbOperationsEvent=None,
+        dbOperationsEvent: Optional["OperationsEvent"] = None,
         dbSession: Optional["Session"] = None,
         timestamp: Optional[datetime.datetime] = None,
         config_uri: Optional[str] = None,
@@ -182,6 +182,8 @@ class ApiContext(object):
         mark_changed(self.dbSession, keep_session=True)
         self.transaction_manager.commit()
         self.transaction_manager.begin()
+        if self.dbOperationsEvent:
+            self.dbOperationsEvent = self.dbSession.merge(self.dbOperationsEvent)
 
     def pyramid_transaction_rollback(self) -> None:
         """this method does some ugly stuff to rollback the pyramid transaction"""

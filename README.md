@@ -305,6 +305,43 @@ The source and docs are available on a separate github repository:
 * https://github.com/aptise/lua-resty-peter_sslers
 
 
+"Routines" and Scripts
+----------------------------------------
+
+Several "routines" and scripts are provided for commandline invocation:
+
+Routines for cron:
+
+* routine__automatic_orders
+  This will order certs under the following conditions:
+  * managed certs that are expiring, based on ARI or notAfter
+  * active renewal configurations that have not ordered a primary or backup
+
+  If certs need to be ordered, a WSGI server running on :config.ini:`http_port.renewals`
+  will be spun up to answer AcmeChallenges in a subprocess. Whatever server is
+  listening to port80 should proxy to this server.
+  
+* routine__automatic_orders
+  low-cost cronjob to check ari as necessary
+
+* routine__run_ari_checks
+  low-cost cronjob to check ari 
+
+Scripts:
+
+* register_acme_servers can be used to :
+  * load additional CAs through a json file
+  * assign TrustedRoots to existing or new CAs
+  * export existing acme-server configurations, in a format that can
+    be imported by the same tool
+
+* import_certbot
+  * directly imports a local certbot directory (unlike `Tools` below, which use the API)
+
+* refresh_pebble_ca_certs
+  * dev tool to refresh the pebble certs when needed
+            
+
 "Tools"
 ----------------------------------------
 

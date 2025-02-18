@@ -66,15 +66,17 @@ def main(argv=sys.argv):
     )
 
     # actually, we order the backups first
-    lib_db.actions.routine__order_backups(
+    lib_db.actions.routine__order_missing(
         ctx,
         settings=settings,
+        DEBUG=True,
     )
 
     # then we renew the expiring
     lib_db.actions.routine__renew_expiring(
         ctx,
         settings=settings,
+        DEBUG=True,
     )
 
     exit()

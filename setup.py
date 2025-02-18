@@ -104,7 +104,7 @@ setup(
       refresh_pebble_ca_certs = peter_sslers.web.scripts.refresh_pebble_ca_certs:main
       register_acme_servers = peter_sslers.web.scripts.register_acme_servers:main
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
-      routine__renew_expiring = peter_sslers.web.scripts.routine__renew_expiring:main
+      routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       """,
 )

@@ -105,7 +105,11 @@
             * assign TrustedRoots to existing or new CAs
             * export existing acme-server configurations, in a format that can
               be imported by the same tool
-    
+        routine__automatic_orders
+            this will order certs under the following conditions:
+                managed certs that are expiring, based on ARI or notAfter
+                active renewal configurations that have not ordered a primary or backup
+            
     new QuickStart guide
     
     reorganization of files:

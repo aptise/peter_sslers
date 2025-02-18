@@ -545,8 +545,10 @@ def log__OperationsEvent(
     # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
-    # if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
-    #    dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
+    if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
+        # ???: TODO- investigate how this is happening; the ctx verion is merged
+        #            back in after a transaction commit
+        dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()

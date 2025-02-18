@@ -2313,11 +2313,6 @@ def do__AcmeV2_AcmeOrder__new(
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
 ) -> "AcmeOrder":
-    print("$" * 40)
-    import pprint
-
-    pprint.pprint(locals())
-
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use

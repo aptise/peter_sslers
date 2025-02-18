@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import logging
+import pdb
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
     from ...model.objects import Domain
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
+    from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
     from ..utils import ApiContext
@@ -806,9 +808,6 @@ def api_domains__certificate_if_needed(
         # do commit, just because THE LOGGGING
         ctx.pyramid_transaction_commit()
 
-        # do commit, just because THE LOGGGING
-        ctx.pyramid_transaction_commit()
-
         # note result
         results[_domain_name] = _result
 
@@ -915,18 +914,19 @@ def register_acme_servers(
             )
 
         if source == "initial":
-            log.debug("Adding New ACME Server", server)
+            log.debug("Adding New ACME Server: %s", server)
             _new_AcmeServer()
         else:
             existingDbServer = get.get__AcmeServer__by_server(ctx, server)
             if not existingDbServer:
-                log.debug("Adding New ACME Server", server)
+                log.debug("Adding New ACME Server: %s", server)
                 _new_AcmeServer()
             else:
-                log.debug("Existing ACME Server", server)
+                log.debug("Existing ACME Server: %s", server)
                 if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
-                    log.debug("Updating:", server)
+                    log.debug("Updating: %s", server)
                     existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
+    ctx.pyramid_transaction_commit()
     return True
 
 
@@ -966,7 +966,7 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
     latest_ari_ids = ctx.dbSession.query(latest_ari_checks.c.latest_ari_id)
     stmt = sqlalchemy.delete(AriCheck).where(AriCheck.id.not_in(latest_ari_ids))
     result = ctx.dbSession.execute(stmt)
-    ctx.dbSession.commit()
+    ctx.pyramid_transaction_commit()
     return True
 
 
@@ -1063,7 +1063,6 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             dbCertificateSigned=dbCertificateSigned,
         )
         ctx.pyramid_transaction_commit()
-        # ctx.dbSession.commit()
 
     return True
 
@@ -1127,10 +1126,11 @@ def _create_public_server__fake(settings: Dict) -> FakeStopableWSGIServer:
     return fake_wsgi
 
 
-def routine__order_backups(
+def routine__order_missing(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
+    DEBUG: Optional[bool] = False,
 ) -> Tuple[Optional[int], Optional[int]]:
     """
     returns a tuple of:
@@ -1142,10 +1142,9 @@ def routine__order_backups(
             (None, None)
     """
 
-    RENEWAL_RUN: str = "OrderBackups[%s]" % ctx.timestamp
+    RENEWAL_RUN: str = "OrderMissing[%s]" % ctx.timestamp
 
-    # ctx.dbSession.bind.echo=1
-    q = (
+    q__backup = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
         .outerjoin(
             model_objects.AcmeOrder,
@@ -1174,29 +1173,101 @@ def routine__order_backups(
             ),
         )
     )
-    dbRenewalConfigurations = q.all()
+    dbRenewalConfigurations__backup = q__backup.all()
 
-    if False:
-        for r in dbRenewalConfigurations:
-            print("----")
+    q__primary = (
+        ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .outerjoin(
+            model_objects.AcmeOrder,
+            sqlalchemy_and(
+                model_objects.RenewalConfiguration.id
+                == model_objects.AcmeOrder.renewal_configuration_id,
+                model_objects.AcmeOrder.certificate_type_id
+                == model_utils.CertificateType.MANAGED_PRIMARY,
+                model_objects.AcmeOrder.is_processing.is_not(True),
+            ),
+        )
+        .outerjoin(
+            model_objects.CertificateSigned,
+            model_objects.AcmeOrder.certificate_signed_id
+            == model_objects.CertificateSigned.id,
+        )
+        .filter(
+            model_objects.RenewalConfiguration.is_active.is_(True),
+            model_objects.RenewalConfiguration.acme_account_id.is_not(None),
+            sqlalchemy_or(
+                model_objects.AcmeOrder.id.is_(None),
+                sqlalchemy_and(
+                    model_objects.AcmeOrder.id.is_not(None),
+                    model_objects.AcmeOrder.certificate_signed_id.is_(None),
+                ),
+            ),
+        )
+    )
+    dbRenewalConfigurations__primary = q__primary.all()
+
+    def _debug_results():
+        print("----")
+        print("dbRenewalConfigurations__backup:")
+        for r in dbRenewalConfigurations__backup:
+            print(
+                "RC:%s" % r.id,
+                " AOa:%s" % r.acme_order_id__latest_attempt,
+                " AOs:%s" % r.acme_order_id__latest_success,
+            )
+        print("----")
+        print("dbRenewalConfigurations__primary:")
+        for r in dbRenewalConfigurations__primary:
             print(
                 "RC:%s" % r.id,
                 " AOa:%s" % r.acme_order_id__latest_attempt,
                 " AOs:%s" % r.acme_order_id__latest_success,
             )
 
-    if not dbRenewalConfigurations:
+    if DEBUG:
+        _debug_results()
+        pdb.set_trace()
+        print("routine__order_missing")
+
+    if not dbRenewalConfigurations__backup and not dbRenewalConfigurations__primary:
         return None, None
 
     count_renewals = 0
     count_failures = 0
     wsgi_server = create_public_server(settings)
-    try:
-        for _dbRenewalConfiguration in dbRenewalConfigurations:
-            log.debug("No Backup Certificate for: ", _dbRenewalConfiguration.id)
+    try:  # outer `try` block is to ensure we invoke `wsgi_server.shutdown()`
+
+        def _order_missing(
+            _dbRenewalConfiguration: "RenewalConfiguration",
+            replaces_certificate_type: model_utils.CertificateType_Enum,
+        ):
+            nonlocal count_renewals
+            nonlocal count_failures
+
+            certificate_concept: str
+            if (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+            ):
+                certificate_concept = "backup"
+            elif (
+                replaces_certificate_type
+                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+            ):
+                certificate_concept = "primary"
+            else:
+                raise ValueError(
+                    "unsuppored `replaces_certificate_type`: %s"
+                    % replaces_certificate_type
+                )
+
             log.debug(
-                "Ordering a backup for RenewalConfiguration:",
-                _dbRenewalConfiguration.id,
+                "No %s Certificate for: %s",
+                (certificate_concept, _dbRenewalConfiguration.id),
+            )
+            log.debug(
+                "Ordering a %s for RenewalConfiguration: %s",
+                (certificate_concept, _dbRenewalConfiguration.id),
             )
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
@@ -1205,23 +1276,52 @@ def routine__order_backups(
                     processing_strategy="process_single",
                     acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
                     note=RENEWAL_RUN,
-                    replaces="backup",
+                    replaces=certificate_concept,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                    replaces_certificate_type=model_utils.CertificateType_Enum.MANAGED_BACKUP,
+                    replaces_certificate_type=replaces_certificate_type,
                 )
-                log.debug("Renewal Result", "AcmeOrder", dbAcmeOrderNew)
+                log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                 log.debug(
-                    "Renewal Result",
-                    "CertificateSigned",
+                    "Renewal Result: CertificateSigned: %s",
                     dbAcmeOrderNew.certificate_signed_id,
                 )
+                if DEBUG:
+
+                    def _debug():
+                        print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                        print(
+                            "Renewal Result: CertificateSigned: %s",
+                            dbAcmeOrderNew.certificate_signed_id,
+                        )
+
+                    _debug()
+
                 if dbAcmeOrderNew.certificate_signed_id:
                     count_renewals += 1
                 else:
                     count_failures += 1
+
             except Exception as exc:
-                log.critical("Exception", exc, "when processing AcmeOrder")
-                pass
+                log.critical(
+                    "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
+                    % (exc, _dbRenewalConfiguration.id)
+                )
+                raise
+
+        for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
+            _order_missing(
+                _dbRenewalConfiguration,
+                "backup",
+                model_utils.CertificateType_Enum.MANAGED_BACKUP,
+            )
+
+        for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
+            _order_missing(
+                _dbRenewalConfiguration,
+                "primary",
+                model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+            )
+
     finally:
         wsgi_server.shutdown()
 
@@ -1234,6 +1334,7 @@ def routine__renew_expiring(
     create_public_server: Callable = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
+    DEBUG: Optional[bool] = False,
 ) -> Tuple[Optional[int], Optional[int]]:
     """
     returns a tuple of:
@@ -1251,21 +1352,39 @@ def routine__renew_expiring(
     # so we do not have to submit a `timestamp_max_expiry`
     expiring_certs = get.get_CertificateSigneds_renew_now(ctx)
     if renewal_configuration_ids__only_process:
-        expiring_certs = [
+        # use a temporary variable for easier debugging
+        _expiring_certs = [
             i
             for i in expiring_certs
             if i.acme_order.renewal_configuration_id
             in renewal_configuration_ids__only_process
         ]
         if count_expected_configurations:
-            assert len(expiring_certs) == count_expected_configurations
+            try:
+                assert len(_expiring_certs) == count_expected_configurations
+            except Exception:
+                print(
+                    "EXPECTED %s GOT %s"
+                    % (count_expected_configurations, len(_expiring_certs))
+                )
+                pdb.set_trace()
+                raise
 
-    if False:
+                # all_certs = get.get_CertificateSigneds_renew_now(ctx)
+                # for cert in all_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
+        expiring_certs = _expiring_certs
+
+    def _debug_results():
         print("---")
         print("Expiring Certs @ ", ctx.timestamp)
         for cert in expiring_certs:
             print(cert.id, cert.timestamp_not_after)
         print("---")
+
+    if DEBUG:
+        _debug_results()
+        pdb.set_trace()
+        print("routine__renew_expiring")
 
     if not expiring_certs:
         return None, None
@@ -1276,43 +1395,56 @@ def routine__renew_expiring(
     try:
         for dbCertificateSigned in expiring_certs:
             if not dbCertificateSigned.acme_order:
-                log.debug("No RenewalConfiguration for: ", dbCertificateSigned.id)
-            else:
-                log.debug(
-                    "Renewing...",
+                log.debug("No RenewalConfiguration for: %s", dbCertificateSigned.id)
+                continue
+            log.debug(
+                "Renewing... : %s with RenewalConfiguration : %s",
+                (
                     dbCertificateSigned.id,
-                    "with RenewalConfiguration:",
                     dbCertificateSigned.acme_order.renewal_configuration_id,
+                ),
+            )
+            try:
+                replaces_certificate_type = (
+                    model_utils.CertificateType.to_CertificateType_Enum(
+                        dbCertificateSigned.acme_order.certificate_type_id
+                    )
                 )
-                try:
-                    replaces_certificate_type = (
-                        model_utils.CertificateType.to_CertificateType_Enum(
-                            dbCertificateSigned.acme_order.certificate_type_id
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    ctx,
+                    dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                    processing_strategy="process_single",
+                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                    note=RENEWAL_RUN,
+                    replaces=dbCertificateSigned.ari_identifier,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                    replaces_certificate_type=replaces_certificate_type,
+                )
+                log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                log.debug(
+                    "Renewal Result: CertificateSigned: %s",
+                    dbAcmeOrderNew.certificate_signed_id,
+                )
+                if DEBUG:
+
+                    def _debug():
+                        print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                        print(
+                            "Renewal Result: CertificateSigned: %s",
+                            dbAcmeOrderNew.certificate_signed_id,
                         )
-                    )
-                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                        ctx,
-                        dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                        processing_strategy="process_single",
-                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                        note=RENEWAL_RUN,
-                        replaces=dbCertificateSigned.ari_identifier,
-                        replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                        replaces_certificate_type=replaces_certificate_type,
-                    )
-                    log.debug("Renewal Result", "AcmeOrder", dbAcmeOrderNew)
-                    log.debug(
-                        "Renewal Result",
-                        "CertificateSigned",
-                        dbAcmeOrderNew.certificate_signed_id,
-                    )
-                    if dbAcmeOrderNew.certificate_signed_id:
-                        count_renewals += 1
-                    else:
-                        count_failures += 1
-                except Exception as exc:
-                    log.critical("Exception", exc, "when processing AcmeOrder")
-                    pass
+
+                    pdb.set_trace()
+                    _debug()
+
+                if dbAcmeOrderNew.certificate_signed_id:
+                    count_renewals += 1
+                else:
+                    count_failures += 1
+                ctx.pyramid_transaction_commit()
+            except Exception as exc:
+                log.critical("Exception %s when processing AcmeOrder" % exc)
+                raise
     finally:
         wsgi_server.shutdown()
 

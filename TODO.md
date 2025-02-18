@@ -7,15 +7,24 @@ UX:
 
 * AcmeDNS
     dev docs
-    tests    
+    tests
+    
+AUDIT:
+
+    acme_order_id__latest_attempt
+    acme_order_id__latest_success
+    acme_order__latest_attempt
+    acme_order__latest_success    
+    
+
+this needs the exc caught when servers are down
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True    
+
+
 
 Streamline Onboarding
-
-# routine__renew_expired
-    run a routine to renew expired certs
-
-set the first acme account and first acme server to be the defaults
-    see: update_AcmeServer__activate_default
+    set the first acme account and first acme server to be the defaults
+        see: update_AcmeServer__activate_default
 
 check to see if we correctly handle this:
     request with an invalid replaces
@@ -59,13 +68,6 @@ acme-account register
         test with valid profile
         test with invalid profile
 
-# script for renewals:
-    routine__renew_expiring
-        will 
-
-    spin up a test server (stopable wsgi) that only serves the public routes
-
-
 Tests:
     AcmeAccounts:
         test to ensure a Default can't be set to the same server as Backup
@@ -74,11 +76,6 @@ Tests:
 TODO:
     ensure 2 acme accounts don't have the same key; it messes up the 
     
-this needs the exc caught when servers are down
-
-http://127.0.0.1:7201/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True    
-
-
 
 Not Urgent 
 ================

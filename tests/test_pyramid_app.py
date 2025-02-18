@@ -19,6 +19,7 @@ import cert_utils
 import packaging.version
 import requests
 import sqlalchemy
+from sqlalchemy.orm import close_all_sessions
 from typing_extensions import Literal
 from webtest import Upload
 
@@ -375,7 +376,7 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
 
 
 def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
-    testCase.ctx.dbSession.commit()
+    testCase.ctx.pyramid_transaction_commit()
     dbAcmeOrders = (
         testCase.ctx.dbSession.query(model_objects.AcmeOrder)
         .order_by(model_objects.AcmeOrder.id.asc())
@@ -384,7 +385,7 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
-    testCase.ctx.dbSession.commit()
+    testCase.ctx.pyramid_transaction_commit()
     return True
 
 
@@ -10876,14 +10877,15 @@ class IntegratedTests_Renewals(AppTestWSGI):
         time.sleep(5)
 
         # actually, we order the backups first
-        lib_db_actions.routine__order_backups(
+        _results_11 = lib_db_actions.routine__order_missing(
             self.ctx,
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
         )
+        assert _results_11 == (1, 0)  # Order Backup for RC1
 
         # then we renew the expiring
-        _results = lib_db_actions.routine__renew_expiring(
+        _results_12 = lib_db_actions.routine__renew_expiring(
             self.ctx,
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
@@ -10892,6 +10894,172 @@ class IntegratedTests_Renewals(AppTestWSGI):
             ),
             count_expected_configurations=2,
         )
+        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
+    def test_multi_pebble_renewal__problematic(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals.test_multi_pebble_renewal__problematic
+        pytest tests/test_pyramid_app.py::IntegratedTests_Renewals::test_multi_pebble_renewal__problematic --show-capture=no
+
+        This tests a SIMPLE renewal situation:
+
+        1- create `RenewalConfiguration.1` with Primary and Backup
+        2- Manually order the Primary
+        3- DO NOT order the Backup
+        4- Run Renewal Script, which should:
+            Renew PRIMARY
+            Issue Backup
+        5- fork the renewal configuration
+            now what happens?
+        """
+        DEBUG = False  # this will cause excessive printing and pdb.set_trace()
+
+        # #
+        # # START - mimic `test_multi_pebble_renewal__realistic`
+        # #
+
+        do__AcmeServers_sync(self)
+
+        # this will generate the primary cert
+        dbAcmeOrder_1 = make_one__AcmeOrder(
+            self,
+            domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
+            processing_strategy="process_single",
+            account_key_option_backup="account_key_global_backup",
+            acme_profile="shortlived",
+            acme_profile__backup="shortlived",
+        )
+
+        if DEBUG:
+
+            def _debug():
+                print("just created:")
+                print("dbAcmeOrder_1.id:", dbAcmeOrder_1.id)  # [2]
+                print(
+                    "dbAcmeOrder_1.renewal_configuration_id:",
+                    dbAcmeOrder_1.renewal_configuration_id,
+                )  # [2]
+                print(
+                    "dbAcmeOrder_1.certificate_signed_id:",
+                    dbAcmeOrder_1.certificate_signed_id,
+                )  # [11]
+                print(
+                    "dbAcmeOrder_1.renewal_configuration.certificate_signeds__5:",
+                    [
+                        i.id
+                        for i in dbAcmeOrder_1.renewal_configuration.certificate_signeds__5
+                    ],
+                )  # `1`
+
+            pdb.set_trace()
+            _debug()
+
+        # sleep 5 seconds
+        time.sleep(5)
+
+        # actually, we order the backups first
+        _results_11 = lib_db_actions.routine__order_missing(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            DEBUG=DEBUG,
+        )
+        assert _results_11 == (1, 0)  # Order Backup for RC1
+
+        if DEBUG:
+            pdb.set_trace()
+            print("just: routine__order_missing-1")
+
+        # sleep 5 seconds
+        time.sleep(5)
+
+        # then we renew the expiring
+        _results_12 = lib_db_actions.routine__renew_expiring(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            renewal_configuration_ids__only_process=(
+                dbAcmeOrder_1.renewal_configuration_id,
+            ),
+            count_expected_configurations=2,
+            DEBUG=DEBUG,
+        )
+        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+
+        if DEBUG:
+            pdb.set_trace()
+            print("just: routine__renew_expiring-1")
+
+        # #
+        # # END - mimic `test_multi_pebble_renewal__realistic`
+        # #
+
+        # close the session to avoid locking issues between the test harness and app
+        close_all_sessions()
+
+        # closing will expire the previously loaded item
+        dbAcmeOrder_1 = self.ctx.dbSession.merge(dbAcmeOrder_1)
+
+        # fork the change
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration"
+            % dbAcmeOrder_1.renewal_configuration_id,
+            status=200,
+        )
+        form = res.forms["form-renewal_configuration-new_configuration"]
+        form["private_key_cycle"].force_value("single_use")
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_RenewalConfiguration.match(res2.location)
+        assert matched
+        obj_id = int(matched.groups()[0])
+        assert obj_id == (dbAcmeOrder_1.renewal_configuration_id + 1)
+
+        self.ctx.dbSession.expire(dbAcmeOrder_1)
+        assert dbAcmeOrder_1.renewal_configuration.is_active is False
+
+        dbRenewalConfiguration_2 = lib_db_get.get__RenewalConfiguration__by_id(
+            self.ctx, obj_id
+        )
+        assert dbRenewalConfiguration_2.is_active is True
+
+        renewal_configuration_id__2 = dbRenewalConfiguration_2.id
+
+        # sleep 5 seconds
+        time.sleep(5)
+
+        # order_missing MUST pick up the missing backup and missing Primary
+        _results_21 = lib_db_actions.routine__order_missing(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            DEBUG=DEBUG,
+        )
+        assert _results_21 == (2, 0)  # Order Backup+Primary for RC2
+
+        if DEBUG:
+            pdb.set_trace()
+            print("just: routine__order_missing-2")
+
+        # sleep 5 seconds
+        time.sleep(5)
+        # then we renew the expiring
+        _results_22 = lib_db_actions.routine__renew_expiring(
+            self.ctx,
+            {},
+            create_public_server=lib_db_actions._create_public_server__fake,
+            renewal_configuration_ids__only_process=(renewal_configuration_id__2,),
+            count_expected_configurations=2,
+            DEBUG=DEBUG,
+        )
+        assert _results_22 == (2, 0)  # Renew Backup+Primary for RC2
+
+        if DEBUG:
+            pdb.set_trace()
+            print("just: routine__renew_expiring-2")
 
 
 class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
@@ -10916,7 +11084,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
             dbAcmeAccount.order_default_private_key_technology_id = (
                 model_utils.KeyTechnology.from_string(acc__pkey_technology)
             )
-            self.ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
 
         # # original idea was to edit a RenewalConfiguration, but RCs do not support edit
         # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
@@ -11214,7 +11382,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
                 dbAcmeAccount,
             ]
         )
-        self.ctx.dbSession.commit()
+        self.ctx.pyramid_transaction_commit()
 
         # authenticate should reset it
         res = self.testapp.post(
@@ -11238,7 +11406,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         dbAcmeAccount.acme_account_key.is_active = False
         dbAcmeAccount5.acme_account_key.acme_account_id = dbAcmeAccount.id
         self.ctx.dbSession.flush(objects=[dbAcmeAccount, dbAcmeAccount5])
-        self.ctx.dbSession.commit()
+        self.ctx.pyramid_transaction_commit()
 
         # authenticate should trigger this
         res = self.testapp.post(
@@ -11638,7 +11806,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     self.ctx,
                     dbAcmeOrder=dbAcmeOrder,
                 )
-                self.ctx.dbSession.commit()
+                self.ctx.pyramid_transaction_commit()
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
