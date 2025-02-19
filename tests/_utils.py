@@ -2377,7 +2377,7 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
     # * _session_factory
     # * _DB_INTIALIZED
 
-    _testapp_wsgi = None
+    _testapp_wsgi: Optional[StopableWSGIServer] = None
 
     def setUp(self):
         log.critical(
@@ -2398,9 +2398,14 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
         log.critical("StopableWSGIServer: waited [%s]" % time.time())
 
     def tearDown(self):
+        log.critical(
+            "%s.%s | AppTestWSGI.tearDown"
+            % (self.__class__.__name__, self._testMethodName)
+        )
         if self._testapp_wsgi is not None:
-            log.critical("StopableWSGIServer: waited [%s]" % time.time())
+            log.critical("StopableWSGIServer: shutting down [%s]" % time.time())
             result = self._testapp_wsgi.shutdown()
+            log.critical("StopableWSGIServer: shutdown complete [%s]" % time.time())
             assert result is True
             # sleep for 5 seconds, because I don't trust this
             time.sleep(5)
