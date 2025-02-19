@@ -1,4 +1,3 @@
-3.131.85.84 openresty.org
 127.0.0.1 example.org
 127.0.0.1 auth.example.org
 127.0.0.1 example.com
