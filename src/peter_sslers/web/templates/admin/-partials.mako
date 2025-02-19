@@ -2227,6 +2227,14 @@
                 </button>
             </form>
         </li>
+        <li class="${'active' if active =='/api/update-recents.json' else ''}">
+            <form action="${admin_prefix}/api/update-recents.json" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    update-recents.json
+                </button>
+            </form>
+        </li>
         <li class="${'active' if active =='/api/reconcile-ca' else ''}">
             <form action="${admin_prefix}/api/reconcile-cas" method="POST">
                 <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">

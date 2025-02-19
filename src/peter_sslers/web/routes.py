@@ -53,23 +53,37 @@ def _admin_views(config: "Configurator") -> None:
 
     # !!!: AcmeAccounts
     # AcmeAccounts are the LetsEncrypt accounts
-    config.add_route_7("admin:acme_accounts", "/acme-accounts")
-    config.add_route_7("admin:acme_accounts|json", "/acme-accounts.json")
-    config.add_route_7("admin:acme_accounts_paginated", "/acme-accounts/{@page}")
     config.add_route_7(
-        "admin:acme_accounts_paginated|json", "/acme-accounts/{@page}.json"
+        "admin:acme_accounts",
+        "/acme-accounts",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_account:upload", "/acme-account/upload")
-    config.add_route_7("admin:acme_account:upload|json", "/acme-account/upload.json")
-    config.add_route_7("admin:acme_account:new", "/acme-account/new")
-    config.add_route_7("admin:acme_account:new|json", "/acme-account/new.json")
+    config.add_route_7(
+        "admin:acme_accounts_paginated",
+        "/acme-accounts/{@page}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_account:upload",
+        "/acme-account/upload",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_account:new",
+        "/acme-account/new",
+        jsonify=True,
+    )
 
     # !!!: AcmeAccount - Focus
-    config.add_route_7("admin:acme_account:focus", "/acme-account/{@id}")
-    config.add_route_7("admin:acme_account:focus|json", "/acme-account/{@id}.json")
-    config.add_route_7("admin:acme_account:focus:edit", "/acme-account/{@id}/edit")
     config.add_route_7(
-        "admin:acme_account:focus:edit|json", "/acme-account/{@id}/edit.json"
+        "admin:acme_account:focus",
+        "/acme-account/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_account:focus:edit",
+        "/acme-account/{@id}/edit",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:parse|json", "/acme-account/{@id}/parse.json"
@@ -81,34 +95,22 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_account:focus:acme_authorizations",
         "/acme-account/{@id}/acme-authorizations",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_authorizations_paginated",
         "/acme-account/{@id}/acme-authorizations/{@page}",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_authorizations|json",
-        "/acme-account/{@id}/acme-authorizations.json",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_authorizations_paginated|json",
-        "/acme-account/{@id}/acme-authorizations/{@page}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_account_keys",
         "/acme-account/{@id}/acme-account-keys",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_account_keys_paginated",
         "/acme-account/{@id}/acme-account-keys/{@page}",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_account_keys|json",
-        "/acme-account/{@id}/acme-account-keys.json",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_account_keys_paginated|json",
-        "/acme-account/{@id}/acme-account-keys/{@page}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_orders",
@@ -158,64 +160,53 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_account:focus:terms_of_service_paginated",
         "/acme-account/{@id}/terms-of-service/{@page}",
     )
-    config.add_route_7("admin:acme_account:focus:mark", "/acme-account/{@id}/mark")
     config.add_route_7(
-        "admin:acme_account:focus:mark|json", "/acme-account/{@id}/mark.json"
+        "admin:acme_account:focus:mark",
+        "/acme-account/{@id}/mark",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_server:authenticate",
         "/acme-account/{@id}/acme-server/authenticate",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_server:authenticate|json",
-        "/acme-account/{@id}/acme-server/authenticate.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_server:check",
         "/acme-account/{@id}/acme-server/check",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_server:check|json",
-        "/acme-account/{@id}/acme-server/check.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_server:deactivate_pending_authorizations",
         "/acme-account/{@id}/acme-server/deactivate-pending-authorizations",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_server:deactivate_pending_authorizations|json",
-        "/acme-account/{@id}/acme-server/deactivate-pending-authorizations.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_server:deactivate",
         "/acme-account/{@id}/acme-server/deactivate",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_server:deactivate|json",
-        "/acme-account/{@id}/acme-server/deactivate.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_server:key_change",
         "/acme-account/{@id}/acme-server/key-change",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_server:key_change|json",
-        "/acme-account/{@id}/acme-server/key-change.json",
+        jsonify=True,
     )
 
     # !!!: AcmeAuthorizations
-    config.add_route_7("admin:acme_authorizations", "/acme-authorizations")
     config.add_route_7(
-        "admin:acme_authorizations_paginated", "/acme-authorizations/{@page}"
+        "admin:acme_authorizations",
+        "/acme-authorizations",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_authorizations|json", "/acme-authorizations.json")
     config.add_route_7(
-        "admin:acme_authorizations_paginated|json", "/acme-authorizations/{@page}.json"
+        "admin:acme_authorizations_paginated",
+        "/acme-authorizations/{@page}",
+        jsonify=True,
     )
 
-    config.add_route_7("admin:acme_authorization:focus", "/acme-authorization/{@id}")
     config.add_route_7(
-        "admin:acme_authorization:focus|json", "/acme-authorization/{@id}.json"
+        "admin:acme_authorization:focus",
+        "/acme-authorization/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_authorization:focus:acme_orders",
@@ -236,249 +227,236 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_authorization:focus:acme_server:deactivate",
         "/acme-authorization/{@id}/acme-server/deactivate",
-    )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_server:deactivate|json",
-        "/acme-authorization/{@id}/acme-server/deactivate.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_authorization:focus:acme_server:sync",
         "/acme-authorization/{@id}/acme-server/sync",
-    )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_server:sync|json",
-        "/acme-authorization/{@id}/acme-server/sync.json",
+        jsonify=True,
     )
 
     # !!!: AcmeAuthorizationPotenials
-    config.add_route_7("admin:acme_authorization_potentials", "/acme-authz-potentials")
+    config.add_route_7(
+        "admin:acme_authorization_potentials",
+        "/acme-authz-potentials",
+        jsonify=True,
+    )
     config.add_route_7(
         "admin:acme_authorization_potentials_paginated",
         "/acme-authz-potentials/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_authorization_potentials|json", "/acme-authz-potentials.json"
-    )
-    config.add_route_7(
-        "admin:acme_authorization_potentials_paginated|json",
-        "/acme-authz-potentials/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:acme_authorization_potential:focus", "/acme-authz-potential/{@id}"
-    )
-    config.add_route_7(
-        "admin:acme_authorization_potential:focus|json",
-        "/acme-authz-potential/{@id}.json",
+        "admin:acme_authorization_potential:focus",
+        "/acme-authz-potential/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_authorization_potential:focus:delete",
         "/acme-authz-potential/{@id}/delete",
-    )
-    config.add_route_7(
-        "admin:acme_authorization_potential:focus:delete|json",
-        "/acme-authz-potential/{@id}/delete.json",
+        jsonify=True,
     )
 
     # !!!: AcmeChallenge
-    config.add_route_7("admin:acme_challenges", "/acme-challenges")
-    config.add_route_7("admin:acme_challenges_paginated", "/acme-challenges/{@page}")
-
-    config.add_route_7("admin:acme_challenges|json", "/acme-challenges.json")
     config.add_route_7(
-        "admin:acme_challenges_paginated|json", "/acme-challenges/{@page}.json"
+        "admin:acme_challenges",
+        "/acme-challenges",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_challenges_paginated",
+        "/acme-challenges/{@page}",
+        jsonify=True,
     )
 
-    config.add_route_7("admin:acme_challenge:focus", "/acme-challenge/{@id}")
-    config.add_route_7("admin:acme_challenge:focus|json", "/acme-challenge/{@id}.json")
+    config.add_route_7(
+        "admin:acme_challenge:focus",
+        "/acme-challenge/{@id}",
+        jsonify=True,
+    )
+
     config.add_route_7(
         "admin:acme_challenge:focus:acme_server:sync",
         "/acme-challenge/{@id}/acme-server/sync",
-    )
-    config.add_route_7(
-        "admin:acme_challenge:focus:acme_server:sync|json",
-        "/acme-challenge/{@id}/acme-server/sync.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_challenge:focus:acme_server:trigger",
         "/acme-challenge/{@id}/acme-server/trigger",
-    )
-    config.add_route_7(
-        "admin:acme_challenge:focus:acme_server:trigger|json",
-        "/acme-challenge/{@id}/acme-server/trigger.json",
+        jsonify=True,
     )
 
     # !!!: AcmeChallenge Poll
-    config.add_route_7("admin:acme_challenge_polls", "/acme-challenge-polls")
     config.add_route_7(
-        "admin:acme_challenge_polls_paginated", "/acme-challenge-polls/{@page}"
+        "admin:acme_challenge_polls",
+        "/acme-challenge-polls",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_challenge_polls|json", "/acme-challenge-polls.json")
     config.add_route_7(
-        "admin:acme_challenge_polls_paginated|json",
-        "/acme-challenge-polls/{@page}.json",
+        "admin:acme_challenge_polls_paginated",
+        "/acme-challenge-polls/{@page}",
+        jsonify=True,
     )
 
     # !!!: AcmeChallengeUnknown Poll
     config.add_route_7(
-        "admin:acme_challenge_unknown_polls", "/acme-challenge-unknown-polls"
+        "admin:acme_challenge_unknown_polls",
+        "/acme-challenge-unknown-polls",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_challenge_unknown_polls_paginated",
         "/acme-challenge-unknown-polls/{@page}",
-    )
-    config.add_route_7(
-        "admin:acme_challenge_unknown_polls|json", "/acme-challenge-unknown-polls.json"
-    )
-    config.add_route_7(
-        "admin:acme_challenge_unknown_polls_paginated|json",
-        "/acme-challenge-unknown-polls/{@page}.json",
+        jsonify=True,
     )
 
     # !!!: AcmeDnsServer
-    config.add_route_7("admin:acme_dns_server:new", "/acme-dns-server/new")
-    config.add_route_7("admin:acme_dns_server:new|json", "/acme-dns-server/new.json")
-    config.add_route_7("admin:acme_dns_servers", "/acme-dns-servers")
-    config.add_route_7("admin:acme_dns_servers_paginated", "/acme-dns-servers/{@page}")
-    config.add_route_7("admin:acme_dns_servers|json", "/acme-dns-servers.json")
     config.add_route_7(
-        "admin:acme_dns_servers_paginated|json", "/acme-dns-servers/{@page}.json"
-    )
-    config.add_route_7("admin:acme_dns_server:focus", "/acme-dns-server/{@id}")
-    config.add_route_7(
-        "admin:acme_dns_server:focus|json", "/acme-dns-server/{@id}.json"
+        "admin:acme_dns_server:new",
+        "/acme-dns-server/new",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:mark", "/acme-dns-server/{@id}/mark"
+        "admin:acme_dns_servers",
+        "/acme-dns-servers",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:mark|json", "/acme-dns-server/{@id}/mark.json"
+        "admin:acme_dns_servers_paginated",
+        "/acme-dns-servers/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:check", "/acme-dns-server/{@id}/check"
+        "admin:acme_dns_server:focus",
+        "/acme-dns-server/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:check|json", "/acme-dns-server/{@id}/check.json"
+        "admin:acme_dns_server:focus:mark",
+        "/acme-dns-server/{@id}/mark",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:edit", "/acme-dns-server/{@id}/edit"
+        "admin:acme_dns_server:focus:check",
+        "/acme-dns-server/{@id}/check",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server:focus:edit|json", "/acme-dns-server/{@id}/edit.json"
+        "admin:acme_dns_server:focus:edit",
+        "/acme-dns-server/{@id}/edit",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:ensure_domains",
         "/acme-dns-server/{@id}/ensure-domains",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:ensure_domains|json",
-        "/acme-dns-server/{@id}/ensure-domains.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:ensure_domains_results",
         "/acme-dns-server/{@id}/ensure-domains-results",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:ensure_domains_results|json",
-        "/acme-dns-server/{@id}/ensure-domains-results.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:import_domain",
         "/acme-dns-server/{@id}/import-domain",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:import_domain|json",
-        "/acme-dns-server/{@id}/import-domain.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
         "/acme-dns-server/{@id}/acme-dns-server-accounts",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:acme_dns_server_accounts|json",
-        "/acme-dns-server/{@id}/acme-dns-server-accounts.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
         "/acme-dns-server/{@id}/acme-dns-server-accounts/{@page}",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
-        "/acme-dns-server/{@id}/acme-dns-server-accounts/{@page}.json",
+        jsonify=True,
     )
 
     # !!!: AcmeDnsServer Accounts
-    config.add_route_7("admin:acme_dns_server_accounts", "/acme-dns-server-accounts")
     config.add_route_7(
-        "admin:acme_dns_server_accounts_paginated", "/acme-dns-server-accounts/{@page}"
+        "admin:acme_dns_server_accounts",
+        "/acme-dns-server-accounts",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_dns_server_accounts|json", "/acme-dns-server-accounts.json"
-    )
-    config.add_route_7(
-        "admin:acme_dns_server_accounts_paginated|json",
-        "/acme-dns-server-accounts/{@page}.json",
+        "admin:acme_dns_server_accounts_paginated",
+        "/acme-dns-server-accounts/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_dns_server_account:focus",
         "/acme-dns-server-account/{@id}",
-    )
-    config.add_route_7(
-        "admin:acme_dns_server_account:focus|json",
-        "/acme-dns-server-account/{@id}.json",
+        jsonify=True,
     )
 
     # !!!: AcmeEventLog
-    config.add_route_7("admin:acme_event_log", "/acme-event-logs")
-    config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
-
-    config.add_route_7("admin:acme_event_log|json", "/acme-event-logs.json")
     config.add_route_7(
-        "admin:acme_event_log_paginated|json", "/acme-event-logs/{@page}.json"
+        "admin:acme_event_log",
+        "/acme-event-logs",
+        jsonify=True,
     )
-
-    config.add_route_7("admin:acme_event_log:focus", "/acme-event-log/{@id}")
-    config.add_route_7("admin:acme_event_log:focus|json", "/acme-event-log/{@id}.json")
+    config.add_route_7(
+        "admin:acme_event_log_paginated",
+        "/acme-event-logs/{@page}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_event_log:focus",
+        "/acme-event-log/{@id}",
+        jsonify=True,
+    )
 
     # !!!: AcmeOrder
-    config.add_route_7("admin:acme_orders", "/acme-orders")
-    config.add_route_7("admin:acme_orders|json", "/acme-orders.json")
-    config.add_route_7("admin:acme_orders:all", "/acme-orders/all")
-    config.add_route_7("admin:acme_orders:all|json", "/acme-orders/all.json")
-    config.add_route_7("admin:acme_orders:all_paginated", "/acme-orders/all/{@page}")
     config.add_route_7(
-        "admin:acme_orders:all_paginated|json", "/acme-orders/all/{@page}.json"
-    )
-    config.add_route_7("admin:acme_orders:active", "/acme-orders/active")
-    config.add_route_7("admin:acme_orders:active|json", "/acme-orders/active.json")
-    config.add_route_7(
-        "admin:acme_orders:active_paginated", "/acme-orders/active/{@page}"
+        "admin:acme_orders",
+        "/acme-orders",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_orders:active_paginated|json", "/acme-orders/active/{@page}.json"
-    )
-    config.add_route_7("admin:acme_orders:finished", "/acme-orders/finished")
-    config.add_route_7("admin:acme_orders:finished|json", "/acme-orders/finished.json")
-    config.add_route_7(
-        "admin:acme_orders:finished_paginated", "/acme-orders/finished/{@page}"
+        "admin:acme_orders:all",
+        "/acme-orders/all",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_orders:finished_paginated|json",
-        "/acme-orders/finished/{@page}.json",
+        "admin:acme_orders:all_paginated",
+        "/acme-orders/all/{@page}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_orders:active",
+        "/acme-orders/active",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_orders:active_paginated",
+        "/acme-orders/active/{@page}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_orders:finished",
+        "/acme-orders/finished",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_orders:finished_paginated",
+        "/acme-orders/finished/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_orders:active:acme_server:sync",
         "/acme-orders/active/acme-server/sync",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_orders:active:acme_server:sync|json",
-        "/acme-orders/active/acme-server/sync.json",
+        "admin:acme_order:focus",
+        "/acme-order/{@id}",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
-    config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
     config.add_route_7(
-        "admin:acme_order:focus:audit|json", "/acme-order/{@id}/audit.json"
+        "admin:acme_order:focus:audit",
+        "/acme-order/{@id}/audit",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_order:focus:audit", "/acme-order/{@id}/audit")
 
     config.add_route_7(
         "admin:acme_order:focus:acme_event_logs", "/acme-order/{@id}/acme-event-logs"
@@ -489,96 +467,83 @@ def _admin_views(config: "Configurator") -> None:
     )
 
     config.add_route_7(
-        "admin:acme_order:focus:acme_process", "/acme-order/{@id}/acme-process"
+        "admin:acme_order:focus:acme_process",
+        "/acme-order/{@id}/acme-process",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_process|json",
-        "/acme-order/{@id}/acme-process.json",
+        "admin:acme_order:focus:acme_finalize",
+        "/acme-order/{@id}/acme-finalize",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_finalize", "/acme-order/{@id}/acme-finalize"
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_finalize|json",
-        "/acme-order/{@id}/acme-finalize.json",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_server:sync", "/acme-order/{@id}/acme-server/sync"
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_server:sync|json",
-        "/acme-order/{@id}/acme-server/sync.json",
+        "admin:acme_order:focus:acme_server:sync",
+        "/acme-order/{@id}/acme-server/sync",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_order:focus:acme_server:sync_authorizations",
         "/acme-order/{@id}/acme-server/sync-authorizations",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_server:sync_authorizations|json",
-        "/acme-order/{@id}/acme-server/sync-authorizations.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_order:focus:acme_server:deactivate_authorizations",
         "/acme-order/{@id}/acme-server/deactivate-authorizations",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
-        "/acme-order/{@id}/acme-server/deactivate-authorizations.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_order:focus:acme_server:download_certificate",
         "/acme-order/{@id}/acme-server/download-certificate",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_server:download_certificate|json",
-        "/acme-order/{@id}/acme-server/download-certificate.json",
+        jsonify=True,
     )
 
-    config.add_route_7("admin:acme_order:focus:mark", "/acme-order/{@id}/mark")
     config.add_route_7(
-        "admin:acme_order:focus:mark|json", "/acme-order/{@id}/mark.json"
+        "admin:acme_order:focus:mark",
+        "/acme-order/{@id}/mark",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
     config.add_route_7(
-        "admin:acme_order:focus:retry|json", "/acme-order/{@id}/retry.json"
+        "admin:acme_order:focus:retry",
+        "/acme-order/{@id}/retry",
+        jsonify=True,
     )
-    config.add_route_7("admin:acme_order:new:freeform", "/acme-order/new/freeform")
     config.add_route_7(
-        "admin:acme_order:new:freeform|json", "/acme-order/new/freeform.json"
+        "admin:acme_order:new:freeform",
+        "/acme-order/new/freeform",
+        jsonify=True,
     )
 
     # !!!: AcmeServer
     # this is just letsencrypt endpoints
-    config.add_route_7("admin:acme_servers", "/acme-servers")
-    config.add_route_7("admin:acme_servers|json", "/acme-servers.json")
-    config.add_route_7("admin:acme_server:focus", "/acme-server/{@id}")
-    config.add_route_7("admin:acme_server:focus|json", "/acme-server/{@id}.json")
     config.add_route_7(
-        "admin:acme_server:focus:acme_accounts", "/acme-server/{@id}/acme-accounts"
+        "admin:acme_servers",
+        "/acme-servers",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_server:focus:acme_accounts|json",
-        "/acme-server/{@id}/acme-accounts.json",
+        "admin:acme_server:focus",
+        "/acme-server/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:acme_server:focus:acme_accounts",
+        "/acme-server/{@id}/acme-accounts",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_server:focus:acme_accounts__paginated",
         "/acme-server/{@id}/acme-accounts/{@page}",
-    )
-    config.add_route_7(
-        "admin:acme_server:focus:acme_accounts__paginated|json",
-        "/acme-server/{@id}/acme-accounts/{@page}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:acme_server:focus:check_support",
         "/acme-server/{@id}/check-support",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:acme_server:focus:check_support|json",
-        "/acme-server/{@id}/check-support.json",
-    )
-    config.add_route_7("admin:acme_server:focus:mark", "/acme-server/{@id}/mark")
-    config.add_route_7(
-        "admin:acme_server:focus:mark|json", "/acme-server/{@id}/mark.json"
+        "admin:acme_server:focus:mark",
+        "/acme-server/{@id}/mark",
+        jsonify=True,
     )
 
     # !!!: Admin API Items
@@ -586,112 +551,134 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
     )
-    config.add_route_7("admin:api:domain:autocert", "/api/domain/autocert")
-    config.add_route_7("admin:api:domain:autocert|json", "/api/domain/autocert.json")
+    config.add_route_7(
+        "admin:api:domain:autocert",
+        "/api/domain/autocert",
+        jsonify=True,
+    )
 
     # -
-    config.add_route_7("admin:api:deactivate_expired", "/api/deactivate-expired")
     config.add_route_7(
-        "admin:api:deactivate_expired|json", "/api/deactivate-expired.json"
+        "admin:api:deactivate_expired",
+        "/api/deactivate-expired",
+        jsonify=True,
     )
+
     # -
-    config.add_route_7("admin:api:nginx:cache_flush", "/api/nginx/cache-flush")
     config.add_route_7(
-        "admin:api:nginx:cache_flush|json", "/api/nginx/cache-flush.json"
+        "admin:api:nginx:cache_flush",
+        "/api/nginx/cache-flush",
+        jsonify=True,
     )
-    config.add_route_7("admin:api:redis:prime", "/api/redis/prime")
-    config.add_route_7("admin:api:redis:prime|json", "/api/redis/prime.json")
+    config.add_route_7(
+        "admin:api:redis:prime",
+        "/api/redis/prime",
+        jsonify=True,
+    )
     config.add_route_7("admin:api:nginx:status|json", "/api/nginx/status.json")
 
-    config.add_route_7("admin:api:update_recents", "/api/update-recents")
-    config.add_route_7("admin:api:update_recents|json", "/api/update-recents.json")
+    config.add_route_7(
+        "admin:api:update_recents",
+        "/api/update-recents",
+        jsonify=True,
+    )
 
-    config.add_route_7("admin:api:reconcile_cas", "/api/reconcile-cas")
-    config.add_route_7("admin:api:reconcile_cas|json", "/api/reconcile-cas.json")
+    config.add_route_7(
+        "admin:api:reconcile_cas",
+        "/api/reconcile-cas",
+        jsonify=True,
+    )
 
-    config.add_route_7("admin:api:version", "/api/version")
-    config.add_route_7("admin:api:version|json", "/api/version.json")
+    config.add_route_7(
+        "admin:api:version",
+        "/api/version",
+        jsonify=True,
+    )
 
     # !!!: AriCheck
-    # config.add_route_7("admin:ari_check", "/ari-check")
-    # config.add_route_7("admin:ari_check|json", "/ari-check.json")
-    config.add_route_7("admin:ari_check:focus", "/ari-check/{@id}")
-    config.add_route_7("admin:ari_check:focus|json", "/ari-check/{@id}.json")
-
-    config.add_route_7("admin:ari_checks", "/ari-checks")
-    config.add_route_7("admin:ari_checks|json", "/ari-checks.json")
-
-    config.add_route_7("admin:ari_checks:all", "/ari-checks/all")
-    config.add_route_7("admin:ari_checks:all|json", "/ari-checks/all.json")
-    config.add_route_7("admin:ari_checks:all_paginated", "/ari-checks/all/{@page}")
+    # config.add_route_7("admin:ari_check", "/ari-check", jsonify=True,)
     config.add_route_7(
-        "admin:ari_checks:all_paginated|json", "/ari-checks/all/{@page}.json"
-    )
-
-    config.add_route_7("admin:ari_checks:cert_latest", "/ari-checks/cert-latest")
-    config.add_route_7(
-        "admin:ari_checks:cert_latest|json", "/ari-checks/cert-latest.json"
-    )
-    config.add_route_7(
-        "admin:ari_checks:cert_latest_paginated", "/ari-checks/cert-latest/{@page}"
-    )
-    config.add_route_7(
-        "admin:ari_checks:cert_latest_paginated|json",
-        "/ari-checks/cert-latest/{@page}.json",
+        "admin:ari_check:focus",
+        "/ari-check/{@id}",
+        jsonify=True,
     )
 
     config.add_route_7(
-        "admin:ari_checks:cert_latest_overdue", "/ari-checks/cert-latest-overdue"
+        "admin:ari_checks",
+        "/ari-checks",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:ari_checks:all",
+        "/ari-checks/all",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:ari_checks:cert_latest_overdue|json",
-        "/ari-checks/cert-latest-overdue.json",
+        "admin:ari_checks:all_paginated",
+        "/ari-checks/all/{@page}",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:ari_checks:cert_latest",
+        "/ari-checks/cert-latest",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_paginated",
+        "/ari-checks/cert-latest/{@page}",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:ari_checks:cert_latest_overdue",
+        "/ari-checks/cert-latest-overdue",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:ari_checks:cert_latest_overdue_paginated",
         "/ari-checks/cert-latest-overdue/{@page}",
-    )
-    config.add_route_7(
-        "admin:ari_checks:cert_latest_overdue_paginated|json",
-        "/ari-checks/cert-latest-overdue/{@page}.json",
+        jsonify=True,
     )
 
     # !!!: CertificateCAs (Certificate Authority)
-    config.add_route_7("admin:certificate_cas", "/certificate-cas")
-    config.add_route_7("admin:certificate_cas_paginated", "/certificate-cas/{@page}")
-    config.add_route_7("admin:certificate_cas|json", "/certificate-cas.json")
     config.add_route_7(
-        "admin:certificate_cas_paginated|json", "/certificate-cas/{@page}.json"
-    )
-    config.add_route_7("admin:certificate_cas:preferred", "/certificate-cas/preferred")
-    config.add_route_7(
-        "admin:certificate_cas:preferred|json", "/certificate-cas/preferred.json"
+        "admin:certificate_cas",
+        "/certificate-cas",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred:add", "/certificate-cas/preferred/add"
+        "admin:certificate_cas_paginated",
+        "/certificate-cas/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred:add|json",
-        "/certificate-cas/preferred/add.json",
+        "admin:certificate_cas:preferred",
+        "/certificate-cas/preferred",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred:delete", "/certificate-cas/preferred/delete"
+        "admin:certificate_cas:preferred:add",
+        "/certificate-cas/preferred/add",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred:delete|json",
-        "/certificate-cas/preferred/delete.json",
+        "admin:certificate_cas:preferred:delete",
+        "/certificate-cas/preferred/delete",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_cas:preferred:prioritize",
         "/certificate-cas/preferred/prioritize",
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:prioritize|json",
-        "/certificate-cas/preferred/prioritize.json",
+        jsonify=True,
     )
 
-    config.add_route_7("admin:certificate_ca:focus", "/certificate-ca/{@id}")
-    config.add_route_7("admin:certificate_ca:focus|json", "/certificate-ca/{@id}.json")
+    config.add_route_7(
+        "admin:certificate_ca:focus",
+        "/certificate-ca/{@id}",
+        jsonify=True,
+    )
     config.add_route_7(
         "admin:certificate_ca:focus:parse|json", "/certificate-ca/{@id}/parse.json"
     )
@@ -732,57 +719,54 @@ def _admin_views(config: "Configurator") -> None:
         "/certificate-ca/{@id}/certificate-ca-chains-n/{@page}",
     )
     config.add_route_7(
-        "admin:certificate_ca:upload_cert", "/certificate-ca/upload-cert"
-    )
-    config.add_route_7(
-        "admin:certificate_ca:upload_cert|json", "/certificate-ca/upload-cert.json"
+        "admin:certificate_ca:upload_cert",
+        "/certificate-ca/upload-cert",
+        jsonify=True,
     )
 
     # !!!: CertificateCAChains (Certificate Authority)
-    config.add_route_7("admin:certificate_ca_chains", "/certificate-ca-chains")
     config.add_route_7(
-        "admin:certificate_ca_chains_paginated", "/certificate-ca-chains/{@page}"
+        "admin:certificate_ca_chains",
+        "/certificate-ca-chains",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_chains|json", "/certificate-ca-chains.json"
+        "admin:certificate_ca_chains_paginated",
+        "/certificate-ca-chains/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_chains_paginated|json",
-        "/certificate-ca-chains/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_ca_chain:focus", "/certificate-ca-chain/{@id}"
-    )
-    config.add_route_7(
-        "admin:certificate_ca_chain:focus|json", "/certificate-ca-chain/{@id}.json"
+        "admin:certificate_ca_chain:focus",
+        "/certificate-ca-chain/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_ca_chain:focus:raw",
         "/certificate-ca-chain/{@id}/chain.{format:(pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_ca_chain:upload_chain", "/certificate-ca-chain/upload-chain"
-    )
-    config.add_route_7(
-        "admin:certificate_ca_chain:upload_chain|json",
-        "/certificate-ca-chain/upload-chain.json",
+        "admin:certificate_ca_chain:upload_chain",
+        "/certificate-ca-chain/upload-chain",
+        jsonify=True,
     )
 
     # !!!: Certificate Requests
-    config.add_route_7("admin:certificate_requests", "/certificate-requests")
     config.add_route_7(
-        "admin:certificate_requests_paginated", "/certificate-requests/{@page}"
+        "admin:certificate_requests",
+        "/certificate-requests",
+        jsonify=True,
     )
-    config.add_route_7("admin:certificate_requests|json", "/certificate-requests.json")
     config.add_route_7(
-        "admin:certificate_requests_paginated|json",
-        "/certificate-requests/{@page}.json",
+        "admin:certificate_requests_paginated",
+        "/certificate-requests/{@page}",
+        jsonify=True,
     )
 
     # !!!: Certificate Request - Focus
-    config.add_route_7("admin:certificate_request:focus", "/certificate-request/{@id}")
     config.add_route_7(
-        "admin:certificate_request:focus|json", "/certificate-request/{@id}.json"
+        "admin:certificate_request:focus",
+        "/certificate-request/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_request:focus:acme_orders",
@@ -798,106 +782,84 @@ def _admin_views(config: "Configurator") -> None:
     )
 
     # !!!: CertificateSigneds
-    config.add_route_7("admin:certificate_signeds", "/certificate-signeds")
+    config.add_route_7(
+        "admin:certificate_signeds",
+        "/certificate-signeds",
+        jsonify=True,
+    )
 
-    config.add_route_7("admin:certificate_signeds:all", "/certificate-signeds/all")
+    config.add_route_7(
+        "admin:certificate_signeds:all",
+        "/certificate-signeds/all",
+        jsonify=True,
+    )
     config.add_route_7(
         "admin:certificate_signeds:all_paginated",
         "/certificate-signeds/all/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:active", "/certificate-signeds/active"
+        "admin:certificate_signeds:active",
+        "/certificate-signeds/active",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:active_paginated",
         "/certificate-signeds/active/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:active_expired",
         "/certificate-signeds/active-expired",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:active_expired_paginated",
         "/certificate-signeds/active-expired/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:expiring", "/certificate-signeds/expiring"
+        "admin:certificate_signeds:expiring",
+        "/certificate-signeds/expiring",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:expiring_paginated",
         "/certificate-signeds/expiring/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:inactive", "/certificate-signeds/inactive"
+        "admin:certificate_signeds:inactive",
+        "/certificate-signeds/inactive",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:inactive_paginated",
         "/certificate-signeds/inactive/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:inactive_unexpired",
         "/certificate-signeds/inactive-unexpired",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:inactive_unexpired_paginated",
         "/certificate-signeds/inactive-unexpired/{@page}",
+        jsonify=True,
     )
-    config.add_route_7("admin:certificate_signeds|json", "/certificate-signeds.json")
+
     config.add_route_7(
-        "admin:certificate_signeds:all|json", "/certificate-signeds/all.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:all_paginated|json",
-        "/certificate-signeds/all/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active|json", "/certificate-signeds/active.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_paginated|json",
-        "/certificate-signeds/active/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_expired|json",
-        "/certificate-signeds/active-expired.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_expired_paginated|json",
-        "/certificate-signeds/active-expired/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring|json", "/certificate-signeds/expiring.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring_paginated|json",
-        "/certificate-signeds/expiring/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive|json", "/certificate-signeds/inactive.json"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_paginated|json",
-        "/certificate-signeds/inactive/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_unexpired|json",
-        "/certificate-signeds/inactive-unexpired.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_unexpired_paginated|json",
-        "/certificate-signeds/inactive-unexpired/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:search", "/certificate-signeds/search"
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:search|json", "/certificate-signeds/search.json"
+        "admin:certificate_signeds:search",
+        "/certificate-signeds/search",
+        jsonify=True,
     )
 
     # !!!: CertificateSigned - Focus
-    config.add_route_7("admin:certificate_signed:focus", "/certificate-signed/{@id}")
     config.add_route_7(
-        "admin:certificate_signed:focus|json", "/certificate-signed/{@id}.json"
+        "admin:certificate_signed:focus",
+        "/certificate-signed/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signed:focus:config|json",
@@ -930,34 +892,22 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_signed:focus:ari_check",
         r"/certificate-signed/{@id}/ari-check",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:ari_check|json",
-        r"/certificate-signed/{@id}/ari-check.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signed:focus:ari_check_history",
         r"/certificate-signed/{@id}/ari-check-history",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:ari_check_history|json",
-        r"/certificate-signed/{@id}/ari-check-history.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signed:focus:ari_check_history__paginated",
         r"/certificate-signed/{@id}/ari-check-history/{@page}",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:ari_check_history__paginated|json",
-        r"/certificate-signed/{@id}/ari-check-history/{@page}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:certificate_signed:focus:nginx_cache_expire",
         r"/certificate-signed/{@id}/nginx-cache-expire",
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:nginx_cache_expire|json",
-        r"/certificate-signed/{@id}/nginx-cache-expire.json",
+        jsonify=True,
     )
     # via ca-cert routes
     config.add_route_7(
@@ -978,116 +928,119 @@ def _admin_views(config: "Configurator") -> None:
     )
     # end via ca-cert
 
-    config.add_route_7("admin:certificate_signed:upload", "/certificate-signed/upload")
     config.add_route_7(
-        "admin:certificate_signed:upload|json", "/certificate-signed/upload.json"
+        "admin:certificate_signed:upload",
+        "/certificate-signed/upload",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:mark", "/certificate-signed/{@id}/mark"
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:mark|json",
-        "/certificate-signed/{@id}/mark.json",
+        "admin:certificate_signed:focus:mark",
+        "/certificate-signed/{@id}/mark",
+        jsonify=True,
     )
 
     # !!!: CoverageAssuranceEvents
     config.add_route_7("admin:coverage_assurance_events", "/coverage-assurance-events")
     config.add_route_7(
-        "admin:coverage_assurance_events:all", "/coverage-assurance-events/all"
+        "admin:coverage_assurance_events:all",
+        "/coverage-assurance-events/all",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_events:all_paginated",
         "/coverage-assurance-events/all/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_events:unresolved",
         "/coverage-assurance-events/unresolved",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_events:unresolved_paginated",
         "/coverage-assurance-events/unresolved/{@page}",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:all|json",
-        "/coverage-assurance-events/all.json",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:all_paginated|json",
-        "/coverage-assurance-events/all/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:unresolved|json",
-        "/coverage-assurance-events/unresolved.json",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:unresolved_paginated|json",
-        "/coverage-assurance-events/unresolved/{@page}.json",
+        jsonify=True,
     )
 
     # !!!: CoverageAssuranceEvent - Focus
     config.add_route_7(
-        "admin:coverage_assurance_event:focus", "/coverage-assurance-event/{@id}"
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_event:focus|json",
-        "/coverage-assurance-event/{@id}.json",
+        "admin:coverage_assurance_event:focus",
+        "/coverage-assurance-event/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_event:focus:children",
         "/coverage-assurance-event/{@id}/children",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_event:focus:children|json",
-        "/coverage-assurance-event/{@id}/children.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_event:focus:mark",
         "/coverage-assurance-event/{@id}/mark",
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_event:focus:mark|json",
-        "/coverage-assurance-event/{@id}/mark.json",
+        jsonify=True,
     )
 
     # !!!: Domains
-    config.add_route_7("admin:domains", "/domains")
-    config.add_route_7("admin:domains|json", "/domains.json")
-    config.add_route_7("admin:domains_paginated", "/domains/{@page}")
-    config.add_route_7("admin:domains_paginated|json", "/domains/{@page}.json")
-    config.add_route_7("admin:domains:challenged", "/domains/challenged")
-    config.add_route_7("admin:domains:challenged|json", "/domains/challenged.json")
     config.add_route_7(
-        "admin:domains:challenged_paginated", "/domains/challenged/{@page}"
+        "admin:domains",
+        "/domains",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:domains:challenged_paginated|json", "/domains/challenged/{@page}.json"
+        "admin:domains_paginated",
+        "/domains/{@page}",
+        jsonify=True,
     )
-    config.add_route_7("admin:domains:authz_potential", "/domains/authz-potential")
+
     config.add_route_7(
-        "admin:domains:authz_potential|json", "/domains/authz-potential.json"
+        "admin:domains:challenged",
+        "/domains/challenged",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:domains:challenged_paginated",
+        "/domains/challenged/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:domains:authz_potential_paginated", "/domains/authz-potential/{@page}"
+        "admin:domains:authz_potential",
+        "/domains/authz-potential",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:domains:authz_potential_paginated|json",
-        "/domains/authz-potential/{@page}.json",
+        "admin:domains:authz_potential_paginated",
+        "/domains/authz-potential/{@page}",
+        jsonify=True,
     )
-    config.add_route_7("admin:domains:expiring", "/domains/expiring")
-    config.add_route_7("admin:domains:expiring|json", "/domains/expiring.json")
-    config.add_route_7("admin:domains:expiring_paginated", "/domains/expiring/{@page}")
     config.add_route_7(
-        "admin:domains:expiring_paginated|json", "/domains/expiring/{@page}.json"
+        "admin:domains:expiring",
+        "/domains/expiring",
+        jsonify=True,
     )
-    config.add_route_7("admin:domains:search", "/domains/search")
-    config.add_route_7("admin:domains:search|json", "/domains/search.json")
-    config.add_route_7("admin:domain:new", "/domain/new")
-    config.add_route_7("admin:domain:new|json", "/domain/new.json")
+    config.add_route_7(
+        "admin:domains:expiring_paginated",
+        "/domains/expiring/{@page}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:domains:search",
+        "/domains/search",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:domain:new",
+        "/domain/new",
+        jsonify=True,
+    )
 
     # !!!: Domain Focus
     # json first otherwise we think it's the extension
-    config.add_route_7("admin:domain:focus|json", "/domain/{domain_identifier}.json")
-    config.add_route_7("admin:domain:focus", "/domain/{domain_identifier}")
+    config.add_route_7(
+        "admin:domain:focus",
+        "/domain/{domain_identifier}",
+        jsonify=True,
+    )
+
     config.add_route_7(
         "admin:domain:focus:config|json", "/domain/{domain_identifier}/config.json"
     )
@@ -1095,12 +1048,9 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain:focus:calendar|json", "/domain/{domain_identifier}/calendar.json"
     )
     config.add_route_7(
-        "admin:domain:focus:update_recents|json",
-        "/domain/{domain_identifier}/update-recents.json",
-    )
-    config.add_route_7(
         "admin:domain:focus:update_recents",
         "/domain/{domain_identifier}/update-recents",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:domain:focus:acme_authorizations",
@@ -1141,6 +1091,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain:focus:domain_autocerts_paginated",
         "/domain/{domain_identifier}/domain-autocerts/{@page}",
     )
+
     config.add_route_7(
         "admin:domain:focus:certificate_signeds",
         "/domain/{domain_identifier}/certificate-signeds",
@@ -1149,6 +1100,40 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain:focus:certificate_signeds_paginated",
         "/domain/{domain_identifier}/certificate-signeds/{@page}",
     )
+    # -
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:all",
+        "/domain/{domain_identifier}/certificate-signeds/all",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:all_paginated",
+        "/domain/{domain_identifier}/certificate-signeds/all/{@page}",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:single",
+        "/domain/{domain_identifier}/certificate-signeds/single",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:single_paginated",
+        "/domain/{domain_identifier}/certificate-signeds/single/{@page}",
+        jsonify=True,
+    )
+    # -
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:multi",
+        "/domain/{domain_identifier}/certificate-signeds/multi",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:certificate_signeds:multi_paginated",
+        "/domain/{domain_identifier}/certificate-signeds/multi/{@page}",
+        jsonify=True,
+    )
+
     config.add_route_7(
         "admin:domain:focus:certificate_requests",
         "/domain/{domain_identifier}/certificate-requests",
@@ -1176,44 +1161,43 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:domain:focus:nginx_cache_expire",
         "/domain/{domain_identifier}/nginx-cache-expire",
-    )
-    config.add_route_7(
-        "admin:domain:focus:nginx_cache_expire|json",
-        "/domain/{domain_identifier}/nginx-cache-expire.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:domain:focus:acme_dns_server_accounts",
         "/domain/{domain_identifier}/acme-dns-server-accounts",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_dns_server_accounts|json",
-        "/domain/{domain_identifier}/acme-dns-server-accounts.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:domain:focus:acme_dns_server:new",
         "/domain/{domain_identifier}/acme-dns-server/new",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_dns_server:new|json",
-        "/domain/{domain_identifier}/acme-dns-server/new.json",
+        jsonify=True,
     )
 
     # !!!: DomainAutocerts
-    config.add_route_7("admin:domain_autocerts", "/domain-autocerts")
-    config.add_route_7("admin:domain_autocerts|json", "/domain-autocerts.json")
-    config.add_route_7("admin:domain_autocerts_paginated", "/domain-autocerts/{@page}")
     config.add_route_7(
-        "admin:domain_autocerts_paginated|json", "/domain-autocerts/{@page}.json"
+        "admin:domain_autocerts",
+        "/domain-autocerts",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:domain_autocerts_paginated",
+        "/domain-autocerts/{@page}",
+        jsonify=True,
     )
 
     # !!!: DomainBlocklist
-    config.add_route_7("admin:domains_blocklisted", "/domains-blocklisted")
-    config.add_route_7("admin:domains_blocklisted|json", "/domains-blocklisted.json")
     config.add_route_7(
-        "admin:domains_blocklisted_paginated", "/domains-blocklisted/{@page}"
+        "admin:domains_blocklisted",
+        "/domains-blocklisted",
+        jsonify=True,
     )
+
     config.add_route_7(
-        "admin:domains_blocklisted_paginated|json", "/domains-blocklisted/{@page}.json"
+        "admin:domains_blocklisted_paginated",
+        "/domains-blocklisted/{@page}",
+        jsonify=True,
     )
 
     # !!!: Operations & Sync Events
@@ -1239,16 +1223,24 @@ def _admin_views(config: "Configurator") -> None:
 
     # !!!: Private Keys
     # used to sign CertificateSigneds
-    config.add_route_7("admin:private_keys", "/private-keys")
-    config.add_route_7("admin:private_keys_paginated", "/private-keys/{@page}")
-    config.add_route_7("admin:private_keys|json", "/private-keys.json")
     config.add_route_7(
-        "admin:private_keys_paginated|json", "/private-keys/{@page}.json"
+        "admin:private_keys",
+        "/private-keys",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:private_keys_paginated",
+        "/private-keys/{@page}",
+        jsonify=True,
     )
 
     # !!!: Private Key - Focus
-    config.add_route_7("admin:private_key:focus", "/private-key/{@id}")
-    config.add_route_7("admin:private_key:focus|json", "/private-key/{@id}.json")
+    config.add_route_7(
+        "admin:private_key:focus",
+        "/private-key/{@id}",
+        jsonify=True,
+    )
     config.add_route_7(
         "admin:private_key:focus:parse|json", "/private-key/{@id}/parse.json"
     )
@@ -1272,174 +1264,166 @@ def _admin_views(config: "Configurator") -> None:
         "admin:private_key:focus:certificate_signeds_paginated",
         "/private-key/{@id}/certificate-signeds/{@page}",
     )
-    config.add_route_7("admin:private_key:focus:mark", "/private-key/{@id}/mark")
     config.add_route_7(
-        "admin:private_key:focus:mark|json", "/private-key/{@id}/mark.json"
+        "admin:private_key:focus:mark",
+        "/private-key/{@id}/mark",
+        jsonify=True,
     )
 
     # !!!: Private Key - New
-    config.add_route_7("admin:private_key:new", "/private-key/new")
-    config.add_route_7("admin:private_key:new|json", "/private-key/new.json")
-    config.add_route_7("admin:private_key:upload", "/private-key/upload")
-    config.add_route_7("admin:private_key:upload|json", "/private-key/upload.json")
+    config.add_route_7(
+        "admin:private_key:new",
+        "/private-key/new",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:private_key:upload",
+        "/private-key/upload",
+        jsonify=True,
+    )
 
     # !!!: Renewal Configurations
-    config.add_route_7("admin:renewal_configurations", "/renewal-configurations")
     config.add_route_7(
-        "admin:renewal_configurations|json", "/renewal-configurations.json"
+        "admin:renewal_configurations",
+        "/renewal-configurations",
+        jsonify=True,
     )
+
     config.add_route_7(
-        "admin:renewal_configurations:all", "/renewal-configurations/all"
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:all|json", "/renewal-configurations/all.json"
+        "admin:renewal_configurations:all",
+        "/renewal-configurations/all",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configurations:all_paginated",
         "/renewal-configurations/all/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:renewal_configurations:all_paginated|json",
-        "/renewal-configurations/all/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:active", "/renewal-configurations/active"
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:active|json",
-        "/renewal-configurations/active.json",
+        "admin:renewal_configurations:active",
+        "/renewal-configurations/active",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configurations:active_paginated",
         "/renewal-configurations/active/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:renewal_configurations:active_paginated|json",
-        "/renewal-configurations/active/{@page}.json",
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:disabled", "/renewal-configurations/disabled"
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:disabled|json",
-        "/renewal-configurations/disabled.json",
+        "admin:renewal_configurations:disabled",
+        "/renewal-configurations/disabled",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configurations:disabled_paginated",
         "/renewal-configurations/disabled/{@page}",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:renewal_configurations:disabled_paginated|json",
-        "/renewal-configurations/disabled/{@page}.json",
+        "admin:renewal_configuration:new",
+        "/renewal-configuration/new",
+        jsonify=True,
     )
-    config.add_route_7("admin:renewal_configuration:new", "/renewal-configuration/new")
+
     config.add_route_7(
-        "admin:renewal_configuration:new|json", "/renewal-configuration/new.json"
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus", "/renewal-configuration/{@id}"
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus|json", "/renewal-configuration/{@id}.json"
+        "admin:renewal_configuration:focus",
+        "/renewal-configuration/{@id}",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:acme_orders",
         "/renewal-configuration/{@id}/acme-orders",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:acme_orders_paginated",
         "/renewal-configuration/{@id}/acme-orders/{@page}",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:acme_orders|json",
-        "/renewal-configuration/{@id}/acme-orders.json",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:acme_orders_paginated|json",
-        "/renewal-configuration/{@id}/acme-orders/{@page}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:certificate_signeds",
         "/renewal-configuration/{@id}/certificate-signeds",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:certificate_signeds_paginated",
         "/renewal-configuration/{@id}/certificate-signeds/{@page}",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:certificate_signeds|json",
-        "/renewal-configuration/{@id}/certificate-signeds.json",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:certificate_signeds_paginated|json",
-        "/renewal-configuration/{@id}/certificate-signeds/{@page}.json",
+        jsonify=True,
     )
 
     config.add_route_7(
-        "admin:renewal_configuration:focus:mark", "/renewal-configuration/{@id}/mark"
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:mark|json",
-        "/renewal-configuration/{@id}/mark.json",
+        "admin:renewal_configuration:focus:mark",
+        "/renewal-configuration/{@id}/mark",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:new_order",
         "/renewal-configuration/{@id}/new-order",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:new_order|json",
-        "/renewal-configuration/{@id}/new-order.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:new_configuration",
         "/renewal-configuration/{@id}/new-configuration",
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:new_configuration|json",
-        "/renewal-configuration/{@id}/new-configuration.json",
+        jsonify=True,
     )
 
     # !!!: Root Stores
-    config.add_route_7("admin:root_stores", "/root-stores")
-    config.add_route_7("admin:root_stores_paginated", "/root-stores/{@page}")
-    config.add_route_7("admin:root_stores|json", "/root-stores.json")
-    config.add_route_7("admin:root_stores_paginated|json", "/root-stores/{@page}.json")
+    config.add_route_7(
+        "admin:root_stores",
+        "/root-stores",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:root_stores_paginated",
+        "/root-stores/{@page}",
+        jsonify=True,
+    )
 
     # !!!: Root Store - Focus
-    config.add_route_7("admin:root_store:focus", "/root-store/{@id}")
-    config.add_route_7("admin:root_store:focus|json", "/root-store/{@id}.json")
+    config.add_route_7(
+        "admin:root_store:focus",
+        "/root-store/{@id}",
+        jsonify=True,
+    )
 
     # !!!: Root Store Version - Focus
-    config.add_route_7("admin:root_store_version:focus", "/root-store-version/{@id}")
     config.add_route_7(
-        "admin:root_store_version:focus|json", "/root-store-version/{@id}.json"
+        "admin:root_store_version:focus",
+        "/root-store-version/{@id}",
+        jsonify=True,
     )
 
     # !!!: Unique FQDN Sets
     # tied to Certs and Ratelimits
-    config.add_route_7("admin:unique_fqdn_sets", "/unique-fqdn-sets")
-    config.add_route_7("admin:unique_fqdn_sets_paginated", "/unique-fqdn-sets/{@page}")
-    config.add_route_7("admin:unique_fqdn_sets|json", "/unique-fqdn-sets.json")
     config.add_route_7(
-        "admin:unique_fqdn_sets_paginated|json", "/unique-fqdn-sets/{@page}.json"
+        "admin:unique_fqdn_sets",
+        "/unique-fqdn-sets",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:unique_fqdn_sets_paginated",
+        "/unique-fqdn-sets/{@page}",
+        jsonify=True,
     )
 
     # !!!: Unique FQDN Set - Focus
-    config.add_route_7("admin:unique_fqdn_set:focus", "/unique-fqdn-set/{@id}")
     config.add_route_7(
-        "admin:unique_fqdn_set:focus|json", "/unique-fqdn-set/{@id}.json"
+        "admin:unique_fqdn_set:focus",
+        "/unique-fqdn-set/{@id}",
+        jsonify=True,
     )
+
     config.add_route_7(
         "admin:unique_fqdn_set:focus:calendar|json",
         "/unique-fqdn-set/{@id}/calendar.json",
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:update_recents|json",
-        "/unique-fqdn-set/{id}/update-recents.json",
-    )
-    config.add_route_7(
         "admin:unique_fqdn_set:focus:update_recents",
         "/unique-fqdn-set/{id}/update-recents",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:acme_orders",
@@ -1474,40 +1458,34 @@ def _admin_views(config: "Configurator") -> None:
         "/unique-fqdn-set/{@id}/uniquely-challenged-fqdn-sets/{@page}",
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:modify", "/unique-fqdn-set/{@id}/modify"
+        "admin:unique_fqdn_set:focus:modify",
+        "/unique-fqdn-set/{@id}/modify",
+        jsonify=True,
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:modify|json", "/unique-fqdn-set/{@id}/modify.json"
+        "admin:unique_fqdn_set:new",
+        "/unique-fqdn-set/new",
+        jsonify=True,
     )
-    config.add_route_7("admin:unique_fqdn_set:new", "/unique-fqdn-set/new")
-    config.add_route_7("admin:unique_fqdn_set:new|json", "/unique-fqdn-set/new.json")
 
     # !!!: Uniquely Challenged FQDN Sets
     # tied to RenewalConfigurations and AcmeOrders
     config.add_route_7(
-        "admin:uniquely_challenged_fqdn_sets", "/uniquely-challenged-fqdn-sets"
+        "admin:uniquely_challenged_fqdn_sets",
+        "/uniquely-challenged-fqdn-sets",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_sets_paginated",
         "/uniquely-challenged-fqdn-sets/{@page}",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_sets|json",
-        "/uniquely-challenged-fqdn-sets.json",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_sets_paginated|json",
-        "/uniquely-challenged-fqdn-sets/{@page}.json",
+        jsonify=True,
     )
 
     # !!!: Uniquely Challenged FQDN Set - Focus
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_set:focus",
         "/uniquely-challenged-fqdn-set/{@id}",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_set:focus|json",
-        "/uniquely-challenged-fqdn-set/{@id}.json",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_set:focus:acme_orders",

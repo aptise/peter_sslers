@@ -5063,6 +5063,12 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:domain_autocerts_paginated",
             "admin:domain:focus:certificate_signeds",
             "admin:domain:focus:certificate_signeds_paginated",
+            "admin:domain:focus:certificate_signeds:all",
+            "admin:domain:focus:certificate_signeds:all_paginated",
+            "admin:domain:focus:certificate_signeds:single",
+            "admin:domain:focus:certificate_signeds:single_paginated",
+            "admin:domain:focus:certificate_signeds:multi",
+            "admin:domain:focus:certificate_signeds:multi_paginated",
             "admin:domain:focus:unique_fqdn_sets",
             "admin:domain:focus:unique_fqdn_sets_paginated",
             "admin:domain:focus:uniquely_challenged_fqdn_sets",
@@ -5133,10 +5139,43 @@ class FunctionalTests_Domain(AppTest):
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds" % focus_id,
-            status=200,
+            status=303,
+        )
+        assert res.location.endswith(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all" % focus_id,
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds/1" % focus_id,
+            status=303,
+        )
+        assert res.location.endswith(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all" % focus_id,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all/1" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/single" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/single/1"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/multi" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/multi/1"
+            % focus_id,
             status=200,
         )
 
@@ -5165,6 +5204,12 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus|json",
             "admin:domain:focus:config|json",
             "admin:domain:focus:calendar|json",
+            "admin:domain:focus:certificate_signeds:all|json",
+            "admin:domain:focus:certificate_signeds:all_paginated|json",
+            "admin:domain:focus:certificate_signeds:single|json",
+            "admin:domain:focus:certificate_signeds:single_paginated|json",
+            "admin:domain:focus:certificate_signeds:multi|json",
+            "admin:domain:focus:certificate_signeds:multi_paginated|json",
         )
     )
     def test_focus_json(self):
@@ -5190,6 +5235,37 @@ class FunctionalTests_Domain(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/calendar.json" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/all/1.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/single.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/single/1.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/multi.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/certificate-signeds/multi/1.json"
+            % focus_id,
+            status=200,
         )
 
     @routes_tested(("admin:domain:focus:mark", "admin:domain:focus:update_recents"))

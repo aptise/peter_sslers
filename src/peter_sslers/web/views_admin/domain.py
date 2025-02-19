@@ -771,31 +771,202 @@ class View_Focus(Handler):
 
     @view_config(
         route_name="admin:domain:focus:certificate_signeds",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
     )
     @view_config(
         route_name="admin:domain:focus:certificate_signeds_paginated",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
+        dbDomain = self._focus()  # noqa: F841
+        url_redirect = "%s/certificate-signeds/all" % self._focus_url
+        if self.request.wants_json:
+            url_redirect = "%s.json" % url_redirect
+        return HTTPSeeOther(url_redirect)
+
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all_paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all_paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single_paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single_paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi_paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi_paginated|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/all.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/all/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/all/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/multi.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/multi/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/multi/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/single.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/single.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/single/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/single/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/single.json",
+        }
+    )
+    def related__CertificateSigneds_faceted(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
+        if self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:all",
+            "admin:domain:focus:certificate_signeds:all_paginated",
+            "admin:domain:focus:certificate_signeds:all|json",
+            "admin:domain:focus:certificate_signeds:all_paginated|json",
+        ):
+            sidenav_option = "all"
+            url_template = "%s/certificate-signeds/all/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:single",
+            "admin:domain:focus:certificate_signeds:single_paginated",
+            "admin:domain:focus:certificate_signeds:single|json",
+            "admin:domain:focus:certificate_signeds:single_paginated|json",
+        ):
+            sidenav_option = "single"
+            url_template = "%s/certificate-signeds/single/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="single"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="single",
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:multi",
+            "admin:domain:focus:certificate_signeds:multi_paginated",
+            "admin:domain:focus:certificate_signeds:multi|json",
+            "admin:domain:focus:certificate_signeds:multi_paginated|json",
+        ):
+            sidenav_option = "multi"
+            url_template = "%s/certificate-signeds/multi/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="multi"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="multi",
+                limit=items_per_page,
+                offset=offset,
+            )
+        else:
+            raise ValueError("unknown route")
+
+        if self.request.matched_route.name.endswith("|json"):
+            _certificates = {c.id: c.as_json for c in items_paged}
+            return {
+                "Domain": dbDomain.as_json,
+                "CertificateSigneds": _certificates,
+                "CertificateSigneds_count": items_count,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
             "CertificateSigneds_count": items_count,
             "CertificateSigneds": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

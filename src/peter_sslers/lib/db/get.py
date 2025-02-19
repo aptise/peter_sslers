@@ -2125,9 +2125,11 @@ def get__CertificateSigned__by_CertificateCAId__alt__paginated(
 
 
 def get__CertificateSigned__by_DomainId__count(
-    ctx: "ApiContext", domain_id: int
+    ctx: "ApiContext",
+    domain_id: int,
+    facet: Literal["all", "single", "multi"] = "all",
 ) -> int:
-    counted = (
+    q = (
         ctx.dbSession.query(CertificateSigned)
         .join(
             UniqueFQDNSet,
@@ -2138,15 +2140,25 @@ def get__CertificateSigned__by_DomainId__count(
             UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .count()
     )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    counted = q.count()
     return counted
 
 
 def get__CertificateSigned__by_DomainId__paginated(
-    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+    ctx: "ApiContext",
+    domain_id: int,
+    facet: Literal["all", "single", "multi"] = "all",
+    limit: Optional[int] = None,
+    offset: int = 0,
 ) -> List[CertificateSigned]:
-    items_paged = (
+    q = (
         ctx.dbSession.query(CertificateSigned)
         .join(
             UniqueFQDNSet,
@@ -2157,10 +2169,15 @@ def get__CertificateSigned__by_DomainId__paginated(
             UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .order_by(CertificateSigned.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
+    )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    items_paged = (
+        q.order_by(CertificateSigned.id.desc()).limit(limit).offset(offset).all()
     )
     return items_paged
 

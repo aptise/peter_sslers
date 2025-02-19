@@ -73,29 +73,29 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains</a></li>
-                <li><a href="${admin_prefix}/private-keys"
-                       title="PrivateKeys"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    private-keys</a></li>
                 <li><a href="${admin_prefix}/certificate-signeds"
                        title="CertificateSigneds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-signeds</a></li>
+                <li><a href="${admin_prefix}/renewal-configurations"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    renewal-configurations</a></li>
+                <li><a href="${admin_prefix}/domains-blocklisted"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    domains-blocklisted</a></li>
+                <li><a href="${admin_prefix}/private-keys"
+                       title="PrivateKeys"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    private-keys</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="UniqueFQDNs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets</a></li>
-                <li><a href="${admin_prefix}/domains-blocklisted"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains-blocklisted</a></li>
-                <li><a href="${admin_prefix}/renewal-configurations"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    renewal-configurations</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>

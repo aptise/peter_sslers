@@ -31,7 +31,7 @@ requires = [
     "pypages",
     "pyramid_formencode_classic>=0.5.1",
     "pyramid_mako",
-    "pyramid_route_7>=0.0.3",
+    "pyramid_route_7>=0.5.1",
     "pyramid_tm",
     "pyramid>=2",
     "python-dateutil",
