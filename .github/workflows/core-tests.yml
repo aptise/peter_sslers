@@ -86,7 +86,7 @@ jobs:
       # several tests require a Pebble instance (ACME Server)
       run: |
         export GOPATH=$HOME/go
-        git clone https://github.com/letsencrypt/pebble/
+        git clone https://github.com/jvanasco/pebble/
         cd pebble
         go install ./cmd/pebble
 
