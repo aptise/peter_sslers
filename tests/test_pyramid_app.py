@@ -11508,7 +11508,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
     """
 
     def setUp(self):
-        AppTestWSGI.tearDown(self)
+        AppTestWSGI.setUp(self)
         unset_testing_data(self)
 
     def tearDown(self):
