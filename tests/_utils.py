@@ -2385,15 +2385,20 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
         AppTest.setUp(self)
         # app = main(global_config=None, **self._settings)
         # load this on the side to RESPOND
+        log.info("StopableWSGIServer: create [%s]" % time.time())
         self._testapp_wsgi = StopableWSGIServer.create(
             self._pyramid_app,  # we can mount the existing app
             host="peter-sslers.example.com",  # /etc/hosts maps this to localhost
             port=5002,  # this corresponts to pebble-config.json `"httpPort": 5002`
         )
+        log.info("StopableWSGIServer: created; wait [%s]" % time.time())
+        self._testapp_wsgi.wait()
+        log.info("StopableWSGIServer: waited [%s]" % time.time())
 
     def tearDown(self):
         if self._testapp_wsgi is not None:
-            self._testapp_wsgi.shutdown()
+            result = self._testapp_wsgi.shutdown()
+            assert result is True
         AppTest.tearDown(self)
 
 

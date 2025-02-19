@@ -1,5 +1,5 @@
 * [Previous - README](https://github.com/aptise/peter_sslers/README.md)
-* [Installation](https://github.com/aptise/peter_sslers/tree/main/docs/Installation.md)
+* [Installation](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
 
 If you want a quick testdrive, this quickstart should suffice.  
 

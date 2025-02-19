@@ -1,4 +1,4 @@
-If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md), otherwise keep reading.
+If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md), otherwise keep reading.
 
 
 Project History
@@ -366,10 +366,10 @@ Getting Started
 ===============
 
 Please read the
-[Full Installation Instructions](https://github.com/aptise/peter_sslers/tree/main/docs/Installation.md)
+[Full Installation Instructions](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
 
 There is also a 
-[QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md)
+[QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
 
 The abridged version:
 
@@ -391,17 +391,17 @@ $VENV/bin/pserve conf/example_development.ini
 Full Documentation
 ==================
 
-* [QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md)
-* [Installation](https://github.com/aptise/peter_sslers/tree/main/docs/Installation.md)
-* [Configuration Options](https://github.com/aptise/peter_sslers/tree/main/docs/Configuration_Options.md)
-* [General_Management_Concepts](https://github.com/aptise/peter_sslers/tree/main/docs/General_Management_Concepts.md)
-* [Implementation_Details](https://github.com/aptise/peter_sslers/tree/main/docs/Implementation_Details.md)
-* [Automation](https://github.com/aptise/peter_sslers/tree/main/docs/Automation.md)
-* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/tree/main/docs/Frequently_Asked_Questions.md)
-* [Misc](https://github.com/aptise/peter_sslers/tree/main/docs/Misc.md)
-* [Tools](https://github.com/aptise/peter_sslers/tree/main/docs/Tools.md)
-* [Tests](https://github.com/aptise/peter_sslers/tree/main/docs/Tests.md)
-* [Versioning](https://github.com/aptise/peter_sslers/tree/main/docs/Versioning.md)
+* [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
+* [Installation](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
+* [Configuration Options](https://github.com/aptise/peter_sslers/blob/main/docs/Configuration_Options.md)
+* [General_Management_Concepts](https://github.com/aptise/peter_sslers/blob/main/docs/General_Management_Concepts.md)
+* [Implementation_Details](https://github.com/aptise/peter_sslers/blob/main/docs/Implementation_Details.md)
+* [Automation](https://github.com/aptise/peter_sslers/blob/main/docs/Automation.md)
+* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/blob/main/docs/Frequently_Asked_Questions.md)
+* [Misc](https://github.com/aptise/peter_sslers/blob/main/docs/Misc.md)
+* [Tools](https://github.com/aptise/peter_sslers/blob/main/docs/Tools.md)
+* [Tests](https://github.com/aptise/peter_sslers/blob/main/docs/Tests.md)
+* [Versioning](https://github.com/aptise/peter_sslers/blob/main/docs/Versioning.md)
 
 
 Related Projects

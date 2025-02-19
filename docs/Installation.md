@@ -1,5 +1,5 @@
-* [Previous - QuickStart](https://github.com/aptise/peter_sslers/tree/main/docs/QuickStart.md)
-* [Next - Configuration Options](https://github.com/aptise/peter_sslers/tree/main/docs/Configuration_Options.md)
+* [Previous - QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
+* [Next - Configuration Options](https://github.com/aptise/peter_sslers/blob/main/docs/Configuration_Options.md)
 
 # Installation
 

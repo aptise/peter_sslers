@@ -10925,7 +10925,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
         assert res2.status_code == 303
         assert res2.location.endswith("?result=success&operation=renewal+configuration")
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
 
         _results = lib_db_actions.routine__renew_expiring(
@@ -10967,7 +10967,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             acme_profile__backup="shortlived",
         )
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
 
         # actually, we order the backups first
@@ -11051,7 +11051,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             _debug()
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
 
         # actually, we order the backups first
@@ -11067,7 +11067,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             print("just: routine__order_missing-1")
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
 
         # then we renew the expiring
@@ -11122,7 +11122,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
 
         renewal_configuration_id__2 = dbRenewalConfiguration_2.id
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
 
         # order_missing MUST pick up the missing backup and missing Primary
@@ -11138,7 +11138,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             print("just: routine__order_missing-2")
 
-        # sleep 5 seconds
+        # sleep 5 seconds to expire certs
         time.sleep(5)
         # then we renew the expiring
         _results_22 = lib_db_actions.routine__renew_expiring(
@@ -12110,6 +12110,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self.testapp.app.registry.settings["application_settings"][
                 "redis.prime_style"
             ] = _existing_prime_style
+
+
+class TestWSGI(AppTestWSGI):
+    def test_a(self):
+        pass
 
 
 class CoverageAssurance_AuditTests(AppTest):
