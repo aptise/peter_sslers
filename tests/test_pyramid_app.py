@@ -385,6 +385,16 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    dbRenewalConfigurations = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .order_by(model_objects.RenewalConfiguration.id.asc())
+        .filter(model_objects.RenewalConfiguration.is_active.is_(True))
+        .all()
+    )
+    for _dbRenewalConfiguration in dbRenewalConfigurations:
+        result = lib_db_update.update_RenewalConfiguration__unset_active(
+            testCase.ctx, _dbRenewalConfiguration
+        )
     testCase.ctx.pyramid_transaction_commit()
     return True
 
