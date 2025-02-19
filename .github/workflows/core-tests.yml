@@ -107,6 +107,9 @@ jobs:
     - name: Install OpenResty - Prep
       # several tests require an OpenResty server
       run: |
+        # recommended by https://openresty.org/en/installation.html
+        sudo apt-get install libpcre3-dev libssl-dev perl make build-essential curl
+
         # install OpenResty - Prep
         sudo apt-get -y install --no-install-recommends wget gnupg ca-certificates
 
