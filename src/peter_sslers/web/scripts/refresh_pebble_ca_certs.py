@@ -8,6 +8,7 @@ from pyramid.paster import setup_logging
 from pyramid.scripts.common import parse_vars
 
 # local
+from . import _disable_warnings  # noqa: F401
 from ..models import get_engine
 from ..models import get_session_factory
 from ...lib import db as lib_db

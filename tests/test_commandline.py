@@ -53,6 +53,30 @@ class AAA_TestingSetup(AppTest):
 
 class Test_CommandlineScripts(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        try:
+            with psutil.Popen(
+                ["initializedb", TEST_INI],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc:
+                log.info("Wait 5 seconds...")
+                time.sleep(5)
+                response, err = proc.communicate()
+                if False:
+                    print(response)
+                    print(err)
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+                if err:
+                    raise ValueError("Exception", err)
+        except Exception as exc:  # noqa: F841
+            raise
+
     @unittest.skip("TODO")
     def test__import_certbot(self):
         pass
