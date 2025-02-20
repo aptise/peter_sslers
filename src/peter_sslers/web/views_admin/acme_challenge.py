@@ -28,7 +28,7 @@ class View_List(Handler):
         renderer="/admin/acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:acme_challenges_paginated",
+        route_name="admin:acme_challenges-paginated",
         renderer="/admin/acme_challenges.mako",
     )
     @view_config(
@@ -36,7 +36,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenges_paginated|json",
+        route_name="admin:acme_challenges-paginated|json",
         renderer="json",
     )
     @docify(

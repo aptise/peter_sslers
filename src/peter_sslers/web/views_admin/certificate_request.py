@@ -22,12 +22,12 @@ class View_List(Handler):
         renderer="/admin/certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:certificate_requests_paginated",
+        route_name="admin:certificate_requests-paginated",
         renderer="/admin/certificate_requests.mako",
     )
     @view_config(route_name="admin:certificate_requests|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_requests_paginated|json", renderer="json"
+        route_name="admin:certificate_requests-paginated|json", renderer="json"
     )
     @docify(
         {
@@ -174,7 +174,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:certificate_request:focus:acme_orders_paginated",
+        route_name="admin:certificate_request:focus:acme_orders-paginated",
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):

@@ -54,23 +54,23 @@ class View_List(Handler):
         route_name="admin:acme_orders:finished", renderer="/admin/acme_orders.mako"
     )
     @view_config(
-        route_name="admin:acme_orders:all_paginated", renderer="/admin/acme_orders.mako"
+        route_name="admin:acme_orders:all-paginated", renderer="/admin/acme_orders.mako"
     )
     @view_config(
-        route_name="admin:acme_orders:active_paginated",
+        route_name="admin:acme_orders:active-paginated",
         renderer="/admin/acme_orders.mako",
     )
     @view_config(
-        route_name="admin:acme_orders:finished_paginated",
+        route_name="admin:acme_orders:finished-paginated",
         renderer="/admin/acme_orders.mako",
     )
     @view_config(route_name="admin:acme_orders:all|json", renderer="json")
     @view_config(route_name="admin:acme_orders:active|json", renderer="json")
     @view_config(route_name="admin:acme_orders:finished|json", renderer="json")
-    @view_config(route_name="admin:acme_orders:all_paginated|json", renderer="json")
-    @view_config(route_name="admin:acme_orders:active_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:all-paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:active-paginated|json", renderer="json")
     @view_config(
-        route_name="admin:acme_orders:finished_paginated|json", renderer="json"
+        route_name="admin:acme_orders:finished-paginated|json", renderer="json"
     )
     @docify(
         {
@@ -149,25 +149,25 @@ class View_List(Handler):
         active_only = None
         if self.request.matched_route.name in (
             "admin:acme_orders:all",
-            "admin:acme_orders:all_paginated",
+            "admin:acme_orders:all-paginated",
             "admin:acme_orders:all|json",
-            "admin:acme_orders:all_paginated|json",
+            "admin:acme_orders:all-paginated|json",
         ):
             sidenav_option = "all"
             active_only = None
         elif self.request.matched_route.name in (
             "admin:acme_orders:active",
-            "admin:acme_orders:active_paginated",
+            "admin:acme_orders:active-paginated",
             "admin:acme_orders:active|json",
-            "admin:acme_orders:active_paginated|json",
+            "admin:acme_orders:active-paginated|json",
         ):
             sidenav_option = "active"
             active_only = True
         elif self.request.matched_route.name in (
             "admin:acme_orders:finished",
-            "admin:acme_orders:finished_paginated",
+            "admin:acme_orders:finished-paginated",
             "admin:acme_orders:finished|json",
-            "admin:acme_orders:finished_paginated|json",
+            "admin:acme_orders:finished-paginated|json",
         ):
             sidenav_option = "finished"
             active_only = False
@@ -414,7 +414,7 @@ class View_Focus_Manipulate(View_Focus):
         renderer="/admin/acme_order-focus-acme_event_logs.mako",
     )
     @view_config(
-        route_name="admin:acme_order:focus:acme_event_logs_paginated",
+        route_name="admin:acme_order:focus:acme_event_logs-paginated",
         renderer="/admin/acme_order-focus-acme_event_logs.mako",
     )
     def acme_event_logs(self):
@@ -1044,19 +1044,40 @@ class View_New(Handler):
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
             "form_fields": {
+                # ALL certs
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
-                "processing_strategy": "How should the order be processed?",
-                "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
                 "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "processing_strategy": "How should the order be processed?",
                 "note": "A string to associate with the AcmeOrder.",
+                # primary cert
+                "account_key_option": "How is the AcmeAccount specified?",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "acme_profile": "The name of an ACME Profile on the ACME Server",
+                # backup cert
+                "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
+                "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
+                "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
+                "acme_profile_backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
+                ["private_key_option", "private_key_existing"],
+                [
+                    "account_key_option",
+                    "account_key_global_default",
+                    "account_key_existing",
+                    "acme_profile",
+                ],
+                [
+                    "account_key_option_backup",
+                    "account_key_global_backup",
+                    "account_key_existing_backup",
+                    "acme_profile_backup",
+                ],
             ],
             "valid_options": {
                 "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",

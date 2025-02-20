@@ -65,15 +65,15 @@ class View_List(Handler):
         renderer="/admin/renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:renewal_configurations:all_paginated",
+        route_name="admin:renewal_configurations:all-paginated",
         renderer="/admin/renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:renewal_configurations:active_paginated",
+        route_name="admin:renewal_configurations:active-paginated",
         renderer="/admin/renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:renewal_configurations:disabled_paginated",
+        route_name="admin:renewal_configurations:disabled-paginated",
         renderer="/admin/renewal_configurations.mako",
     )
     @view_config(route_name="admin:renewal_configurations:all|json", renderer="json")
@@ -82,13 +82,13 @@ class View_List(Handler):
         route_name="admin:renewal_configurations:disabled|json", renderer="json"
     )
     @view_config(
-        route_name="admin:renewal_configurations:all_paginated|json", renderer="json"
+        route_name="admin:renewal_configurations:all-paginated|json", renderer="json"
     )
     @view_config(
-        route_name="admin:renewal_configurations:active_paginated|json", renderer="json"
+        route_name="admin:renewal_configurations:active-paginated|json", renderer="json"
     )
     @view_config(
-        route_name="admin:renewal_configurations:disabled_paginated|json",
+        route_name="admin:renewal_configurations:disabled-paginated|json",
         renderer="json",
     )
     @docify(
@@ -168,25 +168,25 @@ class View_List(Handler):
         active_status: Optional[bool] = None
         if self.request.matched_route.name in (
             "admin:renewal_configurations:all",
-            "admin:renewal_configurations:all_paginated",
+            "admin:renewal_configurations:all-paginated",
             "admin:renewal_configurations:all|json",
-            "admin:renewal_configurations:all_paginated|json",
+            "admin:renewal_configurations:all-paginated|json",
         ):
             sidenav_option = "all"
             active_status = None
         elif self.request.matched_route.name in (
             "admin:renewal_configurations:active",
-            "admin:renewal_configurations:active_paginated",
+            "admin:renewal_configurations:active-paginated",
             "admin:renewal_configurations:active|json",
-            "admin:renewal_configurations:active_paginated|json",
+            "admin:renewal_configurations:active-paginated|json",
         ):
             sidenav_option = "active"
             active_status = True
         elif self.request.matched_route.name in (
             "admin:renewal_configurations:disabled",
-            "admin:renewal_configurations:disabled_paginated",
+            "admin:renewal_configurations:disabled-paginated",
             "admin:renewal_configurations:disabled|json",
-            "admin:renewal_configurations:disabled_paginated|json",
+            "admin:renewal_configurations:disabled-paginated|json",
         ):
             sidenav_option = "disabled"
             active_status = False
@@ -325,7 +325,7 @@ class View_Focus(Handler):
         renderer="/admin/renewal_configuration-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:acme_orders_paginated",
+        route_name="admin:renewal_configuration:focus:acme_orders-paginated",
         renderer="/admin/renewal_configuration-focus-acme_orders.mako",
     )
     @view_config(
@@ -333,7 +333,7 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:acme_orders_paginated|json",
+        route_name="admin:renewal_configuration:focus:acme_orders-paginated|json",
         renderer="json",
     )
     @docify(
@@ -388,7 +388,7 @@ class View_Focus(Handler):
         renderer="/admin/renewal_configuration-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds_paginated",
+        route_name="admin:renewal_configuration:focus:certificate_signeds-paginated",
         renderer="/admin/renewal_configuration-focus-certificate_signeds.mako",
     )
     @view_config(
@@ -396,7 +396,7 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds_paginated|json",
+        route_name="admin:renewal_configuration:focus:certificate_signeds-paginated|json",
         renderer="json",
     )
     def related__CertificateSigneds(self):
@@ -454,11 +454,8 @@ class View_Focus_New(View_Focus):
             "form_fields": {
                 "note": "A string to associate with the AcmeOrder.",
                 "processing_strategy": "How should the order be processed?",
-                "replaces": "ARI identifier of Certificate to replace."
-                "Eligible candidates are available from the focus endpoint."
-                "If omitted, a duplicate cert will be created.",
-                "replaces_certificate_type": "Only submit if replacing an imported "
-                "certificate, to instruct which ACME Account should be used",
+                "replaces": "ARI identifier of Certificate to replace. Eligible candidates are available from the focus endpoint. If omitted, a duplicate cert will be created.",
+                "replaces_certificate_type": "Only submit if replacing an imported certificate, to instruct which ACME Account should be used",
             },
             "valid_options": {
                 "processing_strategy": Form_RenewalConfig_new_order.fields[
@@ -597,20 +594,46 @@ class View_Focus_New(View_Focus):
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
             "form_fields": {
+                # ALL certs
+                "domain_names_http01": "required; a comma separated list of domain names to process",
+                "domain_names_dns01": "required; a comma separated list of domain names to process",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "key_technology": "what kind of keys to use?",
+                "note": "A string to associate with the RenewalConfiguration.",
+                # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
-                "key_technology": "what kind of keys to use?",
-                "domain_names_http01": "required; a comma separated list of domain names to process",
-                "domain_names_dns01": "required; a comma separated list of domain names to process",
-                "note": "A string to associate with the RenewalConfiguration.",
+                "acme_profile": "The name of an ACME Profile on the ACME Server",
+                # backup cert
+                "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
+                "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
+                "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
+                "acme_profile_backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
             },
+            "form_fields_related": [
+                ["domain_names_http01", "domain_names_dns01"],
+                [
+                    "account_key_option",
+                    "account_key_global_default",
+                    "account_key_existing",
+                    "acme_profile",
+                ],
+                [
+                    "account_key_option_backup",
+                    "account_key_global_backup",
+                    "account_key_existing_backup",
+                    "acme_profile_backup",
+                ],
+            ],
             "valid_options": {
                 "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new_configuration.fields[
                     "account_key_option"
+                ].list,
+                "account_key_option_backup": Form_RenewalConfig_new.fields[
+                    "account_key_option_backup"
                 ].list,
                 "private_key_cycle": Form_RenewalConfig_new_configuration.fields[
                     "private_key_cycle"
@@ -619,9 +642,6 @@ class View_Focus_New(View_Focus):
                     "key_technology"
                 ].list,
             },
-            "form_fields_related": [
-                ["domain_names_http01", "domain_names_dns01"],
-            ],
             "examples": [
                 """curl """
                 """--form 'account_key_option=global_default' """
@@ -1006,24 +1026,46 @@ class View_New(Handler):
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/new.json",
             "form_fields": {
+                # ALL certs
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "key_technology": "what kind of keys to use?",
+                "note": "A string to associate with the RenewalConfiguration.",
+                # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
-                "key_technology": "what kind of keys to use?",
                 "acme_profile": "The name of an ACME Profile on the ACME Server",
-                "note": "A string to associate with the RenewalConfiguration.",
+                # backup cert
+                "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
+                "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
+                "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
+                "acme_profile_backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
+                [
+                    "account_key_option",
+                    "account_key_global_default",
+                    "account_key_existing",
+                    "acme_profile",
+                ],
+                [
+                    "account_key_option_backup",
+                    "account_key_global_backup",
+                    "account_key_existing_backup",
+                    "acme_profile_backup",
+                ],
             ],
             "valid_options": {
                 "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new.fields[
                     "account_key_option"
+                ].list,
+                "account_key_option_backup": Form_RenewalConfig_new.fields[
+                    "account_key_option_backup"
                 ].list,
                 "private_key_cycle": Form_RenewalConfig_new.fields[
                     "private_key_cycle"

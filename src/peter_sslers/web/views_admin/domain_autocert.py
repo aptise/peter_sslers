@@ -20,11 +20,11 @@ class View_List(Handler):
         renderer="/admin/domain_autocerts.mako",
     )
     @view_config(
-        route_name="admin:domain_autocerts_paginated",
+        route_name="admin:domain_autocerts-paginated",
         renderer="/admin/domain_autocerts.mako",
     )
     @view_config(route_name="admin:domain_autocerts|json", renderer="json")
-    @view_config(route_name="admin:domain_autocerts_paginated|json", renderer="json")
+    @view_config(route_name="admin:domain_autocerts-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/domain-autocerts.json",

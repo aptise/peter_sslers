@@ -23,12 +23,12 @@ class View_List(Handler):
         renderer="/admin/uniquely_challenged_fqdn_sets.mako",
     )
     @view_config(
-        route_name="admin:uniquely_challenged_fqdn_sets_paginated",
+        route_name="admin:uniquely_challenged_fqdn_sets-paginated",
         renderer="/admin/uniquely_challenged_fqdn_sets.mako",
     )
     @view_config(route_name="admin:uniquely_challenged_fqdn_sets|json", renderer="json")
     @view_config(
-        route_name="admin:uniquely_challenged_fqdn_sets_paginated|json", renderer="json"
+        route_name="admin:uniquely_challenged_fqdn_sets-paginated|json", renderer="json"
     )
     @docify(
         {
@@ -135,7 +135,7 @@ class View_Focus(Handler):
         renderer="/admin/uniquely_challenged_fqdn_set-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:uniquely_challenged_fqdn_set:focus:acme_orders_paginated",
+        route_name="admin:uniquely_challenged_fqdn_set:focus:acme_orders-paginated",
         renderer="/admin/uniquely_challenged_fqdn_set-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -168,7 +168,7 @@ class View_Focus(Handler):
         renderer="/admin/uniquely_challenged_fqdn_set-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:uniquely_challenged_fqdn_set:focus:certificate_signeds_paginated",
+        route_name="admin:uniquely_challenged_fqdn_set:focus:certificate_signeds-paginated",
         renderer="/admin/uniquely_challenged_fqdn_set-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -199,7 +199,7 @@ class View_Focus(Handler):
         renderer="/admin/uniquely_challenged_fqdn_set-focus-renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:uniquely_challenged_fqdn_set:focus:renewal_configurations_paginated",
+        route_name="admin:uniquely_challenged_fqdn_set:focus:renewal_configurations-paginated",
         renderer="/admin/uniquely_challenged_fqdn_set-focus-renewal_configurations.mako",
     )
     def related__RenewalConfigurations(self):

@@ -39,7 +39,7 @@ class View_List(Handler):
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:all_paginated",
+        route_name="admin:coverage_assurance_events:all-paginated",
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
@@ -47,18 +47,18 @@ class View_List(Handler):
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:unresolved_paginated",
+        route_name="admin:coverage_assurance_events:unresolved-paginated",
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(route_name="admin:coverage_assurance_events:all|json", renderer="json")
     @view_config(
-        route_name="admin:coverage_assurance_events:all_paginated|json", renderer="json"
+        route_name="admin:coverage_assurance_events:all-paginated|json", renderer="json"
     )
     @view_config(
         route_name="admin:coverage_assurance_events:unresolved|json", renderer="json"
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:unresolved_paginated|json",
+        route_name="admin:coverage_assurance_events:unresolved-paginated|json",
         renderer="json",
     )
     @docify(
@@ -102,13 +102,13 @@ class View_List(Handler):
         unresolved_only = None
         if self.request.matched_route.name in (
             "admin:coverage_assurance_events:all",
-            "admin:coverage_assurance_events:all_paginated",
+            "admin:coverage_assurance_events:all-paginated",
         ):
             sidenav_option = "all"
             unresolved_only = False
         elif self.request.matched_route.name in (
             "admin:coverage_assurance_events:unresolved",
-            "admin:coverage_assurance_events:unresolved_paginated",
+            "admin:coverage_assurance_events:unresolved-paginated",
         ):
             sidenav_option = "unresolved"
             unresolved_only = True

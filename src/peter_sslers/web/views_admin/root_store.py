@@ -19,10 +19,10 @@ from ...model.objects import RootStore
 class View_List(Handler):
     @view_config(route_name="admin:root_stores", renderer="/admin/root_stores.mako")
     @view_config(
-        route_name="admin:root_stores_paginated", renderer="/admin/root_stores.mako"
+        route_name="admin:root_stores-paginated", renderer="/admin/root_stores.mako"
     )
     @view_config(route_name="admin:root_stores|json", renderer="json")
-    @view_config(route_name="admin:root_stores_paginated|json", renderer="json")
+    @view_config(route_name="admin:root_stores-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/root-stores.json",

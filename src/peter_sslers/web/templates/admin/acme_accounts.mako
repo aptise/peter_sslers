@@ -36,6 +36,31 @@
             .json
         </a>
     </p>
+
+    % if pager._current == 1:
+        <table class="table table-condensed">
+            <tr>
+                <th>Global Default</th>
+                <td>
+                    % if AcmeAccount_GlobalDefault:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeAccount-${AcmeAccount_GlobalDefault.id}</a>
+                    % endif            
+                </td>
+            </tr>
+            <tr>
+                <th>Global Backup</th>
+                <td>
+                    % if AcmeAccount_GlobalBackup:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeAccount-${AcmeAccount_GlobalBackup.id}</a>
+                    % endif            
+                </td>
+            </tr>
+        </table>
+    % endif
 </%block>
 
 

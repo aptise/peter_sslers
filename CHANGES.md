@@ -1,4 +1,4 @@
-1.0.0
+1.0.0.dev
     This is large rewrite and reorganization of concepts.
     
     This application was originally built to toss "domains" at, and then generate
@@ -140,16 +140,17 @@
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
 
-    Added a "note" to:
-        RenewalConfiguration
-        AcmeOrder
-
     AcmeAccount can now have a "name"
 
-    Supported on:
-        RenewalConfiguraiton new
-        RenewalConfiguraiton new-config
-        AcmeOrder new-freeform
+
+    "Notes:"
+        Added a "note" to:
+            RenewalConfiguration
+            AcmeOrder
+        Supported on:
+            RenewalConfiguration new
+            RenewalConfiguration new-config
+            AcmeOrder new-freeform
 
     Testing
         The test suite was overhauled

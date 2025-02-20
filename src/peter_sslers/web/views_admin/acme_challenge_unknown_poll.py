@@ -17,7 +17,7 @@ class View_List(Handler):
         renderer="/admin/acme_challenge_unknown_polls.mako",
     )
     @view_config(
-        route_name="admin:acme_challenge_unknown_polls_paginated",
+        route_name="admin:acme_challenge_unknown_polls-paginated",
         renderer="/admin/acme_challenge_unknown_polls.mako",
     )
     @view_config(
@@ -25,7 +25,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenge_unknown_polls_paginated|json",
+        route_name="admin:acme_challenge_unknown_polls-paginated|json",
         renderer="json",
     )
     @docify(

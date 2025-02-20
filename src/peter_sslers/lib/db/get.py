@@ -3242,6 +3242,61 @@ def get__RenewalConfigurations__by_AcmeAccountIdBackup__paginated(
     return items_paged
 
 
+def get__RenewalConfigurations__by_DomainId__count(
+    ctx: "ApiContext",
+    domain_id: int,
+    facet: Literal["all", "single", "multi"] = "all",
+) -> int:
+    q = (
+        ctx.dbSession.query(RenewalConfiguration)
+        .join(
+            UniqueFQDNSet, RenewalConfiguration.unique_fqdn_set_id == UniqueFQDNSet.id
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+    )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfigurations__by_DomainId__paginated(
+    ctx: "ApiContext",
+    domain_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+    facet: Literal["all", "single", "multi"] = "all",
+) -> List[RenewalConfiguration]:
+    q = (
+        ctx.dbSession.query(RenewalConfiguration)
+        .join(
+            UniqueFQDNSet, RenewalConfiguration.unique_fqdn_set_id == UniqueFQDNSet.id
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+    )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
 def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__count(
     ctx: "ApiContext",
     uniquely_challenged_fqdn_set_id: int,

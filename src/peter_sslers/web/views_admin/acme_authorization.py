@@ -33,7 +33,7 @@ class View_List(Handler):
         renderer="/admin/acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:acme_authorizations_paginated",
+        route_name="admin:acme_authorizations-paginated",
         renderer="/admin/acme_authorizations.mako",
     )
     @view_config(
@@ -41,7 +41,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_authorizations_paginated|json",
+        route_name="admin:acme_authorizations-paginated|json",
         renderer="json",
     )
     @docify(
@@ -186,7 +186,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_orders_paginated",
+        route_name="admin:acme_authorization:focus:acme_orders-paginated",
         renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -217,7 +217,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_authorization-focus-acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_challenges_paginated",
+        route_name="admin:acme_authorization:focus:acme_challenges-paginated",
         renderer="/admin/acme_authorization-focus-acme_challenges.mako",
     )
     def related__AcmeChallenges(self):

@@ -1,6 +1,7 @@
 # stdlib
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,7 @@ from ...model.objects import CertificateCAPreference
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+    from ...model.objects import AcmeAccount
 
 
 # misc config options
@@ -74,8 +76,8 @@ class Handler(object):
     request: "Request"
 
     #: The default :class:`model.objects.AcmeAccount`
-    dbAcmeAccount_GlobalDefault = None
-    dbAcmeAccount_GlobalBackup = None
+    dbAcmeAccount_GlobalDefault: Optional["AcmeAccount"] = None
+    dbAcmeAccount_GlobalBackup: Optional["AcmeAccount"] = None
 
     def __init__(self, request: "Request"):
         """

@@ -39,14 +39,14 @@ class View_List(Handler):
         renderer="/admin/ari_checks.mako",
     )
     @view_config(
-        route_name="admin:ari_checks:all_paginated", renderer="/admin/ari_checks.mako"
+        route_name="admin:ari_checks:all-paginated", renderer="/admin/ari_checks.mako"
     )
     @view_config(
-        route_name="admin:ari_checks:cert_latest_paginated",
+        route_name="admin:ari_checks:cert_latest-paginated",
         renderer="/admin/ari_checks.mako",
     )
     @view_config(
-        route_name="admin:ari_checks:cert_latest_overdue_paginated",
+        route_name="admin:ari_checks:cert_latest_overdue-paginated",
         renderer="/admin/ari_checks.mako",
     )
     @view_config(route_name="admin:ari_checks:all|json", renderer="json")
@@ -54,12 +54,12 @@ class View_List(Handler):
     @view_config(
         route_name="admin:ari_checks:cert_latest_overdue|json", renderer="json"
     )
-    @view_config(route_name="admin:ari_checks:all_paginated|json", renderer="json")
+    @view_config(route_name="admin:ari_checks:all-paginated|json", renderer="json")
     @view_config(
-        route_name="admin:ari_checks:cert_latest_paginated|json", renderer="json"
+        route_name="admin:ari_checks:cert_latest-paginated|json", renderer="json"
     )
     @view_config(
-        route_name="admin:ari_checks:cert_latest_overdue_paginated|json",
+        route_name="admin:ari_checks:cert_latest_overdue-paginated|json",
         renderer="json",
     )
     @docify(
@@ -138,23 +138,23 @@ class View_List(Handler):
         sidenav_option = ""
         if self.request.matched_route.name in (
             "admin:ari_checks:all",
-            "admin:ari_checks:all_paginated",
+            "admin:ari_checks:all-paginated",
             "admin:ari_checks:all|json",
-            "admin:ari_checks:all_paginated|json",
+            "admin:ari_checks:all-paginated|json",
         ):
             sidenav_option = "all"
         elif self.request.matched_route.name in (
             "admin:ari_checks:cert_latest",
-            "admin:ari_checks:cert_latest_paginated",
+            "admin:ari_checks:cert_latest-paginated",
             "admin:ari_checks:cert_latest|json",
-            "admin:ari_checks:cert_latest_paginated|json",
+            "admin:ari_checks:cert_latest-paginated|json",
         ):
             sidenav_option = "cert-latest"
         elif self.request.matched_route.name in (
             "admin:ari_checks:cert_latest_overdue",
-            "admin:ari_checks:cert_latest_overdue_paginated",
+            "admin:ari_checks:cert_latest_overdue-paginated",
             "admin:ari_checks:cert_latest_overdue|json",
-            "admin:ari_checks:cert_latest_overdue_paginated|json",
+            "admin:ari_checks:cert_latest_overdue-paginated|json",
         ):
             sidenav_option = "cert-latest-overdue"
 

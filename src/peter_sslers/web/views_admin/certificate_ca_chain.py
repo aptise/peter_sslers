@@ -28,12 +28,12 @@ class View_List(Handler):
         renderer="/admin/certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca_chains_paginated",
+        route_name="admin:certificate_ca_chains-paginated",
         renderer="/admin/certificate_ca_chains.mako",
     )
     @view_config(route_name="admin:certificate_ca_chains|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_ca_chains_paginated|json", renderer="json"
+        route_name="admin:certificate_ca_chains-paginated|json", renderer="json"
     )
     @docify(
         {

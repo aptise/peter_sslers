@@ -217,6 +217,16 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>RenewalConfigurations</th>
+                        <td>
+                            ${admin_partials.table_RenewalConfigurations(Domain.renewal_configurations__5, perspective="Domain")}
+                            % if Domain.renewal_configurations__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/renewal-configurations" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
                         <th>UniquelyChallengedFQDNSets</th>
                         <td>
                             ${admin_partials.table_UniquelyChallengedFQDNSets([i.uniquely_challenged_fqdn_set for i in Domain.to_uniquely_challenged_fqdn_sets__5], perspective="Domain")}

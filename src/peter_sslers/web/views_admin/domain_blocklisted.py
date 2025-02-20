@@ -19,11 +19,11 @@ class View_List(Handler):
         renderer="/admin/domains_blocklisted.mako",
     )
     @view_config(
-        route_name="admin:domains_blocklisted_paginated",
+        route_name="admin:domains_blocklisted-paginated",
         renderer="/admin/domains_blocklisted.mako",
     )
     @view_config(route_name="admin:domains_blocklisted|json", renderer="json")
-    @view_config(route_name="admin:domains_blocklisted_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains_blocklisted-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/domain-blocklisteds.json",

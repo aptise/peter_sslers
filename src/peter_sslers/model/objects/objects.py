@@ -3739,6 +3739,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             # - -
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
+            "certificate_signeds__single_primary_5": [],
+            "certificate_signeds__single_backup_5": [],
             "domain_name": self.domain_name,
         }
         if self.certificate_signed_id__latest_multi:
@@ -3746,13 +3748,36 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 "id": self.certificate_signed_id__latest_multi,
                 "timestamp_not_after": self.certificate_signed__latest_multi.timestamp_not_after_isoformat,
                 "expiring_days": self.certificate_signed__latest_multi.expiring_days,
+                "is_active": self.certificate_signed__latest_multi.is_active,
             }
         if self.certificate_signed_id__latest_single:
             payload["certificate__latest_single"] = {
                 "id": self.certificate_signed_id__latest_single,
                 "timestamp_not_after": self.certificate_signed__latest_single.timestamp_not_after_isoformat,
                 "expiring_days": self.certificate_signed__latest_single.expiring_days,
+                "is_active": self.certificate_signed__latest_single.is_active,
             }
+
+        if self.certificate_signeds__single_primary_5:
+            payload["certificate_signeds__single_primary_5"] = [
+                {
+                    "id": i.id,
+                    "timestamp_not_after": i.timestamp_not_after_isoformat,
+                    "expiring_days": i.expiring_days,
+                    "is_active": i.is_active,
+                }
+                for i in self.certificate_signeds__single_primary_5
+            ]
+        if self.certificate_signeds__single_backup_5:
+            payload["certificate_signeds__single_backup_5"] = [
+                {
+                    "id": i.id,
+                    "timestamp_not_after": i.timestamp_not_after_isoformat,
+                    "expiring_days": i.expiring_days,
+                    "is_active": i.is_active,
+                }
+                for i in self.certificate_signeds__single_backup_5
+            ]
         return payload
 
     def as_json_config(self, id_only=False):

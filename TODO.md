@@ -16,12 +16,6 @@ AUDIT:
     acme_order__latest_attempt
     acme_order__latest_success    
     
-
-this needs the exc caught when servers are down
-    http://127.0.0.1:7201/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True    
-
-
-
 Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
@@ -54,27 +48,18 @@ Blocking:
 
 acme-account register
     https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.3
-
         urn:ietf:params:acme:error:userActionRequired
-    
-     Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
-
-# profiles
-    Todo: if requesting an order with a profile:
-        checkt o see if the server offers it
-        if the server doesn't, raise an execption
-        allow a chance to inspect the server too
-    Todo:
-        test with valid profile
-        test with invalid profile
+        Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
+    External Account Binding
 
 Tests:
     AcmeAccounts:
         test to ensure a Default can't be set to the same server as Backup
         test to ensure a Backup can't be set to the same server as Default
-    
-TODO:
-    ensure 2 acme accounts don't have the same key; it messes up the 
+        ensure 2 acme accounts don't have the same key
+    AcmeOrder:
+        test with valid profile
+        test with invalid profile
     
 
 Not Urgent 

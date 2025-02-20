@@ -100,7 +100,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:all_paginated",
+        route_name="admin:certificate_signeds:all-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -108,7 +108,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:active_paginated",
+        route_name="admin:certificate_signeds:active-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -116,7 +116,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:active_expired_paginated",
+        route_name="admin:certificate_signeds:active_expired-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -124,7 +124,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:expiring_paginated",
+        route_name="admin:certificate_signeds:expiring-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -132,7 +132,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:inactive_paginated",
+        route_name="admin:certificate_signeds:inactive-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -140,37 +140,37 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:inactive_unexpired_paginated",
+        route_name="admin:certificate_signeds:inactive_unexpired-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(route_name="admin:certificate_signeds:all|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:all_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:all-paginated|json", renderer="json"
     )
     @view_config(route_name="admin:certificate_signeds:active|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:active_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:active-paginated|json", renderer="json"
     )
     @view_config(
         route_name="admin:certificate_signeds:active_expired|json", renderer="json"
     )
     @view_config(
-        route_name="admin:certificate_signeds:active_expired_paginated|json",
+        route_name="admin:certificate_signeds:active_expired-paginated|json",
         renderer="json",
     )
     @view_config(route_name="admin:certificate_signeds:expiring|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:expiring_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:expiring-paginated|json", renderer="json"
     )
     @view_config(route_name="admin:certificate_signeds:inactive|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:inactive_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:inactive-paginated|json", renderer="json"
     )
     @view_config(
         route_name="admin:certificate_signeds:inactive_unexpired|json", renderer="json"
     )
     @view_config(
-        route_name="admin:certificate_signeds:inactive_unexpired_paginated|json",
+        route_name="admin:certificate_signeds:inactive_unexpired-paginated|json",
         renderer="json",
     )
     @docify(
@@ -285,9 +285,9 @@ class View_List(Handler):
         expiring_days = self.request.api_context.application_settings["expiring_days"]
         if self.request.matched_route.name in (
             "admin:certificate_signeds:expiring",
-            "admin:certificate_signeds:expiring_paginated",
+            "admin:certificate_signeds:expiring-paginated",
             "admin:certificate_signeds:expiring|json",
-            "admin:certificate_signeds:expiring_paginated|json",
+            "admin:certificate_signeds:expiring-paginated|json",
         ):
             sidenav_option = "expiring"
             url_template = (
@@ -308,9 +308,9 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:certificate_signeds:active",
-            "admin:certificate_signeds:active_paginated",
+            "admin:certificate_signeds:active-paginated",
             "admin:certificate_signeds:active|json",
-            "admin:certificate_signeds:active_paginated|json",
+            "admin:certificate_signeds:active-paginated|json",
         ):
             sidenav_option = "active"
             url_template = (
@@ -331,9 +331,9 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:certificate_signeds:active_expired",
-            "admin:certificate_signeds:active_expired_paginated",
+            "admin:certificate_signeds:active_expired-paginated",
             "admin:certificate_signeds:active_expired|json",
-            "admin:certificate_signeds:active_expired_paginated|json",
+            "admin:certificate_signeds:active_expired-paginated|json",
         ):
             sidenav_option = "active-expired"
             url_template = (
@@ -355,9 +355,9 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:certificate_signeds:inactive",
-            "admin:certificate_signeds:inactive_paginated",
+            "admin:certificate_signeds:inactive-paginated",
             "admin:certificate_signeds:inactive|json",
-            "admin:certificate_signeds:inactive_paginated|json",
+            "admin:certificate_signeds:inactive-paginated|json",
         ):
             sidenav_option = "inactive"
             url_template = (
@@ -378,9 +378,9 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:certificate_signeds:inactive_unexpired",
-            "admin:certificate_signeds:inactive_unexpired_paginated",
+            "admin:certificate_signeds:inactive_unexpired-paginated",
             "admin:certificate_signeds:inactive_unexpired|json",
-            "admin:certificate_signeds:inactive_unexpired_paginated|json",
+            "admin:certificate_signeds:inactive_unexpired-paginated|json",
         ):
             sidenav_option = "inactive-unexpired"
             url_template = (
@@ -1012,7 +1012,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check_history__paginated",
+        route_name="admin:certificate_signed:focus:ari_check_history-paginated",
         renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
     @view_config(
@@ -1020,7 +1020,7 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:ari_check_history__paginated|json",
+        route_name="admin:certificate_signed:focus:ari_check_history-paginated|json",
         renderer="json",
     )
     def ari_check_history(self):

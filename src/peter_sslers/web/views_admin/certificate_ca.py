@@ -33,11 +33,11 @@ class View_List(Handler):
         route_name="admin:certificate_cas", renderer="/admin/certificate_cas.mako"
     )
     @view_config(
-        route_name="admin:certificate_cas_paginated",
+        route_name="admin:certificate_cas-paginated",
         renderer="/admin/certificate_cas.mako",
     )
     @view_config(route_name="admin:certificate_cas|json", renderer="json")
-    @view_config(route_name="admin:certificate_cas_paginated|json", renderer="json")
+    @view_config(route_name="admin:certificate_cas-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/certificate-cas.json",
@@ -573,7 +573,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_paginated",
+        route_name="admin:certificate_ca:focus:certificate_signeds-paginated",
         renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -608,7 +608,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_alt_paginated",
+        route_name="admin:certificate_ca:focus:certificate_signeds_alt-paginated",
         renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
     def related__CertificateSignedsAlt(self):
@@ -641,7 +641,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+        route_name="admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
@@ -649,7 +649,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
+        route_name="admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     def related__CertificateCAChains(self):
@@ -658,7 +658,7 @@ class View_Focus(Handler):
         accessor = None
         if self.request.matched_route.name in (
             "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
         ):
             url_template = "%s/certificate-ca-chains-0/{0}" % self.focus_url
             func_count = lib_db.get.get__CertificateCAChain__by_CertificateCAId0__count

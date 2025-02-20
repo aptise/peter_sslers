@@ -37,10 +37,10 @@ log.setLevel(logging.INFO)
 class View_List(Handler):
     @view_config(route_name="admin:private_keys", renderer="/admin/private_keys.mako")
     @view_config(
-        route_name="admin:private_keys_paginated", renderer="/admin/private_keys.mako"
+        route_name="admin:private_keys-paginated", renderer="/admin/private_keys.mako"
     )
     @view_config(route_name="admin:private_keys|json", renderer="json")
-    @view_config(route_name="admin:private_keys_paginated|json", renderer="json")
+    @view_config(route_name="admin:private_keys-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/private-keys.json",
@@ -180,7 +180,7 @@ class View_Focus(Handler):
         renderer="/admin/private_key-focus-certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:private_key:focus:certificate_requests_paginated",
+        route_name="admin:private_key:focus:certificate_requests-paginated",
         renderer="/admin/private_key-focus-certificate_requests.mako",
     )
     def related__CertificateRequests(self):
@@ -211,7 +211,7 @@ class View_Focus(Handler):
         renderer="/admin/private_key-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:private_key:focus:certificate_signeds_paginated",
+        route_name="admin:private_key:focus:certificate_signeds-paginated",
         renderer="/admin/private_key-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):

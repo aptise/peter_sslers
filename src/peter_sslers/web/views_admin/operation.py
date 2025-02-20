@@ -55,7 +55,7 @@ class ViewAdminOperations(Handler):
         route_name="admin:operations:log", renderer="/admin/operations-log.mako"
     )
     @view_config(
-        route_name="admin:operations:log_paginated",
+        route_name="admin:operations:log-paginated",
         renderer="/admin/operations-log.mako",
     )
     def operations_log(self):
@@ -127,7 +127,7 @@ class ViewAdminOperations(Handler):
         route_name="admin:operations:redis", renderer="/admin/operations-redis.mako"
     )
     @view_config(
-        route_name="admin:operations:redis_paginated",
+        route_name="admin:operations:redis-paginated",
         renderer="/admin/operations-redis.mako",
     )
     def admin_redis(self):
@@ -193,7 +193,7 @@ class ViewAdminOperations(Handler):
         route_name="admin:operations:nginx", renderer="/admin/operations-nginx.mako"
     )
     @view_config(
-        route_name="admin:operations:nginx_paginated",
+        route_name="admin:operations:nginx-paginated",
         renderer="/admin/operations-nginx.mako",
     )
     def admin_nginx(self):
@@ -260,7 +260,7 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-object_log.mako",
     )
     @view_config(
-        route_name="admin:operations:object_log_paginated",
+        route_name="admin:operations:object_log-paginated",
         renderer="/admin/operations-object_log.mako",
     )
     def object_log(self):

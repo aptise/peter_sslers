@@ -1,4 +1,5 @@
 # stlib
+import logging
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -36,14 +37,18 @@ from ...model.objects import AcmeAccount
 # ==============================================================================
 
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+
 class View_List(Handler):
     @view_config(route_name="admin:acme_accounts", renderer="/admin/acme_accounts.mako")
     @view_config(
-        route_name="admin:acme_accounts_paginated",
+        route_name="admin:acme_accounts-paginated",
         renderer="/admin/acme_accounts.mako",
     )
     @view_config(route_name="admin:acme_accounts|json", renderer="json")
-    @view_config(route_name="admin:acme_accounts_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_accounts-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/acme-accounts.json",
@@ -63,6 +68,8 @@ class View_List(Handler):
         }
     )
     def list(self):
+        self._load_AcmeAccount_GlobalBackup()
+        self._load_AcmeAccount_GlobalDefault()
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
             "%s/acme-accounts/{0}"
@@ -76,15 +83,31 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             _accounts = {k.id: k.as_json for k in items_paged}
-            return {
+            rval = {
                 "AcmeAccounts": _accounts,
                 "pagination": json_pagination(items_count, pager),
             }
+            if pager._current == 1:
+                rval["globals"] = {
+                    "default": (
+                        self.dbAcmeAccount_GlobalDefault.as_json
+                        if self.dbAcmeAccount_GlobalDefault
+                        else {}
+                    ),
+                    "backup": (
+                        self.dbAcmeAccount_GlobalBackup.as_json
+                        if self.dbAcmeAccount_GlobalBackup
+                        else {}
+                    ),
+                }
+            return rval
         return {
             "project": "peter_sslers",
             "AcmeAccounts_count": items_count,
             "AcmeAccounts": items_paged,
             "pager": pager,
+            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
+            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
         }
 
 
@@ -600,7 +623,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_authorizations_paginated",
+        route_name="admin:acme_account:focus:acme_authorizations-paginated",
         renderer="/admin/acme_account-focus-acme_authorizations.mako",
     )
     @view_config(
@@ -608,7 +631,7 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_authorizations_paginated|json",
+        route_name="admin:acme_account:focus:acme_authorizations-paginated|json",
         renderer="json",
     )
     @docify(
@@ -690,7 +713,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-acme_account_keys.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_account_keys_paginated",
+        route_name="admin:acme_account:focus:acme_account_keys-paginated",
         renderer="/admin/acme_account-focus-acme_account_keys.mako",
     )
     @view_config(
@@ -698,7 +721,7 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_account_keys_paginated|json",
+        route_name="admin:acme_account:focus:acme_account_keys-paginated|json",
         renderer="json",
     )
     @docify(
@@ -757,7 +780,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:acme_orders_paginated",
+        route_name="admin:acme_account:focus:acme_orders-paginated",
         renderer="/admin/acme_account-focus-acme_orders.mako",
     )
     @docify(
@@ -806,7 +829,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-private_keys.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:private_keys_paginated",
+        route_name="admin:acme_account:focus:private_keys-paginated",
         renderer="/admin/acme_account-focus-private_keys.mako",
     )
     @docify(
@@ -855,7 +878,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:certificate_signeds_paginated",
+        route_name="admin:acme_account:focus:certificate_signeds-paginated",
         renderer="/admin/acme_account-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -888,7 +911,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:renewal_configurations_paginated",
+        route_name="admin:acme_account:focus:renewal_configurations-paginated",
         renderer="/admin/acme_account-focus-renewal_configurations.mako",
     )
     def related__RenewalConfigurations(self):
@@ -920,7 +943,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:renewal_configurations_backup_paginated",
+        route_name="admin:acme_account:focus:renewal_configurations_backup-paginated",
         renderer="/admin/acme_account-focus-renewal_configurations.mako",
     )
     def related__RenewalConfigurations_backup(self):
@@ -954,7 +977,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_account-focus-terms_of_service.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:terms_of_service_paginated",
+        route_name="admin:acme_account:focus:terms_of_service-paginated",
         renderer="/admin/acme_account-focus-terms_of_service.mako",
     )
     def related__TermsOfService(self):
@@ -1216,17 +1239,19 @@ class View_Focus_Manipulate(View_Focus):
         this just hits the api, hoping we authenticate correctly.
         """
         dbAcmeAccount = self._focus()
+        _message: Optional[str] = None
         if not dbAcmeAccount.is_can_authenticate:
-            error_message = "This AcmeAccount can not Authenticate"
+            _message = "This AcmeAccount can not Authenticate"
             if self.request.wants_json:
                 return {
-                    "error": error_message,
+                    "result": "error",
+                    "error": _message,
                 }
             url_error = (
                 "%s?result=error&error=%s&operation=acme-server--authenticate"
                 % (
                     self._focus_url,
-                    error_message.replace(" ", "+"),
+                    _message.replace(" ", "+"),
                 )
             )
             return HTTPSeeOther(url_error)
@@ -1250,27 +1275,47 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()  # noqa: F841
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
+        _result: Optional[str] = None
+        _message: Optional[str] = None
+        is_authenticated: bool = False
         try:
             authenticatedUser = (  # noqa: F841
                 lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
                     self.request.api_context, dbAcmeAccount, onlyReturnExisting=False
                 )
             )
+            _result = "success"
+            is_authenticated = True
         except errors.AcmeDuplicateAccount as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "error": "AcmeDuplicateAccount detected"}
+                return {
+                    "result": "error",
+                    "error": "AcmeDuplicateAccount detected",
+                }
             return HTTPSeeOther(
                 "%s?result=error&operation=acme-server--authenticate&error=AcmeDuplicateAccount+detected"
                 % self._focus_url
             )
         except errors.AcmeServerError as exc:
             # (status_code, resp_data, url) = exc
-            raise exc
+            log.critical(exc)
+            _result = "error"
+            _message = "AcmeServerError"
+        except Exception as exc:
+            log.critical(exc)
+            _result = "error"
+            _message = str(exc)
+
         if self.request.wants_json:
-            return {"AcmeAccount": dbAcmeAccount.as_json}
+            return {
+                "AcmeAccount": dbAcmeAccount.as_json,
+                "is_authenticated": is_authenticated,
+                "result": _result,
+                "message": _message,
+            }
         return HTTPSeeOther(
-            "%s?result=success&operation=acme-server--authenticate&is_authenticated=%s"
-            % (self._focus_url, True)
+            "%s?result=%s&operation=acme-server--authenticate&is_authenticated=%s"
+            % (self._focus_url, _result, is_authenticated)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1331,8 +1376,10 @@ class View_Focus_Manipulate(View_Focus):
         # result is either: `existing-account` or ERROR
         # failing will raise an exception
         # passing in `onlyReturnExisting` will log the "check"
-        _result = None
-        _message = None
+        _result: Optional[str] = None
+        _message: Optional[str] = None
+        is_checked: bool = False
+        # outer try block is
         try:
             checkedUser = (  # noqa: F841
                 lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
@@ -1340,6 +1387,7 @@ class View_Focus_Manipulate(View_Focus):
                 )
             )
             _result = "success"
+            is_checked = True
         except errors.AcmeDuplicateAccount as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "error": "AcmeDuplicateAccount detected"}
@@ -1349,26 +1397,30 @@ class View_Focus_Manipulate(View_Focus):
             )
         except errors.AcmeServerError as exc:
             # (status_code, resp_data, url) = exc
+            log.critical(exc)
+            _result = "error"
+            _message = "AcmeServerError"
             # only catch this if `onlyReturnExisting` and there is an DNE error
             if (exc.args[0] == 400) and (
                 exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
             ):
-                _result = "error"
                 if "detail" in exc.args[1]:
                     _message = exc.args[1]["detail"]
-            else:
-                raise
+        except Exception as exc:
+            log.critical(exc)
+            _result = "error"
+            _message = str(exc)
         if self.request.wants_json:
             return {
                 "AcmeAccount": dbAcmeAccount.as_json,
-                "is_checked": True,
+                "is_checked": is_checked,
                 "result": _result,
                 "message": _message,
             }
         _message = quote_plus(_message) if _message else ""
         return HTTPSeeOther(
-            "%s?result=success&operation=acme-server--check&is_checked=%s&result=%s&message=%s"
-            % (self._focus_url, True, _result, _message)
+            "%s?result=%s&operation=acme-server--check&is_checked=%s&message=%s"
+            % (self._focus_url, _result, is_checked, _message)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1552,6 +1604,7 @@ class View_Focus_Manipulate(View_Focus):
     def focus__acme_server_deactivate_pending_authorizations(self):
         """
         this just hits the api, hoping we authenticate correctly.
+        this form is available on the URL that lists all the authz for the account
         """
         dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_authenticate:
@@ -1588,36 +1641,39 @@ class View_Focus_Manipulate(View_Focus):
     def _focus__acme_server_deactivate_pending_authorizations__submit(self):
         dbAcmeAccount = self._focus()  # noqa: F841
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_AcmeAccount_deactivate_authorizations,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            if not formStash.results["acme_authorization_id"]:
-                # `formStash.fatal_form()` will raise `FormInvalid()`
-                formStash.fatal_form(
-                    "You must supply at least one `acme_authorization_id` to deactivate."
+            try:
+                (result, formStash) = formhandling.form_validate(
+                    self.request,
+                    schema=Form_AcmeAccount_deactivate_authorizations,
+                    validate_get=False,
                 )
+                if not result:
+                    raise formhandling.FormInvalid()
 
-            results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
-                self.request.api_context,
-                dbAcmeAccount=dbAcmeAccount,
-                acme_authorization_ids=formStash.results["acme_authorization_id"],
-            )
-            if self.request.wants_json:
-                return {
-                    "result": "success",
-                    "results": results,
-                    "AcmeAccount": dbAcmeAccount.as_json,
-                }
+                if not formStash.results["acme_authorization_id"]:
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form(
+                        "You must supply at least one `acme_authorization_id` to deactivate."
+                    )
 
-            return HTTPSeeOther(
-                "%s/acme-authorizations?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"
-                % (self._focus_url,)
-            )
+                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
+                    self.request.api_context,
+                    dbAcmeAccount=dbAcmeAccount,
+                    acme_authorization_ids=formStash.results["acme_authorization_id"],
+                )
+                if self.request.wants_json:
+                    return {
+                        "result": "success",
+                        "results": results,
+                        "AcmeAccount": dbAcmeAccount.as_json,
+                    }
+
+                return HTTPSeeOther(
+                    "%s/acme-authorizations?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"
+                    % (self._focus_url,)
+                )
+            except Exception as exc:
+                formStash.fatal_form(message=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -1688,44 +1744,49 @@ class View_Focus_Manipulate(View_Focus):
     def _focus__acme_server_deactivate__submit(self):
         dbAcmeAccount = self._focus()  # noqa: F841
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_AcmeAccount_deactivate,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # `key_pem` can match the full or md5
-            _key_pem = formStash.results["key_pem"]
-            if _key_pem != dbAcmeAccount.acme_account_key.key_pem_md5:
-                _key_pem = cert_utils.cleanup_pem_text(_key_pem)
-                if _key_pem != dbAcmeAccount.acme_account_key.key_pem:
-                    formStash.fatal_field(
-                        field="key_pem",
-                        message="This does not match the active account key",
-                    )
             try:
-                results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(  # noqa: F841
-                    self.request.api_context,
-                    dbAcmeAccount=dbAcmeAccount,
-                    transaction_commit=True,
+                (result, formStash) = formhandling.form_validate(
+                    self.request,
+                    schema=Form_AcmeAccount_deactivate,
+                    validate_get=False,
                 )
-            except errors.AcmeServerError as exc:
-                # (status_code, resp_data, url) = exc
-                if self._handle_potentially_deactivated(exc):
-                    formStash.fatal_form(message=str(exc.args[1]))
-                raise
-            if self.request.wants_json:
-                return {
-                    "result": "success",
-                    "AcmeAccount": dbAcmeAccount.as_json,
-                }
+                if not result:
+                    raise formhandling.FormInvalid()
 
-            return HTTPSeeOther(
-                "%s?result=success&operation=acme-server--deactivate"
-                % (self._focus_url,)
-            )
+                # `key_pem` can match the full or md5
+                _key_pem = formStash.results["key_pem"]
+                if _key_pem != dbAcmeAccount.acme_account_key.key_pem_md5:
+                    _key_pem = cert_utils.cleanup_pem_text(_key_pem)
+                    if _key_pem != dbAcmeAccount.acme_account_key.key_pem:
+                        formStash.fatal_field(
+                            field="key_pem",
+                            message="This does not match the active account key",
+                        )
+                try:
+                    results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(  # noqa: F841
+                        self.request.api_context,
+                        dbAcmeAccount=dbAcmeAccount,
+                        transaction_commit=True,
+                    )
+                except errors.AcmeServerError as exc:
+                    # (status_code, resp_data, url) = exc
+                    if self._handle_potentially_deactivated(exc):
+                        formStash.fatal_form(message=str(exc.args[1]))
+                    raise
+                if self.request.wants_json:
+                    return {
+                        "result": "success",
+                        "AcmeAccount": dbAcmeAccount.as_json,
+                    }
+
+                return HTTPSeeOther(
+                    "%s?result=success&operation=acme-server--deactivate"
+                    % (self._focus_url,)
+                )
+            except formhandling.FormInvalid:
+                raise
+            except Exception as exc:
+                formStash.fatal_form(message=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -1794,57 +1855,62 @@ class View_Focus_Manipulate(View_Focus):
     def _focus__acme_server_key_change__submit(self):
         dbAcmeAccount = self._focus()
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_AcmeAccount_key_change,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # `key_pem` can match the full or md5
-            _key_pem_old = formStash.results["key_pem_existing"]
-            if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem_md5:
-                _key_pem_old = cert_utils.cleanup_pem_text(_key_pem_old)
-                if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem:
-                    formStash.fatal_field(
-                        field="key_pem_existing",
-                        message="This does not match the active account key",
-                    )
-            is_did_keychange: bool = False
             try:
-                (athdUser, is_did_keychange) = (
-                    lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
-                        self.request.api_context,
-                        dbAcmeAccount=dbAcmeAccount,
-                        key_pem_new=None,
-                        transaction_commit=True,
-                    )
+                (result, formStash) = formhandling.form_validate(
+                    self.request,
+                    schema=Form_AcmeAccount_key_change,
+                    validate_get=False,
                 )
-            except errors.ConflictingObject as exc:
-                # args[0] = tuple(conflicting_object, error_message_string)
-                formStash.fatal_form(message=str(exc.args[0][1]))
+                if not result:
+                    raise formhandling.FormInvalid()
 
-            if self.request.wants_json:
-                if not is_did_keychange:
+                # `key_pem` can match the full or md5
+                _key_pem_old = formStash.results["key_pem_existing"]
+                if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem_md5:
+                    _key_pem_old = cert_utils.cleanup_pem_text(_key_pem_old)
+                    if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem:
+                        formStash.fatal_field(
+                            field="key_pem_existing",
+                            message="This does not match the active account key",
+                        )
+                is_did_keychange: bool = False
+                try:
+                    (athdUser, is_did_keychange) = (
+                        lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
+                            self.request.api_context,
+                            dbAcmeAccount=dbAcmeAccount,
+                            key_pem_new=None,
+                            transaction_commit=True,
+                        )
+                    )
+                except errors.ConflictingObject as exc:
+                    # args[0] = tuple(conflicting_object, error_message_string)
+                    formStash.fatal_form(message=str(exc.args[0][1]))
+
+                if self.request.wants_json:
+                    if not is_did_keychange:
+                        return {
+                            "result": "success",
+                            "AcmeAccount": dbAcmeAccount.as_json,
+                            "note": "A key was generated, but the change did not persist on the ACMEServer",
+                        }
                     return {
                         "result": "success",
                         "AcmeAccount": dbAcmeAccount.as_json,
-                        "note": "A key was generated, but the change did not persist on the ACMEServer",
                     }
-                return {
-                    "result": "success",
-                    "AcmeAccount": dbAcmeAccount.as_json,
-                }
-            if not is_did_keychange:
+                if not is_did_keychange:
+                    return HTTPSeeOther(
+                        "%s?&result=success&operation=acme-server--key-change&note=acme-server-failure"
+                        % (self._focus_url,)
+                    )
                 return HTTPSeeOther(
-                    "%s?&result=success&operation=acme-server--key-change&note=acme-server-failure"
+                    "%s?&result=success&operation=acme-server--key-change"
                     % (self._focus_url,)
                 )
-            return HTTPSeeOther(
-                "%s?&result=success&operation=acme-server--key-change"
-                % (self._focus_url,)
-            )
+            except formhandling.FormInvalid:
+                raise
+            except Exception as exc:
+                formStash.fatal_form(message=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}

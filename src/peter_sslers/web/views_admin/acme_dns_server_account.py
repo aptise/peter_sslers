@@ -21,11 +21,11 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_dns_server_accounts|json", renderer="json")
     @view_config(
-        route_name="admin:acme_dns_server_accounts_paginated",
+        route_name="admin:acme_dns_server_accounts-paginated",
         renderer="/admin/acme_dns_server_accounts.mako",
     )
     @view_config(
-        route_name="admin:acme_dns_server_accounts_paginated|json", renderer="json"
+        route_name="admin:acme_dns_server_accounts-paginated|json", renderer="json"
     )
     @docify(
         {

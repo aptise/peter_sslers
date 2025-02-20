@@ -105,14 +105,14 @@ class View_Focus(Handler):
         renderer="/admin/acme_server-focus-acme_accounts.mako",
     )
     @view_config(
-        route_name="admin:acme_server:focus:acme_accounts__paginated",
+        route_name="admin:acme_server:focus:acme_accounts-paginated",
         renderer="/admin/acme_server-focus-acme_accounts.mako",
     )
     @view_config(
         route_name="admin:acme_server:focus:acme_accounts|json", renderer="json"
     )
     @view_config(
-        route_name="admin:acme_server:focus:acme_accounts__paginated|json",
+        route_name="admin:acme_server:focus:acme_accounts-paginated|json",
         renderer="json",
     )
     @docify(
@@ -198,6 +198,7 @@ class View_Focus(Handler):
                     "result": "success",
                     "operation": "check-support",
                     "check-support": result,
+                    "AcmeServer": dbAcmeServer.as_json,
                 }
             url_result = (
                 "%s?result=success&operation=check-support&check-support=%s"

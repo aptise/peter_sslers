@@ -553,6 +553,14 @@ if False:
         def test_passes_alt_3(self):
             return True
 
+    class TestWSGI(AppTestWSGI):
+        def test_a(self):
+            """
+            python -m unittest tests.test_pyramid_app.test_a
+            this is only used to test setup
+            """
+            pass
+
 
 class FunctionalTests_Main(AppTest):
     """
@@ -625,14 +633,14 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_accounts", "admin:acme_accounts_paginated"))
+    @routes_tested(("admin:acme_accounts", "admin:acme_accounts-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/peter_sslers/acme-accounts", status=200)
         # paginated
         res = self.testapp.get("/.well-known/peter_sslers/acme-accounts/1", status=200)
 
-    @routes_tested(("admin:acme_accounts|json", "admin:acme_accounts_paginated|json"))
+    @routes_tested(("admin:acme_accounts|json", "admin:acme_accounts-paginated|json"))
     def test_list_json(self):
         # json root
         res = self.testapp.get(
@@ -650,21 +658,21 @@ class FunctionalTests_AcmeAccount(AppTest):
         (
             "admin:acme_account:focus",
             "admin:acme_account:focus:acme_account_keys",
-            "admin:acme_account:focus:acme_account_keys_paginated",
+            "admin:acme_account:focus:acme_account_keys-paginated",
             "admin:acme_account:focus:acme_authorizations",
-            "admin:acme_account:focus:acme_authorizations_paginated",
+            "admin:acme_account:focus:acme_authorizations-paginated",
             "admin:acme_account:focus:acme_orders",
-            "admin:acme_account:focus:acme_orders_paginated",
+            "admin:acme_account:focus:acme_orders-paginated",
             "admin:acme_account:focus:private_keys",
-            "admin:acme_account:focus:private_keys_paginated",
+            "admin:acme_account:focus:private_keys-paginated",
             "admin:acme_account:focus:certificate_signeds",
-            "admin:acme_account:focus:certificate_signeds_paginated",
+            "admin:acme_account:focus:certificate_signeds-paginated",
             "admin:acme_account:focus:renewal_configurations",
-            "admin:acme_account:focus:renewal_configurations_paginated",
+            "admin:acme_account:focus:renewal_configurations-paginated",
             "admin:acme_account:focus:renewal_configurations_backup",
-            "admin:acme_account:focus:renewal_configurations_backup_paginated",
+            "admin:acme_account:focus:renewal_configurations_backup-paginated",
             "admin:acme_account:focus:terms_of_service",
-            "admin:acme_account:focus:terms_of_service_paginated",
+            "admin:acme_account:focus:terms_of_service-paginated",
         )
     )
     def test_focus_html(self):
@@ -757,9 +765,9 @@ class FunctionalTests_AcmeAccount(AppTest):
             "admin:acme_account:focus|json",
             "admin:acme_account:focus:parse|json",
             "admin:acme_account:focus:acme_account_keys|json",
-            "admin:acme_account:focus:acme_account_keys_paginated|json",
+            "admin:acme_account:focus:acme_account_keys-paginated|json",
             "admin:acme_account:focus:acme_authorizations|json",
-            "admin:acme_account:focus:acme_authorizations_paginated|json",
+            "admin:acme_account:focus:acme_authorizations-paginated|json",
         )
     )
     def test_focus_json(self):
@@ -1132,7 +1140,7 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_authorizations", "admin:acme_authorizations_paginated"))
+    @routes_tested(("admin:acme_authorizations", "admin:acme_authorizations-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get(
@@ -1144,7 +1152,7 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         )
 
     @routes_tested(
-        ("admin:acme_authorizations|json", "admin:acme_authorizations_paginated|json")
+        ("admin:acme_authorizations|json", "admin:acme_authorizations-paginated|json")
     )
     def test_list_json(self):
         # json root
@@ -1162,9 +1170,9 @@ class FunctionalTests_AcmeAuthorization(AppTest):
         (
             "admin:acme_authorization:focus",
             "admin:acme_authorization:focus:acme_orders",
-            "admin:acme_authorization:focus:acme_orders_paginated",
+            "admin:acme_authorization:focus:acme_orders-paginated",
             "admin:acme_authorization:focus:acme_challenges",
-            "admin:acme_authorization:focus:acme_challenges_paginated",
+            "admin:acme_authorization:focus:acme_challenges-paginated",
         )
     )
     def test_focus_html(self):
@@ -1288,7 +1296,7 @@ class FunctionalTests_AcmeAuthorizationPotential(AppTest):
     @routes_tested(
         (
             "admin:acme_authorization_potentials",
-            "admin:acme_authorization_potentials_paginated",
+            "admin:acme_authorization_potentials-paginated",
         )
     )
     def test_list_html(self):
@@ -1304,7 +1312,7 @@ class FunctionalTests_AcmeAuthorizationPotential(AppTest):
     @routes_tested(
         (
             "admin:acme_authorization_potentials|json",
-            "admin:acme_authorization_potentials_paginated|json",
+            "admin:acme_authorization_potentials-paginated|json",
         )
     )
     def test_list_json(self):
@@ -1448,7 +1456,7 @@ class FunctionalTests_AcmeChallenge(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_challenges", "admin:acme_challenges_paginated"))
+    @routes_tested(("admin:acme_challenges", "admin:acme_challenges-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/peter_sslers/acme-challenges", status=200)
@@ -1476,7 +1484,7 @@ class FunctionalTests_AcmeChallenge(AppTest):
         )
 
     @routes_tested(
-        ("admin:acme_challenges|json", "admin:acme_challenges_paginated|json")
+        ("admin:acme_challenges|json", "admin:acme_challenges-paginated|json")
     )
     def test_list_json(self):
         # json root
@@ -1622,7 +1630,7 @@ class FunctionalTests_AcmeChallengePolls(AppTest):
     """
 
     @routes_tested(
-        ("admin:acme_challenge_polls", "admin:acme_challenge_polls_paginated")
+        ("admin:acme_challenge_polls", "admin:acme_challenge_polls-paginated")
     )
     def test_list_html(self):
         # root
@@ -1635,7 +1643,7 @@ class FunctionalTests_AcmeChallengePolls(AppTest):
         )
 
     @routes_tested(
-        ("admin:acme_challenge_polls|json", "admin:acme_challenge_polls_paginated|json")
+        ("admin:acme_challenge_polls|json", "admin:acme_challenge_polls-paginated|json")
     )
     def test_list_json(self):
         # json paginated
@@ -1661,7 +1669,7 @@ class FunctionalTests_AcmeChallengeUnknownPolls(AppTest):
     @routes_tested(
         (
             "admin:acme_challenge_unknown_polls",
-            "admin:acme_challenge_unknown_polls_paginated",
+            "admin:acme_challenge_unknown_polls-paginated",
         )
     )
     def test_list_html(self):
@@ -1677,7 +1685,7 @@ class FunctionalTests_AcmeChallengeUnknownPolls(AppTest):
     @routes_tested(
         (
             "admin:acme_challenge_unknown_polls|json",
-            "admin:acme_challenge_unknown_polls_paginated|json",
+            "admin:acme_challenge_unknown_polls-paginated|json",
         )
     )
     def test_list_json(self):
@@ -1715,7 +1723,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_dns_servers", "admin:acme_dns_servers_paginated"))
+    @routes_tested(("admin:acme_dns_servers", "admin:acme_dns_servers-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/peter_sslers/acme-dns-servers", status=200)
@@ -1725,7 +1733,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         )
 
     @routes_tested(
-        ("admin:acme_dns_servers|json", "admin:acme_dns_servers_paginated|json")
+        ("admin:acme_dns_servers|json", "admin:acme_dns_servers-paginated|json")
     )
     def test_list_json(self):
         # json root
@@ -1743,7 +1751,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         (
             "admin:acme_dns_server:focus",
             "admin:acme_dns_server:focus:acme_dns_server_accounts",
-            "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
+            "admin:acme_dns_server:focus:acme_dns_server_accounts-paginated",
         )
     )
     def test_focus_html(self):
@@ -1767,7 +1775,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         (
             "admin:acme_dns_server:focus|json",
             "admin:acme_dns_server:focus:acme_dns_server_accounts|json",
-            "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
+            "admin:acme_dns_server:focus:acme_dns_server_accounts-paginated|json",
         )
     )
     def test_focus_json(self):
@@ -2418,7 +2426,7 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         return focus_item, focus_item.id
 
     @routes_tested(
-        ("admin:acme_dns_server_accounts", "admin:acme_dns_server_accounts_paginated")
+        ("admin:acme_dns_server_accounts", "admin:acme_dns_server_accounts-paginated")
     )
     def test_list_html(self):
         # root
@@ -2433,7 +2441,7 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
     @routes_tested(
         (
             "admin:acme_dns_server_accounts|json",
-            "admin:acme_dns_server_accounts_paginated|json",
+            "admin:acme_dns_server_accounts-paginated|json",
         )
     )
     def test_list_json(self):
@@ -2480,7 +2488,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_event_log", "admin:acme_event_log_paginated"))
+    @routes_tested(("admin:acme_event_log", "admin:acme_event_log-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/peter_sslers/acme-event-logs", status=200)
@@ -2489,7 +2497,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
             "/.well-known/peter_sslers/acme-event-logs/1", status=200
         )
 
-    @routes_tested(("admin:acme_event_log|json", "admin:acme_event_log_paginated|json"))
+    @routes_tested(("admin:acme_event_log|json", "admin:acme_event_log-paginated|json"))
     def test_list_json(self):
         # json root
         res = self.testapp.get(
@@ -2552,11 +2560,11 @@ class FunctionalTests_AcmeOrder(AppTest):
         (
             "admin:acme_orders",
             "admin:acme_orders:all",
-            "admin:acme_orders:all_paginated",
+            "admin:acme_orders:all-paginated",
             "admin:acme_orders:active",
-            "admin:acme_orders:active_paginated",
+            "admin:acme_orders:active-paginated",
             "admin:acme_orders:finished",
-            "admin:acme_orders:finished_paginated",
+            "admin:acme_orders:finished-paginated",
         )
     )
     def test_list_html(self):
@@ -2586,11 +2594,11 @@ class FunctionalTests_AcmeOrder(AppTest):
         (
             "admin:acme_orders|json",
             "admin:acme_orders:all|json",
-            "admin:acme_orders:all_paginated|json",
+            "admin:acme_orders:all-paginated|json",
             "admin:acme_orders:active|json",
-            "admin:acme_orders:active_paginated|json",
+            "admin:acme_orders:active-paginated|json",
             "admin:acme_orders:finished|json",
-            "admin:acme_orders:finished_paginated|json",
+            "admin:acme_orders:finished-paginated|json",
         )
     )
     def test_list_json(self):
@@ -2661,7 +2669,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         (
             "admin:acme_order:focus",
             "admin:acme_order:focus:acme_event_logs",
-            "admin:acme_order:focus:acme_event_logs_paginated",
+            "admin:acme_order:focus:acme_event_logs-paginated",
             "admin:acme_order:focus:audit",
         )
     )
@@ -2865,7 +2873,7 @@ class FunctionalTests_AcmeServer(AppTest):
         (
             "admin:acme_server:focus",
             "admin:acme_server:focus:acme_accounts",
-            "admin:acme_server:focus:acme_accounts__paginated",
+            "admin:acme_server:focus:acme_accounts-paginated",
         )
     )
     def test_focus_html(self):
@@ -2912,7 +2920,7 @@ class FunctionalTests_AcmeServer(AppTest):
         (
             "admin:acme_server:focus|json",
             "admin:acme_server:focus:acme_accounts|json",
-            "admin:acme_server:focus:acme_accounts__paginated|json",
+            "admin:acme_server:focus:acme_accounts-paginated|json",
         )
     )
     def test_focus_json(self):
@@ -3043,11 +3051,11 @@ class FunctionalTests_AriCheck(AppTest):
         (
             "admin:ari_checks",
             "admin:ari_checks:all",
-            "admin:ari_checks:all_paginated",
+            "admin:ari_checks:all-paginated",
             "admin:ari_checks:cert_latest",
-            "admin:ari_checks:cert_latest_paginated",
+            "admin:ari_checks:cert_latest-paginated",
             "admin:ari_checks:cert_latest_overdue",
-            "admin:ari_checks:cert_latest_overdue_paginated",
+            "admin:ari_checks:cert_latest_overdue-paginated",
         )
     )
     def test_list_html(self):
@@ -3076,11 +3084,11 @@ class FunctionalTests_AriCheck(AppTest):
         (
             "admin:ari_checks|json",
             "admin:ari_checks:all|json",
-            "admin:ari_checks:all_paginated|json",
+            "admin:ari_checks:all-paginated|json",
             "admin:ari_checks:cert_latest|json",
-            "admin:ari_checks:cert_latest_paginated|json",
+            "admin:ari_checks:cert_latest-paginated|json",
             "admin:ari_checks:cert_latest_overdue|json",
-            "admin:ari_checks:cert_latest_overdue_paginated|json",
+            "admin:ari_checks:cert_latest_overdue-paginated|json",
         )
     )
     def test_list_json(self):
@@ -3146,7 +3154,7 @@ class FunctionalTests_CertificateCA(AppTest):
     @routes_tested(
         (
             "admin:certificate_cas",
-            "admin:certificate_cas_paginated",
+            "admin:certificate_cas-paginated",
         )
     )
     def test_list_html(self):
@@ -3160,7 +3168,7 @@ class FunctionalTests_CertificateCA(AppTest):
     @routes_tested(
         (
             "admin:certificate_cas|json",
-            "admin:certificate_cas_paginated|json",
+            "admin:certificate_cas-paginated|json",
         )
     )
     def test_list_json(self):
@@ -3181,11 +3189,11 @@ class FunctionalTests_CertificateCA(AppTest):
             "admin:certificate_ca:focus",
             "admin:certificate_ca:focus:raw",
             "admin:certificate_ca:focus:certificate_signeds",
-            "admin:certificate_ca:focus:certificate_signeds_paginated",
+            "admin:certificate_ca:focus:certificate_signeds-paginated",
             "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
             "admin:certificate_ca:focus:certificate_ca_chains_n",
-            "admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
         )
     )
     def test_focus_html(self):
@@ -3854,7 +3862,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
     @routes_tested(
         (
             "admin:certificate_ca_chains",
-            "admin:certificate_ca_chains_paginated",
+            "admin:certificate_ca_chains-paginated",
         )
     )
     def test_list_html(self):
@@ -3870,7 +3878,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
     @routes_tested(
         (
             "admin:certificate_ca_chains|json",
-            "admin:certificate_ca_chains_paginated|json",
+            "admin:certificate_ca_chains-paginated|json",
         )
     )
     def test_list_json(self):
@@ -4003,7 +4011,7 @@ class FunctionalTests_CertificateRequest(AppTest):
     @routes_tested(
         (
             "admin:certificate_requests",
-            "admin:certificate_requests_paginated",
+            "admin:certificate_requests-paginated",
         )
     )
     def test_list_html(self):
@@ -4020,7 +4028,7 @@ class FunctionalTests_CertificateRequest(AppTest):
     @routes_tested(
         (
             "admin:certificate_requests|json",
-            "admin:certificate_requests_paginated|json",
+            "admin:certificate_requests-paginated|json",
         )
     )
     def test_list_json(self):
@@ -4040,7 +4048,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         (
             "admin:certificate_request:focus",
             "admin:certificate_request:focus:acme_orders",
-            "admin:certificate_request:focus:acme_orders_paginated",
+            "admin:certificate_request:focus:acme_orders-paginated",
         )
     )
     def test_focus_html(self):
@@ -4171,17 +4179,17 @@ class FunctionalTests_CertificateSigned(AppTest):
         (
             "admin:certificate_signeds",
             "admin:certificate_signeds:all",
-            "admin:certificate_signeds:all_paginated",
+            "admin:certificate_signeds:all-paginated",
             "admin:certificate_signeds:active",
-            "admin:certificate_signeds:active_paginated",
+            "admin:certificate_signeds:active-paginated",
             "admin:certificate_signeds:expiring",
-            "admin:certificate_signeds:expiring_paginated",
+            "admin:certificate_signeds:expiring-paginated",
             "admin:certificate_signeds:inactive",
-            "admin:certificate_signeds:inactive_paginated",
+            "admin:certificate_signeds:inactive-paginated",
             "admin:certificate_signeds:active_expired",
-            "admin:certificate_signeds:active_expired_paginated",
+            "admin:certificate_signeds:active_expired-paginated",
             "admin:certificate_signeds:inactive_unexpired",
-            "admin:certificate_signeds:inactive_unexpired_paginated",
+            "admin:certificate_signeds:inactive_unexpired-paginated",
         )
     )
     def test_list_html(self):
@@ -4213,17 +4221,17 @@ class FunctionalTests_CertificateSigned(AppTest):
         (
             "admin:certificate_signeds|json",
             "admin:certificate_signeds:all|json",
-            "admin:certificate_signeds:all_paginated|json",
+            "admin:certificate_signeds:all-paginated|json",
             "admin:certificate_signeds:active|json",
-            "admin:certificate_signeds:active_paginated|json",
+            "admin:certificate_signeds:active-paginated|json",
             "admin:certificate_signeds:expiring|json",
-            "admin:certificate_signeds:expiring_paginated|json",
+            "admin:certificate_signeds:expiring-paginated|json",
             "admin:certificate_signeds:inactive|json",
-            "admin:certificate_signeds:inactive_paginated|json",
+            "admin:certificate_signeds:inactive-paginated|json",
             "admin:certificate_signeds:active_expired|json",
-            "admin:certificate_signeds:active_expired_paginated|json",
+            "admin:certificate_signeds:active_expired-paginated|json",
             "admin:certificate_signeds:inactive_unexpired|json",
-            "admin:certificate_signeds:inactive_unexpired_paginated|json",
+            "admin:certificate_signeds:inactive_unexpired-paginated|json",
         )
     )
     def test_list_json(self):
@@ -4260,7 +4268,7 @@ class FunctionalTests_CertificateSigned(AppTest):
         (
             "admin:certificate_signed:focus",
             "admin:certificate_signed:focus:ari_check_history",
-            "admin:certificate_signed:focus:ari_check_history__paginated",
+            "admin:certificate_signed:focus:ari_check_history-paginated",
         )
     )
     def test_focus_html(self):
@@ -4401,7 +4409,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             "admin:certificate_signed:focus:config|json",
             "admin:certificate_signed:focus:parse|json",
             "admin:certificate_signed:focus:ari_check_history|json",
-            "admin:certificate_signed:focus:ari_check_history__paginated|json",
+            "admin:certificate_signed:focus:ari_check_history-paginated|json",
         )
     )
     def test_focus_json(self):
@@ -4713,9 +4721,9 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         (
             "admin:coverage_assurance_events",
             "admin:coverage_assurance_events:all",
-            "admin:coverage_assurance_events:all_paginated",
+            "admin:coverage_assurance_events:all-paginated",
             "admin:coverage_assurance_events:unresolved",
-            "admin:coverage_assurance_events:unresolved_paginated",
+            "admin:coverage_assurance_events:unresolved-paginated",
         )
     )
     def test_list_html(self):
@@ -4747,9 +4755,9 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
     @routes_tested(
         (
             "admin:coverage_assurance_events:all|json",
-            "admin:coverage_assurance_events:all_paginated|json",
+            "admin:coverage_assurance_events:all-paginated|json",
             "admin:coverage_assurance_events:unresolved|json",
-            "admin:coverage_assurance_events:unresolved_paginated|json",
+            "admin:coverage_assurance_events:unresolved-paginated|json",
         )
     )
     def test_list_json(self):
@@ -4957,13 +4965,13 @@ class FunctionalTests_Domain(AppTest):
     @routes_tested(
         (
             "admin:domains",
-            "admin:domains_paginated",
+            "admin:domains-paginated",
             "admin:domains:challenged",
-            "admin:domains:challenged_paginated",
+            "admin:domains:challenged-paginated",
             "admin:domains:expiring",
-            "admin:domains:expiring_paginated",
+            "admin:domains:expiring-paginated",
             "admin:domains:authz_potential",
-            "admin:domains:authz_potential_paginated",
+            "admin:domains:authz_potential-paginated",
         )
     )
     def test_list_html(self):
@@ -4992,13 +5000,13 @@ class FunctionalTests_Domain(AppTest):
     @routes_tested(
         (
             "admin:domains|json",
-            "admin:domains_paginated|json",
+            "admin:domains-paginated|json",
             "admin:domains:challenged|json",
-            "admin:domains:challenged_paginated|json",
+            "admin:domains:challenged-paginated|json",
             "admin:domains:expiring|json",
-            "admin:domains:expiring_paginated|json",
+            "admin:domains:expiring-paginated|json",
             "admin:domains:authz_potential|json",
-            "admin:domains:authz_potential_paginated|json",
+            "admin:domains:authz_potential-paginated|json",
         )
     )
     def test_list_json(self):
@@ -5060,29 +5068,37 @@ class FunctionalTests_Domain(AppTest):
         (
             "admin:domain:focus",
             "admin:domain:focus:acme_authorizations",
-            "admin:domain:focus:acme_authorizations_paginated",
+            "admin:domain:focus:acme_authorizations-paginated",
             "admin:domain:focus:acme_authorization_potentials",
-            "admin:domain:focus:acme_authorization_potentials_paginated",
+            "admin:domain:focus:acme_authorization_potentials-paginated",
             "admin:domain:focus:acme_challenges",
-            "admin:domain:focus:acme_challenges_paginated",
+            "admin:domain:focus:acme_challenges-paginated",
             "admin:domain:focus:acme_orders",
-            "admin:domain:focus:acme_orders_paginated",
+            "admin:domain:focus:acme_orders-paginated",
             "admin:domain:focus:certificate_requests",
-            "admin:domain:focus:certificate_requests_paginated",
+            "admin:domain:focus:certificate_requests-paginated",
             "admin:domain:focus:domain_autocerts",
-            "admin:domain:focus:domain_autocerts_paginated",
+            "admin:domain:focus:domain_autocerts-paginated",
             "admin:domain:focus:certificate_signeds",
-            "admin:domain:focus:certificate_signeds_paginated",
+            "admin:domain:focus:certificate_signeds-paginated",
             "admin:domain:focus:certificate_signeds:all",
-            "admin:domain:focus:certificate_signeds:all_paginated",
+            "admin:domain:focus:certificate_signeds:all-paginated",
             "admin:domain:focus:certificate_signeds:single",
-            "admin:domain:focus:certificate_signeds:single_paginated",
+            "admin:domain:focus:certificate_signeds:single-paginated",
             "admin:domain:focus:certificate_signeds:multi",
-            "admin:domain:focus:certificate_signeds:multi_paginated",
+            "admin:domain:focus:certificate_signeds:multi-paginated",
+            "admin:domain:focus:renewal_configurations",
+            "admin:domain:focus:renewal_configurations-paginated",
+            "admin:domain:focus:renewal_configurations:all",
+            "admin:domain:focus:renewal_configurations:all-paginated",
+            "admin:domain:focus:renewal_configurations:single",
+            "admin:domain:focus:renewal_configurations:single-paginated",
+            "admin:domain:focus:renewal_configurations:multi",
+            "admin:domain:focus:renewal_configurations:multi-paginated",
             "admin:domain:focus:unique_fqdn_sets",
-            "admin:domain:focus:unique_fqdn_sets_paginated",
+            "admin:domain:focus:unique_fqdn_sets-paginated",
             "admin:domain:focus:uniquely_challenged_fqdn_sets",
-            "admin:domain:focus:uniquely_challenged_fqdn_sets_paginated",
+            "admin:domain:focus:uniquely_challenged_fqdn_sets-paginated",
         )
     )
     def test_focus_html(self):
@@ -5154,6 +5170,7 @@ class FunctionalTests_Domain(AppTest):
         assert res.location.endswith(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds/all" % focus_id,
         )
+
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds/1" % focus_id,
             status=303,
@@ -5188,7 +5205,51 @@ class FunctionalTests_Domain(AppTest):
             % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations" % focus_id,
+            status=303,
+        )
+        assert res.location.endswith(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all" % focus_id,
+        )
 
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/1" % focus_id,
+            status=303,
+        )
+        assert res.location.endswith(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all" % focus_id,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all/1"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/single"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/single/1"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/multi"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/multi/1"
+            % focus_id,
+            status=200,
+        )
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/unique-fqdn-sets" % focus_id,
             status=200,
@@ -5215,11 +5276,19 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:config|json",
             "admin:domain:focus:calendar|json",
             "admin:domain:focus:certificate_signeds:all|json",
-            "admin:domain:focus:certificate_signeds:all_paginated|json",
+            "admin:domain:focus:certificate_signeds:all-paginated|json",
             "admin:domain:focus:certificate_signeds:single|json",
-            "admin:domain:focus:certificate_signeds:single_paginated|json",
+            "admin:domain:focus:certificate_signeds:single-paginated|json",
             "admin:domain:focus:certificate_signeds:multi|json",
-            "admin:domain:focus:certificate_signeds:multi_paginated|json",
+            "admin:domain:focus:certificate_signeds:multi-paginated|json",
+            "admin:domain:focus:renewal_configurations|json",
+            "admin:domain:focus:renewal_configurations-paginated|json",
+            "admin:domain:focus:renewal_configurations:all|json",
+            "admin:domain:focus:renewal_configurations:all-paginated|json",
+            "admin:domain:focus:renewal_configurations:single|json",
+            "admin:domain:focus:renewal_configurations:single-paginated|json",
+            "admin:domain:focus:renewal_configurations:multi-paginated|json",
+            "admin:domain:focus:renewal_configurations:multi|json",
         )
     )
     def test_focus_json(self):
@@ -5274,6 +5343,47 @@ class FunctionalTests_Domain(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s/certificate-signeds/multi/1.json"
+            % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations.json"
+            % focus_id,
+            status=303,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/1.json"
+            % focus_id,
+            status=303,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/all/1.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/single.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/single/1.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/multi.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/domain/%s/renewal-configurations/multi/1.json"
             % focus_id,
             status=200,
         )
@@ -5570,7 +5680,7 @@ class FunctionalTests_DomainAutocert(AppTest):
     @routes_tested(
         (
             "admin:domain_autocerts",
-            "admin:domain_autocerts_paginated",
+            "admin:domain_autocerts-paginated",
         )
     )
     def test_list_html(self):
@@ -5585,7 +5695,7 @@ class FunctionalTests_DomainAutocert(AppTest):
     @routes_tested(
         (
             "admin:domain_autocerts|json",
-            "admin:domain_autocerts_paginated|json",
+            "admin:domain_autocerts-paginated|json",
         )
     )
     def test_list_json(self):
@@ -5610,7 +5720,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
     @routes_tested(
         (
             "admin:domains_blocklisted",
-            "admin:domains_blocklisted_paginated",
+            "admin:domains_blocklisted-paginated",
         )
     )
     def test_list_html(self):
@@ -5627,7 +5737,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
     @routes_tested(
         (
             "admin:domains_blocklisted|json",
-            "admin:domains_blocklisted_paginated|json",
+            "admin:domains_blocklisted-paginated|json",
         )
     )
     def test_list_json(self):
@@ -5681,15 +5791,15 @@ class FunctionalTests_Operations(AppTest):
         (
             "admin:operations",
             "admin:operations:log",
-            "admin:operations:log_paginated",
+            "admin:operations:log-paginated",
             "admin:operations:log:focus",
             "admin:operations:object_log",
-            "admin:operations:object_log_paginated",
+            "admin:operations:object_log-paginated",
             "admin:operations:object_log:focus",
             "admin:operations:nginx",
-            "admin:operations:nginx_paginated",
+            "admin:operations:nginx-paginated",
             "admin:operations:redis",
-            "admin:operations:redis_paginated",
+            "admin:operations:redis-paginated",
         )
     )
     def test_passive(self):
@@ -5803,7 +5913,7 @@ class FunctionalTests_PrivateKey(AppTest):
     @routes_tested(
         (
             "admin:private_keys",
-            "admin:private_keys_paginated",
+            "admin:private_keys-paginated",
         )
     )
     def test_list_html(self):
@@ -5816,7 +5926,7 @@ class FunctionalTests_PrivateKey(AppTest):
     @routes_tested(
         (
             "admin:private_keys|json",
-            "admin:private_keys_paginated|json",
+            "admin:private_keys-paginated|json",
         )
     )
     def test_list_json(self):
@@ -5835,9 +5945,9 @@ class FunctionalTests_PrivateKey(AppTest):
         (
             "admin:private_key:focus",
             "admin:private_key:focus:certificate_requests",
-            "admin:private_key:focus:certificate_requests_paginated",
+            "admin:private_key:focus:certificate_requests-paginated",
             "admin:private_key:focus:certificate_signeds",
-            "admin:private_key:focus:certificate_signeds_paginated",
+            "admin:private_key:focus:certificate_signeds-paginated",
         )
     )
     def test_focus_html(self):
@@ -6144,11 +6254,11 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         (
             "admin:renewal_configurations",
             "admin:renewal_configurations:all",
-            "admin:renewal_configurations:all_paginated",
+            "admin:renewal_configurations:all-paginated",
             "admin:renewal_configurations:active",
-            "admin:renewal_configurations:active_paginated",
+            "admin:renewal_configurations:active-paginated",
             "admin:renewal_configurations:disabled",
-            "admin:renewal_configurations:disabled_paginated",
+            "admin:renewal_configurations:disabled-paginated",
         )
     )
     def test_list_html(self):
@@ -6182,11 +6292,11 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         (
             "admin:renewal_configurations|json",
             "admin:renewal_configurations:all|json",
-            "admin:renewal_configurations:all_paginated|json",
+            "admin:renewal_configurations:all-paginated|json",
             "admin:renewal_configurations:active|json",
-            "admin:renewal_configurations:active_paginated|json",
+            "admin:renewal_configurations:active-paginated|json",
             "admin:renewal_configurations:disabled|json",
-            "admin:renewal_configurations:disabled_paginated|json",
+            "admin:renewal_configurations:disabled-paginated|json",
         )
     )
     def test_list_json(self):
@@ -6222,9 +6332,9 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         (
             "admin:renewal_configuration:focus",
             "admin:renewal_configuration:focus:acme_orders",
-            "admin:renewal_configuration:focus:acme_orders_paginated",
+            "admin:renewal_configuration:focus:acme_orders-paginated",
             "admin:renewal_configuration:focus:certificate_signeds",
-            "admin:renewal_configuration:focus:certificate_signeds_paginated",
+            "admin:renewal_configuration:focus:certificate_signeds-paginated",
         )
     )
     def test_focus_html(self):
@@ -6257,9 +6367,9 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         (
             "admin:renewal_configuration:focus|json",
             "admin:renewal_configuration:focus:acme_orders|json",
-            "admin:renewal_configuration:focus:acme_orders_paginated|json",
+            "admin:renewal_configuration:focus:acme_orders-paginated|json",
             "admin:renewal_configuration:focus:certificate_signeds|json",
-            "admin:renewal_configuration:focus:certificate_signeds_paginated|json",
+            "admin:renewal_configuration:focus:certificate_signeds-paginated|json",
         )
     )
     def test_focus_json(self):
@@ -6649,7 +6759,7 @@ class FunctionalTests_RootStore(AppTest):
     @routes_tested(
         (
             "admin:root_stores",
-            "admin:root_stores_paginated",
+            "admin:root_stores-paginated",
         )
     )
     def test_list_html(self):
@@ -6662,7 +6772,7 @@ class FunctionalTests_RootStore(AppTest):
     @routes_tested(
         (
             "admin:root_stores|json",
-            "admin:root_stores_paginated|json",
+            "admin:root_stores-paginated|json",
         )
     )
     def test_list_json(self):
@@ -6748,7 +6858,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     @routes_tested(
         (
             "admin:unique_fqdn_sets",
-            "admin:unique_fqdn_sets_paginated",
+            "admin:unique_fqdn_sets-paginated",
         )
     )
     def test_list_html(self):
@@ -6763,7 +6873,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     @routes_tested(
         (
             "admin:unique_fqdn_sets|json",
-            "admin:unique_fqdn_sets_paginated|json",
+            "admin:unique_fqdn_sets-paginated|json",
         )
     )
     def test_list_json(self):
@@ -6783,13 +6893,13 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         (
             "admin:unique_fqdn_set:focus",
             "admin:unique_fqdn_set:focus:acme_orders",
-            "admin:unique_fqdn_set:focus:acme_orders_paginated",
+            "admin:unique_fqdn_set:focus:acme_orders-paginated",
             "admin:unique_fqdn_set:focus:certificate_requests",
-            "admin:unique_fqdn_set:focus:certificate_requests_paginated",
+            "admin:unique_fqdn_set:focus:certificate_requests-paginated",
             "admin:unique_fqdn_set:focus:certificate_signeds",
-            "admin:unique_fqdn_set:focus:certificate_signeds_paginated",
+            "admin:unique_fqdn_set:focus:certificate_signeds-paginated",
             "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
-            "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets_paginated",
+            "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets-paginated",
         )
     )
     def test_focus_html(self):
@@ -7297,7 +7407,7 @@ class FunctionalTests_UniquelyChallengedFQDNSet(AppTest):
     @routes_tested(
         (
             "admin:uniquely_challenged_fqdn_sets",
-            "admin:uniquely_challenged_fqdn_sets_paginated",
+            "admin:uniquely_challenged_fqdn_sets-paginated",
         )
     )
     def test_list_html(self):
@@ -7314,7 +7424,7 @@ class FunctionalTests_UniquelyChallengedFQDNSet(AppTest):
     @routes_tested(
         (
             "admin:uniquely_challenged_fqdn_sets|json",
-            "admin:uniquely_challenged_fqdn_sets_paginated|json",
+            "admin:uniquely_challenged_fqdn_sets-paginated|json",
         )
     )
     def test_list_json(self):
@@ -7334,11 +7444,11 @@ class FunctionalTests_UniquelyChallengedFQDNSet(AppTest):
         (
             "admin:uniquely_challenged_fqdn_set:focus",
             "admin:uniquely_challenged_fqdn_set:focus:acme_orders",
-            "admin:uniquely_challenged_fqdn_set:focus:acme_orders_paginated",
+            "admin:uniquely_challenged_fqdn_set:focus:acme_orders-paginated",
             "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds",
-            "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds_paginated",
+            "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds-paginated",
             "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations",
-            "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations_paginated",
+            "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations-paginated",
         )
     )
     def test_focus_html(self):
@@ -7419,7 +7529,7 @@ class FunctionalTests_AlternateChains(AppTest):
     @routes_tested(
         (
             "admin:certificate_ca:focus:certificate_signeds_alt",
-            "admin:certificate_ca:focus:certificate_signeds_alt_paginated",
+            "admin:certificate_ca:focus:certificate_signeds_alt-paginated",
         )
     )
     def test_CertificateCA_view(self):
@@ -8119,7 +8229,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&result=success&message="""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&message="""
             % focus_id
         )
 
@@ -10978,6 +11088,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         )
         assert _results_11 == (1, 0)  # Order Backup for RC1
 
+        # sleep 5 seconds to expire certs
+        time.sleep(5)
+
         # then we renew the expiring
         _results_12 = lib_db_actions.routine__renew_expiring(
             self.ctx,
@@ -12110,11 +12223,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self.testapp.app.registry.settings["application_settings"][
                 "redis.prime_style"
             ] = _existing_prime_style
-
-
-class TestWSGI(AppTestWSGI):
-    def test_a(self):
-        pass
 
 
 class CoverageAssurance_AuditTests(AppTest):

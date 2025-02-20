@@ -18,11 +18,11 @@ class View_List(Handler):
         route_name="admin:acme_event_log", renderer="/admin/acme_event_log.mako"
     )
     @view_config(
-        route_name="admin:acme_event_log_paginated",
+        route_name="admin:acme_event_log-paginated",
         renderer="/admin/acme_event_log.mako",
     )
     @view_config(route_name="admin:acme_event_log|json", renderer="json")
-    @view_config(route_name="admin:acme_event_log_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_event_log-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/acme-event-logs.json",

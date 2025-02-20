@@ -28,7 +28,7 @@ class View_List(Handler):
         renderer="/admin/acme_authorization_potentials.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization_potentials_paginated",
+        route_name="admin:acme_authorization_potentials-paginated",
         renderer="/admin/acme_authorization_potentials.mako",
     )
     @view_config(
@@ -36,7 +36,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_authorization_potentials_paginated|json",
+        route_name="admin:acme_authorization_potentials-paginated|json",
         renderer="json",
     )
     @docify(

@@ -30,11 +30,11 @@ class View_List(Handler):
         route_name="admin:unique_fqdn_sets", renderer="/admin/unique_fqdn_sets.mako"
     )
     @view_config(
-        route_name="admin:unique_fqdn_sets_paginated",
+        route_name="admin:unique_fqdn_sets-paginated",
         renderer="/admin/unique_fqdn_sets.mako",
     )
     @view_config(route_name="admin:unique_fqdn_sets|json", renderer="json")
-    @view_config(route_name="admin:unique_fqdn_sets_paginated|json", renderer="json")
+    @view_config(route_name="admin:unique_fqdn_sets-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/unique-fqdn-sets.json",
@@ -207,7 +207,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:acme_orders_paginated",
+        route_name="admin:unique_fqdn_set:focus:acme_orders-paginated",
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -238,7 +238,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests_paginated",
+        route_name="admin:unique_fqdn_set:focus:certificate_requests-paginated",
         renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
     )
     def related__CertificateRequests(self):
@@ -269,7 +269,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_signeds_paginated",
+        route_name="admin:unique_fqdn_set:focus:certificate_signeds-paginated",
         renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -298,7 +298,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets_paginated",
+        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets-paginated",
         renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
     )
     def related__UniquelyChallengedFQDNSets(self):

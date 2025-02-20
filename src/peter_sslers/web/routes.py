@@ -57,11 +57,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_accounts",
         "/acme-accounts",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_accounts_paginated",
-        "/acme-accounts/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:upload",
@@ -96,69 +92,43 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_account:focus:acme_authorizations",
         "/acme-account/{@id}/acme-authorizations",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_authorizations_paginated",
-        "/acme-account/{@id}/acme-authorizations/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_account_keys",
         "/acme-account/{@id}/acme-account-keys",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_account_keys_paginated",
-        "/acme-account/{@id}/acme-account-keys/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:acme_orders",
         "/acme-account/{@id}/acme-orders",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:acme_orders_paginated",
-        "/acme-account/{@id}/acme-orders/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:certificate_signeds",
         "/acme-account/{@id}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:certificate_signeds_paginated",
-        "/acme-account/{@id}/certificate-signeds/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:private_keys",
         "/acme-account/{@id}/private-keys",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:private_keys_paginated",
-        "/acme-account/{@id}/private-keys/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:renewal_configurations",
         "/acme-account/{@id}/renewal-configurations",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:renewal_configurations_paginated",
-        "/acme-account/{@id}/renewal-configurations/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:renewal_configurations_backup",
         "/acme-account/{@id}/renewal-configurations-backup",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:renewal_configurations_backup_paginated",
-        "/acme-account/{@id}/renewal-configurations-backup/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:terms_of_service",
         "/acme-account/{@id}/terms-of-service",
-    )
-    config.add_route_7(
-        "admin:acme_account:focus:terms_of_service_paginated",
-        "/acme-account/{@id}/terms-of-service/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_account:focus:mark",
@@ -196,13 +166,8 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_authorizations",
         "/acme-authorizations",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:acme_authorizations_paginated",
-        "/acme-authorizations/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:acme_authorization:focus",
         "/acme-authorization/{@id}",
@@ -211,18 +176,12 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:acme_authorization:focus:acme_orders",
         "/acme-authorization/{@id}/acme-orders",
-    )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_orders_paginated",
-        "/acme-authorization/{@id}/acme-orders/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_authorization:focus:acme_challenges",
         "/acme-authorization/{@id}/acme-challenges",
-    )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_challenges_paginated",
-        "/acme-authorization/{@id}/acme-challenges/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_authorization:focus:acme_server:deactivate",
@@ -240,11 +199,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_authorization_potentials",
         "/acme-authz-potentials",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_authorization_potentials_paginated",
-        "/acme-authz-potentials/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_authorization_potential:focus",
@@ -262,19 +217,13 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_challenges",
         "/acme-challenges",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:acme_challenges_paginated",
-        "/acme-challenges/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:acme_challenge:focus",
         "/acme-challenge/{@id}",
         jsonify=True,
     )
-
     config.add_route_7(
         "admin:acme_challenge:focus:acme_server:sync",
         "/acme-challenge/{@id}/acme-server/sync",
@@ -291,11 +240,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_challenge_polls",
         "/acme-challenge-polls",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_challenge_polls_paginated",
-        "/acme-challenge-polls/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: AcmeChallengeUnknown Poll
@@ -303,11 +248,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_challenge_unknown_polls",
         "/acme-challenge-unknown-polls",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_challenge_unknown_polls_paginated",
-        "/acme-challenge-unknown-polls/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: AcmeDnsServer
@@ -320,11 +261,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_dns_servers",
         "/acme-dns-servers",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_dns_servers_paginated",
-        "/acme-dns-servers/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_dns_server:focus",
@@ -365,11 +302,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
         "/acme-dns-server/{@id}/acme-dns-server-accounts",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
-        "/acme-dns-server/{@id}/acme-dns-server-accounts/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: AcmeDnsServer Accounts
@@ -377,11 +310,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_dns_server_accounts",
         "/acme-dns-server-accounts",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_dns_server_accounts_paginated",
-        "/acme-dns-server-accounts/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_dns_server_account:focus",
@@ -394,11 +323,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_event_log",
         "/acme-event-logs",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_event_log_paginated",
-        "/acme-event-logs/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_event_log:focus",
@@ -416,31 +341,19 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_orders:all",
         "/acme-orders/all",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_orders:all_paginated",
-        "/acme-orders/all/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_orders:active",
         "/acme-orders/active",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_orders:active_paginated",
-        "/acme-orders/active/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_orders:finished",
         "/acme-orders/finished",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_orders:finished_paginated",
-        "/acme-orders/finished/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_orders:active:acme_server:sync",
@@ -457,15 +370,11 @@ def _admin_views(config: "Configurator") -> None:
         "/acme-order/{@id}/audit",
         jsonify=True,
     )
-
     config.add_route_7(
-        "admin:acme_order:focus:acme_event_logs", "/acme-order/{@id}/acme-event-logs"
+        "admin:acme_order:focus:acme_event_logs",
+        "/acme-order/{@id}/acme-event-logs",
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:acme_order:focus:acme_event_logs_paginated",
-        "/acme-order/{@id}/acme-event-logs/{@page}",
-    )
-
     config.add_route_7(
         "admin:acme_order:focus:acme_process",
         "/acme-order/{@id}/acme-process",
@@ -529,11 +438,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:acme_server:focus:acme_accounts",
         "/acme-server/{@id}/acme-accounts",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:acme_server:focus:acme_accounts__paginated",
-        "/acme-server/{@id}/acme-accounts/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:acme_server:focus:check_support",
@@ -608,38 +513,23 @@ def _admin_views(config: "Configurator") -> None:
         "/ari-checks",
         jsonify=True,
     )
-
     config.add_route_7(
         "admin:ari_checks:all",
         "/ari-checks/all",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:ari_checks:all_paginated",
-        "/ari-checks/all/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:ari_checks:cert_latest",
         "/ari-checks/cert-latest",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:ari_checks:cert_latest_paginated",
-        "/ari-checks/cert-latest/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:ari_checks:cert_latest_overdue",
         "/ari-checks/cert-latest-overdue",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:ari_checks:cert_latest_overdue_paginated",
-        "/ari-checks/cert-latest-overdue/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: CertificateCAs (Certificate Authority)
@@ -647,11 +537,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_cas",
         "/certificate-cas",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas_paginated",
-        "/certificate-cas/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_cas:preferred",
@@ -689,34 +575,22 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_ca:focus:certificate_signeds",
         "/certificate-ca/{@id}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:certificate_ca:focus:certificate_signeds_paginated",
-        "/certificate-ca/{@id}/certificate-signeds/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_ca:focus:certificate_signeds_alt",
         "/certificate-ca/{@id}/certificate-signeds-alt",
-    )
-    config.add_route_7(
-        "admin:certificate_ca:focus:certificate_signeds_alt_paginated",
-        "/certificate-ca/{@id}/certificate-signeds-alt/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_ca:focus:certificate_ca_chains_0",
         "/certificate-ca/{@id}/certificate-ca-chains-0",
-    )
-    config.add_route_7(
-        "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
-        "/certificate-ca/{@id}/certificate-ca-chains-0/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_ca:focus:certificate_ca_chains_n",
         "/certificate-ca/{@id}/certificate-ca-chains-n",
-    )
-    config.add_route_7(
-        "admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
-        "/certificate-ca/{@id}/certificate-ca-chains-n/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_ca:upload_cert",
@@ -729,11 +603,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_ca_chains",
         "/certificate-ca-chains",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_ca_chains_paginated",
-        "/certificate-ca-chains/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_ca_chain:focus",
@@ -755,11 +625,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_requests",
         "/certificate-requests",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_requests_paginated",
-        "/certificate-requests/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Certificate Request - Focus
@@ -771,10 +637,7 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_request:focus:acme_orders",
         "/certificate-request/{@id}/acme-orders",
-    )
-    config.add_route_7(
-        "admin:certificate_request:focus:acme_orders_paginated",
-        "/certificate-request/{@id}/acme-orders/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_request:focus:raw",
@@ -792,63 +655,38 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_signeds:all",
         "/certificate-signeds/all",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:all_paginated",
-        "/certificate-signeds/all/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:active",
         "/certificate-signeds/active",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_paginated",
-        "/certificate-signeds/active/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:active_expired",
         "/certificate-signeds/active-expired",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:active_expired_paginated",
-        "/certificate-signeds/active-expired/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:expiring",
         "/certificate-signeds/expiring",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:expiring_paginated",
-        "/certificate-signeds/expiring/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:inactive",
         "/certificate-signeds/inactive",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_paginated",
-        "/certificate-signeds/inactive/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signeds:inactive_unexpired",
         "/certificate-signeds/inactive-unexpired",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:certificate_signeds:inactive_unexpired_paginated",
-        "/certificate-signeds/inactive-unexpired/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:certificate_signeds:search",
         "/certificate-signeds/search",
@@ -898,11 +736,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:certificate_signed:focus:ari_check_history",
         r"/certificate-signed/{@id}/ari-check-history",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_signed:focus:ari_check_history__paginated",
-        r"/certificate-signed/{@id}/ari-check-history/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:certificate_signed:focus:nginx_cache_expire",
@@ -945,21 +779,13 @@ def _admin_views(config: "Configurator") -> None:
         "admin:coverage_assurance_events:all",
         "/coverage-assurance-events/all",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:all_paginated",
-        "/coverage-assurance-events/all/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:coverage_assurance_events:unresolved",
         "/coverage-assurance-events/unresolved",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:coverage_assurance_events:unresolved_paginated",
-        "/coverage-assurance-events/unresolved/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: CoverageAssuranceEvent - Focus
@@ -984,43 +810,25 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domains",
         "/domains",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:domains_paginated",
-        "/domains/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:domains:challenged",
         "/domains/challenged",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:domains:challenged_paginated",
-        "/domains/challenged/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:domains:authz_potential",
         "/domains/authz-potential",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:domains:authz_potential_paginated",
-        "/domains/authz-potential/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:domains:expiring",
         "/domains/expiring",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:domains:expiring_paginated",
-        "/domains/expiring/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:domains:search",
@@ -1055,108 +863,91 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:domain:focus:acme_authorizations",
         "/domain/{domain_identifier}/acme-authorizations",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_authorizations_paginated",
-        "/domain/{domain_identifier}/acme-authorizations/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:acme_authorization_potentials",
         "/domain/{domain_identifier}/acme-authz-potentials",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_authorization_potentials_paginated",
-        "/domain/{domain_identifier}/acme-authz-potentials/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:acme_challenges",
         "/domain/{domain_identifier}/acme-challenges",
+        paginate=True,
     )
     config.add_route_7(
-        "admin:domain:focus:acme_challenges_paginated",
-        "/domain/{domain_identifier}/acme-challenges/{@page}",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_orders", "/domain/{domain_identifier}/acme-orders"
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_orders_paginated",
-        "/domain/{domain_identifier}/acme-orders/{@page}",
+        "admin:domain:focus:acme_orders",
+        "/domain/{domain_identifier}/acme-orders",
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:domain_autocerts",
         "/domain/{domain_identifier}/domain-autocerts",
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:domain:focus:domain_autocerts_paginated",
-        "/domain/{domain_identifier}/domain-autocerts/{@page}",
-    )
-
     config.add_route_7(
         "admin:domain:focus:certificate_signeds",
         "/domain/{domain_identifier}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:domain:focus:certificate_signeds_paginated",
-        "/domain/{domain_identifier}/certificate-signeds/{@page}",
+        paginate=True,
     )
     # -
     config.add_route_7(
         "admin:domain:focus:certificate_signeds:all",
         "/domain/{domain_identifier}/certificate-signeds/all",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:domain:focus:certificate_signeds:all_paginated",
-        "/domain/{domain_identifier}/certificate-signeds/all/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:domain:focus:certificate_signeds:single",
         "/domain/{domain_identifier}/certificate-signeds/single",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:domain:focus:certificate_signeds:single_paginated",
-        "/domain/{domain_identifier}/certificate-signeds/single/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     # -
     config.add_route_7(
         "admin:domain:focus:certificate_signeds:multi",
         "/domain/{domain_identifier}/certificate-signeds/multi",
         jsonify=True,
+        paginate=True,
     )
-    config.add_route_7(
-        "admin:domain:focus:certificate_signeds:multi_paginated",
-        "/domain/{domain_identifier}/certificate-signeds/multi/{@page}",
-        jsonify=True,
-    )
-
     config.add_route_7(
         "admin:domain:focus:certificate_requests",
         "/domain/{domain_identifier}/certificate-requests",
+        paginate=True,
     )
     config.add_route_7(
-        "admin:domain:focus:certificate_requests_paginated",
-        "/domain/{domain_identifier}/certificate-requests/{@page}",
+        "admin:domain:focus:renewal_configurations",
+        "/domain/{domain_identifier}/renewal-configurations",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:renewal_configurations:all",
+        "/domain/{domain_identifier}/renewal-configurations/all",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:renewal_configurations:single",
+        "/domain/{domain_identifier}/renewal-configurations/single",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:domain:focus:renewal_configurations:multi",
+        "/domain/{domain_identifier}/renewal-configurations/multi",
+        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:unique_fqdn_sets",
         "/domain/{domain_identifier}/unique-fqdn-sets",
-    )
-    config.add_route_7(
-        "admin:domain:focus:unique_fqdn_sets_paginated",
-        "/domain/{domain_identifier}/unique-fqdn-sets/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:uniquely_challenged_fqdn_sets",
         "/domain/{domain_identifier}/uniquely-challenged-fqdn-sets",
-    )
-    config.add_route_7(
-        "admin:domain:focus:uniquely_challenged_fqdn_sets_paginated",
-        "/domain/{domain_identifier}/uniquely-challenged-fqdn-sets/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:domain:focus:nginx_cache_expire",
@@ -1179,12 +970,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domain_autocerts",
         "/domain-autocerts",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:domain_autocerts_paginated",
-        "/domain-autocerts/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: DomainBlocklist
@@ -1192,34 +978,39 @@ def _admin_views(config: "Configurator") -> None:
         "admin:domains_blocklisted",
         "/domains-blocklisted",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:domains_blocklisted_paginated",
-        "/domains-blocklisted/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -
-    config.add_route_7("admin:operations:log", "/operations/log")
-    config.add_route_7("admin:operations:log_paginated", "/operations/log/{@page}")
+    config.add_route_7(
+        "admin:operations:log",
+        "/operations/log",
+        paginate=True,
+    )
     config.add_route_7("admin:operations:log:focus", "/operations/log/item/{@id}")
     # -
-    config.add_route_7("admin:operations:object_log", "/operations/object-log")
     config.add_route_7(
-        "admin:operations:object_log_paginated", "/operations/object-log/{@page}"
+        "admin:operations:object_log",
+        "/operations/object-log",
+        paginate=True,
     )
     config.add_route_7(
         "admin:operations:object_log:focus", "/operations/object-log/item/{@id}"
     )
     # -
-    config.add_route_7("admin:operations:nginx", "/operations/nginx")
-    config.add_route_7("admin:operations:nginx_paginated", "/operations/nginx/{@page}")
+    config.add_route_7(
+        "admin:operations:nginx",
+        "/operations/nginx",
+        paginate=True,
+    )
     # -
-    config.add_route_7("admin:operations:redis", "/operations/redis")
-    config.add_route_7("admin:operations:redis_paginated", "/operations/redis/{@page}")
+    config.add_route_7(
+        "admin:operations:redis",
+        "/operations/redis",
+        paginate=True,
+    )
 
     # !!!: Private Keys
     # used to sign CertificateSigneds
@@ -1227,12 +1018,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:private_keys",
         "/private-keys",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:private_keys_paginated",
-        "/private-keys/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Private Key - Focus
@@ -1251,18 +1037,12 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:private_key:focus:certificate_requests",
         "/private-key/{@id}/certificate-requests",
-    )
-    config.add_route_7(
-        "admin:private_key:focus:certificate_requests_paginated",
-        "/private-key/{@id}/certificate-requests/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:private_key:focus:certificate_signeds",
         "/private-key/{@id}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:private_key:focus:certificate_signeds_paginated",
-        "/private-key/{@id}/certificate-signeds/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:private_key:focus:mark",
@@ -1294,31 +1074,19 @@ def _admin_views(config: "Configurator") -> None:
         "admin:renewal_configurations:all",
         "/renewal-configurations/all",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:all_paginated",
-        "/renewal-configurations/all/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:renewal_configurations:active",
         "/renewal-configurations/active",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:active_paginated",
-        "/renewal-configurations/active/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:renewal_configurations:disabled",
         "/renewal-configurations/disabled",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configurations:disabled_paginated",
-        "/renewal-configurations/disabled/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:new",
@@ -1335,21 +1103,13 @@ def _admin_views(config: "Configurator") -> None:
         "admin:renewal_configuration:focus:acme_orders",
         "/renewal-configuration/{@id}/acme-orders",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:acme_orders_paginated",
-        "/renewal-configuration/{@id}/acme-orders/{@page}",
-        jsonify=True,
+        paginate=True,
     )
     config.add_route_7(
         "admin:renewal_configuration:focus:certificate_signeds",
         "/renewal-configuration/{@id}/certificate-signeds",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:focus:certificate_signeds_paginated",
-        "/renewal-configuration/{@id}/certificate-signeds/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     config.add_route_7(
@@ -1373,12 +1133,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:root_stores",
         "/root-stores",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:root_stores_paginated",
-        "/root-stores/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Root Store - Focus
@@ -1401,12 +1156,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:unique_fqdn_sets",
         "/unique-fqdn-sets",
         jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:unique_fqdn_sets_paginated",
-        "/unique-fqdn-sets/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Unique FQDN Set - Focus
@@ -1428,34 +1178,22 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:unique_fqdn_set:focus:acme_orders",
         "/unique-fqdn-set/{@id}/acme-orders",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:acme_orders_paginated",
-        "/unique-fqdn-set/{@id}/acme-orders/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:certificate_requests",
         "/unique-fqdn-set/{@id}/certificate-requests",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:certificate_requests_paginated",
-        "/unique-fqdn-set/{@id}/certificate-requests/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:certificate_signeds",
         "/unique-fqdn-set/{@id}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:certificate_signeds_paginated",
-        "/unique-fqdn-set/{@id}/certificate-signeds/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
         "/unique-fqdn-set/{@id}/uniquely-challenged-fqdn-sets",
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets_paginated",
-        "/unique-fqdn-set/{@id}/uniquely-challenged-fqdn-sets/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:modify",
@@ -1474,11 +1212,7 @@ def _admin_views(config: "Configurator") -> None:
         "admin:uniquely_challenged_fqdn_sets",
         "/uniquely-challenged-fqdn-sets",
         jsonify=True,
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_sets_paginated",
-        "/uniquely-challenged-fqdn-sets/{@page}",
-        jsonify=True,
+        paginate=True,
     )
 
     # !!!: Uniquely Challenged FQDN Set - Focus
@@ -1490,26 +1224,17 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_set:focus:acme_orders",
         "/uniquely-challenged-fqdn-set/{@id}/acme-orders",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_set:focus:acme_orders_paginated",
-        "/uniquely-challenged-fqdn-set/{@id}/acme-orders/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds",
         "/uniquely-challenged-fqdn-set/{@id}/certificate-signeds",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds_paginated",
-        "/uniquely-challenged-fqdn-set/{@id}/certificate-signeds/{@page}",
+        paginate=True,
     )
     config.add_route_7(
         "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations",
         "/uniquely-challenged-fqdn-set/{@id}/renewal-configurations",
-    )
-    config.add_route_7(
-        "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations_paginated",
-        "/uniquely-challenged-fqdn-set/{@id}/renewal-configurations/{@page}",
+        paginate=True,
     )
 
     config.scan("peter_sslers.web.views_admin")

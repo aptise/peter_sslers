@@ -61,10 +61,10 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_dns_servers|json", renderer="json")
     @view_config(
-        route_name="admin:acme_dns_servers_paginated",
+        route_name="admin:acme_dns_servers-paginated",
         renderer="/admin/acme_dns_servers.mako",
     )
-    @view_config(route_name="admin:acme_dns_servers_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_dns_servers-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/acme-dns-servers.json",
@@ -297,11 +297,11 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts-paginated",
         renderer="/admin/acme_dns_server-focus-acme_dns_server_accounts.mako",
     )
     @view_config(
-        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts-paginated|json",
         renderer="json",
     )
     @docify(
