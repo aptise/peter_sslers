@@ -57,7 +57,7 @@ class Test_CommandlineScripts(unittest.TestCase):
     def setUpClass(cls):
         try:
             with psutil.Popen(
-                ["initializedb", TEST_INI],
+                ["initialize_peter_sslers_db", TEST_INI],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -79,10 +79,6 @@ class Test_CommandlineScripts(unittest.TestCase):
 
     @unittest.skip("TODO")
     def test__import_certbot(self):
-        pass
-
-    @unittest.skip("TODO")
-    def test__initializedb(self):
         pass
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
