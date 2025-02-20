@@ -36,14 +36,18 @@ from sqlalchemy.orm import Session
 import transaction
 from typing_extensions import Literal
 from webtest import TestApp
+from webtest import Upload
 from webtest.http import StopableWSGIServer
 
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
+from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
 from peter_sslers.lib.config_utils import ApplicationSettings
+from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
@@ -54,6 +58,7 @@ from peter_sslers.model import utils as model_utils
 from peter_sslers.web import main
 from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
+from .regex_library import RE_AcmeOrder
 
 # from peter_sslers.lib.utils import RequestCommandline
 
@@ -1373,6 +1378,288 @@ KEY_SETS = {
 # ==============================================================================
 
 
+_ROUTES_TESTED = {}
+
+
+def routes_tested(*args):
+    """
+    `@routes_tested` is a decorator
+    when writing/editing a test, declare what routes the test covers, like such:
+
+        @routes_tested(("foo", "bar"))
+        def test_foo_bar(self):
+            ...
+
+    this will populate a global variable `_ROUTES_TESTED` with the name of the
+    tested routes.
+
+    invoking the Audit test:
+
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AuditRoutes
+
+    will ensure all routes in Pyramid have test coverage
+    """
+    _routes = args[0]
+    if isinstance(_routes, (list, tuple)):
+        for _r in _routes:
+            _ROUTES_TESTED[_r] = True
+    else:
+        _ROUTES_TESTED[_routes] = True
+
+    def _decorator(_function):
+        @wraps(_function)
+        def _wrapper(*args, **kwargs):
+            return _function(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
+
+
+# =====
+
+
+def do__AcmeServers_sync(
+    testCase: unittest.TestCase,
+) -> bool:
+    # both exist after setup
+    dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
+    if not dbAcmeAccount_backup:
+        raise ValueError("AcmeAccount__GlobalBackup not configured")
+    dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
+    if not dbAcmeAccount_default:
+        raise ValueError("AcmeAccount__GlobalDefault not configured")
+
+    for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
+        res = testCase.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s" % _dbAcmeAccount.acme_server_id,
+            status=200,
+        )
+        form = res.forms["form-check_support"]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.endswith(
+            "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
+            % _dbAcmeAccount.acme_server_id
+        )
+
+    return True
+
+
+@routes_tested("admin:acme_account:new|json")
+def make_one__AcmeAccount__random(
+    testCase: unittest.TestCase,
+) -> Tuple[model_objects.AcmeAccount, int]:
+    """use the json api!"""
+    form = {
+        "acme_server_id": 1,
+        "account__contact": generate_random_emailaddress(),
+        "account__private_key_technology": "EC_P256",
+        "account__order_default_private_key_cycle": "single_use",
+        "account__order_default_private_key_technology": "EC_P256",
+    }
+    res4 = testCase.testapp.post(
+        "/.well-known/peter_sslers/acme-account/new.json", form
+    )
+    assert res4.json["result"] == "success"
+    assert "AcmeAccount" in res4.json
+    focus_item = (
+        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
+        .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
+        .filter(model_objects.AcmeAccount.is_active.is_(True))
+        .filter(model_objects.AcmeAccount.acme_server_id == 1)
+        .first()
+    )
+    assert focus_item is not None
+    return (focus_item, focus_item.id)
+
+
+@routes_tested("admin:acme_account:upload|json")
+def make_one__AcmeAccount__pem(
+    testCase: unittest.TestCase,
+    account__contact: str,
+    pem_file_name: str,
+    expect_failure: bool = False,
+) -> Tuple[model_objects.AcmeAccount, int]:
+    """use the json api!"""
+    form = {
+        "account_key_option": "account_key_file",
+        "account_key_file_pem": Upload(testCase._filepath_testfile(pem_file_name)),
+        "acme_server_id": 1,
+        "account__contact": account__contact,
+        "account__order_default_private_key_cycle": "account_daily",
+        "account__order_default_private_key_technology": "EC_P256",
+    }
+    res = testCase.testapp.post(
+        "/.well-known/peter_sslers/acme-account/upload.json", form
+    )
+    if expect_failure:
+        raise ResponseFailureOkay(res)
+
+    assert res.json["result"] == "success"
+    assert "AcmeAccount" in res.json
+    focus_item = (
+        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
+        .filter(model_objects.AcmeAccount.id == res.json["AcmeAccount"]["id"])
+        .filter(model_objects.AcmeAccount.is_active.is_(True))
+        .filter(model_objects.AcmeAccount.acme_server_id == 1)
+        .first()
+    )
+    assert focus_item is not None
+    return (focus_item, focus_item.id)
+
+
+@routes_tested("admin:acme_order:new:freeform|json")
+def make_one__AcmeOrder(
+    testCase: unittest.TestCase,
+    domain_names_http01: Optional[str] = None,
+    domain_names_dns01: Optional[str] = None,
+    account_key_option_backup: Optional[str] = None,
+    acme_profile: Optional[str] = None,
+    acme_profile__backup: Optional[str] = None,
+    processing_strategy: Literal["create_order", "process_single"] = "create_order",
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+    )
+    form = res.form
+    _form_fields = form.fields.keys()
+    assert "account_key_option" in _form_fields
+    form["account_key_option"].force_value("account_key_global_default")
+    form["private_key_option"].force_value("account_default")
+    form["private_key_cycle"].force_value("account_default")
+    if domain_names_http01:
+        form["domain_names_http01"] = domain_names_http01
+    if domain_names_dns01:
+        form["domain_names_dns01"] = domain_names_dns01
+    if acme_profile:
+        form["acme_profile"] = acme_profile
+    if acme_profile__backup:
+        form["acme_profile__backup"] = acme_profile__backup
+    if account_key_option_backup:
+        form["account_key_option_backup"].force_value(account_key_option_backup)
+    form["processing_strategy"].force_value(processing_strategy)
+    res2 = form.submit()
+    assert res2.status_code == 303
+
+    matched = RE_AcmeOrder.match(res2.location)
+    assert matched
+    obj_id = matched.groups()[0]
+
+    dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+    assert dbAcmeOrder
+    return dbAcmeOrder
+
+
+@routes_tested("admin:acme_order:new:freeform|json")
+def make_one__AcmeOrder__random(
+    testCase: unittest.TestCase,
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    domain_names_http01 = generate_random_domain(testCase=testCase)
+    dbAcmeOrder = make_one__AcmeOrder(
+        testCase=testCase, domain_names_http01=domain_names_http01
+    )
+    assert dbAcmeOrder
+    return dbAcmeOrder
+
+
+def make_one__DomainBlocklisted(
+    testCase: unittest.TestCase,
+    domain_name: str,
+):
+    dbDomainBlocklisted = model_objects.DomainBlocklisted()
+    dbDomainBlocklisted.domain_name = domain_name
+    testCase.ctx.dbSession.add(dbDomainBlocklisted)
+    testCase.ctx.dbSession.flush(
+        objects=[
+            dbDomainBlocklisted,
+        ]
+    )
+    testCase.ctx.pyramid_transaction_commit()
+    return dbDomainBlocklisted
+
+
+def make_one__RenewalConfiguration(
+    testCase: unittest.TestCase,
+    dbAcmeAccount: model_objects.AcmeAccount,
+    domain_names_http01: str,
+    private_key_cycle: Optional[str] = "account_default",
+    key_technology: Optional[str] = "account_default",
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/renewal-configuration/new.json", status=200
+    )
+    assert "form_fields" in res.json
+
+    form: Dict[str, Optional[str]] = {}
+    form["account_key_option"] = "account_key_existing"
+    form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
+    form["private_key_cycle"] = private_key_cycle
+    form["key_technology"] = key_technology
+    form["domain_names_http01"] = domain_names_http01
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/renewal-configuration/new.json",
+        form,
+    )
+    assert res2.json["result"] == "success"
+    assert "RenewalConfiguration" in res2.json
+
+    dbRenewalConfiguration = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .filter(
+            model_objects.RenewalConfiguration.id
+            == res2.json["RenewalConfiguration"]["id"]
+        )
+        .first()
+    )
+    assert dbRenewalConfiguration
+    return dbRenewalConfiguration
+
+
+def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
+    message = "Error communicating with the acme-dns server."
+    if response_type == "html":
+        if response.status_code == 200:
+            if message in response.text:
+                raise lib_errors.AcmeDnsServerError()
+    elif response_type == "json":
+        if response.json["result"] == "error":
+            if "form_errors" in response.json:
+                if message in response.json["form_errors"]["Error_Main"]:
+                    raise lib_errors.AcmeDnsServerError()
+            elif "error" in response.json:
+                if response.json["error"] == message:
+                    raise lib_errors.AcmeDnsServerError()
+
+
+def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+    testCase.ctx.pyramid_transaction_commit()
+    dbAcmeOrders = (
+        testCase.ctx.dbSession.query(model_objects.AcmeOrder)
+        .order_by(model_objects.AcmeOrder.id.asc())
+        .filter(model_objects.AcmeOrder.is_processing.is_(True))
+        .all()
+    )
+    for _dbAcmeOrder in dbAcmeOrders:
+        result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    dbRenewalConfigurations = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .order_by(model_objects.RenewalConfiguration.id.asc())
+        .filter(model_objects.RenewalConfiguration.is_active.is_(True))
+        .all()
+    )
+    for _dbRenewalConfiguration in dbRenewalConfigurations:
+        result = lib_db_update.update_RenewalConfiguration__unset_active(
+            testCase.ctx, _dbRenewalConfiguration
+        )
+    testCase.ctx.pyramid_transaction_commit()
+    return True
+
+
 class ResponseFailureOkay(Exception):
     """
     used to catch a response failure
@@ -2330,6 +2617,7 @@ class AppTest(AppTestCore):
         _debug_TestHarness(
             self.ctx, "%s.%s|setUp" % (self.__class__.__name__, self._testMethodName)
         )
+        unset_testing_data(self)
 
     def tearDown(self):
         _debug_TestHarness(
@@ -2338,6 +2626,7 @@ class AppTest(AppTestCore):
         if self._ctx is not None:
             self.ctx.pyramid_transaction_commit()
             self._ctx.dbSession.close()
+        unset_testing_data(self)
         AppTestCore.tearDown(self)
 
     @classmethod
