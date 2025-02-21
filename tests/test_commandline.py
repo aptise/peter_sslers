@@ -30,6 +30,10 @@ log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.CRITICAL)
 
+COMMANDLINE_ENV = os.environ.copy()
+COMMANDLINE_ENV["PYTHONWARNINGS"] = "ignore"
+COMMANDLINE_ENV["DISABLE_WARNINGS_COMMANDLINE"] = "1"
+
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -68,6 +72,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -105,6 +110,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    env=COMMANDLINE_ENV,
                 ) as proc:
                     log.info("Wait 5 seconds...")
                     time.sleep(5)
@@ -136,6 +142,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -162,6 +169,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -191,6 +199,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -221,6 +230,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -248,6 +258,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)
@@ -277,6 +288,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
             ) as proc:
                 log.info("Wait 5 seconds...")
                 time.sleep(5)

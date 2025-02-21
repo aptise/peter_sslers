@@ -13,4 +13,5 @@ DISABLE_WARNINGS_COMMANDLINE = bool(int(os.getenv("DISABLE_WARNINGS_COMMANDLINE"
 
 if DISABLE_WARNINGS_COMMANDLINE:
     warnings.filterwarnings("ignore")
+    warnings.simplefilter("ignore")
     logging.getLogger().addHandler(logging.NullHandler())
