@@ -25,16 +25,17 @@ from ._utils import under_pebble_alt
 #
 # essentially disable logging for tests
 #
-
-log = logging.getLogger()
-log.addHandler(logging.StreamHandler())
-log.setLevel(logging.CRITICAL)
+# we set this env var to invoke with psutil
+# the scripts also import a package to disable
+# some random packages are very hard to disable
 
 COMMANDLINE_ENV = os.environ.copy()
 COMMANDLINE_ENV["PYTHONWARNINGS"] = "ignore"
 COMMANDLINE_ENV["DISABLE_WARNINGS_COMMANDLINE"] = "1"
 
 # ==============================================================================
+
+log = logging.getLogger()
 
 # ------------------------------------------------------------------------------
 
