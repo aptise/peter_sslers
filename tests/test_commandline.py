@@ -129,7 +129,28 @@ class Test_CommandlineScripts(unittest.TestCase):
     @under_pebble
     @under_pebble_alt
     def test__routine__automatic_orders(self):
-        pass
+        # TODO: setup so we actually run orders
+        try:
+            with psutil.Popen(
+                ["routine__automatic_orders", TEST_INI],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc:
+                log.info("Wait 5 seconds...")
+                time.sleep(5)
+                response, err = proc.communicate()
+                if False:
+                    print(response)
+                    print(err)
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+                if err:
+                    raise ValueError("Exception", err)
+        except Exception as exc:  # noqa: F841
+            raise
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -247,7 +268,6 @@ class Test_CommandlineScripts(unittest.TestCase):
     @under_pebble_alt
     def test__routine__run_ari_checks(self):
         # TODO: check the db state before and after
-        # TODO: logged data goes to err, so we always out something here - ugh
         try:
             with psutil.Popen(
                 [
