@@ -1,3 +1,10 @@
+"""
+This file should be included on all commandline script invocations.
+
+The purpose is to disable warnings and logging, as Python sends that to STDERR--
+which is largely incompatible with using subprocess.
+"""
+
 import logging
 import os
 import warnings

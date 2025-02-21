@@ -1,3 +1,5 @@
+from . import _disable_warnings  # noqa: F401
+
 # stdlib
 import os
 import sys
@@ -9,7 +11,6 @@ from pyramid.scripts.common import parse_vars
 import transaction
 
 # local
-from . import _disable_warnings  # noqa: F401
 from ..models import get_engine
 from ..models import get_session_factory
 from ..models import get_tm_session
