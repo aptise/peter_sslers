@@ -1,4 +1,10 @@
+.coverage
+.eggs
+.tox
+_data_
+dev
 *.sqlite
 src/peter_sslers.egg-info
 src/peter_sslers/web/scripts/update_foo.py
+X_TESTRUN_DATA
 

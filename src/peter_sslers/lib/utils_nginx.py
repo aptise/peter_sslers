@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
+DEBUG_CONCEPT = False
+
 
 class NginxSession(object):
     session: requests.Session
@@ -31,14 +33,26 @@ class NginxSession(object):
         :param request: The current Pyramid `request` object
         """
         sess = requests.Session()
-        _auth = request.registry.settings["app_settings"].get("nginx.userpass")
+        _auth = request.api_context.application_settings.get("nginx.userpass")
         if _auth:
             sess.auth = tuple(_auth.split(":"))  # type: ignore[assignment]
-        servers_allow_invalid = request.registry.settings["app_settings"].get(
+
+        servers_allow_invalid = request.api_context.application_settings.get(
             "nginx.servers_pool_allow_invalid"
         )
         if servers_allow_invalid:
             sess.verify = False
+        else:
+            ca_bundle_pem = request.api_context.application_settings.get(
+                "nginx.ca_bundle_pem"
+            )
+            if ca_bundle_pem:
+                sess.verify = ca_bundle_pem
+            if DEBUG_CONCEPT:
+                print("=============================")
+                print("ca_bundle_pem", ca_bundle_pem)
+                print("=============================")
+
         self.session = sess
 
     def __enter__(self):
@@ -62,19 +76,19 @@ def nginx_flush_cache(
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
-    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
+    _reset_path = request.api_context.application_settings["nginx.reset_path"]
+    timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
         rval: Dict[str, Union[List, Dict]] = {
             "errors": [],
             "success": [],
             "servers": {},
         }
-        for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
+        for _server in request.api_context.application_settings["nginx.servers_pool"]:
             status = None
             try:
                 reset_url = _server + _reset_path + "/all"
-                response = sess.get(reset_url, timeout=timeout, verify=False)
+                response = sess.get(reset_url, timeout=timeout)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     status = response_json
@@ -117,19 +131,19 @@ def nginx_status(
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    status_path = request.registry.settings["app_settings"]["nginx.status_path"]
-    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
+    status_path = request.api_context.application_settings["nginx.status_path"]
+    timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
         rval: Dict[str, Union[List, Dict]] = {
             "errors": [],
             "success": [],
             "servers": {},
         }
-        for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
+        for _server in request.api_context.application_settings["nginx.servers_pool"]:
             _status = None
             try:
                 status_url = _server + status_path
-                response = sess.get(status_url, timeout=timeout, verify=False)
+                response = sess.get(status_url, timeout=timeout)
                 if response.status_code == 200:
                     response_json = json.loads(response.text)
                     _status = response_json
@@ -166,16 +180,16 @@ def nginx_expire_cache(
     if not dbDomains:
         raise ValueError("no domains submitted")
     domain_ids: Dict[str, set] = {"success": set([]), "failure": set([])}
-    _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
-    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
+    _reset_path = request.api_context.application_settings["nginx.reset_path"]
+    timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
-        for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
+        for _server in request.api_context.application_settings["nginx.servers_pool"]:
             for domain in dbDomains:
                 try:
                     reset_url = (
                         _server + _reset_path + "/domain/%s" % domain.domain_name
                     )
-                    response = sess.get(reset_url, timeout=timeout, verify=False)
+                    response = sess.get(reset_url, timeout=timeout)
                     if response.status_code == 200:
                         response_json = json.loads(response.text)
                         if response_json["result"] == "success":

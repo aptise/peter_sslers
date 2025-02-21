@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import logging
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.config import Configurator
@@ -9,24 +10,23 @@ from pyramid.renderers import JSON
 from pyramid.tweens import EXCVIEW
 import transaction
 
-# from sqlalchemy import engine_from_config
-
 # local
 from . import models
+from .lib.handler import admin_url
+from .lib.handler import api_host
+from .lib.handler import load_CertificateCAPreferences
 from ..lib.config_utils import ApplicationSettings
 from ..lib.config_utils import set_bool_setting
 from ..lib.db import _setup
-from ..lib.db import get
 from ..lib.utils import ApiContext
+from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
 
-# from ..lib import acme_v2
-# from ..lib import cert_utils
-# from ..lib.config_utils import set_int_setting
-# from ..lib.db import create
-# from ..lib.db import update
-# from ..model import objects as model_objects
-# from ..model import utils as model_utils
+if TYPE_CHECKING:
+    # from .utils import ApiContext
+    # from ..model.objects import Domain
+    from pyramid.request import Request
+
 
 # ==============================================================================
 
@@ -42,11 +42,12 @@ def header_tween_factory(handler, registry):
 
 def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
-    event["admin_prefix"] = event["request"].registry.settings["app_settings"][
+    event["admin_prefix"] = event["request"].registry.settings["application_settings"][
         "admin_prefix"
     ]
     event["admin_server"] = event["request"].admin_server
     event["model_websafe"] = model_websafe
+    event["unurlify"] = unurlify
 
 
 def db_log_cleanup__tween_factory(handler, registry):
@@ -72,30 +73,6 @@ def db_log_cleanup__tween_factory(handler, registry):
     return db_log_cleanup__tween
 
 
-def api_host(request):
-    """request method"""
-    _api_host = request.registry.settings["app_settings"].get("api_host")
-    if _api_host:
-        return _api_host
-    _scheme = request.environ.get("scheme", "http")
-    return "%s://%s" % (_scheme, request.environ["HTTP_HOST"])
-
-
-def admin_url(request):
-    """request method"""
-    return request.api_host + request.registry.settings["app_settings"]["admin_prefix"]
-
-
-def load_CertificateCAPreferences(request):
-    """
-    loads `model.objects.CertificateCAPreferences` onto the request
-    """
-    dbCertificateCAPreferences = get.get__CertificateCAPreference__paginated(
-        request.api_context
-    )
-    return dbCertificateCAPreferences
-
-
 def main(global_config, **settings):
     """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
@@ -107,16 +84,19 @@ def main(global_config, **settings):
     # custom datetime rendering
     json_renderer = JSON()
 
-    def datetime_adapter(obj, request):
+    def datetime_adapter(obj, request: "Request") -> str:
         return obj.isoformat()
 
     json_renderer.add_adapter(datetime.datetime, datetime_adapter)
     config.add_renderer("json", json_renderer)
 
     # Parse settings
-    app_settings = ApplicationSettings()
-    app_settings.from_settings_dict(settings)
-    config.registry.settings["app_settings"] = app_settings
+    config_uri = settings.get("config_uri")
+    if not config_uri:
+        config_uri = global_config["__file__"] if global_config else None
+    application_settings = ApplicationSettings(config_uri)
+    application_settings.from_settings_dict(settings)
+    config.registry.settings["application_settings"] = application_settings
 
     # let's extend the request too!
     config.add_request_method(
@@ -125,7 +105,7 @@ def main(global_config, **settings):
         reify=True,
     )
     config.add_request_method(
-        lambda request: request.registry.settings["app_settings"].get(
+        lambda request: request.api_context.application_settings.get(
             "admin_server", None
         )
         or request.environ["HTTP_HOST"],
@@ -140,13 +120,11 @@ def main(global_config, **settings):
     )
 
     config.add_request_method(
-        lambda request: datetime.datetime.utcnow(), "a_timestamp", reify=True
-    )
-    config.add_request_method(
         lambda request: ApiContext(
-            timestamp=request.a_timestamp,
             dbSession=request.dbSession,
             request=request,
+            config_uri=config_uri,
+            application_settings=application_settings,
         ),
         "api_context",
         reify=True,
@@ -179,7 +157,7 @@ def main(global_config, **settings):
     config.include(".models")
     config.scan(".views")  # shared views, currently just exception handling
 
-    # after the models are included, setup the AcmeAccountProvider
+    # after the models are included, setup the AcmeServer
     dbEngine = models.get_engine(settings)
     dbSession = None
     with transaction.manager:
@@ -187,17 +165,27 @@ def main(global_config, **settings):
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.utcnow(),
             dbSession=dbSession,
             request=None,
+            config_uri=config_uri,
+            application_settings=application_settings,
         )
 
-        # this will do the heavy lifting
-        _setup.startup_AcmeAccountProviders(ctx, app_settings)
+        # this might do some heavy lifting, or nothing
+        _setup.application_started(ctx, application_settings)
+
+        # release anything
+        del ctx
 
     if dbSession:
         dbSession.close()
     dbEngine.dispose()  # toss the connection in-case of multi-processing
+
+    print(
+        "PeterSSLers will be serving on:   "
+        + config.registry.settings["admin_server"]
+        + config.registry.settings["application_settings"]["admin_prefix"]
+    )
 
     # exit early
     return config.make_wsgi_app()

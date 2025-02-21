@@ -19,7 +19,7 @@ class View_List(Handler):
         renderer="/admin/acme_challenge_polls.mako",
     )
     @view_config(
-        route_name="admin:acme_challenge_polls_paginated",
+        route_name="admin:acme_challenge_polls-paginated",
         renderer="/admin/acme_challenge_polls.mako",
     )
     @view_config(
@@ -27,7 +27,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenge_polls_paginated|json",
+        route_name="admin:acme_challenge_polls-paginated|json",
         renderer="json",
     )
     @docify(
@@ -52,7 +52,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeChallengePoll__count(self.request.api_context)
         url_template = (
             "%s/acme-challenge-polls/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallengePoll__paginated(

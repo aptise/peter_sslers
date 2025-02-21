@@ -106,6 +106,19 @@ class AcmeDuplicateChallengesExisting(AcmeDuplicateChallenges):
         )
 
 
+class AcmeDuplicateChallengesExisting_PreAuthz(AcmeDuplicateChallengesExisting):
+    def __str__(self):
+        return (
+            """One or more domains already have active Pre Authorizations: %s."""
+            % ", ".join(
+                [
+                    "`%s` (%s)" % (ac.domain.domain_name, ac.acme_challenge_type)
+                    for ac in self.args[0]
+                ]
+            )
+        )
+
+
 class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
     """the first arg should be a single active challenge"""
 
@@ -116,7 +129,16 @@ class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
         )
 
 
-class AcmeDuplicateOrderlessDomain(AcmeDuplicateChallenges):
+class AcmeDuplicateChallenge_PreAuthz(AcmeDuplicateChallenge):
+    pass
+
+
+class AcmeDnsServerError(AcmeError):
+    """
+    args[0] == String message
+    args[1] == raised exception
+    """
+
     pass
 
 
@@ -125,6 +147,10 @@ class AcmeServerError(AcmeError):
 
 
 class AcmeServer404(AcmeServerError):
+    pass
+
+
+class AcmeServerUnsupported(AcmeServerError):
     pass
 
 
@@ -229,6 +255,15 @@ class AcmeDomainsRequireConfigurationAcmeDNS(AcmeDomainsInvalid):
         )
 
 
+class AcmeAriCheckError(AcmeError):
+    pass
+
+
+class AcmeAriCheckDeclined(AcmeAriCheckError):
+    # raise when we don't want to do an ari check
+    pass
+
+
 class DomainVerificationError(AcmeError):
     pass
 
@@ -237,11 +272,35 @@ class DisplayableError(_UrlSafeException):
     pass
 
 
+class DuplicateRenewalConfiguration(Exception):
+    pass
+
+
 class InvalidRequest(_UrlSafeException):
     """
     raised when an end-user wants to do something invalid/not-allowed
     """
 
+    pass
+
+
+class FieldError(ValueError):
+    """
+    raised when an issue is with a known field
+    this is useful for dealing with forms
+
+    field = args[0]
+    error = args[1]
+    """
+
+    pass
+
+
+class UnsupportedKeyTechnology(Exception):
+    pass
+
+
+class UnknownAcmeProfile_Local(Exception):
     pass
 
 

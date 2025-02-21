@@ -1,6 +1,12 @@
 README DEVELOPMENT
 ================================
 
+## prep the data dir
+
+mkdir _data_
+cp tests/test_configuration/pebble/test/certs/pebble.minica.pem nginx_ca_bundle.pem
+
+
 ## install with testing extras
 
 Instead of a normal pip install...
@@ -30,7 +36,7 @@ For (most) testing and (all) development you need to follow a few initial steps.
 It should look something like this:
 
     certificate_authority = pebble
-    certificate_authority_directory = https://0.0.0.0:14000/dir
+    certificate_authority_directory = https://127.0.0.1:14000/dir
     certificate_authority_protocol = acme-v2
     certificate_authority_testing = True
 
@@ -38,14 +44,14 @@ This above enables the AcmeProvider for a 'custom' CA and injects the protocol
 and endpoint into it. It also enables the "TESTING" flag, which disables SSL
 checking on ACME payloads.
 
-When you start the server a new AcmeAccountProvider will be created for
+When you start the server a new AcmeServer will be created for
 your CertificateAuthority:
 
-    http://127.0.0.1:7201/.well-known/admin/acme-account-providers
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-servers
 
 2.  Create/Upload a new account key for the 'custom' AcmeProvider.
 
-    http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
+    http://127.0.0.1:7201/.well-known/peter_sslers/acme-account-key/new
 
 
 3. Run a custom CA for testing
@@ -57,17 +63,18 @@ maintained by LetsEncrypt.
 
 ### Install pebble
 
-Follow the instructions on https://github.com/letsencrypt/pebble ;
+Follow the instructions on https://github.com/letsencrypt/pebble?tab=readme-ov-file#install ;
 this will require you to install `go`.
 
-> 1. [Set up Go](https://golang.org/doc/install) and your `$GOPATH`
-> 2. `go get -u github.com/letsencrypt/pebble/...`
-> 3. `cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...`
-> 4. `pebble -h`
+> 1. Set up Go [from binaries](https://golang.org/doc/install) or [from source](https://go.dev/doc/install/source) and your `$GOPATH`
+> 2. `git clone https://github.com/letsencrypt/pebble/`
+> 3. `cd pebble`
+> 4. `go install ./cmd/pebble
+`
 
 As a precaution, copy the pebble config file. On the root project directory:
 
-    cp ./tests/test_configuration/pebble/test/config/pebble-config.json ./tests/test_configuration/pebble/test/config/pebble-config.dist.json
+    cp ./tests/test_configuration/pebble/test/config/pebble-config.json ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 The edit it to see the configuration
 
@@ -89,21 +96,29 @@ Which should look something like this...
 
 Good to go?  Ok, run pebble!
 
-    cd tests/test_configuration/pebble
-    PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 PEBBLE_ALTERNATE_ROOTS=2 PEBBLE_CHAIN_LENGTH=3 ~/go/bin/pebble --config  ./test/config/pebble-config.json
+    PEBBLE_VA_ALWAYS_VALID=0 \
+        PEBBLE_AUTHZREUSE=100 \
+        PEBBLE_VA_NOSLEEP=1 \
+        PEBBLE_ALTERNATE_ROOTS=2 \
+        PEBBLE_CHAIN_LENGTH=3 \
+        pebble --config  ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 To have all challenge POST requests succeed without performing any validation run:
 
-    cd tests/test_configuration/pebble
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
         PEBBLE_VA_NOSLEEP=1 \
         PEBBLE_ALTERNATE_ROOTS=2 \
         PEBBLE_CHAIN_LENGTH=3 \
-        ~/go/bin/pebble -config ./test/config/pebble-config.json
+        pebble -config ./tests/test_configuration/pebble/test/config/pebble-config.json
+
+
+    PEBBLE_AUTHZREUSE=10 \
+        PEBBLE_ALTERNATE_ROOTS=2 \
+        PEBBLE_CHAIN_LENGTH=3 \
+        pebble -config ./tests/test_configuration/pebble/test/config/pebble-config.json
 
 Pebble serves a single chain by default. PEBBLE_CHAIN_LENGTH
-
 
 ## Integrated Testing
 
@@ -120,19 +135,30 @@ of Redis and/or Pebble for each test. This strategy is necessary to ensure there
 is no stale data in these platforms.
 
 
+## Testing Database
+
+Tests will create/use a database file named `ssl_minnow_test.sqlite`
+
+To streamline overhead, the tests will create and utilize database snapshots:
+
+    `ssl_minnow_test.sqlite-AppTest`
+    `ssl_minnow_test.sqlite-AppTestCore`
+
+To ensure fresh tests, all 3 files can be removed:
+
+    `ssl_minnow_test.sqlite`
+    `ssl_minnow_test.sqlite-AppTest`
+    `ssl_minnow_test.sqlite-AppTestCore`
+
+
 ## ACME-DNS Testing
 
-The testing suite can not reliably spin-up `acme-dns``, so it must run in it's
+The testing suite can not reliably spin-up `acme-dns`, so it must run in it's
 own process.
 
 Use the test-config file:
 
-    sudo acme-dns -c ./tests/test_configuration/acme-dns.config
-
-
-## ACME v1 Testing
-
-ACME v1 is no longer supported in peter_sslers.
+    sudo acme-dns -c ./tests/test_configuration/acme-dns--local.config
 
 
 ## Repository Styleguide
@@ -164,7 +190,7 @@ Unit tests will use the `test.ini` file for configuration.
 
 Instead of editing this file, you can overwrite it with an environment variable:
 
-    export SSL_TEST_INI="test_local.ini"
+    export SSL_TEST_INI="conf/test_local.ini"
 
 
 ## check nginx/openresty routes
@@ -220,6 +246,23 @@ The following domains are also recommended for development testing:
     a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
 
 
+
+# Application Design
+
+The application design of PeterSSLers is designed to be extensible and reusable,
+so the library can be used for both commandline work and web based tools.
+
+* `/lib` - main library functions
+* `/lib/db` - All database manipulation happens here, so it can be leveraged
+outside of the web context
+* `/model` - SQLAlchemy Model
+* `/web` - A Pyramid Application
+
+With the exception of the testing system, no SqlAlchemy code should exist in the
+web section.
+
+
+
 # CI Setup Benchmarks
 
 ## Installing Go
@@ -245,6 +288,15 @@ Go is already installed, however if we need to do a new version...
     from acme_dns_server_account a
     join domain d on a.domain_id = d.id
     ;
+
+
+## Support for CAs with non-public roots
+
+If a CA has a non-public root, for example a Private CA or testing CA, TLS support
+is achieved by setting a `server_ca_cert_bundle` value on the database record.  
+
+This can be provided in the initial configuration.
+
 
 
 

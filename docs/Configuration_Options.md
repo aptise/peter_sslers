@@ -1,5 +1,5 @@
-* [Previous - Installation](https://github.com/aptise/peter_sslers/docs/Installation.md)
-* [Next - General_Management_Concepts](https://github.com/aptise/peter_sslers/docs/General_Management_Concepts.md)
+* [Previous - Installation](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
+* [Next - General_Management_Concepts](https://github.com/aptise/peter_sslers/blob/main/docs/General_Management_Concepts.md)
 
 # Configuration Options
 
@@ -7,21 +7,9 @@ Your `environment.ini` exposes a few configuration options.
 
 These are documented at-length on the in-app settings page.
 
-* `openssl_path` - the full path to your openssl binary (default `openssl`)
-* `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
-
-* `certificate_authority` - the LetsEncrypt CertificateAuthority. by default we
-  use their staging URL. you will have to manually put in the real URL as defined on
-  their docs. You can also use the string "pebble" or "custom" to enable local testing.
-* `certificate_authority_agreement` - the LetsEncrypt agreement URL used when
-  creating new accounts. Everything will probably fail if you don't include this argument.
-* `certificate_authority_endpoint` - ACME v1; if `certificate_authority=custom` or
-  `certificate_authority=pebble`, you must supply a url for the endpoint
-* `certificate_authority_directory` - ACME v2; if `certificate_authority=custom` or
-  `certificate_authority=pebble`, you must supply a url for the directory endpoint
-
 * `cleanup_pending_authorizations` - boolean, default True. if an AcmeChallenge
   fails when processing an AcmeOrder, should the remaining AcmeAuthorizations be deactivated?
+  This is a global default; an ACME Server can be configured to disregard this setting.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
@@ -40,17 +28,24 @@ These are documented at-length on the in-app settings page.
   to each server in `nginx.servers_pool`
 * `nginx.reset_path` - defaults to `/.peter_sslers/nginx/shared_cache/expire`
 * `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
+* `nginx.ca_bundle_pem` - path to a pem encoded list of root certificates used by the nginx server
+
+* `precheck_acme_challenges` - comma separated list of acme_challenges to precheck; e.g. 
+
+    precheck_acme_challenges = http-01
+    precheck_acme_challenges = http-01, dns-01
+    
+    A precheck will keep a challenge from triggering, so it can be fixed within the same order.
+
+
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests
   library
 
 * `admin_server` (optional) defaults to `HTTP_HOST`
-* `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/admin`
+* `admin_prefix` (optional) prefix for the admin tool. defaults to `/.well-known/peter_sslers`
 * `admin_url` (optional) used for display in instructions. If omitted,
   scheme+server+prefix will be used.
-
-If you have a custom openssl install, you probably want these settings
-
-    openssl_path = /usr/local/bin/openssl
-    openssl_path_conf = /usr/local/ssl/openssl.cnf
+* `http_port.renewals` (optional) Default: 7202; the port used to answer
+  http-01 challenges; traffic must be proxied to it from port 80.
 
 These options are used by the server AND by the test suite.

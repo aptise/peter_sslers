@@ -28,12 +28,12 @@ class View_List(Handler):
         renderer="/admin/certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca_chains_paginated",
+        route_name="admin:certificate_ca_chains-paginated",
         renderer="/admin/certificate_ca_chains.mako",
     )
     @view_config(route_name="admin:certificate_ca_chains|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_ca_chains_paginated|json", renderer="json"
+        route_name="admin:certificate_ca_chains-paginated|json", renderer="json"
     )
     @docify(
         {
@@ -59,7 +59,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/certificate-ca-chains/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -94,7 +94,7 @@ class View_Focus(Handler):
             self.dbCertificateCAChain = dbCertificateCAChain
             self.focus_item = dbCertificateCAChain
             self.focus_url = "%s/certificate-ca-chain/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateCAChain.id,
             )
         return self.dbCertificateCAChain
@@ -179,8 +179,13 @@ class View_New(Handler):
             "about": """upload a CertificateCAChain""",
             "POST": True,
             "GET": None,
-            "instructions": """curl --form 'chain_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
-            "form_fields": {"chain_file": "required"},
+            "instructions": """curl {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "example": """curl """
+            """--form 'chain_file=@chain1.pem' """
+            """{ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "form_fields": {
+                "chain_file": "required",
+            },
         }
     )
     def upload_chain(self):
@@ -209,12 +214,15 @@ class View_New(Handler):
             if not isinstance(chain_pem, str):
                 chain_pem = chain_pem.decode("utf8")
 
-            chain_file_name = formStash.results["chain_file_name"] or "manual upload"
+            chain_file_name = formStash.results["chain_file_name"]
             (
                 dbCertificateCAChain,
                 _is_created,
             ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
-                self.request.api_context, chain_pem, display_name=chain_file_name
+                self.request.api_context,
+                chain_pem,
+                display_name=chain_file_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:
@@ -228,7 +236,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-ca-chain/%s?result=success&is_created=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateCAChain.id,
                     (1 if _is_created else 0),
                 )

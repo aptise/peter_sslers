@@ -19,10 +19,10 @@ from ...model.objects import RootStore
 class View_List(Handler):
     @view_config(route_name="admin:root_stores", renderer="/admin/root_stores.mako")
     @view_config(
-        route_name="admin:root_stores_paginated", renderer="/admin/root_stores.mako"
+        route_name="admin:root_stores-paginated", renderer="/admin/root_stores.mako"
     )
     @view_config(route_name="admin:root_stores|json", renderer="json")
-    @view_config(route_name="admin:root_stores_paginated|json", renderer="json")
+    @view_config(route_name="admin:root_stores-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/root-stores.json",
@@ -45,7 +45,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__RootStore__count(self.request.api_context)
         url_template = (
             "%s/root-store/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -82,7 +82,7 @@ class View_Focus(Handler):
             self.dbRootStore = dbRootStore
             self._focus_item = dbRootStore
             self._focus_url = "%s/root-store/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbRootStore.id,
             )
         return self.dbRootStore

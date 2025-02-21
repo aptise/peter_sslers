@@ -34,7 +34,7 @@
     <div class="row">
         <div class="col-sm-12">
 
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -58,16 +58,16 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountProvider</th>
+                        <th>AcmeServer</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-providers"
+                                href="${admin_prefix}/acme-servers"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
-                                [${AcmeAccount.acme_account_provider.name}]
-                                (${AcmeAccount.acme_account_provider.url})
+                                AcmeServer-${AcmeAccount.acme_server_id}
+                                [${AcmeAccount.acme_server.name}]
+                                (${AcmeAccount.acme_server.url})
                             </a>
                         </td>
                     </tr>
@@ -78,6 +78,11 @@
                     <tr>
                         <th>key_pem_md5</th>
                         <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>key_technology</th>
+                        <td><code>${AcmeAccount.acme_account_key.key_technology}</code>
                         </td>
                     </tr>
                     <tr>
@@ -92,10 +97,12 @@
                             
                                 <p>Rolling over the key will permanently deactivate it on the server, and replace it with a new key that is automatically generated.</p>
 
+                                <p>This will use the Account default of <code>${AcmeAccount.private_key_technology}</code></p>
+
                                 <div class="form-group">
                                     <label for="key_pem_existing">key pem - existing</label>
                                     <input type="text" name="key_pem_existing" class="form-control" />
-                                    <span class="help-inline">Just to be safe, please submit the existing key_pem_md5 or key_pem.</span>
+                                    <span class="help-inline">Just to be safe, please submit the existing <code>key_pem_md5</code> or <code>key_pem</code>.</span>
                                 </div>
                         
                                 <button class="btn btn-warning" type="submit" name="submit" value="submit">

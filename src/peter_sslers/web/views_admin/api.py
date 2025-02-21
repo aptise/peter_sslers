@@ -1,10 +1,10 @@
 # stdlib
-import json
 import logging
 from typing import TYPE_CHECKING
 
+# import json
+
 # pypi
-import cert_utils
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
@@ -17,9 +17,8 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_API_Domain_autocert
 from ..lib.forms import Form_API_Domain_certificate_if_needed
-from ..lib.forms import Form_API_Domain_disable
-from ..lib.forms import Form_API_Domain_enable
 from ..lib.handler import Handler
+from ... import __VERSION__
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -44,6 +43,25 @@ class ViewAdminApi(Handler):
             "API_DOCS": docs.API_DOCS,
         }
 
+    @view_config(route_name="admin:api:version", renderer="json")
+    @view_config(route_name="admin:api:version|json", renderer="json")
+    def version(self):
+        """
+        this route exists to help ensure an API client is operating against
+        the correct server.
+        """
+        version = {
+            "version": __VERSION__,
+            "config_uri-path": self.request.api_context.application_settings[
+                "config_uri-path"
+            ],
+            "config_uri-contents": self.request.registry.settings[
+                "application_settings"
+            ]["config_uri-contents"],
+            "mac_uuid": self.request.api_context.application_settings["mac_uuid"],
+        }
+        return version
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:deactivate_expired", renderer=None)
@@ -55,6 +73,8 @@ class ViewAdminApi(Handler):
             "about": """deactivates expired certificates; runs update-recents""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/deactivate-expired.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/deactivate-expired.json",
         }
     )
     def deactivate_expired(self):
@@ -63,7 +83,7 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/deactivate-expired.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
         operations_event = lib_db.actions.operations_deactivate_expired(
             self.request.api_context
@@ -83,7 +103,7 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--deactivate-expired&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 operations_event.id,
             )
         )
@@ -99,6 +119,8 @@ class ViewAdminApi(Handler):
             "about": """updates the database to reflect the most recent Certificate for each Domain""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/update-recents.json",
         }
     )
     def update_recents(self):
@@ -107,7 +129,7 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/update-recents.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--update-recents&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
         operations_event = lib_db.actions.operations_update_recents__global(
             self.request.api_context
@@ -117,7 +139,7 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--update-recents&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 operations_event.id,
             )
         )
@@ -133,6 +155,8 @@ class ViewAdminApi(Handler):
             "about": """Reconcile outstanding CertificateCA records by downloading and enrolling the CertificateCA presented in their "AuthorityKeyIdentifier".""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/reconcile-cas.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/reconcile-cas.json",
         }
     )
     def reconcile_cas(self):
@@ -141,7 +165,7 @@ class ViewAdminApi(Handler):
                 return formatted_get_docs(self, "/api/reconcile-cas.json")
             return HTTPSeeOther(
                 "%s/operations/log?result=error&operation=api--reconcile-cas&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
         operations_event = lib_db.actions.operations_reconcile_cas(
             self.request.api_context
@@ -151,107 +175,13 @@ class ViewAdminApi(Handler):
         return HTTPSeeOther(
             "%s/operations/log?result=success&operation=api--reconcile-cas&event.id=%s"
             % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 operations_event.id,
             )
         )
 
 
 class ViewAdminApi_Domain(Handler):
-    @view_config(route_name="admin:api:domain:enable", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/domain/enable.json",
-            "section": "api",
-            "about": """Enables Domain(s) for management.""",
-            "POST": True,
-            "GET": None,
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
-    )
-    def enable(self):
-        if self.request.method == "POST":
-            return self._enable__submit()
-        return self._enable__print()
-
-    def _enable__print(self):
-        return formatted_get_docs(self, "/api/domain/enable.json")
-
-    def _enable__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_API_Domain_enable, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # this function checks the domain names match a simple regex
-            domain_names = cert_utils.utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
-                )
-            api_results = lib_db.actions.api_domains__enable(
-                self.request.api_context, domain_names
-            )
-            return {"result": "success", "domain_results": api_results}
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            return {"result": "error", "form_errors": formStash.errors}
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:api:domain:disable", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/domain/disable.json",
-            "section": "api",
-            "about": """Disables Domain(s) for management.""",
-            "POST": True,
-            "GET": None,
-            "form_fields": {
-                "domain_names": "[required] a comma separated list of fully qualified domain names."
-            },
-        }
-    )
-    def disable(self):
-        if self.request.method == "POST":
-            return self._disable__submit()
-        return self._disable__print()
-
-    def _disable__print(self):
-        return formatted_get_docs(self, "/api/domain/disable.json")
-
-    def _disable__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_API_Domain_disable, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # this function checks the domain names match a simple regex
-            domain_names = cert_utils.utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
-                )
-
-            api_results = lib_db.actions.api_domains__disable(
-                self.request.api_context, domain_names
-            )
-            return {"result": "success", "domain_results": api_results}
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            return {"result": "error", "form_errors": formStash.errors}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -265,10 +195,19 @@ class ViewAdminApi_Domain(Handler):
             "GET": None,
             "instructions": [
                 """POST domain_name for certificates.""",
-                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
+                """curl {ADMIN_PREFIX}/api/domain/certificate-if-needed.json""",
+            ],
+            "examples": [
+                "curl "
+                "--form 'domain_name=example.com' "
+                "--form 'account_key_option=account_key_existing' "
+                "--form 'account_key_existing=ff00ff00ff00ff00' "
+                "--form 'private_key_option=private_key_existing' "
+                "--form 'private_key_existing=ff00ff00ff00ff00'"
+                "{ADMIN_PREFIX}/api/domain/certificate-if-needed.json",
             ],
             "requirements": [
-                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
             ],
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
@@ -276,37 +215,40 @@ class ViewAdminApi_Domain(Handler):
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
-                "account_key_file_le_reg": "LetsEncrypt Certbot file",
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
-                "private_key_file_pem": "pem to upload",
-                "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
             },
             "form_fields_related": [
-                ["account_key_file_pem", "acme_account_provider_id"],
-                [
-                    "account_key_file_le_meta",
-                    "account_key_file_le_pkey",
-                    "account_key_file_le_reg",
-                ],
+                ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
-                "acme_account_provider_id": "{RENDER_ON_REQUEST}",
-                "account_key_option": model_utils.AcmeAccontKey_options_a,
-                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
-                "private_key_option": model_utils.PrivateKey_options_a,
+                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
                 "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-                "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                # Form_API_Domain_certificate_if_needed
+                "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
+                    "processing_strategy"
+                ].list,
+                "private_key_cycle": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_cycle"
+                ].list,
+                # _form_AcmeAccount_PrivateKey_core
+                "account_key_option": Form_API_Domain_certificate_if_needed.fields[
+                    "account_key_option"
+                ].list,
+                "private_key_option": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_option"
+                ].list,
+                "private_key_generate": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_generate"
+                ].list,
             },
         }
     )
     def certificate_if_needed(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeAccountProviders()
+        self._load_AcmeServers()
         if self.request.method == "POST":
             return self._certificate_if_needed__submit()
         return self._certificate_if_needed__print()
@@ -335,25 +277,11 @@ class ViewAdminApi_Domain(Handler):
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
-                account_key_option=formStash.results["account_key_option"],
-                require_contact=None,
+                require_contact=False,
+                support_upload=False,
             )
             if TYPE_CHECKING:
                 assert acmeAccountSelection.upload_parsed is not None
-
-            if acmeAccountSelection.selection == "upload":
-                key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "AcmeAccount__insert"
-                key_create_args[
-                    "acme_account_key_source_id"
-                ] = model_utils.AcmeAccountKeySource.from_string("imported")
-                (
-                    dbAcmeAccount,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccount(
-                    self.request.api_context, **key_create_args
-                )
-                acmeAccountSelection.AcmeAccount = dbAcmeAccount
 
             privateKeySelection = form_utils.parse_PrivateKeySelection(
                 self.request,
@@ -363,37 +291,18 @@ class ViewAdminApi_Domain(Handler):
             if TYPE_CHECKING:
                 assert privateKeySelection.upload_parsed is not None
 
-            if privateKeySelection.selection == "upload":
-                key_create_args = privateKeySelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "PrivateKey__insert"
-                key_create_args[
-                    "private_key_source_id"
-                ] = model_utils.PrivateKeySource.from_string("imported")
-                key_create_args[
-                    "private_key_type_id"
-                ] = model_utils.PrivateKeyType.from_string("standard")
-                (
-                    dbPrivateKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.request.api_context, **key_create_args
-                )
-                privateKeySelection.PrivateKey = dbPrivateKey
-
-            elif privateKeySelection.selection in (
-                "generate",
-                "private_key_for_account_key",
-            ):
-                pass
-
-            else:
+            if not privateKeySelection.PrivateKey:
                 formStash.fatal_field(
                     field="private_key_option",
-                    message="Could not load the default private key",
+                    message="Could not load/configure the private key",
                 )
 
+            # this is locked to `model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE`
+            #   which is only `process_single`
             processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+
+            # allow anything in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
+            private_key_cycle = formStash.results["private_key_cycle"]
 
             if TYPE_CHECKING:
                 assert acmeAccountSelection.AcmeAccount is not None
@@ -401,12 +310,12 @@ class ViewAdminApi_Domain(Handler):
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
-                domains_challenged=domains_challenged,
-                private_key_cycle__renewal=private_key_cycle__renewal,
-                private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
-                processing_strategy=processing_strategy,
                 dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                 dbPrivateKey=privateKeySelection.PrivateKey,
+                domains_challenged=domains_challenged,
+                private_key_cycle=private_key_cycle,
+                key_technology=privateKeySelection.key_technology,
+                processing_strategy=processing_strategy,
             )
             return {"result": "success", "domain_results": api_results}
 
@@ -421,9 +330,11 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         return {
             "project": "peter_sslers",
+            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
             "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
         }
 
@@ -432,7 +343,7 @@ class ViewAdminApi_Domain(Handler):
         {
             "endpoint": "/api/domain/autocert.json",
             "section": "api",
-            "about": """Initiates a new certificate if needed. only accepts a domain name, uses system defaults""",
+            "about": """Initiates a new certificate if needed. only accepts a sigle domain name, uses system global defaults""",
             "POST": True,
             "GET": None,
             "system.requires": [
@@ -440,7 +351,12 @@ class ViewAdminApi_Domain(Handler):
             ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
-                """curl --form 'domain_name=example.com' {ADMIN_PREFIX}/api/domain/autocert.json""",
+            ],
+            "examples": [
+                "curl "
+                "--form 'domain_name=example.com' "
+                "{ADMIN_PREFIX}/api/domain/autocert.json"
+                "",
             ],
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
@@ -448,6 +364,7 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def autocert(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         if self.request.method == "POST":
             return self._autocert__submit()
@@ -473,9 +390,24 @@ class ViewAdminApi_Domain(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this ensures only one domain
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
             )
+            # validate it, which may raise `peter_sslers.lib.errors.AcmeDomainsBlocklisted`
+            for challenge_, domains_ in domains_challenged.items():
+                if domains_:
+                    try:
+                        lib_db.validate.validate_domain_names(
+                            self.request.api_context, domains_
+                        )
+                    except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
+                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                        formStash.fatal_field(
+                            field="domain_name",
+                            message="This domain_name has been blocklisted",
+                        )
+
             domain_name = domains_challenged["http-01"][0]
 
             # does the domain exist?
@@ -486,53 +418,33 @@ class ViewAdminApi_Domain(Handler):
             )
             if dbDomain:
                 log.debug("autocert - domain known")
-                if not dbDomain.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="domain_name",
-                        message="This domain_name has been disabled",
-                    )
                 if dbDomain.has_active_certificates:
-                    # exit early
-                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    # exit early if we have active certs
+                    rval = dbDomain.as_json_config(id_only=False)
                     rval["result"] = "success"
                     rval["notes"] = "existing certificate(s)"
                     log.debug("autocert - domain known - active certs")
                     return rval
-                else:
-                    # sync the database, just be sure
-                    operations_event = (
-                        lib_db.actions.operations_update_recents__domains(
-                            self.request.api_context,
-                            dbDomains=[
-                                dbDomain,
-                            ],
-                        )
-                    )
-                    # commit so we expire the traits
-                    self.request.api_context.pyramid_transaction_commit()
-                    # and check again...
-                    if dbDomain.has_active_certificates:
-                        # exit early
-                        rval = dbDomain.as_json_config(id_only=False, active_only=True)
-                        rval["result"] = "success"
-                        rval["notes"] = "existing certificate(s), updated recents"
-                        log.debug("autocert - domain known - active certs")
-                        return rval
+
+                # sync the database, then check again
+                operations_event = lib_db.actions.operations_update_recents__domains(
+                    self.request.api_context,
+                    dbDomains=[
+                        dbDomain,
+                    ],
+                )
+                # commit so we expire the traits
+                self.request.api_context.pyramid_transaction_commit()
+                # and check again...
+                if dbDomain.has_active_certificates:
+                    # exit early
+                    rval = dbDomain.as_json_config(id_only=False)
+                    rval["result"] = "success"
+                    rval["notes"] = "existing certificate(s), updated recents"
+                    log.debug("autocert - domain known - active certs")
+                    return rval
 
                 log.debug("autocert - domain known - attempt autocert")
-
-            # Step 1- is the domain_name blocklisted?
-            dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
-                self.request.api_context,
-                domain_name,
-            )
-            if dbDomainBlocklisted:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name",
-                    message="This domain_name has been blocklisted",
-                )
 
             if dbDomain:
                 dbDomainAutocert = lib_db.get.get__DomainAutocert__by_blockingDomainId(
@@ -553,6 +465,8 @@ class ViewAdminApi_Domain(Handler):
                 )
 
             dbAcmeAccount = self.dbAcmeAccount_GlobalDefault
+            assert dbAcmeAccount
+
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
                 self.request.api_context, 0
             )
@@ -565,30 +479,48 @@ class ViewAdminApi_Domain(Handler):
             try:
                 if not dbDomain:
                     # we need to start with a domain name in order to create the Autocert block
-                    dbDomain = lib_db.getcreate.getcreate__Domain__by_domainName(
-                        self.request.api_context, domain_name
-                    )[
-                        0
-                    ]  # (dbDomain, _is_created)
+                    (dbDomain, _is_created) = (
+                        lib_db.getcreate.getcreate__Domain__by_domainName(
+                            self.request.api_context,
+                            domain_name,
+                            discovery_type="autocert",
+                        )
+                    )
                     self.request.api_context.pyramid_transaction_commit()
 
+                # TODO: tie in the cert we get?
                 dbDomainAutocert = lib_db.create.create__DomainAutocert(
                     self.request.api_context,
                     dbDomain=dbDomain,
                 )
+                is_duplicate_renewal: bool
+                try:
+                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                        self.request.api_context,
+                        dbAcmeAccount=dbAcmeAccount,
+                        private_key_cycle_id=model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT,
+                        key_technology_id=model_utils.KeyTechnology.ACCOUNT_DEFAULT,
+                        domains_challenged=domains_challenged,
+                    )
+                    is_duplicate_renewal = False  # noqa: F841
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True  # noqa: F841
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
 
+                # run an order
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
-                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                    domains_challenged=domains_challenged,
-                    private_key_cycle__renewal="account_key_default",
-                    private_key_strategy__requested="deferred-associate",
+                    dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy="process_single",
-                    dbAcmeAccount=dbAcmeAccount,
+                    acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
+                    if dbDomain is None:
+                        raise ValueError("Could not extract `Domain`")
                     operations_event = (  # noqa: F841
                         lib_db.actions.operations_update_recents__domains(
                             self.request.api_context,
@@ -600,7 +532,7 @@ class ViewAdminApi_Domain(Handler):
 
                     # commit this so the domain will reload
                     self.request.api_context.pyramid_transaction_commit()
-                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval = dbDomain.as_json_config(id_only=False)
                     rval["result"] = "success"
                     rval["notes"] = "new AcmeOrder, valid"
                     rval["AcmeOrder"] = {
@@ -619,7 +551,7 @@ class ViewAdminApi_Domain(Handler):
                 rval = {
                     "result": "error",
                     "notes": "new AcmeOrder, invalid",
-                    "domain": None,
+                    "Domain": None,
                     "certificate_signed__latest_single": None,
                     "certificate_signed__latest_multi": None,
                     "AcmeOrder": {
@@ -657,7 +589,7 @@ class ViewAdminApi_Domain(Handler):
             return {
                 "result": "error",
                 "form_errors": formStash.errors,
-                "domain": None,
+                "Domain": None,
                 "certificate_signed__latest_single": None,
                 "certificate_signed__latest_multi": None,
             }
@@ -689,6 +621,8 @@ class ViewAdminApi_Redis(Handler):
             "about": """Primes the Redis cache""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/redis/prime.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/redis/prime.json",
         }
     )
     def prime(self):
@@ -697,7 +631,7 @@ class ViewAdminApi_Redis(Handler):
                 return formatted_get_docs(self, "/api/redis/prime.json")
             return HTTPSeeOther(
                 "%s/operations/redis?result=error&operation=api--redis--prime&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         try:
@@ -876,7 +810,7 @@ class ViewAdminApi_Redis(Handler):
             return HTTPSeeOther(
                 "%s/operations/redis?result=success&operation=redis_prime&event.id=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbEvent.id,
                 )
             )
@@ -898,7 +832,7 @@ class ViewAdminApi_Redis(Handler):
             raise HTTPFound(
                 "%s/operations/redis?result=error&operation=api--redis--prime&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     msg,
                 )
             )
@@ -914,6 +848,8 @@ class ViewAdminApi_Nginx(Handler):
             "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/nginx/cache-flush.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/nginx/cache-flush.json",
         }
     )
     def cache_flush(self):
@@ -922,7 +858,7 @@ class ViewAdminApi_Nginx(Handler):
                 return formatted_get_docs(self, "/api/nginx/cache-flush.json")
             return HTTPSeeOther(
                 "%s/operations/nginx?result=error&operation=api--nginx--cache-flush&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
@@ -939,7 +875,7 @@ class ViewAdminApi_Nginx(Handler):
             return HTTPSeeOther(
                 "%s/operations/nginx?result=success&operation=nginx_cache_flush&event.id=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbEvent.id,
                 )
             )
@@ -952,7 +888,7 @@ class ViewAdminApi_Nginx(Handler):
             raise HTTPFound(
                 "%s/operations/nginx?result=error&operation=api--nginx--cache-flush&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     exc.as_querystring,
                 )
             )
@@ -968,6 +904,8 @@ class ViewAdminApi_Nginx(Handler):
             "about": """Checks Nginx servers for status via background requests""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/api/nginx/status.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/api/nginx/status.json",
         }
     )
     def status(self):
@@ -976,7 +914,7 @@ class ViewAdminApi_Nginx(Handler):
                 return formatted_get_docs(self, "/api/nginx/status.json")
             return HTTPSeeOther(
                 "%s/operations/nginx?result=error&operation=api--nginx--status&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
@@ -994,116 +932,7 @@ class ViewAdminApi_Nginx(Handler):
             raise HTTPFound(
                 "%s/operations/nginx?result=error&operation=api--nginx--status&error=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     exc.as_querystring,
-                )
-            )
-
-
-class ViewAdminApi_QueueCertificate(Handler):
-    @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
-    @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
-    @docify(
-        {
-            "endpoint": "/api/queue-certificates/update.json",
-            "section": "api",
-            "about": """Updates the certificates queue by inspecting active certificates for pending expiries.""",
-            "POST": True,
-            "GET": None,
-        }
-    )
-    def update(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return formatted_get_docs(self, "/api/queue-certificates/update.json")
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--update&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-        try:
-            if self.request.wants_json:
-                if self.request.method != "POST":
-                    return formatted_get_docs(
-                        self, "/api/queue-certificates/update.json"
-                    )
-            queue_results = lib_db.queues.queue_certificates__update(
-                self.request.api_context
-            )
-            if self.request.wants_json:
-                return {"result": "success", "results": queue_results}
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--update&results=%s"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    json.dumps(queue_results, sort_keys=True),
-                )
-            )
-        except Exception as exc:
-            self.request.api_context.pyramid_transaction_rollback()
-            raise
-            if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
-            return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--update"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    str(exc),
-                )
-            )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:api:queue_certificates:process", renderer=None)
-    @view_config(
-        route_name="admin:api:queue_certificates:process|json", renderer="json"
-    )
-    @docify(
-        {
-            "endpoint": "/api/queue-certificates/process.json",
-            "section": "api",
-            "about": """Processes the QueueCertificates.""",
-            "POST": True,
-            "GET": None,
-        }
-    )
-    def process(self):
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return formatted_get_docs(self, "/api/queue-certificates/process.json")
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=error&operation=api--queue-certificates--process&error=POST+required"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
-            )
-        try:
-            if self.request.wants_json:
-                if self.request.method != "POST":
-                    return formatted_get_docs(
-                        self, "/api/queue-certificates/process.json"
-                    )
-            queue_results = lib_db.queues.queue_certificates__process(
-                self.request.api_context
-            )
-            if self.request.wants_json:
-                return {"result": "success", "queue_results": queue_results}
-            _queue_results = ""
-            if queue_results:
-                _queue_results = json.dumps(queue_results, sort_keys=True)
-            return HTTPSeeOther(
-                "%s/queue-certificates/all?result=success&operation=api--queue-certificates--process&results=%s"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    json.dumps(_queue_results, sort_keys=True),
-                )
-            )
-        except Exception as exc:
-            self.request.api_context.pyramid_transaction_rollback()
-            raise
-            if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
-            return HTTPSeeOther(
-                "%s/queue-certificates?result=error&error=%s&operation=api--queue-certificates--process"
-                % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
-                    str(exc),
                 )
             )

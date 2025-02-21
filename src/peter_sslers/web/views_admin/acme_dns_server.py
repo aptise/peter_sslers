@@ -1,4 +1,6 @@
 # stdlib
+from typing import Dict
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -8,7 +10,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import requests
 
 # local
 from ..lib import formhandling
@@ -24,15 +25,20 @@ from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
+from ...lib.utils import new_BrowserSession
 from ...model import utils as model_utils
 from ...model.objects import AcmeDnsServer
+
+if TYPE_CHECKING:
+    from ...lib.db.associate import TYPE_DomainName_2_AcmeDnsServerAccount
+    from ...lib.db.associate import TYPE_DomainName_2_DomainObject
 
 # ==============================================================================
 
 
-def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts):
-    domain_matrix = {}
-    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts:
+def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap: List) -> Dict:
+    domain_matrix: Dict = {}
+    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap:
         _dbDomain = _dbAcmeDnsServerAccount.domain
         domain_matrix[_dbDomain.domain_name] = {
             "Domain": {
@@ -55,10 +61,10 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_dns_servers|json", renderer="json")
     @view_config(
-        route_name="admin:acme_dns_servers_paginated",
+        route_name="admin:acme_dns_servers-paginated",
         renderer="/admin/acme_dns_servers.mako",
     )
-    @view_config(route_name="admin:acme_dns_servers_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_dns_servers-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/acme-dns-servers.json",
@@ -95,6 +101,23 @@ class View_List(Handler):
 
 
 class View_New(Handler):
+
+    _count_servers: int = 0
+
+    def _acme_dns_support_check(self):
+        _mode = self.request.api_context.application_settings["acme_dns_support"]
+        if _mode == "experimental":
+            return True
+        self._count_servers = lib_db.get.get__AcmeDnsServer__count(
+            self.request.api_context
+        )
+        if self._count_servers >= 1:
+            raise HTTPSeeOther(
+                "%s/acme-dns-servers?error=only-one-server-supported"
+                % (self.request.admin_url,)
+            )
+        return True
+
     @view_config(route_name="admin:acme_dns_server:new")
     @view_config(route_name="admin:acme_dns_server:new|json", renderer="json")
     @docify(
@@ -105,10 +128,13 @@ class View_New(Handler):
             "POST": True,
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/acme-dns-server/new.json",
-            "form_fields": {"root_url": "The root url of the api"},
+            "form_fields": {
+                "root_url": "The root url of the api",
+            },
         }
     )
     def new(self):
+        self._acme_dns_support_check()
         if self.request.method == "POST":
             return self._new__submit()
         return self._new__print()
@@ -137,6 +163,20 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__AcmeDnsServer(
                 self.request.api_context, root_url=formStash.results["root_url"]
             )
+
+            # in "basic" mode we only have a single server,
+            # so it should be the default
+            if (
+                self.request.api_context.application_settings["acme_dns_support"]
+                == "basic"
+            ):
+                if self._count_servers == 0:
+                    (
+                        event_status,
+                        alt_info,
+                    ) = lib_db.update.update_AcmeDnsServer__set_global_default(
+                        self.request.api_context, dbAcmeDnsServer
+                    )
 
             if self.request.wants_json:
                 return {
@@ -211,7 +251,7 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer check""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/check.json""",
+            "example": """curl -X POST {ADMIN_PREFIX}/acme-dns-server/{ID}/check.json""",
         }
     )
     def check(self):
@@ -224,13 +264,14 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-dns-server/{ID}/check.json")
         url_post_required = (
-            "%s?result=error&error=post+required&operation=mark" % self._focus_url
+            "%s?result=error&error=post+required&operation=check" % self._focus_url
         )
         return HTTPSeeOther(url_post_required)
 
     def _check__submit(self, dbAcmeDnsServer):
         try:
-            resp = requests.get("%s/health" % dbAcmeDnsServer.root_url)
+            sess = new_BrowserSession()
+            resp = sess.get("%s/health" % dbAcmeDnsServer.root_url)
             if resp.status_code != 200:
                 raise ValueError("invalid status_code: %s" % resp.status_code)
             if self.request.wants_json:
@@ -239,7 +280,11 @@ class View_Focus(Handler):
             return HTTPSeeOther(url_success)
         except Exception as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "health": None}
+                return {
+                    "result": "error",
+                    "health": None,
+                    "error": "Error communicating with the acme-dns server.",
+                }
             url_failure = "%s?result=error&operation=check" % (self._focus_url,)
             return HTTPSeeOther(url_failure)
 
@@ -252,11 +297,11 @@ class View_Focus(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts-paginated",
         renderer="/admin/acme_dns_server-focus-acme_dns_server_accounts.mako",
     )
     @view_config(
-        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts-paginated|json",
         renderer="json",
     )
     @docify(
@@ -311,8 +356,12 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer ensure domains""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains.json""",
-            "form_fields": {"domain_names": "A comma separated list of domain names"},
+            "example": """curl """
+            """--form 'domain_names=domain_names' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains.json""",
+            "form_fields": {
+                "domain_names": "A comma separated list of domain names",
+            },
         }
     )
     def ensure_domains(self):
@@ -370,53 +419,36 @@ class View_Focus(Handler):
                     message="More than 100 domain names. There is a max of 100 domains per certificate.",
                 )
 
-            # initialize a client
-            client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
-
-            dbAcmeDnsServerAccounts = []
-            for _domain_name in domain_names:
-                _dbAcmeDnsServerAccount = None
-                # _is_created__account = None
-                (
-                    _dbDomain,
-                    _is_created__domain,
-                ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                    self.request.api_context, _domain_name, is_from_queue_domain=False
-                )
-                if not _is_created__domain:
-                    _dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+            # Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]
+            # TYPE_DomainName_2_DomainObject = Dict[str, "Domain"]
+            # TYPE_DomainName_2_AcmeDnsServerAccount = Dict[str, "AcmeDnsServerAccount"]
+            domainObjectsMap: TYPE_DomainName_2_DomainObject
+            dbAcmeDnsServerAccountsMap: TYPE_DomainName_2_AcmeDnsServerAccount
+            try:
+                (domainObjectsMap, dbAcmeDnsServerAccountsMap) = (
+                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                         self.request.api_context,
-                        acme_dns_server_id=dbAcmeDnsServer.id,
-                        domain_id=_dbDomain.id,
+                        domain_names,
+                        dbAcmeDnsServer,
+                        discovery_type="via acme_dns_server._ensure_domains__submit",
                     )
-                if not _dbAcmeDnsServerAccount:
-                    try:
-                        account = client.register_account(None)  # arg = allowlist ips
-                    except Exception as exc:  # noqa: F841
-                        raise ValueError("error registering an account with AcmeDns")
-                    _dbAcmeDnsServerAccount = (
-                        lib_db.create.create__AcmeDnsServerAccount(
-                            self.request.api_context,
-                            dbAcmeDnsServer=dbAcmeDnsServer,
-                            dbDomain=_dbDomain,
-                            username=account["username"],
-                            password=account["password"],
-                            fulldomain=account["fulldomain"],
-                            subdomain=account["subdomain"],
-                            allowfrom=account["allowfrom"],
-                        )
-                    )
-
-                dbAcmeDnsServerAccounts.append(_dbAcmeDnsServerAccount)
+                )
+            except errors.AcmeDnsServerError as exc:  # noqa: F841
+                # raises a `FormInvalid`
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server.",
+                )
 
             if self.request.wants_json:
-                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts)
+                result_matrix = encode_AcmeDnsServerAccounts(
+                    list(dbAcmeDnsServerAccountsMap.values())
+                )
                 return {"result": "success", "result_matrix": result_matrix}
 
             acme_dns_server_accounts = ",".join(
                 [
                     str(_dbAcmeDnsServerAccount.id)
-                    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts
+                    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccountsMap.values()
                 ]
             )
             url_success = "%s/ensure-domains-results?acme-dns-server-accounts=%s" % (
@@ -445,7 +477,9 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer ensure domains - results""",
             "POST": None,
             "GET": True,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
+            "example": """curl """
+            """--form 'acme-dns-server-accounts=1,2,3,4,5' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/ensure-domains-results.json""",
             "form_fields": {
                 "acme-dns-server-accounts": "A comma separated list of acme-dns-server-accounts. these are returned by `/acme-dns-server/{ID}/ensure-domains.json`"
             },
@@ -498,7 +532,14 @@ class View_Focus(Handler):
             "about": """AcmeDnsServer import domain""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/acme-dns-server/{ID}/import-domain.json""",
+            "example": """curl """
+            """--form 'domain_name=domain_name' """
+            """--form 'username=username' """
+            """--form 'password=password' """
+            """--form 'fulldomain=fulldomain' """
+            """--form 'subdomain=subdomain' """
+            """--form 'allowfrom=allowfrom' """
+            """{ADMIN_PREFIX}/acme-dns-server/{ID}/import-domain.json""",
             "form_fields": {
                 "domain_name": "The domain name",
                 "username": "The acme-dns username",
@@ -541,10 +582,11 @@ class View_Focus(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
                 try:
                     # this function checks the domain names match a simple regex
-                    domain_name = cert_utils.utils.domains_from_string(
+                    _domain_names = cert_utils.utils.domains_from_string(
                         formStash.results[test_domain]
                     )
                 except ValueError as exc:  # noqa: F841
@@ -552,26 +594,27 @@ class View_Focus(Handler):
                     formStash.fatal_field(
                         field=test_domain, message="invalid domain names detected"
                     )
-                if not domain_name:
+                if not _domain_names:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="invalid or no valid domain names detected",
                     )
-                if len(domain_name) != 1:
+                if len(_domain_names) != 1:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="Only 1 domain accepted here.",
                     )
-
-            # ensure we have a domain!
+            # grab our domain
             domain_name = formStash.results["domain_name"]
             (
                 _dbDomain,
                 _is_created__domain,
             ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                self.request.api_context, domain_name, is_from_queue_domain=False
+                self.request.api_context,
+                domain_name,
+                discovery_type="via acme_dns_server._import_domain__submit",
             )
             _dbAcmeDnsServerAccount = None
             _is_created__account = None
@@ -630,12 +673,16 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeDnsServer mark""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
+            "examples": [
+                """curl """
+                """--form 'action=active' """
+                """{ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
             ],
+            "instructions": """curl {ADMIN_PREFIX}/acme-dns-server/{ID}/mark.json""",
             "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["active", "inactive", "global_default"]},
+            "valid_options": {
+                "action": Form_AcmeDnsServer_mark.fields["action"].list,
+            },
         }
     )
     def mark(self):
@@ -752,10 +799,12 @@ class View_Focus_Manipulate(View_Focus):
             "about": """AcmeDnsServer edit""",
             "POST": True,
             "GET": None,
-            "example": """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
+            "examples": [
+                """curl """
+                """--form 'action=root_url' """
+                """{ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
             ],
+            "instructions": """curl {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
             "form_fields": {"root_url": "the url"},
         }
     )

@@ -18,11 +18,11 @@ class View_List(Handler):
         route_name="admin:acme_event_log", renderer="/admin/acme_event_log.mako"
     )
     @view_config(
-        route_name="admin:acme_event_log_paginated",
+        route_name="admin:acme_event_log-paginated",
         renderer="/admin/acme_event_log.mako",
     )
     @view_config(route_name="admin:acme_event_log|json", renderer="json")
-    @view_config(route_name="admin:acme_event_log_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_event_log-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/acme-event-logs.json",
@@ -45,7 +45,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeEventLog__count(self.request.api_context)
         url_template = (
             "%s/acme-event-logs/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeEventLog__paginated(

@@ -20,11 +20,11 @@ class View_List(Handler):
         renderer="/admin/domain_autocerts.mako",
     )
     @view_config(
-        route_name="admin:domain_autocerts_paginated",
+        route_name="admin:domain_autocerts-paginated",
         renderer="/admin/domain_autocerts.mako",
     )
     @view_config(route_name="admin:domain_autocerts|json", renderer="json")
-    @view_config(route_name="admin:domain_autocerts_paginated|json", renderer="json")
+    @view_config(route_name="admin:domain_autocerts-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/domain-autocerts.json",
@@ -46,7 +46,7 @@ class View_List(Handler):
     def list(self):
         url_template = (
             "%s/domain-autocerts/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template

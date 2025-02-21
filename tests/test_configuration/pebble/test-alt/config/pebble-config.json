@@ -1,0 +1,26 @@
+{
+  "pebble": {
+    "listenAddress": "0.0.0.0:14001",
+    "managementListenAddress": "0.0.0.0:15001",
+    "certificate": "tests/test_configuration/pebble/test-alt/certs/localhost/cert.pem",
+    "privateKey": "tests/test_configuration/pebble/test-alt/certs/localhost/key.pem",
+    "httpPort": 5002,
+    "tlsPort": 5001,
+    "ocspResponderURL": "",
+    "externalAccountBindingRequired": false,
+    "retryAfter": {
+        "authz": 3,
+        "order": 5
+    },
+    "profiles": {
+      "default": {
+        "description": "The profile you know and love",
+        "validityPeriod": 60
+      },
+      "shortlived": {
+        "description": "A short-lived cert profile, without actual enforcement",
+        "validityPeriod": 5
+      }
+    }
+  }
+}

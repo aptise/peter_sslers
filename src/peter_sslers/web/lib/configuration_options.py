@@ -17,10 +17,6 @@ documentation_grid = {
             "docstring": "If `True`, then public views are enabled. Otherwise they are disabled.",
             "show_on_settings": True,
         },
-        "enable_acme_flow": {
-            "docstring": "If `True`, then the `AcmeFlow` helper is enabled. Otherwise it is disabled.",
-            "show_on_settings": True,
-        },
         "block_competing_challenges": {
             "docstring": "If `True`, then a `Domain` can only have one challenge at a time.",
             "show_on_settings": True,
@@ -29,7 +25,7 @@ documentation_grid = {
     "Views Configuration": {
         "admin_prefix": {
             "docstring": "The URL prefix which the admin tool will appear under.",
-            "default": "`/.well-known/admin`",
+            "default": "`/.well-known/peter_sslers`",
             "show_on_settings": True,
         },
         "api_host": {
@@ -43,63 +39,14 @@ documentation_grid = {
         },
     },
     "Certificate Configuration": {
-        "certificate_authority": {
-            "docstring": "The url of the ACME certificate authority or the string 'custom' (or 'pebble').",
-            "default": "`https://acme-staging.api.letsencrypt.org`",
-            "default-notes": "The default is set in `lib.acme_v2`.",
-            "show_on_settings": True,
-        },
-        "certificate_authority_testing": {
-            "docstring": "True/False if the CA is testing. This will disable SSL verification if True.",
-            "default": "",
-            "default-notes": "The default is set in `lib.acme_v2`.",
-            "show_on_settings": True,
-        },
-        "certificate_authority_agreement": {
-            "docstring": "The URL of the TOS agreement for the Certificate Authority.",
-            "default": "None",
-            "default-notes": "The default is set in `lib.acme_v2`. You MUST set this in settings to opt-in with a valid agreement. such as: `certificate_authority_agreement=https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`",
-            "show_on_settings": True,
-        },
-        "certificate_authority_endpoint": {
-            "docstring": "The URL of the endpoint if `certificate_authority='custom'`.",
-            "default": "None",
-            "default-notes": "Acme v1. This must be supplied if the `certificate_authority` is set to `custom` or `pebble`.",
-            "show_on_settings": True,
-        },
-        "certificate_authority_directory": {
-            "docstring": "The URL of the endpoint directory if `certificate_authority='custom'`.",
-            "default": "None",
-            "default-notes": "Acme v2. This must be supplied if the `certificate_authority` is set to `custom` or `pebble`.",
+        "default_backup": {
+            "docstring": "What should the default backup server be on forms? Must be `none` or `global`.",
+            "default": "`none`",
             "show_on_settings": True,
         },
         "expiring_days": {
             "docstring": "The number of days remaining on a certificate before it is due for renewal.",
             "default": "`30`",
-            "show_on_settings": True,
-        },
-        "openssl_path": {
-            "docstring": "The path to the OpenSSL binary. PeterSSLers uses the system OpenSSL as backup.",
-            "default": "`openssl`",
-            "default-notes": "The default is set in `lib.cert_utils`.",
-            "show_on_settings": True,
-        },
-        "openssl_path_conf": {
-            "docstring": "The path to the OpenSSL configruation. PeterSSLers uses the system OpenSSL as backup.",
-            "default": "`/etc/ssl/openssl.cnf`",
-            "default-notes": "The default is set in `lib.cert_utils`.",
-            "show_on_settings": True,
-        },
-        "queue_domains_max_per_cert": {
-            "docstring": "Max domains per cert when dealing with the queued-domains",
-            "default": "`100`",
-            "default-notes": "LetsEncrypt has a max of 100.",
-            "show_on_settings": True,
-        },
-        "queue_domains_min_per_cert": {
-            "docstring": "Min domains per cert when dealing with the queued-domains",
-            "default": "`1`",
-            "default-notes": "",
             "show_on_settings": True,
         },
         "cleanup_pending_authorizations": {
@@ -126,7 +73,7 @@ documentation_grid = {
             "show_on_settings": True,
         },
         "nginx.servers_pool_allow_invalid": {
-            "docstring": "This controls SSL verification against the Nginx servers.",
+            "docstring": "This disables SSL verification against the Nginx servers; alternatively set `ca_bundle_pem`",
             "show_on_settings": True,
         },
         "nginx.timeout": {
@@ -136,6 +83,10 @@ documentation_grid = {
         },
         "nginx.userpass": {
             "docstring": "The `username:password` combination used for simple HTTP auth against the Nginx endpoints.",
+            "show_on_settings": True,
+        },
+        "nginx.ca_bundle_pem": {
+            "docstring": "A path to a PEM encoded list of Root Certificates used by the `nginx.servers_pool` if connecting via https.",
             "show_on_settings": True,
         },
     },
@@ -150,7 +101,13 @@ documentation_grid = {
             "show_on_settings": True,
         },
     },
-    "SqlAlchemy Configuration": {
-        "sqlalchemy.url": {"docstring": "The SqlAlchemy URL", "show_on_settings": True}
+    "SQLAlchemy Configuration": {
+        "sqlalchemy.url": {"docstring": "The SQLAlchemy URL", "show_on_settings": True}
+    },
+    "Experimental Configuration": {
+        "acme_dns_support": {
+            "docstring": "Default of `basic`, can be set to `experimental` but should not be.",
+            "show_on_settings": False,
+        }
     },
 }

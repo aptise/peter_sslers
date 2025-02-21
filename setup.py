@@ -10,9 +10,9 @@ from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-long_description = (
-    description
-) = "peter_sslers is an integrated SSL Certificate Manager and ACME Client"
+long_description = description = (
+    "peter_sslers is an integrated SSL Certificate Manager and ACME Client"
+)
 with open(os.path.join(HERE, "README.md")) as f:
     long_description = f.read()
 
@@ -21,7 +21,8 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "cert_utils",  # formerly in this package, but migrated out
+    "cert_utils>=1.0.0",  # formerly in this package, but migrated out
+    "cryptography>42.0.0",  # needed for certbot disk importing
     "formencode>=2.0.0",
     "josepy",
     "psutil>=4.4.0",  # for Python2/3 compat
@@ -30,18 +31,18 @@ requires = [
     "pypages",
     "pyramid_formencode_classic>=0.5.1",
     "pyramid_mako",
-    "pyramid_route_7>=0.0.3",
+    "pyramid_route_7>=0.5.3",
     "pyramid_tm",
     "pyramid>=2",
     "python-dateutil",
     "requests",
     "SQLAlchemy>2",
+    "typing_extensions",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]
 tests_require = [
     "certbot",
-    "cryptography",
     "pre-commit",
     "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",
@@ -50,21 +51,10 @@ tests_require = [
     "redis",
     "types-invoke",
     "types-urllib3",
+    "urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []
-
-# PyOpenSSL Version Pinning
-#   23.1.0 is a bad release, see
-#   https://github.com/pyca/pyopenssl/issues/1199
-# PyOpenSSl 23.2.0 introduces a backwards incompatible change
-#   Invalid versions are now rejected in OpenSSL.crypto.X509Req.set_version.
-# The `acme` package (via Certbot) ends support for py3.6 on version `v1.23.0`
-#   v1.23.0 calls make_csr with a bad version, and does not pin PyOpenSSL
-tests_require.append("PyOpenSSL>=17.5.0,!=23.1.0")
-tests_require.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
-testing_extras.append("PyOpenSSL>=17.5.0,!=23.1.0")
-testing_extras.append("types-PyOpenSSL>=17.5.0,!=23.1.0")
 
 setup(
     name="peter_sslers",
@@ -81,6 +71,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Framework :: Pyramid",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
@@ -108,7 +99,12 @@ setup(
       [paste.app_factory]
       main = peter_sslers.web:main
       [console_scripts]
+      import_certbot = peter_sslers.web.scripts.import_certbot:main
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
-      disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
+      refresh_pebble_ca_certs = peter_sslers.web.scripts.refresh_pebble_ca_certs:main
+      register_acme_servers = peter_sslers.web.scripts.register_acme_servers:main
+      routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
+      routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
+      routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       """,
 )

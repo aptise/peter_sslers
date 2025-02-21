@@ -32,7 +32,7 @@
     
     <div class="row">
         <div class="col-sm-12">
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -85,6 +85,25 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>pending</th>
+                        <td>
+                            % if AcmeAuthorization.is_acme_server_pending:
+                                <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-default"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>status</th>
+                        <td><code>${AcmeAuthorization.acme_status_authorization or ''}</code></td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_updated</th>
+                        <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp></td>
+                    </tr>
+                    <tr>
                         <th>authorization_url</th>
                         <td><code>${AcmeAuthorization.authorization_url or ''}</code>
                         </td>
@@ -108,25 +127,6 @@
                     <tr>
                         <th>timestamp_expires</th>
                         <td><timestamp>${AcmeAuthorization.timestamp_expires or ''}</timestamp></td>
-                    </tr>
-                    <tr>
-                        <th>pending</th>
-                        <td>
-                            % if AcmeAuthorization.is_acme_server_pending:
-                                <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                            % else:
-                                <span class="label label-default"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                            % endif
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>status</th>
-                        <td><code>${AcmeAuthorization.acme_status_authorization or ''}</code></td>
-                    </tr>
-                    <tr>
-                        <th>timestamp_updated</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_deactivated</th>
@@ -157,36 +157,7 @@
                             AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
                         </td>
                     </tr>
-                    <tr>
-                        <th>AcmeOrder2AcmeChallengeTypeSpecific</th>
-                        <td>
-                            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
-                            % if AcmeAuthorization.acme_order_2_acme_challenge_type_specifics:
-                                <table class=" table-striped table-condensed">
-                                    <thead>
-                                        <tr>
-                                            <th>AcmeOrder</th>
-                                            <th>Preferred Challenge Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        % for order2Challenge in AcmeAuthorization.acme_order_2_acme_challenge_type_specifics:
-                                            <tr>
-                                                <td>
-                                                    <a class="label label-info" href="${admin_prefix}/acme-order/${order2Challenge.acme_order_id}">
-                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    AcmeOrder-${order2Challenge.acme_order_id}</a>
-                                                </td>
-                                                <td>
-                                                    <code>${order2Challenge.acme_challenge_type}</code>
-                                                </td>
-                                            </tr>
-                                        % endfor
-                                    </tbody>
-                                </table>
-                            % endif
-                        </tr>
-                    </tr>
+                    ${admin_partials.tr_PreferredChallenges(PreferredChallenges=PreferredChallenges)}
                 </tbody>
                 <thead>
                     <tr>

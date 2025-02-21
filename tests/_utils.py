@@ -1,43 +1,66 @@
 # stdlib
 import datetime
 from functools import wraps
+from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
+import shutil
+import sqlite3
 import subprocess
 import time
 import traceback
 from typing import Dict
 from typing import Optional
+from typing import overload
+from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 import unittest
 import uuid
+import warnings
 
 # pypi
 import cert_utils
 from cert_utils import letsencrypt_info
+from cert_utils.model import AccountKeyData
 import packaging.version
 import psutil
 from pyramid import testing
 from pyramid.paster import get_appsettings
+from pyramid.router import Router
 import requests
 import sqlalchemy
+from sqlalchemy.orm import close_all_sessions
+from sqlalchemy.orm import Session
 import transaction
+from typing_extensions import Literal
 from webtest import TestApp
+from webtest import Upload
 from webtest.http import StopableWSGIServer
 
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import db
 from peter_sslers.lib import errors
+from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
+from peter_sslers.lib.config_utils import ApplicationSettings
+from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import update as lib_db_update
+from peter_sslers.lib.db.update import (
+    update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
+)
+from peter_sslers.lib.utils import ApiContext
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from peter_sslers.web import main
 from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
+from .regex_library import RE_AcmeOrder
+
+# from peter_sslers.lib.utils import RequestCommandline
 
 
 # ==============================================================================
@@ -57,21 +80,15 @@ export SSL_CONF_REDIS_SERVER=/path/to
 
 NOTE: SSL_TEST_DOMAINS can be a comma-separated string
 
+
+export GOPATH=/path/to/go
+
+
+
 If running LetsEncrypt tests: you must specify a domain, and make sure to proxy
 port80 of that domain to this app, so LetsEncrypt can access it.
 
 see the nginx test config file `testing.conf`
-
-
-IMPORTANT
-
-cert_utils also has some environ vars:
-
-    openssl_path = os.environ.get("SSL_BIN_OPENSSL", None) or "openssl"
-    openssl_path_conf = os.environ.get("SSL_CONF_OPENSSL", None) or "/etc/ssl/openssl.cnf"
-
-    export SSL_BIN_OPENSSL="/usr/local/bin/openssl"
-    export SSL_CONF_OPENSSL="/usr/local/ssl/openssl.cnf"
 """
 
 # run tests that expire nginx caches
@@ -125,6 +142,14 @@ PEBBLE_CONFIG_FILE = "/".join(
         "pebble-config.json",
     ]
 )
+PEBBLE_ALT_CONFIG_FILE = "/".join(
+    PEBBLE_CONFIG_DIR.split("/")
+    + [
+        "test-alt",
+        "config",
+        "pebble-config.json",
+    ]
+)
 
 
 if RUN_API_TESTS__PEBBLE:
@@ -135,7 +160,6 @@ if RUN_API_TESTS__PEBBLE:
     PEBBLE_BIN = "/".join((PEBBLE_DIR, "pebble"))
     if not os.path.exists(PEBBLE_BIN):
         raise ValueError("PEBBLE_BIN (%s) does not exist" % PEBBLE_BIN)
-
 
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
@@ -164,19 +188,158 @@ if RUN_API_TESTS__ACME_DNS_API:
     if not any((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
         raise ValueError("Must invoke with env vars for acme-dns services")
 
+RUN_API_TESTS__EXTENDED = bool(int(os.environ.get("SSL_RUN_API_TESTS__EXTENDED", 0)))
+
 
 OPENRESTY_PLUGIN_MINIMUM_VERSION = "0.5.0"
 OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERSION)
 
 
+# export this for some better debugging
+DEBUG_ACMEORDERS = bool(int(os.environ.get("DEBUG_ACMEORDERS", 0)))
+DEBUG_DBFREEZE = bool(int(os.environ.get("DEBUG_DBFREEZE", 0)))
+DEBUG_GITHUB_ENV = bool(int(os.environ.get("DEBUG_GITHUB_ENV", 0)))
+DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
+DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
+DEBUG_TESTHARNESS = bool(int(os.environ.get("DEBUG_TESTHARNESS", 0)))
+
+
+DISABLE_WARNINGS = bool(int(os.environ.get("DISABLE_WARNINGS", 0)))
+if DISABLE_WARNINGS:
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
 # override to "test_local.ini" if needed
-TEST_INI = os.environ.get("SSL_TEST_INI", "test.ini")
+TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
 
 # This is some fancy footwork to update our settings
-_appsettings = get_appsettings(TEST_INI, name="main")
-cert_utils.update_from_appsettings(_appsettings)
+GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
+GLOBAL_appsettings["config_uri"] = TEST_INI
+cert_utils.update_from_appsettings(GLOBAL_appsettings)
+
+
+# SEMAPHORE?
+PEBBLE_RUNNING = None
+PEBBLE_ALT_RUNNING = None
+
+# RUN_ID
+RUN_START = datetime.datetime.now()
+RUN_START_STR = RUN_START.strftime("%Y_%m_%d-%H_%M_%S")
+
 
 # ==============================================================================
+
+# we don't need this directory if we're not tracking metrics
+if DEBUG_PEBBLE_REDIS or DEBUG_METRICS:
+    if not os.path.exists("X_TESTRUN_DATA"):
+        os.mkdir("X_TESTRUN_DATA")
+    DIR_TESTRUN = os.path.join("X_TESTRUN_DATA", RUN_START_STR)
+    os.mkdir(DIR_TESTRUN)
+
+
+if DEBUG_ACMEORDERS:
+    # lower noise for debugging
+
+    # silence the ACME api
+    import peter_sslers.lib.acme_v2
+
+    peter_sslers.lib.acme_v2.log.setLevel(100)
+    peter_sslers.lib.acme_v2.log_api.setLevel(100)
+
+    # silence cert_utils
+    import cert_utils
+
+    cert_utils.log.setLevel(100)
+
+
+if DEBUG_GITHUB_ENV:
+    print("ENV VARS:")
+    print("RUN_NGINX_TESTS:", RUN_NGINX_TESTS)
+    print("RUN_REDIS_TESTS:", RUN_REDIS_TESTS)
+    print("RUN_API_TESTS__PEBBLE:", RUN_API_TESTS__PEBBLE)
+    print("LETSENCRYPT_API_VALIDATES:", LETSENCRYPT_API_VALIDATES)
+    print("SSL_TEST_DOMAINS:", SSL_TEST_DOMAINS)
+    print("SSL_TEST_PORT:", SSL_TEST_PORT)
+    print("SSL_BIN_REDIS_SERVER:", SSL_BIN_REDIS_SERVER)
+    print("SSL_CONF_REDIS_SERVER:", SSL_CONF_REDIS_SERVER)
+    print("PEBBLE_DIR:", PEBBLE_DIR)
+    print("PEBBLE_BIN:", PEBBLE_BIN)
+    print("PEBBLE_CONFIG_FILE:", PEBBLE_CONFIG_FILE)
+    print("PEBBLE_ALT_CONFIG_FILE:", PEBBLE_ALT_CONFIG_FILE)
+    print("PEBBLE_ENV:", PEBBLE_ENV)
+    print("PEBBLE_ENV_STRICT:", PEBBLE_ENV_STRICT)
+    print("RUN_API_TESTS__ACME_DNS_API:", RUN_API_TESTS__ACME_DNS_API)
+    print("ACME_DNS_API:", ACME_DNS_API)
+    print("ACME_DNS_BINARY:", ACME_DNS_BINARY)
+    print("ACME_DNS_CONFIG:", ACME_DNS_CONFIG)
+    print("DEBUG_ACMEORDERS:", DEBUG_ACMEORDERS)
+    print("DEBUG_TESTHARNESS:", DEBUG_TESTHARNESS)
+    print("DEBUG_PEBBLE_REDIS:", DEBUG_PEBBLE_REDIS)
+    print("DEBUG_METRICS:", DEBUG_METRICS)
+    print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
+    print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
+    print("TEST_INI:", TEST_INI)
+
+
+# note: ApplicationSettings can be global
+GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
+GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
+
+
+def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
+    """
+    inverse to clear data
+    """
+    prefix = testcaseClass_to_prefix(testCase)
+    ctx = new_test_connections()
+    domains = (
+        ctx.dbSession.query(model_objects.Domain)
+        .filter(model_objects.Domain.domain_name.istartswith(prefix))
+        .all()
+    )
+    for domain in domains:
+        for aap in domain.acme_authorization_potentials:
+            aap.acme_order.is_processing = False
+            update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, aap.acme_order)
+            ctx.pyramid_transaction_commit()
+    return True
+
+
+def _debug_TestHarness(ctx: ApiContext, name: str):
+    """
+    This function was designed to debug some test cases.
+    invoke this as the first and last line of each function
+    to ensure the `AcmeAauthorizationPotential` are disabled
+
+    see:
+         IntegratedTests_AcmeServer_AcmeOrder.setUp
+         IntegratedTests_AcmeServer_AcmeOrder.tearDown
+    """
+    # com
+    if not DEBUG_TESTHARNESS:
+        return
+    print(">>" * 40)
+    print("_debug_TestHarness:", name)
+    dbAcmeOrders = ctx.dbSession.query(model_objects.AcmeOrder).all()
+    for _order in dbAcmeOrders:
+        print(
+            "AcmeOrder[%s]: `%s` `is_processing=%s`"
+            % (
+                _order.id,
+                _order.acme_status_order,
+                _order.is_processing,
+            )
+        )
+        print("\t", _order.domains_as_list)
+        for _act in _order.acme_authorization_potentials:
+            print("\tAcmeAauthorizationPotential", _act.as_json)
+        for _toAuthz in _order.to_acme_authorizations:
+            print(
+                "\tAcmeAuthorization",
+                _toAuthz.acme_authorization_id,
+                _toAuthz.acme_authorization.acme_status_authorization,
+            )
+    print("<<" * 40)
 
 
 class FakeRequest(testing.DummyRequest):
@@ -184,16 +347,34 @@ class FakeRequest(testing.DummyRequest):
     def tm(self):
         return transaction.manager
 
+    admin_url: str = ""
 
-def process_pebble_roots():
+
+def new_test_connections():
+    session_factory = get_session_factory(get_engine(GLOBAL_appsettings))
+    request = FakeRequest()
+    dbSession = session_factory(info={"request": request})
+
+    ctx = utils.ApiContext(
+        request=request,
+        dbSession=dbSession,
+        config_uri=TEST_INI,
+        application_settings=GLOBAL_ApplicationSettings,
+    )
+    return ctx
+
+
+def process_pebble_roots(pebble_ports: Tuple[int, int]):
     """
-    Pebble generates new roots on every run
-    We must load them
+    Pebble generates new trusted roots on every run
+    We need to load them from the pebble server, otherwise we have no idea
+    what they are.
     """
-    log.info("`pebble`: process_pebble_roots")
+    log.info("`process_pebble_roots(%s)`" % str(pebble_ports))
 
     # the first root is guaranteed to be here:
-    r0 = requests.get("https://0.0.0.0:15000/roots/0", verify=False)
+
+    r0 = requests.get("https://127.0.0.1:%s/roots/0" % pebble_ports[1], verify=False)
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -206,16 +387,7 @@ def process_pebble_roots():
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)
-    settings = get_appsettings(
-        TEST_INI, name="main"
-    )  # this can cause an unclosed resource
-    session_factory = get_session_factory(get_engine(settings))
-    dbSession = session_factory()
-    ctx = utils.ApiContext(
-        request=FakeRequest(),
-        dbSession=dbSession,
-        timestamp=datetime.datetime.utcnow(),
-    )
+    ctx = new_test_connections()
     for _root_pem in root_pems:
         (
             _dbChain,
@@ -224,31 +396,23 @@ def process_pebble_roots():
             ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
         )
         if _is_created is not True:
-            raise ValueError(
+            log.critical(
                 "Detected a previously encountered Pebble root. "
                 "This should not be possible"
             )
-    dbSession.commit()
-    dbSession.close()
+    ctx.pyramid_transaction_commit()
+    ctx.dbSession.close()
+
     return True
 
 
-def archive_pebble_data():
+def archive_pebble_data(pebble_ports: Tuple[int, int]):
     """
     pebble account urls have a serial that restarts on each load
     this causes issues with tests
     """
-    log.info("`pebble`: archive_pebble_data")
-    settings = get_appsettings(
-        TEST_INI, name="main"
-    )  # this can cause an unclosed resource
-    session_factory = get_session_factory(get_engine(settings))
-    dbSession = session_factory()
-    ctx = utils.ApiContext(
-        request=FakeRequest(),
-        dbSession=dbSession,
-        timestamp=datetime.datetime.utcnow(),
-    )
+    log.info("`archive_pebble_data(%s)`" % str(pebble_ports))
+    ctx = new_test_connections()
     # model_objects.AcmeAccount
     # migration strategy - append a `@{UUID}` to the url, so it will not match
     dbAcmeAccounts = db.get.get__AcmeAccount__paginated(ctx)
@@ -262,7 +426,7 @@ def archive_pebble_data():
                 )
                 account_url = _dbAcmeAccount.account_url
                 _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
-                dbSession.flush(
+                ctx.dbSession.flush(
                     objects=[
                         _dbAcmeAccount,
                     ]
@@ -272,66 +436,104 @@ def archive_pebble_data():
                     _dbAcmeAccount.id,
                     _dbAcmeAccount.account_url,
                 )
-    dbSession.commit()
-    dbSession.close()
+    ctx.pyramid_transaction_commit()
+    ctx.dbSession.close()
     return True
 
 
-def handle_new_pebble():
+def handle_new_pebble(pebble_ports: Tuple[int, int]):
     """
     When pebble starts:
         * we must inspect the new pebble roots
     When pebble restarts
         * the database may have old pebble data
     """
-    process_pebble_roots()
-    archive_pebble_data()
+    log.info("`handle_new_pebble(%s)`" % str(pebble_ports))
+    process_pebble_roots(pebble_ports)
+    archive_pebble_data(pebble_ports)
+
+
+# ACME_CHECK_MSG = b"Listening on: 0.0.0.0:14000"
+ACME_CHECK_MSG = b"ACME directory available at: https://0.0.0.0:14000/dir"
+ACME_CHECK_MSG_ALT = b"ACME directory available at: https://0.0.0.0:14001/dir"
 
 
 def under_pebble(_function):
     """
     decorator to spin up an external pebble server
     """
+    global PEBBLE_RUNNING
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`pebble`: spinning up")
+        log.info("`pebble`: spinning up for `%s`" % _function.__qualname__)
         log.info("`pebble`: PEBBLE_BIN : %s", PEBBLE_BIN)
         log.info("`pebble`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
-        # log.info("`pebble`: PEBBLE_DIR : %s", PEBBLE_DIR)
+        log.info("`pebble`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
         # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
-        # log.info("`pebble`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-pebble.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
+
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=PEBBLE_CONFIG_DIR,
+            stdout=stdout,
+            stderr=stderr,
+            # cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV,
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
             _waits = 0
             while not ready:
-                log.info("`pebble`: waiting for ready")
-                for line in iter(proc.stdout.readline, b""):
-                    if b"Listening on: 0.0.0.0:14000" in line:
-                        log.info("`pebble`: ready")
-                        ready = True
-                        break
+                log.info("`pebble`: waiting for ready | %s" % _waits)
                 _waits += 1
-                if _waits >= 5:
+                if _waits >= 30:
                     raise ValueError("`pebble`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG in line:
+                                log.info("`pebble`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        # if b"Listening on: 0.0.0.0:14000" in line:
+                        if ACME_CHECK_MSG in line:
+                            log.info("`pebble`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             try:
-                handle_new_pebble()
+                PEBBLE_RUNNING = True
+                # catch in app_test so we don't recycle the roots
+                handle_new_pebble((14000, 15000))
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
                 log.info("`pebble`: finished. terminating")
                 proc.terminate()
+                PEBBLE_RUNNING = False
         return res
 
     return _wrapper
@@ -341,43 +543,157 @@ def under_pebble_strict(_function):
     """
     decorator to spin up an external pebble server
     """
+    global PEBBLE_RUNNING
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`pebble[strict]`: spinning up")
+        log.info("`pebble[strict]`: spinning up for `%s`" % _function.__qualname__)
         log.info("`pebble[strict]`: PEBBLE_BIN : %s", PEBBLE_BIN)
         log.info("`pebble[strict]`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
+        log.info("`pebble[strict]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
+        # log.info("`pebble[strict]`: PEBBLE_ENV_STRICT : %s", PEBBLE_ENV_STRICT)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-pebble_strict.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
         with psutil.Popen(
             [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=PEBBLE_CONFIG_DIR,
+            stdout=stdout,
+            stderr=stderr,
+            # cwd=PEBBLE_CONFIG_DIR,
             env=PEBBLE_ENV_STRICT,
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
             _waits = 0
             while not ready:
-                log.info("`pebble[strict]`: waiting for ready")
-                for line in iter(proc.stdout.readline, b""):
-                    if b"Listening on: 0.0.0.0:14000" in line:
-                        log.info("`pebble[strict]`: ready")
-                        ready = True
-                        break
+                log.info("`pebble[strict]`: waiting for ready | %s" % _waits)
                 _waits += 1
-                if _waits >= 5:
+                if _waits >= 30:
                     raise ValueError("`pebble[strict]`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG in line:
+                                log.info("`pebble[strict]`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        if ACME_CHECK_MSG in line:
+                            log.info("`pebble[strict]`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             try:
-                handle_new_pebble()
+                PEBBLE_RUNNING = True
+                # catch in app_test so we don't recycle the roots
+                handle_new_pebble((14000, 15000))
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
                 log.info("`pebble[strict]`: finished. terminating")
                 proc.terminate()
+                PEBBLE_RUNNING = False
+        return res
+
+    return _wrapper
+
+
+def under_pebble_alt(_function):
+    """
+    decorator to spin up an external pebble server
+    """
+    global PEBBLE_ALT_RUNNING
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("`pebble[alt]`: spinning up for `%s`" % _function.__qualname__)
+        log.info("`pebble[alt]`: PEBBLE_BIN : %s", PEBBLE_BIN)
+        log.info("`pebble[alt]`: PEBBLE_ALT_CONFIG_FILE : %s", PEBBLE_ALT_CONFIG_FILE)
+        log.info("`pebble[alt]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
+        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
+        res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-pebble_alt.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
+
+        with psutil.Popen(
+            [PEBBLE_BIN, "-config", PEBBLE_ALT_CONFIG_FILE],
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
+            # cwd=PEBBLE_CONFIG_DIR,
+            env=PEBBLE_ENV,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            _waits = 0
+            while not ready:
+                log.info("`pebble[alt]`: waiting for ready | %s" % _waits)
+                _waits += 1
+                if _waits >= 30:
+                    raise ValueError("`pebble[alt]`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if ACME_CHECK_MSG_ALT in line:
+                                log.info("`pebble[alt]`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        # if b"Listening on: 0.0.0.0:14001" in line:
+                        if ACME_CHECK_MSG_ALT in line:
+                            log.info("`pebble[alt]`: ready")
+                            ready = True
+                            break
+                time.sleep(1)
+            try:
+                PEBBLE_ALT_RUNNING = True
+                # catch in app_test so we don't recycle the roots
+                handle_new_pebble((14001, 15001))
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("`pebble[alt]`: finished. terminating")
+                proc.terminate()
+                PEBBLE_ALT_RUNNING = False
         return res
 
     return _wrapper
@@ -386,41 +702,76 @@ def under_pebble_strict(_function):
 def under_redis(_function):
     """
     decorator to spin up an external redis server
+
+    $ mkdir /var/lib/redis/peter_sslers_test
     """
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
-        log.info("`redis`: spinning up")
+        log.info("`redis`: spinning up for `%s`" % _function.__qualname__)
         log.info("`redis`: SSL_BIN_REDIS_SERVER  : %s", SSL_BIN_REDIS_SERVER)
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
         res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-redis.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
         with psutil.Popen(
             [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
         ) as proc:
             # ensure the `redis` server is running
             ready = False
             _waits = 0
             while not ready:
                 log.info("`redis`: waiting for ready")
-                for line in iter(proc.stdout.readline, b""):
-                    if b"Can't chdir to" in line:
-                        raise ValueError(line)
-                    # Redis 5.x
-                    if b"Ready to accept connections" in line:
-                        log.info("`redis`: ready")
-                        ready = True
-                        break
-                    # Redis2.x
-                    if b"The server is now ready to accept connections" in line:
-                        log.info("`redis`: ready")
-                        ready = True
-                        break
                 _waits += 1
-                if _waits >= 5:
+                if _waits >= 20:
                     raise ValueError("`redis`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if b"Can't chdir to" in line:
+                                raise ValueError(line)
+                            # Redis 5.x
+                            if b"Ready to accept connections" in line:
+                                log.info("`redis`: ready")
+                                ready = True
+                                break
+                            # Redis2.x
+                            if b"The server is now ready to accept connections" in line:
+                                log.info("`redis`: ready")
+                                ready = True
+                                break
+                else:
+                    for line in iter(proc.stdout.readline, b""):
+                        if b"Can't chdir to" in line:
+                            raise ValueError(line)
+                        # Redis 5.x
+                        if b"Ready to accept connections" in line:
+                            log.info("`redis`: ready")
+                            ready = True
+                            break
+                        # Redis2.x
+                        if b"The server is now ready to accept connections" in line:
+                            log.info("`redis`: ready")
+                            ready = True
+                            break
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
@@ -437,10 +788,227 @@ def under_redis(_function):
 # ==============================================================================
 
 
+def db_freeze(
+    dbSession: Session,
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+) -> bool:
+    """ """
+    if DEBUG_DBFREEZE:
+        print("db_freeze>>>>>%s" % savepoint)
+    log.info("db_freeze[%s]", savepoint)
+    _connection = dbSession.connection()
+    _engine = _connection.engine
+    if _engine.url.drivername != "sqlite":
+        return False
+    if _engine.url.database is None:
+        # in-memory sqlite
+        return False
+
+    active_filename = _engine.url.database
+    # normalize this...
+    active_filename = os.path.normpath(active_filename)
+
+    backup_filename = "%s-%s" % (active_filename, savepoint)
+    backupDb = sqlite3.connect(backup_filename)
+    _connection.connection.backup(backupDb)  # type: ignore[attr-defined]
+
+    return True
+
+
+def _sqlite_backup_progress(status, remaining, total):
+    if DEBUG_DBFREEZE:
+        print(f"Copied {total - remaining} of {total} pages...")
+    return
+
+
+def _db_unfreeze__actual(
+    active_filename: str,
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+) -> bool:
+    if DEBUG_DBFREEZE:
+        print("_db_unfreeze__actual>>>%s" % savepoint)
+    log.info("_db_unfreeze__actual[%s]", savepoint)
+
+    backup_filename = "%s-%s" % (active_filename, savepoint)
+    if not os.path.exists(backup_filename):
+        log.info(
+            "_db_unfreeze__actual[%s] | not os.path.exists(%s)"
+            % (savepoint, backup_filename)
+        )
+        return False
+
+    is_failure = False
+
+    try:
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: Attempted to clear database")
+
+        # try to clear the database itself
+        clearDb = sqlite3.connect(
+            active_filename,
+            isolation_level="EXCLUSIVE",
+        )
+        cursor = clearDb.cursor()
+        # clear the database
+        cursor.execute(("VACUUM;"))
+        cursor.execute(("PRAGMA writable_schema = 1;"))
+        cursor.execute(("DELETE FROM sqlite_master;"))
+        cursor.execute(("PRAGMA writable_schema = 0;"))
+        cursor.execute(("VACUUM;"))
+        cursor.execute(("PRAGMA integrity_check;"))
+        clearDb.close()
+    except Exception as excc:
+        log.info(
+            "_db_unfreeze__actual[%s] | exception clearing old database: %s"
+            % (savepoint, active_filename)
+        )
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: exception clearing old database:", active_filename)
+            print(excc)
+
+        # if that doesn't work, log it to an artifact
+        if AppTestCore._currentTest:
+            # prefer the name
+            failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
+        else:
+            # otherwise, save it do a UUID
+            failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname)
+        shutil.copy(active_filename, failname)
+        # instead of raising an exc, just delete it
+        # TODO: bugfix how/why this is only breaking in CI on
+        if DEBUG_DBFREEZE:
+            print("DEBUG_DBFREEZE: unlinking old database for rewrite")
+        os.unlink(active_filename)
+
+        # Do not `return` here; as we need to copy the db next...
+        is_failure = True
+
+    # Py3.10 and below do not need the cursor+vacuum
+    # Py3.13 needs the cursor+vaccume
+    if DEBUG_DBFREEZE:
+        print("DEBUG_DBFREEZE: Attempted to backup")
+    with sqlite3.connect(
+        active_filename,
+        isolation_level="EXCLUSIVE",
+    ) as activeDb:
+        with sqlite3.connect(
+            backup_filename,
+            isolation_level="EXCLUSIVE",
+        ) as backupDb:
+            cursor = backupDb.cursor()
+            cursor.execute(("VACUUM;"))
+            backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
+    if DEBUG_DBFREEZE:
+        print("DEBUG_DBFREEZE: backup successful")
+
+    if is_failure:
+        pass
+
+    return True
+
+
+def db_unfreeze(
+    dbSession: Session,
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+    testCase: Optional[unittest.TestCase] = None,
+) -> Optional[bool]:
+    """
+    pass in the testCase to ensure we close those database connections
+    those lingering pooled connections may have been the database issue all along
+    """
+
+    if DEBUG_DBFREEZE:
+        print("db_unfreeze>>>%s" % savepoint)
+    log.info("db_unfreeze[%s]", savepoint)
+    _connection = dbSession.connection()
+    _engine = _connection.engine
+    if _engine.url.drivername != "sqlite":
+        log.info(
+            "db_unfreeze[%s]: _engine.url.drivername != sqlite | `%s`"
+            % (savepoint, _engine.url.drivername)
+        )
+        return False
+    if _engine.url.database is None:
+        log.info("db_unfreeze[%s]: _engine.url.database is None", savepoint)
+        # in-memory sqlite
+        return False
+    active_filename = _engine.url.database
+    # normalize this...
+    active_filename = os.path.normpath(active_filename)
+
+    # # close the connection
+    # # while many options will work to close it,
+    # # they can create issues afterwards.
+    # # `Engine.dispose` works the best
+    # _connection.connection.close()
+    # _connection.connection.detach()
+    # _connection.connection.invalidate()
+    # _connection.close()
+    # _connection.detach()
+    # _connection.invalidate()
+    # _engine.dispose()
+    _engine.pool.dispose()
+    _engine.dispose()
+
+    # drop the embedded app as well
+    if testCase:
+        if hasattr(testCase, "_pyramid_app") and testCase._pyramid_app:
+            # testCase._pyramid_app.registry["dbSession_factory"].close_all()
+            close_all_sessions()
+
+    unfreeze_result = _db_unfreeze__actual(active_filename, savepoint)
+    log.info("db_unfreeze[%s]: _db_unfreeze__actual: %s" % (savepoint, unfreeze_result))
+    return unfreeze_result
+
+
 # !!!: TEST_FILES
 
 
 TEST_FILES: Dict = {
+    "AcmeAccount": {
+        "1": {
+            "key": "key_technology-rsa/acme_account_1.key",
+            "provider": "pebble",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
+            "contact": "contact.a@example.com",
+            "private_key_technology": "RSA_2048",
+        },
+        "2": {
+            "key": "key_technology-rsa/acme_account_2.key",
+            "provider": "pebble",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
+            "contact": "contact.b@example.com",
+            "private_key_technology": "RSA_2048",
+        },
+        "3": {
+            "key": "key_technology-rsa/acme_account_3.key",
+            "provider": "pebble",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
+            "contact": "contact.c@example.com",
+            "private_key_technology": "RSA_2048",
+        },
+        "4": {
+            "key": "key_technology-rsa/acme_account_4.key",
+            "provider": "pebble_alt",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
+            "contact": "contact.d@example.com",
+            "private_key_technology": "RSA_2048",
+        },
+        "5": {
+            "key": "key_technology-rsa/acme_account_5.key",
+            "provider": "pebble_alt",
+            "order_default_private_key_cycle": "single_use",
+            "order_default_private_key_technology": "RSA_2048",
+            "contact": "contact.e@example.com",
+            "private_key_technology": "RSA_2048",
+        },
+    },
     "AcmeDnsServer": {
         "1": {
             "root_url": ACME_DNS_API,
@@ -463,7 +1031,7 @@ TEST_FILES: Dict = {
             "password": "password",
             "fulldomain": "fulldomain",
             "subdomain": "subdomain",
-            "allowfrom": "allowfrom",
+            "allowfrom": "[]",
         },
         "test-new-via-Domain": {
             "html": {
@@ -476,89 +1044,34 @@ TEST_FILES: Dict = {
             },
         },
     },
-    "AcmeOrderless": {
-        "new-1": {
-            "domain_names_http01": [
-                "acme-orderless-1.example.com",
-                "acme-orderless-2.example.com",
-            ],
-            "AcmeAccount": None,
-        },
-        "new-2": {
-            "domain_names_http01": [
-                "acme-orderless-1.example.com",
-                "acme-orderless-2.example.com",
-            ],
-            "AcmeAccount": {
-                "type": "upload",
-                "private_key_cycling": "single_certificate",
-                "acme_account_provider_id": "1",
-                "account_key_file_pem": "key_technology-rsa/acme_account_1.key",
-            },
-        },
-    },
     "AcmeOrder": {
         "test-extended_html": {
             "acme-order/new/freeform#1": {
                 "account_key_option": "account_key_file",
-                "acme_account_provider_id": "1",
+                "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
-                "private_key_option": "private_key_for_account_key",
+                "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
                 ],
-                "private_key_cycle__renewal": "account_key_default",
                 "processing_strategy": "create_order",
             },
             "acme-order/new/freeform#2": {
                 "account_key_option": "account_key_file",
-                "acme_account_provider_id": "1",
+                "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
-                "private_key_option": "private_key_for_account_key",
+                "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
                 ],
-                "private_key_cycle__renewal": "account_key_default",
                 "processing_strategy": "create_order",
             },
-        },
-    },
-    "AcmeAccount": {
-        "1": {
-            "key": "key_technology-rsa/acme_account_1.key",
-            "provider": "pebble",
-            "private_key_cycle": "single_certificate",
-            "contact": "contact.a@example.com",
-        },
-        "2": {
-            "key": "key_technology-rsa/acme_account_2.key",
-            "provider": "pebble",
-            "private_key_cycle": "single_certificate",
-            "contact": "contact.b@example.com",
-        },
-        "3": {
-            "key": "key_technology-rsa/acme_account_3.key",
-            "provider": "pebble",
-            "private_key_cycle": "single_certificate",
-            "contact": "contact.c@example.com",
-        },
-        "4": {
-            "key": "key_technology-rsa/acme_account_4.key",
-            "provider": "pebble",
-            "private_key_cycle": "single_certificate",
-            "contact": "contact.d@example.com",
-        },
-        "5": {
-            "key": "key_technology-rsa/acme_account_5.key",
-            "provider": "pebble",
-            "private_key_cycle": "single_certificate",
-            "contact": "contact.e@example.com",
         },
     },
     "CertificateCAs": {
@@ -618,12 +1131,6 @@ TEST_FILES: Dict = {
         },
     },
     "Domains": {
-        "Queue": {
-            "1": {
-                "add": "qadd1.example.com, qadd2.example.com, qadd3.example.com",
-                "add.json": "qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com",
-            },
-        },
         "AcmeDnsServer": {
             "1": {
                 "ensure-domains.html": "ensure1-html.example.com, ensure2-html.example.com, ensure1.example.com",
@@ -649,33 +1156,6 @@ TEST_FILES: Dict = {
                     }
                 },
             },
-        },
-    },
-    "PrivateKey": {
-        "1": {
-            "file": "key_technology-rsa/private_1.key",
-            "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
-            "key_pem_modulus_md5": "fc1a6c569cba199eb5341c0c423fb768",
-        },
-        "2": {
-            "file": "key_technology-rsa/private_2.key",
-            "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
-            "key_pem_modulus_md5": "397282f3cd67d33b2b018b61fdd3f4aa",
-        },
-        "3": {
-            "file": "key_technology-rsa/private_3.key",
-            "key_pem_md5": "399236401eb91c168762da425669ad06",
-            "key_pem_modulus_md5": "112d2db5daba540f8ff26fcaaa052707",
-        },
-        "4": {
-            "file": "key_technology-rsa/private_4.key",
-            "key_pem_md5": "6867998790e09f18432a702251bb0e11",
-            "key_pem_modulus_md5": "687f3a3659cd423c48c50ed78a75eba0",
-        },
-        "5": {
-            "file": "key_technology-rsa/private_5.key",
-            "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
-            "key_pem_modulus_md5": "1eee27c04e912ff24614911abd2f0f8b",
         },
     },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
@@ -764,13 +1244,34 @@ TEST_FILES: Dict = {
             },
         },
     },
+    "PrivateKey": {
+        "1": {
+            "file": "key_technology-rsa/private_1.key",
+            "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
+        },
+        "2": {
+            "file": "key_technology-rsa/private_2.key",
+            "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
+        },
+        "3": {
+            "file": "key_technology-rsa/private_3.key",
+            "key_pem_md5": "399236401eb91c168762da425669ad06",
+        },
+        "4": {
+            "file": "key_technology-rsa/private_4.key",
+            "key_pem_md5": "6867998790e09f18432a702251bb0e11",
+        },
+        "5": {
+            "file": "key_technology-rsa/private_5.key",
+            "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
+        },
+    },
 }
 
 
 CERT_CA_SETS = {
     "letsencrypt-certs/trustid-x3-root.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "35f72cb35ea691144ffc2798db20ccfd",
         "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
         "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
         "cert.fingerprints": {
@@ -783,7 +1284,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrgrootx1.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "9454972e3730ac131def33e045ab19df",
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
@@ -796,7 +1296,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
         "key_technology": "RSA",
-        "modulus_md5": "9454972e3730ac131def33e045ab19df",
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
         "cert.fingerprints": {
@@ -809,7 +1308,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x2.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
@@ -822,7 +1320,6 @@ CERT_CA_SETS = {
     },
     "letsencrypt-certs/isrg-root-x2-cross-signed.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "762195C225586EE6C0237456E2107DC54F1EFC21F61A792EBD515913CCE68332",
         "spki_sha256.b64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=",
         "cert.fingerprints": {
@@ -837,7 +1334,6 @@ CERT_CA_SETS = {
         "key_technology": "RSA",
         "spki_sha256": "8D02536C887482BC34FF54E41D2BA659BF85B341A0A20AFADB5813DCFBCF286D",
         "spki_sha256.b64": "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
-        "modulus_md5": "7d877784604ba0a5e400e5da7ec048e4",
         "cert.fingerprints": {
             "sha1": "48504E974C0DAC5B5CD476C8202274B24C8C7172",
         },
@@ -854,17 +1350,13 @@ CSR_SETS = {
         "key_private": {
             "file": "key_technology-ec/ec384-1-key.pem",
             "key_technology": "EC",
-            "modulus_md5": None,
         },
-        "modulus_md5": "e69f1df0d5a5c7c63e81a83c4f5411a7",
     },
     "key_technology-rsa/selfsigned_1-server.csr": {
         "key_private": {
             "file": "key_technology-rsa/selfsigned_1-server.csr",
             "key_technology": "RSA",
-            "modulus_md5": "e0d99ec6424d5182755315d56398f658",
         },
-        "modulus_md5": "e0d99ec6424d5182755315d56398f658",
     },
 }
 
@@ -872,13 +1364,11 @@ CSR_SETS = {
 KEY_SETS = {
     "key_technology-rsa/acme_account_1.key": {
         "key_technology": "RSA",
-        "modulus_md5": "ceec56ad4caba2cd70ee90c7d80fbb74",
         "spki_sha256": "E70DCB45009DF3F79FC708B46888609E34A3D8D19AEAFA566389718A29140782",
         "spki_sha256.b64": "5w3LRQCd8/efxwi0aIhgnjSj2NGa6vpWY4lxiikUB4I=",
     },
     "key_technology-ec/ec384-1-key.pem": {
         "key_technology": "EC",
-        "modulus_md5": None,
         "spki_sha256": "E739FB0081868C97B8AC0D3773680974E9FCECBFA1FC8B80AFDDBE42F30D1D9D",
         "spki_sha256.b64": "5zn7AIGGjJe4rA03c2gJdOn87L+h/IuAr92+QvMNHZ0=",
     },
@@ -888,9 +1378,300 @@ KEY_SETS = {
 # ==============================================================================
 
 
-class FakeAccountKeyData(cert_utils.AccountKeyData):
+_ROUTES_TESTED = {}
+
+
+def routes_tested(*args):
     """
-    implements minimum amount of `cert_utils.AccountKeyData`
+    `@routes_tested` is a decorator
+    when writing/editing a test, declare what routes the test covers, like such:
+
+        @routes_tested(("foo", "bar"))
+        def test_foo_bar(self):
+            ...
+
+    this will populate a global variable `_ROUTES_TESTED` with the name of the
+    tested routes.
+
+    invoking the Audit test:
+
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AuditRoutes
+
+    will ensure all routes in Pyramid have test coverage
+    """
+    _routes = args[0]
+    if isinstance(_routes, (list, tuple)):
+        for _r in _routes:
+            _ROUTES_TESTED[_r] = True
+    else:
+        _ROUTES_TESTED[_routes] = True
+
+    def _decorator(_function):
+        @wraps(_function)
+        def _wrapper(*args, **kwargs):
+            return _function(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
+
+
+# =====
+
+
+def do__AcmeServers_sync(
+    testCase: unittest.TestCase,
+) -> bool:
+    # both exist after setup
+    dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
+    if not dbAcmeAccount_backup:
+        raise ValueError("AcmeAccount__GlobalBackup not configured")
+    dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
+    if not dbAcmeAccount_default:
+        raise ValueError("AcmeAccount__GlobalDefault not configured")
+
+    for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
+        res = testCase.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s" % _dbAcmeAccount.acme_server_id,
+            status=200,
+        )
+        form = res.forms["form-check_support"]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.endswith(
+            "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
+            % _dbAcmeAccount.acme_server_id
+        )
+
+    return True
+
+
+@routes_tested("admin:acme_account:new|json")
+def make_one__AcmeAccount__random(
+    testCase: unittest.TestCase,
+) -> Tuple[model_objects.AcmeAccount, int]:
+    """use the json api!"""
+    form = {
+        "acme_server_id": 1,
+        "account__contact": generate_random_emailaddress(),
+        "account__private_key_technology": "EC_P256",
+        "account__order_default_private_key_cycle": "single_use",
+        "account__order_default_private_key_technology": "EC_P256",
+    }
+    res4 = testCase.testapp.post(
+        "/.well-known/peter_sslers/acme-account/new.json", form
+    )
+    assert res4.json["result"] == "success"
+    assert "AcmeAccount" in res4.json
+    focus_item = (
+        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
+        .filter(model_objects.AcmeAccount.id == res4.json["AcmeAccount"]["id"])
+        .filter(model_objects.AcmeAccount.is_active.is_(True))
+        .filter(model_objects.AcmeAccount.acme_server_id == 1)
+        .first()
+    )
+    assert focus_item is not None
+    return (focus_item, focus_item.id)
+
+
+@routes_tested("admin:acme_account:upload|json")
+def make_one__AcmeAccount__pem(
+    testCase: unittest.TestCase,
+    account__contact: str,
+    pem_file_name: str,
+    expect_failure: bool = False,
+) -> Tuple[model_objects.AcmeAccount, int]:
+    """use the json api!"""
+    form = {
+        "account_key_option": "account_key_file",
+        "account_key_file_pem": Upload(testCase._filepath_testfile(pem_file_name)),
+        "acme_server_id": 1,
+        "account__contact": account__contact,
+        "account__order_default_private_key_cycle": "account_daily",
+        "account__order_default_private_key_technology": "EC_P256",
+    }
+    res = testCase.testapp.post(
+        "/.well-known/peter_sslers/acme-account/upload.json", form
+    )
+    if expect_failure:
+        raise ResponseFailureOkay(res)
+
+    assert res.json["result"] == "success"
+    assert "AcmeAccount" in res.json
+    focus_item = (
+        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
+        .filter(model_objects.AcmeAccount.id == res.json["AcmeAccount"]["id"])
+        .filter(model_objects.AcmeAccount.is_active.is_(True))
+        .filter(model_objects.AcmeAccount.acme_server_id == 1)
+        .first()
+    )
+    assert focus_item is not None
+    return (focus_item, focus_item.id)
+
+
+@routes_tested("admin:acme_order:new:freeform|json")
+def make_one__AcmeOrder(
+    testCase: unittest.TestCase,
+    domain_names_http01: Optional[str] = None,
+    domain_names_dns01: Optional[str] = None,
+    account_key_option_backup: Optional[str] = None,
+    acme_profile: Optional[str] = None,
+    acme_profile__backup: Optional[str] = None,
+    processing_strategy: Literal["create_order", "process_single"] = "create_order",
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+    )
+    form = res.form
+    _form_fields = form.fields.keys()
+    assert "account_key_option" in _form_fields
+    form["account_key_option"].force_value("account_key_global_default")
+    form["private_key_option"].force_value("account_default")
+    form["private_key_cycle"].force_value("account_default")
+    if domain_names_http01:
+        form["domain_names_http01"] = domain_names_http01
+    if domain_names_dns01:
+        form["domain_names_dns01"] = domain_names_dns01
+    if acme_profile:
+        form["acme_profile"] = acme_profile
+    if acme_profile__backup:
+        form["acme_profile__backup"] = acme_profile__backup
+    if account_key_option_backup:
+        form["account_key_option_backup"].force_value(account_key_option_backup)
+    form["processing_strategy"].force_value(processing_strategy)
+    res2 = form.submit()
+    assert res2.status_code == 303
+
+    matched = RE_AcmeOrder.match(res2.location)
+    assert matched
+    obj_id = matched.groups()[0]
+
+    dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+    assert dbAcmeOrder
+    return dbAcmeOrder
+
+
+@routes_tested("admin:acme_order:new:freeform|json")
+def make_one__AcmeOrder__random(
+    testCase: unittest.TestCase,
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    domain_names_http01 = generate_random_domain(testCase=testCase)
+    dbAcmeOrder = make_one__AcmeOrder(
+        testCase=testCase, domain_names_http01=domain_names_http01
+    )
+    assert dbAcmeOrder
+    return dbAcmeOrder
+
+
+def make_one__DomainBlocklisted(
+    testCase: unittest.TestCase,
+    domain_name: str,
+):
+    dbDomainBlocklisted = model_objects.DomainBlocklisted()
+    dbDomainBlocklisted.domain_name = domain_name
+    testCase.ctx.dbSession.add(dbDomainBlocklisted)
+    testCase.ctx.dbSession.flush(
+        objects=[
+            dbDomainBlocklisted,
+        ]
+    )
+    testCase.ctx.pyramid_transaction_commit()
+    return dbDomainBlocklisted
+
+
+def make_one__RenewalConfiguration(
+    testCase: unittest.TestCase,
+    dbAcmeAccount: model_objects.AcmeAccount,
+    domain_names_http01: str,
+    private_key_cycle: Optional[str] = "account_default",
+    key_technology: Optional[str] = "account_default",
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/renewal-configuration/new.json", status=200
+    )
+    assert "form_fields" in res.json
+
+    form: Dict[str, Optional[str]] = {}
+    form["account_key_option"] = "account_key_existing"
+    form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
+    form["private_key_cycle"] = private_key_cycle
+    form["key_technology"] = key_technology
+    form["domain_names_http01"] = domain_names_http01
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/renewal-configuration/new.json",
+        form,
+    )
+    assert res2.json["result"] == "success"
+    assert "RenewalConfiguration" in res2.json
+
+    dbRenewalConfiguration = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .filter(
+            model_objects.RenewalConfiguration.id
+            == res2.json["RenewalConfiguration"]["id"]
+        )
+        .first()
+    )
+    assert dbRenewalConfiguration
+    return dbRenewalConfiguration
+
+
+def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
+    message = "Error communicating with the acme-dns server."
+    if response_type == "html":
+        if response.status_code == 200:
+            if message in response.text:
+                raise lib_errors.AcmeDnsServerError()
+    elif response_type == "json":
+        if response.json["result"] == "error":
+            if "form_errors" in response.json:
+                if message in response.json["form_errors"]["Error_Main"]:
+                    raise lib_errors.AcmeDnsServerError()
+            elif "error" in response.json:
+                if response.json["error"] == message:
+                    raise lib_errors.AcmeDnsServerError()
+
+
+def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+    testCase.ctx.pyramid_transaction_commit()
+    dbAcmeOrders = (
+        testCase.ctx.dbSession.query(model_objects.AcmeOrder)
+        .order_by(model_objects.AcmeOrder.id.asc())
+        .filter(model_objects.AcmeOrder.is_processing.is_(True))
+        .all()
+    )
+    for _dbAcmeOrder in dbAcmeOrders:
+        result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    dbRenewalConfigurations = (
+        testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .order_by(model_objects.RenewalConfiguration.id.asc())
+        .filter(model_objects.RenewalConfiguration.is_active.is_(True))
+        .all()
+    )
+    for _dbRenewalConfiguration in dbRenewalConfigurations:
+        result = lib_db_update.update_RenewalConfiguration__unset_active(
+            testCase.ctx, _dbRenewalConfiguration
+        )
+    testCase.ctx.pyramid_transaction_commit()
+    return True
+
+
+class ResponseFailureOkay(Exception):
+    """
+    used to catch a response failure
+    args[0] should be the response
+    """
+
+    pass
+
+
+class FakeAccountKeyData(AccountKeyData):
+    """
+    implements minimum amount of `cert_utils.model.AccountKeyData`
     """
 
     def __init__(self, thumbprint=None):
@@ -902,7 +1683,8 @@ class FakeAuthenticatedUser(object):
     implements minimum amount of `acme_v2.AuthenticatedUser`
     """
 
-    accountKeyData = None  # an instance conforming to `cert_utils.AccountKeyData`
+    accountKeyData = None  # an instance conforming to `AccountKeyData`
+    ctx = None  # ApiContext
 
     def __init__(self, accountkey_thumbprint=None):
         self.accountKeyData = FakeAccountKeyData(thumbprint=accountkey_thumbprint)
@@ -921,10 +1703,24 @@ class _Mixin_filedata(object):
             return os.path.join(self._data_root_letsencrypt, filename)
         return os.path.join(self._data_root, filename)
 
+    @overload
+    def _filedata_testfile(  # noqa: E704
+        self,
+        filename: str,
+        is_binary: Literal[False] = False,
+    ) -> str: ...
+
+    @overload
+    def _filedata_testfile(  # noqa: E704
+        self,
+        filename: str,
+        is_binary: Literal[True] = True,
+    ) -> bytes: ...
+
     def _filedata_testfile(
         self,
-        filename,
-        is_binary=False,
+        filename: str,
+        is_binary: Literal[False, True] = False,
     ) -> Union[str, bytes]:
         _data_root = self._data_root
         if filename.startswith("letsencrypt-certs/"):
@@ -940,54 +1736,149 @@ class _Mixin_filedata(object):
 
 
 class AppTestCore(unittest.TestCase, _Mixin_filedata):
-    testapp: TestApp
-    testapp_http = None
+    """
+    AppTestCore provides the main support for testing.
+
+    It should never be used directly, but instead subclassed.
+
+    When subclassing Follow a wrapper style ingress/egress:
+
+        def setUp(self):
+            AppTestCore.setUp(self)
+            # subclass work
+
+        def tearDown(self):
+            # subclass work
+            AppTestCore.tearDown(self)
+    """
+
+    _testapp: Optional[TestApp] = None
+    _testapp_wsgi: Optional[StopableWSGIServer] = None
+    _pyramid_app: Router
     _session_factory = None
-    _DB_INTIALIZED = False
     _settings: Dict
+    _currentTest: Optional[str] = None
+
+    # AppTestCore Class Variable
+    _DB_INTIALIZED = False
+
+    @property
+    def testapp(self) -> Union[TestApp, StopableWSGIServer]:
+        if self._testapp:
+            return self._testapp
+        elif self._testapp_wsgi:
+            return self._testapp_wsgi
+        raise RuntimeError("no testapp configured")
 
     def setUp(self):
-        self._settings = settings = get_appsettings(
-            TEST_INI, name="main"
-        )  # this can cause an unclosed resource
+        print("AppTestCore.setUp")
+        log.critical(
+            "%s.%s | AppTestCore.setUp"
+            % (self.__class__.__name__, self._testMethodName)
+        )
+        AppTestCore._currentTest = "%s.%s" % (
+            self.__class__.__name__,
+            self._testMethodName,
+        )
+        self._settings = GLOBAL_appsettings
 
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         # settings["sqlalchemy.url"] = "sqlite://"
 
-        self._session_factory = get_session_factory(get_engine(settings))
+        self._session_factory = get_session_factory(get_engine(GLOBAL_appsettings))
+        engine = self._session_factory().bind
+        assert isinstance(engine, sqlalchemy.engine.base.Engine)
+        assert engine.driver == "pysqlite"
+
+        # have we initialized the database?
+        # IMPORTANT: we can't connect first, even just to vacuum
+        # that will trigger these checks to pass
+        dbfile = engine.url.database
+        if TYPE_CHECKING:
+            assert isinstance(dbfile, str)
+        dbfile = os.path.normpath(dbfile)
+        if os.path.exists(dbfile):
+            if os.path.getsize(dbfile):
+                AppTestCore._DB_INTIALIZED = True
+
+        print(
+            "AppTestCore.setUp | AppTestCore._DB_INTIALIZED==",
+            AppTestCore._DB_INTIALIZED,
+        )
         if not AppTestCore._DB_INTIALIZED:
-            print("---------------")
             print("AppTestCore.setUp | initialize db")
-            engine = self._session_factory().bind
-            assert isinstance(engine, sqlalchemy.engine.base.Engine)
             model_meta.Base.metadata.drop_all(engine)
             with engine.begin() as connection:
                 connection.execute(sqlalchemy.text("VACUUM"))
             model_meta.Base.metadata.create_all(engine)
-            dbSession = self._session_factory()
-            ctx = utils.ApiContext(
-                timestamp=datetime.datetime.utcnow(),
-                dbSession=dbSession,
-                request=None,
-            )
+            request = FakeRequest()
+            dbSession = self._session_factory(info={"request": request})
+            if db_unfreeze(dbSession, "AppTestCore", testCase=self):
+                print("AppTestCore.setUp | using frozen database")
+            else:
+                print("AppTestCore.setUp | recreating the database")
 
-            # this would have been invoked by `initialize_database`
-            db._setup.initialize_AcmeAccountProviders(ctx)
-            db._setup.initialize_CertificateCAs(ctx)
-            db._setup.initialize_DomainBlocklisted(ctx)
-            dbSession.commit()
-            dbSession.close()
-
-        app = main(global_config=None, **settings)
-        self.testapp = TestApp(
+                request = FakeRequest()
+                ctx = utils.ApiContext(
+                    dbSession=dbSession,
+                    request=request,
+                    config_uri=TEST_INI,
+                    application_settings=GLOBAL_ApplicationSettings,
+                )
+                # this would have been invoked by `initializedb`
+                db._setup.initialize_database(ctx)
+                ctx.pyramid_transaction_commit()
+                dbSession.close()
+                db_freeze(dbSession, "AppTestCore")
+        else:
+            with engine.begin() as connection:
+                connection.execute(sqlalchemy.text("VACUUM"))
+        self._pyramid_app = app = main(global_config=None, **GLOBAL_appsettings)
+        self._testapp = TestApp(
             app,
             extra_environ={
                 "HTTP_HOST": "peter-sslers.example.com",
             },
         )
         AppTestCore._DB_INTIALIZED = True
+        if DEBUG_METRICS:
+            self._db_filename = self.ctx.dbSession.connection().engine.url.database
+            self._db_filesize = {
+                "setUp": os.path.getsize(self._db_filename),
+            }
+            self._wrapped_start = time.time()
 
     def tearDown(self):
+        if DEBUG_METRICS:
+            """
+            The filegrowth of the db is due to how Pebble wraps each run
+            """
+            testname = "%s.%s" % (self.__class__.__name__, self._testMethodName)
+            count_acme_order = self.ctx.dbSession.query(model_objects.AcmeOrder).count()
+            count_certificate_ca = self.ctx.dbSession.query(  # Pebble certs
+                model_objects.CertificateCA
+            ).count()
+            self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
+            self._wrapped_end = time.time()
+
+            fname = "%s/_METRICS.txt" % DIR_TESTRUN
+            if not os.path.exists(fname):
+                with open(fname, "w") as fh:
+                    fh.write(
+                        "TestName\tCount[AcmeOrder]\tCount[CertificateCA]\tDBFilesize[setUp]\tDBFilesize[tearDown]\tWrappedTiming\n"
+                    )
+            with open(fname, "a") as fh:
+                fh.write(
+                    "%s\t%s\t%s\t%s\t%s\t%s\n"
+                    % (
+                        testname,
+                        count_acme_order,
+                        count_certificate_ca,
+                        self._db_filesize["setUp"],
+                        self._db_filesize["tearDown"],
+                        (self._wrapped_end - self._wrapped_start),
+                    )
+                )
         self._session_factory = None
         self._turnoff_items()
 
@@ -999,16 +1890,19 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         originally in `AppTest`, not `AppTestCore` but some functions here need it
         """
         if self._ctx is None:
-            dbSession_factory = self.testapp.app.registry["dbSession_factory"]
+            dbSession_factory = self._pyramid_app.registry["dbSession_factory"]
+            request = FakeRequest()
+
             self._ctx = utils.ApiContext(
-                request=FakeRequest(),
-                dbSession=dbSession_factory(),
-                timestamp=datetime.datetime.utcnow(),
+                request=request,
+                dbSession=dbSession_factory(info={"request": request}),
+                config_uri=TEST_INI,
+                application_settings=GLOBAL_ApplicationSettings,
             )
             # merge in the settings
             if TYPE_CHECKING:
                 assert self._ctx.request is not None
-            self._ctx.request.registry.settings = self.testapp.app.registry.settings
+            self._ctx.request.registry.settings = self._pyramid_app.registry.settings
         return self._ctx
 
     def _turnoff_items(self):
@@ -1021,7 +1915,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         _changed = None
         _orders = _query.all()
         for _order in _orders:
-            _acme_status_order_id = model_utils.Acme_Status_Order.from_string("*410*")
+            _acme_status_order_id = model_utils.Acme_Status_Order.X_410_X
             if _order.acme_status_order_id != _acme_status_order_id:
                 _order.acme_status_order_id = _acme_status_order_id
                 _order.timestamp_updated = self.ctx.timestamp
@@ -1032,7 +1926,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 # don't fret on this having an invalid
                 pass
         if _changed:
-            self.ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
 
     def _has_active_challenges(self):
         """
@@ -1060,22 +1954,13 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 == model_objects.AcmeOrder.id,
                 isouter=True,
             )
-            # Path2: AcmeChallenge>AcmeOrderless
-            .join(
-                model_objects.AcmeOrderless,
-                model_objects.AcmeChallenge.acme_orderless_id
-                == model_objects.AcmeOrderless.id,
-                isouter=True,
-            )
             # shared filters
             .join(
                 model_objects.Domain,
                 model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
             )
             .filter(
-                model_objects.Domain.domain_name.notin_(
-                    ("selfsigned-1.example.com", "acme-orderless.example.com")
-                ),
+                model_objects.Domain.domain_name.notin_(("selfsigned-1.example.com",)),
                 sqlalchemy.or_(
                     # Path1 - Order Based Authorizations
                     sqlalchemy.and_(
@@ -1090,11 +1975,6 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                             model_utils.Acme_Status_Order.IDS_BLOCKING
                         ),
                     ),
-                    # Path2 - Orderless
-                    sqlalchemy.and_(
-                        model_objects.AcmeChallenge.acme_orderless_id.is_not(None),
-                        model_objects.AcmeOrderless.is_processing.is_(True),
-                    ),
                 ),
             )
         )
@@ -1106,6 +1986,11 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
 
 class AppTest(AppTestCore):
+    """
+    The main Testing class
+    """
+
+    # AppTest Class Variable
     _DB_SETUP_RECORDS = False
 
     def _setUp_CertificateSigneds_FormatA(self, payload_section, payload_key):
@@ -1127,8 +2012,8 @@ class AppTest(AppTestCore):
         ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
             self.ctx,
             _pkey_pem,
-            private_key_source_id=model_utils.PrivateKeySource.from_string("imported"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
         )
         _chain_filename = (
             filename_template
@@ -1191,529 +2076,657 @@ class AppTest(AppTestCore):
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
             dbCertificateCAChain=_dbChain,
+            dbPrivateKey=_dbPrivateKey,
+            certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+            # optionals
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
-            dbPrivateKey=_dbPrivateKey,
+            is_active=True,
         )
 
         # commit this!
         self.ctx.pyramid_transaction_commit()
 
     def setUp(self):
+        print("AppTest.setUp")
+        log.critical(
+            "%s.%s | AppTest.setUp" % (self.__class__.__name__, self._testMethodName)
+        )
         AppTestCore.setUp(self)
+        print("AppTest.setUp | AppTest._DB_SETUP_RECORDS==", AppTest._DB_SETUP_RECORDS)
         if not AppTest._DB_SETUP_RECORDS:
-            print("---------------")
-            print("AppTest.setUp | setup sample db records")
+            # Freezepoint- AppTest
+            # This freezepoint wraps the core system setup data
+            unfrozen = db_unfreeze(self.ctx.dbSession, "AppTest", testCase=self)
+            print("unfrozen?", unfrozen)
+            if unfrozen:
+                print("AppTest.setUp | using frozen database")
+            else:
+                print("AppTest.setUp | setup sample db records")
+                try:
+                    """
+                    This setup pre-populates the DB with some mocked objects needed for routes to work:
 
-            try:
-                """
-                This setup pre-populates the DB with some objects needed for routes to work:
+                        AccountKey:
+                            account_1.key
+                        CertificateCAs:
+                            isrgrootx1.pem
+                            selfsigned_1-server.crt
+                        PrivateKey
+                            selfsigned_1-server.key
+                        AcmeEventLog
+                        AcmeOrder
+                    """
+                    # note: pre-populate AcmeAccount
+                    # this should create `/acme-account/1`
 
-                    AccountKey:
-                        account_1.key
-                    CertificateCAs:
-                        isrgrootx1.pem
-                        selfsigned_1-server.crt
-                    PrivateKey
-                        selfsigned_1-server.key
-
-                    AcmeEventLog
-                """
-                # note: pre-populate AcmeAccount
-                # this should create `/acme-account/1`
-                _dbAcmeAccount_1: model_objects.AcmeAccount
-                for _id in TEST_FILES["AcmeAccount"]:
-                    _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
-                    _private_key_cycle = TEST_FILES["AcmeAccount"][_id][
-                        "private_key_cycle"
-                    ]
-                    key_pem = self._filedata_testfile(_key_filename)
-                    (
-                        _dbAcmeAccount,
-                        _is_created,
-                    ) = db.getcreate.getcreate__AcmeAccount(
-                        self.ctx,
-                        key_pem,
-                        contact=TEST_FILES["AcmeAccount"][_id]["contact"],
-                        acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
-                        acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                            "imported"
-                        ),
-                        event_type="AcmeAccount__insert",
-                        private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
-                            _private_key_cycle
-                        ),
+                    _dbAcmeServer_1 = db.get.get__AcmeServer__by_name(
+                        self.ctx, "pebble"
                     )
-                    # print(_dbAcmeAccount_1, _is_created)
-                    # self.ctx.pyramid_transaction_commit()
-                    if _id == "1":
-                        _dbAcmeAccount_1 = _dbAcmeAccount
-                        if not _dbAcmeAccount.is_global_default:
-                            db.update.update_AcmeAccount__set_global_default(
-                                self.ctx, _dbAcmeAccount
-                            )
-                        self.ctx.pyramid_transaction_commit()
-
-                # note: pre-populate CertificateCA
-                # this should create `/certificate-ca/1`
-                #
-                _cert_ca_id = "isrg_root_x1"
-                _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
-                _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
-                    "display_name"
-                ]
-
-                cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
-                (
-                    _cert_ca_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
-                    self.ctx,
-                    cert_ca_pem,
-                    display_name=_display_name,
-                )
-                # print(_cert_ca_1, _is_created)
-                # self.ctx.pyramid_transaction_commit()
-
-                # we need a few PrivateKeys, because we'll turn them off
-                for pkey_id in TEST_FILES["PrivateKey"].keys():
-                    _pkey_filename = TEST_FILES["PrivateKey"][pkey_id]["file"]
-                    _pkey_pem = self._filedata_testfile(_pkey_filename)
-                    (
-                        _dbPrivateKey_alt,
-                        _is_created,
-                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
-                        self.ctx,
-                        _pkey_pem,
-                        private_key_source_id=model_utils.PrivateKeySource.from_string(
-                            "imported"
-                        ),
-                        private_key_type_id=model_utils.PrivateKeyType.from_string(
-                            "standard"
-                        ),
+                    if not _dbAcmeServer_1:
+                        raise ValueError(
+                            "get__AcmeServer__by_name(pebble) not configured"
+                        )
+                    _dbAcmeServer_2 = db.get.get__AcmeServer__by_name(
+                        self.ctx, "pebble-alt"
                     )
-
-                    if pkey_id == "5":
-                        # make a CoverageAssuranceEvent
-                        _event_type_id = model_utils.OperationsEventType.from_string(
-                            "PrivateKey__revoke"
-                        )
-                        _event_payload_dict = utils.new_event_payload_dict()
-                        _event_payload_dict["private_key.id"] = _dbPrivateKey_alt.id
-                        _event_payload_dict["action"] = "compromised"
-                        _dbOperationsEvent = db.logger.log__OperationsEvent(
-                            self.ctx, _event_type_id, _event_payload_dict
-                        )
-                        _event_status = db.update.update_PrivateKey__set_compromised(
-                            self.ctx, _dbPrivateKey_alt, _dbOperationsEvent
+                    if not _dbAcmeServer_2:
+                        raise ValueError(
+                            "get__AcmeServer__by_name(pebble-alt) not configured"
                         )
 
-                # note: pre-populate CertificateSigned 1-5
-                # this should create `/certificate-signed/1`
-                #
-                _dbCertificateSigned_1 = None
-                _dbCertificateSigned_2 = None
-                _dbCertificateSigned_3 = None
-                _dbCertificateSigned_4 = None
-                _dbCertificateSigned_5 = None
-                _dbPrivateKey_1 = None
-                _dbUniqueFQDNSet_1: model_objects.UniqueFQDNSet
-                for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
-                    # note: pre-populate PrivateKey
-                    # this should create `/private-key/1`
-                    _pkey_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
-                        _id
-                    ]["pkey"]
-                    pkey_pem = self._filedata_testfile(_pkey_filename)
-                    (
-                        _dbPrivateKey,
-                        _is_created,
-                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
-                        self.ctx,
-                        pkey_pem,
-                        private_key_source_id=model_utils.PrivateKeySource.from_string(
-                            "imported"
-                        ),
-                        private_key_type_id=model_utils.PrivateKeyType.from_string(
-                            "standard"
-                        ),
-                    )
-                    # print(_dbPrivateKey, _is_created)
-                    # self.ctx.pyramid_transaction_commit()
+                    _dbAcmeAccount_1: model_objects.AcmeAccount
+                    _dbAcmeAccount_2: model_objects.AcmeAccount
+                    for _id in TEST_FILES["AcmeAccount"]:
+                        _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
+                        _order_default_private_key_cycle = TEST_FILES["AcmeAccount"][
+                            _id
+                        ]["order_default_private_key_cycle"]
+                        _order_default_private_key_technology = TEST_FILES[
+                            "AcmeAccount"
+                        ][_id]["order_default_private_key_technology"]
+                        key_pem = self._filedata_testfile(_key_filename)
+                        (
+                            _dbAcmeAccount,
+                            _is_created,
+                        ) = db.getcreate.getcreate__AcmeAccount(
+                            self.ctx,
+                            acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
+                            key_pem=key_pem,
+                            contact=TEST_FILES["AcmeAccount"][_id]["contact"],
+                            acme_server_id=(
+                                _dbAcmeServer_1.id
+                                if TEST_FILES["AcmeAccount"][_id]["provider"]
+                                == "pebble"
+                                else _dbAcmeServer_2.id
+                            ),
+                            event_type="AcmeAccount__insert",
+                            order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                                _order_default_private_key_cycle
+                            ),
+                            order_default_private_key_technology_id=model_utils.KeyTechnology.from_string(
+                                _order_default_private_key_technology
+                            ),
+                        )
+                        # print(_dbAcmeAccount_1, _is_created)
+                        # self.ctx.pyramid_transaction_commit()
+                        if _id == "1":
+                            _dbAcmeAccount_1 = _dbAcmeAccount
+                            if not _dbAcmeAccount.is_global_default:
+                                db.update.update_AcmeAccount__set_global_default(
+                                    self.ctx, _dbAcmeAccount
+                                )
+                            self.ctx.pyramid_transaction_commit()
+                        # 11 is same as 1, but on `pebble_alt`
+                        if _id == "5":
+                            _dbAcmeAccount_2 = _dbAcmeAccount
+                            if not _dbAcmeAccount.is_global_backup:
+                                db.update.update_AcmeAccount__set_global_backup(
+                                    self.ctx, _dbAcmeAccount_2
+                                )
+                            self.ctx.pyramid_transaction_commit()
 
-                    # note: pre-populate CertificateCA - self-signed
-                    # this should create `/certificate-ca/2`
+                    # note: pre-populate CertificateCA
+                    # this should create `/certificate-ca/1`
                     #
-                    _cert_ca_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
-                        _id
-                    ]["cert"]
-                    chain_pem = self._filedata_testfile(_cert_ca_filename)
-                    (
-                        _dbCertificateCAChain_SelfSigned,
-                        _is_created,
-                    ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
-                        self.ctx, chain_pem, display_name=_cert_ca_filename
-                    )
-                    # print(_dbCertificateCAChain_SelfSigned, _is_created)
-                    # self.ctx.pyramid_transaction_commit()
-
-                    _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
-                        _id
-                    ]["cert"]
-                    _cert_domains_expected = [
-                        TEST_FILES["CertificateSigneds"]["SelfSigned"][_id]["domain"],
+                    _cert_ca_id = "isrg_root_x1"
+                    _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][
+                        _cert_ca_id
                     ]
-                    (
-                        _dbUniqueFQDNSet,
-                        _is_created,
-                    ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                        self.ctx,
-                        _cert_domains_expected,
-                    )
+                    _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
+                        "display_name"
+                    ]
 
-                    cert_pem = self._filedata_testfile(_cert_filename)
+                    cert_ca_pem = self._filedata_testfile(_cert_ca_filename)
                     (
-                        _dbCertificateSigned,
+                        _cert_ca_1,
                         _is_created,
-                    ) = db.getcreate.getcreate__CertificateSigned(
+                    ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
                         self.ctx,
-                        cert_pem,
-                        cert_domains_expected=_cert_domains_expected,
-                        dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
-                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
-                        dbPrivateKey=_dbPrivateKey,
+                        cert_ca_pem,
+                        display_name=_display_name,
                     )
-                    # print(_dbCertificateSigned_1, _is_created)
+                    # print(_cert_ca_1, _is_created)
                     # self.ctx.pyramid_transaction_commit()
 
-                    if _id == "1":
-                        _dbCertificateSigned_1 = _dbCertificateSigned
-                        _dbPrivateKey_1 = _dbPrivateKey
-                        _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
-                    elif _id == "2":
-                        _dbCertificateSigned_2 = _dbCertificateSigned
-                    elif _id == "3":
-                        _dbCertificateSigned_3 = _dbCertificateSigned
-                    elif _id == "4":
-                        _dbCertificateSigned_4 = _dbCertificateSigned
-                    elif _id == "5":
-                        _dbCertificateSigned_5 = _dbCertificateSigned
+                    # we need a few PrivateKeys, because we'll turn them off
+                    for pkey_id in TEST_FILES["PrivateKey"].keys():
+                        _pkey_filename = TEST_FILES["PrivateKey"][pkey_id]["file"]
+                        _pkey_pem = self._filedata_testfile(_pkey_filename)
+                        (
+                            _dbPrivateKey_alt,
+                            _is_created,
+                        ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                            self.ctx,
+                            _pkey_pem,
+                            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+                            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                        )
 
-                # note: pre-populate Domain
-                # ensure we have domains?
-                domains = db.get.get__Domain__paginated(self.ctx)
-                domain_names = [d.domain_name for d in domains]
-                assert (
-                    TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
-                        "domain"
-                    ].lower()
-                    in domain_names
-                )
+                        if pkey_id == "5":
+                            # make a CoverageAssuranceEvent
+                            _event_type_id = (
+                                model_utils.OperationsEventType.from_string(
+                                    "PrivateKey__revoke"
+                                )
+                            )
+                            _event_payload_dict = utils.new_event_payload_dict()
+                            _event_payload_dict["private_key.id"] = _dbPrivateKey_alt.id
+                            _event_payload_dict["action"] = "compromised"
+                            _dbOperationsEvent = db.logger.log__OperationsEvent(
+                                self.ctx, _event_type_id, _event_payload_dict
+                            )
+                            _event_status = (
+                                db.update.update_PrivateKey__set_compromised(
+                                    self.ctx, _dbPrivateKey_alt, _dbOperationsEvent
+                                )
+                            )
 
-                # note: pre-populate CertificateRequest
-                _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
-                    "csr"
-                ]
-                csr_pem = self._filedata_testfile(_csr_filename)
-                (
-                    _dbCertificateRequest_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
-                    self.ctx,
-                    csr_pem,
-                    certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    domain_names=[
-                        TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"]["domain"],
-                    ],  # make it an iterable
-                )
+                    # note: pre-populate CertificateSigned 1-5
+                    # this should create `/certificate-signed/1`
+                    #
+                    _dbAcmeOrder = None
+                    _dbCertificateSigned_1 = None
+                    _dbCertificateSigned_2 = None
+                    _dbCertificateSigned_3 = None
+                    _dbCertificateSigned_4 = None
+                    _dbCertificateSigned_5 = None
+                    _dbPrivateKey_1 = None
+                    _dbRenewalConfiguration = None
+                    _dbUniqueFQDNSet_1: model_objects.UniqueFQDNSet
+                    for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
+                        # note: pre-populate PrivateKey
+                        # this should create `/private-key/1`
+                        _pkey_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
+                            _id
+                        ]["pkey"]
+                        pkey_pem = self._filedata_testfile(_pkey_filename)
+                        (
+                            _dbPrivateKey,
+                            _is_created,
+                        ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                            self.ctx,
+                            pkey_pem,
+                            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+                            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                        )
+                        # print(_dbPrivateKey, _is_created)
+                        # self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate CertificateSigned 6-10, via "Pebble"
-                for _id in TEST_FILES["CertificateSigneds"]["Pebble"].keys():
-                    self._setUp_CertificateSigneds_FormatA("Pebble", _id)
+                        # note: pre-populate CertificateCA - self-signed
+                        # this should create `/certificate-ca/2`
+                        #
+                        _cert_ca_filename = TEST_FILES["CertificateSigneds"][
+                            "SelfSigned"
+                        ][_id]["cert"]
+                        chain_pem = self._filedata_testfile(_cert_ca_filename)
+                        (
+                            _dbCertificateCAChain_SelfSigned,
+                            _is_created,
+                        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                            self.ctx, chain_pem, display_name=_cert_ca_filename
+                        )
+                        # print(_dbCertificateCAChain_SelfSigned, _is_created)
+                        # self.ctx.pyramid_transaction_commit()
 
-                # self.ctx.pyramid_transaction_commit()
+                        _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
+                            _id
+                        ]["cert"]
+                        _cert_domains_expected = [
+                            TEST_FILES["CertificateSigneds"]["SelfSigned"][_id][
+                                "domain"
+                            ],
+                        ]
+                        (
+                            _dbUniqueFQDNSet,
+                            _is_created,
+                        ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                            self.ctx,
+                            _cert_domains_expected,
+                        )
 
-                # note: pre-populate QueueDomain
-                # queue a domain
-                # this MUST be a new domain to add to the queue
-                # if it is existing, a domain will not be added
-                db.queues.queue_domains__add(
-                    self.ctx,
-                    ["queue.example.com", "queue2.example.com", "queue3.example.com"],
-                )
-                # self.ctx.pyramid_transaction_commit()
+                        cert_pem = self._filedata_testfile(_cert_filename)
+                        (
+                            _dbCertificateSigned,
+                            _is_created,
+                        ) = db.getcreate.getcreate__CertificateSigned(
+                            self.ctx,
+                            cert_pem,
+                            cert_domains_expected=_cert_domains_expected,
+                            dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
+                            certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+                            dbPrivateKey=_dbPrivateKey,
+                            # optionals
+                            dbUniqueFQDNSet=_dbUniqueFQDNSet,
+                            is_active=True,
+                        )
+                        # print(_dbCertificateSigned_1, _is_created)
+                        # self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate QueueCertificate
-                # renew a csr
-                # this MUST be a new domain to add to the queue
-                # if it is existing, a domain will not be added
-                event_type = model_utils.OperationsEventType.from_string(
-                    "QueueCertificate__update"
-                )
-                event_payload_dict = utils.new_event_payload_dict()
-                dbOperationsEvent = db.logger.log__OperationsEvent(
-                    self.ctx, event_type, event_payload_dict
-                )
-                dbQueue = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_1,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                )
-                # self.ctx.pyramid_transaction_commit()
+                        if _id == "1":
+                            _dbCertificateSigned_1 = _dbCertificateSigned
+                            _dbPrivateKey_1 = _dbPrivateKey
+                            _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
+                        elif _id == "2":
+                            _dbCertificateSigned_2 = _dbCertificateSigned
+                        elif _id == "3":
+                            _dbCertificateSigned_3 = _dbCertificateSigned
+                        elif _id == "4":
+                            _dbCertificateSigned_4 = _dbCertificateSigned
+                        elif _id == "5":
+                            _dbCertificateSigned_5 = _dbCertificateSigned
 
-                # we need at least 4 of these
-                _dbQueue2 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_2,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                )
-                _dbQueue3 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_3,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                )
-                _dbQueue4 = db.create.create__QueueCertificate(
-                    self.ctx,
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    dbCertificateSigned=_dbCertificateSigned_4,
-                    private_key_cycle_id__renewal=1,  # "single_certificate"
-                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
-                        "specified"
-                    ),
-                )
-                self.ctx.pyramid_transaction_commit()
+                    if _dbPrivateKey_1 is None:
+                        raise ValueError(
+                            "`_dbPrivateKey_1` should have been set on first iteration"
+                        )
 
-                # note: pre-populate AcmeOrder
+                    # note: pre-populate Domain
+                    # ensure we have domains?
+                    domains = db.get.get__Domain__paginated(self.ctx)
+                    domain_names = [d.domain_name for d in domains]
+                    assert (
+                        TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
+                            "domain"
+                        ].lower()
+                        in domain_names
+                    )
 
-                # merge these items in
-                _dbAcmeAccount_1 = self.ctx.dbSession.merge(
-                    _dbAcmeAccount_1, load=False
-                )
-                _dbPrivateKey_1 = self.ctx.dbSession.merge(_dbPrivateKey_1, load=False)
-                _dbUniqueFQDNSet_1 = self.ctx.dbSession.merge(
-                    _dbUniqueFQDNSet_1, load=False
-                )
+                    # note: pre-populate CertificateRequest
+                    _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
+                        "csr"
+                    ]
+                    csr_pem = self._filedata_testfile(_csr_filename)
+                    (
+                        _dbCertificateRequest_1,
+                        _is_created,
+                    ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
+                        self.ctx,
+                        csr_pem,
+                        certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
+                        dbPrivateKey=_dbPrivateKey_1,
+                        domain_names=[
+                            TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
+                                "domain"
+                            ],
+                        ],  # make it an iterable
+                    )
 
-                # pre-populate AcmeOrder/AcmeChallenge
-                _acme_order_response = {
-                    "status": "pending",
-                    "expires": "2047-01-01T14:09:07.99Z",
-                    "authorizations": [
-                        "https://example.com/acme/authz/acmeOrder-1--authz-1",
-                    ],
-                    "finalize": "https://example.com/acme/authz/acmeOrder-1--finalize",
-                    "identifiers": [
-                        {"type": "dns", "value": "selfsigned-1.example.com"}
-                    ],
-                }
-                _acme_order_type_id = model_utils.AcmeOrderType.ACME_AUTOMATED_NEW
-                _acme_order_processing_status_id = (
-                    model_utils.AcmeOrder_ProcessingStatus.created_acme
-                )
-                _acme_order_processing_strategy_id = (
-                    model_utils.AcmeOrder_ProcessingStrategy.create_order
-                )
-                _private_key_cycle_id__renewal = (
-                    model_utils.PrivateKeyCycle.from_string("single_certificate")
-                )
-                _private_key_strategy_id__requested = (
-                    model_utils.PrivateKeyStrategy.from_string("specified")
-                )
-                _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
-                _dbAcmeEventLog = model_objects.AcmeEventLog()
-                _dbAcmeEventLog.acme_event_id = _acme_event_id
-                _dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-                _dbAcmeEventLog.acme_account_id = _dbAcmeAccount_1.id
-                _dbAcmeEventLog.unique_fqdn_set_id = _dbUniqueFQDNSet_1.id
-                self.ctx.dbSession.add(_dbAcmeEventLog)
-                self.ctx.dbSession.flush()
+                    # note: pre-populate CertificateSigned 6-10, via "Pebble"
+                    for _id in TEST_FILES["CertificateSigneds"]["Pebble"].keys():
+                        self._setUp_CertificateSigneds_FormatA("Pebble", _id)
 
-                _authenticatedUser = FakeAuthenticatedUser(
-                    accountkey_thumbprint="accountkey_thumbprint"
-                )
+                    # self.ctx.pyramid_transaction_commit()
 
-                _domains_challenged = model_utils.DomainsChallenged.new_http01(
-                    _dbUniqueFQDNSet_1.domains_as_list
-                )
-                _dbAcmeOrder_1 = db.create.create__AcmeOrder(
-                    self.ctx,
-                    acme_order_response=_acme_order_response,
-                    acme_order_type_id=_acme_order_type_id,
-                    acme_order_processing_status_id=_acme_order_processing_status_id,
-                    acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
-                    private_key_cycle_id__renewal=_private_key_cycle_id__renewal,
-                    private_key_strategy_id__requested=_private_key_strategy_id__requested,
-                    order_url="https://example.com/acme/order/acmeOrder-1",
-                    dbAcmeAccount=_dbAcmeAccount_1,
-                    dbEventLogged=_dbAcmeEventLog,
-                    dbPrivateKey=_dbPrivateKey_1,
-                    dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
-                    domains_challenged=_domains_challenged,
-                    transaction_commit=True,
-                )
+                    # note: pre-populate AcmeOrder
 
-                # merge these items in
-                _dbAcmeOrder_1 = self.ctx.dbSession.merge(_dbAcmeOrder_1, load=False)
+                    # merge these items in
+                    _dbAcmeAccount_1 = self.ctx.dbSession.merge(
+                        _dbAcmeAccount_1, load=False
+                    )
+                    _dbAcmeAccount_2 = self.ctx.dbSession.merge(
+                        _dbAcmeAccount_2, load=False
+                    )
+                    _dbPrivateKey_1 = self.ctx.dbSession.merge(
+                        _dbPrivateKey_1, load=False
+                    )
+                    _dbUniqueFQDNSet_1 = self.ctx.dbSession.merge(
+                        _dbUniqueFQDNSet_1, load=False
+                    )
 
-                _authorization_response = {
-                    "status": "pending",
-                    "expires": "2047-01-01T14:09:07.99Z",
-                    "identifier": {"type": "dns", "value": "selfsigned-1.example.com"},
-                    "challenges": [
-                        {
-                            "url": "https://example.com/acme/chall/acmeOrder-1--authz-1--chall-1",
-                            "type": "http-01",
-                            "status": "pending",
-                            "token": "TokenTokenToken",
-                            "validated": None,
+                    # pre-populate AcmeOrder/AcmeChallenge
+                    _acme_order_response = {
+                        "status": "pending",
+                        "expires": "2047-01-01T14:09:07.99Z",
+                        "authorizations": [
+                            "https://example.com/acme/authz/acmeOrder-1--authz-1",
+                        ],
+                        "finalize": "https://example.com/acme/authz/acmeOrder-1--finalize",
+                        "identifiers": [
+                            {"type": "dns", "value": "selfsigned-1.example.com"}
+                        ],
+                    }
+                    _acme_order_type_id = (
+                        model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM
+                    )
+                    _acme_order_processing_status_id = (
+                        model_utils.AcmeOrder_ProcessingStatus.created_acme
+                    )
+                    _acme_order_processing_strategy_id = (
+                        model_utils.AcmeOrder_ProcessingStrategy.create_order
+                    )
+                    _private_key_cycle_id__renewal = (
+                        model_utils.PrivateKeyCycle.SINGLE_USE
+                    )
+                    _private_key_strategy_id__requested = (
+                        model_utils.PrivateKeyStrategy.SPECIFIED
+                    )
+                    key_technology_id = model_utils.KeyTechnology.RSA_2048
+                    _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
+
+                    _dbAcmeEventLog = model_objects.AcmeEventLog()
+                    _dbAcmeEventLog.acme_event_id = _acme_event_id
+                    _dbAcmeEventLog.timestamp_event = datetime.datetime.now(
+                        datetime.timezone.utc
+                    )
+                    _dbAcmeEventLog.acme_account_id = _dbAcmeAccount_1.id
+                    _dbAcmeEventLog.unique_fqdn_set_id = _dbUniqueFQDNSet_1.id
+                    self.ctx.dbSession.add(_dbAcmeEventLog)
+                    self.ctx.dbSession.flush()
+
+                    _authenticatedUser = FakeAuthenticatedUser(
+                        accountkey_thumbprint="accountkey_thumbprint"
+                    )
+
+                    _domains_challenged = model_utils.DomainsChallenged.new_http01(
+                        _dbUniqueFQDNSet_1.domains_as_list
+                    )
+
+                    _dbRenewalConfiguration = db.create.create__RenewalConfiguration(
+                        self.ctx,
+                        dbAcmeAccount=_dbAcmeAccount_1,
+                        private_key_cycle_id=_private_key_cycle_id__renewal,
+                        key_technology_id=_dbPrivateKey_1.key_technology_id,
+                        domains_challenged=_domains_challenged,
+                        note="setUp",
+                    )
+
+                    _private_key_deferred_id = (
+                        model_utils.PrivateKeyDeferred.NOT_DEFERRED
+                    )
+                    _dbAcmeOrder = db.create.create__AcmeOrder(
+                        self.ctx,
+                        acme_order_rfc__original=_acme_order_response,
+                        acme_order_type_id=_acme_order_type_id,
+                        acme_order_processing_status_id=_acme_order_processing_status_id,
+                        acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
+                        domains_challenged=_domains_challenged,
+                        order_url="https://example.com/acme/order/acmeOrder-1",
+                        certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
+                        dbAcmeAccount=_dbAcmeAccount_1,
+                        dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
+                        dbEventLogged=_dbAcmeEventLog,
+                        dbRenewalConfiguration=_dbRenewalConfiguration,
+                        dbPrivateKey=_dbPrivateKey_1,
+                        private_key_cycle_id=_private_key_cycle_id__renewal,
+                        private_key_strategy_id__requested=_private_key_strategy_id__requested,
+                        private_key_deferred_id=_private_key_deferred_id,
+                        transaction_commit=True,
+                        is_save_alternate_chains=_dbRenewalConfiguration.is_save_alternate_chains,
+                    )
+
+                    # merge these items back in, as the session was commited
+                    _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder, load=False)
+
+                    _authorization_response = {
+                        "status": "pending",
+                        "expires": "2047-01-01T14:09:07.99Z",
+                        "identifier": {
+                            "type": "dns",
+                            "value": "selfsigned-1.example.com",
                         },
-                    ],
-                    "wildcard": False,
-                }
+                        "challenges": [
+                            {
+                                "url": "https://example.com/acme/chall/acmeOrder-1--authz-1--chall-1",
+                                "type": "http-01",
+                                "status": "pending",
+                                "token": "TokenTokenToken",
+                                "validated": None,
+                            },
+                        ],
+                        "wildcard": False,
+                    }
 
-                (
-                    _dbAcmeAuthorization_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__AcmeAuthorization(
-                    self.ctx,
-                    authorization_url=_acme_order_response["authorizations"][0],
-                    authorization_payload=_authorization_response,
-                    authenticatedUser=_authenticatedUser,
-                    dbAcmeOrder=_dbAcmeOrder_1,
-                    transaction_commit=True,
-                )
-
-                # merge this back in
-                _dbAcmeAuthorization_1 = self.ctx.dbSession.merge(
-                    _dbAcmeAuthorization_1, load=False
-                )
-
-                # ensure we created a challenge
-                assert _dbAcmeAuthorization_1.acme_challenge_http_01 is not None
-
-                _db__AcmeChallengePoll = db.create.create__AcmeChallengePoll(
-                    self.ctx,
-                    dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http_01,
-                    remote_ip_address="127.1.1.1",
-                )
-                _db__AcmeChallengeUnknownPoll = (
-                    db.create.create__AcmeChallengeUnknownPoll(
+                    (
+                        _dbAcmeAuthorization,
+                        _is_created,
+                    ) = db.getcreate.getcreate__AcmeAuthorization(
                         self.ctx,
-                        domain="unknown.example.com",
-                        challenge="bar.foo",
-                        remote_ip_address="127.1.1.2",
+                        authorization_url=_acme_order_response["authorizations"][0],
+                        authorization_payload=_authorization_response,
+                        authenticatedUser=_authenticatedUser,
+                        dbAcmeOrder=_dbAcmeOrder,
+                        transaction_commit=True,
                     )
-                )
 
-                # note: pre-populate AcmeOrderless
-                _domains_challenged = model_utils.DomainsChallenged.new_http01(
-                    [
-                        "acme-orderless.example.com",
+                    # merge this back in
+                    _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder)
+                    _dbAcmeAuthorization = self.ctx.dbSession.merge(
+                        _dbAcmeAuthorization
+                    )
+
+                    # ensure we created a challenge
+                    assert _dbAcmeAuthorization.acme_challenge_http_01 is not None
+
+                    _db__AcmeChallengePoll = db.create.create__AcmeChallengePoll(
+                        self.ctx,
+                        dbAcmeChallenge=_dbAcmeAuthorization.acme_challenge_http_01,
+                        remote_ip_address="127.1.1.1",
+                    )
+                    _db__AcmeChallengeUnknownPoll = (
+                        db.create.create__AcmeChallengeUnknownPoll(
+                            self.ctx,
+                            domain="unknown.example.com",
+                            challenge="bar.foo",
+                            remote_ip_address="127.1.1.2",
+                        )
+                    )
+
+                    # note: pre-populate AcmeDnsServer
+                    (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                        self.ctx,
+                        root_url=ACME_DNS_API,
+                        is_global_default=True,
+                    )
+
+                    dbAcmeDnsServer_2: Optional[model_objects.AcmeDnsServer] = None
+                    _acme_dns_support = self.ctx.application_settings[
+                        "acme_dns_support"
                     ]
-                )
-                dbAcmeOrderless = db.create.create__AcmeOrderless(
-                    self.ctx,
-                    domains_challenged=_domains_challenged,
-                    dbAcmeAccount=None,
-                )
+                    try:
+                        (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                            self.ctx,
+                            root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                        )
+                        if _acme_dns_support == "basic":
+                            raise ValueError(
+                                "we should not be able to add a second acme-dns server"
+                            )
+                    except ValueError as exc:
+                        if exc.args[0] == "An acme-dns server already exists.":
+                            # this is expected in basic
+                            if _acme_dns_support != "basic":
+                                raise exc
 
-                # note: pre-populate AcmeDnsServer
-                (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
-                    self.ctx,
-                    root_url=ACME_DNS_API,
-                    is_global_default=True,
-                )
-                (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
-                    self.ctx,
-                    root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
-                )
+                    (
+                        _dbAcmeDnsServerAccount_domain,
+                        _x,
+                    ) = db.getcreate.getcreate__Domain__by_domainName(
+                        self.ctx,
+                        domain_name=TEST_FILES["AcmeDnsServerAccount"]["1"]["domain"],
+                    )
+                    # use the second server if possible
+                    dbAcmeDnsServerAccount = db.create.create__AcmeDnsServerAccount(
+                        self.ctx,
+                        dbAcmeDnsServer=(dbAcmeDnsServer_2 or dbAcmeDnsServer),
+                        dbDomain=_dbAcmeDnsServerAccount_domain,
+                        username=TEST_FILES["AcmeDnsServerAccount"]["1"]["username"],
+                        password=TEST_FILES["AcmeDnsServerAccount"]["1"]["password"],
+                        fulldomain=TEST_FILES["AcmeDnsServerAccount"]["1"][
+                            "fulldomain"
+                        ],
+                        subdomain=TEST_FILES["AcmeDnsServerAccount"]["1"]["subdomain"],
+                        allowfrom=TEST_FILES["AcmeDnsServerAccount"]["1"]["allowfrom"],
+                    )
 
-                (
-                    _dbAcmeDnsServerAccount_domain,
-                    _x,
-                ) = db.getcreate.getcreate__Domain__by_domainName(
-                    self.ctx,
-                    domain_name=TEST_FILES["AcmeDnsServerAccount"]["1"]["domain"],
-                )
-                dbAcmeDnsServerAccount = db.create.create__AcmeDnsServerAccount(
-                    self.ctx,
-                    dbAcmeDnsServer=dbAcmeDnsServer_2,
-                    dbDomain=_dbAcmeDnsServerAccount_domain,
-                    username=TEST_FILES["AcmeDnsServerAccount"]["1"]["username"],
-                    password=TEST_FILES["AcmeDnsServerAccount"]["1"]["password"],
-                    fulldomain=TEST_FILES["AcmeDnsServerAccount"]["1"]["fulldomain"],
-                    subdomain=TEST_FILES["AcmeDnsServerAccount"]["1"]["subdomain"],
-                    allowfrom=TEST_FILES["AcmeDnsServerAccount"]["1"]["allowfrom"],
-                )
+                    self.ctx.pyramid_transaction_commit()
 
-                self.ctx.pyramid_transaction_commit()
+                    # Turn of the AcmeOrder and RenewalConfiguration
+                    _dbAcmeOrder = self.ctx.dbSession.merge(_dbAcmeOrder)
+                    db.update.update_RenewalConfiguration__unset_active(
+                        self.ctx, _dbAcmeOrder.renewal_configuration
+                    )
+                    _result = db.actions_acme.updated_AcmeOrder_status(
+                        self.ctx,
+                        _dbAcmeOrder,
+                        {
+                            "status": "invalid",
+                        },
+                        transaction_commit=True,
+                    )
 
-            except Exception as exc:
-                print("")
-                print("")
-                print("")
-                print("EXCEPTION IN SETUP")
-                print("")
-                print(exc)
-                traceback.print_exc()
+                    self.ctx.pyramid_transaction_commit()
+                    db_freeze(self.ctx.dbSession, "AppTest")
 
-                print("")
-                print("")
-                print("")
-                self.ctx.pyramid_transaction_rollback()
-                raise
-            print("DB INITIALIZED")
+                except Exception as exc:
+                    print("")
+                    print("")
+                    print("")
+                    print("EXCEPTION IN SETUP")
+                    print("")
+                    print(exc)
+                    traceback.print_exc()
+
+                    print("")
+                    print("")
+                    print("")
+                    self.ctx.pyramid_transaction_rollback()
+                    raise
+            print("AppTest: DB INITIALIZED")
             AppTest._DB_SETUP_RECORDS = True
+        _debug_TestHarness(
+            self.ctx, "%s.%s|setUp" % (self.__class__.__name__, self._testMethodName)
+        )
+        unset_testing_data(self)
 
     def tearDown(self):
-        AppTestCore.tearDown(self)
+        _debug_TestHarness(
+            self.ctx, "%s.%s|tearDown" % (self.__class__.__name__, self._testMethodName)
+        )
         if self._ctx is not None:
-            self._ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
             self._ctx.dbSession.close()
+        unset_testing_data(self)
+        AppTestCore.tearDown(self)
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        the test data created by `_ensure_one` can persist; it must be removed
+        """
+        clear_testing_setup_data(cls)
 
 
 # ==============================================================================
 
 
 class AppTestWSGI(AppTest, _Mixin_filedata):
+    """
+    A support testing class to `AppTest`
+
+    These tests EXPOSE the PeterSSLers application by also mounting it to a
+    `StopableWSGIServer` instance running on port 5002.
+
+    5002 is the default high port pebble uses to authenticate against;
+
+    This may require an nginx/other block to route the ports:
+
+        location /.well-known/acme-challenge/ {
+            proxy_pass  http://127.0.0.1:5002;
+            proxy_set_header   Host $host;
+            proxy_set_header   X-Real-IP $remote_addr;
+            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Host $server_name;
+        }
+    """
+
     # Inherited from AppTest:
-    # * testapp
-    # * testapp_http
+    # * _testapp
+    # * _testapp_wsgi
     # * _session_factory
     # * _DB_INTIALIZED
 
+    _testapp_wsgi: Optional[StopableWSGIServer] = None
+
     def setUp(self):
-        AppTest.setUp(self)
-        app = main(global_config=None, **self._settings)
-        self.testapp_wsgi = StopableWSGIServer.create(
-            app, host="peter-sslers.example.com", port=5002
+        log.critical(
+            "%s.%s | AppTestWSGI.setUp"
+            % (self.__class__.__name__, self._testMethodName)
         )
+        AppTest.setUp(self)
+        # app = main(global_config=None, **self._settings)
+        # load this on the side to RESPOND
+        log.critical("StopableWSGIServer: create [%s]" % time.time())
+        self._testapp_wsgi = StopableWSGIServer.create(
+            self._pyramid_app,  # we can mount the existing app
+            host="peter-sslers.example.com",  # /etc/hosts maps this to localhost
+            port=5002,  # this corresponts to pebble-config.json `"httpPort": 5002`
+        )
+        log.critical("StopableWSGIServer: created; wait [%s]" % time.time())
+        self._testapp_wsgi.wait()
+        log.critical("StopableWSGIServer: waited [%s]" % time.time())
 
     def tearDown(self):
+        log.critical(
+            "%s.%s | AppTestWSGI.tearDown"
+            % (self.__class__.__name__, self._testMethodName)
+        )
+        if self._testapp_wsgi is not None:
+            log.critical("StopableWSGIServer: shutting down [%s]" % time.time())
+            result = self._testapp_wsgi.shutdown()
+            log.critical("StopableWSGIServer: shutdown complete [%s]" % time.time())
+            assert result is True
+            # sleep for 5 seconds, because I don't trust this
+            time.sleep(5)
         AppTest.tearDown(self)
-        if self.testapp_wsgi is not None:
-            self.testapp_wsgi.shutdown()
 
 
 # ==============================================================================
 
 
-def generate_random_emailaddress(template="%s@example.com"):
+def testcase_to_prefix(testCase: unittest.TestCase) -> str:
+    prefix = "%s.%s" % (testCase.__class__.__name__, testCase._testMethodName)
+    prefix = prefix.replace("_", "-")
+    return prefix
+
+
+def testcaseClass_to_prefix(testCase: unittest.TestCase) -> str:
+    prefix = "%s." % testCase.__name__
+    prefix = prefix.replace("_", "-")
+    return prefix
+
+
+def generate_random_emailaddress(template="%s@example.com") -> str:
+    return template % uuid.uuid4()
+
+
+def generate_random_domain(
+    template="%s.example.com",
+    testCase: Optional[unittest.TestCase] = None,
+) -> str:
+    # optionally provide a testcase to insert into the generated names
+    # this is useful for debugging test creation
+    if testCase:
+        prefix = testcase_to_prefix(testCase)
+        template = "%s.%%s.example.com" % prefix
     return template % uuid.uuid4()

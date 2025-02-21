@@ -85,7 +85,7 @@
                 </div>
             % endif
 
-            <table class="table">
+            <table class="table table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -111,34 +111,6 @@
                         <td><timestamp>${Domain.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>is_active</th>
-                        <td>
-                            <span class="label label-${'success' if Domain.is_active else 'warning'}">
-                                ${'Active' if Domain.is_active else 'inactive'}
-                            </span>
-
-                            % if Domain.is_active:
-                                &nbsp;
-                                <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="inactive"/>
-                                    <button class="btn btn-xs btn-warning" type="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        inactive
-                                    </button>
-                                </form>
-                            % else:
-                                &nbsp;
-                                <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-success" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        active
-                                    </button>
-                                </form>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>json_config</th>
                         <td>
                             <a  class="btn btn-xs btn-info"
@@ -148,7 +120,7 @@
                                 config.json</a>
                         </td>
                     </tr>
-                    % if request.registry.settings["app_settings"]['enable_nginx']:
+                    % if request.api_context.application_settings['enable_nginx']:
                         <tr>
                             <th>Nginx cache</th>
                             <td>
@@ -216,7 +188,7 @@
                     <tr>
                         <th>CertificateSigneds Recent</th>
                         <td>
-                            <table class="table">
+                            <table class="table table-striped table-condensed">
                                 <tr>
                                     <th>latest_single</th>
                                     <td>
@@ -245,6 +217,25 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>RenewalConfigurations</th>
+                        <td>
+                            ${admin_partials.table_RenewalConfigurations(Domain.renewal_configurations__5, perspective="Domain")}
+                            % if Domain.renewal_configurations__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/renewal-configurations" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>UniquelyChallengedFQDNSets</th>
+                        <td>
+                            ${admin_partials.table_UniquelyChallengedFQDNSets([i.uniquely_challenged_fqdn_set for i in Domain.to_uniquely_challenged_fqdn_sets__5], perspective="Domain")}
+                            % if Domain.to_unique_fqdn_sets__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/uniquely-challenged-fqdn-sets" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>UniqueFQDNSets</th>
                         <td>
                             ${admin_partials.table_UniqueFQDNSets([i.unique_fqdn_set for i in Domain.to_unique_fqdn_sets__5], perspective="Domain")}
@@ -256,19 +247,12 @@
                     <tr>
                         <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
                             % if Domain.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
                             % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>QueueCertificates</th>
-                        <td>
-                            ${admin_partials.table_QueueCertificates(Domain.queue_certificates__5, perspective="Domain")}
-                            % if Domain.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/queue-certificates" % (admin_prefix, Domain.id))}
-                            % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
                         </td>
                     </tr>
                     <tr>
@@ -290,6 +274,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>AcmeAuthorizationPotentials</th>
+                        <td>
+                            ${admin_partials.table_AcmeAuthorizationPotentials(Domain.acme_authorization_potentials__5, perspective="Domain")}
+                            % if Domain.acme_authorization_potentials__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-authz-potentials" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>AcmeChallenges</th>
                         <td>
                             ${admin_partials.table_AcmeChallenges(Domain.acme_challenges__5, perspective="Domain")}
@@ -304,15 +297,6 @@
                             ${admin_partials.table_CertificateRequests(Domain.certificate_requests__5, perspective="Domain")}
                             % if Domain.certificate_requests__5:
                                 ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, Domain.id))}
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>AcmeOrderless</th>
-                        <td>
-                            ${admin_partials.table_AcmeOrderlesss(Domain.acme_orderlesss__5, perspective="Domain")}
-                            % if Domain.acme_orderlesss__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/acme-orderlesss" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>

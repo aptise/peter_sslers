@@ -103,11 +103,6 @@
                                                 Domain-${to_domain.domain.id}
                                             </a>
                                         </td>
-                                        <td>
-                                            <span class="label label-${'success' if to_domain.domain.is_active else 'warning'}">
-                                                ${'Active' if to_domain.domain.is_active else 'inactive'}
-                                            </span>
-                                        </td>
                                         <td><code>${to_domain.domain.domain_name}</code></td>
                                     </tr>
                                 % endfor
@@ -123,6 +118,7 @@
                                 title="Queue a CertificateSigned"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                DEPRECATED - MIGRATE TO RenewalConfiguration
                                 Queue a CertificateSigned
                             </a>
                         </td>
@@ -241,11 +237,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Queue: Certificates</th>
+                        <th>UniquelyChallengedFQDNSets</th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(UniqueFQDNSet.queue_certificates__5, perspective="UniqueFQDNSet")}
-                            % if UniqueFQDNSet.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/queue-certificates" % (admin_prefix, UniqueFQDNSet.id))}
+                            ${admin_partials.table_UniquelyChallengedFQDNSets(UniqueFQDNSet.uniquely_challenged_fqdn_sets__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.uniquely_challenged_fqdn_sets__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/uniquely-challenged-fqdn-sets" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

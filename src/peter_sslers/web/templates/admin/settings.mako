@@ -17,6 +17,22 @@
 
 
 <%block name="content_main">
+
+    <div class="alert alert-info" role="alert">
+      <h4>QuickStart</h4>
+      <p>Settings are enabled in either the Application or the Configuration file.</p>
+      
+      <p>
+        For initial setup, you should
+        <ul>
+            <li>Create New, or Select Existing, <a href="${admin_prefix}/acme-accounts">AcmeAccounts</a> for the Global Default and Global Backup roles.
+                </li>
+        </ul>
+      </p>
+      
+    </div>
+
+
     <h3>Runtime Settings</h3>
     <p>
         These settings can be edited using the web interface
@@ -34,6 +50,20 @@
                                 AcmeAccount-${AcmeAccount_GlobalDefault.id}
                             </a>
                             <code>${AcmeAccount_GlobalDefault.key_pem_sample}</code>
+                        % endif
+                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Global Backup AcmeAccount</th>
+                    <td>
+                        % if not AcmeAccount_GlobalBackup:
+                            Not configured                        
+                        % else:
+                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}" span class="label label-info">
+                                AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                            </a>
+                            <code>${AcmeAccount_GlobalBackup.key_pem_sample}</code>
                         % endif
                         <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
                     </td>
@@ -80,7 +110,7 @@
                                 % endif
                                 % if documentation_grid[section][option].get('show_on_settings'):
                                     <hr/>
-                                    Active: <code>${request.registry.settings["app_settings"].get(option) or ''}</code>
+                                    Active: <code>${request.api_context.application_settings.get(option) or ''}</code>
                                 % endif
                             </thd>
                         </tr>

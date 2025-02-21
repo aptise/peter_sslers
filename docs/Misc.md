@@ -1,5 +1,5 @@
-* [Previous - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
-* [Next - Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
+* [Previous - Frequently_Asked_Questions](https://github.com/aptise/peter_sslers/blob/main/docs/Frequently_Asked_Questions.md)
+* [Next - Tools](https://github.com/aptise/peter_sslers/blob/main/docs/Tools.md)
 
 # Misc
 
@@ -11,13 +11,13 @@ use round-robin DNS. They were both in the same physical network.
 * `Nginx` is on port 80. everything in the `/.well-known directory` is proxied to
   an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
-* `/.well-known/admin` is not on the public internet
+* `/.well-known/peter_sslers` is not on the public internet
 
 For testing Certificates, these 2 commands can be useful:
 
 reprime `Redis` cache
 
-    $ prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json
+    $ prequest -m POST example_development.ini /.well-known/peter_sslers/api/redis/prime.json
 
 clear out `Nginx` cache
 

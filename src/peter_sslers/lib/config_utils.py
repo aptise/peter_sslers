@@ -1,9 +1,9 @@
 # stdlib
+import hashlib
+import os
 from typing import Dict
 from typing import Optional
-
-# pypi
-import cert_utils
+import uuid
 
 # local
 # from ..model import objects as model_objects
@@ -12,44 +12,70 @@ import cert_utils
 # ==============================================================================
 
 
+def normalize_filepath(fpath: str) -> str:
+    fpath = os.path.normpath(fpath)
+    if fpath[-1] == "/":
+        fpath = fpath[:-1]
+    return fpath
+
+
 class ApplicationSettings(dict):
-    def __init__(self):
+
+    def __init__(
+        self,
+        config_uri: Optional[str] = None,
+    ):
+        """
+        `config_url` might be empty in a test harness
+        """
         for _opt in (
+            "acme_dns_support",
             "admin_prefix",
             "api_host",
             "block_competing_challenges",
-            "certificate_authorities_enable",
-            "certificate_authority_directory",
-            "certificate_authority_protocol",
-            "certificate_authority_testing",
-            "certificate_authority",
             "cleanup_pending_authorizations",
-            "enable_acme_flow",
-            "enable_views_admin",
-            "enable_views_public",
+            "data_dir",
+            "default_backup",
             "enable_nginx",
             "enable_redis",
+            "enable_views_admin",
+            "enable_views_public",
             "exception_redirect",
             "expiring_days",
+            "nginx.ca_bundle_pem",
             "nginx.reset_path",
             "nginx.servers_pool_allow_invalid",
             "nginx.servers_pool",
             "nginx.status_path",
             "nginx.timeout",
             "nginx.userpass",
-            "openssl_path_conf",
-            "openssl_path",
-            "queue_domains_max_per_cert",
-            "queue_domains_min_per_cert",
             "redis.prime_style",
-            "redis.url",
-            "redis.timeout.certcachain"
             "redis.timeout.cert"
-            "redis.timeout.pkey"
+            "redis.timeout.certcachain"
             "redis.timeout.domain"
+            "redis.timeout.pkey"
+            "redis.url",
             "requests.disable_ssl_warning",
+            # config_uri data
+            "config_uri",
+            "config_uri-path",
+            "config_uri-contents",
         ):
             self[_opt] = None
+
+        for _opt in ("precheck_acme_challenges",):
+            self[_opt] = []
+
+        if config_uri:
+            self["config_uri"] = config_uri
+            _hash = hashlib.md5(config_uri.encode()).hexdigest()
+            self["config_uri-path"] = _hash
+            with open(config_uri, "rb") as f:
+                _contents = f.read()
+                _hash = hashlib.md5(_contents).hexdigest()
+                self["config_uri-contents"] = _hash
+        mac = uuid.getnode()
+        self["mac_uuid"] = str(uuid.UUID(int=mac))
 
     def from_settings_dict(self, settings: Dict) -> None:
         """
@@ -60,23 +86,33 @@ class ApplicationSettings(dict):
         # do this before setting routes!
         admin_prefix = settings.get("admin_prefix", None)
         if admin_prefix is None:
-            self["admin_prefix"] = "/.well-known/admin"
+            self["admin_prefix"] = "/.well-known/peter_sslers"
 
-        # openssl updates:
-        # * openssl_path_conf
-        # * openssl_path
-        # this will validate the INI/ENV for conflicts
-        cert_utils.update_from_appsettings(settings)
-        # just copy these over to set
-        if "openssl_path" in settings:
-            self["openssl_path"] = settings["openssl_path"]
-        if "openssl_path_conf" in settings:
-            self["openssl_path_conf"] = settings["openssl_path_conf"]
+        #
+        self["acme_dns_support"] = "basic"
+        if "acme_dns_support" in settings:
+            if settings["acme_dns_support"] in ("basic", "experimental"):
+                self["acme_dns_support"] = settings["acme_dns_support"]
+            else:
+                self["acme_dns_support"] = "basic"
 
         # should we cleanup challenges
         self["cleanup_pending_authorizations"] = set_bool_setting(
             settings, "cleanup_pending_authorizations", default=True
         )
+
+        data_dir = settings.get("data_dir", None)
+        if data_dir is None:
+            raise ValueError("`data_dir` is a required setting")
+        data_dir = normalize_filepath(data_dir)
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        self["data_dir"] = data_dir
+
+        default_backup = settings.get("default_backup")
+        if default_backup not in ("none", "global"):
+            default_backup = "none"
+        self["default_backup"] = default_backup
 
         # will we redirect on error?
         self["exception_redirect"] = set_bool_setting(settings, "exception_redirect")
@@ -84,20 +120,9 @@ class ApplicationSettings(dict):
         # this is an int
         self["expiring_days"] = set_int_setting(settings, "expiring_days", default=30)
 
-        # enable/disable the acme-flow system
-        self["enable_acme_flow"] = set_bool_setting(settings, "enable_acme_flow")
-
         # should challenges block?
         self["block_competing_challenges"] = set_bool_setting(
             settings, "block_competing_challenges", default=True
-        )
-
-        # Queue Domains Config
-        self["queue_domains_max_per_cert"] = set_int_setting(
-            settings, "queue_domains_max_per_cert", default=100
-        )
-        self["queue_domains_min_per_cert"] = set_int_setting(
-            settings, "queue_domains_min_per_cert", default=1
         )
 
         # redis
@@ -148,33 +173,24 @@ class ApplicationSettings(dict):
                 settings, "nginx.servers_pool_allow_invalid"
             )
 
-        # required, but validate later
-        self["certificate_authority"] = settings.get("certificate_authority")
+        _ca_bundle_pem = settings.get("nginx.ca_bundle_pem")
+        if _ca_bundle_pem:
+            _ca_bundle_pem = normalize_filepath(_ca_bundle_pem)
+            if not os.path.exists(_ca_bundle_pem):
+                raise ValueError(
+                    "`nginx.ca_bundle_pem=%s` does not exist" % _ca_bundle_pem
+                )
+            self["nginx.ca_bundle_pem"] = _ca_bundle_pem
 
-        self["certificate_authority_directory"] = settings.get(
-            "certificate_authority_directory"
-        )
-        self["certificate_authority_protocol"] = settings.get(
-            "certificate_authority_protocol"
-        )
-
-        self["certificate_authority_testing"] = set_bool_setting(
-            settings, "certificate_authority_testing"
-        )
-        if self["certificate_authority_testing"]:
-            cert_utils.TESTING_ENVIRONMENT = True
+        _precheck_acme_challenges = settings.get("precheck_acme_challenges")
+        if _precheck_acme_challenges:
+            _precheck_acme_challenges = [
+                i.strip() for i in _precheck_acme_challenges.split(",")
+            ]
+        self["precheck_acme_challenges"] = _precheck_acme_challenges
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
-
-        self["certificate_authorities_enable"] = [
-            ca
-            for ca in [
-                i.strip()
-                for i in settings.get("certificate_authorities_enable", "").split(",")
-            ]
-            if ca
-        ]
 
         # let's try to validate it!
         self.validate()
@@ -183,30 +199,10 @@ class ApplicationSettings(dict):
         """
         Validates the settings.
         """
-        if (self["queue_domains_max_per_cert"] < 1) or (
-            self["queue_domains_max_per_cert"] > 100
-        ):
-            raise ValueError("`queue_domains_max_per_cert` must be between 1 and 100")
-        if (self["queue_domains_min_per_cert"] < 1) or (
-            self["queue_domains_max_per_cert"] > 100
-        ):
-            raise ValueError("`queue_domains_min_per_cert` must be between 1 and 100")
-        if self["queue_domains_min_per_cert"] > self["queue_domains_max_per_cert"]:
-            raise ValueError(
-                "`queue_domains_max_per_cert` must be greater than `queue_domains_min_per_cert`"
-            )
 
         _redis_prime_style = self.get("redis.prime_style")
         if _redis_prime_style and _redis_prime_style not in ("1", "2"):
             raise ValueError("`redis.prime_style` must be one of: (`1`, `2`)")
-
-        ca_selected = self["certificate_authority"]
-        if not ca_selected:
-            raise ValueError("No `certificate_authority` selected")
-
-        ca_protocol = self["certificate_authority_protocol"]
-        if ca_protocol != "acme-v2":
-            raise ValueError("invalid `certificate_authority_protocol` selected")
 
 
 # ------------------------------------------------------------------------------
@@ -223,6 +219,9 @@ def set_bool_setting(
     """
     _bool = None
     if key in settings:
+        # the settings may have been processed already
+        if isinstance(settings[key], bool):
+            return settings[key]
         if settings[key].lower() in ("1", "true"):
             _bool = True
         elif settings[key].lower() in ("0", "false"):
@@ -244,6 +243,9 @@ def set_int_setting(
     """
     value = default
     if key in settings:
+        # the settings may have been processed already
+        if isinstance(settings[key], int):
+            return settings[key]
         _candidate = settings[key]
         if _candidate is not None:
             value = int(_candidate)

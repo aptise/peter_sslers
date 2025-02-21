@@ -22,12 +22,12 @@ class View_List(Handler):
         renderer="/admin/certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:certificate_requests_paginated",
+        route_name="admin:certificate_requests-paginated",
         renderer="/admin/certificate_requests.mako",
     )
     @view_config(route_name="admin:certificate_requests|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_requests_paginated|json", renderer="json"
+        route_name="admin:certificate_requests-paginated|json", renderer="json"
     )
     @docify(
         {
@@ -53,7 +53,7 @@ class View_List(Handler):
         )
         url_template = (
             "%s/certificate-requests/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -88,7 +88,7 @@ class View_Focus(Handler):
             self.dbCertificateRequest = dbCertificateRequest
             self._focus_item = dbCertificateRequest
             self._focus_url = "%s/certificate-request/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateRequest.id,
             )
         return self.dbCertificateRequest
@@ -174,7 +174,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:certificate_request:focus:acme_orders_paginated",
+        route_name="admin:certificate_request:focus:acme_orders-paginated",
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -184,7 +184,7 @@ class View_Focus(Handler):
         )
         url_template = (
             "%s/certificate-request/{0}/acme-orders"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_CertificateRequest__paginated(

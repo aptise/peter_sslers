@@ -61,8 +61,8 @@
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
-            <table class="table">
+        <div class="col-sm-12">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">Core Details</th>
@@ -85,19 +85,16 @@
                             </span>
                             &nbsp;
                             % if CertificateSigned.is_active:
-                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                <form 
+                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" 
+                                    method="POST" 
+                                    style="display:inline;" 
+                                    id="form-certificate_signed-mark-inactive"
+                                >
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-warning" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                         deactivate
-                                    </button>
-                                </form>
-                                &nbsp;
-                                <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="revoked"/>
-                                    <button class="btn btn-xs btn-danger" type="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        mark revoked
                                     </button>
                                 </form>
                             % else:
@@ -120,14 +117,24 @@
                                     ##     </form>
                                     ## % endif
                                     % if not CertificateSigned.is_revoked:
-                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                        <form
+                                            action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark"
+                                            method="POST"
+                                            style="display:inline;"
+                                            id="form-certificate_signed-mark-active"
+                                        >
                                             <input type="hidden" name="action" value="active"/>
                                             <button class="btn btn-xs btn-success" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                                 activate
                                             </button>
                                         </form>
-                                        <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" method="POST" style="display:inline;">
+                                        <form
+                                            action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark"
+                                            method="POST"
+                                            style="display:inline;"
+                                            id="form-certificate_signed-mark-revoked"
+                                        >
                                             <input type="hidden" name="action" value="revoked"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -142,54 +149,91 @@
                     <tr>
                         <th>Renewals Managed by</th>
                         <td>
-                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
-                                <code>AcmeOrder</code>
-                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
-                                <code>CertificateSigned</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Renewal Strategy</th>
-                        <td>
-                            % if CertificateSigned.renewals_managed_by == "AcmeOrder":
-                                % if CertificateSigned.acme_order.is_auto_renew:
-                                    <span class="label label-success">auto-renew enabled</span>
-                                % else:
-                                    <span class="label label-danger">auto-renew disabled</span>
-                                % endif
-                                <a class="label label-info" href="${admin_prefix}/acme-order/${CertificateSigned.acme_order.id}">
+                            % if CertificateSigned.acme_order:
+                                <a class="label label-info" href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${CertificateSigned.acme_order.id}
+                                    RenewalConfiguration-${CertificateSigned.acme_order.renewal_configuration_id}</a>
+                                % if CertificateSigned.acme_order:
+                                    % if CertificateSigned.acme_order.renewal_configuration.is_active:
+                                        <span class="label label-success">auto-renew active</span>
+                                    % else:
+                                        <span class="label label-danger">auto-renew disabled</span>
+                                    % endif
+                                % endif
+                            % else:
+                                <span class="label label-warning">
+                                    unavailable
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Renew?</th>
+                        <td>
+                            % if CertificateSigned.acme_order:
+                                <%
+                                    _replaces = ""
+                                    if not CertificateSigned.ari_identifier__replaced_by:
+                                        _replaces = "?replaces.id=%s" % CertificateSigned.id
+                                %>
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-order${_replaces}"
+                                    title="Renew Quick"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    Renew Quick
                                 </a>
-                            % elif CertificateSigned.renewals_managed_by == "CertificateSigned":
-                                <p>Imported CertificateSigneds do not support auto-renew. Queue a renewal AcmeOrder below to enroll in auto-renewal.</p>
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration.id}/new-configuration"
+                                    title="Renew Custom"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    Renew Custom
+                                </a>
+                            % else:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/renewal-configuration/new?domain_names_http01=${CertificateSigned.domains_as_string}"
+                                    title="Renew Custom"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    New RenewalConfiguration
+                                </a>
                             % endif
                         </td>
                     </tr>
+                    % if request.api_context.application_settings['enable_nginx']:
+                        <tr>
+                            <th>Nginx cache</th>
+                            <td>
+                                    <form
+                                        action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire"
+                                        method="POST"
+                                        id="form-certificate_signed-nginx_cache_expire"
+                                    >
+                                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                            nginx-cache-expire
+                                        </button>
+                                    </form>
+                                    &nbsp;
+                                    <form
+                                        action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire.json"
+                                        method="POST"
+                                        id="form-certificate_signed-nginx_cache_expire-json"
+                                        target="_blank"
+                                    >
+                                        <button type="submit" class="btn btn-xs btn-primary" type="submit" name="submit" value="submit">
+                                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                            nginx-cache-expire.json
+                                        </button>
+                                    </form>
+                            </td>
+                        </tr>
+                    % endif
                     <tr>
-                        <th>is_compromised_private_key</th>
+                        <th>Certificate Types</th>
                         <td>
-                            % if CertificateSigned.is_compromised_private_key is not None:
-                                <span class="label label-danger">
-                                    COMPROMISED PRIVATE KEY
-                                </span>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_revoked_upstream</th>
-                        <td>
-                            % if CertificateSigned.timestamp_revoked_upstream is not None:
-                                <span class="label label-danger">
-                                    revoked upstream @ ${CertificateSigned.timestamp_revoked_upstream_isoformat}
-                                </span>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_single_domain_cert</th>
-                        <td>
+                            <code>${CertificateSigned.certificate_type}</code>
                             % if CertificateSigned.is_single_domain_cert is True:
                                 <span class="label label-default">
                                     single domain certificate
@@ -201,6 +245,65 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>domains</th>
+                        <td><code>${CertificateSigned.domains_as_string}</code></td>
+                    </tr>
+                    <tr>
+                        <th>cert_serial</th>
+                        <td><code>${CertificateSigned.cert_serial}</code></td>
+                    </tr>
+                    <tr>
+                        <th>fingerprint_sha1</th>
+                        <td><code>${CertificateSigned.fingerprint_sha1}</code></td>
+                    </tr>
+                    <tr>
+                        <th>cert_pem_md5</th>
+                        <td><code>${CertificateSigned.cert_pem_md5}</code></td>
+                    </tr>
+                    <tr>
+                        <th>spki_sha256</th>
+                        <td>
+                            <code>${CertificateSigned.spki_sha256}</code>
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_spki_search}"
+                            >
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>cert_subject</th>
+                        <td>
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_subject_search}"
+                            >
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </a>
+                            <br/>
+                            <samp>${CertificateSigned.cert_subject}</samp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>cert_issuer</th>
+                        <td>
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/search?${CertificateSigned.cert_issuer_search}"
+                            >
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </a>
+                            <br/>
+
+                            <samp>${CertificateSigned.cert_issuer}</samp>
+                        </td>
+                    </tr>                    
+                    
+                    
+                    
+                    
                     <tr>
                         <th>timestamp_not_before</th>
                         <td><timestamp>${CertificateSigned.timestamp_not_before}</timestamp></td>
@@ -215,6 +318,124 @@
                             <span class="label label-${CertificateSigned.expiring_days_label}">
                                 ${CertificateSigned.expiring_days} days
                             </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ARI</th>
+                        <td>
+                            <table class="table table-striped">
+                                <tr>
+                                    <th>ari_identifier</th>
+                                    <td><code>${CertificateSigned.ari_identifier}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>ari_identifier__replaced_by</th>
+                                    <td>
+                                        % if CertificateSigned.ari_identifier__replaced_by:
+                                            <code>${CertificateSigned.ari_identifier__replaced_by}</code>
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Certificate replaced_by</th>
+                                    <td>
+                                        % if CertificateSigned.certificate_signed_id__replaced_by:
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.certificate_signed_id__replaced_by}">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                CertificateSigned-${CertificateSigned.certificate_signed_id__replaced_by}
+                                            </a>
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>ari_identifier__replaces</th>
+                                    <td>
+                                        % if CertificateSigned.ari_identifier__replaces:
+                                            <code>${CertificateSigned.ari_identifier__replaces}</code>
+                                        % endif
+                                    </td>
+                                </tr>
+                                % if CertificateSigned.is_ari_supported:
+                                    <tr>
+                                        <th>Latest ARI Check</th>
+                                        <td>
+                                            % if CertificateSigned.ari_check__latest:
+                                                <a class="label label-info" href="${admin_prefix}/ari-check/${CertificateSigned.ari_check__latest.id}">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    ${CertificateSigned.ari_check__latest.id}
+                                                    ARI Check Latest
+                                                </a>
+                                                % if CertificateSigned.ari_check__latest.ari_check_status:
+                                                    <table>
+                                                        <tr>
+                                                            <th>Timestamp</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_created}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Suggested Window Start</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_start}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Suggested Window End</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.suggested_window_end}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Retry After</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_retry_after}</timestamp></td>
+                                                        </tr>
+                                                    </table>
+                                                % else:
+                                                    <p>ERROR on Last ARI Check</p>
+                                                    <table>
+                                                        <tr>
+                                                            <th>Timestamp</th>
+                                                            <td><timestamp>${CertificateSigned.ari_check__latest.timestamp_created}</timestamp></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Response</th>
+                                                            <td><code>${CertificateSigned.ari_check__latest.raw_response}</code></td>
+                                                        </tr>
+                                                    </table>
+                                                % endif
+                                            % endif
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Historical Checks</th>
+                                        <td>
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check-history">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                ARI Checks (History)
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Manual Check</th>
+                                        <td>
+                                            % if CertificateSigned.is_ari_check_timely:
+                                                <form
+                                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
+                                                    method="POST"
+                                                    style="display:inline;"
+                                                    id="form-certificate_signed-ari_check"
+                                                >
+                                                    <button class="btn btn-xs btn-success" type="submit">
+                                                        <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                                        Check ARI
+                                                    </button>
+                                                </form>
+                                            % else:
+                                                Too Old for ARI Checks
+                                            % endif
+                                        </td>
+                                    </tr>
+                                % else:
+                                    <tr>
+                                        <th>ARI Checks</th>
+                                        <td>ARI Does not seem possible for this Certificate</td>
+                                    </tr>
+                                % endif
+                            </table>
                         </td>
                     </tr>
                     <tr>
@@ -278,11 +499,19 @@
                             % if CertificateSigned.acme_order and CertificateSigned.acme_order.acme_account_id:
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${CertificateSigned.acme_order.acme_account_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${CertificateSigned.acme_order.acme_account_id}</a>
+                                    AcmeAccount-${CertificateSigned.acme_order.acme_account_id}
+                                    </a>
+                                @
+                                <a class="label label-info" href="${admin_prefix}/acme-server/${CertificateSigned.acme_order.acme_account.acme_server_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeServer-${CertificateSigned.acme_order.acme_account.acme_server_id}
+                                    |
+                                    ${CertificateSigned.acme_order.acme_account.acme_server.url}
+                                    </a>
                                 <br/>
-                                <em>The CertificateSigned belongs to this AcmeAccount.</em>
+                                <em>The CertificateSigned belongs to this AcmeAccount through an AcmeOrder.</em>
                             % else:
-                                <em>The CertificateSigned is not associated with an AcmeAccount.</em>
+                                <em>The CertificateSigned is not associated with an AcmeAccount through an AcmeOrder.</em>
                             % endif
                         </td>
                     </tr>
@@ -400,26 +629,48 @@
                             </table>
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(CertificateSigned)}
                     <tr>
-                        <th>fingerprint_sha1</th>
-                        <td><code>${CertificateSigned.fingerprint_sha1}</code></td>
-                    </tr>
-                    <tr>
-                        <th>cert_pem_md5</th>
-                        <td><code>${CertificateSigned.cert_pem_md5}</code></td>
-                    </tr>
-                    <tr>
-                        <th>spki_sha256</th>
+                        <th>domains</th>
                         <td>
-                            <code>${CertificateSigned.spki_sha256}</code>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CertificateSigned.cert_spki_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
+                            <table class="table table-striped table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>domain</th>
+                                        <th>is latest cert?</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    % for to_d in CertificateSigned.unique_fqdn_set.to_domains:
+                                        <tr>
+                                            <td>
+                                                <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    Domain-${to_d.domain.id}</a>
+                                            </td>
+                                            <td>
+                                                <code>${to_d.domain.domain_name}</code>
+                                            </td>
+                                            <td>
+                                                % if CertificateSigned.id in (to_d.domain.certificate_signed_id__latest_single, to_d.domain.certificate_signed_id__latest_multi):
+                                                    <span class="label label-default">
+                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_single:
+                                                            single
+                                                        % endif
+                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_multi:
+                                                            multi
+                                                        % endif
+                                                    </span>
+                                                % endif
+                                            </td>
+                                        </tr>
+                                    % endfor
+                                </tbody>
+                            </table>
                         </td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Configuration Files</th>
                     </tr>
                     <tr>
                         <th>cert_pem</th>
@@ -520,44 +771,6 @@
 
                         </td>
                     </tr>
-                    % if request.registry.settings["app_settings"]['enable_nginx']:
-                        <tr>
-                            <th>Nginx cache</th>
-                            <td>
-                                <span class="btn-group">
-                                    <form action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire" method="POST">
-                                        <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
-                                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                            nginx-cache-expire
-                                        </button>
-                                    </form>
-                                    <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/nginx-cache-expire.json"
-                                        target="_blank"
-                                    >
-                                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                        .json</a>
-                                </span>
-                            </td>
-                        </tr>
-                    % endif
-
-                    <tr>
-                        <th>Renew?</th>
-                        <td>
-                            &nbsp;
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=CertificateSigned&certificate_signed=${CertificateSigned.id}"
-                                title="Queue a CertificateSigned"
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                Queue a Renewal
-                            </a>
-
-                        </td>
-                    </tr>
-
-
                     <tr>
                         <th>related payloads</th>
                         <td>
@@ -653,92 +866,49 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>cert_subject</th>
-                        <td>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CertificateSigned.cert_subject_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
-                            <br/>
-                            <samp>${CertificateSigned.cert_subject}</samp>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>cert_issuer</th>
-                        <td>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${CertificateSigned.cert_issuer_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
-                            <br/>
-
-                            <samp>${CertificateSigned.cert_issuer}</samp>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>domains</th>
-                        <td>
-                            <table class="table table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>domain</th>
-                                        <th>is latest cert?</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    % for to_d in CertificateSigned.unique_fqdn_set.to_domains:
-                                        <tr>
-                                            <td>
-                                                <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
-                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    Domain-${to_d.domain.id}</a>
-                                            </td>
-                                            <td>
-                                                <code>${to_d.domain.domain_name}</code>
-                                            </td>
-                                            <td>
-                                                % if CertificateSigned.id in (to_d.domain.certificate_signed_id__latest_single, to_d.domain.certificate_signed_id__latest_multi):
-                                                    <span class="label label-default">
-                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_single:
-                                                            single
-                                                        % endif
-                                                        % if CertificateSigned.id == to_d.domain.certificate_signed_id__latest_multi:
-                                                            multi
-                                                        % endif
-                                                    </span>
-                                                % endif
-                                            </td>
-                                        </tr>
-                                    % endfor
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                </tbody>
-                <thead>
-                    <tr>
                         <th colspan="2">
-                        <hr/>
+                            Events and Revocations
                         </th>
                     </tr>
+                     ${admin_partials.table_tr_OperationsEventCreated(CertificateSigned)}
                     <tr>
-                        <th colspan="2">
-                            Relations Library
+                        <th>
+                            Revocation
                         </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>QueueCertificates</th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(CertificateSigned.queue_certificates__5, perspective="CertificateSigned")}
-                            % if CertificateSigned.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/certificate-signed/%s/queue-certificates" % (admin_prefix, CertificateSigned.id))}
+                            % if CertificateSigned.is_active:
+                                <form
+                                    action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/mark" 
+                                    method="POST" 
+                                    style="display:inline;" 
+                                    id="form-certificate_signed-mark-revoked"
+                                >
+                                    <input type="hidden" name="action" value="revoked"/>
+                                    <button class="btn btn-xs btn-danger" type="submit">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        mark revoked
+                                    </button>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_compromised_private_key</th>
+                        <td>
+                            % if CertificateSigned.is_compromised_private_key is not None:
+                                <span class="label label-danger">
+                                    COMPROMISED PRIVATE KEY
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_revoked_upstream</th>
+                        <td>
+                            % if CertificateSigned.timestamp_revoked_upstream is not None:
+                                <span class="label label-danger">
+                                    revoked upstream @ ${CertificateSigned.timestamp_revoked_upstream_isoformat}
+                                </span>
                             % endif
                         </td>
                     </tr>

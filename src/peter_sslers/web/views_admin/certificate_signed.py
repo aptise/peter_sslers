@@ -1,6 +1,7 @@
 # stdlib
 import tempfile
 import time
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 import zipfile
@@ -19,6 +20,7 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.forms import Form_CertificateSigned_mark
+from ..lib.forms import Form_CertificateSigned_search
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -87,7 +89,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_redirect = (
             "%s/certificate-signeds/active"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_redirect = "%s.json" % url_redirect
@@ -98,7 +100,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:all_paginated",
+        route_name="admin:certificate_signeds:all-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -106,7 +108,15 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:active_paginated",
+        route_name="admin:certificate_signeds:active-paginated",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -114,7 +124,7 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:expiring_paginated",
+        route_name="admin:certificate_signeds:expiring-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
@@ -122,24 +132,46 @@ class View_List(Handler):
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_signeds:inactive_paginated",
+        route_name="admin:certificate_signeds:inactive-paginated",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired",
+        renderer="/admin/certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired-paginated",
         renderer="/admin/certificate_signeds.mako",
     )
     @view_config(route_name="admin:certificate_signeds:all|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:all_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:all-paginated|json", renderer="json"
     )
     @view_config(route_name="admin:certificate_signeds:active|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:active_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:active-paginated|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_expired-paginated|json",
+        renderer="json",
     )
     @view_config(route_name="admin:certificate_signeds:expiring|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:expiring_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:expiring-paginated|json", renderer="json"
     )
     @view_config(route_name="admin:certificate_signeds:inactive|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_signeds:inactive_paginated|json", renderer="json"
+        route_name="admin:certificate_signeds:inactive-paginated|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:inactive_unexpired-paginated|json",
+        renderer="json",
     )
     @docify(
         {
@@ -179,6 +211,24 @@ class View_List(Handler):
     )
     @docify(
         {
+            "endpoint": "/certificate-signeds/active-expired.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s) Active+Expired""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active-expired.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/active-expired/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/active-expired/1.json",
+            "variant_of": "/certificate-signeds/active-expired.json",
+        }
+    )
+    @docify(
+        {
             "endpoint": "/certificate-signeds/expiring.json",
             "section": "certificate-signed",
             "about": """list CertificateSigned(s)""",
@@ -210,21 +260,39 @@ class View_List(Handler):
             "endpoint": "/certificate-signeds/inactive/{PAGE}.json",
             "section": "certificate-signed",
             "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive/1.json",
-            "variant_of": "/certificate-signeds/expiring.json",
+            "variant_of": "/certificate-signeds/inactive.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive-unexpired.json",
+            "section": "certificate-signed",
+            "about": """list CertificateSigned(s) Inactive+Unexpired""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive-unexpired.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/inactive-unexpired/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/certificate-signeds/inactive-unexpired/1.json",
+            "variant_of": "/certificate-signeds/inactive.json",
         }
     )
     def list(self):
-        expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
+        expiring_days = self.request.api_context.application_settings["expiring_days"]
         if self.request.matched_route.name in (
             "admin:certificate_signeds:expiring",
-            "admin:certificate_signeds:expiring_paginated",
+            "admin:certificate_signeds:expiring-paginated",
             "admin:certificate_signeds:expiring|json",
-            "admin:certificate_signeds:expiring_paginated|json",
+            "admin:certificate_signeds:expiring-paginated|json",
         ):
             sidenav_option = "expiring"
             url_template = (
                 "%s/certificate-signeds/expiring/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -240,14 +308,14 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:certificate_signeds:active",
-            "admin:certificate_signeds:active_paginated",
+            "admin:certificate_signeds:active-paginated",
             "admin:certificate_signeds:active|json",
-            "admin:certificate_signeds:active_paginated|json",
+            "admin:certificate_signeds:active-paginated|json",
         ):
             sidenav_option = "active"
             url_template = (
                 "%s/certificate-signeds/active/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -262,15 +330,39 @@ class View_List(Handler):
                 offset=offset,
             )
         elif self.request.matched_route.name in (
+            "admin:certificate_signeds:active_expired",
+            "admin:certificate_signeds:active_expired-paginated",
+            "admin:certificate_signeds:active_expired|json",
+            "admin:certificate_signeds:active_expired-paginated|json",
+        ):
+            sidenav_option = "active-expired"
+            url_template = (
+                "%s/certificate-signeds/active-expired/{0}"
+                % self.request.api_context.application_settings["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__count(
+                self.request.api_context, expiring_days=expiring_days, is_active=True
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__paginated(
+                self.request.api_context,
+                expiring_days=expiring_days,
+                is_active=True,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
             "admin:certificate_signeds:inactive",
-            "admin:certificate_signeds:inactive_paginated",
+            "admin:certificate_signeds:inactive-paginated",
             "admin:certificate_signeds:inactive|json",
-            "admin:certificate_signeds:inactive_paginated|json",
+            "admin:certificate_signeds:inactive-paginated|json",
         ):
             sidenav_option = "inactive"
             url_template = (
-                "%s/certificate-signeds/active/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                "%s/certificate-signeds/inactive/{0}"
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -284,11 +376,35 @@ class View_List(Handler):
                 limit=items_per_page,
                 offset=offset,
             )
+        elif self.request.matched_route.name in (
+            "admin:certificate_signeds:inactive_unexpired",
+            "admin:certificate_signeds:inactive_unexpired-paginated",
+            "admin:certificate_signeds:inactive_unexpired|json",
+            "admin:certificate_signeds:inactive_unexpired-paginated|json",
+        ):
+            sidenav_option = "inactive-unexpired"
+            url_template = (
+                "%s/certificate-signeds/inactive-unexpired/{0}"
+                % self.request.api_context.application_settings["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__count(
+                self.request.api_context, is_active=False, is_unexpired=True
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__paginated(
+                self.request.api_context,
+                is_active=False,
+                is_unexpired=True,
+                limit=items_per_page,
+                offset=offset,
+            )
         else:
             sidenav_option = "all"
             url_template = (
                 "%s/certificate-signeds/all/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -319,6 +435,104 @@ class View_List(Handler):
         }
 
 
+class View_Search(Handler):
+    @view_config(
+        route_name="admin:certificate_signeds:search",
+        renderer="/admin/certificate_signeds-search.mako",
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signeds/search.json",
+            "section": "certificate-signed",
+            "about": """Search certificate-signeds(s)""",
+            "POST": True,
+            "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signeds/search.json",
+            "example": "curl "
+            "--form 'ari_identifier=foo.bar' "
+            "{ADMIN_PREFIX}/certificate-signeds/search.json",
+            "form_fields": {
+                "ari_identifier": "the ari.identifier",
+                "serial": "the serial",
+            },
+            "notes": "only one search type is permitted",
+        }
+    )
+    @view_config(route_name="admin:certificate_signeds:search|json", renderer="json")
+    def search(self):
+        self._search_results = {}
+        self._search_query = {}
+        if self.request.method == "POST":
+            return self._search__submit()
+        return self._search__print()
+
+    def _search__print(self):
+        if self.request.wants_json:
+            return formatted_get_docs(self, "/certificate-signeds/search.json")
+        return render_to_response(
+            "/admin/certificate_signeds-search.mako",
+            {
+                "search_results": self._search_results,
+                "search_query": self._search_query,
+            },
+            self.request,
+        )
+
+    def _search__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_CertificateSigned_search, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            ari_identifier = formStash.results["ari_identifier"]
+            serial = formStash.results["serial"]
+
+            dbCertificateSigned: Optional[CertificateSigned] = None
+            dbCertificateSigneds: List[CertificateSigned] = []
+            if ari_identifier:
+                dbCertificateSigned = (
+                    lib_db.get.get__CertificateSigned__by_ariIdentifier(
+                        self.request.api_context,
+                        ari_identifier,
+                    )
+                )
+            elif serial:
+                dbCertificateSigneds = (
+                    lib_db.get.get__CertificateSigneds__by_certSerial(
+                        self.request.api_context,
+                        serial,
+                    )
+                )
+
+            self._search_results = {
+                "CertificateSigned": dbCertificateSigned,
+                "CertificateSigneds": dbCertificateSigneds,
+            }
+            self._search_query = {
+                "ari_identifier": ari_identifier,
+                "serial": serial,
+            }
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "search_query": self._search_query,
+                    "search_results": {
+                        "CertificateSigned": (
+                            dbCertificateSigned.as_json if dbCertificateSigned else None
+                        ),
+                        "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                    },
+                }
+            return self._search__print()
+
+        except formhandling.FormInvalid as exc:  # noqa: F841
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._search__print)
+
+
 class View_New(Handler):
     @view_config(route_name="admin:certificate_signed:upload")
     @view_config(route_name="admin:certificate_signed:upload|json", renderer="json")
@@ -329,7 +543,12 @@ class View_New(Handler):
             "about": """upload a CertificateSigned""",
             "POST": True,
             "GET": None,
-            "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate-signed/upload.json""",
+            "instructions": """curl {ADMIN_PREFIX}/certificate-signed/upload.json""",
+            "example": """curl """
+            """--form 'private_key_file_pem=@privkey1.pem' """
+            """--form 'certificate_file=@cert1.pem' """
+            """--form 'chain_file=@chain1.pem' """
+            """{ADMIN_PREFIX}/certificate-signed/upload.json""",
             "form_fields": {
                 "private_key_file_pem": "required",
                 "chain_file": "required",
@@ -368,10 +587,10 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "imported"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+                private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
+                private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                # TODO: We should infer the above based on the private_key_cycle
+                discovery_type="via upload certificate_signed",
             )
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if not isinstance(ca_chain_pem, str):
@@ -380,7 +599,9 @@ class View_New(Handler):
                 dbCertificateCAChain,
                 chain_is_created,
             ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
-                self.request.api_context, ca_chain_pem, display_name="manual upload"
+                self.request.api_context,
+                ca_chain_pem,
+                discovery_type="upload",
             )
 
             certificate_pem = formhandling.slurp_file_field(
@@ -389,29 +610,19 @@ class View_New(Handler):
             if not isinstance(certificate_pem, str):
                 certificate_pem = certificate_pem.decode("utf8")
 
-            _tmpfileCert = None
-            try:
-                if cert_utils.NEEDS_TEMPFILES:
-                    _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
-                _certificate_domain_names = cert_utils.parse_cert__domains(
-                    cert_pem=certificate_pem,
-                    cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
-                )
-                if not _certificate_domain_names:
-                    raise ValueError(
-                        "could not find any domain names in the certificate"
-                    )
-                (
-                    dbUniqueFQDNSet,
-                    is_created_fqdn,
-                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                    self.request.api_context, _certificate_domain_names
-                )
-            except Exception as exc:  # noqa: F841
-                raise
-            finally:
-                if _tmpfileCert:
-                    _tmpfileCert.close()
+            _certificate_domain_names = cert_utils.parse_cert__domains(
+                cert_pem=certificate_pem,
+            )
+            if not _certificate_domain_names:
+                raise ValueError("could not find any domain names in the certificate")
+            (
+                dbUniqueFQDNSet,
+                is_created_fqdn,
+            ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                self.request.api_context,
+                _certificate_domain_names,
+                discovery_type="via upload certificate_signed",
+            )
 
             (
                 dbCertificateSigned,
@@ -421,10 +632,13 @@ class View_New(Handler):
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbCertificateCAChain=dbCertificateCAChain,
+                certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+                # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
+                discovery_type="via upload certificate_signed",
+                is_active=False,
             )
-
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -433,7 +647,7 @@ class View_New(Handler):
                         "id": dbCertificateSigned.id,
                         "url": "%s/certificate-signed/%s"
                         % (
-                            self.request.registry.settings["app_settings"][
+                            self.request.api_context.application_settings[
                                 "admin_prefix"
                             ],
                             dbCertificateSigned.id,
@@ -448,7 +662,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-signed/%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateSigned.id,
                 )
             )
@@ -472,7 +686,7 @@ class View_Focus(Handler):
             self.dbCertificateSigned = dbCertificateSigned
             self._focus_item = dbCertificateSigned
             self._focus_url = "%s/certificate-signed/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateSigned.id,
             )
         return self.dbCertificateSigned
@@ -499,7 +713,16 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {"CertificateSigned": dbCertificateSigned.as_json}
         # x-x509-server-cert
-        return {"project": "peter_sslers", "CertificateSigned": dbCertificateSigned}
+        templating_vars = {
+            "project": "peter_sslers",
+            "CertificateSigned": dbCertificateSigned,
+            "_AriCheck": None,
+        }
+        if "AriCheck" in self.request.params:
+            templating_vars["_AriCheck"] = utils.unurlify(
+                self.request.params["AriCheck"]
+            )
+        return templating_vars
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -782,32 +1005,50 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
-        route_name="admin:certificate_signed:focus:queue_certificates",
-        renderer="/admin/certificate_signed-focus-queue_certificates.mako",
+        route_name="admin:certificate_signed:focus:ari_check_history",
+        renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
     @view_config(
-        route_name="admin:certificate_signed:focus:queue_certificates_paginated",
-        renderer="/admin/certificate_signed-focus-queue_certificates.mako",
+        route_name="admin:certificate_signed:focus:ari_check_history-paginated",
+        renderer="/admin/certificate_signed-focus-ari_checks.mako",
     )
-    def related__QueueCertificates(self):
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check_history|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check_history-paginated|json",
+        renderer="json",
+    )
+    def ari_check_history(self):
         dbCertificateSigned = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
-            self.request.api_context, dbCertificateSigned.unique_fqdn_set_id
+        items_count = lib_db.get.get__AriCheck__by_CertificateSignedId__count(
+            self.request.api_context, dbCertificateSigned.id
         )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        url_template = "%s/ari-check-history/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__AriCheck__by_CertificateSignedId__paginated(
             self.request.api_context,
-            dbCertificateSigned.unique_fqdn_set_id,
+            dbCertificateSigned.id,
             limit=items_per_page,
             offset=offset,
         )
+        if self.request.wants_json:
+            _ari_checks = {k.id: k.as_json for k in items_paged}
+            return {
+                "AriChecks": _ari_checks,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "CertificateSigned": dbCertificateSigned,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
+            "AriCheck_count": items_count,
+            "AriChecks": items_paged,
             "pager": pager,
         }
 
@@ -878,11 +1119,12 @@ class View_Focus_via_CertificateCAChain(View_Focus):
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
-            response.headers[
-                "Content-Disposition"
-            ] = "attachment; filename= cert%s-chain%s.zip" % (
-                dbCertificateSigned.id,
-                certificate_ca_chain_id,
+            response.headers["Content-Disposition"] = (
+                "attachment; filename= cert%s-chain%s.zip"
+                % (
+                    dbCertificateSigned.id,
+                    certificate_ca_chain_id,
+                )
             )
             return response
 
@@ -1014,6 +1256,61 @@ class View_Focus_via_CertificateCAChain(View_Focus):
 
 
 class View_Focus_Manipulate(View_Focus):
+    @view_config(route_name="admin:certificate_signed:focus:ari_check", renderer=None)
+    @view_config(
+        route_name="admin:certificate_signed:focus:ari_check|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/certificate-signed/{ID}/ari-check.json",
+            "section": "certificate-signed",
+            "about": """Checks for ARI info. """,
+            "POST": True,
+            "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/certificate-signed/1/ari-check.json",
+        }
+    )
+    def ari_check(self):
+        dbCertificateSigned = self._focus()
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(
+                    self, "/certificate-signed/{ID}/ari-check.json"
+                )
+            raise HTTPSeeOther(
+                "%s?result=error&operation=ari-check&message=POST+required"
+                % self._focus_url
+            )
+        try:
+            # check ARI info
+            # ariresult is: None (failure) or Tuple(payload, headers)
+            dbAriObject, ari_check_result = lib_db.actions_acme.do__AcmeV2_AriCheck(
+                self.request.api_context,
+                dbCertificateSigned=dbCertificateSigned,
+            )
+            if self.request.wants_json:
+                return {"result": "success", "AriCheck": dbAriObject.as_json}
+            return HTTPSeeOther(
+                "%s?result=success&operation=ari-check&AriCheck=%s"
+                % (self._focus_url, utils.urlify(dbAriObject.as_json))
+            )
+
+        except (errors.AcmeAriCheckDeclined, errors.AcmeServerError) as exc:
+
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": str(exc.args[0]),
+                }
+            raise HTTPSeeOther(
+                "%s?result=error&operation=ari-check&error-encoded=%s"
+                % (self._focus_url, str(exc.args[0]))
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:certificate_signed:focus:nginx_cache_expire", renderer=None
     )
@@ -1028,7 +1325,8 @@ class View_Focus_Manipulate(View_Focus):
             "about": """Flushes the Nginx cache. This will make background requests to configured Nginx servers, instructing them to flush their cache. """,
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/certificate-signed/1/nginx-cache-expire.json",
         }
     )
     def nginx_expire(self):
@@ -1083,9 +1381,11 @@ class View_Focus_Manipulate(View_Focus):
             "about": """Mark""",
             "POST": True,
             "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/certificate-signed/1/mark.json",
             "examples": [
-                "curl {ADMIN_PREFIX}/certificate-signed/1/mark.json",
-                """curl --form 'action=active' {ADMIN_PREFIX}/certificate-signed/1/mark.json""",
+                """curl """
+                """--form 'action=active' """
+                """{ADMIN_PREFIX}/certificate-signed/1/mark.json""",
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {

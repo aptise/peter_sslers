@@ -32,15 +32,37 @@
                 ${form.html_error_main_fillable()|n}
 
                 <div class="form-group">
-                    <label for="acme_account_provider_id">
-                        ACME Provider
+                    <label for="acme_server_id">
+                        ACME Server
                     </label>
-                    <select class="form-control" id="acme_account_provider_id" name="acme_account_provider_id">
-                        % for option in AcmeAccountProviders:
-                            <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
+                    <select class="form-control" id="acme_server_id" name="acme_server_id">
+                        <%
+                            ## the default will be one of two places...
+                            ## first is the param
+                            ## second is the `option.is_default` attribute
+                            _requested_id = request.params.get("acme-server-id")
+                            if _requested_id:
+                                try:
+                                    _requested_id = int(_requested_id)
+                                except:
+                                    pass
+                            option_status = {}
+                            for option in AcmeServers:
+                                if option.id == _requested_id:
+                                    option_status[option.id] = "selected"
+                                else:
+                                    if option.is_default and not _requested_id:                         
+                                        option_status[option.id] = "selected"
+                                    else:
+                                        option_status[option.id] = ""
+                        %>
+                        % for option in AcmeServers:
+                            <option value="${option.id}" ${option_status[option.id]}>${option.name} (${option.url})</option>
                         % endfor
                     </select>
                 </div>
+                
+                <h3>Account Data</h3>
 
                 <div class="form-group">
                     <label for="account__contact">contact</label>
@@ -48,17 +70,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="private_key_cycle">PrivateKey Cycling</label>
-                    <select class="form-control" name="account__private_key_cycle">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="private_key_technology">PrivateKey Technology</label>
+                    <label for="account__private_key_technology">PrivateKey Technology</label>
                     <select class="form-control" name="account__private_key_technology">
                         <% _default = model_websafe.KeyTechnology._DEFAULT_AcmeAccount %>
                         % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
@@ -66,6 +78,10 @@
                         % endfor
                     </select>
                 </div>
+
+                <hr/>
+                <h3>Order/Renewal Defaults</h3>
+                ${admin_partials.formgroup__AcmeAccount_order_defaults()}
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>

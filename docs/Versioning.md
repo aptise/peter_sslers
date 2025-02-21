@@ -1,4 +1,4 @@
-* [Previous - Tests](https://github.com/aptise/peter_sslers/docs/Tests.md)
+* [Previous - Tests](https://github.com/aptise/peter_sslers/blob/main/docs//blob/main/docs/Tests.md)
 * [Next - README (Done)](https://github.com/aptise/peter_sslers/README.md)
 
 Versioning

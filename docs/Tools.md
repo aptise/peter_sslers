@@ -1,5 +1,15 @@
 # Tools
 
+## commandline routines
+
+Some routines are accessible via commandline scripts:
+
+* `routine__run_ari_checks {example_development.ini}` will run necessary ARI checks
+
+* `routine__clear_old_ari_checks {example_development.ini}` will clear from the database outdated ARI checks.  An ARI check is considered outdated once it has been replaced with a newer ARI check.
+
+
+
 ## `invoke` Script
 
 There is an `invoke` script in the `tools` directory that can be used to automate
@@ -47,7 +57,7 @@ Installation Instructions:
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/peter_sslers/api/redis/prime.json`
 
 Using `prequest` is recommended in most contexts, because it will not timeout.
 This will allow for long-running processes.

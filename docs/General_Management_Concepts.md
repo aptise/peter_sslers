@@ -1,22 +1,22 @@
-* [Previous - Configuration_Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
-* [Next - Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
+* [Previous - Configuration_Options](https://github.com/aptise/peter_sslers/blob/main/docs/Configuration_Options.md)
+* [Next - Implementation_Details](https://github.com/aptise/peter_sslers/blob/main/docs/Implementation_Details.md)
 
 # General Management Concepts
 
 
 ## Intuitive Hierarchy of Related Objects
 
-* With a migration to ACME-2, this project shifted the "core" object from a
-  CertificateSigned to the AcmeOrder.
-* An ACME-Order's primary relations are an AcmeAccount (who owns the AcmeOrder?) and
-  a UniqueFQDNSet (what Domains are in the AcmeOrder?)
-* A PrivateKey is considered a secondary item to the AcmeOrder. One can be specified
-  for an AcmeOrder, but the AcmeAccount can specify it's own strategy when
-  obtaining an initial Certificate or Renewing.
+* The Core Object for Certificates is a `RenewalConfiguration`:
+    * The intersection of an Account[AcmeServer], Domains, Renewal Options [automatic renewal?, Private Key Technology, Private Key Cycling].
+    * Previous versions used a CertificateSigned and AcmeOrder
+* A RenewalConfiguration's primary relations are:
+    AcmeAccount - which account owns the configuration?
+    UniqueFQDNSet - a simple listing of the domains, shorthand for compatible certificates
+    UniquelyChallengedFQDNSet - specific challenge preferences per domain; a UniqueFQDNSet but with per-domain preferred challenge types
+    AcmeOrders - generated from this configuration
+* A PrivateKey is considered a secondary item to the RenewalConfiguration. One can be specified for a given AcmeOrder, but the RenewalConfiguration can specify it's own strategy when obtaining an initial Certificate or Renewing; and that strategy can default to the AcmeAccount.
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified.
-* An AcmeAccount can specify: use the same PrivateKey, always use a unique
-  PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week.
-  The AcmeAccount can choose to use daily or weekly per-account or global keys.
+* An AcmeAccount can specify: use the same PrivateKey for up to 1 year, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week. The AcmeAccount can choose to use daily or weekly per-account or global keys.
 
 
 ### CertificateCAs and Certificate Chains
@@ -146,11 +146,7 @@ cryptography libraries and wrap OpenSSL via subprocesses:
 As time progressed, it has become much easier to deploy Python cryptography libraries
 onto target server, and many servers already have them installed.
 
-The current library prioritizes doing the work in Python when possible, and will
-fallback to OpenSSL if the requisite libraries are not available. *installing the
-EFF's LetsEncrypt client `certbot` will install all the Python libraries*
-
-An extended test suite ensures both the primary and fallback systems work.
+The project now uses Cryptography exclusively.
 
 
 ## "autocert" functionality
@@ -174,13 +170,13 @@ webservers can interact with.
 
 ## Certificates and CertificateRequests
 
-PeterSSLers handles several types of CertificateRequests
+PeterSSLers handles several types of CertificateRequests:
 
-1. Upload an existing CertificateRequest and Certificate for tracking
-2. Have the built-in ACME-v2 client generate an AcmeOrder and it's own Certificate
-   Request, then handle the challeges (Acme-Automated).
-3. Use an external tool to generate the CertificateRequest and AcmeOrder, use
-   PeterSSLers via HTML/API to manage the AcmeChallenges (Acme-Flow).
+1. (Preferred) The system will generate a CertificateRequest as part of the 
+   ordering process with the built-in ACME-v2 client.
+2. Legacy. An existing CertificateRequest (and Certificate) can be imported
+   for tracking and relationship analysis.
+
 
 ## Input
 
@@ -225,13 +221,15 @@ PeterSSLers handles several types of CertificateRequests
 PeterSSLers allows you to control how PrivateKeys are cycled on renewals or new
 orders.
 
-* `single_certificate` - This is the stame strategy the official LetsEncrypt client,
+* `single_use` - This is the stame strategy the official LetsEncrypt client,
   Certbot, uses. A new PrivateKey is generated for each Certificate.
 
 PeterSSLers is designed to host large amounts of websites, and aggressively cache
 the Certificates and keys into OpenResty/Nginx and Redis. Being able to recycle
 keys will use less memory and support more sites. The following options are available:
 
+* `single_use__reuse_1_year` - The certificate will be re-used for 1 year from date of
+  creation, then be replaced by a new certificate with the same lifetime.
 * `account_daily` - The AcmeOrder/Certificate should use a PrivateKey generated for a
   unique ACME Account for the DAY the AcmeOrder is finalized.
 * `account_weekly` - The AcmeOrder/Certificate should use a PrivateKey generated for a
@@ -241,9 +239,9 @@ keys will use less memory and support more sites. The following options are avai
 * `global_weekly` - The AcmeOrder/Certificate should use a PrivateKey generated for the
   entire installation for the WEEK the AcmeOrder is finalized.
 
-AcmeOrders and Queues can also specify:
+AcmeOrders and Renewals can also specify:
 
-* `account_key_default` - The AcmeOrder/Certificate will use whatever option is set as
+* `account_default` - The AcmeOrder/Certificate will use whatever option is set as
   the default strategy for the active AccountKey.
 
 Using the weekly or daily options will allow you to constantly cycle new keys into

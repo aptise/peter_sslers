@@ -87,6 +87,38 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>is_save_alternate_chains</th>
+                        <td><code>${AcmeOrder.is_save_alternate_chains or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>RenewalConfiguration</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/renewal-configuration/${AcmeOrder.renewal_configuration_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                RenewalConfiguration-${AcmeOrder.renewal_configuration_id}
+                            </a>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th>PrivateKey Cycling</th>
+                                    <td>${AcmeOrder.renewal_configuration.private_key_cycle or ""}</td>
+                                </tr>
+                                <tr>
+                                    <th>PrivateKey Technology</th>
+                                    <td>${AcmeOrder.renewal_configuration.key_technology or ""}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+
+
+
+
+                    <tr>
                         <th>AcmeAccount</th>
                         <td>
                             <a
@@ -98,16 +130,16 @@
                             </a>
                             <table class="table table-striped table-condensed">
                                 <tr>
-                                    <th>AcmeAccountProvider</th>
+                                    <th>AcmeServer</th>
                                     <td>
                                         <a
                                             class="label label-info"
-                                            href="${admin_prefix}/acme-account-providers"
+                                            href="${admin_prefix}/acme-servers"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            AcmeAccountProvider-${AcmeOrder.acme_account.acme_account_provider_id}
-                                            [${AcmeOrder.acme_account.acme_account_provider.name}]
-                                            (${AcmeOrder.acme_account.acme_account_provider.url})
+                                            AcmeServer-${AcmeOrder.acme_account.acme_server_id}
+                                            [${AcmeOrder.acme_account.acme_server.name}]
+                                            (${AcmeOrder.acme_account.acme_server.url})
                                         </a>
                                     </td>
                                 </tr>
@@ -116,8 +148,12 @@
                                     <td>${AcmeOrder.acme_account.contact or ""}</td>
                                 </tr>
                                 <tr>
-                                    <th>PrivateKey Cycling</th>
-                                    <td>${AcmeOrder.acme_account.private_key_cycle or ""}</td>
+                                    <th>Default PrivateKey Cycling</th>
+                                    <td>${AcmeOrder.acme_account.order_default_private_key_cycle or ""}</td>
+                                </tr>
+                                <tr>
+                                    <th>Default PrivateKey Technology</th>
+                                    <td>${AcmeOrder.acme_account.order_default_private_key_technology or ""}</td>
                                 </tr>
                             </table>
                         </td>

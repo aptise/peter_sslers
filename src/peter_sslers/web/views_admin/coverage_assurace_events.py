@@ -30,7 +30,7 @@ class View_List(Handler):
     def list_redirect(self):
         url_all = (
             "%s/coverage-assurance-events/all"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         return HTTPSeeOther(url_all)
 
@@ -39,7 +39,7 @@ class View_List(Handler):
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:all_paginated",
+        route_name="admin:coverage_assurance_events:all-paginated",
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
@@ -47,18 +47,18 @@ class View_List(Handler):
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:unresolved_paginated",
+        route_name="admin:coverage_assurance_events:unresolved-paginated",
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(route_name="admin:coverage_assurance_events:all|json", renderer="json")
     @view_config(
-        route_name="admin:coverage_assurance_events:all_paginated|json", renderer="json"
+        route_name="admin:coverage_assurance_events:all-paginated|json", renderer="json"
     )
     @view_config(
         route_name="admin:coverage_assurance_events:unresolved|json", renderer="json"
     )
     @view_config(
-        route_name="admin:coverage_assurance_events:unresolved_paginated|json",
+        route_name="admin:coverage_assurance_events:unresolved-paginated|json",
         renderer="json",
     )
     @docify(
@@ -102,18 +102,18 @@ class View_List(Handler):
         unresolved_only = None
         if self.request.matched_route.name in (
             "admin:coverage_assurance_events:all",
-            "admin:coverage_assurance_events:all_paginated",
+            "admin:coverage_assurance_events:all-paginated",
         ):
             sidenav_option = "all"
             unresolved_only = False
         elif self.request.matched_route.name in (
             "admin:coverage_assurance_events:unresolved",
-            "admin:coverage_assurance_events:unresolved_paginated",
+            "admin:coverage_assurance_events:unresolved-paginated",
         ):
             sidenav_option = "unresolved"
             unresolved_only = True
         url_template = "%s/coverage-assurance-events/%s/{0}" % (
-            self.request.registry.settings["app_settings"]["admin_prefix"],
+            self.request.api_context.application_settings["admin_prefix"],
             "unresolved" if unresolved_only else "all",
         )
         if self.request.wants_json:
@@ -157,7 +157,7 @@ class View_Focus(Handler):
             self.dbCoverageAssuranceEvent = dbCoverageAssuranceEvent
             self._focus_item = dbCoverageAssuranceEvent
             self._focus_url = "%s/coverage-assurance-event/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCoverageAssuranceEvent.id,
             )
         return self.dbCoverageAssuranceEvent
@@ -255,7 +255,9 @@ class View_Focus(Handler):
                 "resolution": "the intended resolution",
             },
             "valid_options": {
-                "resolution": model_utils.CoverageAssuranceResolution.OPTIONS_ALL,
+                "resolution": Form_CoverageAssuranceEvent_mark.fields[
+                    "resolution"
+                ].list,
                 "action": "resolved",
             },
         }
@@ -294,9 +296,9 @@ class View_Focus(Handler):
                 "CoverageAssuranceEvent__mark_resolution"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict[
-                "coverage_assurance_event.id"
-            ] = dbCoverageAssuranceEvent.id
+            event_payload_dict["coverage_assurance_event.id"] = (
+                dbCoverageAssuranceEvent.id
+            )
             event_payload_dict["action"] = action
             event_payload_dict["resolution"] = resolution
 

@@ -36,8 +36,9 @@
 
             <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                   method="POST"
+                  id="form-acme_account-edit"
                   >
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -61,16 +62,16 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountProvider</th>
+                        <th>AcmeServer</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-providers"
+                                href="${admin_prefix}/acme-servers"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
-                                [${AcmeAccount.acme_account_provider.name}]
-                                (${AcmeAccount.acme_account_provider.url})
+                                AcmeServer-${AcmeAccount.acme_server_id}
+                                [${AcmeAccount.acme_server.name}]
+                                (${AcmeAccount.acme_server.url})
                             </a>
                         </td>
                     </tr>
@@ -82,16 +83,43 @@
                         <th>key_pem_md5</th>
                         <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                     </tr>
+                    ## <div class="form-group">
                     <tr>
-                        <th>PrivateKey cycle</th>
+                        <th><label for="name">name</label></th>
+                        <td>
+                        
+                                
+                                <input type="text" name="name" value="${AcmeAccount.name or ""}" class="form-control"/>
+                        
+                        </td>
+                    </tr>
+                    ## </div>
+                    <tr>
+                        <th>PrivateKey Technology</th>
+                        <td>
+                                <%
+                                    selected = AcmeAccount.private_key_technology
+                                %>
+                                <select class="form-control" name="account__private_key_technology">
+                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
+                                        <%
+                                            _selected = ' selected' if _option_text == selected else ''
+                                        %>
+                                        <option value="${_option_text}" ${_selected}>${_option_text}</option>
+                                    % endfor
+                                </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Order Default: PrivateKey Cycle</th>
                         <td>
                             <%
-                                _selected = AcmeAccount.private_key_cycle
+                                selected = AcmeAccount.order_default_private_key_cycle
                             %>
-                            <select class="form-control" name="account__private_key_cycle">
-                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
+                            <select class="form-control" name="account__order_default_private_key_cycle">
+                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
                                     <%
-                                        _selected = ' selected' if _option_text == _selected else ''
+                                        _selected = ' selected' if _option_text == selected else ''
                                     %>
                                     <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                 % endfor
@@ -99,15 +127,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKey Technology</th>
+                        <th>Order Default: PrivateKey Technology</th>
                         <td>
                                 <%
-                                    _selected = AcmeAccount.private_key_technology
+                                    selected = AcmeAccount.order_default_private_key_technology
                                 %>
-                                <select class="form-control" name="account__private_key_technology">
-                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_private_key_technology:
+                                <select class="form-control" name="account__order_default_private_key_technology">
+                                    % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_order_default:
                                         <%
-                                            _selected = ' selected' if _option_text == _selected else ''
+                                            _selected = ' selected' if _option_text == selected else ''
                                         %>
                                         <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                     % endfor

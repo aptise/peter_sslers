@@ -1,5 +1,6 @@
 # stdlib
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -14,7 +15,9 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
-from ...model.objects import AcmeChallenge
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeChallenge
 
 # ==============================================================================
 
@@ -25,7 +28,7 @@ class View_List(Handler):
         renderer="/admin/acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:acme_challenges_paginated",
+        route_name="admin:acme_challenges-paginated",
         renderer="/admin/acme_challenges.mako",
     )
     @view_config(
@@ -33,7 +36,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_challenges_paginated|json",
+        route_name="admin:acme_challenges-paginated|json",
         renderer="json",
     )
     @docify(
@@ -93,7 +96,7 @@ class View_List(Handler):
 
         url_template = (
             "%s/acme-challenges/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -131,9 +134,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeChallenge: Optional[AcmeChallenge] = None
+    dbAcmeChallenge: Optional["AcmeChallenge"] = None
 
-    def _focus(self, eagerload_web=False) -> AcmeChallenge:
+    def _focus(self, eagerload_web=False) -> "AcmeChallenge":
         if self.dbAcmeChallenge is None:
             dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
                 self.request.api_context,
@@ -174,7 +177,10 @@ class View_Focus(Handler):
             return {
                 "AcmeChallenge": dbAcmeChallenge.as_json,
             }
-        return {"project": "peter_sslers", "AcmeChallenge": dbAcmeChallenge}
+        return {
+            "project": "peter_sslers",
+            "AcmeChallenge": dbAcmeChallenge,
+        }
 
 
 class View_Focus_Manipulate(View_Focus):
@@ -232,6 +238,7 @@ class View_Focus_Manipulate(View_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            # (status_code, resp_data, url) = AcmeServerError
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -308,6 +315,7 @@ class View_Focus_Manipulate(View_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            # (status_code, resp_data, url) = AcmeServerError
             if self.request.wants_json:
                 return {
                     "result": "error",

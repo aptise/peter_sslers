@@ -1,18 +1,18 @@
-ACME-v2 RELEASE
-================================
+If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md), otherwise keep reading.
 
-Hi!
+
+Project History
+===============
+
+The project started at Aptise Media as an internal tool for obtaining and managing
+SSL Certificates for customer domains.  The project integrated an ACME(v1)
+Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
+certificate loading.
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate
 Manager's design. The central object changed from a `CertificateSigned` to the
-`AcmeOrder`, which caused a ripple effect.
-
-This project is still undergoing active development, and the design is not
-entirely finalized yet... but... most of the functionality is working (and this
-package is used in production!). Everything is covered by extensive unit and
-integrated tests.
-
-WE ARE ALMOST THERE!!!
+`AcmeOrder`, which caused a ripple effect.  The V1 release again changed the
+central object to a new `RenewalConfiguration` concept.
 
 
 peter_sslers README
@@ -22,23 +22,27 @@ Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*
 
 `peter_sslers` is a framework designed to help *experienced* Admins and DevOps
 persons manage SSL Certificates and deploy them on larger systems (e.g. you have
-lots of Domains and/or Nodes and/or Networks).
+lots of Domains and/or Nodes and/or Networks).  This system is NOT designed for
+casual usage; it was designed for the needs of cloud deployed PAAS/SAAS systems
+that host domains for scalable numbers of customers over scalable nodes.
 
 What's in the "box" ?
 
 * This project is a Python/[Pyramid](https://github.com/pylons/pyramid) based
-  robust SSL Certificate Manager and Explorer, complete with:
+  robust SSL Certificate Client, Manager and Explorer, complete with:
   * an Admin Dashboard,
   * a fullly programmatic API,
-  * an integrated ACME V2 Client for the [LetsEncrypt](https://LetsEncrypt.org)
-    CertificateAuthority.
+  * commandline tools
+  * cron job "routines"
+  * an integrated ACME V2 Client optimized for the
+    [LetsEncrypt](https://LetsEncrypt.org) CertificateAuthority.
 * The paired project
   [Lua-Resty Peter_SSLers](https://github.com/aptise/lua-resty-peter_sslers)
   is an [OpenResty](https://github.com/openresty/openresty) Lua module to enable
   Dynamic SSL Certificate Handling on the `Nginx` webserver.
 
-THIS LIBRARY CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE
-MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
+**This library contains everything you need to ssl-erate an inifinitely scaleable
+multi-server or multi-domain setup!!!**
 
 Amazing, right?
 
@@ -76,9 +80,10 @@ to support those first and foremost.
 Peter's core tool is a lightweight database-backed
 [Pyramid](https://github.com/pylons/pyramid) application that can:
 
-* Act as a client for the entire "LetsEncrypt" Certificate provisioning process,
-  operating behind a proxied webserver.
-* Offer a simple API for creating and managing the ACME process. Your client
+* Act as a client for the entire ACME Certificate provisioning process,
+  operating behind a proxied webserver for HTTP-01 challenges or integrating
+  with an [acme-dns](https://github.com/joohoi/acme-dns) .
+* Offer a unified API for creating and managing the ACME process. Your client
   software will only talk to Peter, never LetsEncrypt/ACME.
 * Import existing ACME Account Credentials for various CA Operations.
 * Import existing SSL Certificates for management and exploration
@@ -98,7 +103,7 @@ Peter ships alongside a `Lua` `opm` module for the
 server which will:
 
 * Dynamically request Certificates from a primed `Redis` cache
-* Store data in shared `Nginx` worker and main memory and
+* Store data in `Nginx`'s shared worker and main memories
 * Expose routes to flush the worker shared memory or expire select keys.
 
 The [Peter_SSLers OpenResty Module](https://github.com/aptise/lua-resty-peter_sslers)
@@ -113,7 +118,7 @@ as a daemon for Admin or API access, or even a commandline script. Most web page
 offer `.json` endpoints, so you can easily issue commands via `curl` and have
 human-readable data in a terminal window. Don't want to do things manually? Ok -
 everything was built to be readable on commandline browsers... yes, this is
-actually developed-for and tested-with Lynx.  I shit you not, Lynx.
+actually developed-for and tested-with Lynx.  I sh*t you not, Lynx.
 
 Do you like book-keeping and logging?  Peter's ACME Client logs everything into
 SQL so you can easily find the answers to burning questions like:
@@ -131,7 +136,7 @@ module: `peter_sslers.lib.acme_v2`
 * log level: `logging.info` will show the raw data received
 * log level: `logging.debug` will show the response parsed to json, when applicable
 
-THIS PACKAGE IS EXTREME TO THE MAX!!!
+**THIS PACKAGE IS EXTREME TO THE MAX!!!**
 
 Do you like cross-referencing?  Your certs are broken down into fields that are
 cross-referenced or searchable within Peter as well.
@@ -143,7 +148,7 @@ not want this tool. Peter is a honeybadger, he don't care. He does what he wants
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode
 may not be necessary at all -- or might only be needed for brief periods of time.
 
-SQLAlchemy is the backing database library, so virtually any database can be used
+SQLAlchemy is the underlying database library, so virtually any database can be used
 (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but
 the package is deployed against PostgreSQL. SQLite is actually kind of great,
 because a single `.sqlite` file can be sftp'd on-to and off-of different machines
@@ -154,10 +159,42 @@ If the required packages are not available, Peter will leverage the system's
 installed OpenSSL binaries using subprocesses. The reason is to minimize the
 amount of installations/downloads/packages when used for emergency debugging.
 *Every single operation involved with procuring and inspecting SSL Certificates
-is implemented Python-first, with an OpenSSL fallback.*
+is implemented Python-first, with an OpenSSL fallback.*  This is because an
+initial purpose of Peter was import, troubleshoot and ultimately replace
+complex Certbot installations.
 
-Although Python2 is no longer supported by Python itself, both Python2 and Python3
-are targeted platforms for this library because we all have to deal legacy systems.
+
+How?
+-----
+
+There are 2 main libraries:
+
+* The paired
+  [Lua-Resty Peter_SSLers](https://github.com/aptise/lua-resty-peter_sslers)
+  project, an [OpenResty](https://github.com/openresty/openresty) Lua module
+  that enables Dynamic SSL Certificate Handling on the `Nginx` webserver.
+
+* This Python library, [Peter_SSLers](https://github.com/aptise/peter_sslers),
+  which provides:
+  * Commandline Tools
+  * A webserver application for obtaining and managing certificates
+    * designed for JSON/API programmatic usage
+    * usable by humans with simplified html
+
+Provisioning Certificates and initial orders are currently done through the web
+interface.
+
+Renewing Certificates can be done via two methods:
+
+* If the web application is running, it can renew certificates
+* A commandline cron routine will spin up a webserver to answer challenges if needed
+
+Current support for ACME Challenge Types:
+
+* HTTP-01: answered by the native webserver
+* DNS-01: domains will be registered with a global acme-dns server
+* TLS-ALPN-01: support is not currently planned
+
 
 
 Why?
@@ -210,8 +247,10 @@ ACME2 Features
 | Feature | Supported? |
 | --- | --- |
 | New Certificate | Yes |
+| Renew Certificate | Yes |
 | Deactivate Account | Yes |
 | Account Key Rollover | Yes |
+| Automatic Renewal Information | Yes |
 
 
 The Components
@@ -266,6 +305,43 @@ The source and docs are available on a separate github repository:
 * https://github.com/aptise/lua-resty-peter_sslers
 
 
+"Routines" and Scripts
+----------------------------------------
+
+Several "routines" and scripts are provided for commandline invocation:
+
+Routines for cron:
+
+* routine__automatic_orders
+  This will order certs under the following conditions:
+  * managed certs that are expiring, based on ARI or notAfter
+  * active renewal configurations that have not ordered a primary or backup
+
+  If certs need to be ordered, a WSGI server running on :config.ini:`http_port.renewals`
+  will be spun up to answer AcmeChallenges in a subprocess. Whatever server is
+  listening to port80 should proxy to this server.
+  
+* routine__automatic_orders
+  low-cost cronjob to check ari as necessary
+
+* routine__run_ari_checks
+  low-cost cronjob to check ari 
+
+Scripts:
+
+* register_acme_servers can be used to :
+  * load additional CAs through a json file
+  * assign TrustedRoots to existing or new CAs
+  * export existing acme-server configurations, in a format that can
+    be imported by the same tool
+
+* import_certbot
+  * directly imports a local certbot directory (unlike `Tools` below, which use the API)
+
+* refresh_pebble_ca_certs
+  * dev tool to refresh the pebble certs when needed
+            
+
 "Tools"
 ----------------------------------------
 
@@ -276,7 +352,9 @@ Currently this includes:
 * A sample `fake_server.py` that will spin up a web server with routes which you can
   test against. This will allow you to setup your proxy integration without running
   peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
-
+* A `replace_domain.py` script that can be used to alter an `acme-dns` database
+  to support deterministically named DNS subdomains instead of the default randomized
+  guid subdomains.
 
 ToDo
 =====
@@ -288,36 +366,42 @@ Getting Started
 ===============
 
 Please read the
-[Full Installation Instructions](https://github.com/aptise/peter_sslers/docs/Installation.md)
+[Full Installation Instructions](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
+
+There is also a 
+[QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
 
 The abridged version:
 
-- mkdir certificate_admin
-- cd certificate_admin
-- virtualenv peter_sslers-venv
-- source peter_sslers-venv/bin/activate
-- git clone https://github.com/aptise/peter_sslers.git
-- cd peter_sslers
-- $VENV/bin/python setup.py develop
-- vi example_development.ini
-- $VENV/bin/initialize_peter_sslers_db example_development.ini
-- $VENV/bin/pserve example_development.ini
-
+'''
+mkdir certificate_admin
+cd certificate_admin
+virtualenv peter_sslers-venv
+source peter_sslers-venv/bin/activate
+git clone https://github.com/aptise/peter_sslers.git
+cd peter_sslers
+$VENV/bin/python setup.py develop
+vi conf/example_development.ini
+$VENV/bin/initialize_peter_sslers_db conf/example_development.ini
+$VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
+$VENV/bin/pserve conf/example_development.ini
+'''
 
 
 Full Documentation
 ==================
 
-* [Installation](https://github.com/aptise/peter_sslers/docs/Installation.md)
-* [Configuration Options](https://github.com/aptise/peter_sslers/docs/Configuration_Options.md)
-* [General_Management_Concepts](https://github.com/aptise/peter_sslers/docs/General_Management_Concepts.md)
-* [Implementation_Details](https://github.com/aptise/peter_sslers/docs/Implementation_Details.md)
-* [Automation](https://github.com/aptise/peter_sslers/docs/Automation.md)
-* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/docs/Frequently_Asked_Questions.md)
-* [Misc](https://github.com/aptise/peter_sslers/docs/Misc.md)
-* [Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
-* [Tests](https://github.com/aptise/peter_sslers/docs/Tests.md)
-* [Versioning](https://github.com/aptise/peter_sslers/docs/Versioning.md)
+* [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
+* [Installation](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
+* [Configuration Options](https://github.com/aptise/peter_sslers/blob/main/docs/Configuration_Options.md)
+* [General_Management_Concepts](https://github.com/aptise/peter_sslers/blob/main/docs/General_Management_Concepts.md)
+* [Implementation_Details](https://github.com/aptise/peter_sslers/blob/main/docs/Implementation_Details.md)
+* [Automation](https://github.com/aptise/peter_sslers/blob/main/docs/Automation.md)
+* [Frequently Asked Questions](https://github.com/aptise/peter_sslers/blob/main/docs/Frequently_Asked_Questions.md)
+* [Misc](https://github.com/aptise/peter_sslers/blob/main/docs/Misc.md)
+* [Tools](https://github.com/aptise/peter_sslers/blob/main/docs/Tools.md)
+* [Tests](https://github.com/aptise/peter_sslers/blob/main/docs/Tests.md)
+* [Versioning](https://github.com/aptise/peter_sslers/blob/main/docs/Versioning.md)
 
 
 Related Projects

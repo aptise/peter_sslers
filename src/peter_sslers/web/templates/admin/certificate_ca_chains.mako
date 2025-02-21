@@ -42,6 +42,7 @@
                         <tr>
                             <th>id</th>
                             <th>chain_pem_md5</th>
+                            <th>display_name</th>
                         </tr>
                     </thead>
                     % for chain in CertificateCAChains:
@@ -51,6 +52,7 @@
                                 CertificateCAChain-${chain.id}</a>
                             </td>
                             <td><code>${chain.chain_pem_md5}</code></td>
+                            <td><code>${chain.display_name}</code></td>
                         </tr>
                     % endfor
                 </table>

@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import logging
 import math
 from typing import Dict
@@ -8,8 +7,10 @@ from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
 
+# import datetime
 
 # local
+from .db import actions as db_actions
 from .db import create as db_create
 from .db import update as db_update
 from .. import lib
@@ -36,39 +37,24 @@ log.setLevel(logging.INFO)
 
 def _handle_Certificate_unactivated(
     ctx: "ApiContext",
-    serverCertificate: "CertificateSigned",
+    dbCertificateSigned: "CertificateSigned",
 ) -> Optional[bool]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    # ok. so let's find out the fqdn...
-    dbLatestActiveCert = (
-        lib.db.get.get__CertificateSigned__by_UniqueFQDNSetId__latest_active(
-            ctx, serverCertificate.unique_fqdn_set_id
-        )
+    operations_event = db_actions.operations_update_recents__domains(  # noqa: F841
+        ctx,
+        dbUniqueFQDNSets=[
+            dbCertificateSigned.unique_fqdn_set,
+        ],
     )
-    requeue = None
-    if not dbLatestActiveCert:
-        if serverCertificate.acme_account:
-            requeue = True
-        else:
-            requeue = False
-    if requeue:
-        dbQueue = lib.db.create.create__QueueCertificate(  # noqa: F841
-            ctx,
-            dbAcmeAccount=serverCertificate.acme_account,
-            dbPrivateKey=serverCertificate.private_key,
-            dbCertificateSigned=serverCertificate,
-            private_key_cycle_id__renewal=serverCertificate.renewal__private_key_cycle_id,
-            private_key_strategy_id__requested=serverCertificate.renewal__private_key_strategy_id,
-        )
-    return requeue
+    return True
 
 
 def _handle_Certificate_new(
     ctx: "ApiContext",
-    serverCertificate: "CertificateSigned",
+    dbCertificateSigned: "CertificateSigned",
 ) -> bool:
     """
     Database cleanup and reconciliation when a Certificate is issued:
@@ -76,63 +62,60 @@ def _handle_Certificate_new(
     * issued via a renewal
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    dbActiveQueues = lib.db.get.get__QueueCertificate__by_UniqueFQDNSetId__active(
-        ctx, serverCertificate.unique_fqdn_set_id
+    operations_event = db_actions.operations_update_recents__domains(  # noqa: F841
+        ctx,
+        dbUniqueFQDNSets=[
+            dbCertificateSigned.unique_fqdn_set,
+        ],
     )
-    if dbActiveQueues:
-        tnow = datetime.datetime.utcnow()
-        for q in dbActiveQueues:
-            q.timestamp_processed = tnow
-            q.timestamp_process_attempt = tnow
-            q.process_result = True
-            ctx.dbSession.flush(objects=[q])
-        return True
-    return False
+    return True
 
 
 def Certificate_issued(
     ctx: "ApiContext",
-    serverCertificate: "CertificateSigned",
+    dbCertificateSigned: "CertificateSigned",
 ):
     """
     Database cleanup and reconciliation when a Certificate is issued (new).
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    _handle_Certificate_new(ctx, serverCertificate)
+    _handle_Certificate_new(ctx, dbCertificateSigned)
 
 
-def Certificate_renewed(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
+def Certificate_renewed(ctx: "ApiContext", dbCertificateSigned: "CertificateSigned"):
     """
     Database cleanup and reconciliation when a Certificate is issued (renewal).
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    _handle_Certificate_new(ctx, serverCertificate)
+    _handle_Certificate_new(ctx, dbCertificateSigned)
 
 
-def Certificate_expired(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
+def Certificate_expired(ctx: "ApiContext", dbCertificateSigned: "CertificateSigned"):
     """
     Database cleanup and reconciliation when a Certificate is expired.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    _handle_Certificate_unactivated(ctx, serverCertificate)
+    _handle_Certificate_unactivated(ctx, dbCertificateSigned)
 
 
-def Certificate_unactivated(ctx: "ApiContext", serverCertificate: "CertificateSigned"):
+def Certificate_unactivated(
+    ctx: "ApiContext", dbCertificateSigned: "CertificateSigned"
+):
     """
     Database cleanup and reconciliation when a Certificate is unactivated.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param serverCertificate: (required) A :class:`model.objects.CertificateSigned` object
+    :param dbCertificateSigned: (required) A :class:`model.objects.CertificateSigned` object
     """
-    _handle_Certificate_unactivated(ctx, serverCertificate)
+    _handle_Certificate_unactivated(ctx, dbCertificateSigned)
 
 
 def PrivateKey_compromised(
@@ -157,6 +140,7 @@ def PrivateKey_compromised(
         coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
             "reported+deactivated"
         ),
+        # optionals
         dbPrivateKey=privateKeyCompromised,
     )
 
@@ -189,12 +173,16 @@ def PrivateKey_compromised(
             _certificate_id = _dbCertificateSigned.id
             pkey_certificates["*data"][_certificate_id] = (
                 _dbCertificateSigned.unique_fqdn_set_id,
-                _dbCertificateSigned.acme_order.id
-                if _dbCertificateSigned.acme_order
-                else None,
-                _dbCertificateSigned.acme_order.acme_account_id
-                if _dbCertificateSigned.acme_order
-                else None,
+                (
+                    _dbCertificateSigned.acme_order.id
+                    if _dbCertificateSigned.acme_order
+                    else None
+                ),
+                (
+                    _dbCertificateSigned.acme_order.acme_account_id
+                    if _dbCertificateSigned.acme_order
+                    else None
+                ),
             )
             if _dbCertificateSigned.is_active:
                 pkey_certificates["active"].append(_certificate_id)  # type: ignore[union-attr]
@@ -213,6 +201,7 @@ def PrivateKey_compromised(
                 coverage_assurance_event_status_id=model_utils.CoverageAssuranceEventStatus.from_string(
                     "reported+deactivated"
                 ),
+                # optionals
                 dbPrivateKey=privateKeyCompromised,
                 dbCertificateSigned=_dbCertificateSigned,
                 dbCoverageAssuranceEvent_parent=dbCoverageAssuranceEvent,

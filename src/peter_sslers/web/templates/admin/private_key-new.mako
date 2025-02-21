@@ -30,13 +30,13 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <div class="radio">
-                    <label>
-                        <input type="radio" name="bits" id="private_key=bits" value="4096" checked="checked"/>
-                        4096 bits
-                    </label>
-                </div>
-
+                <select class="form-control" id="private_key_generate" name="private_key_generate">
+                    <% _default = model_websafe.KeyTechnology._DEFAULT_Generate %>
+                    % for _option_text in model_websafe.KeyTechnology._options_Generate:
+                        <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+                    % endfor
+                </select>
+                    
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
 
             </form>

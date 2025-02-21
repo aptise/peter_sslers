@@ -1,12 +1,12 @@
-* [Previous - Tools](https://github.com/aptise/peter_sslers/docs/Tools.md)
-* [Next - Versioning](https://github.com/aptise/peter_sslers/docs/Versioning.md)
+* [Previous - Tools](https://github.com/aptise/peter_sslers/blob/main/docs/Tools.md)
+* [Next - Versioning](https://github.com/aptise/peter_sslers/blob/main/docs/Versioning.md)
 
 # Tests
 
 The following is an overview of the testing systems.
 
 If you plan on contributing code or need to write your own tests, please read the
-[Full Development README](https://github.com/aptise/peter_sslers/docs/README_DEVELOPMENT.md),
+[Full Development README](https://github.com/aptise/peter_sslers/blob/main/docs/README_DEVELOPMENT.md),
 which goes into greater detail about the test suite.
 
 To keep things simple, tests are run using unittest, which can be invoked as

@@ -41,9 +41,12 @@ class _MixIn_AcmeAccount(object):
             contact = "%s@example.com" % private_key_cycle
         _kwargs = {}
         if private_key_technology is not None:
-            _kwargs[
-                "private_key_technology_id"
-            ] = model_utils.KeyTechnology.from_string(private_key_technology)
+            _kwargs["private_key_technology_id"] = (
+                model_utils.KeyTechnology.from_string(private_key_technology)
+            )
+            _kwargs["order_default_private_key_technology_id"] = (
+                model_utils.KeyTechnology.from_string(private_key_technology)
+            )
         if not existing_account_key:
             key_pem = cert_utils.new_account_key()
         else:
@@ -54,13 +57,11 @@ class _MixIn_AcmeAccount(object):
 
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
+            acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
             key_pem=key_pem,
-            acme_account_provider_id=1,  # pebble
-            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                "imported"
-            ),
+            acme_server_id=1,  # pebble
             contact=contact,
-            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+            order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
                 private_key_cycle
             ),
             **_kwargs,
@@ -82,12 +83,12 @@ class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
     python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling
     """
 
-    def test__single_certificate(self):
+    def test__single_use(self):
         """
         auto-generate a new key for an account
         """
         dbAcmeAccount = self._makeOne_AcmeAccount(
-            private_key_cycle="single_certificate", existing_account_key=True
+            private_key_cycle="single_use", existing_account_key=True
         )
         self.assertEqual(
             dbAcmeAccount.private_key_technology,
@@ -108,10 +109,10 @@ class UnitTest_PrivateKeyCycling(AppTest, _MixIn_AcmeAccount):
         self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
         self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_use")
         self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_use")
 
     def test__account_weekly(self, existing_account_key=True):
         """
@@ -197,7 +198,7 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
     python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology
     """
 
-    def _test__single_certificate(self, private_key_technology=None):
+    def _test__single_use(self, private_key_technology=None):
         """
         auto-generate a new key for an account
         """
@@ -205,10 +206,10 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
             private_key_technology or model_utils.KeyTechnology._DEFAULT_AcmeAccount
         )
         dbAcmeAccount = self._makeOne_AcmeAccount(
-            private_key_cycle="single_certificate",
+            private_key_cycle="single_use",
             private_key_technology=private_key_technology,
             existing_account_key=False,
-            contact="single_certificate-%s-%s@example.com"
+            contact="single_use-%s-%s@example.com"
             % (
                 private_key_technology,
                 self.__class__.__name__,
@@ -233,27 +234,27 @@ class UnitTest_PrivateKeyCycling_KeyTechnology(AppTest, _MixIn_AcmeAccount):
         self.assertEqual(dbPrivateKey_1.key_technology, dbPrivateKey_2.key_technology)
         self.assertEqual(dbPrivateKey_1.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_1.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_1.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_1.private_key_type, "single_use")
         self.assertEqual(dbPrivateKey_2.acme_account_id__owner, dbAcmeAccount.id)
         self.assertEqual(dbPrivateKey_2.private_key_source, "generated")
-        self.assertEqual(dbPrivateKey_2.private_key_type, "single_certificate")
+        self.assertEqual(dbPrivateKey_2.private_key_type, "single_use")
 
     def test__key_technology__none(self):
         """
         python -m unittest tests.test_unit.UnitTest_PrivateKeyCycling_KeyTechnology.test__key_technology__none
         """
-        self._test__single_certificate(
+        self._test__single_use(
             private_key_technology=None,
         )
 
     def test__key_technology__rsa(self):
-        self._test__single_certificate(
-            private_key_technology="RSA",
+        self._test__single_use(
+            private_key_technology="RSA_2048",
         )
 
     def test__key_technology__ec(self):
-        self._test__single_certificate(
-            private_key_technology="EC",
+        self._test__single_use(
+            private_key_technology="EC_P256",
         )
 
 
@@ -263,11 +264,11 @@ class _MockedFP(BytesIO):
     this does nothing but avoid errors!
     """
 
-    def read(self):
-        return ""
+    def read(self, size=-1) -> bytes:
+        return b""
 
-    def readline(self):
-        return ""
+    def readline(self, hint=None) -> bytes:
+        return b""
 
     def close(self):
         pass
@@ -361,3 +362,102 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             _display_name = cert_payload.get("display_name")
             self.assertNotIn(_display_name, seen["display_name"])
             seen["display_name"].append(_display_name)
+
+
+class Test_ARI_DateConversion(unittest.TestCase):
+    """
+    test_rfc_ from: https://datatracker.ietf.org/doc/html/rfc3339
+    """
+
+    def test_seconds(self):
+        ts = "2025-02-13T21:19:27Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_seconds_offset(self):
+        ts = "2025-02-13T21:19:27-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_seconds_timezone(self):
+        ts = "2025-02-13T21:19:27UTC"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds(self):
+        ts = "2025-02-13T21:19:27.333334Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds_offset(self):
+        ts = "2025-02-13T21:19:27.333334-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_microseconds_timezone(self):
+        ts = "2025-02-13T21:19:27.333334GMT"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds(self):
+        ts = "2025-02-13T21:19:27.333333334Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds_offset(self):
+        ts = "2025-02-13T21:19:27.333333334-00:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_nanoseconds_timezone(self):
+        # py3.10+ required for EDT/EST
+        ts = "2025-02-13T21:19:27.333333334GMT"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_1(self):
+        """
+        This represents 20 minutes and 50.52 seconds after the 23rd hour of
+        April 12th, 1985 in UTC.
+        """
+        ts = "1985-04-12T23:20:50.52Z"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_1_alternate(self):
+        """ """
+        ts = "1985-04-12T23:20:50.52-08:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_2(self):
+        """
+        This represents 39 minutes and 57 seconds after the 16th hour of
+        December 19th, 1996 with an offset of -08:00 from UTC (Pacific
+        Standard Time).  Note that this is equivalent to 1996-12-20T00:39:57Z
+        in UTC.
+        """
+        ts = "1996-12-19T16:39:57-08:00"
+        as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_3(self):
+        """
+        This represents the leap second inserted at the end of 1990.
+
+        Python does not handle this
+        """
+        ts = "1990-12-31T23:59:60Z"
+        with self.assertRaises(ValueError):
+            as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_4(self):
+        """
+        This represents the same leap second in Pacific Standard Time, 8
+        hours behind UTC.
+
+        Python does not handle this
+        """
+        ts = "1990-12-31T15:59:60-08:00"
+        with self.assertRaises(ValueError):
+            as_datetime = utils.ari_timestamp_to_python(ts)
+
+    def test_rfc3339_5(self):
+        """
+        This represents the same instant of time as noon, January 1, 1937,
+        Netherlands time.  Standard time in the Netherlands was exactly 19
+        minutes and 32.13 seconds ahead of UTC by law from 1909-05-01 through
+        1937-06-30.  This time zone cannot be represented exactly using the
+        HH:MM format, and this timestamp uses the closest representable UTC
+        offset.
+        """
+        ts = "1937-01-01T12:00:27.87+00:20"
+        as_datetime = utils.ari_timestamp_to_python(ts)

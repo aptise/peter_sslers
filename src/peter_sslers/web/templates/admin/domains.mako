@@ -39,9 +39,12 @@
             % if sidenav_option == "challenged":
                 <p>Domains that have active challenges.</p>
             % endif
+            % if sidenav_option == "authz-potential":
+                <p>Domains that have active Authz Potential.</p>
+            % endif
             % if Domains:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
+                <table class="table table-striped table-condensed">
                     <thead>
                         <tr>
                             <th>id</th>
@@ -68,11 +71,6 @@
                                     Domain-${d.id}</a>
                             </td>
                             <td><code>${d.domain_name}</code></td>
-                            <td>
-                                <span class="label label-${'success' if d.is_active else 'warning'}">
-                                    ${'Active' if d.is_active else 'inactive'}
-                                </span>
-                            </td>
                             <td>
                                 % if d.certificate_signed_id__latest_multi:
                                     <a  class="label label-info"

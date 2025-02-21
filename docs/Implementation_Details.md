@@ -1,5 +1,5 @@
-* [Previous - General_Management_Concepts](https://github.com/aptise/peter_sslers/docs/General_Management_Concepts.md)
-* [Next - Automation](https://github.com/aptise/peter_sslers/docs/Automation.md)
+* [Previous - General_Management_Concepts](https://github.com/aptise/peter_sslers/blob/main/docs/General_Management_Concepts.md)
+* [Next - Automation](https://github.com/aptise/peter_sslers/blob/main/docs/Automation.md)
 
 # Implementation Details
 
@@ -7,12 +7,28 @@ The webserver exposes the following routes/directories:
 
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
-* `/.well-known/admin` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
+* `/.well-known/peter_sslers` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
 
 The server will respond to requests with the following header to identify it:
 
     X-Peter-SSLers: production
 
+# Configuration and Storage
+
+By default, configuration files are placed in the `conf/` directory.
+
+By default, the configuration files specify a `_data/` directory, which is used
+to contain the following files:
+
+* `_data/ssl_minnow.sqlite` - the core database
+* `_data/_ACME_SERVER_BUNDLE/` - if ACME Servers require a Trusted Root that
+  is not in the default trust store, on-disk bundle files will be created and
+  stored here as needed.
+* `_data/nginx_ca_bundle.pem` - if the nginx servers pool require a Trusted Root
+  that is not in the default trust store, an on-disk bundle files will be looked
+  for in this location.
+* `_data/acme-dns.db` - the testing system is configured to use this location
+   for it's storage.
 
 
 ## Just a friendly reminder:
@@ -23,6 +39,16 @@ YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 By default, the `example_production.ini` file won't even run the admin tools.
 That is how serious we are about telling you to be careful!
 
+
+## manage custom trust 
+
+To specify the CA Certificate bundles:
+
+    import peter_sslers.lib.cas
+    peter_sslers.lib.cas.CA_ACME = [bool, str]
+
+    # use ca_bundle_pem in configuration
+    # peter_sslers.lib.cas.CA_NGINX = [bool, str]
 
 
 ## why/how?
@@ -42,7 +68,7 @@ To solve this you can:
 
 * proxy external ` /.well-known/acme-challenge/` to one or more machines running
   this tool (they just need to share a common datastore)
-* make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
+* make ` /.well-known/peter_sslers` only usable within your LAN or NEVER USABLE
 * on a machine within your LAN, you can query for the latest certs for Domain(s)
   using simple `curl` commands
 
@@ -51,7 +77,7 @@ manage) the Certificates need to be loaded into a `Redis` server for use by an
 `OpenResty`/`Nginx` webserver/gateway that will dynamically handle SSL Certificates.
 
 In a simple example, `OpenResty`/`Nginx` will query
-`/.well-known/admin/domain/example.com/config.json` to pull the active Certificate
+`/.well-known/peter_sslers/domain/example.com/config.json` to pull the active Certificate
 information for a Domain. In advanced versions, that Certificate information will
 be cached into multiple levels of `OpenResty`/`Nginx` and `Redis` using different
 optimization strategies.
@@ -64,19 +90,19 @@ in which format AND THERE YOU GO.*
 
 ## Deployment Concepts
 
-![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-01.png)
+![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/blob/main/docs/assets/network_map-01.png)
 
 PeterSSlers can run as a standalone service OR proxied behind `Nginx`/`Apache`/etc
 
 The SSLMinnow datastore is entirely separate and standalone. It is portable.
 
-![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-02.png)
+![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/blob/main/docs/assets/network_map-02.png)
 
 In order to make network configuration more simple, the package includes a "fake
 server" that includes routes for the major public and admin endpoints. This should
 support most integration test needs.
 
-![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/main/docs/assets/network_map-03.png)
+![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/blob/main/docs/assets/network_map-03.png)
 
 In an advanced setting, multiple servers proxy to multiple peter-sslers "public"
 instances.
@@ -166,13 +192,6 @@ One or more CertificateAuthority Certificates
 If a Domain is "active", then it is actively managed and should be included in
 ACME Order renewals or generating `Nginx` configuration.
 
-#### AcmeOrder
-
-##### `is_auto_renew`
-
-Set to `True` by default. If `True`, this Certificate will be auto-renewed by the
-renewal queue. If `False`, renewals must be manual.
-
 #### CertificateSigned
 
 ##### `is_active`
@@ -185,41 +204,6 @@ should be included in generating `Nginx` configuration.
 If a certificate is not "active", only one of these will be `True`. If an inactive
 certificate was deactivated, then it can be activated and this flag will reverse.
 If the certificate was revoked, it is permanent and should not be re-activated.
-
-### Domain Queue
-
-The Domain queue, `/admin/queue-domains`, is designed to allow for Domains to be
-"queued in" for later batch processing.
-
-If a Domain is added to the queue, the following logic takes place:
-
-* If the Domain is already managed, but is not `active`, activate it.
-* If the Domain is not managed and not in the queue, add it to the queue.
-* In all other cases, ignore the request. the Domain is either actively managed
-  or queued to be so.
-
-
-### Renewal Queue
-
-* `update` will calculate which Certificates need to be renewed
-* `process` will do the actual renewal
-
-Certificates end up in the renewal queue through the `update` command or being
-individually queued.
-
-Certificates can also have a "custom renewal".
-
-To process the queue:
-
-To deal with timeouts and various issues, queue processing only works on one queue
-item at a time.
-
-There are simple ways to process the entire queue though:
-
-* Visit the renewal page and choose HTML processing. An item will be popped off
-the queue. Refresh tags are used to continue processing until finished.
-* Use the API endpoint. Inspect results and continue processing as needed
-
 
 ## Oddities
 

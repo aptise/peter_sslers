@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import sqlalchemy
 
 # local
 from ..lib import formhandling
@@ -20,8 +19,6 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model import objects as model_objects
-from ...model import utils as model_utils
 from ...model.objects import UniqueFQDNSet
 
 
@@ -33,11 +30,11 @@ class View_List(Handler):
         route_name="admin:unique_fqdn_sets", renderer="/admin/unique_fqdn_sets.mako"
     )
     @view_config(
-        route_name="admin:unique_fqdn_sets_paginated",
+        route_name="admin:unique_fqdn_sets-paginated",
         renderer="/admin/unique_fqdn_sets.mako",
     )
     @view_config(route_name="admin:unique_fqdn_sets|json", renderer="json")
-    @view_config(route_name="admin:unique_fqdn_sets_paginated|json", renderer="json")
+    @view_config(route_name="admin:unique_fqdn_sets-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/unique-fqdn-sets.json",
@@ -60,7 +57,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
         url_template = (
             "%s/unique-fqdn-sets/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -98,7 +95,7 @@ class View_Focus(Handler):
             self.dbUniqueFQDNSet = dbUniqueFQDNSet
             self._focus_item = dbUniqueFQDNSet
             self._focus_url = "%s/unique-fqdn-set/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbUniqueFQDNSet.id,
             )
         return self.dbUniqueFQDNSet
@@ -145,19 +142,9 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbUniqueFQDNSet = self._focus()
-        weekly_certs = (
-            self.request.api_context.dbSession.query(
-                model_utils.year_week(
-                    model_objects.CertificateSigned.timestamp_not_before
-                ).label("week_num"),
-                sqlalchemy.func.count(model_objects.CertificateSigned.id),
-            )
-            .filter(
-                model_objects.CertificateSigned.unique_fqdn_set_id == dbUniqueFQDNSet.id
-            )
-            .group_by("week_num")
-            .order_by(sqlalchemy.asc("week_num"))
-            .all()
+        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
+            self.request.api_context,
+            dbUniqueFQDNSet.id,
         )
         rval["issues"] = {}
         for wc in weekly_certs:
@@ -177,7 +164,8 @@ class View_Focus(Handler):
             "about": """unique-fqdn-set focus: update-recents""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/unique-fqdn-set/1/update-recents.json",
         }
     )
     def update_recents(self):
@@ -219,7 +207,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:acme_orders_paginated",
+        route_name="admin:unique_fqdn_set:focus:acme_orders-paginated",
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -250,7 +238,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests_paginated",
+        route_name="admin:unique_fqdn_set:focus:certificate_requests-paginated",
         renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
     )
     def related__CertificateRequests(self):
@@ -281,7 +269,7 @@ class View_Focus(Handler):
         renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_signeds_paginated",
+        route_name="admin:unique_fqdn_set:focus:certificate_signeds-paginated",
         renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -305,36 +293,40 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:queue_certificates",
-        renderer="/admin/unique_fqdn_set-focus-queue_certificates.mako",
+        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
+        renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:queue_certificates_paginated",
-        renderer="/admin/unique_fqdn_set-focus-queue_certificates.mako",
+        route_name="admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets-paginated",
+        renderer="/admin/unique_fqdn_set-focus-uniquely_challenged_fqdn_sets.mako",
     )
-    def related__QueueCertificates(self):
+    def related__UniquelyChallengedFQDNSets(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
-            self.request.api_context, dbUniqueFQDNSet.id
+        items_count = (
+            lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__count(
+                self.request.api_context, dbUniqueFQDNSet.id
+            )
         )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbUniqueFQDNSet.id,
-            limit=items_per_page,
-            offset=offset,
+        items_paged = (
+            lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(
+                self.request.api_context,
+                dbUniqueFQDNSet.id,
+                limit=items_per_page,
+                offset=offset,
+            )
         )
         return {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
+            "UniquelyChallengedFQDNSets_count": items_count,
+            "UniquelyChallengedFQDNSets": items_paged,
             "pager": pager,
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -350,9 +342,12 @@ class View_Focus(Handler):
             "about": """UniqueFQDNSet focus: modify""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/modify.json",
-            "instructions": [
-                """curl --form 'domains_add=[]' --form 'domains_del=[]' {ADMIN_PREFIX}/modify.json"""
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/1/modify.json",
+            "examples": [
+                """curl """
+                """--form 'domains_add=example.com,foo.example.com' """
+                """--form 'domains_del=bar.example.com' """
+                """{ADMIN_PREFIX}/modify.json"""
             ],
             "form_fields": {
                 "domain_names_add": "a comma separated list of domains to add",
@@ -471,6 +466,7 @@ class View_Focus(Handler):
                     self.request.api_context,
                     proposed_domains,
                     allow_blocklisted_domains=False,
+                    discovery_type="fqdn modify",
                 )
             except Exception as exc:  # noqa: F841
                 raise
@@ -485,7 +481,7 @@ class View_Focus(Handler):
             return HTTPSeeOther(
                 "%s/unique-fqdn-set/%s?result=success&operation=modify&is_created=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbUniqueFQDNSet.id,
                     is_created,
                 )
@@ -507,9 +503,11 @@ class ViewNew(Handler):
             "about": """UniqueFQDNSet focus: new""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/unique-fqdn-set/new.json",
-            "instructions": [
-                """curl --form 'domain_names=domain_names' {ADMIN_PREFIX}/unique-fqdn-set/new.json"""
+            "instructions": "curl {ADMIN_PREFIX}/unique-fqdn-set/new.json",
+            "examples": [
+                """curl """
+                """--form 'domain_names=domain_names' """
+                """{ADMIN_PREFIX}/unique-fqdn-set/new.json"""
             ],
             "form_fields": {
                 "domain_names": "required; a comma separated list of domain names",
@@ -575,6 +573,7 @@ class ViewNew(Handler):
                     self.request.api_context,
                     domain_names,
                     allow_blocklisted_domains=False,
+                    discovery_type="upload",
                 )
             except Exception as exc:  # noqa: F841
                 raise
@@ -590,7 +589,7 @@ class ViewNew(Handler):
             return HTTPSeeOther(
                 "%s/unique-fqdn-set/%s?result=success&operation=new&is_created=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbUniqueFQDNSet.id,
                     is_created,
                 )

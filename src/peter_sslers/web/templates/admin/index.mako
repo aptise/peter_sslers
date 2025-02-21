@@ -20,6 +20,21 @@
             </a>
         </div>
     % endif
+    % if not AcmeAccount_GlobalBackup:
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <b>Setup Not Finished</b>
+            There is no Global Backup AcmeAccount configured.
+            Any AcmeAccount for can be configured as the Global Backup.
+            Browse AcmeAccounts at
+            <a  class="label label-info"
+                href="${admin_prefix}/acme-accounts"
+            >
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                AcmeAccounts
+            </a>
+        </div>
+    % endif
 
 </%block>
 
@@ -58,25 +73,29 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains</a></li>
-                <li><a href="${admin_prefix}/private-keys"
-                       title="PrivateKeys"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    private-keys</a></li>
                 <li><a href="${admin_prefix}/certificate-signeds"
                        title="CertificateSigneds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-signeds</a></li>
+                <li><a href="${admin_prefix}/renewal-configurations"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    renewal-configurations</a></li>
+                <li><a href="${admin_prefix}/domains-blocklisted"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    domains-blocklisted</a></li>
+                <li><a href="${admin_prefix}/private-keys"
+                       title="PrivateKeys"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    private-keys</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="UniqueFQDNs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets</a></li>
-                <li><a href="${admin_prefix}/domains-blocklisted"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains-blocklisted</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>
@@ -93,6 +112,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-event-logs</a></li>
+                <li><a href="${admin_prefix}/ari-checks"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    ari-checks</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME & Objects</h3>
@@ -106,6 +129,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-authorizations</a></li>
+                <li><a href="${admin_prefix}/acme-authz-potentials"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-authz-potentials</a></li>
                 <li><a href="${admin_prefix}/acme-challenges"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -115,11 +142,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orders</a></li>
-                <li><a href="${admin_prefix}/acme-orderlesss"
-                       title="Orderless "
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-orderless</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="CertificateRequests"
                     >
@@ -134,27 +156,13 @@
                     </a></li>
             </ul>
 
-
-
-            <h3>Queues</h3>
-            <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/queue-domains"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-domains</a></li>
-                <li><a href="${admin_prefix}/queue-certificates"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-certificates</a></li>
-            </ul>
-
             <h3>Upstream Providers</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-account-providers"
-                       title="Acme Providers"
+                <li><a href="${admin_prefix}/acme-servers"
+                       title="Acme Servers"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-account-providers</a></li>
+                    acme-servers</a></li>
                 <li><a href="${admin_prefix}/acme-dns-servers"
                        title="acme-dns Servers"
                     >
@@ -188,6 +196,9 @@
             </ul>
             <h3>Tools</h3>
             <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/certificate-signeds/search">
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    search certificates</a></li>
                 <li><a href="${admin_prefix}/domains/search">
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                     search domains</a></li>
@@ -208,21 +219,19 @@
             <h3>New CertificateSigneds</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
+                    <a  href="${admin_prefix}/renewal-configuration/new"
+                        title="New Renewal Configuration"
+                        class="btn btn-primary"
+                    >
+                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                    New Renewal Configuration</a></li>
+                <li>
                     <a  href="${admin_prefix}/acme-order/new/freeform"
                         title="AcmeOrder NEW Freeform"
                         class="btn btn-primary"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     New ACME Order: Automated</a></li>
-                % if request.registry.settings["app_settings"]['enable_acme_flow']:
-                    <li>
-                        <a  href="${admin_prefix}/acme-orderless/new"
-                            title="ACME Orderless"
-                            class="btn btn-primary"
-                        >
-                        <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                        New: AcmeOrderless Flow</a></li>
-                % endif
             </ul>
 
             <h3>Existing CertificateSigneds</h3>
@@ -258,11 +267,11 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>enable_nginx</th>
-                    <td>${request.registry.settings["app_settings"]['enable_nginx']}</td>
+                    <td>${request.api_context.application_settings['enable_nginx']}</td>
                 </tr>
                 <tr>
                     <th>enable_redis</th>
-                    <td>${request.registry.settings["app_settings"]['enable_redis']}</td>
+                    <td>${request.api_context.application_settings['enable_redis']}</td>
                 </tr>
             </table>
         </div>

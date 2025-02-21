@@ -26,13 +26,15 @@ class ViewAdminMain(Handler):
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
         self._load_AcmeAccount_GlobalDefault()
+        self._load_AcmeAccount_GlobalBackup()
         return {
             "project": "peter_sslers",
+            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
             "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
-            "enable_redis": self.request.registry.settings["app_settings"][
+            "enable_redis": self.request.api_context.application_settings[
                 "enable_redis"
             ],
-            "enable_nginx": self.request.registry.settings["app_settings"][
+            "enable_nginx": self.request.api_context.application_settings[
                 "enable_nginx"
             ],
         }
@@ -220,7 +222,7 @@ class ViewAdminMain(Handler):
             if results[k]["count"] and results[k]["items"]:
                 if (len(results[k]["items"]) + offset) < results[k]["count"]:
                     results[k]["next"] = "%s/search?show_only=%s&%s" % (
-                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        self.request.api_context.application_settings["admin_prefix"],
                         k,
                         query_args,
                     )
@@ -242,10 +244,12 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
+        self._load_AcmeAccount_GlobalBackup()
         self._load_AcmeAccount_GlobalDefault()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
+            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
             "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
         }
 

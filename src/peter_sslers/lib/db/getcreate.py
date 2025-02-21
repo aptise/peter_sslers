@@ -2,21 +2,29 @@
 import datetime
 import json
 import logging
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
 import sqlalchemy
+from typing_extensions import Literal
+from typing_extensions import TypedDict
+
 
 # localapp
 from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
-from .get import get__AcmeAccountProvider__by_server
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__count
+from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
@@ -38,6 +46,26 @@ from ...model import utils as model_utils
 
 # from .get import get__DomainBlocklisted__by_name
 
+if TYPE_CHECKING:
+    from ..acme_v2 import AuthenticatedUser
+    from ..utils import ApiContext
+    from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeAuthorization
+    from ...model.objects import AcmeChallenge
+    from ...model.objects import AcmeDnsServer
+    from ...model.objects import AcmeOrder
+    from ...model.objects import CertificateCA
+    from ...model.objects import CertificateCAChain
+    from ...model.objects import CertificateRequest
+    from ...model.objects import CertificateSigned
+    from ...model.objects import Domain
+    from ...model.objects import PrivateKey
+    from ...model.objects import RemoteIpAddress
+    from ...model.objects import UniqueFQDNSet
+    from ...model.objects import UniquelyChallengedFQDNSet
+    from ...model.utils import DomainsChallenged
+
+
 # ==============================================================================
 
 log = logging.getLogger(__name__)
@@ -45,21 +73,42 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
+class getcreate__AcmeAccount__kwargs(TypedDict, total=False):
+    """
+    this class is used for typing a dict submitted to `getcreate__AcmeAccount`
+    """
+
+    acme_account_key_source_id: int
+    key_pem: Optional[str]
+    le_meta_jsons: Optional[str]
+    le_pkey_jsons: Optional[str]
+    le_reg_jsons: Optional[str]
+    acme_server_id: Optional[int]
+    contact: Optional[str]
+    terms_of_service: Optional[str]
+    account_url: Optional[str]
+    event_type: str
+    private_key_technology_id: Optional[int]
+    order_default_private_key_cycle_id: Optional[int]
+    order_default_private_key_technology_id: Optional[int]
+
+
 def getcreate__AcmeAccount(
-    ctx,
-    key_pem=None,
-    le_meta_jsons=None,
-    le_pkey_jsons=None,
-    le_reg_jsons=None,
-    acme_account_provider_id=None,
-    acme_account_key_source_id=None,
-    contact=None,
-    terms_of_service=None,
-    account_url=None,
-    event_type="AcmeAccount__insert",
-    private_key_cycle_id=None,
-    private_key_technology_id=None,
-):
+    ctx: "ApiContext",
+    acme_account_key_source_id: int,
+    key_pem: Optional[str] = None,
+    le_meta_jsons: Optional[str] = None,
+    le_pkey_jsons: Optional[str] = None,
+    le_reg_jsons: Optional[str] = None,
+    acme_server_id: Optional[int] = None,
+    contact: Optional[str] = None,
+    terms_of_service: Optional[str] = None,
+    account_url: Optional[str] = None,
+    event_type: str = "AcmeAccount__insert",
+    private_key_technology_id: Optional[int] = None,
+    order_default_private_key_cycle_id: Optional[int] = None,
+    order_default_private_key_technology_id: Optional[int] = None,
+) -> Tuple["AcmeAccount", bool]:
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
 
@@ -67,6 +116,7 @@ def getcreate__AcmeAccount(
         tuple(`model.utils.AcmeAccount`, `is_created[Boolean]`)
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
     :param key_pem: (optional) an account key in PEM format.
         if not provided, all of the following must be supplied:
         * le_meta_jsons
@@ -78,13 +128,13 @@ def getcreate__AcmeAccount(
         if not provided, `key_pem` must be supplied
     :param le_reg_jsons: (optional) data from certbot account key format
         if not provided, `key_pem` must be supplied
-    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server. required if `key_pem``; do not submit if `le_*` kwargs are provided.
-    :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
+    :param acme_server_id: (optional) id corresponding to a :class:`model.objects.AcmeServer` server. required if `key_pem``; do not submit if `le_*` kwargs are provided.
     :param contact: (optional) contact info from acme server
-    :param terms_of_service: (optional)
+    :param terms_of_service: (optional) str
     :param account_url: (optional)
-    :param private_key_cycle_id: (required) id corresponding to a :class:`model.utils.PrivateKeyCycle`
-    :param private_key_technology_id: (required) id corresponding to a :class:`model.utils.KeyTechnology`
+    :param private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
+    :param order_default_private_key_cycle_id: (optional) id corresponding to a :class:`model.utils.PrivateKeyCycle`
+    :param order_default_private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
     """
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError(
@@ -105,24 +155,35 @@ def getcreate__AcmeAccount(
     else:
         raise ValueError("invalid `event_type`")
 
-    # KeyCycle
-    if private_key_cycle_id is None:
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount
-        )
-    if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
-        raise ValueError("invalid `private_key_cycle_id`")
-
     # KeyTechnology
     if private_key_technology_id is None:
-        private_key_technology_id = model_utils.KeyTechnology.from_string(
-            model_utils.KeyTechnology._DEFAULT_AcmeAccount
-        )
+        private_key_technology_id = model_utils.KeyTechnology._DEFAULT_AcmeAccount_id
     if (
         private_key_technology_id
         not in model_utils.KeyTechnology._options_AcmeAccount_private_key_technology_id
     ):
         raise ValueError("invalid `private_key_technology_id`")
+
+    # AcmeOrder Defaults
+    if order_default_private_key_cycle_id is None:
+        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default
+        )
+    if (
+        order_default_private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default_id
+    ):
+        raise ValueError("invalid `order_default_private_key_cycle_id`")
+
+    if order_default_private_key_technology_id is None:
+        order_default_private_key_technology_id = (
+            model_utils.KeyTechnology._DEFAULT_AcmeAccount_order_default_id
+        )
+    if (
+        order_default_private_key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_order_default_id
+    ):
+        raise ValueError("invalid `order_default_private_key_technology_id`")
 
     # scoping
     # _letsencrypt_data = None
@@ -130,18 +191,15 @@ def getcreate__AcmeAccount(
     # quickly audit args/derive info
     if key_pem:
         # _strategy = "key_pem"
-        if not contact:
-            raise ValueError("must supply `contact` when submitting `key_pem`")
-        if not acme_account_provider_id:
-            raise ValueError(
-                "no `acme_account_provider_id`; required if PEM key is submitted."
-            )
+        # # this has been relaxed
+        # if not contact:
+        #    raise ValueError("must supply `contact` when submitting `key_pem`")
+        if not acme_server_id:
+            raise ValueError("no `acme_server_id`; required if PEM key is submitted.")
 
-        dbAcmeAccountProvider = ctx.dbSession.query(
-            model_objects.AcmeAccountProvider
-        ).get(acme_account_provider_id)
-        if not dbAcmeAccountProvider:
-            raise ValueError("invalid `acme_account_provider_id`.")
+        dbAcmeServer = ctx.dbSession.query(model_objects.AcmeServer).get(acme_server_id)
+        if not dbAcmeServer:
+            raise ValueError("invalid `acme_server_id`.")
 
         # cleanup these
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -151,10 +209,8 @@ def getcreate__AcmeAccount(
         # _strategy = "LetsEncrypt payload"
         if contact:
             raise ValueError("do not submit `contact` with LetsEncrypt payload")
-        if acme_account_provider_id:
-            raise ValueError(
-                "do not submit `acme_account_provider_id` with LetsEncrypt payload"
-            )
+        if acme_server_id:
+            raise ValueError("do not submit `acme_server_id` with LetsEncrypt payload")
         if terms_of_service:
             raise ValueError(
                 "do not submit `terms_of_service` with LetsEncrypt payload"
@@ -172,39 +228,44 @@ def getcreate__AcmeAccount(
             regr.json = uri, save for info
             regr.json = tos, save for info
         """
+        if TYPE_CHECKING:
+            assert le_reg_jsons is not None
+            assert le_pkey_jsons is not None
+            assert le_meta_jsons is not None
         le_reg_json = json.loads(le_reg_jsons)
         # le_meta_json = json.loads(le_meta_jsons)
         # _letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
         # _letsencrypt_data = json.dumps(_letsencrypt_data, sort_keys=True)
         try:
             contact = le_reg_json["body"]["contact"][0]
-            if contact.startswith("mailto:"):
+            if contact and contact.startswith("mailto:"):
                 contact = contact[7:]
         except Exception as exc:  # noqa: F841
             log.critical("Could not parse `contact` from LetsEncrypt payload")
             contact = "invalid.contact.import@example.com"
 
-        terms_of_service = le_reg_json.get("terms_of_service")
         account_url = le_reg_json.get("uri")
+        if not account_url:
+            raise ValueError("could not detect an uri from LetsEncrypt payload")
         _account_server = lib.utils.url_to_server(account_url)
         if not _account_server:
             raise ValueError(
-                "could not detect an AcmeAccountProvider server from LetsEncrypt payload"
+                "could not detect an AcmeServer server from LetsEncrypt payload"
             )
+        terms_of_service = le_reg_json.get("terms_of_service", "").strip()
 
         # derive the api server
-        dbAcmeAccountProvider = get__AcmeAccountProvider__by_server(
-            ctx, _account_server
-        )
-        if not dbAcmeAccountProvider:
-            raise ValueError(
-                "invalid AcmeAccountProvider detected from LetsEncrypt payload"
-            )
-        acme_account_provider_id = dbAcmeAccountProvider.id
+        dbAcmeServer = get__AcmeServer__by_server(ctx, _account_server)
+        if not dbAcmeServer:
+            raise ValueError("invalid AcmeServer detected from LetsEncrypt payload")
+        acme_server_id = dbAcmeServer.id
 
         key_pem = cert_utils.convert_lejson_to_pem(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
         key_pem_md5 = cert_utils.utils.md5_text(key_pem)
+
+    if acme_server_id is None:
+        raise ValueError("Could not derive, or missing supplied, `acme_server_id`")
 
     # now proceed with a single path of logic
 
@@ -214,15 +275,28 @@ def getcreate__AcmeAccount(
     # 2. Existing AcmeAccount, new AcmeAccountKey - CREATE NONE. ERROR.
     # 3. Existing AcmeAccountKey, new AcmeAccount - CREATE NONE. ERROR.
 
-    dbAcmeAccount = (
-        ctx.dbSession.query(model_objects.AcmeAccount)
-        .filter(
-            sqlalchemy.func.lower(model_objects.AcmeAccount.contact) == contact.lower(),
-            model_objects.AcmeAccount.acme_account_provider_id
-            == acme_account_provider_id,
+    if contact:
+        dbAcmeAccount = (
+            ctx.dbSession.query(model_objects.AcmeAccount)
+            .filter(
+                sqlalchemy.func.lower(model_objects.AcmeAccount.contact)
+                == contact.lower(),
+                model_objects.AcmeAccount.acme_server_id == acme_server_id,
+            )
+            .first()
         )
-        .first()
-    )
+    else:
+        dbAcmeAccount = (
+            ctx.dbSession.query(model_objects.AcmeAccount)
+            .filter(
+                sqlalchemy.or_(
+                    sqlalchemy.func.lower(model_objects.AcmeAccount.contact) == "",
+                    model_objects.AcmeAccount.contact.is_(None),
+                ),
+                model_objects.AcmeAccount.acme_server_id == acme_server_id,
+            )
+            .first()
+        )
     dbAcmeAccountKey = (
         ctx.dbSession.query(model_objects.AcmeAccountKey)
         .filter(
@@ -231,6 +305,7 @@ def getcreate__AcmeAccount(
         )
         .first()
     )
+
     if dbAcmeAccount:
         if dbAcmeAccountKey:
             return (dbAcmeAccount, False)
@@ -238,7 +313,7 @@ def getcreate__AcmeAccount(
             raise errors.ConflictingObject(
                 (
                     dbAcmeAccount,
-                    "The submitted AcmeAccountProvider and contact info is already associated with another AcmeAccountKey.",
+                    "The submitted AcmeServer and contact info is already associated with another AcmeAccountKey.",
                 )
             )
     elif dbAcmeAccountKey:
@@ -250,31 +325,25 @@ def getcreate__AcmeAccount(
         )
 
     # scoping
-    key_technology = None
+    cu_key_technology = None
+    key_technology_id: Optional[int] = None
     acckey__spki_sha256 = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-        # validate + grab the technology
-        key_technology = cert_utils.validate_key(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
+    # validate + grab the technology
+    cu_key_technology = cert_utils.validate_key(
+        key_pem=key_pem,
+    )
+    if TYPE_CHECKING:
+        assert cu_key_technology is not None
+    key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+        cu_key_technology
+    )
+    assert key_technology_id
 
-        if TYPE_CHECKING:
-            assert key_technology is not None
-
-        # grab the spki
-        acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-
-    finally:
-        if _tmpfile is not None:
-            _tmpfile.close()
+    # grab the spki
+    acckey__spki_sha256 = cert_utils.parse_key__spki_sha256(
+        key_pem=key_pem,
+    )
 
     dbOperationsEvent_AcmeAccount = log__OperationsEvent(
         ctx,
@@ -290,14 +359,27 @@ def getcreate__AcmeAccount(
     dbAcmeAccount = model_objects.AcmeAccount()
     dbAcmeAccount.timestamp_created = ctx.timestamp
     dbAcmeAccount.contact = contact
-    dbAcmeAccount.terms_of_service = terms_of_service
     dbAcmeAccount.account_url = account_url
-    dbAcmeAccount.acme_account_provider_id = acme_account_provider_id
-    dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
+    dbAcmeAccount.acme_server_id = acme_server_id
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
+    dbAcmeAccount.order_default_private_key_cycle_id = (
+        order_default_private_key_cycle_id
+    )
+    dbAcmeAccount.order_default_private_key_technology_id = (
+        order_default_private_key_technology_id
+    )
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
+
+    if terms_of_service:
+        dbTermsOfService = model_objects.AcmeAccount_2_TermsOfService()
+        dbTermsOfService.acme_account_id = dbAcmeAccount.id
+        dbTermsOfService.is_active = True
+        dbTermsOfService.timestamp_created = ctx.timestamp
+        dbTermsOfService.terms_of_service = terms_of_service
+        ctx.dbSession.add(dbTermsOfService)
+        ctx.dbSession.flush(objects=[dbTermsOfService])
 
     # next, create the AcmeAccountKey
     dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -306,9 +388,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccountKey.timestamp_created = ctx.timestamp
     dbAcmeAccountKey.key_pem = key_pem
     dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-    dbAcmeAccountKey.key_technology_id = model_utils.KeyTechnology.from_string(
-        key_technology
-    )
+    dbAcmeAccountKey.key_technology_id = key_technology_id
     dbAcmeAccountKey.spki_sha256 = acckey__spki_sha256
     dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
     dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
@@ -348,8 +428,11 @@ def getcreate__AcmeAccount(
 
 
 def getcreate__AcmeAuthorizationUrl(
-    ctx, authorization_url=None, dbAcmeOrder=None, is_via_new_order=None
-):
+    ctx: "ApiContext",
+    authorization_url: str,
+    dbAcmeOrder: "AcmeOrder",
+    is_via_new_order: Optional[bool] = None,
+) -> Tuple["AcmeAuthorization", bool, bool]:
     """
     used to create auth objects
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -358,6 +441,8 @@ def getcreate__AcmeAuthorizationUrl(
     :param is_via_new_order: Boolean was this discovered during a new AcmeOrder? It should always be yes.
     """
     log.info("getcreate__AcmeAuthorizationUrl(")
+    if not authorization_url:
+        raise ValueError("`authorization_url` is required")
     if not dbAcmeOrder:
         raise ValueError("`dbAcmeOrder` is required")
     is_created__AcmeAuthorization = False
@@ -413,26 +498,26 @@ def getcreate__AcmeAuthorizationUrl(
     return (
         dbAcmeAuthorization,
         is_created__AcmeAuthorization,
-        is_created__AcmeAuthorization2Order,
+        bool(is_created__AcmeAuthorization2Order),
     )
 
 
 def getcreate__AcmeAuthorization(
-    ctx,
-    authorization_url=None,
-    authorization_payload=None,
-    authenticatedUser=None,
-    dbAcmeOrder=None,
-    transaction_commit=None,
-    is_via_new_order=None,
-):
+    ctx: "ApiContext",
+    authorization_url: str,
+    authorization_payload: Dict,
+    authenticatedUser: "AuthenticatedUser",
+    dbAcmeOrder: "AcmeOrder",
+    transaction_commit: Optional[bool] = None,
+    is_via_new_order: Optional[bool] = None,
+) -> Tuple["AcmeAuthorization", bool]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param authorization_payload: (required) an RFC-8555 authorization payload
-    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param authenticatedUser: (required) an object which contains a `accountKeyData` attribute
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
-    :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
+    :param transaction_commit: (optional) Boolean value. `True` to commit.
     :param is_via_new_order: Boolean was this discovered during a new AcmeOrder? It should always be yes.
 
     https://tools.ietf.org/html/rfc8555#section-7.1.4
@@ -452,7 +537,7 @@ def getcreate__AcmeAuthorization(
     if not dbAcmeOrder:
         raise ValueError("do not invoke this without a `dbAcmeOrder`")
 
-    is_created__AcmeAuthorization = None
+    is_created__AcmeAuthorization = False
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -502,20 +587,20 @@ def getcreate__AcmeAuthorization(
 
 
 def process__AcmeAuthorization_payload(
-    ctx,
-    authorization_payload=None,
-    authenticatedUser=None,
-    dbAcmeAuthorization=None,
-    dbAcmeOrder=None,
-    transaction_commit=None,
-):
+    ctx: "ApiContext",
+    authorization_payload: Dict,
+    authenticatedUser: "AuthenticatedUser",
+    dbAcmeAuthorization: "AcmeAuthorization",
+    dbAcmeOrder: "AcmeOrder",
+    transaction_commit: Optional[bool] = None,
+) -> Literal[True]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authorization_payload: (required) an RFC-8555 authorization payload
-    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param authenticatedUser: (required) an object which contains a `accountKeyData` attribute
     :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the discovered item
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
-    :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
+    :param transaction_commit: (optional) Boolean value. `True` to persist to the database.
     """
     log.info("process__AcmeAuthorization_payload")
     # is_created__AcmeAuthorization2Order = None
@@ -575,14 +660,14 @@ def process__AcmeAuthorization_payload(
 
 
 def getcreate__AcmeChallenges_via_payload(
-    ctx,
-    authenticatedUser=None,
-    dbAcmeAuthorization=None,
-    authorization_payload=None,
-):
+    ctx: "ApiContext",
+    authenticatedUser: "AuthenticatedUser",
+    dbAcmeAuthorization: "AcmeAuthorization",
+    authorization_payload: Dict,
+) -> List[Tuple["AcmeChallenge", bool]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param authenticatedUser: (required) an object which contains a `accountKeyData` attribute
     :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the payload
     :param authorization_payload: (required) an RFC-8555 authorization payload
 
@@ -623,12 +708,13 @@ def getcreate__AcmeChallenges_via_payload(
             )
             _dbAcmeChallenge = create__AcmeChallenge(
                 ctx,
-                dbAcmeAuthorization=dbAcmeAuthorization,
                 dbDomain=dbAcmeAuthorization.domain,
+                acme_challenge_type_id=acme_challenge_type_id,
+                # optionals
+                dbAcmeAuthorization=dbAcmeAuthorization,
                 challenge_url=challenge_url,
                 token=challenge_token,
                 keyauthorization=keyauthorization,
-                acme_challenge_type_id=acme_challenge_type_id,
                 acme_status_challenge_id=acme_status_challenge_id,
                 is_via_sync=True,
             )
@@ -636,7 +722,9 @@ def getcreate__AcmeChallenges_via_payload(
         else:
             if _dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
                 _dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
-                _dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+                _dbAcmeChallenge.timestamp_updated = datetime.datetime.now(
+                    datetime.timezone.utc
+                )
                 ctx.dbSession.add(_dbAcmeChallenge)
                 ctx.dbSession.flush(objects=[_dbAcmeChallenge])
         dbAcmeChallenges.append((_dbAcmeChallenge, _is_created_AcmeChallenge))
@@ -646,7 +734,11 @@ def getcreate__AcmeChallenges_via_payload(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
+def getcreate__AcmeDnsServer(
+    ctx: "ApiContext",
+    root_url: str,
+    is_global_default: Optional[bool] = None,
+) -> Tuple["AcmeDnsServer", bool]:
     """
     getcreate wrapping an acms-dns Server (AcmeDnsServer)
 
@@ -655,9 +747,19 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param root_url:
     """
+    if not root_url:
+        raise ValueError("`root_url` is required")
     is_created = False
     dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
     if not dbAcmeDnsServer:
+        if not ctx.application_settings:
+            raise ValueError("Could not load ApplicationSettings")
+        _mode = ctx.application_settings.get("acme_dns_support")
+        if _mode == "basic":
+            _count_servers = get__AcmeDnsServer__count(ctx)
+            if _count_servers >= 1:
+                raise ValueError("An acme-dns server already exists.")
+
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx, model_utils.OperationsEventType.from_string("AcmeDnsServer__insert")
@@ -696,30 +798,39 @@ def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
 
 
 def getcreate__CertificateCAChain__by_pem_text(
-    ctx,
-    chain_pem,
-    display_name=None,
-):
+    ctx: "ApiContext",
+    chain_pem: str,
+    display_name: Optional[str] = None,
+    discovery_type: Optional[str] = None,
+) -> Tuple["CertificateCAChain", bool]:
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
     chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
     if len(chain_certs) < 1:
         raise ValueError("Did not find at least 1 Certificate in this Chain.")
     is_created = False
-    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
 
     # Ensure the certificate chain is structured front to back
     # this will raise an error
     if len(chain_certs) > 1:
         cert_utils.ensure_chain_order(chain_certs)
 
+    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
     if not dbCertificateCAChain:
         chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
         dbCertificateCAs = []
         for cert_pem in chain_certs:
             (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
-                ctx, cert_pem, display_name=display_name
+                ctx,
+                cert_pem,
+                display_name=display_name,
+                discovery_type=discovery_type,
             )
             dbCertificateCAs.append(_dbCertificateCA)
+
+        if not display_name:
+            display_name = dbCertificateCAs[0].display_name
+            if len(dbCertificateCAs) > 1:
+                display_name += " > " + dbCertificateCAs[-1].display_name
 
         # bookkeeping
         event_payload_dict = utils.new_event_payload_dict()
@@ -729,7 +840,8 @@ def getcreate__CertificateCAChain__by_pem_text(
         )
 
         dbCertificateCAChain = model_objects.CertificateCAChain()
-        dbCertificateCAChain.display_name = display_name or "discovered"
+        dbCertificateCAChain.display_name = display_name
+        dbCertificateCAChain.discovery_type = discovery_type
         dbCertificateCAChain.timestamp_created = ctx.timestamp
         dbCertificateCAChain.chain_pem = chain_pem
         dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
@@ -761,18 +873,20 @@ def getcreate__CertificateCAChain__by_pem_text(
 
 
 def getcreate__CertificateCA__by_pem_text(
-    ctx,
-    cert_pem,
-    display_name=None,
-    is_trusted_root=None,
-    key_technology_id=None,
-):
+    ctx: "ApiContext",
+    cert_pem: str,
+    display_name: Optional[str] = None,
+    discovery_type: Optional[str] = None,
+    is_trusted_root: Optional[bool] = None,
+    key_technology_id: Optional[int] = None,
+) -> Tuple["CertificateCA", bool]:
     """
     Gets or Creates CertificateCAs
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
     :param display_name: a name to display this as
+    :param discovery_type:
     :param is_trusted_root:
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
@@ -787,86 +901,77 @@ def getcreate__CertificateCA__by_pem_text(
     dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
     if not dbCertificateCA:
         cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
-        _tmpfile = None
-        try:
-            if cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
 
-            # validate
-            cert_utils.validate_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
+        # validate
+        _validated = cert_utils.validate_cert(cert_pem=cert_pem)  # noqa: F841
 
-            _key_technology = cert_utils.parse_cert__key_technology(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-            if TYPE_CHECKING:
-                assert _key_technology is not None
+        _key_technology = cert_utils.parse_cert__key_technology(cert_pem=cert_pem)
+        if TYPE_CHECKING:
+            assert _key_technology is not None
 
-            _key_technology_id = model_utils.KeyTechnology.from_string(_key_technology)
-            if key_technology_id is None:
-                key_technology_id = _key_technology_id
-            else:
-                if key_technology_id != _key_technology_id:
-                    raise ValueError(
-                        "Detected a different `key_technology_id` than submitted"
-                    )
+        _key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+            _key_technology
+        )
+        if key_technology_id is None:
+            key_technology_id = _key_technology_id
+        else:
+            if key_technology_id != _key_technology_id:
+                raise ValueError(
+                    "Detected a different `key_technology_id` than submitted"
+                )
 
-            # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__OperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string("CertificateCA__insert"),
-            )
+        # bookkeeping
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string("CertificateCA__insert"),
+        )
 
-            dbCertificateCA = model_objects.CertificateCA()
-            dbCertificateCA.display_name = display_name or "unknown"
-            dbCertificateCA.key_technology_id = key_technology_id
-            dbCertificateCA.is_trusted_root = is_trusted_root
-            dbCertificateCA.timestamp_created = ctx.timestamp
-            dbCertificateCA.cert_pem = cert_pem
-            dbCertificateCA.cert_pem_md5 = cert_pem_md5
+        _cert_data = cert_utils.parse_cert(cert_pem=cert_pem)
+        if not display_name:
+            display_name = _cert_data["subject"] or "unknown"
 
-            _cert_data = cert_utils.parse_cert(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-            dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
-            dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
-            dbCertificateCA.cert_subject = _cert_data["subject"]
-            dbCertificateCA.cert_issuer = _cert_data["issuer"]
-            dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
-            dbCertificateCA.key_technology_id = model_utils.KeyTechnology.from_string(
+        dbCertificateCA = model_objects.CertificateCA()
+        dbCertificateCA.display_name = display_name
+        dbCertificateCA.discovery_type = discovery_type
+        dbCertificateCA.key_technology_id = key_technology_id
+        dbCertificateCA.is_trusted_root = is_trusted_root
+        dbCertificateCA.timestamp_created = ctx.timestamp
+        dbCertificateCA.cert_pem = cert_pem
+        dbCertificateCA.cert_pem_md5 = cert_pem_md5
+        dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
+        dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
+        dbCertificateCA.cert_subject = _cert_data["subject"]
+        dbCertificateCA.cert_issuer = _cert_data["issuer"]
+        dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
+        dbCertificateCA.key_technology_id = (
+            model_utils.KeyTechnology.from_cert_utils_tuple(
                 _cert_data["key_technology"]
             )
-            dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
-            dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
-            dbCertificateCA.cert_authority_key_identifier = _cert_data[
-                "authority_key_identifier"
-            ]
-            dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
+        )
+        dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
+        dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
+        dbCertificateCA.cert_authority_key_identifier = _cert_data[
+            "authority_key_identifier"
+        ]
+        dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
 
-            ctx.dbSession.add(dbCertificateCA)
-            ctx.dbSession.flush(objects=[dbCertificateCA])
-            is_created = True
+        ctx.dbSession.add(dbCertificateCA)
+        ctx.dbSession.flush(objects=[dbCertificateCA])
+        is_created = True
 
-            event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush(objects=[dbOperationsEvent])
+        event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
 
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "CertificateCA__insert"
-                ),
-                dbCertificateCA=dbCertificateCA,
-            )
-
-        except Exception as exc:  # noqa: F841
-            raise
-        finally:
-            if _tmpfile is not None:
-                _tmpfile.close()
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "CertificateCA__insert"
+            ),
+            dbCertificateCA=dbCertificateCA,
+        )
 
     return (dbCertificateCA, is_created)
 
@@ -875,13 +980,14 @@ def getcreate__CertificateCA__by_pem_text(
 
 
 def getcreate__CertificateRequest__by_pem_text(
-    ctx,
-    csr_pem,
-    certificate_request_source_id=None,
-    dbPrivateKey=None,
-    dbCertificateSigned__issued=None,
-    domain_names=None,
-):
+    ctx: "ApiContext",
+    csr_pem: str,
+    certificate_request_source_id: int,
+    dbPrivateKey: "PrivateKey",
+    domain_names: List[str],
+    dbCertificateSigned__issued: Optional["CertificateSigned"] = None,
+    discovery_type: Optional[str] = None,
+) -> Tuple["CertificateRequest", bool]:
     """
     getcreate for a CSR
 
@@ -895,8 +1001,9 @@ def getcreate__CertificateRequest__by_pem_text(
     :param csr_pem:
     :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbCertificateSigned__issued: (required) The :class:`model.objects.CertificateSigned` this issued as
     :param domain_names: (required) A list of fully qualified domain names
+    :param dbCertificateSigned__issued: (optional) The :class:`model.objects.CertificateSigned` this issued as
+    :param str discovery_type:
 
     log__OperationsEvent takes place in `create__CertificateRequest`
     """
@@ -908,8 +1015,9 @@ def getcreate__CertificateRequest__by_pem_text(
             csr_pem,
             certificate_request_source_id=certificate_request_source_id,
             dbPrivateKey=dbPrivateKey,
-            dbCertificateSigned__issued=dbCertificateSigned__issued,
             domain_names=domain_names,
+            dbCertificateSigned__issued=dbCertificateSigned__issued,
+            discovery_type=discovery_type,
         )
         is_created = True
 
@@ -920,17 +1028,19 @@ def getcreate__CertificateRequest__by_pem_text(
 
 
 def getcreate__CertificateSigned(
-    ctx,
-    cert_pem,
-    cert_domains_expected=None,
-    is_active=None,
-    dbAcmeOrder=None,
-    dbCertificateCAChain=None,
-    dbCertificateCAChains_alt=None,
-    dbCertificateRequest=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
-):
+    ctx: "ApiContext",
+    cert_pem: str,
+    cert_domains_expected: List[str],
+    dbCertificateCAChain: "CertificateCAChain",
+    dbPrivateKey: "PrivateKey",
+    certificate_type_id: int,
+    dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
+    dbCertificateRequest: Optional["CertificateRequest"] = None,
+    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    discovery_type: Optional[str] = None,
+    is_active: bool = False,
+) -> Tuple["CertificateSigned", bool]:
     """
     getcreate wrapping issued certs
 
@@ -938,24 +1048,25 @@ def getcreate__CertificateSigned(
     :param cert_pem: (required) The certificate in PEM encoding
     :param cert_domains_expected: (required) a list of domains in the cert we
       expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate
-      when uploading unless specified.
-
+    :param dbCertificateCAChain: (required) The upstream
+       :class:`model.objects.CertificateCAChain` that signed the certificate
+    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
+      signed the certificate
+    :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
+      corresponding to this Certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
       certificate was generated through. If provivded, do not submit
       `dbCertificateRequest` or `dbPrivateKey`
-    :param dbCertificateCAChain: (required) The upstream
-       :class:`model.objects.CertificateCAChain` that signed the certificate
     :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
       :class:`model.objects.CertificateCAChain`s that signed this certificate
     :param dbCertificateRequest: (optional) The
       :class:`model.objects.CertificateRequest` the certificate was generated
       through. If provivded, do not submit `dbAcmeOrder`.
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
-      signed the certificate
     :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or
       `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet`
       representing domains on the certificate.
+    :param is_active: (optional) default `None`; do not activate a certificate
+      when uploading unless specified.
 
     returns:
     tuple (dbCertificateSigned, is_created)
@@ -992,37 +1103,20 @@ def getcreate__CertificateSigned(
             "getcreate__CertificateSigned must be provided with all of (cert_pem, dbCertificateCAChain, dbPrivateKey)"
         )
 
-    is_created = None
+    if certificate_type_id not in model_utils.CertificateType._mapping:
+        raise ValueError("invalid `certificate_type_id`")
+
+    is_created = False
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
 
     # make sure the Certificate Elements match
-    _cert_spki = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-        # grab the spki
-        _cert_spki = cert_utils.parse_cert__spki_sha256(
-            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name if _tmpfile else None
-        )
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
 
-    _pkey_spki = None
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
-        # grab the spki
-        _pkey_spki = cert_utils.parse_key__spki_sha256(
-            key_pem=dbPrivateKey.key_pem,
-            key_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
+    # grab the spki
+    _cert_spki = cert_utils.parse_cert__spki_sha256(cert_pem=cert_pem)
+
+    # grab the spki
+    _pkey_spki = cert_utils.parse_key__spki_sha256(key_pem=dbPrivateKey.key_pem)
 
     if not all((_cert_spki, _pkey_spki)):
         raise ValueError("Could not compute the Certificate or Key's SPKI")
@@ -1085,13 +1179,16 @@ def getcreate__CertificateSigned(
             ctx,
             cert_pem=cert_pem,
             cert_domains_expected=cert_domains_expected,
+            dbCertificateCAChain=dbCertificateCAChain,
+            certificate_type_id=certificate_type_id,
+            # optionals
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChain=dbCertificateCAChain,
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
             dbCertificateRequest=dbCertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
+            discovery_type=discovery_type,
         )
         is_created = True
 
@@ -1101,7 +1198,11 @@ def getcreate__CertificateSigned(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None):
+def getcreate__Domain__by_domainName(
+    ctx: "ApiContext",
+    domain_name: str,
+    discovery_type: Optional[str] = None,
+) -> Tuple["Domain", bool]:
     """
     getcreate wrapping a domain
 
@@ -1109,7 +1210,7 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
-    :param is_from_queue_domain:
+    :param discovery_type:
     """
     is_created = False
     dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
@@ -1121,8 +1222,8 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name
         dbDomain.timestamp_created = ctx.timestamp
-        dbDomain.is_from_queue_domain = is_from_queue_domain
         dbDomain.operations_event_id__created = dbOperationsEvent.id
+        dbDomain.discovery_type = discovery_type
         ctx.dbSession.add(dbDomain)
         ctx.dbSession.flush(objects=[dbDomain])
         is_created = True
@@ -1147,22 +1248,24 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
 
 
 def getcreate__PrivateKey__by_pem_text(
-    ctx,
-    key_pem,
-    acme_account_id__owner=None,
-    private_key_source_id=None,
-    private_key_type_id=None,
-    private_key_id__replaces=None,
-):
+    ctx: "ApiContext",
+    key_pem: str,
+    private_key_source_id: int,
+    private_key_type_id: int,
+    acme_account_id__owner: Optional[int] = None,
+    private_key_id__replaces: Optional[int] = None,
+    discovery_type: Optional[str] = None,
+) -> Tuple["PrivateKey", bool]:
     """
     getcreate wrapping private keys
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param str key_pem:
-    :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
     :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
-    :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
+    :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
+    :param int private_key_id__replaces: (optional) if this key replaces a compromised key, note it.
+    :param str discovery_type:
     """
     is_created = False
     key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -1176,28 +1279,20 @@ def getcreate__PrivateKey__by_pem_text(
         .first()
     )
     if not dbPrivateKey:
-        _tmpfile = None
-        try:
-            if cert_utils.NEEDS_TEMPFILES:
-                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
+        key_technology_id: Optional[int] = None
 
-            # validate + grab the technology
-            key_technology = cert_utils.validate_key(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
+        # validate + grab the technology
+        cu_key_technology = cert_utils.validate_key(
+            key_pem=key_pem,
+        )
+        if TYPE_CHECKING:
+            assert cu_key_technology is not None
+        key_technology_id = model_utils.KeyTechnology.from_cert_utils_tuple(
+            cu_key_technology
+        )
+        assert key_technology_id
 
-            if TYPE_CHECKING:
-                assert key_technology is not None
-
-            pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(
-                key_pem=key_pem, key_pem_filepath=_tmpfile.name if _tmpfile else None
-            )
-
-        except Exception as exc:  # noqa: F841
-            raise
-        finally:
-            if _tmpfile:
-                _tmpfile.close()
+        pkey__spki_sha256 = cert_utils.parse_key__spki_sha256(key_pem=key_pem)
 
         event_payload_dict = utils.new_event_payload_dict()
         _event_type_id = model_utils.OperationsEventType.from_string(
@@ -1211,9 +1306,7 @@ def getcreate__PrivateKey__by_pem_text(
 
         dbPrivateKey = model_objects.PrivateKey()
         dbPrivateKey.timestamp_created = ctx.timestamp
-        dbPrivateKey.key_technology_id = model_utils.KeyTechnology.from_string(
-            key_technology
-        )
+        dbPrivateKey.key_technology_id = key_technology_id
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.spki_sha256 = pkey__spki_sha256
@@ -1222,6 +1315,7 @@ def getcreate__PrivateKey__by_pem_text(
         dbPrivateKey.private_key_source_id = private_key_source_id
         dbPrivateKey.private_key_type_id = private_key_type_id
         dbPrivateKey.private_key_id__replaces = private_key_id__replaces
+        dbPrivateKey.discovery_type = discovery_type
         ctx.dbSession.add(dbPrivateKey)
         ctx.dbSession.flush(objects=[dbPrivateKey])
         is_created = True
@@ -1245,48 +1339,81 @@ def getcreate__PrivateKey__by_pem_text(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
+def getcreate__PrivateKey_for_AcmeAccount(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    key_technology_id: Optional[int] = None,
+    private_key_cycle_id: Optional[int] = None,
+    private_key_id__replaces: Optional[int] = None,
+) -> "PrivateKey":
     """
-    getcreate wrapping a RemoteIpAddress
+    getcreate wrapping a dbPrivateKey, which is used by orders
 
     returns: The :class:`model.objects.PrivateKey`
     raises: ValueError
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
+    :param key_technology_id: (optional) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id: (optional) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_id__replaces: (optional) Passthrough to `create__PrivateKey`
+
     """
-    private_key_cycle = dbAcmeAccount.private_key_cycle
+    private_key_cycle: str
+    if private_key_cycle_id is None:
+        private_key_cycle_id = dbAcmeAccount.order_default_private_key_cycle_id
+        private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
+    else:
+        private_key_cycle = model_utils.PrivateKeyCycle._mapping[private_key_cycle_id]
+
+    if key_technology_id is None:
+        key_technology_id = dbAcmeAccount.order_default_private_key_technology_id
+
     # private_key_technology = dbAcmeAccount.private_key_technology
     acme_account_id__owner = dbAcmeAccount.id
-    if private_key_cycle == "single_certificate":
-        # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
+
+    # scoping
+    dbPrivateKey_new: Optional["PrivateKey"]
+
+    if private_key_cycle == "single_use":
+        # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         dbPrivateKey_new = create__PrivateKey(
             ctx,
+            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE,
+            key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
-            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string(
-                "single_certificate"
-            ),
-            key_technology_id=dbAcmeAccount.private_key_technology_id,
+            private_key_id__replaces=private_key_id__replaces,
+        )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "single_use__reuse_1_year":
+        # NOTE: AcmeAccountNeedsPrivateKey ; single_use
+        # ???: do we lookup?
+        # ???: how is create scoped - within an order?
+        dbPrivateKey_new = create__PrivateKey(
+            ctx,
+            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE__REUSE_1_YEAR,
+            key_technology_id=key_technology_id,
+            acme_account_id__owner=acme_account_id__owner,
+            private_key_id__replaces=private_key_id__replaces,
         )
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_daily
         dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccount(
-            ctx, acme_account_id__owner
+            ctx,
+            acme_account_id__owner,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_DAILY,
+                key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "account_daily"
-                ),
-                key_technology_id=dbAcmeAccount.private_key_technology_id,
             )
         return dbPrivateKey_new
 
@@ -1296,12 +1423,8 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_daily"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_DAILY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
@@ -1309,19 +1432,16 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
     elif private_key_cycle == "account_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_weekly
         dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccount(
-            ctx, acme_account_id__owner
+            ctx,
+            acme_account_id__owner,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                acme_account_id__owner=acme_account_id__owner,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "account_weekly"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_WEEKLY,
                 key_technology_id=dbAcmeAccount.private_key_technology_id,
+                acme_account_id__owner=acme_account_id__owner,
             )
         return dbPrivateKey_new
 
@@ -1331,19 +1451,18 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_weekly"
-                ),
+                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
+                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_WEEKLY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
         return dbPrivateKey_new
 
-    elif private_key_cycle == "account_key_default":
-        # NOTE: AcmeAccountNeedsPrivateKey ; account_key_default | INVALID
-        raise ValueError("Invalid option: `account_key_default`")
+    elif private_key_cycle == "account_default":
+        # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
+        # this should never happen
+        # while it is a valid `model_utils.PrivateKeyCycle` option,
+        # anything calling this function should not pass it in
+        raise ValueError("Invalid option: `account_default`")
 
     else:
         # NOTE: AcmeAccountNeedsPrivateKey | INVALID
@@ -1353,7 +1472,10 @@ def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__RemoteIpAddress(ctx, remote_ip_address):
+def getcreate__RemoteIpAddress(
+    ctx: "ApiContext",
+    remote_ip_address: str,
+) -> Tuple["RemoteIpAddress", bool]:
     """
     getcreate wrapping a RemoteIpAddress
 
@@ -1361,9 +1483,8 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
-    :param is_from_queue_domain:
     """
-    is_created = None
+    is_created = False
 
     # we're not doing anything to ensure the `remote_ip_address` is in IPV4 or IPV6 or anythiner
     # so just lowercase this
@@ -1389,13 +1510,17 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
 
 
 def getcreate__UniqueFQDNSet__by_domains(
-    ctx, domain_names, allow_blocklisted_domains=False
-):
+    ctx: "ApiContext",
+    domain_names: List[str],
+    discovery_type: Optional[str] = None,
+    allow_blocklisted_domains: Optional[bool] = False,
+) -> Tuple["UniqueFQDNSet", bool]:
     """
     getcreate wrapping unique fqdn
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
+    :param discovery_type:
     :param allow_blocklisted_domains: boolean, default `False`. If `True`, disables check against domains blocklist
 
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
@@ -1414,7 +1539,9 @@ def getcreate__UniqueFQDNSet__by_domains(
 
     # ensure the domains are registered into our system
     domain_objects = {
-        _domain_name: getcreate__Domain__by_domainName(ctx, _domain_name)[
+        _domain_name: getcreate__Domain__by_domainName(
+            ctx, _domain_name, discovery_type="via UniqueFQDNSet"
+        )[
             0
         ]  # (dbDomain, _is_created)
         for _domain_name in domain_names
@@ -1424,7 +1551,11 @@ def getcreate__UniqueFQDNSet__by_domains(
     (
         dbUniqueFQDNSet,
         is_created_fqdn,
-    ) = getcreate__UniqueFQDNSet__by_domainObjects(ctx, domain_objects.values())
+    ) = getcreate__UniqueFQDNSet__by_domainObjects(
+        ctx,
+        list(domain_objects.values()),
+        discovery_type=discovery_type,
+    )
 
     return (dbUniqueFQDNSet, is_created_fqdn)
 
@@ -1432,7 +1563,11 @@ def getcreate__UniqueFQDNSet__by_domains(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
+def getcreate__UniqueFQDNSet__by_domainObjects(
+    ctx: "ApiContext",
+    domainObjects: List["Domain"],
+    discovery_type: Optional[str] = None,
+) -> Tuple["UniqueFQDNSet", bool]:
     """
     getcreate wrapping unique fqdn
 
@@ -1462,6 +1597,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
         dbUniqueFQDNSet.count_domains = len(domain_ids)
         dbUniqueFQDNSet.timestamp_created = ctx.timestamp
         dbUniqueFQDNSet.operations_event_id__created = dbOperationsEvent.id
+        dbUniqueFQDNSet.discovery_type = discovery_type
         ctx.dbSession.add(dbUniqueFQDNSet)
         ctx.dbSession.flush(objects=[dbUniqueFQDNSet])
 
@@ -1489,6 +1625,88 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
     return (dbUniqueFQDNSet, is_created)
 
 
+def getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
+    ctx: "ApiContext",
+    domainObjects: Dict[str, "Domain"],
+    domainsChallenged: "DomainsChallenged",
+    dbUniqueFQDNSet: "UniqueFQDNSet",
+    discovery_type: Optional[str] = None,
+) -> Tuple["UniquelyChallengedFQDNSet", bool]:
+    """
+    getcreate wrapping unique fqdn
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param domainObjects:
+    """
+    is_created = False
+
+    domain_challenges_serialized = domainsChallenged.serialize_ids(
+        mapping=domainObjects
+    )
+
+    dbUniquelyChallengedFQDNSet = (
+        ctx.dbSession.query(model_objects.UniquelyChallengedFQDNSet)
+        .filter(
+            model_objects.UniquelyChallengedFQDNSet.domain_challenges_serialized
+            == domain_challenges_serialized
+        )
+        .first()
+    )
+
+    if not dbUniquelyChallengedFQDNSet:
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx,
+            model_utils.OperationsEventType.from_string(
+                "UniquelyChallengedFQDNSet__insert"
+            ),
+        )
+
+        dbUniquelyChallengedFQDNSet = model_objects.UniquelyChallengedFQDNSet()
+        dbUniquelyChallengedFQDNSet.unique_fqdn_set_id = dbUniqueFQDNSet.id
+        dbUniquelyChallengedFQDNSet.domain_challenges_serialized = (
+            domain_challenges_serialized
+        )
+        dbUniquelyChallengedFQDNSet.timestamp_created = ctx.timestamp
+        dbUniquelyChallengedFQDNSet.operations_event_id__created = dbOperationsEvent.id
+        dbUniquelyChallengedFQDNSet.discovery_type = discovery_type
+        ctx.dbSession.add(dbUniquelyChallengedFQDNSet)
+        ctx.dbSession.flush(objects=[dbUniquelyChallengedFQDNSet])
+
+        for _ct, _domains in domainsChallenged.items():
+            if not _domains:
+                continue
+            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(_ct)
+            for _domain_name in _domains:
+                dbDomain = domainObjects[_domain_name]
+
+                dbAssoc = model_objects.UniquelyChallengedFQDNSet2Domain()
+                dbAssoc.uniquely_challenged_fqdn_set_id = dbUniquelyChallengedFQDNSet.id
+                dbAssoc.domain_id = dbDomain.id
+                dbAssoc.acme_challenge_type_id = acme_challenge_type_id
+                ctx.dbSession.add(dbAssoc)
+                ctx.dbSession.flush(objects=[dbAssoc])
+
+        is_created = True
+
+        event_payload_dict["uniquely_challenged_fqdn_set.id"] = (
+            dbUniquelyChallengedFQDNSet.id
+        )
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "UniquelyChallengedFQDNSet__insert"
+            ),
+            dbUniquelyChallengedFQDNSet=dbUniquelyChallengedFQDNSet,
+        )
+
+    return (dbUniquelyChallengedFQDNSet, is_created)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1500,4 +1718,5 @@ __all__ = (
     "getcreate__PrivateKey__by_pem_text",
     "getcreate__CertificateSigned",
     "getcreate__UniqueFQDNSet__by_domainObjects",
+    "getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged",
 )

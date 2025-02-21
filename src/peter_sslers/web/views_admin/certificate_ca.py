@@ -33,11 +33,11 @@ class View_List(Handler):
         route_name="admin:certificate_cas", renderer="/admin/certificate_cas.mako"
     )
     @view_config(
-        route_name="admin:certificate_cas_paginated",
+        route_name="admin:certificate_cas-paginated",
         renderer="/admin/certificate_cas.mako",
     )
     @view_config(route_name="admin:certificate_cas|json", renderer="json")
-    @view_config(route_name="admin:certificate_cas_paginated|json", renderer="json")
+    @view_config(route_name="admin:certificate_cas-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/certificate-cas.json",
@@ -60,7 +60,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__CertificateCA__count(self.request.api_context)
         url_template = (
             "%s/certificate-cas/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -160,10 +160,12 @@ class View_Preferred(Handler):
             "about": """add preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/add.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/add.json",
             # -----
-            "instructions": [
-                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/add.json""",
+            "examples": [
+                """curl """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/add.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -242,7 +244,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=add"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -261,10 +263,13 @@ class View_Preferred(Handler):
             "about": """delete preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/delete.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/delete.json",
             # -----
-            "instructions": [
-                """curl --form 'slot=slot' --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/delete.json""",
+            "examples": [
+                """curl """
+                """--form 'slot=slot' """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/delete.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -309,7 +314,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=delete"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -328,10 +333,12 @@ class View_Preferred(Handler):
             "about": """prioritize preferred CertificateCA""",
             "POST": True,
             "GET": False,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json",
+            "instructions": "curl {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json",
             # -----
-            "instructions": [
-                """curl --form 'fingerprint_sha1=fingerprint_sha1' {ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json""",
+            "examples": [
+                """curl """
+                """--form 'fingerprint_sha1=fingerprint_sha1' """
+                """{ADMIN_PREFIX}/certificate-cas/preferred/prioritize.json""",
             ],
             "form_fields": {
                 "fingerprint_sha1": "the fingerprint_sha1 of the current record",
@@ -382,7 +389,7 @@ class View_Preferred(Handler):
                 }
             return HTTPSeeOther(
                 "%s/certificate-cas/preferred?result=success&operation=prioritize"
-                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+                % (self.request.api_context.application_settings["admin_prefix"],)
             )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
@@ -404,7 +411,7 @@ class View_Focus(Handler):
             self.dbCertificateCA = dbCertificateCA
             self.focus_item = dbCertificateCA
             self.focus_url = "%s/certificate-ca/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbCertificateCA.id,
             )
         return self.dbCertificateCA
@@ -566,7 +573,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_paginated",
+        route_name="admin:certificate_ca:focus:certificate_signeds-paginated",
         renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
     )
     def related__CertificateSigneds(self):
@@ -601,7 +608,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_alt_paginated",
+        route_name="admin:certificate_ca:focus:certificate_signeds_alt-paginated",
         renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
     )
     def related__CertificateSignedsAlt(self):
@@ -634,7 +641,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+        route_name="admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
@@ -642,7 +649,7 @@ class View_Focus(Handler):
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_n_paginated",
+        route_name="admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
         renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
     )
     def related__CertificateCAChains(self):
@@ -651,7 +658,7 @@ class View_Focus(Handler):
         accessor = None
         if self.request.matched_route.name in (
             "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0_paginated",
+            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
         ):
             url_template = "%s/certificate-ca-chains-0/{0}" % self.focus_url
             func_count = lib_db.get.get__CertificateCAChain__by_CertificateCAId0__count
@@ -698,7 +705,9 @@ class View_New(Handler):
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
             # -----
             "instructions": [
-                """curl --form 'cert_file=@chain1.pem' --form {ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
+                """curl """
+                """--form 'cert_file=@chain1.pem' """
+                """{ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
             ],
             "form_fields": {
                 "cert_file": "required",
@@ -736,7 +745,10 @@ class View_New(Handler):
                 dbCertificateCA,
                 _is_created,
             ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
-                self.request.api_context, cert_pem, display_name=cert_file_name
+                self.request.api_context,
+                cert_pem,
+                display_name=cert_file_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:
@@ -750,7 +762,7 @@ class View_New(Handler):
             return HTTPSeeOther(
                 "%s/certificate-ca/%s?result=success&is_created=%s"
                 % (
-                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    self.request.api_context.application_settings["admin_prefix"],
                     dbCertificateCA.id,
                     (1 if _is_created else 0),
                 )

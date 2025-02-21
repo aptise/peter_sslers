@@ -23,7 +23,7 @@
 
             ${admin_partials.handle_querystring_result()}
             
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -93,18 +93,6 @@
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     CertificateSigned-${CoverageAssuranceEvent.certificate_signed_id}</a>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>QueueCertificate</th>
-                        <td>
-                            % if CoverageAssuranceEvent.queue_certificate_id:
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/queue-certificate/${CoverageAssuranceEvent.queue_certificate_id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    QueueCertificate-${CoverageAssuranceEvent.queue_certificate_id}</a>
                             % endif
                         </td>
                     </tr>

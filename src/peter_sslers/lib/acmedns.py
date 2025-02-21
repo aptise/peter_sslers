@@ -1,8 +1,5 @@
 # pypi
-try:
-    import pyacmedns
-except ImportError:
-    pyacmedns = None
+import pyacmedns
 
 # ==============================================================================
 

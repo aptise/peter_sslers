@@ -2,12 +2,19 @@
 import datetime
 import json
 import logging
+from typing import Dict
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 import cert_utils
 from dateutil import parser as dateutil_parser
+from typing_extensions import Literal
+
+# from typing_extensions import Required
+# from typing_extensions import TypedDict
 
 # local
 from .helpers import _certificate_parse_to_record
@@ -25,25 +32,36 @@ from ...model import utils as model_utils
 # from typing import Optional
 
 if TYPE_CHECKING:
+    from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
-    from ...model.objects import AcmeAccountProvider
+    from ...model.objects import AcmeAuthorization
+    from ...model.objects import AcmeAuthorizationPotential
     from ...model.objects import AcmeChallenge
     from ...model.objects import AcmeChallengePoll
     from ...model.objects import AcmeChallengeUnknownPoll
+    from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeDnsServerAccount
+    from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
-    from ...model.objects import AcmeOrderless
     from ...model.objects import AcmeOrderSubmission
+    from ...model.objects import AcmeServer
+    from ...model.objects import AcmeServerConfiguration
+    from ...model.objects import AriCheck
+    from ...model.objects import CertificateCA
+    from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
+    from ...model.objects import Domain
     from ...model.objects import DomainAutocert
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueCertificate
-
+    from ...model.objects import RenewalConfiguration
+    from ...model.objects import UniqueFQDNSet
     from ..utils import ApiContext
     from ...model.utils import DomainsChallenged
+
+    # from ...lib.acme_v2 import AcmeOrderRFC
 
     # --
 
@@ -55,17 +73,21 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-def create__AcmeAccountProvider(
-    ctx: "ApiContext", name=None, directory=None, protocol=None
-) -> "AcmeAccountProvider":
+def create__AcmeServer(
+    ctx: "ApiContext",
+    name: str,
+    directory: str,
+    protocol: str,
+    server_ca_cert_bundle: Optional[str] = None,
+) -> "AcmeServer":
     """
-    Create a new AcmeAccountProvider
+    Create a new AcmeServer
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param name: (required) The name
     :param directory: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
 
-    returns: :class:`model.objects.AcmeAccountProvider`
+    returns: :class:`model.objects.AcmeServer`
     """
     if not directory or (
         not directory.startswith("http://") and not directory.startswith("https://")
@@ -78,110 +100,77 @@ def create__AcmeAccountProvider(
     assert ctx.timestamp
 
     # ok, try to build one...
-    dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
-    dbAcmeAccountProvider.timestamp_created = ctx.timestamp
-    dbAcmeAccountProvider.name = name
-    dbAcmeAccountProvider.directory = directory
-    dbAcmeAccountProvider.is_default = None
-    dbAcmeAccountProvider.is_enabled = True
-    dbAcmeAccountProvider.protocol = protocol
-    dbAcmeAccountProvider.server = utils.url_to_server(directory)
-    ctx.dbSession.add(dbAcmeAccountProvider)
+    dbAcmeServer = model_objects.AcmeServer()
+    dbAcmeServer.timestamp_created = ctx.timestamp
+    dbAcmeServer.name = name
+    dbAcmeServer.directory = directory
+    dbAcmeServer.is_default = None  # legacy and unused
+    dbAcmeServer.is_enabled = True  # legacy and unused
+    dbAcmeServer.protocol = protocol
+    dbAcmeServer.server = utils.url_to_server(directory)
+    dbAcmeServer.server_ca_cert_bundle = server_ca_cert_bundle
+    ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[
-            dbAcmeAccountProvider,
+            dbAcmeServer,
         ]
     )
-    return dbAcmeAccountProvider
+    return dbAcmeServer
 
 
-def create__AcmeOrderless(
+def create__AcmeServerConfiguration(
     ctx: "ApiContext",
-    domains_challenged: "DomainsChallenged",
-    dbAcmeAccount: Optional["AcmeAccount"],
-) -> "AcmeOrderless":
-    """
-    Create a new AcmeOrderless Tracker
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param dbAcmeAccount: (optional) A :class:`lib.utils.AcmeAccount` object
+    dbAcmeServer: "AcmeServer",
+    directory_string: str,
+) -> "AcmeServerConfiguration":
+    directoryOld: Optional["AcmeServerConfiguration"] = None
+    if dbAcmeServer.directory_latest:
+        directoryOld = dbAcmeServer.directory_latest
+        if TYPE_CHECKING:
+            assert directoryOld
+        directoryOld.is_active = None
 
-    Handle the DomainNames FIRST.
-    We do not want to generate an `AcmeOrderless` if there are no `Domains`.
-    """
-    # validate the domains that were submitted
-    # we already test for this on submission, but be safe!
-    if not domains_challenged:
-        raise ValueError("domains_challenged is required")
-    _domain_names_all = domains_challenged.domains_as_list
-    # this may raise errors.AcmeDomainsBlocklisted
-    validate_domain_names(ctx, _domain_names_all)
+    directoryLatest = model_objects.AcmeServerConfiguration()
+    directoryLatest.acme_server_id = dbAcmeServer.id
+    directoryLatest.timestamp_created = ctx.timestamp
+    directoryLatest.is_active = True
+    directoryLatest.directory = directory_string
 
-    # only http01 challenges are supported right now
-    domains_challenged.ensure_parity(domains_challenged["http-01"])
+    ctx.dbSession.add(directoryLatest)
+    dbAcmeServer.directory_latest = directoryLatest
+    ctx.dbSession.flush(
+        objects=[
+            dbAcmeServer,
+            directoryLatest,
+        ]
+    )
 
-    domain_objects = {
-        _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
-            ctx, _domain_name
-        )[
-            0
-        ]  # (dbDomain, _is_created)
-        for _domain_name in domains_challenged["http-01"]
-    }
-
-    assert ctx.request
-    assert ctx.request.registry
-    assert ctx.timestamp
-    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
-        active_challenges = []
-        for domain_name, dbDomain in domain_objects.items():
-            # error out on ANY acme_challenge_type_id
-            _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
-                ctx, dbDomain.id
-            )
-            if _active_challenges:
-                active_challenges.extend(_active_challenges)
-        if active_challenges:
-            raise errors.AcmeDuplicateChallengesExisting(active_challenges)
-
-    dbAcmeOrderless = model_objects.AcmeOrderless()
-    dbAcmeOrderless.is_processing = True
-    dbAcmeOrderless.timestamp_created = ctx.timestamp
-    dbAcmeOrderless.acme_account_id = dbAcmeAccount.id if dbAcmeAccount else None
-    ctx.dbSession.add(dbAcmeOrderless)
-    ctx.dbSession.flush(objects=[dbAcmeOrderless])
-
-    for domain_name, dbDomain in domain_objects.items():
-        dbAcmeChallenge = create__AcmeChallenge(  # noqa: F841
-            ctx,
-            dbAcmeOrderless=dbAcmeOrderless,
-            dbDomain=dbDomain,
-            acme_challenge_type_id=model_utils.AcmeChallengeType.from_string("http-01"),
-        )
-
-    return dbAcmeOrderless
+    return directoryLatest
 
 
 def create__AcmeOrder(
     ctx: "ApiContext",
-    acme_order_response=None,
-    acme_order_type_id=None,
-    acme_order_processing_status_id=None,
-    acme_order_processing_strategy_id=None,
-    domains_challenged=None,
-    private_key_cycle_id__renewal=None,
-    private_key_strategy_id__requested=None,
-    is_auto_renew=True,
-    is_save_alternate_chains=True,
-    order_url=None,
-    dbAcmeAccount=None,
-    dbAcmeOrder_renewal_of=None,
-    dbAcmeOrder_retry_of=None,
-    dbCertificateRequest=None,
-    dbEventLogged=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
-    transaction_commit=None,
+    acme_order_rfc__original: Dict,  # usually wrapped by "AcmeOrderRFC"
+    acme_order_type_id: int,
+    acme_order_processing_status_id: int,
+    acme_order_processing_strategy_id: int,
+    domains_challenged: "DomainsChallenged",
+    order_url: str,
+    certificate_type_id: int,
+    dbAcmeAccount: "AcmeAccount",
+    dbUniqueFQDNSet: "UniqueFQDNSet",
+    dbEventLogged: "AcmeEventLog",
+    dbRenewalConfiguration: "RenewalConfiguration",
+    dbPrivateKey: "PrivateKey",  # could be a Placeholder(0) key
+    private_key_cycle_id: int,
+    private_key_strategy_id__requested: int,
+    private_key_deferred_id: int,
+    transaction_commit: Literal[True],
+    # optionals
+    note: Optional[str] = None,
+    is_save_alternate_chains: bool = True,
+    dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    dbCertificateRequest: Optional["CertificateRequest"] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -189,23 +178,27 @@ def create__AcmeOrder(
     `PrivateKey` is required so we don't autogenerate keys on failures
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
+
+    :param acme_order_rfc__original: (required) dictionary object from the server, representing an ACME payload
     :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrderType`
     :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
-    :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
-    :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param order_url: (required) the url of the object
+    :param certificate_type_id: (required) The value of :class:`model.utils.CertificateType`
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
-    :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
-    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
+    :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
+    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_deferred_id: (required) See `model.utils.PrivateKeyDeferred`
+
+    :param note: (optional) A string to be associated with this order
+    :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
+    :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
+    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
+    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
@@ -217,28 +210,22 @@ def create__AcmeOrder(
     if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
         raise ValueError("Unsupported `acme_order_type_id`: %s" % acme_order_type_id)
 
-    if private_key_cycle_id__renewal not in model_utils.PrivateKeyCycle._mapping:
+    if certificate_type_id not in model_utils.CertificateType._options_AcmeOrder_id:
+        raise ValueError("Unsupported `certificate_type_id`: %s" % certificate_type_id)
+
+    if acme_order_rfc__original is None:
         raise ValueError(
-            "Unsupported `private_key_cycle_id__renewal`: %s"
-            % private_key_cycle_id__renewal
+            "`create__AcmeOrder` must be invoked with a `acme_order_rfc__original`."
         )
 
-    if (
-        private_key_strategy_id__requested
-        not in model_utils.PrivateKeyStrategy._mapping
-    ):
-        raise ValueError(
-            "Unsupported `private_key_strategy_id__requested`: %s"
-            % private_key_strategy_id__requested
-        )
-
-    if acme_order_response is None:
-        raise ValueError(
-            "`create__AcmeOrder` must be invoked with a `acme_order_response`."
-        )
+    if not dbAcmeAccount:
+        raise ValueError("`create__AcmeOrder` must be invoked with a `dbAcmeAccount`.")
 
     if not dbPrivateKey:
         raise ValueError("`create__AcmeOrder` must be invoked with a `dbPrivateKey`.")
+
+    if not dbRenewalConfiguration:
+        raise ValueError("`create__AcmeOrder` requires `dbRenewalConfiguration`")
 
     if not dbUniqueFQDNSet:
         raise ValueError("`create__AcmeOrder` requires `dbUniqueFQDNSet`")
@@ -256,14 +243,17 @@ def create__AcmeOrder(
         else:
             dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
 
-    if all((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
-        raise ValueError(
-            "`create__AcmeOrder` must be invoked with one or None of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of`)."
-        )
-
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
             raise ValueError("The specified PrivateKey belongs to another AcmeAccount.")
+
+    if not private_key_strategy_id__requested:
+        raise ValueError("missing `private_key_strategy_id__requested`")
+
+    # DEBUG
+    if model_utils.PrivateKeyCycle.as_string(private_key_cycle_id) == "account_default":
+        # this should be computer BEFORE creating the order
+        raise ValueError("account_default should never be here")
 
     if TYPE_CHECKING:
         assert ctx.timestamp
@@ -284,50 +274,68 @@ def create__AcmeOrder(
 
     # acme_status_order_id = model_utils.Acme_Status_Order.ID_DEFAULT
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-        acme_order_response["status"]
+        acme_order_rfc__original["status"]
     )
-    finalize_url = acme_order_response.get("finalize")
-    certificate_url = acme_order_response.get("certificate")
-    timestamp_expires = acme_order_response.get("expires")
+    certificate_url = acme_order_rfc__original.get("certificate")
+    finalize_url = acme_order_rfc__original.get("finalize")
+    profile = acme_order_rfc__original.get("profile")
+    timestamp_expires = acme_order_rfc__original.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
-        timestamp_expires = timestamp_expires.replace(tzinfo=None)
+
+    replaces = acme_order_rfc__original.get("replaces")
+    certificate_signed_id__replaces = None
+    if replaces:
+        dbCertificateSigned_replaces = _get.get__CertificateSigned__by_ariIdentifier(
+            ctx, replaces
+        )
+        if dbCertificateSigned_replaces:
+            certificate_signed_id__replaces = dbCertificateSigned_replaces.id
 
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.is_processing = True
-    dbAcmeOrder.is_auto_renew = is_auto_renew
     dbAcmeOrder.is_save_alternate_chains = is_save_alternate_chains
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.order_url = order_url
+    dbAcmeOrder.certificate_type_id = certificate_type_id
     dbAcmeOrder.acme_order_type_id = acme_order_type_id
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
     dbAcmeOrder.acme_order_processing_strategy_id = acme_order_processing_strategy_id
-    dbAcmeOrder.private_key_cycle_id__renewal = private_key_cycle_id__renewal
-    dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.acme_account_id = dbAcmeAccount.id
+    dbAcmeOrder.renewal_configuration_id = dbRenewalConfiguration.id
+    dbAcmeOrder.uniquely_challenged_fqdn_set_id = (
+        dbRenewalConfiguration.uniquely_challenged_fqdn_set_id
+    )
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = (
         dbCertificateRequest.id if dbCertificateRequest else None
     )
+    dbAcmeOrder.note = note or None
     dbAcmeOrder.private_key_id = dbPrivateKey.id
-    dbAcmeOrder.private_key_id__requested = dbPrivateKey.id
+    dbAcmeOrder.private_key_cycle_id = private_key_cycle_id
+    dbAcmeOrder.private_key_deferred_id = private_key_deferred_id
+    dbAcmeOrder.private_key_strategy_id__requested = private_key_strategy_id__requested
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
+    dbAcmeOrder.profile = profile
+    dbAcmeOrder.replaces__requested = replaces
+    dbAcmeOrder.certificate_signed_id__replaces = certificate_signed_id__replaces
     dbAcmeOrder.timestamp_expires = timestamp_expires
-    dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
+    dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
-    if dbAcmeOrder_renewal_of:
-        dbAcmeOrder.acme_order_id__renewal_of = dbAcmeOrder_renewal_of.id
-
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
+
+    # then update the renewal configuration with the order
+    dbRenewalConfiguration.acme_order_id__latest_attempt = dbAcmeOrder.id
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
 
     # and note the submission
     create__AcmeOrderSubmission(ctx, dbAcmeOrder)
@@ -336,23 +344,28 @@ def create__AcmeOrder(
     domains_challenged.ENSURE_DEFAULT_HTTP01()
     _dbDomainObjects = dbUniqueFQDNSet.domain_objects
     for act_, domains_ in domains_challenged.items():
-        if act_ == "http-01":
-            continue
+        # act_ = acme-challenge-type
+        # domains_ = list of domains
         if not domains_:
             continue
         acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(act_)
+
+        # create a potential object
         for domain_name_ in domains_:
             if domain_name_ not in _dbDomainObjects:
                 raise ValueError("did not load domain from database")
-            dbChallengePreference = model_objects.AcmeOrder2AcmeChallengeTypeSpecific()
-            dbChallengePreference.acme_order_id = dbAcmeOrder.id
-            dbChallengePreference.acme_challenge_type_id = acme_challenge_type_id
-            dbChallengePreference.domain_id = _dbDomainObjects[domain_name_].id
-            ctx.dbSession.add(dbChallengePreference)
-            ctx.dbSession.flush(objects=[dbChallengePreference])
+            # create a blocking authz
+            dbAcmeAuthorizationPotential = (  # noqa: F841
+                create__AcmeAuthorizationPotential(
+                    ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                    dbDomain=_dbDomainObjects[domain_name_],
+                    acme_challenge_type_id=acme_challenge_type_id,
+                )
+            )
 
     # now loop the authorization URLs to create stub records for this order
-    for authorization_url in acme_order_response.get("authorizations"):
+    for authorization_url in acme_order_rfc__original.get("authorizations", []):
         (
             _dbAuthPlacholder,
             _is_auth_created,
@@ -384,51 +397,55 @@ def create__AcmeOrderSubmission(
     return dbAcmeOrderSubmission
 
 
+def create__AcmeAuthorizationPotential(
+    ctx: "ApiContext",
+    dbAcmeOrder: "AcmeOrder",
+    dbDomain: "Domain",
+    acme_challenge_type_id: int,
+) -> "AcmeAuthorizationPotential":
+    dbAcmeAuthorizationPotential = model_objects.AcmeAuthorizationPotential()
+    dbAcmeAuthorizationPotential.acme_order_id = dbAcmeOrder.id
+    dbAcmeAuthorizationPotential.timestamp_created = ctx.timestamp
+    dbAcmeAuthorizationPotential.domain_id = dbDomain.id
+    dbAcmeAuthorizationPotential.acme_challenge_type_id = acme_challenge_type_id
+    ctx.dbSession.add(dbAcmeAuthorizationPotential)
+    ctx.dbSession.flush(objects=[dbAcmeAuthorizationPotential])
+    return dbAcmeAuthorizationPotential
+
+
 def create__AcmeAuthorization(*args, **kwargs):
     raise ValueError("use `getcreate__AcmeAuthorization`")
 
 
 def create__AcmeChallenge(
     ctx: "ApiContext",
-    dbAcmeOrderless=None,
-    dbAcmeAuthorization=None,
-    dbDomain=None,
-    challenge_url=None,
-    token=None,
-    keyauthorization=None,
-    acme_challenge_type_id=None,
-    acme_status_challenge_id=model_utils.Acme_Status_Challenge.ID_DEFAULT,
-    is_via_sync=None,
+    dbDomain: "Domain",
+    acme_challenge_type_id: int,
+    # optionals
+    dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
+    challenge_url: Optional[str] = None,
+    token: Optional[str] = None,
+    keyauthorization: Optional[str] = None,
+    acme_status_challenge_id: int = model_utils.Acme_Status_Challenge.ID_DEFAULT,
+    is_via_sync: Optional[bool] = None,
 ) -> "AcmeChallenge":
     """
     Create a new Challenge
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeOrderless: (optional) The :class:`model.objects.AcmeOrderless`
-    :param dbAcmeAuthorization: (optional) The :class:`model.objects.AcmeAuthorization`
     :param dbDomain: (required) The :class:`model.objects.Domain`
+    :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallengeType`.
+    :param dbAcmeAuthorization: (optional) The :class:`model.objects.AcmeAuthorization`
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
     :param keyauthorization: (optional) string keyauthorization
-    :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallengeType`.
     :param acme_status_challenge_id: (optional) An option from :class:`model_utils.Acme_Status_Challenge`.
     :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
 
     """
-    if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
-        (dbAcmeOrderless, dbAcmeAuthorization)
-    ):
-        raise ValueError(
-            "must be invoked with one and only one of `dbAcmeOrderless` or `dbAcmeAuthorization`"
-        )
+    if not dbAcmeAuthorization:
+        raise ValueError("must be invoked with `dbAcmeAuthorization`")
     if not dbDomain:
         raise ValueError("must be invoked with `dbDomain`")
-
-    if dbAcmeOrderless:
-        orderless_domain_ids = [c.domain_id for c in dbAcmeOrderless.acme_challenges]
-        if dbDomain in orderless_domain_ids:
-            raise errors.AcmeDuplicateOrderlessDomain(
-                "Domain `%s` already in this AcmeOrderless." % dbDomain.domain_name
-            )
 
     if not acme_challenge_type_id:
         raise ValueError("must be invoked with `acme_challenge_type_id`")
@@ -436,10 +453,10 @@ def create__AcmeChallenge(
         raise ValueError("invalid `acme_challenge_type_id`")
 
     _competing_challenges = None
+    assert ctx.application_settings
     assert ctx.request
-    assert ctx.request.registry
     assert ctx.timestamp
-    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+    if ctx.application_settings["block_competing_challenges"]:
         _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
             ctx,
             dbDomain.id,
@@ -451,10 +468,7 @@ def create__AcmeChallenge(
             _competing_challenges = _active_challenges
 
     dbAcmeChallenge = model_objects.AcmeChallenge()
-    if dbAcmeOrderless:
-        dbAcmeChallenge.acme_orderless_id = dbAcmeOrderless.id
-    elif dbAcmeAuthorization:
-        dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
+    dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
     dbAcmeChallenge.timestamp_created = ctx.timestamp
     dbAcmeChallenge.domain_id = dbDomain.id
     dbAcmeChallenge.acme_challenge_type_id = acme_challenge_type_id
@@ -547,13 +561,13 @@ def create__AcmeChallengeUnknownPoll(
 
 def create__AcmeDnsServerAccount(
     ctx: "ApiContext",
-    dbAcmeDnsServer=None,
-    dbDomain=None,
-    username=None,
-    password=None,
-    fulldomain=None,
-    subdomain=None,
-    allowfrom=None,
+    dbAcmeDnsServer: "AcmeDnsServer",
+    dbDomain: "Domain",
+    username: str,
+    password: str,
+    fulldomain: str,
+    subdomain: str,
+    allowfrom: Union[str, List[str]],
 ) -> "AcmeDnsServerAccount":
     """
     create wrapping an acms-dns Server and Domain (AcmeDnsServerAccount)
@@ -580,6 +594,16 @@ def create__AcmeDnsServerAccount(
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["acme_dns_server_id"] = dbAcmeDnsServer.id
     event_payload_dict["domain_id"] = dbDomain.id
+
+    # sometimes an empty list pops in
+    if isinstance(allowfrom, list):
+        allowfrom = json.dumps(allowfrom)
+    else:
+        if (allowfrom[0] != "[") or (allowfrom[-1] != "]"):
+            raise ValueError("`allowfrom` string is not a serialized list")
+    if TYPE_CHECKING:
+        assert isinstance(allowfrom, str)
+
     # bookkeeping
     dbOperationsEvent = log__OperationsEvent(ctx, event_type_id, event_payload_dict)
     dbAcmeDnsServerAccount = model_objects.AcmeDnsServerAccount()
@@ -591,23 +615,67 @@ def create__AcmeDnsServerAccount(
     dbAcmeDnsServerAccount.password = password
     dbAcmeDnsServerAccount.fulldomain = fulldomain
     dbAcmeDnsServerAccount.subdomain = subdomain
-    dbAcmeDnsServerAccount.allowfrom = json.dumps(allowfrom)
+    dbAcmeDnsServerAccount.allowfrom = allowfrom
     ctx.dbSession.add(dbAcmeDnsServerAccount)
     ctx.dbSession.flush(objects=[dbAcmeDnsServerAccount])
     return dbAcmeDnsServerAccount
 
 
+def create__AriCheck(
+    ctx: "ApiContext",
+    dbCertificateSigned: "CertificateSigned",
+    ariCheckResult: Optional["AriCheckResult"],
+) -> "AriCheck":
+    dbAriCheck = model_objects.AriCheck()
+    dbAriCheck.certificate_signed_id = dbCertificateSigned.id
+    dbAriCheck.timestamp_created = ctx.timestamp
+
+    if ariCheckResult:
+        if ariCheckResult["status_code"] != 200:
+            dbAriCheck.ari_check_status = False
+            dbAriCheck.raw_response = json.dumps(ariCheckResult["payload"])
+        else:
+            if TYPE_CHECKING:
+                assert ariCheckResult["payload"] is not None
+            dbAriCheck.ari_check_status = True
+            if ariCheckResult["payload"].get("suggestedWindow"):
+                _start = ariCheckResult["payload"]["suggestedWindow"].get("start")
+                if _start:
+                    _start = utils.ari_timestamp_to_python(_start)
+                dbAriCheck.suggested_window_start = _start
+                _end = ariCheckResult["payload"]["suggestedWindow"].get("end")
+                if _end:
+                    _end = utils.ari_timestamp_to_python(_end)
+                dbAriCheck.suggested_window_end = _end
+            if ariCheckResult["payload"].get("explanationURL"):
+                dbAriCheck.explanation_url = ariCheckResult["payload"][
+                    "explanation_url"
+                ]
+            retry_after_secs = ariCheckResult["headers"].get("Retry-After")
+            if retry_after_secs:
+                retry_after = ctx.timestamp + datetime.timedelta(
+                    seconds=int(retry_after_secs)
+                )
+                dbAriCheck.timestamp_retry_after = retry_after
+    else:
+        dbAriCheck.ari_check_status = False
+
+    ctx.dbSession.add(dbAriCheck)
+    ctx.dbSession.flush(objects=[dbAriCheck])
+    return dbAriCheck
+
+
 def create__CertificateCAPreference(
     ctx: "ApiContext",
-    slot_id=None,
-    dbCertificateCA=None,
+    dbCertificateCA: "CertificateCA",
+    slot_id: Optional[int] = None,
 ) -> "CertificateCAPreference":
     """
     Create a new CertificateCAPreference entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param slot_id: (optional) The id, if any. defaults to db managing the id
     :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
+    :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     dbCertificateCAPreference = model_objects.CertificateCAPreference()
     if slot_id:
@@ -620,11 +688,12 @@ def create__CertificateCAPreference(
 
 def create__CertificateRequest(
     ctx: "ApiContext",
-    csr_pem=None,
-    certificate_request_source_id=None,
-    dbPrivateKey=None,
-    dbCertificateSigned__issued=None,
-    domain_names=None,
+    csr_pem: str,
+    certificate_request_source_id: int,
+    dbPrivateKey: "PrivateKey",
+    domain_names: List[str],
+    dbCertificateSigned__issued: Optional["CertificateSigned"] = None,
+    discovery_type: Optional[str] = None,
 ) -> "CertificateRequest":
     """
     Create a new Certificate Signing Request (CSR)
@@ -635,9 +704,9 @@ def create__CertificateRequest(
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
     :param certificate_request_source_id: (required) What is the source of this? Valid options are in :class:`model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
-
-    :param dbCertificateSigned__issued: (optional) a `model_objects.CertificateSigned`
     :param domain_names: (required) A list of domain names
+    :param dbCertificateSigned__issued: (optional) a `model_objects.CertificateSigned`
+    :param str discovery_type: (optional) Text about the discovery
     """
     if (
         certificate_request_source_id
@@ -685,58 +754,45 @@ def create__CertificateRequest(
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
 
-    _tmpfile = None
-    try:
-        if cert_utils.NEEDS_TEMPFILES:
-            # store the csr_text in a tmpfile
-            _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
+    # validate
+    cert_utils.validate_csr(csr_pem=csr_pem)
 
-        # validate
-        cert_utils.validate_csr(
-            csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
+    _csr_domain_names = cert_utils.parse_csr_domains(
+        csr_pem=csr_pem,
+        submitted_domain_names=domain_names,
+    )
+    # this function checks the domain names match a simple regex
+    csr_domain_names = cert_utils.utils.domains_from_list(_csr_domain_names)
+    if len(csr_domain_names) != len(_csr_domain_names):
+        raise ValueError(
+            "One or more of the domain names in the CSR are not allowed (%s)"
+            % _csr_domain_names
+        )
+    if not csr_domain_names:
+        raise ValueError(
+            "Must submit `csr_pem` that contains `domain_names` (found None)"
+        )
+    if set(csr_domain_names) != set(domain_names):
+        raise ValueError(
+            "received different values for `domain_names` than exist in the CSR"
         )
 
-        _csr_domain_names = cert_utils.parse_csr_domains(
-            csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
-            submitted_domain_names=domain_names,
-        )
-        # this function checks the domain names match a simple regex
-        csr_domain_names = cert_utils.utils.domains_from_list(_csr_domain_names)
-        if len(csr_domain_names) != len(_csr_domain_names):
-            raise ValueError(
-                "One or more of the domain names in the CSR are not allowed (%s)"
-                % _csr_domain_names
-            )
-        if not csr_domain_names:
-            raise ValueError(
-                "Must submit `csr_pem` that contains `domain_names` (found None)"
-            )
-        if set(csr_domain_names) != set(domain_names):
-            raise ValueError(
-                "received different values for `domain_names` than exist in the CSR"
-            )
+    # calculate the md5
+    csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
 
-        # calculate the md5
-        csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
-
-        # grab and check the spki
-        csr__spki_sha256 = cert_utils.parse_csr__spki_sha256(
-            csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name if _tmpfile else None,
-        )
-        if csr__spki_sha256 != dbPrivateKey.spki_sha256:
-            raise ValueError("Computed mismatch on SPKI")
-
-    finally:
-        if _tmpfile is not None:
-            _tmpfile.close()
+    # grab and check the spki
+    csr__spki_sha256 = cert_utils.parse_csr__spki_sha256(
+        csr_pem=csr_pem,
+    )
+    if csr__spki_sha256 != dbPrivateKey.spki_sha256:
+        raise ValueError("Computed mismatch on SPKI")
 
     # ensure the domains are registered into our system
-    domain_objects = {
+    domain_objects: Dict[str, "Domain"] = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
-            ctx, _domain_name
+            ctx,
+            _domain_name,
+            discovery_type="via CertificateRequest",
         )[
             0
         ]  # (dbDomain, _is_created)
@@ -748,7 +804,9 @@ def create__CertificateRequest(
         dbUniqueFQDNSet,
         is_created_fqdn,
     ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
-        ctx, domain_objects.values()
+        ctx,
+        list(domain_objects.values()),
+        discovery_type="via CertificateRequest",
     )
 
     # build the cert
@@ -762,6 +820,7 @@ def create__CertificateRequest(
     dbCertificateRequest.key_technology_id = dbPrivateKey.key_technology_id
     dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbCertificateRequest.spki_sha256 = csr__spki_sha256
+    dbCertificateRequest.discovery_type = discovery_type
 
     ctx.dbSession.add(dbCertificateRequest)
     ctx.dbSession.flush(objects=[dbCertificateRequest])
@@ -797,15 +856,18 @@ def create__CertificateRequest(
 
 def create__CertificateSigned(
     ctx: "ApiContext",
-    cert_pem=None,
-    cert_domains_expected=None,
-    is_active=None,
-    dbAcmeOrder=None,
-    dbCertificateCAChain=None,
-    dbCertificateCAChains_alt=None,
-    dbCertificateRequest=None,
-    dbPrivateKey=None,
-    dbUniqueFQDNSet=None,
+    cert_pem: str,
+    cert_domains_expected: List[str],
+    dbCertificateCAChain: "CertificateCAChain",
+    certificate_type_id: int,
+    # optionals
+    is_active: bool = False,
+    dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
+    dbCertificateRequest: Optional["CertificateRequest"] = None,
+    dbPrivateKey: Optional["PrivateKey"] = None,
+    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    discovery_type: Optional[str] = None,
 ) -> "CertificateSigned":
     """
     Create a new CertificateSigned
@@ -814,10 +876,13 @@ def create__CertificateSigned(
     :param cert_pem: (required) The certificate in PEM encoding
     :param cert_domains_expected: (required) a list of domains in the cert we
       expect to see
-    :param is_active: (optional) default `None`; do not activate a certificate
-      when uploading unless specified.
     :param dbCertificateCAChain: (required) The :class:`model.objects.CertificateCAChain`
       that signed this certificate.
+    :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
+      corresponding to this Certificate
+
+    :param is_active: (optional) default `False`; do not activate a certificate
+      when uploading unless specified.
     :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
       :class:`model.objects.CertificateCAChain`s that signed this certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
@@ -827,6 +892,7 @@ def create__CertificateSigned(
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
     :param dbUniqueFQDNSet: (optional) The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate.
         required if there is no `dbAcmeOrder` or `dbCertificateRequest`; do not provide otherwise
+    :param str discovery_type: (optional) Text about the discovery
     """
     if not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
@@ -849,6 +915,9 @@ def create__CertificateSigned(
     if not dbCertificateCAChain:
         raise ValueError("must submit `dbCertificateCAChain`")
 
+    if certificate_type_id not in model_utils.CertificateType._mapping:
+        raise ValueError("invalid `certificate_type_id`")
+
     assert ctx.timestamp
 
     dbAcmeAccount = None
@@ -870,6 +939,9 @@ def create__CertificateSigned(
         else:
             dbPrivateKey = dbAcmeOrder.certificate_request.private_key
 
+    if not dbPrivateKey:
+        raise ValueError("dbPrivateKey should have been supplied or inferred")
+
     if dbCertificateRequest:
         if dbUniqueFQDNSet:
             if dbUniqueFQDNSet.id != dbCertificateRequest.unique_fqdn_set_id:
@@ -886,135 +958,162 @@ def create__CertificateSigned(
         ctx, model_utils.OperationsEventType.from_string("CertificateSigned__insert")
     )
 
-    _tmpfileCert = None
+    # cleanup the cert_pem
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+
+    # validate
+    cert_utils.validate_cert(
+        cert_pem=cert_pem,
+    )
+
+    # validate the domains!
+    # let's make sure have the right domains in the cert!!
+    # this only happens on development during tests when we use a single cert
+    # for all requests...
+    # so we don't need to handle this or save it
+    cert_domains = cert_utils.parse_cert__domains(
+        cert_pem=cert_pem,
+    )
+    if set(cert_domains_expected) != set(cert_domains):
+        log.error("set(cert_domains_expected) != set(cert_domains)")
+        log.error(cert_domains_expected)
+        log.error(cert_domains)
+        raise ValueError(
+            "CertificateSigned Domains do not match the expected ones! this should never happen!"
+        )
+
+    ari_identifier: Optional[str] = None
     try:
-        # cleanup the cert_pem
-        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-        if cert_utils.NEEDS_TEMPFILES:
-            _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
-
-        # validate
-        cert_utils.validate_cert(
+        ari_identifier = cert_utils.ari_construct_identifier(
             cert_pem=cert_pem,
-            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
+        )
+    except Exception as exc:
+        log.critical("Exception `cert_utils.ari_construct_identifier`")
+        log.critical(str(exc))
+        log.critical(str(cert_pem))
+        pass
+
+    # ok, now pull the dates off the cert
+    dbCertificateSigned = model_objects.CertificateSigned()
+    dbCertificateSigned.certificate_type_id = certificate_type_id
+    dbCertificateSigned.timestamp_created = ctx.timestamp
+    dbCertificateSigned.ari_identifier = ari_identifier
+    dbCertificateSigned.cert_pem = cert_pem
+    dbCertificateSigned.cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
+    dbCertificateSigned.is_active = is_active
+    dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    dbCertificateSigned.private_key_id = dbPrivateKey.id
+    dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
+    dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
+    dbCertificateSigned.discovery_type = discovery_type
+    if dbUniqueFQDNSet.count_domains == 1:
+        dbCertificateSigned.is_single_domain_cert = True
+    elif dbUniqueFQDNSet.count_domains >= 1:
+        dbCertificateSigned.is_single_domain_cert = False
+
+    if dbAcmeOrder and dbAcmeOrder.replaces:
+        dbCertificateSigned.ari_identifier__replaces = dbAcmeOrder.replaces
+        dbCertificateSigned.certificate_signed_id__replaces = (
+            dbAcmeOrder.certificate_signed_id__replaces
         )
 
-        # validate the domains!
-        # let's make sure have the right domains in the cert!!
-        # this only happens on development during tests when we use a single cert
-        # for all requests...
-        # so we don't need to handle this or save it
-        cert_domains = cert_utils.parse_cert__domains(
-            cert_pem=cert_pem,
-            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
+    """
+    The following are set by `_certificate_parse_to_record`
+        :attr:`model.utils.CertificateSigned.timestamp_not_before`
+        :attr:`model.utils.CertificateSigned.timestamp_not_after`
+        :attr:`model.utils.CertificateSigned.cert_subject`
+        :attr:`model.utils.CertificateSigned.cert_issuer`
+        :attr:`model.utils.CertificateSigned.fingerprint_sha1`
+        :attr:`model.utils.CertificateSigned.spki_sha256`
+        :attr:`model.utils.CertificateSigned.cert_serial`
+        :attr:`model.utils.CertificateSigned.is_ari_supported__cert`
+    """
+    _certificate_parse_to_record(
+        cert_pem=cert_pem,
+        dbCertificateSigned=dbCertificateSigned,
+    )
+    if dbPrivateKey:
+        if dbCertificateSigned.spki_sha256 != dbPrivateKey.spki_sha256:
+            raise ValueError("Computed mismatch on SPKI")
+    if dbCertificateRequest:
+        dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
+
+    ctx.dbSession.add(dbCertificateSigned)
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
+
+    if dbAcmeOrder and dbAcmeOrder.certificate_signed__replaces:
+        dbAcmeOrder.certificate_signed__replaces.ari_identifier__replaced_by = (
+            ari_identifier
         )
-        if set(cert_domains_expected) != set(cert_domains):
-            log.error("set(cert_domains_expected) != set(cert_domains)")
-            log.error(cert_domains_expected)
-            log.error(cert_domains)
-            raise ValueError(
-                "CertificateSigned Domains do not match the expected ones! this should never happen!"
-            )
-
-        # ok, now pull the dates off the cert
-        dbCertificateSigned = model_objects.CertificateSigned()
-        dbCertificateSigned.timestamp_created = ctx.timestamp
-        dbCertificateSigned.cert_pem = cert_pem
-        dbCertificateSigned.cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
-        dbCertificateSigned.is_active = is_active
-        dbCertificateSigned.unique_fqdn_set_id = dbUniqueFQDNSet.id
-        dbCertificateSigned.private_key_id = dbPrivateKey.id
-        dbCertificateSigned.key_technology_id = dbPrivateKey.key_technology_id
-        dbCertificateSigned.operations_event_id__created = dbOperationsEvent.id
-        if dbUniqueFQDNSet.count_domains == 1:
-            dbCertificateSigned.is_single_domain_cert = True
-        elif dbUniqueFQDNSet.count_domains >= 1:
-            dbCertificateSigned.is_single_domain_cert = False
-
-        """
-        The following are set by `_certificate_parse_to_record`
-            :attr:`model.utils.CertificateSigned.timestamp_not_before`
-            :attr:`model.utils.CertificateSigned.timestamp_not_after`
-            :attr:`model.utils.CertificateSigned.cert_subject`
-            :attr:`model.utils.CertificateSigned.cert_issuer`
-            :attr:`model.utils.CertificateSigned.fingerprint_sha1`
-            :attr:`model.utils.CertificateSigned.spki_sha256`
-        """
-        _certificate_parse_to_record(
-            cert_pem=cert_pem,
-            cert_pem_filepath=_tmpfileCert.name if _tmpfileCert else None,
-            dbCertificateSigned=dbCertificateSigned,
+        dbAcmeOrder.certificate_signed__replaces.certificate_signed_id__replaced_by = (
+            dbCertificateSigned.id
         )
-        if dbPrivateKey:
-            if dbCertificateSigned.spki_sha256 != dbPrivateKey.spki_sha256:
-                raise ValueError("Computed mismatch on SPKI")
-        if dbCertificateRequest:
-            dbCertificateSigned.certificate_request_id = dbCertificateRequest.id
-        ctx.dbSession.add(dbCertificateSigned)
-        ctx.dbSession.flush(objects=[dbCertificateSigned])
+        ctx.dbSession.flush(objects=[dbAcmeOrder])
 
-        dbCertificateSignedChain = model_objects.CertificateSignedChain()
-        dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-        dbCertificateSignedChain.certificate_ca_chain_id = dbCertificateCAChain.id
-        dbCertificateSignedChain.is_upstream_default = True
-        ctx.dbSession.add(dbCertificateSignedChain)
-        ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+    dbCertificateSignedChain = model_objects.CertificateSignedChain()
+    dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+    dbCertificateSignedChain.certificate_ca_chain_id = dbCertificateCAChain.id
+    dbCertificateSignedChain.is_upstream_default = True
 
-        # increment account/private key counts
-        dbPrivateKey.count_certificate_signeds += 1
-        if not dbPrivateKey.timestamp_last_certificate_issue or (
-            dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
+    ctx.dbSession.add(dbCertificateSignedChain)
+    ctx.dbSession.flush(objects=[dbCertificateSignedChain])
+
+    # increment account/private key counts
+    dbPrivateKey.count_certificate_signeds += 1
+    if not dbPrivateKey.timestamp_last_certificate_issue or (
+        dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
+    ):
+        dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
+    if dbAcmeAccount:
+        dbAcmeAccount.count_certificate_signeds += 1
+        if not dbAcmeAccount.timestamp_last_certificate_issue or (
+            dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
         ):
-            dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
-        if dbAcmeAccount:
-            dbAcmeAccount.count_certificate_signeds += 1
-            if not dbAcmeAccount.timestamp_last_certificate_issue or (
-                dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
-            ):
-                dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
+            dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
 
-        event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent])
+    event_payload_dict["certificate_signed.id"] = dbCertificateSigned.id
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
 
-        _log_object_event(
-            ctx,
-            dbOperationsEvent=dbOperationsEvent,
-            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "CertificateSigned__insert"
-            ),
-            dbCertificateSigned=dbCertificateSigned,
-        )
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            "CertificateSigned__insert"
+        ),
+        dbCertificateSigned=dbCertificateSigned,
+    )
+
+    # final, just to be safe
+    ctx.dbSession.flush()
+
+    if dbAcmeOrder:
+        # dbCertificateSigned.acme_order_id__generated_by = dbAcmeOrder.id
+        dbAcmeOrder.certificate_signed = dbCertificateSigned  # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
+        dbAcmeOrder.acme_order_processing_status_id = (
+            model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
+        )  # note that we've completed this!
+
+        if dbAcmeOrder.acme_account.acme_server.is_supports_ari:
+            dbCertificateSigned.is_ari_supported__order = True
+
+        # update the renewal configuration
+        if dbAcmeOrder.renewal_configuration_id:
+            dbAcmeOrder.renewal_configuration.acme_order_id__latest_success = (
+                dbCertificateSigned.id
+            )
 
         # final, just to be safe
         ctx.dbSession.flush()
 
-        if dbAcmeOrder:
-            # dbCertificateSigned.acme_order_id__generated_by = dbAcmeOrder.id
-            dbAcmeOrder.certificate_signed = dbCertificateSigned  # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
-            dbAcmeOrder.acme_order_processing_status_id = (
-                model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
-            )  # note that we've completed this!
-
-            # final, just to be safe
-            ctx.dbSession.flush()
-
-        if dbCertificateCAChains_alt:
-            for _dbCertificateCAChain in dbCertificateCAChains_alt:
-                dbCertificateSignedChain = model_objects.CertificateSignedChain()
-                dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
-                dbCertificateSignedChain.certificate_ca_chain_id = (
-                    _dbCertificateCAChain.id
-                )
-                dbCertificateSignedChain.is_upstream_default = False
-                ctx.dbSession.add(dbCertificateSignedChain)
-                ctx.dbSession.flush(objects=[dbCertificateSignedChain])
-
-    except Exception as exc:  # noqa: F841
-        raise
-    finally:
-        if _tmpfileCert is not None:
-            _tmpfileCert.close()
+    if dbCertificateCAChains_alt:
+        for _dbCertificateCAChain in dbCertificateCAChains_alt:
+            dbCertificateSignedChain = model_objects.CertificateSignedChain()
+            dbCertificateSignedChain.certificate_signed_id = dbCertificateSigned.id
+            dbCertificateSignedChain.certificate_ca_chain_id = _dbCertificateCAChain.id
+            dbCertificateSignedChain.is_upstream_default = False
+            ctx.dbSession.add(dbCertificateSignedChain)
+            ctx.dbSession.flush(objects=[dbCertificateSignedChain])
 
     return dbCertificateSigned
 
@@ -1024,13 +1123,13 @@ def create__CertificateSigned(
 
 def create__CoverageAssuranceEvent(
     ctx: "ApiContext",
-    coverage_assurance_event_type_id=None,
-    coverage_assurance_event_status_id=None,
-    coverage_assurance_resolution_id=None,
-    dbPrivateKey=None,
-    dbCertificateSigned=None,
-    dbQueueCertificate=None,
-    dbCoverageAssuranceEvent_parent=None,
+    coverage_assurance_event_type_id: int,
+    coverage_assurance_event_status_id: int,
+    # optionals
+    coverage_assurance_resolution_id: Optional[int] = None,
+    dbPrivateKey: Optional["PrivateKey"] = None,
+    dbCertificateSigned: Optional["CertificateSigned"] = None,
+    dbCoverageAssuranceEvent_parent: Optional["CoverageAssuranceEvent"] = None,
 ) -> "CoverageAssuranceEvent":
     """
     Create a new Certificate Signing Request (CSR)
@@ -1038,11 +1137,10 @@ def create__CoverageAssuranceEvent(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param coverage_assurance_event_type_id: (required) :class:`model.utils.CoverageAssuranceEvent`
     :param coverage_assurance_event_status_id: (required) :class:`model.utils.CoverageAssuranceEventStatus`
-    :param coverage_assurance_resolution_id: (optional) :class:`model.utils.CoverageAssuranceResolution`; defaults to 'unresolved'
 
+    :param coverage_assurance_resolution_id: (optional) :class:`model.utils.CoverageAssuranceResolution`; defaults to 'unresolved'
     :param dbPrivateKey: (optional) a `model_objects.PrivateKey`
     :param dbCertificateSigned: (optional) a `model_objects.CertificateSigned`
-    :param dbQueueCertificate: (optional) a `model_objects.QueueCertificate`
     :param dbCoverageAssuranceEvent_parent: (optional) a `model_objects.CoverageAssuranceEvent`
     """
     if (
@@ -1063,7 +1161,7 @@ def create__CoverageAssuranceEvent(
         )
     if coverage_assurance_resolution_id is None:
         coverage_assurance_resolution_id = (
-            model_utils.CoverageAssuranceResolution.from_string("unresolved")
+            model_utils.CoverageAssuranceResolution.UNRESOLVED
         )
     else:
         if (
@@ -1075,9 +1173,9 @@ def create__CoverageAssuranceEvent(
                 % coverage_assurance_resolution_id
             )
 
-    if not any((dbPrivateKey, dbCertificateSigned, dbQueueCertificate)):
+    if not any((dbPrivateKey, dbCertificateSigned)):
         raise ValueError(
-            "must submit at least one of (dbPrivateKey, dbCertificateSigned, dbQueueCertificate)"
+            "must submit at least one of (dbPrivateKey, dbCertificateSigned)"
         )
 
     assert ctx.timestamp
@@ -1097,8 +1195,6 @@ def create__CoverageAssuranceEvent(
         dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
     if dbCertificateSigned:
         dbCoverageAssuranceEvent.certificate_signed_id = dbCertificateSigned.id
-    if dbQueueCertificate:
-        dbCoverageAssuranceEvent.queue_certificate_id = dbQueueCertificate.id
     if dbCoverageAssuranceEvent_parent:
         dbCoverageAssuranceEvent.coverage_assurance_event_id__parent = (
             dbCoverageAssuranceEvent_parent.id
@@ -1115,7 +1211,7 @@ def create__CoverageAssuranceEvent(
 
 def create__DomainAutocert(
     ctx: "ApiContext",
-    dbDomain=None,
+    dbDomain: "Domain",
 ) -> "DomainAutocert":
     """
     Generates a new :class:`model.objects.DomainAutocert` for the datastore
@@ -1126,7 +1222,7 @@ def create__DomainAutocert(
     assert ctx.timestamp
     dbDomainAutocert = model_objects.DomainAutocert()
     dbDomainAutocert.domain_id = dbDomain.id
-    dbDomainAutocert.timestamp_created = datetime.datetime.utcnow()
+    dbDomainAutocert.timestamp_created = datetime.datetime.now(datetime.timezone.utc)
     ctx.dbSession.add(dbDomainAutocert)
     ctx.dbSession.flush(objects=[dbDomainAutocert])
     return dbDomainAutocert
@@ -1137,11 +1233,13 @@ def create__DomainAutocert(
 
 def create__PrivateKey(
     ctx: "ApiContext",
-    acme_account_id__owner=None,
-    private_key_source_id=None,
-    private_key_type_id=None,
-    private_key_id__replaces=None,
-    key_technology_id=model_utils.KeyTechnology.from_string("RSA"),
+    private_key_source_id: int,
+    private_key_type_id: int,
+    # optionals
+    key_technology_id: int = model_utils.KeyTechnology._DEFAULT_PrivateKey_id,
+    private_key_id__replaces: Optional[int] = None,
+    acme_account_id__owner: Optional[int] = None,
+    discovery_type: Optional[str] = None,
     # bits_rsa=None,
 ) -> "PrivateKey":
     """
@@ -1150,21 +1248,30 @@ def create__PrivateKey(
     This function is a bit weird, because we invoke a GetCreate
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
-    :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
+    :param int private_key_source_id: (required) An int matching a source in A :class:`lib.utils.PrivateKeySource`
     :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
     :param int key_technology_id: (required) see `modul.utils.KeyTechnology`
     # :param int bits_rsa: (required) how many bits for the RSA PrivateKey, see `key_technology_id`
+
+    :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
+
+    :param str discovery_type: (optional) Text about the discovery
     """
-    key_pem = cert_utils.new_private_key(key_technology_id=key_technology_id)
+    cu_new_args = model_utils.KeyTechnology.to_new_args(key_technology_id)
+    key_pem = cert_utils.new_private_key(
+        key_technology_id=cu_new_args["key_technology_id"],
+        rsa_bits=cu_new_args.get("rsa_bits"),
+        ec_curve=cu_new_args.get("ec_curve"),
+    )
     dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
         ctx,
         key_pem,
-        acme_account_id__owner=acme_account_id__owner,
         private_key_source_id=private_key_source_id,
         private_key_type_id=private_key_type_id,
+        acme_account_id__owner=acme_account_id__owner,
         private_key_id__replaces=private_key_id__replaces,
+        discovery_type=discovery_type,
     )
     return dbPrivateKey
 
@@ -1172,130 +1279,173 @@ def create__PrivateKey(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def create__QueueCertificate(
+def create__RenewalConfiguration(
     ctx: "ApiContext",
-    dbAcmeAccount=None,
-    dbPrivateKey=None,
-    private_key_cycle_id__renewal=None,
-    private_key_strategy_id__requested=None,
-    dbAcmeOrder=None,
-    dbCertificateSigned=None,
-    dbUniqueFQDNSet=None,
-) -> "QueueCertificate":
+    dbAcmeAccount: "AcmeAccount",
+    private_key_cycle_id: int,
+    key_technology_id: int,
+    domains_challenged: "DomainsChallenged",
+    dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
+    acme_profile: Optional[str] = None,
+    acme_profile__backup: Optional[str] = None,
+    note: Optional[str] = None,
+) -> "RenewalConfiguration":
     """
-    Queues an item for renewal
+    Sets params for AcmeOrders and Renewals
 
     This must happen within the context other events
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object
-    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param private_key_strategy_id__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-
-    :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbCertificateSigned: (optional) A :class:`model.objects.CertificateSigned` object
-    :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
-
-    one and only one of (dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet) must be supplied
-
-    :returns :class:`model.objects.QueueCertificate`
-
+    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
+    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
+    :param note: (optional) A string to be associated with this record
+    :param acme_profile: (optional) A string of the server's profile
+    :param acme_profile__backup: (optional) A string of the server's profile
+    :returns :class:`model.objects.RenewalConfiguration`
     """
-    if private_key_cycle_id__renewal not in model_utils.PrivateKeyCycle._mapping:
-        raise ValueError(
-            "Unsupported `private_key_cycle_id__renewal`: %s"
-            % private_key_cycle_id__renewal
-        )
     if (
-        private_key_strategy_id__requested
-        not in model_utils.PrivateKeyStrategy._mapping
+        private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
     ):
         raise ValueError(
-            "Unsupported `private_key_strategy_id__requested`: %s"
-            % private_key_strategy_id__requested
+            "Unsupported `private_key_cycle_id`: %s" % private_key_cycle_id
         )
-    if not all((dbAcmeAccount, dbPrivateKey)):
-        raise ValueError("must supply both `dbAcmeAccount` and `dbPrivateKey`")
+    if (
+        key_technology_id
+        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+    ):
+        raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
     if not dbAcmeAccount.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
-    if not dbPrivateKey.is_active:
-        raise ValueError("must supply active `dbPrivateKey`")
+    if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
+        raise ValueError("`dbAcmeAccount__backup` is not active")
 
-    if (
-        sum(
-            bool(i)
-            for i in (
-                dbAcmeOrder,
-                dbCertificateSigned,
-                dbUniqueFQDNSet,
+    if acme_profile:
+        if acme_profile not in dbAcmeAccount.acme_server.profiles_list:
+            raise errors.UnknownAcmeProfile_Local(
+                "acme_profile", acme_profile, dbAcmeAccount.acme_server.profiles_list
             )
-        )
-        != 1
-    ):
-        raise ValueError(
-            "Provide one and only one of (`dbAcmeOrder, dbCertificateSigned, dbUniqueFQDNSet`)"
-        )
+
+    if acme_profile__backup:
+        if not dbAcmeAccount__backup:
+            raise ValueError(
+                "must supply active `dbAcmeAccount__backup` if `acme_profile__backup`"
+            )
+        if acme_profile__backup not in dbAcmeAccount__backup.acme_server.profiles_list:
+            raise errors.UnknownAcmeProfile_Local(
+                "acme_profile__backup",
+                acme_profile__backup,
+                dbAcmeAccount__backup.acme_server.profiles_list,
+            )
 
     assert ctx.timestamp
 
-    # what are we renewing?
-    unique_fqdn_set_id: int
-    if dbAcmeOrder:
-        unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
-    elif dbCertificateSigned:
-        unique_fqdn_set_id = dbCertificateSigned.unique_fqdn_set_id
-    elif dbUniqueFQDNSet:
-        unique_fqdn_set_id = dbUniqueFQDNSet.id
-    else:
-        raise ValueError("unexpected logic")
+    # this may raise errors.AcmeDomainsBlocklisted
+    _domain_names_all = domains_challenged.domains_as_list
+    validate_domain_names(ctx, _domain_names_all)
+
+    _domain_objects: Dict[str, "Domain"] = {}
+    for _chall, _domains in domains_challenged.items():
+        if not _domains:
+            continue
+        for _domain_name in _domains:
+            _domain_objects[
+                _domain_name
+            ] = lib.db.getcreate.getcreate__Domain__by_domainName(
+                ctx,
+                _domain_name,
+                discovery_type="via RenewalConfiguration",
+            )[
+                0
+            ]  # (dbDomain, _is_created)
+
+    dbUniqueFQDNSet, _is_created = (
+        lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
+            ctx,
+            domainObjects=[i for i in _domain_objects.values()],
+            discovery_type="via RenewalConfiguration",
+        )
+    )
+
+    dbUniquelyChallengedFQDNSet, _is_created = (
+        lib.db.getcreate.getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
+            ctx,
+            domainObjects=_domain_objects,
+            domainsChallenged=domains_challenged,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            discovery_type="via RenewalConfiguration",
+        )
+    )
+
+    # ok, so now let's make sure we don't have a duplicate...
+    # ???: Should the dbAcmeAccount__backup be used for duplicate detection?
+    # i.e. does the backup ever matter
+    # e.g. what if the primary/backup are just reversed?
+    _filters = [
+        model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
+        model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
+        == dbUniquelyChallengedFQDNSet.id,
+        model_objects.RenewalConfiguration.private_key_cycle_id == private_key_cycle_id,
+        model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
+    ]
+    if dbAcmeAccount__backup:
+        _filters.append(
+            model_objects.RenewalConfiguration.acme_account_id__backup
+            == dbAcmeAccount__backup.id
+        )
+    existingRenewalConfiguration = (
+        ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .filter(*_filters)
+        .first()
+    )
+    if existingRenewalConfiguration:
+        raise errors.DuplicateRenewalConfiguration(existingRenewalConfiguration)
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("QueueCertificate__insert")
+        ctx, model_utils.OperationsEventType.from_string("RenewalConfiguration__insert")
     )
 
-    dbQueueCertificate = model_objects.QueueCertificate()
-    dbQueueCertificate.timestamp_created = ctx.timestamp
-    dbQueueCertificate.timestamp_processed = None
-    dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
-    dbQueueCertificate.private_key_cycle_id__renewal = private_key_cycle_id__renewal
-    dbQueueCertificate.private_key_strategy_id__requested = (
-        private_key_strategy_id__requested
-    )
+    dbRenewalConfiguration = model_objects.RenewalConfiguration()
+    dbRenewalConfiguration.timestamp_created = ctx.timestamp
+    dbRenewalConfiguration.is_active = True
+    dbRenewalConfiguration.operations_event_id__created = dbOperationsEvent.id
 
     # core elements
-    dbQueueCertificate.acme_account_id = dbAcmeAccount.id
-    dbQueueCertificate.private_key_id = dbPrivateKey.id
-    dbQueueCertificate.unique_fqdn_set_id = unique_fqdn_set_id
-
-    # the source elements
-    dbQueueCertificate.acme_order_id__source = dbAcmeOrder.id if dbAcmeOrder else None
-    dbQueueCertificate.certificate_signed_id__source = (
-        dbCertificateSigned.id if dbCertificateSigned else None
+    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
+    dbRenewalConfiguration.key_technology_id = key_technology_id
+    dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
+    if dbAcmeAccount__backup:
+        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
+        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
+    dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
+        dbUniquelyChallengedFQDNSet.id
     )
-    dbQueueCertificate.unique_fqdn_set_id__source = (
-        dbUniqueFQDNSet.id if dbUniqueFQDNSet else None
-    )
+    dbRenewalConfiguration.note = note or None
+    dbRenewalConfiguration.acme_profile = acme_profile or None
 
-    ctx.dbSession.add(dbQueueCertificate)
-    ctx.dbSession.flush(objects=[dbQueueCertificate])
+    ctx.dbSession.add(dbRenewalConfiguration)
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
 
     # more bookkeeping!
-    event_payload_dict["queue_certificate.id"] = dbQueueCertificate.id
+    event_payload_dict["renewal_configuration.id"] = dbRenewalConfiguration.id
     dbOperationsEvent.set_event_payload(event_payload_dict)
     ctx.dbSession.flush(objects=[dbOperationsEvent])
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "QueueCertificate__insert"
+            "RenewalConfiguration__insert"
         ),
-        dbQueueCertificate=dbQueueCertificate,
+        dbRenewalConfiguration=dbRenewalConfiguration,
     )
 
-    return dbQueueCertificate
+    return dbRenewalConfiguration
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1305,5 +1455,5 @@ __all__ = (
     "create__CertificateRequest",
     "create__CertificateSigned",
     "create__PrivateKey",
-    "create__QueueCertificate",
+    "create__RenewalConfiguration",
 )

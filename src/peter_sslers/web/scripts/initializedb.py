@@ -1,5 +1,6 @@
+from . import _disable_warnings  # noqa: F401
+
 # stdlib
-import datetime
 import os
 import sys
 
@@ -16,6 +17,7 @@ from ..models import get_tm_session
 from ...lib.config_utils import ApplicationSettings
 from ...lib.db import _setup
 from ...lib.utils import ApiContext
+from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 
 
@@ -26,7 +28,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [var=value]\n"
-        '(example: "%s example_development.ini")' % (cmd, cmd)
+        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 
@@ -44,21 +46,22 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
     session_factory = get_session_factory(engine)
 
-    app_settings = ApplicationSettings()
-    app_settings.from_settings_dict(settings)
+    application_settings = ApplicationSettings(config_uri)
+    application_settings.from_settings_dict(settings)
 
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.utcnow(),
             dbSession=dbSession,
-            request=None,
+            request=RequestCommandline(
+                dbSession, application_settings=application_settings
+            ),
+            config_uri=config_uri,
+            application_settings=application_settings,
         )
 
-        # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
-        _setup.initialize_AcmeAccountProviders(ctx)
-        _setup.initialize_CertificateCAs(ctx)
-        _setup.initialize_DomainBlocklisted(ctx)
+        # this will setup the initial AcmeServers and the placeholder PrivateKey
+        _setup.initialize_database(ctx)
 
     transaction.commit()

@@ -18,12 +18,12 @@
 
 
 <%def name="table_AcmeAccounts(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
-                <th><!-- global_default --></th>
+                <th><!-- global_backup | global_default --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -36,7 +36,13 @@
                 <tr>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${account.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccount-${account.id}</a></td>
+                        AcmeAccount-${account.id}</a>
+                        
+                        % if account.name:
+                            <span class="label label-default">${account.name}</span>
+                        % endif
+                        
+                        </td>
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
@@ -45,16 +51,19 @@
                         % endif
                     </td>
                     <td>
+                        % if account.is_global_backup:
+                            <span class="label label-success">global backup</span>
+                        % endif
                         % if account.is_global_default:
                             <span class="label label-success">global default</span>
                         % endif
                     </td>
                     <td>
-                        <span class="label label-info">${account.acme_account_provider.name}</span>
-                        <a class="label label-info" href="${admin_prefix}/acme-account-providers">
+                        <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccountProvider-${account.acme_account_provider_id}</a>
-                            ## <code>${account.acme_account_provider.url}</code>
+                            AcmeServer-${account.acme_server_id}</a>
+                            ## <code>${account.acme_server.url}</code>
+                            <span class="label label-default">${account.acme_server.name}</span>
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
@@ -69,13 +78,14 @@
 
 
 <%def name="table_AcmeAccountKeys(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th>acme_account_id</th>
                 <th><!-- active --></th>
                 <th>source</th>
+                <th>key_technology</th>
                 % if perspective != "AcmeAccount":
                     <th>provider</th>
                 % endif
@@ -86,9 +96,14 @@
         <tbody>
             % for key in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccountKey-${key.id}</a></td>
+                    <td>
+                        ## <a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
+                        ## <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        <span class="label label-default">
+                            AcmeAccountKey-${key.id}
+                        </span>
+                        ##</a>
+                        </td>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${key.acme_account_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeAccount-${key.acme_account_id}</a></td>
@@ -99,9 +114,10 @@
                             <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
+                    <td><span class="label label-default">${key.key_technology}</span></td>
                     <td><span class="label label-default">${key.acme_account_key_source}</span></td>
                     % if perspective != "AcmeAccount":
-                        <td><span class="label label-info">${key.acme_account.acme_account_provider.name}</span></td>
+                        <td><span class="label label-info">${key.acme_account.acme_server.name}</span></td>
                     % endif
                     <td><timestamp>${key.timestamp_created}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
@@ -216,6 +232,65 @@
 </%def>
 
 
+<%def name="table_AcmeAuthorizationPotentials(data, perspective=None)">
+    <%
+        cols = ("id",
+                "domain_id",
+                "timestamp_created",
+                "acme_order_id",
+               )
+        if perspective == 'AcmeAuthorizationPotentials':
+            cols = [c for c in cols]
+        elif perspective == 'Domain':
+            cols = [c for c in cols if c != "domain_id"]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for acme_authz_potential in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/acme-authz-potential/${acme_authz_potential.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorizationPotential-${acme_authz_potential.id}
+                                </a>
+                            % elif c == 'domain_id':
+                                % if acme_authz_potential.domain_id:
+                                    <a class="label label-info" href="${admin_prefix}/domain/${acme_authz_potential.domain_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        Domain-${acme_authz_potential.domain_id}
+                                    </a>
+                                    <code>${acme_authz_potential.domain.domain_name}</code>
+                                % endif
+                            % elif c == 'timestamp_created':
+                                <timestamp>${acme_authz_potential.timestamp_created or ''}</timestamp>
+                            % elif c == 'acme_order_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authz_potential.acme_order_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acme_authz_potential.acme_order_id}
+                                </a>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AcmeAuthorizationChallenges(AcmeOrder, perspective=None)">
 <%
     if perspective != 'AcmeOrder':
@@ -293,7 +368,7 @@
 
 
 <%def name="table_AcmeChallenges(acme_challenges, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -388,7 +463,7 @@
 
 
 <%def name="table_AcmeEventLogs(acme_event_logs, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -482,64 +557,16 @@
 </%def>
 
 
-<%def name="table_AcmeOrderlesss(acme_orderlesss, perspective=None)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>is active</th>
-                <th>AcmeAccount</th>
-                <th>timestamp_created</th>
-                <th>timestamp_finalized</th>
-            </tr>
-        </thead>
-        <tbody>
-            % for order_ in acme_orderlesss:
-                <tr>
-                    <td>
-                        <a href="${admin_prefix}/acme-orderless/${order_.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrderless-${order_.id}
-                        </a>
-                    </td>
-                    <td>
-                        % if order_.is_processing:
-                            <div class="label label-success">
-                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
-                            </div>
-                        % else:
-                            <div class="label label-danger">
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                            </div>
-                        % endif
-                    </td>
-                    <td>
-                        % if order_.acme_account_id:
-                            <a href="${admin_prefix}/acme-account/${order_.acme_account_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${order_.id}
-                            </a>
-                        % endif
-                    </td>
-                    <td><timestamp>${order_.timestamp_created or ''}</timestamp></td>
-                    <td><timestamp>${order_.timestamp_finalized or ''}</timestamp></td>
-                </tr>
-            % endfor
-        </tbody>
-    </table>
-</%def>
-
 
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
         cols = ("id",
                 "is_processing",
                 "status",
-                "is_auto_renew",
-                "is_renewed",
                 "timestamp_created",
                 "timestamp_finalized",
                 "acme_account_id",
+                "renewal_configuration_id",
                 "certificate_request_id",
                 "certificate_signed_id",
                 "unique_fqdn_set_id",
@@ -554,8 +581,12 @@
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
             cols = [c for c in cols if c != "acme_account_id"]
+        elif perspective == 'RenewalConfiguration':
+            cols = [c for c in cols if c != "renewal_configuration_id"]
         elif perspective == 'UniqueFQDNSet':
             cols = [c for c in cols if c != "unique_fqdn_set_id"]
+        elif perspective == 'UniquelyChallengedFQDNSet':
+            cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         else:
             raise ValueError("invalid `perspective`")
     %>
@@ -591,14 +622,6 @@
                                         <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                     </div>
                                 % endif
-                            % elif c == 'is_auto_renew':
-                                <div class="label label-${'success' if acme_order.is_auto_renew else 'warning'}">
-                                    ${'AutoRenew' if acme_order.is_auto_renew else 'manual'}
-                                </div>
-                            % elif c == 'is_renewed':
-                                <div class="label label-${'success' if acme_order.is_renewed else 'default'}">
-                                    ${'Renewed' if acme_order.is_renewed else 'not-renewed-yet'}
-                                </div>
                             % elif c == 'status':
                                 <code>${acme_order.acme_status_order or ''}</code>
                             % elif c == 'timestamp_created':
@@ -626,6 +649,13 @@
                                         CertificateSigned-${acme_order.certificate_signed_id}
                                     </a>
                                 % endif
+                            % elif c == 'renewal_configuration_id':
+                                % if acme_order.renewal_configuration_id:
+                                    <a href="${admin_prefix}/renewal-configuration/${acme_order.renewal_configuration_id}" class="label label-info">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        RenewalConfiguration-${acme_order.renewal_configuration_id}
+                                    </a>
+                                % endif
                             % elif c == 'unique_fqdn_set_id':
                                 % if acme_order.unique_fqdn_set_id:
                                     <a href="${admin_prefix}/unique-fqdn-set/${acme_order.unique_fqdn_set_id}" class="label label-info">
@@ -642,6 +672,73 @@
     </table>
 </%def>
 
+
+<%def name="table_AriChecks(ari_checks, perspective=None)">
+    <%
+        cols = ("id",
+                "certificate_signed_id",
+                "timestamp_created",
+                "suggested_window_start",
+                "suggested_window_end",
+                "timestamp_retry_after",
+                "ari_check_status",
+               )
+        if perspective == 'CertificateSigned':
+            cols = [c for c in cols if c != 'certificate_signed_id']
+        elif perspective == 'AriChecks':
+            pass
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for ari_check in ari_checks:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/ari-check/${ari_check.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AriCheck-${ari_check.id}
+                                </a>
+                            % elif c == 'certificate_signed_id':
+                                <a href="${admin_prefix}/certificate-signed/${ari_check.certificate_signed_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateSigned-${ari_check.certificate_signed_id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${ari_check.timestamp_created or ''}</timestamp>
+                            % elif c == 'ari_check_status':
+                                % if ari_check.ari_check_status:
+                                    <div class="label label-success">
+                                        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    </div>
+                                % else:
+                                    <div class="label label-danger">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    </div>
+                                % endif
+                            % elif c == 'suggested_window_start':
+                                <timestamp>${ari_check.suggested_window_start or ''}</timestamp>
+                            % elif c == 'suggested_window_end':
+                                <timestamp>${ari_check.suggested_window_end or ''}</timestamp>
+                            % elif c == 'timestamp_retry_after':
+                                <timestamp>${ari_check.timestamp_retry_after or ''}</timestamp>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
 
 <%def name="table_CertificateCAChains(certificate_ca_chains, perspective=None)">
     <%
@@ -756,13 +853,12 @@
 
 
 <%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th>active?</th>
                 <th>auto-renew?</th>
-                <th>is renewed?</th>
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
                 % if show_expiring_days:
@@ -792,22 +888,24 @@
                     % endif
                 </td>
                 <td>
-                    % if cert.renewals_managed_by == "AcmeOrder":
-                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
-                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
-                            via AcmeOrder
-                        </div>
-                    % elif cert.renewals_managed_by == "CertificateSigned":
-                        <div class="label label-warning">
+                    % if cert.acme_order:
+                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
+                            
+                            % if cert.certificate_signed_id__replaces:
+                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % endif
+                            % if cert.certificate_signed_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % endif
+                            
+                            
+                    % else:
+                        <span class="label label-warning">
                             unavailable
-                            ## via CertificateSigned
-                        </div>
+                        </span>
                     % endif
-                </td>
-                <td>
-                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
-                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
-                    </div>
                 </td>
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
@@ -829,7 +927,7 @@
 
 
 <%def name="table_CoverageAssuranceEvents(CoverageAssuranceEvents)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -840,7 +938,6 @@
                 <th>Resolution</th>
                 <th>Private Key</th>
                 <th>Server Certificate</th>
-                <th>Queue Certificate</th>
             </tr>
         </thead>
         % for cae in CoverageAssuranceEvents:
@@ -883,15 +980,6 @@
                             CertificateSigned-${cae.certificate_signed_id}</a>
                     % endif
                 </td>
-                <td>
-                    % if cae.queue_certificate_id:
-                        <a  class="label label-info"
-                            href="${admin_prefix}/queue-certificate/${cae.queue_certificate_id}"
-                        >
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            QueueCertificate-${cae.queue_certificate_id}</a>
-                    % endif
-                </td>
             </tr>
         % endfor
     </table>
@@ -899,7 +987,7 @@
 
 
 <%def name="table_DomainAutocerts(domain_autocerts, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -996,6 +1084,48 @@
 </%def>
 
 
+<%def name="table_OperationsEvent_Payload(OperationsEvent, table_context=None)">
+    <%
+        show_event = True
+        if table_context == "log_list":
+            pass
+    %>
+    <table class="table table-striped table-condensed">
+        % for section in OperationsEvent.event_payload_json.keys():
+            <%
+                if section == "certificate_ca.ids":
+                    header = "CertificateCAs"
+                    ids_ = OperationsEvent.event_payload_json[section]
+                    url_template = "%s/certificate-ca" % admin_prefix
+                elif section == "certificate_ca.ids_fail":
+                    header = "CertificateCAs - Failures"
+                    ids_ = OperationsEvent.event_payload_json[section]
+                    url_template = "%s/certificate-ca" % admin_prefix
+                else:
+                    continue
+            %>
+            <thead>
+                <tr>
+                    <th colspan="2">${header}</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for id_ in ids_:
+                    <tr>
+                        <td></td>
+                        <td>
+                            <a class="label label-info" href="${url_template}/${id_}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${id_}
+                            </a>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        % endfor
+    </table>
+</%def>
+
 <%def name="table_OperationsObjectEvents(OperationsObjectEvents, table_context=None)">
     <%
         show_event = True
@@ -1054,7 +1184,7 @@
 
 
 <%def name="table_PrivateKeys(data, perspective=None)">
-    <table class="table table-striped">
+    <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
@@ -1099,93 +1229,72 @@
 </%def>
 
 
-<%def name="table_QueueCertificates(renewal_items, perspective=None)">
+
+
+
+<%def name="table_RenewalConfigurations(data, perspective=None)">
     <%
-        show_unique_fqdn_set = False if perspective == "UniqueFQDNSet" else True
+        cols = ("id",
+                "timestamp_created",
+                "acme_account_id",
+                "unique_fqdn_set_id",
+                "uniquely_challenged_fqdn_set_id",
+               )
+        if perspective == 'RenewalConfiguration':
+            cols = [c for c in cols]
+        elif perspective == 'AcmeAccount':
+            cols = [c for c in cols if c != "acme_account_id"]
+        elif perspective == 'UniquelyChallengedFQDNSet':
+            cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
+        elif perspective == 'Domain':
+            cols = [c for c in cols]
+        else:
+            raise ValueError("invalid `perspective`")
     %>
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>result</th>
-                % if show_unique_fqdn_set:
-                    <th>UniqueFQDNSet</th>
-                % endif
-                <th>Source</th>
-                <th>Acme Order (Generated)</th>
-                <th>Server Certificate (Generated)</th>
-                <th>timestamp_created</th>
-                <th>operations_event_id__created</th>
-                <th>timestamp_processed</th>
-                <th>timestamp_process_attempt</th>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
             </tr>
         </thead>
         <tbody>
-        % for queue_certificate in renewal_items:
-            <tr>
-                <td><a href="${admin_prefix}/queue-certificate/${queue_certificate.id}" class="label label-info">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    QueueCertificate-${queue_certificate.id}</a>
-                </td>
-                <td>
-                    <span class="label label-${'success' if queue_certificate.is_active else 'warning'}">
-                        ${'active' if queue_certificate.is_active else 'no'}
-                    </span>
-                </td>
-                <td>
-                    % if queue_certificate.process_result is None:
-                        &nbsp;
-                    % elif queue_certificate.process_result is False:
-                        <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                    % elif queue_certificate.process_result is True:
-                        <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                    % endif
-                </td>
-                % if show_unique_fqdn_set:
-                    <td>
-                        <a href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id}</a>
-                    </td>
-                % endif
-                <td>
-                    % if queue_certificate.acme_order_id__source:
-                        <a class="label label-info" href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeOrder-${queue_certificate.acme_order_id__source}</a>
-                    % endif
-                    % if queue_certificate.certificate_signed_id__source:
-                        <a class="label label-info" href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        CertificateSigned-${queue_certificate.certificate_signed_id__source}</a>
-                    % endif
-                    % if queue_certificate.unique_fqdn_set_id__source:
-                        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id__source}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id__source}</a>
-                    % endif
-                </td>
-                <td>
-                    % if queue_certificate.acme_order_id__generated:
-                        <a href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__generated}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrder-${queue_certificate.acme_order_id__generated}</a>
-                    % endif
-                </td>
-                <td>
-                    % if queue_certificate.certificate_signed_id__generated:
-                        <a href="${admin_prefix}/certificate-signed/${queue_certificate.certificate_signed_id__generated}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateSigned-${queue_certificate.certificate_signed_id__generated}</a>
-                    % endif
-                </td>
-                <td><timestamp>${queue_certificate.timestamp_created or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
-                <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
-                <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
-            </tr>
-        % endfor
+            % for renewal_configuration in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/renewal-configuration/${renewal_configuration.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RenewalConfiguration-${renewal_configuration.id}
+                                </a>
+                            % elif c == 'acme_account_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${renewal_configuration.acme_account_id}
+                                </a>
+                            % elif c == 'unique_fqdn_set_id':
+                                <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniqueFQDNSet-${renewal_configuration.unique_fqdn_set_id}
+                                </a>
+                            % elif c == 'uniquely_challenged_fqdn_set_id':
+                                <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${renewal_configuration.uniquely_challenged_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniquelyChallengedFQDNSet-${renewal_configuration.uniquely_challenged_fqdn_set_id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${renewal_configuration.timestamp_created or ''}</timestamp>
+                            % elif c == 'is_active':
+                                <timestamp>${renewal_configuration.is_active or ''}</timestamp>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
         </tbody>
     </table>
 </%def>
@@ -1216,6 +1325,7 @@
         </tbody>
     </table>
 </%def>
+
 
 
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
@@ -1280,6 +1390,35 @@
 </%def>
 
 
+<%def name="table_UniquelyChallengedFQDNSets(uniquely_challenged_fqdn_sets, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>domain_string</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in uniquely_challenged_fqdn_sets:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/uniquely-challenged-fqdn-set/${i.id}"
+                    >
+                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                     UniquelyChallengedFQDNSet-${i.id}
+                    </a>
+                </td>
+                <td>
+                    <code>${i.domain_names}</code>
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="object_event__object(object_event)">
     % if object_event.certificate_ca_id:
         <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.certificate_ca_id}">
@@ -1311,17 +1450,6 @@
         <a class="label label-info" href="${admin_prefix}/private-key/${object_event.private_key_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             PrivateKey-${object_event.private_key_id}
-        </a>
-    % elif object_event.queue_domain_id:
-        <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.queue_domain_id}">
-            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            QueueDomain-${object_event.queue_domain_id}
-        </a>
-        <code>${object_event.queue_domain.domain_name}</code>
-    % elif object_event.queue_certificate_id:
-        <a class="label label-info" href="${admin_prefix}/queue-certificate/${object_event.queue_certificate_id}">
-            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            QueueCertificate-${object_event.queue_certificate_id}
         </a>
     % elif object_event.certificate_signed_id:
         <a class="label label-info" href="${admin_prefix}/certificate-signed/${object_event.certificate_signed_id}">
@@ -1359,7 +1487,7 @@
         </li>
     </ul>
 
-    ## <code>http://127.0.0.1:7201/.well-known/admin/acme-account/new</code>
+    ## <code>http://127.0.0.1:7201/.well-known/peter_sslers/acme-account/new</code>
 </%def>
 
 
@@ -1408,7 +1536,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, allow_no_key=False)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile=None)">
     <%
         checked = {
             "none": "",
@@ -1417,21 +1545,13 @@
         }
         if dbAcmeAccountReuse:
             checked["account_key_reuse"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse and not allow_no_key:
+        elif not dbAcmeAccountReuse:
             checked["account_key_global_default"] = 'checked="checked"'
-        elif not dbAcmeAccountReuse and allow_no_key:
+        elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
     %>
-    <p>Select an AcmeAccount with one of the following options</p>
+    <p>Select a Primary AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
-        % if allow_no_key:
-            <div class="radio">
-                <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-none" value="none" ${checked["none"]}/>
-                    Do not associate this Orderless with an AcmeAccount
-                </label>
-            </div>
-        % endif
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
@@ -1447,6 +1567,7 @@
                                      </a><br/>
                     <b>pem md5:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${dbAcmeAccountReuse.acme_server.profiles}</code><br/>
                     <a  class="label label-info"
                         href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
                     >
@@ -1468,17 +1589,25 @@
                                      >
                                          AcmeAccount-${AcmeAccount_GlobalDefault.id}
                                      </a><br/>
-                    <b>server:</b> <code>${AcmeAccount_GlobalDefault.acme_account_provider.server}</code><br/>
+                    <b>server:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalDefault.acme_server.id}"
+                                     >
+                                         AcmeServer-${AcmeAccount_GlobalDefault.acme_server.id}
+                                         |
+                                        ${AcmeAccount_GlobalDefault.acme_server.server}
+                                     </a><br/>
                     <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code>
+                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${AcmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
                     <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-                There is no Global Default AcmeAccount configured. Any key can be configured as the Global Default.
-                Browse keys at
+                There is no Global Default AcmeAccount configured.
+                Any Account can be configured as the Global Default.
+                Browse Accounts at
                 <a  class="label label-info"
                     href="${admin_prefix}/acme-accounts"
                 >
@@ -1496,13 +1625,157 @@
                <input class="form-control" name="account_key_existing" id="account_key_existing-pem_md5" type="text"/>
             </div>
         </div>
+        % if support_upload:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
+                    Upload a new AcmeAccount
+                    ${formgroup__AcmeAccount_file()}
+                </label>
+            </div>
+        % endif
+        % if support_profiles:
+            <label for="acme_profile">
+                [Optional] The name of an ACME Profile on the server
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_profile" id="acme_profile" type="text" value="${default_profile or ""}"/>
+            </div>
+        % endif
+    </div>
+</%def>
+
+
+
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile=None)">
+    <%
+        checked = {
+            "none": "",
+            "account_key_reuse_backup": "",
+            "account_key_global_backup": "",
+        }
+        if dbAcmeAccountReuse:
+            checked["account_key_reuse_backup"] = 'checked="checked"'
+        elif AcmeAccount_GlobalBackup:
+            if request.api_context.application_settings["default_backup"] == "global":
+                checked["account_key_global_backup"] = 'checked="checked"'
+            else:
+                checked["none"] = 'checked="checked"'
+        else:
+            checked["none"] = 'checked="checked"'
+    %>
+    <p>Select a Backup AcmeAccount with one of the following options</p>
+    <div class="form-horizontal">
         <div class="radio">
             <label>
-                <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
-                Upload a new AcmeAccount
-                ${formgroup__AcmeAccount_file()}
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]}/>
+                No Backup Certificate
             </label>
         </div>
+        % if dbAcmeAccountReuse:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]}/>
+                    <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
+                    Select to renew with the same AcmeAccount
+                </label>
+                <p class="form-control-static">
+                    <b>resource:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
+                                     >
+                                         AcmeAccount-${dbAcmeAccountReuse.id}
+                                     </a><br/>
+                    <b>pem md5:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${dbAcmeAccountReuse.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${dbAcmeAccountReuse.acme_server.profiles}</code><br/>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-account/${dbAcmeAccountReuse.id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeAccount-${dbAcmeAccountReuse.id}
+                    </a>
+                </p>
+            </div>
+        % endif
+        % if AcmeAccount_GlobalBackup:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]}/>
+                    The Global Backup AcmeAccount.
+                </label>
+                <p class="form-control-static">
+                    <b>resource:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}"
+                                     >
+                                         AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                                     </a><br/>
+                    <b>server:</b> <a  class="label label-info"
+                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalBackup.acme_server.id}"
+                                     >
+                                         AcmeServer-${AcmeAccount_GlobalBackup.acme_server.id}
+                                         |
+                                        ${AcmeAccount_GlobalBackup.acme_server.server}
+                                     </a><br/>
+                    <b>pem md5:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${AcmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
+                    <input type="hidden" name="account_key_global_backup" value="${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                </p>
+            </div>
+        % else:
+            <div class="alert alert-warning">
+                <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                There is no Global Backup AcmeAccount configured.
+                Any Account can be configured as the Global Backup.
+                Browse Accounts at
+                <a  class="label label-info"
+                    href="${admin_prefix}/acme-accounts"
+                >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    AcmeAccounts
+                </a>
+            </div>
+        % endif
+        <div class="radio">
+            <label for="account_key_option_backup-account_key_existing">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_existing" value="account_key_existing"/>
+                The PEM MD5 of an AcmeAccountKey already enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="account_key_existing_backup" id="account_key_existing_backup-pem_md5" type="text"/>
+            </div>
+        </div>
+        % if support_profiles:
+            <label for="acme_profile">
+                [Optional] The name of an ACME Profile on the server
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_profile__backup" id="acme_profile__backup" type="text" value="${default_profile or ""}"/>
+            </div>
+        % endif
+    </div>
+</%def>
+
+
+
+<%def name="formgroup__AcmeAccount_order_defaults()">
+    <div class="form-group">
+        <label for="account__order_default_private_key_technology">Orders: Default PrivateKey Technology</label>
+        <select class="form-control" name="account__order_default_private_key_technology">
+            <% _default = model_websafe.KeyTechnology._DEFAULT_AcmeOrder %>
+            % for _option_text in model_websafe.KeyTechnology._options_AcmeAccount_order_default:
+                <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="account__order_default_private_key_cycle">Orders: Default PrivateKey Cycling</label>
+        <select class="form-control" name="account__order_default_private_key_cycle">
+            <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default %>
+            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
+                <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
     </div>
 </%def>
 
@@ -1510,22 +1783,15 @@
 <%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True)">
     <table class="table table-condensed">
         <thead>
-            <tr><th>Private Key Cycling (*required)</th></tr>
+            <tr><th>1) Select Account Defaults</th></tr>
         </thead>
         <tbody>
             <tr><td>
-                <div class="form-group">
-                    <select class="form-control" name="account__private_key_cycle">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
+                ${formgroup__AcmeAccount_order_defaults()}
             </td></tr>
         </tbody>
         <thead>
-            <tr><th>Complete A or B</th></tr>
+            <tr><th>2) Complete A or B</th></tr>
         </thead>
         <thead>
             <tr><th>A) AcmeAccountKey: PEM</th></tr>
@@ -1539,13 +1805,13 @@
                 <table class="table table-condensed table-striped">
                     <tr>
                         <th>
-                            <label for="f1-acme_account_provider_id">
-                                ACME Provider
+                            <label for="f1-acme_server_id">
+                                ACME Servers
                             </label>
                         </th>
                         <td>
-                            <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id">
-                                % for option in AcmeAccountProviders:
+                            <select class="form-control" id="f1-acme_server_id" name="acme_server_id">
+                                % for option in AcmeServers:
                                     <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                                 % endfor
                             </select>
@@ -1669,7 +1935,13 @@
 </%def>
 
 
-<%def name="formgroup__domain_names(specify_challenge=None, http01_only=False, domain_names_http01='', domain_names_dns01='')">
+<%def name="formgroup__domain_names(
+    specify_challenge=None,
+    http01_only=False,
+    domain_names_http01='',
+    domain_names_dns01='',
+    AcmeDnsServer_GlobalDefault=None,
+)">
     <div class="form-group clearfix">
         % if specify_challenge:
             <label for="f1-domain_names_http01">Domain Names - HTTP-01</label>
@@ -1678,11 +1950,19 @@
                 A comma(,) separated list of domain names to use the default HTTP-01 challenge.
             </p>
             % if not http01_only:
-                <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
-                <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01">${domain_names_dns01}</textarea>
-                <p class="help-block">
-                    A comma(,) separated list of domain names to use the DNS-01 challenge. These domains must be registered with an ACME-DNS system known to this installation.
-                </p>
+                % if not AcmeDnsServer_GlobalDefault:
+                    <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
+                    <p class="help-block">
+                        A Global ACME-DNS installation must first be configured.
+                    </p>
+                % else:
+                    <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
+                    <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01">${domain_names_dns01}</textarea>
+                    <p class="help-block">
+                        A comma(,) separated list of domain names to use the DNS-01 challenge.
+                        These domains will be registered to the global ACME-DNS system if they are not already.
+                    </p>
+                % endif
             % endif
         % else:
             <label for="f1-domain_names">Domain Names</label>
@@ -1692,6 +1972,26 @@
             </p>
         % endif
     </div>
+</%def>
+
+
+<%def name="formgroup__key_technology(default=None, options=None)">
+    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
+    <% options = options or model_websafe.KeyTechnology._options_all %>
+    <div class="form-group">
+        <label for="key_technology">Key Technology</label>
+        <select class="form-control" name="key_technology">
+            % for _option_text in options:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__note()">
+    <label for="note">Note</label>
+    <textarea class="form-control" rows="4" name="note" id="note"></textarea>
 </%def>
 
 
@@ -1720,12 +2020,12 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle__renewal(default=None)">
+<%def name="formgroup__private_key_cycle(default=None)">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="private_key_cycle__renewal">Private Key Cycle - Renewals</label>
-        <select class="form-control" name="private_key_cycle__renewal">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
+        <select class="form-control" name="private_key_cycle">
+            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
         </select>
@@ -1733,12 +2033,25 @@
 </%def>
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_key_default=None, option_generate_new=None, default=None)">
+<%def name="formgroup__private_key_cycle(default=None)">
+    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
+    <div class="form-group">
+        <label for="private_key_cycle">Private Key Cycle</label>
+        <select class="form-control" name="private_key_cycle">
+            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None,)">
     <%
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",
-            "private_key_for_account_key": "",
+            "account_default": "",
             "private_key_generate": "",
             "private_key_existing": "",
             "private_key_file_pem": "",
@@ -1747,20 +2060,20 @@
             selected[default] = _checked
         else:
             if dbPrivateKeyReuse:
-                if option_account_key_default:
-                    selected["private_key_for_account_key"] = _checked
+                if option_account_default:
+                    selected["account_default"] = _checked
                 else:
                     selected["private_key_reuse"] = _checked
             else:
-                selected["private_key_for_account_key"] = _checked
+                selected["account_default"] = _checked
     %>
     <p>Select a PrivateKey with one of the following options</p>
     <div class="form-horizontal">
-        % if option_account_key_default:
+        % if option_account_default:
             <div class="radio">
-                <label for="private_key_option-private_key_for_account_key">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_for_account_key" value="private_key_for_account_key" ${selected["private_key_for_account_key"]}>
-                    Use the AcmeAccount&#39;s Default PrivateKey or Strategy
+                <label for="private_key_option-account_default">
+                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]}>
+                    Use the AcmeAccount&#39;s Default PrivateKey Settings
                 </label>
             </div>
         % endif
@@ -1792,7 +2105,15 @@
             <div class="radio">
                 <label for="private_key_option-private_key_generate">
                     <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]}>
-                    Generate a new PrivateKey with 4096 bits.
+                    Generate a new Private Key
+
+                    <select class="form-control" id="private_key_option-private_key_generate-select" name="private_key_generate">
+                        <% _default = model_websafe.KeyTechnology._DEFAULT_Generate %>
+                        % for _option_text in model_websafe.KeyTechnology._options_Generate:
+                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+                        % endfor
+                    </select>
+                    
                 </label>
             </div>
         % endif
@@ -1805,13 +2126,15 @@
                <input class="form-control" name="private_key_existing" id="private_key_existing-pem_md5" type="text"/>
             </div>
         </div>
-        <div class="radio">
-            <label for="private_key_option-private_key_file_pem">
-                <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
-                Upload a new PrivateKey
-                    ${formgroup__PrivateKey_file()}
-            </label>
-        </div>
+        % if support_upload:
+            <div class="radio">
+                <label for="private_key_option-private_key_file_pem">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
+                    Upload a new PrivateKey
+                        ${formgroup__PrivateKey_file()}
+                </label>
+            </div>
+        % endif
     </div>
 </%def>
 
@@ -1906,6 +2229,14 @@
                 </button>
             </form>
         </li>
+        <li class="${'active' if active =='/api/update-recents.json' else ''}">
+            <form action="${admin_prefix}/api/update-recents.json" method="POST">
+                <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    update-recents.json
+                </button>
+            </form>
+        </li>
         <li class="${'active' if active =='/api/reconcile-ca' else ''}">
             <form action="${admin_prefix}/api/reconcile-cas" method="POST">
                 <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
@@ -1986,6 +2317,7 @@
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'challenged' else ''}"><a href="${admin_prefix}/domains/challenged">Challenged Domains</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'authz-potential' else ''}"><a href="${admin_prefix}/domains/authz-potential">Authorization Potentials</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'search' else ''}"><a href="${admin_prefix}/domains/search">Search Domains</a></li>
     </ul>
     <p class="pull-right">
@@ -1996,6 +2328,11 @@
             </a>
         % elif sidenav_option == 'challenged' :
             <a href="${admin_prefix}/domains/challenged.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'authz-potential' :
+            <a href="${admin_prefix}/domains/authz-potential.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
@@ -2048,9 +2385,16 @@
 
 
 <%def name="handle_querystring_result()">
-    <% result =  request.params.get('result', '') %>
+    <%
+        import pprint
+        result = request.params.get('result', '')
+    %>
     % if result == 'success':
         <div class="alert alert-success">
+    % elif result == 'error':
+        <div class="alert alert-danger">
+    % endif
+        % if result == 'success':
             <p>
                 The operation `${request.params.get('operation')}` was successful.
             </p>
@@ -2059,9 +2403,10 @@
                     Message: `${request.params.get('message')}`
                 </p>
             % endif
-        </div>
-    % elif result == 'error':
-        <div class="alert alert-danger">
+            % if _AriCheck:
+                ${pprint.pformat(_AriCheck)|n}
+            % endif
+        % elif result == 'error':
             % if request.params.get('operation'):
                 <p>
                     The operation `${request.params.get('operation')}` was not successful.
@@ -2072,11 +2417,64 @@
                     Error: `${request.params.get('error')}`
                 </p>
             % endif
-            % if request.params.get('message'):
+            % if request.params.get('error-encoded'):
                 <p>
-                    Message: `${request.params.get('message')}`
+                    Error: `${unurlify(request.params.get('error-encoded'))}`
                 </p>
             % endif
+        % endif
+        % if request.params.get('message'):
+            <p>
+                Message: `${request.params.get('message')}`
+            </p>
+        % endif
+        % if request.params.get('check-ari'):
+            <p>
+                Check-Ari Result: `${request.params.get('check-ari')}`
+            </p>
+        % endif
+        % if request.params.get('check-support'):
+            <p>
+                Check-Support Result: `${request.params.get('check-support')}`
+            </p>
+        % endif
         </div>
-    % endif
+</%def>
+
+
+
+<%def name="tr_PreferredChallenges(PreferredChallenges=None)">
+    <tr>
+        <th>PreferredChallenges</th>
+        <td>
+            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
+            % if PreferredChallenges:
+                <table class=" table-striped table-condensed">
+                    <thead>
+                        <tr>
+                            <th>AcmeOrder</th>
+                            <th>UniquelyChallengedFQDNSet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        % for (dbAcmeOrder, dbUniquelyChallengedFQDNSet2Domain) in PreferredChallenges:
+                            <tr>
+                                <td>
+                                    <a class="label label-info" href="${admin_prefix}/acme-order/${dbAcmeOrder.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${dbAcmeOrder.id}</a>
+                                </td>
+                                <td>
+                                    <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniquelyChallengedFQDNSet-${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}</a>
+                                    <code>${model_websafe.AcmeChallengeType._mapping[dbUniquelyChallengedFQDNSet2Domain.acme_challenge_type_id]}</code>
+                                </td>
+                            </tr>
+                        % endfor
+                    </tbody>
+                </table>
+            % endif
+        </td>
+    </tr>
 </%def>

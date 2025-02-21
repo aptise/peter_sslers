@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
+    from ...model.objects import AcmeServer
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateRequest
@@ -27,9 +28,9 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import OperationsObjectEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import QueueCertificate
-    from ...model.objects import QueueDomain
+    from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
+    from ...model.objects import UniquelyChallengedFQDNSet
     from ..utils import ApiContext
 
 # ==============================================================================
@@ -95,7 +96,7 @@ class AcmeLogger(object):
         acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -124,7 +125,7 @@ class AcmeLogger(object):
         acme_event_id = model_utils.AcmeEvent.from_string("v2|Account-deactivate")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -158,7 +159,7 @@ class AcmeLogger(object):
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.unique_fqdn_set_id = dbUniqueFQDNSet.id
         self.dbSession.add(dbAcmeEventLog)
@@ -194,7 +195,7 @@ class AcmeLogger(object):
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_order_id = dbAcmeOrder.id
         dbAcmeEventLog.unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
@@ -224,7 +225,7 @@ class AcmeLogger(object):
             raise ValueError("invalid version: %s" % acme_version)
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-request"
         )
@@ -253,7 +254,7 @@ class AcmeLogger(object):
             raise ValueError("invalid version: %s" % acme_version)
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-deactivate"
         )
@@ -289,7 +290,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-PostAsGet"
         )
@@ -328,7 +329,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-trigger"
         )
@@ -365,7 +366,7 @@ class AcmeLogger(object):
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
-        if failtype in ("pretest-1", "pretest-2"):
+        if failtype in ("precheck-1", "precheck-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = (
                 model_utils.AcmeChallengeFailType.from_string("setup-prevalidation")
             )
@@ -380,7 +381,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-fail"
         )
@@ -419,7 +420,7 @@ class AcmeLogger(object):
         assert self.dbAcmeOrder
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-pass"
         )
@@ -459,7 +460,7 @@ class AcmeLogger(object):
             )
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Order-finalize"
         )
@@ -503,7 +504,7 @@ class AcmeLogger(object):
             )
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.now(datetime.timezone.utc)
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Certificate-procured"
         )
@@ -544,8 +545,10 @@ def log__OperationsEvent(
     # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
-    # if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
-    #    dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
+    if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
+        # ???: TODO- investigate how this is happening; the ctx verion is merged
+        #            back in after a transaction commit
+        dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
@@ -576,16 +579,17 @@ def _log_object_event(
     dbAcmeAccountKey: Optional["AcmeAccountKey"] = None,
     dbAcmeDnsServer: Optional["AcmeDnsServer"] = None,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbAcmeServer: Optional["AcmeServer"] = None,
     dbCertificateCA: Optional["CertificateCA"] = None,
     dbCertificateCAChain: Optional["CertificateCAChain"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
-    dbQueueCertificate: Optional["QueueCertificate"] = None,
-    dbQueueDomain: Optional["QueueDomain"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    dbUniquelyChallengedFQDNSet: Optional["UniquelyChallengedFQDNSet"] = None,
+    dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
 ) -> "OperationsObjectEvent":
     """additional logging for objects"""
     dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
@@ -596,10 +600,12 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_account_id = dbAcmeAccount.id
     elif dbAcmeAccountKey:
         dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
-    elif dbAcmeOrder:
-        dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
     elif dbAcmeDnsServer:
         dbOperationsObjectEvent.acme_dns_server_id = dbAcmeDnsServer.id
+    elif dbAcmeOrder:
+        dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
+    elif dbAcmeServer:
+        dbOperationsObjectEvent.acme_server_id = dbAcmeServer.id
     elif dbCertificateCA:
         dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
     elif dbCertificateCAChain:
@@ -614,14 +620,16 @@ def _log_object_event(
         dbOperationsObjectEvent.domain_id = dbDomain.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
-    elif dbQueueCertificate:
-        dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
-    elif dbQueueDomain:
-        dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
     elif dbCertificateSigned:
         dbOperationsObjectEvent.certificate_signed_id = dbCertificateSigned.id
+    elif dbRenewalConfiguration:
+        dbOperationsObjectEvent.renewal_configuration_id = dbRenewalConfiguration.id
     elif dbUniqueFQDNSet:
         dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    elif dbUniquelyChallengedFQDNSet:
+        dbOperationsObjectEvent.uniquely_challenged_fqdn_set_id = (
+            dbUniquelyChallengedFQDNSet.id
+        )
 
     ctx.dbSession.add(dbOperationsObjectEvent)
     ctx.dbSession.flush(objects=[dbOperationsObjectEvent])

@@ -45,19 +45,39 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccount</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced()}
+                <h3>AcmeAccount - Primary</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                    support_upload=False,
+                    support_profiles=True,
+                )}
+                <hr/>
+
+                <h3>AcmeAccount - Backup</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__backup(
+                    support_profiles=True,
+                )}
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True, default="private_key_for_account_key")}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(
+                    option_account_default=True,
+                    option_generate_new=True,
+                    default="account_default",
+                    support_upload=False,
+                    )}
+                <hr/>
+                ${admin_partials.formgroup__private_key_cycle()}
                 <hr/>
 
-                ${admin_partials.formgroup__domain_names(specify_challenge=True, domain_names_http01=domain_names_http01, domain_names_dns01=domain_names_dns01)}
+                ${admin_partials.formgroup__domain_names(
+                    specify_challenge=True,
+                    domain_names_http01=domain_names_http01,
+                    domain_names_dns01=domain_names_dns01,
+                    AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
+                    )}
                 <hr/>
 
-                ${admin_partials.formgroup__private_key_cycle__renewal()}
-                <hr/>
+                ${admin_partials.formgroup__note()}
 
                 ${admin_partials.formgroup__processing_strategy()}
                 <hr/>

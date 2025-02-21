@@ -4,6 +4,12 @@ certbot is released under the Apache Version 2.0 license and Copyright (c) Elect
 This includes code from acme-tiny [https://github.com/diafygi/acme-tiny]
 acme-tiny is released under the MIT license and Copyright (c) 2015 Daniel Roesler
 
+This includes code from webtest [https://github.com/pylons/webtest]
+webtest is licensed under an MIT-style license; Copyright (c) 2010 Ian Bicking and Contributors
+
+This includes code from pryramid_sessions_redis [https://github.com/jvanasco/pryramid_sessions_redis]
+pryramid_redis_sessions is released under the FreeBSD license and Copyright (c) 2015 Jonathan Vanasco
+
 This includes code from pryramid_redis_sessions [https://github.com/ericrasmussen/pyramid_redis_sessions]
 pryramid_redis_sessions is released under the FreeBSD license and Copyright (c) 2015 Eric Rasmussen
 

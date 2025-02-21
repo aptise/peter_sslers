@@ -1,5 +1,8 @@
 # stdlib
+from typing import List
 from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -14,8 +17,11 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
-from ...model import objects as model_objects
-from ...model.objects import AcmeAuthorization
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeAuthorization
+    from ...model.objects import AcmeOrder
+    from ...model.objects import UniquelyChallengedFQDNSet2Domain
 
 
 # ==============================================================================
@@ -27,7 +33,7 @@ class View_List(Handler):
         renderer="/admin/acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:acme_authorizations_paginated",
+        route_name="admin:acme_authorizations-paginated",
         renderer="/admin/acme_authorizations.mako",
     )
     @view_config(
@@ -35,7 +41,7 @@ class View_List(Handler):
         renderer="json",
     )
     @view_config(
-        route_name="admin:acme_authorizations_paginated|json",
+        route_name="admin:acme_authorizations-paginated|json",
         renderer="json",
     )
     @docify(
@@ -72,7 +78,7 @@ class View_List(Handler):
 
         url_template = (
             "%s/acme-authorizations/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"]
+            % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -106,9 +112,9 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbAcmeAuthorization: Optional[AcmeAuthorization] = None
+    dbAcmeAuthorization: Optional["AcmeAuthorization"] = None
 
-    def _focus(self, eagerload_web=False) -> AcmeAuthorization:
+    def _focus(self, eagerload_web=False) -> "AcmeAuthorization":
         if self.dbAcmeAuthorization is None:
             dbAcmeAuthorization = lib_db.get.get__AcmeAuthorization__by_id(
                 self.request.api_context,
@@ -146,38 +152,31 @@ class View_Focus(Handler):
     )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
-        # now we need to get the AcmeOrder2AcmeChallengeTypeSpecific
-        dbAcmeOrder2AcmeChallengeTypeSpecifics = None
-        if dbAcmeAuthorization.domain_id:
-            dbAcmeOrder2AcmeChallengeTypeSpecifics = (
-                self.request.api_context.dbSession.query(
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific
-                )
-                .join(
-                    model_objects.AcmeOrder2AcmeAuthorization,
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
-                    == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
-                )
-                .filter(
-                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.domain_id
-                    == model_objects.AcmeAuthorization.domain_id
-                )
-                .all()
-            )
 
+        PreferredChallenges: List[
+            Tuple["AcmeOrder", "UniquelyChallengedFQDNSet2Domain"]
+        ] = []
+        if dbAcmeAuthorization.domain_id:
+            PreferredChallenges = (
+                lib_db.get.get__PreferredChallenges_by_acmeAuthorizationId__paginated(
+                    self.request.api_context,
+                    dbAcmeAuthorization.id,
+                    limit=10,
+                )
+            )
         if self.request.wants_json:
             return {
                 "AcmeAuthorization": dbAcmeAuthorization.as_json,
-                "AcmeOrder2AcmeChallengeTypeSpecifics": [
-                    i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics
-                ]
-                if dbAcmeOrder2AcmeChallengeTypeSpecifics
-                else None,
+                "PreferredChallenges": (
+                    [[i[0].as_json, i[1].as_json] for i in PreferredChallenges]
+                    if PreferredChallenges
+                    else None
+                ),
             }
         return {
             "project": "peter_sslers",
             "AcmeAuthorization": dbAcmeAuthorization,
-            "AcmeOrder2AcmeChallengeTypeSpecifics": dbAcmeOrder2AcmeChallengeTypeSpecifics,
+            "PreferredChallenges": PreferredChallenges,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -187,7 +186,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_orders_paginated",
+        route_name="admin:acme_authorization:focus:acme_orders-paginated",
         renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -218,7 +217,7 @@ class View_Focus(Handler):
         renderer="/admin/acme_authorization-focus-acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_challenges_paginated",
+        route_name="admin:acme_authorization:focus:acme_challenges-paginated",
         renderer="/admin/acme_authorization-focus-acme_challenges.mako",
     )
     def related__AcmeChallenges(self):
@@ -367,6 +366,7 @@ class View_Focus_Manipulate(View_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            # (status_code, resp_data, url) = AcmeServerError
             if self.request.wants_json:
                 return {
                     "result": "error",

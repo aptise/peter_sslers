@@ -9,7 +9,6 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
-import sqlalchemy
 
 # local
 from ..lib import form_utils as form_utils
@@ -17,7 +16,6 @@ from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_Domain_AcmeDnsServer_new
-from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler
@@ -26,11 +24,8 @@ from ..lib.handler import json_pagination
 from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils
 from ...lib import utils_nginx
 from ...lib import utils_redis
-from ...model import objects as model_objects
-from ...model import utils as model_utils
 from ...model.objects import Domain
 
 
@@ -45,21 +40,32 @@ class View_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domains", renderer="/admin/domains.mako")
-    @view_config(route_name="admin:domains_paginated", renderer="/admin/domains.mako")
+    @view_config(route_name="admin:domains-paginated", renderer="/admin/domains.mako")
     @view_config(route_name="admin:domains:challenged", renderer="/admin/domains.mako")
     @view_config(
-        route_name="admin:domains:challenged_paginated", renderer="/admin/domains.mako"
+        route_name="admin:domains:challenged-paginated", renderer="/admin/domains.mako"
+    )
+    @view_config(
+        route_name="admin:domains:authz_potential", renderer="/admin/domains.mako"
+    )
+    @view_config(
+        route_name="admin:domains:authz_potential-paginated",
+        renderer="/admin/domains.mako",
     )
     @view_config(route_name="admin:domains:expiring", renderer="/admin/domains.mako")
     @view_config(
-        route_name="admin:domains:expiring_paginated", renderer="/admin/domains.mako"
+        route_name="admin:domains:expiring-paginated", renderer="/admin/domains.mako"
     )
     @view_config(route_name="admin:domains|json", renderer="json")
-    @view_config(route_name="admin:domains_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains-paginated|json", renderer="json")
     @view_config(route_name="admin:domains:challenged|json", renderer="json")
-    @view_config(route_name="admin:domains:challenged_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:challenged-paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:authz_potential|json", renderer="json")
+    @view_config(
+        route_name="admin:domains:authz_potential-paginated|json", renderer="json"
+    )
     @view_config(route_name="admin:domains:expiring|json", renderer="json")
-    @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:expiring-paginated|json", renderer="json")
     @docify(
         {
             "endpoint": "/domains.json",
@@ -98,6 +104,24 @@ class View_List(Handler):
     )
     @docify(
         {
+            "endpoint": "/domains/authz-potential.json",
+            "section": "domain",
+            "about": """list Domain(s)- Autorization Potential""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domains/authz-potential.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domains/authz-potential/{PAGE}.json",
+            "section": "domain",
+            "example": "curl {ADMIN_PREFIX}/domains/authz-potential/1.json",
+            "variant_of": "/domains/authz-potential.json",
+        }
+    )
+    @docify(
+        {
             "endpoint": "/domains/expiring.json",
             "section": "domain",
             "about": """list Domain(s)- Expiring""",
@@ -115,17 +139,17 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
+        expiring_days = self.request.api_context.application_settings["expiring_days"]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
-            "admin:domains:expiring_paginated",
+            "admin:domains:expiring-paginated",
             "admin:domains:expiring|json",
-            "admin:domains:expiring_paginated|json",
+            "admin:domains:expiring-paginated|json",
         ):
             sidenav_option = "expiring"
             url_template = (
                 "%s/domains/expiring/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -142,14 +166,14 @@ class View_List(Handler):
             )
         elif self.request.matched_route.name in (
             "admin:domains:challenged",
-            "admin:domains:challenged_paginated",
+            "admin:domains:challenged-paginated",
             "admin:domains:challenged|json",
-            "admin:domains:challenged_paginated|json",
+            "admin:domains:challenged-paginated|json",
         ):
             sidenav_option = "challenged"
             url_template = (
                 "%s/domains/challenged/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -162,11 +186,33 @@ class View_List(Handler):
                 limit=items_per_page,
                 offset=offset,
             )
+        elif self.request.matched_route.name in (
+            "admin:domains:authz_potential",
+            "admin:domains:authz_potential-paginated",
+            "admin:domains:authz_potential|json",
+            "admin:domains:authz_potential-paginated|json",
+        ):
+            sidenav_option = "authz-potential"
+            url_template = (
+                "%s/domains/authz-potential/{0}"
+                % self.request.api_context.application_settings["admin_prefix"]
+            )
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__Domains_authz_potential__count(
+                self.request.api_context
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__Domains_authz_potential__paginated(
+                self.request.api_context,
+                limit=items_per_page,
+                offset=offset,
+            )
         else:
             sidenav_option = "all"
             url_template = (
                 "%s/domains/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                % self.request.api_context.application_settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -205,8 +251,13 @@ class View_Search(Handler):
             "about": """Search Domain(s)""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domains/search.json",
-            "form_fields": {"domain": "the domain"},
+            "instructions": "curl {ADMIN_PREFIX}/domains/search.json",
+            "example": "curl "
+            "--form 'domain=example.com' "
+            "{ADMIN_PREFIX}/domains/search.json",
+            "form_fields": {
+                "domain": "the domain",
+            },
         }
     )
     @view_config(route_name="admin:domains:search|json", renderer="json")
@@ -237,24 +288,12 @@ class View_Search(Handler):
             dbDomain = lib_db.get.get__Domain__by_name(
                 self.request.api_context,
                 domain_name,
-                preload=None,
+                preload=False,
                 eagerload_web=False,
-                active_only=False,
-            )
-            dbQueueDomainActive = lib_db.get.get__QueueDomain__by_name__single(
-                self.request.api_context, domain_name, active_only=True
-            )
-            dbQueueDomainsInactive = lib_db.get.get__QueueDomain__by_name__many(
-                self.request.api_context,
-                domain_name,
-                active_only=False,
-                inactive_only=True,
             )
 
             search_results = {
                 "Domain": dbDomain,
-                "QueueDomainActive": dbQueueDomainActive,
-                "QueueDomainsInactive": dbQueueDomainsInactive,
                 "query": domain_name,
             }
             self.search_results = search_results
@@ -264,12 +303,6 @@ class View_Search(Handler):
                     "query": domain_name,
                     "search_results": {
                         "Domain": dbDomain.as_json if dbDomain else None,
-                        "QueueDomainActive": dbQueueDomainActive.as_json
-                        if dbQueueDomainActive
-                        else None,
-                        "QueueDomainsInactive": [
-                            q.as_json for q in dbQueueDomainsInactive
-                        ],
                     },
                 }
             return self._search__print()
@@ -290,7 +323,10 @@ class View_New(Handler):
             "about": """New Domain""",
             "POST": True,
             "GET": None,
-            "example": "curl --form 'domain=example.com' {ADMIN_PREFIX}/domain/new.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/new.json",
+            "example": "curl "
+            "--form 'domain=example.com' "
+            "{ADMIN_PREFIX}/domain/new.json",
             "form_fields": {"domain_name": "the domain"},
         }
     )
@@ -322,12 +358,13 @@ class View_New(Handler):
             )
             domain_name = domains_challenged["http-01"][0]
 
-            # TODO: check the queue
             (
                 dbDomain,
                 _is_created,
             ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                self.request.api_context, domain_name=domain_name
+                self.request.api_context,
+                domain_name=domain_name,
+                discovery_type="upload",
             )
 
             if self.request.wants_json:
@@ -376,7 +413,7 @@ class View_Focus(Handler):
             self.dbDomain = dbDomain
             self._focus_item = dbDomain
             self._focus_url = "%s/domain/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
+                self.request.api_context.application_settings["admin_prefix"],
                 self.dbDomain.id,
             )
         return self.dbDomain
@@ -404,9 +441,9 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeChallenges_Active": [i.as_json for i in dbAcmeChallenges]
-                if dbAcmeChallenges
-                else None,
+                "AcmeChallenges_Active": (
+                    [i.as_json for i in dbAcmeChallenges] if dbAcmeChallenges else None
+                ),
             }
         return {
             "project": "peter_sslers",
@@ -427,7 +464,8 @@ class View_Focus(Handler):
             "about": """Domain focus: nginx-cache-expire""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/domain/1/nginx-cache-expire.json",
         }
     )
     def nginx_cache_expire(self):
@@ -480,7 +518,7 @@ class View_Focus(Handler):
     def config_json(self):
         dbDomain = self._focus()
         rval = dbDomain.as_json_config(
-            id_only=self.request.params.get("id_only", None), active_only=True
+            id_only=self.request.params.get("id_only", None),
         )
         if self.request.params.get("openresty", None):
             try:
@@ -505,22 +543,9 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbDomain = self._focus()
-        weekly_certs = (
-            self.request.api_context.dbSession.query(
-                model_utils.year_week(
-                    model_objects.CertificateSigned.timestamp_not_before
-                ).label("week_num"),
-                sqlalchemy.func.count(model_objects.CertificateSigned.id),
-            )
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(model_objects.UniqueFQDNSet2Domain.domain_id == dbDomain.id)
-            .group_by("week_num")
-            .order_by(sqlalchemy.asc("week_num"))
-            .all()
+        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_domainId(
+            self.request.api_context,
+            dbDomain.id,
         )
         rval["issues"] = {}
         for wc in weekly_certs:
@@ -538,7 +563,8 @@ class View_Focus(Handler):
             "about": """Domain focus: update-recents""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/update-recents.json",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/update-recents.json",
+            "example": "curl -X POST {ADMIN_PREFIX}/domain/1/update-recents.json",
         }
     )
     def update_recents(self):
@@ -577,7 +603,7 @@ class View_Focus(Handler):
         renderer="/admin/domain-focus-acme_authorizations.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_authorizations_paginated",
+        route_name="admin:domain:focus:acme_authorizations-paginated",
         renderer="/admin/domain-focus-acme_authorizations.mako",
     )
     def related__AcmeAuthorizations(self):
@@ -601,11 +627,42 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:domain:focus:acme_authorization_potentials",
+        renderer="/admin/domain-focus-acme_authorization_potentials.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_authorization_potentials-paginated",
+        renderer="/admin/domain-focus-acme_authorization_potentials.mako",
+    )
+    def related__AcmeAuthorizationPoetntials(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeAuthorizationPotentials__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        url_template = "%s/acme-authz-potentials/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__AcmeAuthorizationPotentials__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeAuthorizationPotentials_count": items_count,
+            "AcmeAuthorizationPotentials": items_paged,
+            "pager": pager,
+        }
+
+    @view_config(
         route_name="admin:domain:focus:acme_challenges",
         renderer="/admin/domain-focus-acme_challenges.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_challenges_paginated",
+        route_name="admin:domain:focus:acme_challenges-paginated",
         renderer="/admin/domain-focus-acme_challenges.mako",
     )
     def related__AcmeChallenges(self):
@@ -633,7 +690,7 @@ class View_Focus(Handler):
         renderer="/admin/domain-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_orders_paginated",
+        route_name="admin:domain:focus:acme_orders-paginated",
         renderer="/admin/domain-focus-acme_orders.mako",
     )
     def related__AcmeOrders(self):
@@ -657,39 +714,11 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain:focus:acme_orderlesss",
-        renderer="/admin/domain-focus-acme_orderless.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_orderlesss_paginated",
-        renderer="/admin/domain-focus-acme_orderless.mako",
-    )
-    def related__AcmeOrderlesss(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeOrderless__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        url_template = "%s/acme-orderlesss/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__AcmeOrderless__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeOrderlesss_count": items_count,
-            "AcmeOrderlesss": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
         route_name="admin:domain:focus:domain_autocerts",
         renderer="/admin/domain-focus-domain_autocert.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:domain_autocerts_paginated",
+        route_name="admin:domain:focus:domain_autocerts-paginated",
         renderer="/admin/domain-focus-domain_autocert.mako",
     )
     def related__DomainAutocerts(self):
@@ -717,7 +746,7 @@ class View_Focus(Handler):
         renderer="/admin/domain-focus-certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_requests_paginated",
+        route_name="admin:domain:focus:certificate_requests-paginated",
         renderer="/admin/domain-focus-certificate_requests.mako",
     )
     def related__CertificateRequests(self):
@@ -742,59 +771,411 @@ class View_Focus(Handler):
 
     @view_config(
         route_name="admin:domain:focus:certificate_signeds",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds-paginated",
+    )
+    def related__CertificateSigneds(self):
+        dbDomain = self._focus()  # noqa: F841
+        url_redirect = "%s/certificate-signeds/all" % self._focus_url
+        if self.request.wants_json:
+            url_redirect = "%s.json" % url_redirect
+        return HTTPSeeOther(url_redirect)
+
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all",
         renderer="/admin/domain-focus-certificate_signeds.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds_paginated",
+        route_name="admin:domain:focus:certificate_signeds:all-paginated",
         renderer="/admin/domain-focus-certificate_signeds.mako",
     )
-    def related__CertificateSigneds(self):
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:all-paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single-paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:single-paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi-paginated",
+        renderer="/admin/domain-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_signeds:multi-paginated|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/all.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/all/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/all/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/multi.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/multi/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/multi/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/single.json",
+            "section": "domain",
+            "about": """list Domain's CertificateSigned(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/single.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/certificate-signeds/single/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/single/1.json",
+            "variant_of": "/domain/{ID}/certificate-signeds/single.json",
+        }
+    )
+    def related__CertificateSigneds_faceted(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
+        if self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:all",
+            "admin:domain:focus:certificate_signeds:all-paginated",
+            "admin:domain:focus:certificate_signeds:all|json",
+            "admin:domain:focus:certificate_signeds:all-paginated|json",
+        ):
+            sidenav_option = "all"
+            url_template = "%s/certificate-signeds/all/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:single",
+            "admin:domain:focus:certificate_signeds:single-paginated",
+            "admin:domain:focus:certificate_signeds:single|json",
+            "admin:domain:focus:certificate_signeds:single-paginated|json",
+        ):
+            sidenav_option = "single"
+            url_template = "%s/certificate-signeds/single/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="single"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="single",
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:certificate_signeds:multi",
+            "admin:domain:focus:certificate_signeds:multi-paginated",
+            "admin:domain:focus:certificate_signeds:multi|json",
+            "admin:domain:focus:certificate_signeds:multi-paginated|json",
+        ):
+            sidenav_option = "multi"
+            url_template = "%s/certificate-signeds/multi/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="multi"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="multi",
+                limit=items_per_page,
+                offset=offset,
+            )
+        else:
+            raise ValueError("unknown route")
+
+        if self.request.matched_route.name.endswith("|json"):
+            _certificates = {c.id: c.as_json for c in items_paged}
+            return {
+                "Domain": dbDomain.as_json,
+                "CertificateSigneds": _certificates,
+                "CertificateSigneds_count": items_count,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
             "CertificateSigneds_count": items_count,
             "CertificateSigneds": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain:focus:queue_certificates",
-        renderer="/admin/domain-focus-queue_certificates.mako",
+        route_name="admin:domain:focus:renewal_configurations",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:queue_certificates_paginated",
-        renderer="/admin/domain-focus-queue_certificates.mako",
+        route_name="admin:domain:focus:renewal_configurations-paginated",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
     )
-    def related__QueueCertificates(self):
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations-paginated|json",
+        renderer="json",
+    )
+    def related__RenewalConfigurations(self):
+        dbDomain = self._focus()  # noqa: F841
+        if self.request.matched_route.name.endswith("|json"):
+            return HTTPSeeOther("%s/renewal-configurations/all.json" % self._focus_url)
+        return HTTPSeeOther("%s/renewal-configurations/all" % self._focus_url)
+
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:all",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:single",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:multi",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:all-paginated",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:single-paginated",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:multi-paginated",
+        renderer="/admin/domain-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:all|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:single|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:multi|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:all-paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:single-paginated|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:domain:focus:renewal_configurations:multi-paginated|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/all.json",
+            "section": "domain",
+            "about": """list Domain's RenewalConfigurations(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/renewal-configurations/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/all/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/all/1.json",
+            "variant_of": "/domain/{ID}/renewal-configurations/all.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/multi.json",
+            "section": "domain",
+            "about": """list Domain's RenewalConfigurations(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/renewal-configurations/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/multi/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/multi/1.json",
+            "variant_of": "/domain/{ID}/renewal-configurations/multi.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/single.json",
+            "section": "domain",
+            "about": """list Domain's RenewalConfigurations(s)""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/renewal-configurations/single.json",
+        }
+    )
+    @docify(
+        {
+            "endpoint": "/domain/{ID}/renewal-configurations/single/{PAGE}.json",
+            "section": "certificate-signed",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/single/1.json",
+            "variant_of": "/domain/{ID}/renewal-configurations/single.json",
+        }
+    )
+    def related__RenewalConfigurations_faceted(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__QueueCertificate__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        url_template = "%s/queue-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueCertificate__by_DomainId__paginated(
-            self.request.api_context,
-            dbDomain.id,
-            limit=items_per_page,
-            offset=offset,
-        )
+        if self.request.matched_route.name in (
+            "admin:domain:focus:renewal_configurations:all",
+            "admin:domain:focus:renewal_configurations:all-paginated",
+            "admin:domain:focus:renewal_configurations:all|json",
+            "admin:domain:focus:renewal_configurations:all-paginated|json",
+        ):
+            sidenav_option = "all"
+            url_template = "%s/renewal-configurations/all/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__RenewalConfigurations__by_DomainId__count(
+                self.request.api_context, dbDomain.id
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__RenewalConfigurations__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:renewal_configurations:single",
+            "admin:domain:focus:renewal_configurations:single-paginated",
+            "admin:domain:focus:renewal_configurations:single|json",
+            "admin:domain:focus:renewal_configurations:single-paginated|json",
+        ):
+            sidenav_option = "single"
+            url_template = "%s/renewal-configurations/single/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__RenewalConfigurations__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="single"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__RenewalConfigurations__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="single",
+                limit=items_per_page,
+                offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domain:focus:renewal_configurations:multi",
+            "admin:domain:focus:renewal_configurations:multi-paginated",
+            "admin:domain:focus:renewal_configurations:multi|json",
+            "admin:domain:focus:renewal_configurations:multi-paginated|json",
+        ):
+            sidenav_option = "multi"
+            url_template = "%s/renewal-configurations/multi/{0}" % self._focus_url
+            if self.request.wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__RenewalConfigurations__by_DomainId__count(
+                self.request.api_context, dbDomain.id, facet="multi"
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__RenewalConfigurations__by_DomainId__paginated(
+                self.request.api_context,
+                dbDomain.id,
+                facet="multi",
+                limit=items_per_page,
+                offset=offset,
+            )
+        else:
+            raise ValueError("unknown route")
+
+        if self.request.matched_route.name.endswith("|json"):
+            _certificates = {c.id: c.as_json for c in items_paged}
+            return {
+                "Domain": dbDomain.as_json,
+                "RenewalConfigurations": _certificates,
+                "RenewalConfigurations__count": items_count,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "QueueCertificates_count": items_count,
-            "QueueCertificates": items_paged,
+            "RenewalConfigurations__count": items_count,
+            "RenewalConfigurations": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -804,7 +1185,7 @@ class View_Focus(Handler):
         renderer="/admin/domain-focus-unique_fqdn_sets.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:unique_fqdn_sets_paginated",
+        route_name="admin:domain:focus:unique_fqdn_sets-paginated",
         renderer="/admin/domain-focus-unique_fqdn_sets.mako",
     )
     def related__UniqueFQDNSets(self):
@@ -825,112 +1206,31 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
-
-class View_Focus_Manipulate(View_Focus):
-    @view_config(route_name="admin:domain:focus:mark", renderer=None)
-    @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
-    @docify(
-        {
-            "endpoint": "/domain/{ID}/mark.json",
-            "section": "domain",
-            "about": """Domain focus: mark""",
-            "POST": True,
-            "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/mark.json",
-            "instructions": [
-                """curl --form 'action=active' {ADMIN_PREFIX}/domain/1/mark.json""",
-            ],
-            "form_fields": {"action": "the intended action"},
-            "valid_options": {"action": ["active", "inactive"]},
-        }
+    @view_config(
+        route_name="admin:domain:focus:uniquely_challenged_fqdn_sets",
+        renderer="/admin/domain-focus-uniquely_challenged_fqdn_sets.mako",
     )
-    def mark(self):
+    @view_config(
+        route_name="admin:domain:focus:uniquely_challenged_fqdn_sets-paginated",
+        renderer="/admin/domain-focus-uniquely_challenged_fqdn_sets.mako",
+    )
+    def related__UniquelyChallengedFQDNSets(self):
         dbDomain = self._focus()
-        if self.request.method == "POST":
-            return self._mark__submit(dbDomain)
-        return self._mark__print(dbDomain)
-
-    def _mark__print(self, dbDomain):
-        if self.request.wants_json:
-            return formatted_get_docs(self, "/domain/{ID}/mark.json")
-        url_post_required = "%s?result=error&error=post+required&operation=mark" % (
-            self._focus_url,
+        items_count = lib_db.get.get__UniquelyChallengedFQDNSet__by_DomainId__count(
+            self.request.api_context, dbDomain.id
         )
-        return HTTPSeeOther(url_post_required)
-
-    def _mark__submit(self, dbDomain):
-        action = "!MISSING or !INVALID"
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Domain_mark, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            action = formStash.results["action"]
-            event_type = model_utils.OperationsEventType.from_string("Domain__mark")
-            event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["domain_id"] = dbDomain.id
-            event_payload_dict["action"] = action
-            # event_status = False
-
-            # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
-            )
-
-            if action == "active":
-                if dbDomain.is_active:
-                    # `formStash.fatal_form()` will raise `FormInvalid()`
-                    formStash.fatal_form("Already active.")
-
-                lib_db.update.update_Domain_enable(
-                    self.request.api_context,
-                    dbDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="Domain__mark__active",
-                    action="activated",
-                )
-
-            elif action == "inactive":
-                if not dbDomain.is_active:
-                    # `formStash.fatal_form()` will raise `FormInvalid()`
-                    formStash.fatal_form("Already inactive.")
-
-                lib_db.update.update_Domain_disable(
-                    self.request.api_context,
-                    dbDomain,
-                    dbOperationsEvent=dbOperationsEvent,
-                    event_status="Domain__mark__inactive",
-                    action="deactivated",
-                )
-
-            else:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="action", message="Invalid option.")
-
-            self.request.api_context.dbSession.flush(
-                objects=[dbOperationsEvent, dbDomain]
-            )
-
-            if self.request.wants_json:
-                return {"result": "success", "Domain": dbDomain.as_json}
-
-            url_success = "%s?result=success&operation=mark&action=%s" % (
-                self._focus_url,
-                action,
-            )
-            return HTTPSeeOther(url_success)
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
-                self._focus_url,
-                errors.formstash_to_querystring(formStash),
-                action,
-            )
-            raise HTTPSeeOther(url_failure)
+        url_template = "%s/uniquely-challenged-fqdn-sets/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__UniquelyChallengedFQDNSet__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "UniquelyChallengedFQDNSets_count": items_count,
+            "UniquelyChallengedFQDNSets": items_paged,
+            "pager": pager,
+        }
 
 
 class View_Focus_AcmeDnsServerAccounts(View_Focus):
@@ -984,11 +1284,15 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             "about": """Domain focus: acme-dns-server/new""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json",
-            "instructions": [
-                """curl --form 'acme_dns_server_id=act1ive' {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json""",
+            "instructions": "curl {ADMIN_PREFIX}/domain/1/acme-dns-server/new.json",
+            "examples": [
+                """curl """
+                """--form 'acme_dns_server_id=act1ive' """
+                """{ADMIN_PREFIX}/domain/1/acme-dns-server/new.json""",
             ],
-            "form_fields": {"acme_dns_server_id": "the AcmeDNS Server"},
+            "form_fields": {
+                "acme_dns_server_id": "the acme-dns Server",
+            },
             "valid_options": {
                 "acme_dns_server_id": "{RENDER_ON_REQUEST}",
             },
@@ -1023,7 +1327,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
     def _new_print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/domain/new.json")
+            return formatted_get_docs(self, "/domain/{ID}/acme-dns-server/new.json")
         return render_to_response(
             "/admin/domain-focus-acme_dns_server-new.mako",
             {
@@ -1053,6 +1357,8 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 formStash.fatal_field(
                     field="acme_dns_server_id", message="Invalid AcmeDnsServer."
                 )
+            if TYPE_CHECKING:
+                assert dbAcmeDnsServer is not None
             if not dbAcmeDnsServer.is_active:
                 # `formStash.fatal_field()` will raise `FormInvalid()`
                 formStash.fatal_field(
@@ -1090,14 +1396,14 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
             # wonderful! now we need to "register" against acme-dns
             try:
-                if lib_acmedns.pyacmedns is None:
-                    raise formhandling.FormInvalid("`pyacmedns` is not installed")
-
                 # initialize a client
-                client = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
-                account = client.register_account(None)  # arg = allowlist ips
+                acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
+                account = acmeDnsClient.register_account(None)  # arg = allowlist ips
             except Exception as exc:  # noqa: F841
-                raise ValueError("error registering an account with AcmeDns")
+                # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)
+                formStash.fatal_form(
+                    message="Error communicating with the acme-dns server."
+                )
 
             dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
                 self.request.api_context,

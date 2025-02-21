@@ -32,7 +32,7 @@
 
     <div class="row">
         <div class="col-sm-12">
-            <table class="table">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -47,6 +47,12 @@
                             <span class="label label-default">
                                 ${AcmeAccount.id}
                             </span>
+                            % if AcmeAccount.name:
+                                &nbsp;
+                                <span class="label label-default">
+                                    ${AcmeAccount.name}
+                                </span>
+                            % endif
                         </td>
                     </tr>
                     <tr>
@@ -91,7 +97,7 @@
                                         </button>
                                     </form>
                                 % else:
-                                    % if not AcmeAccount.is_global_default:
+                                    % if not AcmeAccount.is_global_default and not AcmeAccount.is_global_backup:
                                         <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
@@ -104,12 +110,13 @@
                                             class="label label-warning"
                                         >
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            select another default key to deactivate this one
+                                            select another global default and backup key to deactivate this one
                                         </span>
                                     % endif
                                 % endif
                             % endif
                             % if AcmeAccount.is_can_deactivate:
+                                &nbsp;
                                 <a class="btn btn-xs btn-danger" href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/deactivate">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                     Deactivate on ACME Server
@@ -138,22 +145,42 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>Global Backup</th>
+                        <td>
+                            % if AcmeAccount.is_global_backup:
+                                <span class="label label-success">Global Backup</span>
+                            % else:
+                                <span class="label label-default"></span>
+                            % endif
+                            &nbsp;
+                            % if AcmeAccount.is_global_backup_candidate:
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="global_backup"/>
+                                    <button class="btn btn-xs btn-primary" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        Set Global Backup
+                                    </button>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>source</th>
                         <td>
                             <span class="label label-default">${AcmeAccount.acme_account_key.acme_account_key_source}</span>
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountProvider</th>
+                        <th>AcmeServer</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-providers"
+                                href="${admin_prefix}/acme-server/${AcmeAccount.acme_server_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
-                                [${AcmeAccount.acme_account_provider.name}]
-                                (${AcmeAccount.acme_account_provider.url})
+                                AcmeServer-${AcmeAccount.acme_server_id}
+                                [${AcmeAccount.acme_server.name}]
+                                (${AcmeAccount.acme_server.url})
                             </a>
                         </td>
                     </tr>
@@ -167,7 +194,17 @@
                     </tr>
                     <tr>
                         <th>terms of service</th>
-                        <td><code>${AcmeAccount.terms_of_service or ''}</code></td>
+                        <td>
+                            <code>${AcmeAccount.terms_of_service or ''}</code>
+
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/acme-account/${AcmeAccount.id}/terms-of-service"
+                            >
+                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                            </a>
+
+                        </td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
@@ -241,6 +278,7 @@
                                                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                                 KeyChange on ACME Server
                                             </a>
+                                            <p>This will use the Account default of <code>${AcmeAccount.private_key_technology}</code></p>
                                         % endif
                                         <hr/>
                                         <a href="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-account-keys" class="label label-info">
@@ -253,9 +291,23 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKey cycle</th>
+                        <th>PrivateKey Technology</th>
                         <td>
-                            <code>${AcmeAccount.private_key_cycle}</code>
+                            <code>${AcmeAccount.private_key_technology}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>
+                            <em>key rollovers will use this technology setting.</em>      
+                        </td>
+                    </tr>
+                    <tr><td colspan="2"><hr/></td></tr>
+                    <tr>
+                        <th>Order Defaults: PrivateKey Cycle</th>
+                        <td>
+                            <code>${AcmeAccount.order_default_private_key_cycle}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >
@@ -265,9 +317,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKey Technology</th>
+                        <th>Order Defaults: PrivateKey Technology</th>
                         <td>
-                            <code>${AcmeAccount.private_key_technology}</code>
+                            <code>${AcmeAccount.order_default_private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >
@@ -319,16 +371,23 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>QueueCertificate(s)</th>
+                        <th>RenewalConfigurations(s) - Primary</th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(AcmeAccount.queue_certificates__5, perspective="AcmeAccount")}
-                            % if AcmeAccount.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account/%s/queue-certificates" % (admin_prefix, AcmeAccount.id))}
+                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.renewal_configurations__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
-
-
+                    <tr>
+                        <th>RenewalConfigurations(s) - Backup</th>
+                        <td>
+                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__backup__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.renewal_configurations__backup__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations-backup" % (admin_prefix, AcmeAccount.id))}
+                            % endif
+                        </td>
+                    </tr>
                     <tr>
                         <th>AcmeOrder(s)</th>
                         <td>
@@ -338,14 +397,6 @@
                             % endif
                         </td>
                     </tr>
-                    <tr>
-                        <th>AcmeOrderless(s)</th>
-                        <td>
-                            ${admin_partials.table_AcmeOrderlesss(AcmeAccount.acme_orderlesss__5, perspective="AcmeAccount")}
-                        </td>
-                    </tr>
-
-
                     <tr>
                         <th>PrivateKey(s) Owned</th>
                         <td>
