@@ -5,7 +5,6 @@
 
 ## Routes Designed for JSON Automation
 
-
 ### `/.well-known/peter_sslers/api/deactivate-expired.json`
 
 Deactivate expired Certificates.
@@ -68,6 +67,9 @@ There is an `invoke` script to automate these imports:
            --cert-path='/etc/letsencrypt/live/example.com' \
            --server-url-root='http://127.0.0.1:7201/.well-known/peter_sslers'
 
+If peter_sslers is installed on the same machine: the commandline script
+`import_certbot`, which is installed into the shell path via entrypoints, will
+yield superior performance as it does not require HTTP.
 
 ### `/.well-known/peter_sslers/certificate-ca/upload-cert.json`
 

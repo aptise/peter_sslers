@@ -11,6 +11,7 @@ import psutil
 
 # local
 from ._utils import AppTest
+from ._utils import GLOBAL_appsettings
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import TEST_INI
 from ._utils import under_pebble
@@ -55,6 +56,12 @@ class Test_CommandlineScripts(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        sqlite_fpath = os.path.normpath(
+            GLOBAL_appsettings.get("sqlalchemy.url").replace("sqlite:///", "")
+        )
+        if os.path.exists(sqlite_fpath):
+            # if the db exists, no work to do
+            return
         try:
             with psutil.Popen(
                 ["initialize_peter_sslers_db", TEST_INI],
@@ -80,6 +87,43 @@ class Test_CommandlineScripts(unittest.TestCase):
     @unittest.skip("TODO")
     def test__import_certbot(self):
         pass
+
+    def test__initialize_db(self):
+        # if the sqlitedb exits, move it to an archived name
+        # then move it back in the finally block
+        try:
+            sqlite_fpath = os.path.normpath(
+                GLOBAL_appsettings.get("sqlalchemy.url").replace("sqlite:///", "")
+            )
+            fpath_exists = os.path.exists(sqlite_fpath)
+            fpath_archived = "%s-initdb" % sqlite_fpath
+            if fpath_exists:
+                os.rename(sqlite_fpath, fpath_archived)
+            try:
+                with psutil.Popen(
+                    ["initialize_peter_sslers_db", TEST_INI],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as proc:
+                    log.info("Wait 5 seconds...")
+                    time.sleep(5)
+                    response, err = proc.communicate()
+                    if False:
+                        print(response)
+                        print(err)
+                    try:
+                        proc.terminate()
+                    except psutil.NoSuchProcess:
+                        pass
+                    if err:
+                        raise ValueError("Exception", err)
+            except Exception as exc:  # noqa: F841
+                raise
+        finally:
+            if fpath_exists:
+                os.unlink(sqlite_fpath)
+                os.rename(fpath_archived, sqlite_fpath)
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble

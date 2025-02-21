@@ -9,6 +9,7 @@ These are documented at-length on the in-app settings page.
 
 * `cleanup_pending_authorizations` - boolean, default True. if an AcmeChallenge
   fails when processing an AcmeOrder, should the remaining AcmeAuthorizations be deactivated?
+  This is a global default; an ACME Server can be configured to disregard this setting.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
