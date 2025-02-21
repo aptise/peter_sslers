@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 
@@ -5,3 +6,4 @@ DISABLE_WARNINGS_COMMANDLINE = bool(int(os.getenv("DISABLE_WARNINGS_COMMANDLINE"
 
 if DISABLE_WARNINGS_COMMANDLINE:
     warnings.filterwarnings("ignore")
+    logging.disable(logging.CRITICAL)
