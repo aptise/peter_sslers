@@ -2013,10 +2013,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
             certificate_type_id=dbAcmeOrder.certificate_type_id,
         )
 
-        # then update the renewal configuration with the order
-        dbAcmeOrder.renewal_configuration.acme_order_id__latest_success = dbAcmeOrder.id
-        ctx.pyramid_transaction_commit()
-
         # update the logger
         authenticatedUser.acmeLogger.log_CertificateProcured(
             "v2",

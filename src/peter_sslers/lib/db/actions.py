@@ -1212,16 +1212,12 @@ def routine__order_missing(
         for r in dbRenewalConfigurations__backup:
             print(
                 "RC:%s" % r.id,
-                " AOa:%s" % r.acme_order_id__latest_attempt,
-                " AOs:%s" % r.acme_order_id__latest_success,
             )
         print("----")
         print("dbRenewalConfigurations__primary:")
         for r in dbRenewalConfigurations__primary:
             print(
                 "RC:%s" % r.id,
-                " AOa:%s" % r.acme_order_id__latest_attempt,
-                " AOs:%s" % r.acme_order_id__latest_success,
             )
 
     if DEBUG:

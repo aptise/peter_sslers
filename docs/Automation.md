@@ -3,6 +3,41 @@
 
 # Automation
 
+## Routines
+
+Several routines are designed for integration with cron scheduling:
+
+* routine__run_ari_checks 
+
+This is low-overhead and can run hourly, if not multiple times per day.
+
+This routine iterates all the enrolled certificates and polls them for ARI information.
+
+The ARI information is used to hint at renewal time.
+
+This routine does not require inbound traffic or firewall adjustment.
+
+
+* routine__automatic_orders 
+
+This has moderate overhead and should run at least once a day.
+
+This routine may require inbound traffic and firewall adjustment.
+
+This routine does two tasks:
+
+1- Orders missing certificates.  When a RenewalConfiguration supporting a backup
+certificate is created, only the primary is ordered.  The backup order is deferred
+to manual ordering or being picked up by this routine.
+
+2- Renews expiring certificates.
+
+
+
+
+
+
+
 ## Routes Designed for JSON Automation
 
 ### `/.well-known/peter_sslers/api/deactivate-expired.json`

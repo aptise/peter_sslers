@@ -8,17 +8,17 @@ UX:
 * AcmeDNS
     dev docs
     tests
-    
-AUDIT:
 
-    acme_order_id__latest_attempt
-    acme_order_id__latest_success
-    acme_order__latest_attempt
-    acme_order__latest_success    
     
 Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
+
+
+    
+        
+        
+        
 
 check to see if we correctly handle this:
     request with an invalid replaces

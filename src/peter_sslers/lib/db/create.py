@@ -333,10 +333,6 @@ def create__AcmeOrder(
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
 
-    # then update the renewal configuration with the order
-    dbRenewalConfiguration.acme_order_id__latest_attempt = dbAcmeOrder.id
-    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
-
     # and note the submission
     create__AcmeOrderSubmission(ctx, dbAcmeOrder)
 

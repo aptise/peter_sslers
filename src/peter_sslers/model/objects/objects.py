@@ -4428,12 +4428,6 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    acme_order_id__latest_attempt: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
-    )
-    acme_order_id__latest_success: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
-    )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
@@ -4455,16 +4449,6 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="RenewalConfiguration.id==AcmeOrder.renewal_configuration_id",
         back_populates="renewal_configuration",
         uselist=True,
-    )
-    acme_order__latest_attempt = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="RenewalConfiguration.acme_order_id__latest_attempt==AcmeOrder.id",
-        uselist=False,
-    )
-    acme_order__latest_success = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="RenewalConfiguration.acme_order_id__latest_success==AcmeOrder.id",
-        uselist=False,
     )
     # only used for reused key cycles
     private_key_reuse = sa_orm_relationship(
