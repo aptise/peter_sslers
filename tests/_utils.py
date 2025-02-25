@@ -10,6 +10,7 @@ import sqlite3
 import subprocess
 import time
 import traceback
+from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import overload
@@ -198,6 +199,7 @@ OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERS
 # export this for some better debugging
 DEBUG_ACMEORDERS = bool(int(os.environ.get("DEBUG_ACMEORDERS", 0)))
 DEBUG_DBFREEZE = bool(int(os.environ.get("DEBUG_DBFREEZE", 0)))
+DEBUG_DBFREEZE_ARCHIVE = bool(int(os.environ.get("DEBUG_DBFREEZE_ARCHIVE", 0)))
 DEBUG_GITHUB_ENV = bool(int(os.environ.get("DEBUG_GITHUB_ENV", 0)))
 DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
 DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
@@ -277,6 +279,7 @@ if DEBUG_GITHUB_ENV:
     print("DEBUG_PEBBLE_REDIS:", DEBUG_PEBBLE_REDIS)
     print("DEBUG_METRICS:", DEBUG_METRICS)
     print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
+    print("DEBUG_DBFREEZE_ARCHIVE:", DEBUG_DBFREEZE_ARCHIVE)
     print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
     print("TEST_INI:", TEST_INI)
 
@@ -286,7 +289,14 @@ GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
 GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
 
 
-def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
+class CustomizedTestCase(unittest.TestCase):
+    ctx: ApiContext
+    testapp: Union[TestApp, StopableWSGIServer]
+    __name__: str
+    _filepath_testfile: Callable
+
+
+def clear_testing_setup_data(testCase: CustomizedTestCase) -> Literal[True]:
     """
     inverse to clear data
     """
@@ -355,7 +365,7 @@ def new_test_connections():
     request = FakeRequest()
     dbSession = session_factory(info={"request": request})
 
-    ctx = utils.ApiContext(
+    ctx = ApiContext(
         request=request,
         dbSession=dbSession,
         config_uri=TEST_INI,
@@ -867,15 +877,18 @@ def _db_unfreeze__actual(
             print(excc)
 
         # if that doesn't work, log it to an artifact
-        if AppTestCore._currentTest:
-            # prefer the name
-            failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
-        else:
-            # otherwise, save it do a UUID
-            failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
-        if DEBUG_DBFREEZE:
-            print("DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname)
-        shutil.copy(active_filename, failname)
+        if DEBUG_DBFREEZE_ARCHIVE:
+            if AppTestCore._currentTest:
+                # prefer the name
+                failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
+            else:
+                # otherwise, save it do a UUID
+                failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+            if DEBUG_DBFREEZE:
+                print(
+                    "DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname
+                )
+            shutil.copy(active_filename, failname)
         # instead of raising an exc, just delete it
         # TODO: bugfix how/why this is only breaking in CI on
         if DEBUG_DBFREEZE:
@@ -912,7 +925,7 @@ def _db_unfreeze__actual(
 def db_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
-    testCase: Optional[unittest.TestCase] = None,
+    testCase: Optional[CustomizedTestCase] = None,
 ) -> Optional[bool]:
     """
     pass in the testCase to ensure we close those database connections
@@ -1420,7 +1433,7 @@ def routes_tested(*args):
 
 
 def do__AcmeServers_sync(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
 ) -> bool:
     # both exist after setup
     dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
@@ -1448,7 +1461,7 @@ def do__AcmeServers_sync(
 
 @routes_tested("admin:acme_account:new|json")
 def make_one__AcmeAccount__random(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
 ) -> Tuple[model_objects.AcmeAccount, int]:
     """use the json api!"""
     form = {
@@ -1476,7 +1489,7 @@ def make_one__AcmeAccount__random(
 
 @routes_tested("admin:acme_account:upload|json")
 def make_one__AcmeAccount__pem(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
     account__contact: str,
     pem_file_name: str,
     expect_failure: bool = False,
@@ -1511,7 +1524,7 @@ def make_one__AcmeAccount__pem(
 
 @routes_tested("admin:acme_order:new:freeform|json")
 def make_one__AcmeOrder(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
     account_key_option_backup: Optional[str] = None,
@@ -1554,7 +1567,7 @@ def make_one__AcmeOrder(
 
 @routes_tested("admin:acme_order:new:freeform|json")
 def make_one__AcmeOrder__random(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
     domain_names_http01 = generate_random_domain(testCase=testCase)
@@ -1566,7 +1579,7 @@ def make_one__AcmeOrder__random(
 
 
 def make_one__DomainBlocklisted(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
     domain_name: str,
 ):
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
@@ -1582,7 +1595,7 @@ def make_one__DomainBlocklisted(
 
 
 def make_one__RenewalConfiguration(
-    testCase: unittest.TestCase,
+    testCase: CustomizedTestCase,
     dbAcmeAccount: model_objects.AcmeAccount,
     domain_names_http01: str,
     private_key_cycle: Optional[str] = "account_default",
@@ -1636,7 +1649,7 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
                     raise lib_errors.AcmeDnsServerError()
 
 
-def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     testCase.ctx.pyramid_transaction_commit()
     dbAcmeOrders = (
         testCase.ctx.dbSession.query(model_objects.AcmeOrder)
@@ -1653,7 +1666,7 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
         .all()
     )
     for _dbRenewalConfiguration in dbRenewalConfigurations:
-        result = lib_db_update.update_RenewalConfiguration__unset_active(
+        _result = lib_db_update.update_RenewalConfiguration__unset_active(
             testCase.ctx, _dbRenewalConfiguration
         )
     testCase.ctx.pyramid_transaction_commit()
@@ -1735,7 +1748,7 @@ class _Mixin_filedata(object):
         return data_s
 
 
-class AppTestCore(unittest.TestCase, _Mixin_filedata):
+class AppTestCore(CustomizedTestCase, _Mixin_filedata):
     """
     AppTestCore provides the main support for testing.
 
@@ -1819,7 +1832,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 print("AppTestCore.setUp | recreating the database")
 
                 request = FakeRequest()
-                ctx = utils.ApiContext(
+                ctx = ApiContext(
                     dbSession=dbSession,
                     request=request,
                     config_uri=TEST_INI,
@@ -1882,10 +1895,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         self._session_factory = None
         self._turnoff_items()
 
-    _ctx: Optional[utils.ApiContext] = None
+    _ctx: Optional[ApiContext] = None
 
     @property
-    def ctx(self) -> utils.ApiContext:
+    def ctx(self) -> ApiContext:
         """
         originally in `AppTest`, not `AppTestCore` but some functions here need it
         """
@@ -1893,7 +1906,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             dbSession_factory = self._pyramid_app.registry["dbSession_factory"]
             request = FakeRequest()
 
-            self._ctx = utils.ApiContext(
+            self._ctx = ApiContext(
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
                 config_uri=TEST_INI,
@@ -2540,6 +2553,7 @@ class AppTest(AppTestCore):
                     )
 
                     dbAcmeDnsServer_2: Optional[model_objects.AcmeDnsServer] = None
+                    assert self.ctx.application_settings
                     _acme_dns_support = self.ctx.application_settings[
                         "acme_dns_support"
                     ]
@@ -2704,13 +2718,13 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
 # ==============================================================================
 
 
-def testcase_to_prefix(testCase: unittest.TestCase) -> str:
+def testcase_to_prefix(testCase: CustomizedTestCase) -> str:
     prefix = "%s.%s" % (testCase.__class__.__name__, testCase._testMethodName)
     prefix = prefix.replace("_", "-")
     return prefix
 
 
-def testcaseClass_to_prefix(testCase: unittest.TestCase) -> str:
+def testcaseClass_to_prefix(testCase: CustomizedTestCase) -> str:
     prefix = "%s." % testCase.__name__
     prefix = prefix.replace("_", "-")
     return prefix
@@ -2722,7 +2736,7 @@ def generate_random_emailaddress(template="%s@example.com") -> str:
 
 def generate_random_domain(
     template="%s.example.com",
-    testCase: Optional[unittest.TestCase] = None,
+    testCase: Optional[CustomizedTestCase] = None,
 ) -> str:
     # optionally provide a testcase to insert into the generated names
     # this is useful for debugging test creation

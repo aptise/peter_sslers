@@ -17,15 +17,15 @@ from peter_sslers.lib import acme_v2
 from peter_sslers.lib import utils
 from peter_sslers.lib.db import getcreate as lib_db_getcreate
 from peter_sslers.model import utils as model_utils
+from peter_sslers.lib.utils import ApiContext
 from ._utils import AppTest
-
 
 # ==============================================================================
 
 
 class _MixIn_AcmeAccount(object):
     _filedata_testfile: Callable
-    ctx: Callable[[], utils.ApiContext]
+    ctx: ApiContext
 
     def _makeOne_AcmeAccount(
         self,

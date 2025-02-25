@@ -1,7 +1,43 @@
 URGENT
 =====
     
-UX:
+EnrollmentPolicy
+    use for autocert
+    use for certificate-if-needed
+    use for globals
+
+Backend
+    Change "global backup" and "global default" to use Enrollment Policy
+
+Regular Cert defaults
+    Backup use Default?
+
+
+
+Renewal Template?
+
+AcmeOrdering
+    Ensure Poilcy is in Directory before ordering
+    Auto-update directory samples
+    
+QueryString errors and encodings
+    redo    
+
+
+Tests:
+    AcmeAccounts:
+        test to ensure a Default can't be set to the same server as Backup
+        test to ensure a Backup can't be set to the same server as Default
+        ensure 2 acme accounts don't have the same key
+    AcmeOrder:
+        test with valid profile
+        test with invalid profile
+    EnrollmentPolicy:
+        edit
+    Renewal Configuration
+        ensure acme_profile__backup and *ACCOUNT_DEFAULT* work
+
+ UX:
     do a quick overview of key objects
     reorganize
 
@@ -13,39 +49,7 @@ Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
 
-
-Renewal Template?
-AutoCert Configuration
-    Primary Policy
-    Backup Policy
-
-Enrollment Policy
-    Primary Account
-    Backup Account
-
-Backend
-    Change "global backup" and "global default" to use Enrollment Policy
-
-
-
-Regular Cert defaults
-    Backup use Default?
-
-
-AcmeOrdering
-    Ensure Poilcy is in Directory before ordering
-    
-
-Renewal Configuration
-    TESTS
-        ensure acme_profile__backup and *ACCOUNT_DEFAULT* work
-
-QueryString errors and encodings
-    redo    
-
-
-    
-    
+   
     
     
 
@@ -86,14 +90,6 @@ acme-account register
         Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
     External Account Binding
 
-Tests:
-    AcmeAccounts:
-        test to ensure a Default can't be set to the same server as Backup
-        test to ensure a Backup can't be set to the same server as Default
-        ensure 2 acme accounts don't have the same key
-    AcmeOrder:
-        test with valid profile
-        test with invalid profile
     
 
 Not Urgent 

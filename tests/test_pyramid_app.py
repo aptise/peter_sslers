@@ -34,6 +34,7 @@ from ._utils import _ROUTES_TESTED
 from ._utils import AppTest
 from ._utils import AppTestWSGI
 from ._utils import check_error_AcmeDnsServerError
+from ._utils import CustomizedTestCase
 from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import do__AcmeServers_sync
@@ -126,7 +127,7 @@ log.setLevel(logging.CRITICAL)
 # =====
 
 
-def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     """
     This function is used to setup some of the testing data under pebble.
 
@@ -10995,6 +10996,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
         dbRenewalConfiguration_2 = lib_db_get.get__RenewalConfiguration__by_id(
             self.ctx, obj_id
         )
+        assert dbRenewalConfiguration_2
         assert dbRenewalConfiguration_2.is_active is True
 
         renewal_configuration_id__2 = dbRenewalConfiguration_2.id
