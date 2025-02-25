@@ -981,6 +981,23 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
+    # !!!: Enrollment Policy
+    config.add_route_7(
+        "admin:enrollment_policys",
+        "/enrollment-policys",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_policy:focus",
+        "/enrollment-policy/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_policy:focus:edit",
+        "/enrollment-policy/{@id}/edit",
+        jsonify=True,
+    )
+
     # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -

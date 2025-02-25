@@ -91,6 +91,7 @@ class getcreate__AcmeAccount__kwargs(TypedDict, total=False):
     private_key_technology_id: Optional[int]
     order_default_private_key_cycle_id: Optional[int]
     order_default_private_key_technology_id: Optional[int]
+    order_default_acme_profile: Optional[str]
 
 
 def getcreate__AcmeAccount(
@@ -108,6 +109,7 @@ def getcreate__AcmeAccount(
     private_key_technology_id: Optional[int] = None,
     order_default_private_key_cycle_id: Optional[int] = None,
     order_default_private_key_technology_id: Optional[int] = None,
+    order_default_acme_profile: Optional[str] = None,
 ) -> Tuple["AcmeAccount", bool]:
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
@@ -368,6 +370,7 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.order_default_private_key_technology_id = (
         order_default_private_key_technology_id
     )
+    dbAcmeAccount.order_default_acme_profile = order_default_acme_profile
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])

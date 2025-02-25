@@ -303,7 +303,7 @@
                             <em>key rollovers will use this technology setting.</em>      
                         </td>
                     </tr>
-                    <tr><td colspan="2"><hr/></td></tr>
+                    <tr><td colspan="2">Order Defautls<hr/></td></tr>
                     <tr>
                         <th>Order Defaults: PrivateKey Cycle</th>
                         <td>
@@ -320,6 +320,18 @@
                         <th>Order Defaults: PrivateKey Technology</th>
                         <td>
                             <code>${AcmeAccount.order_default_private_key_technology}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>                        
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Order Defaults: Acme Profile</th>
+                        <td>
+                            <code>${AcmeAccount.order_default_acme_profile or ""}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >

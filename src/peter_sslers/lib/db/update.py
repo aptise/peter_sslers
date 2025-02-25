@@ -13,6 +13,7 @@ from dateutil import parser as dateutil_parser
 from typing_extensions import Literal
 
 # localapp
+from .get import get__AcmeAccount__by_id
 from .get import get__AcmeAccount__GlobalBackup
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentPolicy
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
@@ -63,6 +65,7 @@ def update_AcmeAccount__order_defaults(
     dbAcmeAccount: "AcmeAccount",
     order_default_private_key_cycle: str,
     order_default_private_key_technology: str,
+    order_default_acme_profile: Optional[str] = None,
 ) -> str:
     _transitions: List[str] = []
     if dbAcmeAccount.order_default_private_key_cycle != order_default_private_key_cycle:
@@ -110,6 +113,9 @@ def update_AcmeAccount__order_defaults(
             order_default_private_key_technology_id
         )
         _transitions.append("order_default_private_key_technology_id")
+    if dbAcmeAccount.order_default_acme_profile != order_default_acme_profile:
+        dbAcmeAccount.order_default_acme_profile = order_default_acme_profile
+        _transitions.append("order_default_acme_profile")
     if not _transitions:
         raise ValueError("No valid transitions atempted")
     event_status = "AcmeAccount__edit__order_defaults"
@@ -829,6 +835,64 @@ def update_DomainAutocert_with_AcmeOrder(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_EnrollmentPolicy(
+    ctx: "ApiContext",
+    dbEnrollmentPolicy: "EnrollmentPolicy",
+    acme_account_id: int,
+    private_key_cycle: str,
+    key_technology: str,
+    acme_profile: Optional[str],
+    acme_account_id__backup: int,
+    private_key_cycle__backup: str,
+    key_technology__backup: str,
+    acme_profile__backup: Optional[str],
+) -> bool:
+    if not any((acme_account_id, private_key_cycle, key_technology)):
+        raise errors.InvalidTransition("Missing Required Primary.")
+
+    dbAcmeAccount = get__AcmeAccount__by_id(ctx, acme_account_id)
+    if not dbAcmeAccount:
+        raise errors.InvalidTransition("Could not load Primary")
+
+    if acme_account_id__backup:
+        dbAcmeAccountBackup = get__AcmeAccount__by_id(ctx, acme_account_id__backup)
+        if not dbAcmeAccountBackup:
+            raise errors.InvalidTransition("Could not load Backup")
+        if dbAcmeAccount.acme_server_id == dbAcmeAccountBackup.acme_server_id:
+            raise errors.InvalidTransition(
+                "Backup AcmeAccount MUST be on a different server than Primary"
+            )
+
+    changes = False
+
+    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+
+    private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__backup
+    )
+    key_technology_id__backup = model_utils.KeyTechnology.from_string(
+        key_technology__backup
+    )
+
+    pairings = (
+        ("acme_account_id", acme_account_id),
+        ("private_key_cycle_id", private_key_cycle_id),
+        ("key_technology_id", key_technology_id),
+        ("acme_profile", acme_profile),
+        ("acme_account_id__backup", acme_account_id__backup),
+        ("private_key_cycle_id__backup", private_key_cycle_id__backup),
+        ("key_technology_id__backup", key_technology_id__backup),
+        ("acme_profile__backup", acme_profile__backup),
+    )
+    for p in pairings:
+        if getattr(dbEnrollmentPolicy, p[0]) != p[1]:
+            setattr(dbEnrollmentPolicy, p[0], p[1])
+            changes = True
+
+    return changes
 
 
 def update_PrivateKey__set_active(

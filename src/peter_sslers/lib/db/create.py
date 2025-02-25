@@ -1285,6 +1285,7 @@ def create__RenewalConfiguration(
     acme_profile: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
     note: Optional[str] = None,
+    enrollment_policy: Optional[str] = None,  # ="certificate-if-needed",
 ) -> "RenewalConfiguration":
     """
     Sets params for AcmeOrders and Renewals

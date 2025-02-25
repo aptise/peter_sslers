@@ -33,6 +33,7 @@ from sqlalchemy.orm.session import Session as sa_Session
 # from sqlalchemy import inspect as sa_inspect
 
 # local
+from .mixins import _Mixin_AcmeAccount_Effective
 from .mixins import _Mixin_Hex_Pretty
 from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
@@ -121,6 +122,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     order_default_private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
+    order_default_acme_profile: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True
+    )
 
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True
@@ -163,6 +167,18 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
+    enrollment_policies = sa_orm_relationship(
+        "EnrollmentPolicy",
+        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id",
+        uselist=False,
+        back_populates="acme_account",
+    )
+    enrollment_policies__backup = sa_orm_relationship(
+        "EnrollmentPolicy",
+        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__backup",
+        uselist=False,
+        back_populates="acme_account__backup",
+    )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="AcmeAccount.id==OperationsObjectEvent.acme_account_id",
@@ -198,6 +214,15 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def displayable(self) -> str:
+        return "[%s] %s (%s) @ %s" % (
+            self.id,
+            self.name,
+            self.contact,
+            self.acme_server.name,
+        )
 
     @property
     def is_usable(self) -> bool:
@@ -3907,6 +3932,88 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
+
+    __tablename__ = "enrollment_policy"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+
+    acme_account_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
+    )
+    key_technology_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+    private_key_cycle_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyCycle
+    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+
+    acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    )
+    key_technology_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+    private_key_cycle_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyCycle
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+
+    acme_account = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="EnrollmentPolicy.acme_account_id==AcmeAccount.id",
+        uselist=False,
+        back_populates="enrollment_policies",
+    )
+    acme_account__backup = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="EnrollmentPolicy.acme_account_id__backup==AcmeAccount.id",
+        uselist=False,
+        back_populates="enrollment_policies__backup",
+    )
+
+    @property
+    def key_technology(self) -> str:
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def private_key_cycle(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+
+    @property
+    def key_technology__backup(self) -> str:
+        return model_utils.KeyTechnology.as_string(self.key_technology_id__backup)
+
+    @property
+    def private_key_cycle__backup(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "acme_account_id": self.acme_account_id,
+            "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_profile": self.acme_profile,
+            "acme_profile__backup": self.acme_profile__backup,
+            "acme_profile__effective": self.acme_profile__effective,
+            "acme_profile__backup__effective": self.acme_profile__backup__effective,
+            "key_technology": self.key_technology,
+            "key_technology__backup": self.key_technology__backup,
+            "key_technology__effective": self.key_technology__effective,
+            "key_technology__backup__effective": self.key_technology__backup__effective,
+            "private_key_cycle": self.private_key_cycle,
+            "private_key_cycle__backup": self.private_key_cycle__backup,
+            "private_key_cycle__effective": self.private_key_cycle__effective,
+            "private_key_cycle__backup__effective": self.private_key_cycle__backup__effective,
+        }
+
+
+# ==============================================================================
+
+
 class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
     Certain events are tracked for bookkeeping
@@ -4392,7 +4499,9 @@ class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
+class RenewalConfiguration(
+    Base, _Mixin_AcmeAccount_Effective, _Mixin_Timestamps_Pretty
+):
     """
     This will be the basis for our renewables
     """
@@ -4506,32 +4615,8 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @property
-    def key_technology__effective(self) -> str:
-        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
-            return self.acme_account.order_default_private_key_technology
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
-
-    @property
-    def key_technology_id__effective(self) -> int:
-        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
-            return self.acme_account.order_default_private_key_technology_id
-        return self.key_technology_id
-
-    @property
     def private_key_cycle(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
-
-    @property
-    def private_key_cycle__effective(self) -> str:
-        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
-            return self.acme_account.order_default_private_key_cycle
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
-
-    @property
-    def private_key_cycle_id__effective(self) -> int:
-        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
-            return self.acme_account.order_default_private_key_cycle_id
-        return self.private_key_cycle_id
 
     @property
     def as_json(self) -> Dict:
@@ -4541,7 +4626,9 @@ class RenewalConfiguration(Base, _Mixin_Timestamps_Pretty):
             "acme_account_id": self.acme_account_id,
             "acme_account_id__backup": self.acme_account_id__backup,
             "acme_profile": self.acme_profile,
+            "acme_profile__effective": self.acme_profile__effective,
             "acme_profile__backup": self.acme_profile__backup,
+            "acme_profile__backup__effective": self.acme_profile__backup__effective,
             "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
             "key_technology": self.key_technology,
@@ -5011,6 +5098,7 @@ __all__ = (
     "Domain",
     "DomainAutocert",
     "DomainBlocklisted",
+    "EnrollmentPolicy",
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",

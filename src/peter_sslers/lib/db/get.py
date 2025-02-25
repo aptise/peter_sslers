@@ -44,6 +44,7 @@ from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
 from ...model.objects import DomainBlocklisted
+from ...model.objects import EnrollmentPolicy
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
@@ -2879,6 +2880,36 @@ def get__DomainBlocklisted__paginated(
     )
     items_paged = q.all()
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__EnrollmentPolicy__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(EnrollmentPolicy)
+    counted = q.count()
+    return counted
+
+
+def get__EnrollmentPolicy__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[EnrollmentPolicy]:
+    q = (
+        ctx.dbSession.query(EnrollmentPolicy)
+        .order_by(EnrollmentPolicy.name.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__EnrollmentPolicy__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[EnrollmentPolicy]:
+    q = ctx.dbSession.query(EnrollmentPolicy).filter(EnrollmentPolicy.id == id_)
+    item = q.first()
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

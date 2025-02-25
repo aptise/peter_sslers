@@ -5505,6 +5505,59 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
 
+class FunctionalTests_EnrollmentPolicy(AppTest):
+
+    @routes_tested(("admin:enrollment_policys",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policys", status=200
+        )
+
+    @routes_tested(("admin:enrollment_policys|json",))
+    def test_list_json(self):
+        # json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policys", status=200
+        )
+        assert "EnrollmentPolicys" in res.json
+
+    @routes_tested(
+        (
+            "admin:enrollment_policy:focus",
+            "admin:enrollment_policy:focus:edit",
+        )
+    )
+    def test_manipulate_html(self):
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/1/edit", status=200
+        )
+        raise ValueError("TODO")
+
+    @routes_tested(
+        (
+            "admin:enrollment_policy:focus|json",
+            "admin:enrollment_policy:focus:edit|json",
+        )
+    )
+    def test_manipulate_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/1.json", status=200
+        )
+        assert "EnrollmentPolicy" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/1/edit.json", status=200
+        )
+        assert "instructions" in res.json
+
+        raise ValueError("TODO")
+
+
 class FunctionalTests_Operations(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_Operations

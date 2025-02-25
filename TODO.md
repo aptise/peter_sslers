@@ -9,16 +9,46 @@ UX:
     dev docs
     tests
 
-    
 Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
 
 
+Renewal Template?
+AutoCert Configuration
+    Primary Policy
+    Backup Policy
+
+Enrollment Policy
+    Primary Account
+    Backup Account
+
+
+Regular Cert defaults
+    Backup use Default?
+
+
+AcmeOrdering
+    Ensure Poilcy is in Directory before ordering
     
-        
-        
-        
+
+Renewal Configuration
+    TESTS
+        ensure acme_profile__backup and *ACCOUNT_DEFAULT* work
+
+QueryString errors and encodings
+    redo    
+
+
+    
+    
+    
+    
+
+
+
+
+
 
 check to see if we correctly handle this:
     request with an invalid replaces

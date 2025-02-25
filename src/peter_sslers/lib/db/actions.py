@@ -739,6 +739,7 @@ def api_domains__certificate_if_needed(
                             key_technology
                         ),
                         domains_challenged=_domains_challenged__single,
+                        enrollment_policy="certificate-if-needed",
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:

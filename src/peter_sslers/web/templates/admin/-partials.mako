@@ -1034,6 +1034,31 @@
 </%def>
 
 
+<%def name="table_EnrollmentPolicys(data, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for policy in data:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/enrollment-policy/${policy.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        EnrollmentPolicy-${policy.id}</a>
+                        </td>
+                    <td>
+                        <span class="label label-default">${policy.name}</span>
+                    </td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
     <%
         event_id = None
@@ -1536,7 +1561,23 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile=None)">
+<%def name="formgroup__AcmeAccount_select(acmeAccounts=None, default=None, field_name='acme_account_id')">
+    <div class="form-group">
+        <label for="${field_name}">ACME Account</label>
+        <select class="form-control" name="${field_name}">
+            % for acc in acmeAccounts:
+                <option value="${acc.id}"${" selected" if (acc.id == default) else ""}>
+                    ${acc.displayable}
+                </option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+
+
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='*ACCOUNT_DEFAULT*')">
     <%
         checked = {
             "none": "",
@@ -1638,6 +1679,10 @@
             <label for="acme_profile">
                 [Optional] The name of an ACME Profile on the server
             </label>
+            <p class="help">
+                Leave this blank for no profile.
+                If you want to defer to the AcmeAccount, use the special name <code>*ACCOUNT_DEFAULT*</code>.
+            </p>
             <div class="form-control-static">
                <input class="form-control" name="acme_profile" id="acme_profile" type="text" value="${default_profile or ""}"/>
             </div>
@@ -1647,7 +1692,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile=None)">
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='*ACCOUNT_DEFAULT*')">
     <%
         checked = {
             "none": "",
@@ -1749,6 +1794,10 @@
             <label for="acme_profile">
                 [Optional] The name of an ACME Profile on the server
             </label>
+            <p class="help">
+                Leave this blank for no profile.
+                If you want to defer to the AcmeAccount, use the special name <code>*ACCOUNT_DEFAULT*</code>.
+            </p>
             <div class="form-control-static">
                <input class="form-control" name="acme_profile__backup" id="acme_profile__backup" type="text" value="${default_profile or ""}"/>
             </div>
@@ -1776,6 +1825,10 @@
                 <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
             % endfor
         </select>
+    </div>
+    <div class="form-group">
+        <label for="account__order_default_acme_profile">Orders: Default ACME Profile</label>
+        <input type="text" class="form-control" name="account__order_default_acme_profile" value=""/>
     </div>
 </%def>
 
@@ -1975,12 +2028,12 @@
 </%def>
 
 
-<%def name="formgroup__key_technology(default=None, options=None)">
+<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology')">
     <% default = default or model_websafe.KeyTechnology._DEFAULT %>
     <% options = options or model_websafe.KeyTechnology._options_all %>
     <div class="form-group">
-        <label for="key_technology">Key Technology</label>
-        <select class="form-control" name="key_technology">
+        <label for="${field_name}">Key Technology</label>
+        <select class="form-control" name="${field_name}">
             % for _option_text in options:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
@@ -2020,11 +2073,11 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle(default=None)">
+<%def name="formgroup__private_key_cycle(default=None, field_name='private_key_cycle')">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
-        <select class="form-control" name="private_key_cycle">
+        <label for="${field_name}">Private Key Cycle - Renewals</label>
+        <select class="form-control" name="${field_name}">
             % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
@@ -2033,17 +2086,6 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle(default=None)">
-    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
-    <div class="form-group">
-        <label for="private_key_cycle">Private Key Cycle</label>
-        <select class="form-control" name="private_key_cycle">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
-                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
-            % endfor
-        </select>
-    </div>
-</%def>
 
 
 <%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None,)">

@@ -289,6 +289,35 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
             dbDomainBlocklisted,
         ]
     )
+
+    # !!!: EnrollmentPolicies
+    for _name in (
+        "autocert",
+        "certificate-if-needed",
+    ):
+        dbEnrollmentPolicy = model_objects.EnrollmentPolicy()
+        dbEnrollmentPolicy.name = _name
+        dbEnrollmentPolicy.acme_account_id = 0
+        dbEnrollmentPolicy.acme_account_id__backup = 0
+        dbEnrollmentPolicy.key_technology_id = model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        dbEnrollmentPolicy.key_technology_id__backup = (
+            model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        )
+        dbEnrollmentPolicy.private_key_cycle_id = (
+            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        )
+        dbEnrollmentPolicy.private_key_cycle_id__backup = (
+            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        )
+        dbEnrollmentPolicy.acme_profile = "*ACCOUNT_DEFAULT*"
+        dbEnrollmentPolicy.acme_profile__backup = "*ACCOUNT_DEFAULT*"
+        ctx.dbSession.add(dbEnrollmentPolicy)
+        ctx.dbSession.flush(
+            objects=[
+                dbEnrollmentPolicy,
+            ]
+        )
+
     return True
 
 

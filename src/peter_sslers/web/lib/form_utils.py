@@ -62,6 +62,7 @@ class AcmeAccountUploadParser(object):
     private_key_technology_id: Optional[int] = None
     order_default_private_key_cycle_id: Optional[int] = None
     order_default_private_key_technology_id: Optional[int] = None
+    order_default_acme_profile: Optional[str] = None
 
     upload_type: Optional[str] = None  # pem OR letsencrypt
 
@@ -138,6 +139,10 @@ class AcmeAccountUploadParser(object):
             order_default_private_key_technology
         )
 
+        order_default_acme_profile = formStash.results.get(
+            "account__order_default_acme_profile", None
+        )
+
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
@@ -150,6 +155,9 @@ class AcmeAccountUploadParser(object):
         self.order_default_private_key_technology_id = getcreate_args[
             "order_default_private_key_technology_id"
         ] = order_default_private_key_technology_id
+        self.order_default_acme_profile = getcreate_args[
+            "order_default_acme_profile"
+        ] = order_default_acme_profile
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(
@@ -261,6 +269,10 @@ class AcmeAccountUploadParser(object):
             order_default_private_key_technology
         )
 
+        order_default_acme_profile = formStash.results.get(
+            "order_default_acme_profile", None
+        )
+
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
@@ -272,6 +284,9 @@ class AcmeAccountUploadParser(object):
         self.order_default_private_key_technology_id = getcreate_args[
             "order_default_private_key_technology_id"
         ] = order_default_private_key_technology_id
+        self.order_default_acme_profile = getcreate_args[
+            "order_default_acme_profile"
+        ] = order_default_acme_profile
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
@@ -785,6 +800,9 @@ def form_single_domain_challenge_typed(
     formStash: FormStash,
     challenge_type: str = "http-01",
 ) -> model_utils.DomainsChallenged:
+    """
+    Creates a `model_utils.DomainsChallenged` with only 1 domain from a form
+    """
     domains_challenged = model_utils.DomainsChallenged()
 
     # this function checks the domain names match a simple regex

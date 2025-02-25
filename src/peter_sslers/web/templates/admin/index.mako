@@ -55,6 +55,11 @@
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                 Settings</a>
+            <a  href="${admin_prefix}/enrollment-policys"
+                class="btn btn-xs btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                Enrollment Policies</a>
             <a href="${admin_prefix}/api"
                 class="btn btn-xs btn-warning"
             >

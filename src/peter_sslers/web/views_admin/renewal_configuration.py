@@ -1036,12 +1036,16 @@ class View_New(Handler):
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "acme_profile": "The name of an ACME Profile on the ACME Server",
+                "acme_profile": """The name of an ACME Profile on the ACME Server.
+Leave this blank for no profile.
+If you want to defer to the AcmeAccount, use the special name `*ACCOUNT_DEFAULT*`.""",
                 # backup cert
                 "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
                 "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
                 "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
-                "acme_profile_backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
+                "acme_profile_backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
+Leave this blank for no profile.
+If you want to defer to the AcmeAccount, use the special name `*ACCOUNT_DEFAULT*`.""",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],

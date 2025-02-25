@@ -7,8 +7,115 @@ from typing import TYPE_CHECKING
 import cert_utils
 from sqlalchemy.orm import Mapped
 
+# local
+from .. import utils as model_utils
+
+if TYPE_CHECKING:
+    from .objects import AcmeAccount
+
 
 # ==============================================================================
+
+
+class _Mixin_AcmeAccount_Effective(object):
+
+    if TYPE_CHECKING:
+        acme_account__backup: Mapped[Optional["AcmeAccount"]]
+        acme_account_id__backup: Mapped[Optional[int]]
+        acme_account_id: Mapped[int]
+        acme_account: Mapped[Optional["AcmeAccount"]]
+        acme_profile__backup: Mapped[Optional[str]]
+        acme_profile: Mapped[Optional[str]]
+        key_technology_id__backup: Mapped[int]
+        key_technology_id: Mapped[int]
+        private_key_cycle_id__backup: Mapped[int]
+        private_key_cycle_id: Mapped[int]
+
+    @property
+    def key_technology__effective(self) -> Optional[str]:
+        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            if not self.acme_account:
+                return None
+            return self.acme_account.order_default_private_key_technology
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def key_technology_id__effective(self) -> Optional[int]:
+        if self.key_technology_id == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            if not self.acme_account:
+                return None
+            return self.acme_account.order_default_private_key_technology_id
+        return self.key_technology_id
+
+    @property
+    def key_technology__backup__effective(self) -> Optional[str]:
+        if self.key_technology_id__backup == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            if not self.acme_account__backup:
+                return None
+            return self.acme_account__backup.order_default_private_key_technology
+        return model_utils.KeyTechnology.as_string(self.key_technology_id__backup)
+
+    @property
+    def key_technology_id__backup__effective(self) -> Optional[int]:
+        if self.key_technology_id__backup == model_utils.KeyTechnology.ACCOUNT_DEFAULT:
+            if not self.acme_account__backup:
+                return None
+            return self.acme_account__backup.order_default_private_key_technology_id
+        return self.key_technology_id__backup
+
+    @property
+    def private_key_cycle__effective(self) -> Optional[str]:
+        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            if not self.acme_account:
+                return None
+            return self.acme_account.order_default_private_key_cycle
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+
+    @property
+    def private_key_cycle_id__effective(self) -> Optional[int]:
+        if self.private_key_cycle_id == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            if not self.acme_account:
+                return None
+            return self.acme_account.order_default_private_key_cycle_id
+        return self.private_key_cycle_id
+
+    @property
+    def private_key_cycle__backup__effective(self) -> Optional[str]:
+        if (
+            self.private_key_cycle_id__backup
+            == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        ):
+            if not self.acme_account__backup:
+                return None
+            return self.acme_account__backup.order_default_private_key_cycle
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+
+    @property
+    def private_key_cycle_id__backup__effective(self) -> Optional[int]:
+        if (
+            self.private_key_cycle_id__backup
+            == model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        ):
+            if not self.acme_account__backup:
+                return None
+            return self.acme_account__backup.order_default_private_key_cycle_id
+        return self.private_key_cycle_id__backup
+
+    @property
+    def acme_profile__effective(self) -> Optional[str]:
+        if self.acme_profile == "*ACCOUNT_DEFAULT*":
+            if not self.acme_account:
+                return None
+            return self.acme_account.order_default_acme_profile
+        return self.acme_profile
+
+    @property
+    def acme_profile__backup__effective(self) -> Optional[str]:
+        if self.acme_profile__backup == "*ACCOUNT_DEFAULT*":
+            if not self.acme_account__backup:
+                return None
+            return self.acme_account__backup.order_default_acme_profile
+        return self.acme_profile__backup
 
 
 class _Mixin_Hex_Pretty(object):
@@ -132,6 +239,7 @@ class _Mixin_Timestamps_Pretty(object):
 
 
 __all__ = (
+    "_Mixin_AcmeAccount_Effective",
     "_Mixin_Hex_Pretty",
     "_Mixin_Timestamps_Pretty",
 )

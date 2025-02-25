@@ -501,6 +501,7 @@ class ViewAdminApi_Domain(Handler):
                         private_key_cycle_id=model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT,
                         key_technology_id=model_utils.KeyTechnology.ACCOUNT_DEFAULT,
                         domains_challenged=domains_challenged,
+                        enrollment_policy="autocert",
                     )
                     is_duplicate_renewal = False  # noqa: F841
                 except errors.DuplicateRenewalConfiguration as exc:

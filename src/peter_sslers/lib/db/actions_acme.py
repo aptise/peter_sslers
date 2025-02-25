@@ -2480,6 +2480,7 @@ def do__AcmeV2_AcmeOrder__new(
     private_key_cycle_id__effective = (
         dbRenewalConfiguration.private_key_cycle_id__effective
     )
+    assert private_key_cycle_id__effective is not None
 
     #
     # Domains Check
@@ -2773,11 +2774,11 @@ def do__AcmeV2_AcmeOrder__new(
         certificate_type_id: int
         if account_selection == "primary":
             dbAcmeAccount = dbRenewalConfiguration.acme_account
-            profile = dbRenewalConfiguration.acme_profile
+            profile = dbRenewalConfiguration.acme_profile__effective
             certificate_type_id = model_utils.CertificateType.MANAGED_PRIMARY
         elif account_selection == "backup":
             dbAcmeAccount = dbRenewalConfiguration.acme_account__backup
-            profile = dbRenewalConfiguration.acme_profile__backup
+            profile = dbRenewalConfiguration.acme_profile__backup__effective
             certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
         else:
             # import pprint; pprint.pprint(locals())
