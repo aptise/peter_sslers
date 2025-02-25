@@ -2912,6 +2912,16 @@ def get__EnrollmentPolicy__by_id(
     return item
 
 
+def get__EnrollmentPolicy__by_name(
+    ctx: "ApiContext", name: str
+) -> Optional[EnrollmentPolicy]:
+    if not name:
+        raise ValueError("`name` required")
+    q = ctx.dbSession.query(EnrollmentPolicy).filter(EnrollmentPolicy.name == name)
+    item = q.first()
+    return item
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

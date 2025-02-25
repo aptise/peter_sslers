@@ -23,6 +23,10 @@ Enrollment Policy
     Primary Account
     Backup Account
 
+Backend
+    Change "global backup" and "global default" to use Enrollment Policy
+
+
 
 Regular Cert defaults
     Backup use Default?

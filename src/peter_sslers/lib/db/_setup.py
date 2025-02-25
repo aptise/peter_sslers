@@ -292,9 +292,12 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
 
     # !!!: EnrollmentPolicies
     for _name in (
+        "global",
         "autocert",
         "certificate-if-needed",
     ):
+        if not utils.validate_websafe_slug(_name):
+            raise ValueError("invalid name")
         dbEnrollmentPolicy = model_objects.EnrollmentPolicy()
         dbEnrollmentPolicy.name = _name
         dbEnrollmentPolicy.acme_account_id = 0

@@ -1045,7 +1045,7 @@
         <tbody>
             % for policy in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/enrollment-policy/${policy.id}">
+                    <td><a class="label label-info" href="${admin_prefix}/enrollment-policy/${policy.slug}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         EnrollmentPolicy-${policy.id}</a>
                         </td>

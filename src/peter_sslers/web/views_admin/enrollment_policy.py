@@ -77,10 +77,17 @@ class View_Focus(Handler):
 
     def _focus(self) -> EnrollmentPolicy:
         if self.dbEnrollmentPolicy is None:
-            dbEnrollmentPolicy = lib_db.get.get__EnrollmentPolicy__by_id(
-                self.request.api_context,
-                self.request.matchdict["id"],
-            )
+            _identifier = self.request.matchdict["websafe_or_id"]
+            if _identifier.isnumeric():
+                dbEnrollmentPolicy = lib_db.get.get__EnrollmentPolicy__by_id(
+                    self.request.api_context,
+                    _identifier,
+                )
+            else:
+                dbEnrollmentPolicy = lib_db.get.get__EnrollmentPolicy__by_name(
+                    self.request.api_context,
+                    _identifier,
+                )
             if not dbEnrollmentPolicy:
                 raise HTTPNotFound("the EnrollmentPolicy was not found")
             self.dbEnrollmentPolicy = dbEnrollmentPolicy

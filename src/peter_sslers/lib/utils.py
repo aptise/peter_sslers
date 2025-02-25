@@ -3,6 +3,7 @@ import base64
 import datetime
 import json
 import logging
+import re
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -102,6 +103,16 @@ timedelta_ARI_CHECKS_TIMELY = datetime.timedelta(days=3000)
 
 def new_event_payload_dict() -> Dict:
     return {"v": 1}
+
+
+# 64chars, first must be a letter
+RE_websafe = re.compile(r"^([a-zA-Z][a-zA-Z0-9\-]{1,63})$")
+
+
+def validate_websafe_slug(slug: str) -> bool:
+    if RE_websafe.match(slug):
+        return True
+    return False
 
 
 # ------------------------------------------------------------------------------

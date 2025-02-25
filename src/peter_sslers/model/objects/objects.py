@@ -21,6 +21,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 from pyramid.decorator import reify
@@ -123,7 +124,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
     order_default_acme_profile: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True
+        sa.Unicode(64), nullable=True
     )
 
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
@@ -2199,7 +2200,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    name: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False, unique=True)
     directory: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
     # the server is normalized from the `directory`
     # it is used to help figure out what server corresponds to an account
@@ -3947,7 +3948,7 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
     private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
-    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
 
     acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
@@ -3958,7 +3959,9 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
     private_key_cycle_id__backup: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
-    acme_profile__backup: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True
+    )
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",
@@ -3988,6 +3991,10 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
     @property
     def private_key_cycle__backup(self) -> str:
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+
+    @property
+    def slug(self) -> Union[str, int]:
+        return self.name or self.id
 
     @property
     def as_json(self) -> Dict:
@@ -4538,8 +4545,10 @@ class RenewalConfiguration(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    acme_profile__backup: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True
+    )
 
     acme_account = sa_orm_relationship(
         "AcmeAccount",

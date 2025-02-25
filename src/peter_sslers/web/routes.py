@@ -19,6 +19,7 @@ def includeme(config: "Configurator") -> None:
     config.include("pyramid_route_7")
     config.add_route_7_kvpattern("id", r"\d+")
     config.add_route_7_kvpattern("page", r"\d+")
+    config.add_route_7_kvpattern("websafe_or_id", r"[\d\w\-]+")
 
     # public
     if enable_views_public:
@@ -989,12 +990,12 @@ def _admin_views(config: "Configurator") -> None:
     )
     config.add_route_7(
         "admin:enrollment_policy:focus",
-        "/enrollment-policy/{@id}",
+        "/enrollment-policy/{@websafe_or_id}",
         jsonify=True,
     )
     config.add_route_7(
         "admin:enrollment_policy:focus:edit",
-        "/enrollment-policy/{@id}/edit",
+        "/enrollment-policy/{@websafe_or_id}/edit",
         jsonify=True,
     )
 

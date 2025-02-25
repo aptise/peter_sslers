@@ -113,7 +113,7 @@ class _form_AcmeAccount_PrivateKey_extended:
         if_missing=None,
     )
     account__order_default_acme_profile = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
+        not_empty=False, if_missing=None, strip=True, max=64
     )
 
     # these are via Form_AcmeAccount_new__upload
@@ -182,17 +182,19 @@ class Form_AcmeAccount_edit(_Form_Schema_Base):
     )
     # defaults for AcmeOrders
     account__order_default_acme_profile = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
+        not_empty=False, if_missing=None, strip=True, max=64
     )
 
     # allow users to label an account
-    name = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    name = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
 
 class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     acme_server_id = Int(not_empty=True)
     # account__contact = Email(not_empty=True)
-    account__contact = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    account__contact = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=255
+    )
 
     # this is the `private_key_technology` of the AcmeAccount
     account__private_key_technology = OneOf(
@@ -212,7 +214,7 @@ class Form_AcmeAccount_new__auth(_Form_Schema_Base):
     )
     # defaults for AcmeOrders
     account__order_default_acme_profile = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
+        not_empty=False, if_missing=None, strip=True, max=64
     )
 
 
@@ -223,7 +225,9 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
     """
 
     # account__contact = Email(not_empty=True)
-    account__contact = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    account__contact = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=255
+    )
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
@@ -252,7 +256,7 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
     )
     # defaults for AcmeOrders
     account__order_default_acme_profile = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
+        not_empty=False, if_missing=None, strip=True, max=64
     )
 
     chained_validators = [
@@ -359,8 +363,10 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
         not_empty=True,
     )
 
-    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    acme_profile__backup = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    acme_profile__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
     chained_validators = [
@@ -489,7 +495,7 @@ class Form_EnrollmentPolicy_edit(_Form_Schema_Base):
         model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
         not_empty=True,
     )
-    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
     acme_account_id__backup = Int(not_empty=False, if_missing=None)
     private_key_cycle__backup = OneOf(
@@ -500,7 +506,9 @@ class Form_EnrollmentPolicy_edit(_Form_Schema_Base):
         model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
         not_empty=True,
     )
-    acme_profile__backup = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_profile__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
 
 
 class Form_PrivateKey_new__autogenerate(_Form_Schema_Base):
@@ -585,8 +593,10 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
-    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    acme_profile__backup = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    acme_profile__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
     chained_validators = [
@@ -611,7 +621,7 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         not_empty=False, if_missing=None, strip=True
     )
 
-    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 
