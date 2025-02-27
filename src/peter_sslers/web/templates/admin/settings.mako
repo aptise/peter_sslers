@@ -42,7 +42,7 @@
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
-                        <th>EnrollmentPolicy</th>
+                        <th>SystemConfiguration</th>
                         <th>Link</th>
                         <th>Configured?</th>
                     <tr>
@@ -51,12 +51,12 @@
                     <tr>
                         <th>Global</th>
                         <td>
-                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_global.slug}" class="label label-info">
-                                EnrollmentPolicy-${EnrollmentPolicy_global.slug}
+                            <a href="${admin_prefix}/system-configuration/${SystemConfiguration_global.slug}" class="label label-info">
+                                SystemConfiguration-${SystemConfiguration_global.slug}
                             </a>
                         </td>
                         <td>
-                            % if EnrollmentPolicy_global.is_configured:
+                            % if SystemConfiguration_global.is_configured:
                                 <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
@@ -66,12 +66,12 @@
                     <tr>
                         <th>Autocert</th>
                         <td>
-                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_autocert.slug}" class="label label-info">
-                                EnrollmentPolicy-${EnrollmentPolicy_autocert.slug}
+                            <a href="${admin_prefix}/system-configuration/${SystemConfiguration_autocert.slug}" class="label label-info">
+                                SystemConfiguration-${SystemConfiguration_autocert.slug}
                             </a>
                         </td>
                         <td>
-                            % if EnrollmentPolicy_autocert.is_configured:
+                            % if SystemConfiguration_autocert.is_configured:
                                 <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
@@ -81,12 +81,12 @@
                     <tr>
                         <th>Certificate-If-Needed</th>
                         <td>
-                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_cin.slug}" class="label label-info">
-                                EnrollmentPolicy-${EnrollmentPolicy_cin.slug}
+                            <a href="${admin_prefix}/system-configuration/${SystemConfiguration_cin.slug}" class="label label-info">
+                                SystemConfiguration-${SystemConfiguration_cin.slug}
                             </a>
                         </td>
                         <td>
-                            % if EnrollmentPolicy_cin.is_configured:
+                            % if SystemConfiguration_cin.is_configured:
                                 <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>

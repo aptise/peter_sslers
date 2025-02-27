@@ -130,37 +130,37 @@ def formatted_get_docs(view_instance, endpoint):
             log.critical(exc)
             pass
 
-        # !!!: Render `EnrollmentPolicy_Global`
+        # !!!: Render `SystemConfiguration_Global`
         try:
-            if "EnrollmentPolicys" in docs["valid_options"]:
-                docs["valid_options"]["EnrollmentPolicys"] = {}
+            if "SystemConfigurations" in docs["valid_options"]:
+                docs["valid_options"]["SystemConfigurations"] = {}
 
             # !!! Required- global
-            dbEnrollmentPolicy_global = (
-                view_instance.request.api_context._load_EnrollmentPolicy_global()
+            dbSystemConfiguration_global = (
+                view_instance.request.api_context._load_SystemConfiguration_global()
             )
-            if dbEnrollmentPolicy_global:
-                docs["valid_options"]["EnrollmentPolicys"][
+            if dbSystemConfiguration_global:
+                docs["valid_options"]["SystemConfigurations"][
                     "global"
-                ] = dbEnrollmentPolicy_global.as_json_docs
+                ] = dbSystemConfiguration_global.as_json_docs
             # !!!: Conditional- Autocert
-            if view_instance.request.api_context.dbEnrollmentPolicy_autocert:
-                docs["valid_options"]["EnrollmentPolicys"][
+            if view_instance.request.api_context.dbSystemConfiguration_autocert:
+                docs["valid_options"]["SystemConfigurations"][
                     "autocert"
                 ] = (
-                    view_instance.request.api_context.dbEnrollmentPolicy_autocert.as_json_docs
+                    view_instance.request.api_context.dbSystemConfiguration_autocert.as_json_docs
                 )
             # !!!: Conditional- CertificateIfNeeeded
-            if view_instance.request.api_context.dbEnrollmentPolicy_cin:
-                docs["valid_options"]["EnrollmentPolicys"][
+            if view_instance.request.api_context.dbSystemConfiguration_cin:
+                docs["valid_options"]["SystemConfigurations"][
                     "certificate-if-needed"
                 ] = (
-                    view_instance.request.api_context.dbEnrollmentPolicy_cin.as_json_docs
+                    view_instance.request.api_context.dbSystemConfiguration_cin.as_json_docs
                 )
 
         except Exception as exc:  # noqa: F841
             log.critical(
-                "@docify error: valid_options:EnrollmentPolicy_Global %s", endpoint
+                "@docify error: valid_options:SystemConfiguration_Global %s", endpoint
             )
             log.critical(exc)
             pass
@@ -169,15 +169,15 @@ def formatted_get_docs(view_instance, endpoint):
         _instructions_append("HTTP POST required")
     system_requires = _endpoint_docs.get("system.requires")
     if system_requires:
-        if "dbEnrollmentPolicy_autocert" in system_requires:
+        if "dbSystemConfiguration_autocert" in system_requires:
             if (
-                view_instance.request.api_context.dbEnrollmentPolicy_autocert is None
+                view_instance.request.api_context.dbSystemConfiguration_autocert is None
             ) or (
-                view_instance.request.api_context.dbEnrollmentPolicy_autocert.is_configured
+                view_instance.request.api_context.dbSystemConfiguration_autocert.is_configured
                 is not True
             ):
                 _instructions_append(
-                    "IMPORTANT: The `autocert` Enrollment Policy MUST be configured."
+                    "IMPORTANT: The `autocert` System Configurations MUST be configured."
                 )
 
     return docs

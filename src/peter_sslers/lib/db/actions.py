@@ -624,10 +624,10 @@ def api_domains__certificate_if_needed(
     """
     # validate this first!
 
-    dbEnrollmentPolicy = ctx._load_EnrollmentPolicy_cin()
-    if not dbEnrollmentPolicy or not dbEnrollmentPolicy.is_configured:
+    dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
+    if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:
         raise errors.DisplayableError(
-            "the `certificate-if-needed` EnrollmentPolicy is not configured"
+            "the `certificate-if-needed` SystemConfiguration is not configured"
         )
 
     acme_order_processing_strategy_id = (
@@ -746,7 +746,7 @@ def api_domains__certificate_if_needed(
                         private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
                             private_key_technology
                         ),
-                        dbEnrollmentPolicy=dbEnrollmentPolicy,
+                        dbSystemConfiguration=dbSystemConfiguration,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:

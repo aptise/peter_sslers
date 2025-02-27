@@ -169,16 +169,7 @@
         datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
 
     Data Changes
-        Global Default and Global Backup were moved into a Global "EnrollmentPolicy"
-
-
-        + "AcmeAccount_Defaults": "{RENDER_ON_REQUEST}", -> EnrollmentPolicy_Global
-        - "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
-        - "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
-        
-        AND
-        - AcmeAccount_GlobalDefault
-
+        Global Default and Global Backup were moved into a Global "SystemConfiguration"
 
 
 

@@ -55,7 +55,7 @@ from ._utils import RUN_API_TESTS__EXTENDED
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
-from ._utils import setup_EnrollmentPolicy
+from ._utils import setup_SystemConfiguration
 from ._utils import TEST_FILES
 from ._utils import under_pebble
 from ._utils import under_pebble_alt
@@ -351,11 +351,11 @@ class FunctionalTests_AcmeAccount(AppTest):
         q_sub = (
             self.ctx.dbSession.query(model_objects.AcmeAccount.id)
             .join(
-                model_objects.EnrollmentPolicy,
+                model_objects.SystemConfiguration,
                 sqlalchemy.or_(
-                    model_objects.EnrollmentPolicy.acme_account_id__backup
+                    model_objects.SystemConfiguration.acme_account_id__backup
                     == model_objects.AcmeAccount.id,
-                    model_objects.EnrollmentPolicy.acme_account_id__primary
+                    model_objects.SystemConfiguration.acme_account_id__primary
                     == model_objects.AcmeAccount.id,
                 ),
             )
@@ -593,13 +593,13 @@ class FunctionalTests_AcmeAccount(AppTest):
         if not focus_item.is_active:
             raise ValueError("this should be active")
 
-        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
             self.ctx, "global"
         )
-        assert dbEnrollmentPolicy
-        if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
+        assert dbSystemConfiguration
+        if focus_item.id == dbSystemConfiguration.acme_account_id__backup:
             raise ValueError("this should not be the global backup")
-        if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
+        if focus_item.id == dbSystemConfiguration.acme_account_id__primary:
             raise ValueError("this should not be the global default")
 
         # fail making this active
@@ -678,13 +678,13 @@ class FunctionalTests_AcmeAccount(AppTest):
         if not focus_item.is_active:
             raise ValueError("this should be active")
 
-        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
             self.ctx, "global"
         )
-        assert dbEnrollmentPolicy is not None
-        if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
+        assert dbSystemConfiguration is not None
+        if focus_item.id == dbSystemConfiguration.acme_account_id__backup:
             raise ValueError("this should not be the global backup")
-        if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
+        if focus_item.id == dbSystemConfiguration.acme_account_id__primary:
             raise ValueError("this should not be the global default")
 
         # fail making this active
@@ -5497,78 +5497,79 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
 
-class FunctionalTests_EnrollmentPolicy(AppTest):
+class FunctionalTests_SystemConfiguration(AppTest):
 
-    @routes_tested(("admin:enrollment_policys",))
+    @routes_tested(("admin:system_configurations",))
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policys", status=200
+            "/.well-known/peter_sslers/system-configurations", status=200
         )
 
-    @routes_tested(("admin:enrollment_policys|json",))
+    @routes_tested(("admin:system_configurations|json",))
     def test_list_json(self):
         # json
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policys.json", status=200
+            "/.well-known/peter_sslers/system-configurations.json", status=200
         )
-        assert "EnrollmentPolicys" in res.json
+        assert "SystemConfigurations" in res.json
 
     @routes_tested(
         (
-            "admin:enrollment_policy:focus",
-            "admin:enrollment_policy:focus:edit",
+            "admin:system_configuration:focus",
+            "admin:system_configuration:focus:edit",
         )
     )
     def test_manipulate_html(self):
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/1", status=200
+            "/.well-known/peter_sslers/system-configuration/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/1/edit", status=200
+            "/.well-known/peter_sslers/system-configuration/1/edit", status=200
         )
 
         policy_name = "autocert"
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/%s" % policy_name, status=200
+            "/.well-known/peter_sslers/system-configuration/%s" % policy_name,
+            status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/%s/edit" % policy_name,
+            "/.well-known/peter_sslers/system-configuration/%s/edit" % policy_name,
             status=200,
         )
 
         # use the global as a tempalte
-        dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
             self.ctx, "global"
         )
-        assert dbEnrollmentPolicy_global
-        assert dbEnrollmentPolicy_global.is_configured
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
 
-        form = res.forms["form-enrollment_policy-edit"]
+        form = res.forms["form-system_configuration-edit"]
         form["acme_account_id__backup"].force_value(
-            dbEnrollmentPolicy_global.acme_account_id__backup
+            dbSystemConfiguration_global.acme_account_id__backup
         )
         form["acme_account_id__primary"].force_value(
-            dbEnrollmentPolicy_global.acme_account_id__primary
+            dbSystemConfiguration_global.acme_account_id__primary
         )
         form["acme_profile__backup"].force_value(
-            dbEnrollmentPolicy_global.acme_profile__backup
+            dbSystemConfiguration_global.acme_profile__backup
         )
         form["acme_profile__primary"].force_value(
-            dbEnrollmentPolicy_global.acme_profile__primary
+            dbSystemConfiguration_global.acme_profile__primary
         )
         form["private_key_cycle__backup"].force_value(
-            dbEnrollmentPolicy_global.private_key_cycle__backup
+            dbSystemConfiguration_global.private_key_cycle__backup
         )
         form["private_key_cycle__primary"].force_value(
-            dbEnrollmentPolicy_global.private_key_cycle__primary
+            dbSystemConfiguration_global.private_key_cycle__primary
         )
         form["private_key_technology__backup"].force_value(
-            dbEnrollmentPolicy_global.private_key_technology__backup
+            dbSystemConfiguration_global.private_key_technology__backup
         )
         form["private_key_technology__primary"].force_value(
-            dbEnrollmentPolicy_global.private_key_technology__primary
+            dbSystemConfiguration_global.private_key_technology__primary
         )
 
         res2 = form.submit()
@@ -5577,65 +5578,67 @@ class FunctionalTests_EnrollmentPolicy(AppTest):
 
     @routes_tested(
         (
-            "admin:enrollment_policy:focus|json",
-            "admin:enrollment_policy:focus:edit|json",
+            "admin:system_configuration:focus|json",
+            "admin:system_configuration:focus:edit|json",
         )
     )
     def test_manipulate_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/1.json", status=200
+            "/.well-known/peter_sslers/system-configuration/1.json", status=200
         )
-        assert "EnrollmentPolicy" in res.json
+        assert "SystemConfiguration" in res.json
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/1/edit.json", status=200
+            "/.well-known/peter_sslers/system-configuration/1/edit.json", status=200
         )
         assert "instructions" in res.json
 
         policy_name = "autocert"
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
             status=200,
         )
         assert "instructions" in res.json
         assert "form_fields" in res.json
 
         # use the global as a tempalte
-        dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
             self.ctx, "global"
         )
-        assert dbEnrollmentPolicy_global
-        assert dbEnrollmentPolicy_global.is_configured
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
 
         form: Dict[str, Union[int, str, None]] = {}
         form["acme_account_id__backup"] = (
-            dbEnrollmentPolicy_global.acme_account_id__backup
+            dbSystemConfiguration_global.acme_account_id__backup
         )
         form["acme_account_id__primary"] = (
-            dbEnrollmentPolicy_global.acme_account_id__primary
+            dbSystemConfiguration_global.acme_account_id__primary
         )
-        form["acme_profile__backup"] = dbEnrollmentPolicy_global.acme_profile__backup
-        form["acme_profile__primary"] = dbEnrollmentPolicy_global.acme_profile__primary
+        form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
+        form["acme_profile__primary"] = (
+            dbSystemConfiguration_global.acme_profile__primary
+        )
         form["private_key_cycle__backup"] = (
-            dbEnrollmentPolicy_global.private_key_cycle__backup
+            dbSystemConfiguration_global.private_key_cycle__backup
         )
         form["private_key_cycle__primary"] = (
-            dbEnrollmentPolicy_global.private_key_cycle__primary
+            dbSystemConfiguration_global.private_key_cycle__primary
         )
         form["private_key_technology__backup"] = (
-            dbEnrollmentPolicy_global.private_key_technology__backup
+            dbSystemConfiguration_global.private_key_technology__backup
         )
         form["private_key_technology__primary"] = (
-            dbEnrollmentPolicy_global.private_key_technology__primary
+            dbSystemConfiguration_global.private_key_technology__primary
         )
 
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
             form,
         )
         assert res2.json["result"] == "success"
-        assert "EnrollmentPolicy" in res2.json
+        assert "SystemConfiguration" in res2.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -6077,7 +6080,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"]["EnrollmentPolicys"][
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
             "global"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
@@ -6460,7 +6463,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form = {
             "account_key_option": "account_key_global_default",
             "account_key_global_default": res.json["valid_options"][
-                "EnrollmentPolicys"
+                "SystemConfigurations"
             ]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"],
             "private_key_cycle__primary": "account_default",
             "private_key_technology__primary": "account_default",
@@ -6519,7 +6522,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"]["EnrollmentPolicys"][
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
             "global"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
@@ -10578,10 +10581,10 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "Error_Main" in res.json["form_errors"]
         assert (
             res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. The `autocert` EnrollmentPolicy has not been configured"
+            == "There was an error with your form. The `autocert` SystemConfiguration has not been configured"
         )
 
-        setup_EnrollmentPolicy(self, "autocert")
+        setup_SystemConfiguration(self, "autocert")
 
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
@@ -11884,28 +11887,31 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
-        assert "EnrollmentPolicys" in res.json["valid_options"]
-        assert "global" in res.json["valid_options"]["EnrollmentPolicys"]
+        assert "SystemConfigurations" in res.json["valid_options"]
+        assert "global" in res.json["valid_options"]["SystemConfigurations"]
         assert (
-            "AcmeAccounts" in res.json["valid_options"]["EnrollmentPolicys"]["global"]
+            "AcmeAccounts"
+            in res.json["valid_options"]["SystemConfigurations"]["global"]
         )
         assert (
             "primary"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"]
-        )
-        assert (
-            "AcmeAccountKey"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
-                "primary"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
             ]
         )
         assert (
-            "key_pem_md5"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
-                "primary"
-            ]["AcmeAccountKey"]
+            "AcmeAccountKey"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
+            ]["primary"]
         )
-        key_pem_md5 = res.json["valid_options"]["EnrollmentPolicys"]["global"][
+        assert (
+            "key_pem_md5"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
+            ]["primary"]["AcmeAccountKey"]
+        )
+        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
         ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
@@ -12036,28 +12042,31 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
-        assert "EnrollmentPolicys" in res.json["valid_options"]
-        assert "global" in res.json["valid_options"]["EnrollmentPolicys"]
+        assert "SystemConfigurations" in res.json["valid_options"]
+        assert "global" in res.json["valid_options"]["SystemConfigurations"]
         assert (
-            "AcmeAccounts" in res.json["valid_options"]["EnrollmentPolicys"]["global"]
+            "AcmeAccounts"
+            in res.json["valid_options"]["SystemConfigurations"]["global"]
         )
         assert (
             "primary"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"]
-        )
-        assert (
-            "AcmeAccountKey"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
-                "primary"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
             ]
         )
         assert (
-            "key_pem_md5"
-            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
-                "primary"
-            ]["AcmeAccountKey"]
+            "AcmeAccountKey"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
+            ]["primary"]
         )
-        key_pem_md5 = res.json["valid_options"]["EnrollmentPolicys"]["global"][
+        assert (
+            "key_pem_md5"
+            in res.json["valid_options"]["SystemConfigurations"]["global"][
+                "AcmeAccounts"
+            ]["primary"]["AcmeAccountKey"]
+        )
+        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
         ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 

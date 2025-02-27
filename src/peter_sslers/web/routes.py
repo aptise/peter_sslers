@@ -982,20 +982,20 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
-    # !!!: Enrollment Policy
+    # !!!: SystemConfigurations
     config.add_route_7(
-        "admin:enrollment_policys",
-        "/enrollment-policys",
+        "admin:system_configurations",
+        "/system-configurations",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:enrollment_policy:focus",
-        "/enrollment-policy/{@websafe_or_id}",
+        "admin:system_configuration:focus",
+        "/system-configuration/{@websafe_or_id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:enrollment_policy:focus:edit",
-        "/enrollment-policy/{@websafe_or_id}/edit",
+        "admin:system_configuration:focus:edit",
+        "/system-configuration/{@websafe_or_id}/edit",
         jsonify=True,
     )
 

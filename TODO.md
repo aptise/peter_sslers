@@ -11,8 +11,6 @@ Backend
 Regular Cert defaults
     Backup use Default?
 
-
-EnrollmentPolicy -> SystemConfiguration
 EnrollmentFactory
     user-space version of EnrollmentConfiguration
         PrimaryCertificate Creds

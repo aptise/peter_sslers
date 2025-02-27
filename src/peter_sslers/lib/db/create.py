@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
-    from ...model.objects import EnrollmentPolicy
+    from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
@@ -1292,7 +1292,7 @@ def create__RenewalConfiguration(
     acme_profile__backup: Optional[str] = None,
     # misc
     note: Optional[str] = None,
-    dbEnrollmentPolicy: Optional["EnrollmentPolicy"] = None,
+    dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
     """
     Sets params for AcmeOrders and Renewals
@@ -1313,7 +1313,7 @@ def create__RenewalConfiguration(
     :param acme_profile__backup: (optional) A string of the server's profile
 
     :param note: (optional) A string to be associated with this record
-    :param dbEnrollmentPolicy: (required) A :class:`model.objects.EnrollmentPolicy` object
+    :param dbSystemConfiguration: (required) A :class:`model.objects.SystemConfiguration` object
 
     :returns :class:`model.objects.RenewalConfiguration`
     """
@@ -1488,8 +1488,8 @@ def create__RenewalConfiguration(
 
     # bonus
     dbRenewalConfiguration.note = note or None
-    if dbEnrollmentPolicy:
-        dbRenewalConfiguration.enrollment_policy_id__via = dbEnrollmentPolicy.id
+    if dbSystemConfiguration:
+        dbRenewalConfiguration.system_configuration_id__via = dbSystemConfiguration.id
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])

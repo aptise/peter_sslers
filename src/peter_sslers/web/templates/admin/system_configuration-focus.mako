@@ -6,24 +6,24 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/enrollment-policys">Enrollment Policys</a></li>
-        <li class="active">Focus [${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`]</li>
+        <li><a href="${admin_prefix}/system-configurations">SystemConfigurations</a></li>
+        <li class="active">Focus [${SystemConfiguration.id}-`${SystemConfiguration.name}`]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>EnrollmentPolicy - Focus - [${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`]</h2>
+    <h2>SystemConfiguration - Focus - [${SystemConfiguration.id}-`${SystemConfiguration.name}`]</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/system-configuration/${SystemConfiguration.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
-        <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy.id}/edit" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/system-configuration/${SystemConfiguration.id}/edit" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
             Edit
         </a>
@@ -49,14 +49,14 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.id}
+                                ${SystemConfiguration.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>is_configured</th>
                         <td>
-                            % if EnrollmentPolicy.is_configured:
+                            % if SystemConfiguration.is_configured:
                                 <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
@@ -64,20 +64,10 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_system</th>
-                        <td>
-                            % if EnrollmentPolicy.is_system:
-                                <span class="label label-info">
-                                    System Policy
-                                </span>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>name</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.name}
+                                ${SystemConfiguration.name}
                             </span>
                         </td>
                     </tr>
@@ -86,14 +76,14 @@
                         <th>AcmeAccount Primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_account_id__primary}
+                                ${SystemConfiguration.acme_account_id__primary}
                             </span>
-                            % if EnrollmentPolicy.acme_account_id__primary:
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy.acme_account_id__primary}">
+                            % if SystemConfiguration.acme_account_id__primary:
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${EnrollmentPolicy.acme_account_id__primary}
+                                    AcmeAccount-${SystemConfiguration.acme_account_id__primary}
                                     |
-                                    ${EnrollmentPolicy.acme_account__primary.displayable}
+                                    ${SystemConfiguration.acme_account__primary.displayable}
                                 </a>
                             % endif
                         </td>
@@ -102,10 +92,10 @@
                         <th>acme_profile__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_profile__primary or ""}
+                                ${SystemConfiguration.acme_profile__primary or ""}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.acme_profile__primary__effective or ""}
+                                ${SystemConfiguration.acme_profile__primary__effective or ""}
                             </span>
                         </td>
                     </tr>
@@ -113,10 +103,10 @@
                         <th>private_key_technology__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.private_key_technology__primary}
+                                ${SystemConfiguration.private_key_technology__primary}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.private_key_technology__primary__effective}
+                                ${SystemConfiguration.private_key_technology__primary__effective}
                             </span>
                         </td>
                     </tr>
@@ -124,10 +114,10 @@
                         <th>private_key_cycle__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.private_key_cycle__primary}
+                                ${SystemConfiguration.private_key_cycle__primary}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.private_key_cycle__primary__effective}
+                                ${SystemConfiguration.private_key_cycle__primary__effective}
                             </span>
                         </td>
                     </tr>
@@ -135,14 +125,14 @@
                         <th>AcmeAccount [Backup]</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_account_id__backup}
+                                ${SystemConfiguration.acme_account_id__backup}
                             </span>
-                            % if EnrollmentPolicy.acme_account_id__backup:
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy.acme_account_id__backup}">
+                            % if SystemConfiguration.acme_account_id__backup:
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration.acme_account_id__backup}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${EnrollmentPolicy.acme_account_id__backup}
+                                    AcmeAccount-${SystemConfiguration.acme_account_id__backup}
                                     |
-                                    ${EnrollmentPolicy.acme_account__backup.displayable}
+                                    ${SystemConfiguration.acme_account__backup.displayable}
                                 </a>
                             % endif
                         </td>
@@ -151,10 +141,10 @@
                         <th>acme_profile__backup</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_profile__backup or ""}
+                                ${SystemConfiguration.acme_profile__backup or ""}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.acme_profile__backup__effective or ""}
+                                ${SystemConfiguration.acme_profile__backup__effective or ""}
                             </span>
                         </td>
                     </tr>
@@ -162,10 +152,10 @@
                         <th>private_key_technology__backup</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.private_key_technology__backup}
+                                ${SystemConfiguration.private_key_technology__backup}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.private_key_technology__backup__effective}
+                                ${SystemConfiguration.private_key_technology__backup__effective}
                             </span>
                         </td>
                     </tr>
@@ -173,10 +163,10 @@
                         <th>private_key_cycle__backup</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.private_key_cycle__backup}
+                                ${SystemConfiguration.private_key_cycle__backup}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.private_key_cycle__backup__effective}
+                                ${SystemConfiguration.private_key_cycle__backup__effective}
                             </span>
                         </td>
                     </tr>

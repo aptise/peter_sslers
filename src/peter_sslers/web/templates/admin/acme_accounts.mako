@@ -40,20 +40,20 @@
     % if pager._current == 1:
         <table class="table table-condensed">
             <tr>
-                <th>Global EnrollmentPolicy</th>
+                <th>Global SystemConfiguration</th>
                 <td>
-                    <a class="label label-info" href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_global.slug}">
+                    <a class="label label-info" href="${admin_prefix}/system-configuration/${SystemConfiguration_global.slug}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        EnrollmentPolicy-${EnrollmentPolicy_global.slug}</a>
+                        SystemConfiguration-${SystemConfiguration_global.slug}</a>
                 </td>
             </tr>
             <tr>
                 <th>Default AcmeAccount</th>
                 <td>
-                    % if EnrollmentPolicy_global.acme_account__primary:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy_global.acme_account_id__primary}">
+                    % if SystemConfiguration_global.acme_account__primary:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration_global.acme_account_id__primary}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${EnrollmentPolicy_global.acme_account_id__primary}</a>
+                            AcmeAccount-${SystemConfiguration_global.acme_account_id__primary}</a>
                     % else:
                         Please Configure
                     % endif            
@@ -62,10 +62,10 @@
             <tr>
                 <th>Backup AcmeAccount</th>
                 <td>
-                    % if EnrollmentPolicy_global.acme_account_id__backup:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy_global.acme_account_id__backup}">
+                    % if SystemConfiguration_global.acme_account_id__backup:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration_global.acme_account_id__backup}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${EnrollmentPolicy_global.acme_account_id__backup}</a>
+                            AcmeAccount-${SystemConfiguration_global.acme_account_id__backup}</a>
                     % else:
                         Please Configure
                     % endif            

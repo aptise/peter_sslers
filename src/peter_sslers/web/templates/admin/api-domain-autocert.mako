@@ -37,16 +37,16 @@
             </p>
 
 
-            % if not EnrollmentPolicy_autocert.is_configured:
+            % if not SystemConfiguration_autocert.is_configured:
                 <div class="alert alert-danger">
-                    <p>There `autocert` Enrollment Policy is NOT configured.</p>
+                    <p>There `autocert` SystemConfiguration is NOT configured.</p>
                 </div>
             % endif
 
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
-                        <th>EnrollmentPolicy</th>
+                        <th>SystemConfiguration</th>
                         <th>Link</th>
                         <th>Configured?</th>
                     <tr>
@@ -55,12 +55,12 @@
                     <tr>
                         <th>Autocert</th>
                         <td>
-                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_autocert.slug}" class="label label-info">
-                                EnrollmentPolicy-${EnrollmentPolicy_autocert.slug}
+                            <a href="${admin_prefix}/system-configuration/${SystemConfiguration_autocert.slug}" class="label label-info">
+                                SystemConfiguration-${SystemConfiguration_autocert.slug}
                             </a>
                         </td>
                         <td>
-                            % if EnrollmentPolicy_autocert.is_configured:
+                            % if SystemConfiguration_autocert.is_configured:
                                 <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>

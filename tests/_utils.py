@@ -1445,30 +1445,30 @@ def do__AcmeServers_sync(
         "certificate-if-needed",
     )
     for _pname in policy_names:
-        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
             testCase.ctx, _pname
         )
-        assert dbEnrollmentPolicy
-        if dbEnrollmentPolicy.is_configured:
+        assert dbSystemConfiguration
+        if dbSystemConfiguration.is_configured:
             if (
-                dbEnrollmentPolicy.acme_account__primary.acme_server_id
+                dbSystemConfiguration.acme_account__primary.acme_server_id
                 not in acme_server_ids
             ):
                 acme_server_ids.append(
-                    dbEnrollmentPolicy.acme_account__primary.acme_server_id
+                    dbSystemConfiguration.acme_account__primary.acme_server_id
                 )
-            if dbEnrollmentPolicy.acme_account__backup:
-                assert dbEnrollmentPolicy.acme_account__backup.acme_server
+            if dbSystemConfiguration.acme_account__backup:
+                assert dbSystemConfiguration.acme_account__backup.acme_server
                 if (
-                    dbEnrollmentPolicy.acme_account__backup.acme_server_id
+                    dbSystemConfiguration.acme_account__backup.acme_server_id
                     not in acme_server_ids
                 ):
                     acme_server_ids.append(
-                        dbEnrollmentPolicy.acme_account__backup.acme_server_id
+                        dbSystemConfiguration.acme_account__backup.acme_server_id
                     )
         else:
             if _pname == "global":
-                raise ValueError("EnrollmentPolicy[global] not configured")
+                raise ValueError("SystemConfiguration[global] not configured")
 
     for _acme_server_id in acme_server_ids:
         res = testCase.testapp.get(
@@ -1659,7 +1659,7 @@ def make_one__RenewalConfiguration(
     return dbRenewalConfiguration
 
 
-def setup_EnrollmentPolicy(
+def setup_SystemConfiguration(
     testCase: CustomizedTestCase,
     policy_name: Literal["global", "autocert", "certificate-if-needed"],
 ) -> model_objects.AcmeOrder:
@@ -1669,51 +1669,53 @@ def setup_EnrollmentPolicy(
         raise ValueError("`global` is not supported")
 
     res = testCase.testapp.get(
-        "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+        "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
         status=200,
     )
     assert "form_fields" in res.json
 
-    dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+    dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
         testCase.ctx, "global"
     )
-    assert dbEnrollmentPolicy_global
-    assert dbEnrollmentPolicy_global.is_configured
+    assert dbSystemConfiguration_global
+    assert dbSystemConfiguration_global.is_configured
 
     form: Dict[str, Union[int, str, None]] = {}
-    form["acme_account_id__backup"] = dbEnrollmentPolicy_global.acme_account_id__backup
-    form["acme_account_id__primary"] = (
-        dbEnrollmentPolicy_global.acme_account_id__primary
+    form["acme_account_id__backup"] = (
+        dbSystemConfiguration_global.acme_account_id__backup
     )
-    form["acme_profile__backup"] = dbEnrollmentPolicy_global.acme_profile__backup
-    form["acme_profile__primary"] = dbEnrollmentPolicy_global.acme_profile__primary
+    form["acme_account_id__primary"] = (
+        dbSystemConfiguration_global.acme_account_id__primary
+    )
+    form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
+    form["acme_profile__primary"] = dbSystemConfiguration_global.acme_profile__primary
     form["private_key_cycle__backup"] = (
-        dbEnrollmentPolicy_global.private_key_cycle__backup
+        dbSystemConfiguration_global.private_key_cycle__backup
     )
     form["private_key_cycle__primary"] = (
-        dbEnrollmentPolicy_global.private_key_cycle__primary
+        dbSystemConfiguration_global.private_key_cycle__primary
     )
     form["private_key_technology__backup"] = (
-        dbEnrollmentPolicy_global.private_key_technology__backup
+        dbSystemConfiguration_global.private_key_technology__backup
     )
     form["private_key_technology__primary"] = (
-        dbEnrollmentPolicy_global.private_key_technology__primary
+        dbSystemConfiguration_global.private_key_technology__primary
     )
 
     res2 = testCase.testapp.post(
-        "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+        "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
         form,
     )
     assert res2.json["result"] == "success"
-    assert "EnrollmentPolicy" in res2.json
+    assert "SystemConfiguration" in res2.json
 
-    dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+    dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
         testCase.ctx, policy_name
     )
 
-    assert dbEnrollmentPolicy
-    assert dbEnrollmentPolicy.is_configured
-    return dbEnrollmentPolicy
+    assert dbSystemConfiguration
+    assert dbSystemConfiguration.is_configured
+    return dbSystemConfiguration
 
 
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
@@ -1754,17 +1756,17 @@ def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
         _result = lib_db_update.update_RenewalConfiguration__unset_active(
             testCase.ctx, _dbRenewalConfiguration
         )
-    # note: unset EnrollmentPolicies
-    dbEnrollmentPolicies = (
-        testCase.ctx.dbSession.query(model_objects.EnrollmentPolicy)
+    # note: unset SystemConfigurations
+    dbSystemConfigurations = (
+        testCase.ctx.dbSession.query(model_objects.SystemConfiguration)
         .filter(
-            model_objects.EnrollmentPolicy.name != "global",
-            model_objects.EnrollmentPolicy.is_configured.is_(True),
+            model_objects.SystemConfiguration.name != "global",
+            model_objects.SystemConfiguration.is_configured.is_(True),
         )
         .all()
     )
-    for dbEnrollmentPolicy in dbEnrollmentPolicies:
-        dbEnrollmentPolicy.is_configured = False
+    for dbSystemConfiguration in dbSystemConfigurations:
+        dbSystemConfiguration.is_configured = False
     testCase.ctx.pyramid_transaction_commit()
     return True
 
@@ -2287,22 +2289,22 @@ class AppTest(AppTestCore):
                             _dbAcmeAccount_2 = _dbAcmeAccount
                         self.ctx.pyramid_transaction_commit()
 
-                    dbEnrollmentPolicy_global = (
-                        lib_db_get.get__EnrollmentPolicy__by_name(self.ctx, "global")
+                    dbSystemConfiguration_global = (
+                        lib_db_get.get__SystemConfiguration__by_name(self.ctx, "global")
                     )
-                    assert dbEnrollmentPolicy_global
+                    assert dbSystemConfiguration_global
 
-                    _updated = lib_db_update.update_EnrollmentPolicy(
+                    _updated = lib_db_update.update_SystemConfiguration(
                         ctx=self.ctx,
-                        dbEnrollmentPolicy=dbEnrollmentPolicy_global,
+                        dbSystemConfiguration=dbSystemConfiguration_global,
                         acme_account_id__primary=_dbAcmeAccount_1.id,
-                        private_key_cycle__primary=dbEnrollmentPolicy_global.private_key_cycle__primary,
-                        private_key_technology__primary=dbEnrollmentPolicy_global.private_key_technology__primary,
-                        acme_profile__primary=dbEnrollmentPolicy_global.acme_profile__primary,
+                        private_key_cycle__primary=dbSystemConfiguration_global.private_key_cycle__primary,
+                        private_key_technology__primary=dbSystemConfiguration_global.private_key_technology__primary,
+                        acme_profile__primary=dbSystemConfiguration_global.acme_profile__primary,
                         acme_account_id__backup=_dbAcmeAccount_2.id,
-                        private_key_cycle__backup=dbEnrollmentPolicy_global.private_key_cycle__backup,
-                        private_key_technology__backup=dbEnrollmentPolicy_global.private_key_technology__backup,
-                        acme_profile__backup=dbEnrollmentPolicy_global.acme_profile__backup,
+                        private_key_cycle__backup=dbSystemConfiguration_global.private_key_cycle__backup,
+                        private_key_technology__backup=dbSystemConfiguration_global.private_key_technology__backup,
+                        acme_profile__backup=dbSystemConfiguration_global.acme_profile__backup,
                     )
 
                     # note: pre-populate CertificateCA

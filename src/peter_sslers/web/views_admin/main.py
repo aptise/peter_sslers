@@ -25,10 +25,10 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
-        self.request.api_context._load_EnrollmentPolicy_global()
+        self.request.api_context._load_SystemConfiguration_global()
         return {
             "project": "peter_sslers",
-            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
             "enable_redis": self.request.api_context.application_settings[
                 "enable_redis"
             ],
@@ -242,15 +242,15 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
-        self.request.api_context._load_EnrollmentPolicy_global()
-        self.request.api_context._load_EnrollmentPolicy_autocert()
-        self.request.api_context._load_EnrollmentPolicy_cin()
+        self.request.api_context._load_SystemConfiguration_global()
+        self.request.api_context._load_SystemConfiguration_autocert()
+        self.request.api_context._load_SystemConfiguration_cin()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
-            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
-            "EnrollmentPolicy_autocert": self.request.api_context.dbEnrollmentPolicy_autocert,
-            "EnrollmentPolicy_cin": self.request.api_context.dbEnrollmentPolicy_cin,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+            "SystemConfiguration_autocert": self.request.api_context.dbSystemConfiguration_autocert,
+            "SystemConfiguration_cin": self.request.api_context.dbSystemConfiguration_cin,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

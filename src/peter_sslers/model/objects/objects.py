@@ -142,14 +142,14 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
-    enrollment_policys__primary = sa_orm_relationship(
-        "EnrollmentPolicy",
-        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__primary",
+    system_configurations__primary = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__primary",
         back_populates="acme_account__primary",
     )
-    enrollment_policys__backup = sa_orm_relationship(
-        "EnrollmentPolicy",
-        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__backup",
+    system_configurations__backup = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__backup",
         back_populates="acme_account__backup",
     )
     operations_object_events = sa_orm_relationship(
@@ -214,7 +214,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_deactivate(self) -> bool:
-        if self.enrollment_policys__primary or self.enrollment_policys__backup:
+        if self.system_configurations__primary or self.system_configurations__backup:
             return False
         if self.is_active:
             return True
@@ -222,7 +222,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_unset_active(self) -> bool:
-        if self.enrollment_policys__primary or self.enrollment_policys__backup:
+        if self.system_configurations__primary or self.system_configurations__backup:
             return False
         if self.is_active:
             return True
@@ -3896,12 +3896,11 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
+class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
 
-    __tablename__ = "enrollment_policy"
+    __tablename__ = "system_configuration"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
-    is_system: Mapped[bool] = mapped_column(sa.Boolean, nullable=True, default=None)
     is_configured: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=True, default=False
     )
@@ -3942,20 +3941,20 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
 
     acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="EnrollmentPolicy.acme_account_id__primary==AcmeAccount.id",
+        primaryjoin="SystemConfiguration.acme_account_id__primary==AcmeAccount.id",
         uselist=False,
-        back_populates="enrollment_policys__primary",
+        back_populates="system_configurations__primary",
     )
     acme_account__backup = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="EnrollmentPolicy.acme_account_id__backup==AcmeAccount.id",
+        primaryjoin="SystemConfiguration.acme_account_id__backup==AcmeAccount.id",
         uselist=False,
-        back_populates="enrollment_policys__enrollment_policys__backup",
+        back_populates="system_configurations__system_configurations__backup",
     )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
-        primaryjoin="EnrollmentPolicy.id==RenewalConfiguration.enrollment_policy_id__via",
-        back_populates="enrollment_policy__via",
+        primaryjoin="SystemConfiguration.id==RenewalConfiguration.system_configuration_id__via",
+        back_populates="system_configuration__via",
     )
 
     @property
@@ -3997,7 +3996,6 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
-            "is_system": self.is_system,
             "is_configured": self.is_configured,
             "private_key_technology__primary": self.private_key_technology__primary,
             "private_key_technology__primary__effective": self.private_key_technology__primary__effective,
@@ -4570,8 +4568,8 @@ class RenewalConfiguration(
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
-    enrollment_policy_id__via: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("enrollment_policy.id"), nullable=True
+    system_configuration_id__via: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("system_configuration.id"), nullable=True
     )
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     operations_event_id__created: Mapped[int] = mapped_column(
@@ -4596,9 +4594,9 @@ class RenewalConfiguration(
         back_populates="renewal_configuration",
         uselist=True,
     )
-    enrollment_policy__via = sa_orm_relationship(
-        "EnrollmentPolicy",
-        primaryjoin="RenewalConfiguration.enrollment_policy_id__via==EnrollmentPolicy.id",
+    system_configuration__via = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="RenewalConfiguration.system_configuration_id__via==SystemConfiguration.id",
         uselist=False,
         back_populates="renewal_configurations",
     )
@@ -5161,7 +5159,7 @@ __all__ = (
     "Domain",
     "DomainAutocert",
     "DomainBlocklisted",
-    "EnrollmentPolicy",
+    "SystemConfiguration",
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",

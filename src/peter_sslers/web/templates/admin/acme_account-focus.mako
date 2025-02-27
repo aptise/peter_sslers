@@ -118,29 +118,29 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Enrollment Policies</th>
+                        <th>SystemConfigurations</th>
                         <td>
-                            % if AcmeAccount.enrollment_policys__primary:
+                            % if AcmeAccount.system_configurations__primary:
                                 <b>Configured as Primary</b>
                                 <ul>
-                                    % for ep in AcmeAccount.enrollment_policys__primary:
+                                    % for ep in AcmeAccount.system_configurations__primary:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/system-configuration/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                                                EnrollmentPolicy-${ep.name}
+                                                SystemConfiguration-${ep.name}
                                             </a>
                                         </li>
                                     % endfor
                                 </ul>
                             % endif
-                            % if AcmeAccount.enrollment_policys__backup:
+                            % if AcmeAccount.system_configurations__backup:
                                 <b>Configured as Backup</b>
                                 <ul>
-                                    % for ep in AcmeAccount.enrollment_policys__backup:
+                                    % for ep in AcmeAccount.system_configurations__backup:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/system-configuration/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                                                EnrollmentPolicy-${ep.name}
+                                                SystemConfiguration-${ep.name}
                                             </a>
                                         </li>
                                     % endfor

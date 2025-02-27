@@ -6,21 +6,21 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/enrollment-policys">Enrollment Policys</a></li>
-        <li><a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy.id}">Enrollment Policy ${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`</a></li>
+        <li><a href="${admin_prefix}/system-configurations">SystemConfigurations</a></li>
+        <li><a href="${admin_prefix}/system-configuration/${SystemConfiguration.id}">SystemConfiguration ${SystemConfiguration.id}-`${SystemConfiguration.name}`</a></li>
         <li class="active">Edit</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>EnrollmentPolicy - Focus - [${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`] - Edit</h2>
+    <h2>SystemConfiguration - Focus - [${SystemConfiguration.id}-`${SystemConfiguration.name}`] - Edit</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy.id}/edit.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/system-configuration/${SystemConfiguration.id}/edit.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -35,9 +35,9 @@
         <div class="col-sm-12">
 
 
-            <form action="${admin_prefix}/enrollment-policy/${EnrollmentPolicy.id}/edit"
+            <form action="${admin_prefix}/system-configuration/${SystemConfiguration.id}/edit"
                   method="POST"
-                  id="form-enrollment_policy-edit"
+                  id="form-system_configuration-edit"
                   >
 
 
@@ -54,7 +54,7 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.id}
+                                ${SystemConfiguration.id}
                             </span>
                         </td>
                     </tr>
@@ -62,18 +62,8 @@
                         <th>name</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.name}
+                                ${SystemConfiguration.name}
                             </span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_system</th>
-                        <td>
-                            % if EnrollmentPolicy.is_system:
-                                <span class="label label-info">
-                                    System Policy
-                                </span>
-                            % endif
                         </td>
                     </tr>
                     <tr>
@@ -81,7 +71,7 @@
                         <td>
                            ${admin_partials.formgroup__AcmeAccount_select(
                                acmeAccounts=AcmeAccounts,
-                               default=EnrollmentPolicy.acme_account_id__primary,
+                               default=SystemConfiguration.acme_account_id__primary,
                                field_name="acme_account_id__primary",
                                allow_none=False,
                             )}
@@ -95,37 +85,37 @@
                             </p>
                         </td>
                     </tr>
-                    % if EnrollmentPolicy.name == "global":
+                    % if SystemConfiguration.name == "global":
                         <tr>
                             <th>acme_profile__primary</th>
                             <td>
-                                <code>${EnrollmentPolicy.acme_profile__primary}</code>
+                                <code>${SystemConfiguration.acme_profile__primary}</code>
                                 <input
                                     type="hidden"
                                     name="acme_profile__primary"
-                                    value="${EnrollmentPolicy.acme_profile__primary}"
+                                    value="${SystemConfiguration.acme_profile__primary}"
                                 />
                             </td>
                         </tr>
                         <tr>
                             <th>private_key_technology__primary</th>
                             <td>
-                                <code>${EnrollmentPolicy.private_key_technology__primary}</code>
+                                <code>${SystemConfiguration.private_key_technology__primary}</code>
                                 <input
                                     type="hidden"
                                     name="private_key_technology__primary"
-                                    value="${EnrollmentPolicy.private_key_technology__primary}"
+                                    value="${SystemConfiguration.private_key_technology__primary}"
                                 />
                             </td>
                         </tr>
                         <tr>
                             <th>private_key_cycle__primary</th>
                             <td>
-                                <code>${EnrollmentPolicy.private_key_cycle__primary}</code>
+                                <code>${SystemConfiguration.private_key_cycle__primary}</code>
                                 <input
                                     type="hidden"
                                     name="private_key_cycle__primary"
-                                    value="${EnrollmentPolicy.private_key_cycle__primary}"
+                                    value="${SystemConfiguration.private_key_cycle__primary}"
                                 />
                             </td>
                         </tr>
@@ -137,7 +127,7 @@
                                     type="text"
                                     class="form-control"
                                     name="acme_profile__primary"
-                                    value="${EnrollmentPolicy.acme_profile__primary or ''}"
+                                    value="${SystemConfiguration.acme_profile__primary or ''}"
                                 />
                                 <p class="help">
                                     Leave this blank for no profile.
@@ -149,7 +139,7 @@
                             <th>private_key_technology__primary</th>
                             <td>
                                ${admin_partials.formgroup__key_technology(
-                                   default=EnrollmentPolicy.private_key_technology__primary,
+                                   default=SystemConfiguration.private_key_technology__primary,
                                    field_name="private_key_technology__primary",
                                 )}
                             </td>
@@ -159,7 +149,7 @@
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__primary",
-                                   default=EnrollmentPolicy.private_key_cycle__primary,
+                                   default=SystemConfiguration.private_key_cycle__primary,
                                 )}
                             </td>
                         </tr>
@@ -169,7 +159,7 @@
                         <td>
                            ${admin_partials.formgroup__AcmeAccount_select(
                                acmeAccounts=AcmeAccounts,
-                               default=EnrollmentPolicy.acme_account_id__backup,
+                               default=SystemConfiguration.acme_account_id__backup,
                                field_name="acme_account_id__backup",
                                allow_none=True,
                             )}
@@ -183,37 +173,37 @@
                             </p>
                         </td>
                     </tr>
-                    % if EnrollmentPolicy.name == "global":
+                    % if SystemConfiguration.name == "global":
                         <tr>
                             <th>acme_profile__backup</th>
                             <td>
-                                <code>${EnrollmentPolicy.acme_profile__backup}</code>
+                                <code>${SystemConfiguration.acme_profile__backup}</code>
                                 <input
                                     type="hidden"
                                     name="acme_profile__backup"
-                                    value="${EnrollmentPolicy.acme_profile__backup}"
+                                    value="${SystemConfiguration.acme_profile__backup}"
                                 />
                             </td>
                         </tr>
                         <tr>
                             <th>private_key_technology__backup</th>
                             <td>
-                                <code>${EnrollmentPolicy.private_key_technology__backup}</code>
+                                <code>${SystemConfiguration.private_key_technology__backup}</code>
                                 <input
                                     type="hidden"
                                     name="private_key_technology__backup"
-                                    value="${EnrollmentPolicy.private_key_technology__backup}"
+                                    value="${SystemConfiguration.private_key_technology__backup}"
                                 />
                             </td>
                         </tr>
                         <tr>
                             <th>private_key_cycle__backup</th>
                             <td>
-                                <code>${EnrollmentPolicy.private_key_cycle__backup}</code>
+                                <code>${SystemConfiguration.private_key_cycle__backup}</code>
                                 <input
                                     type="hidden"
                                     name="private_key_cycle__backup"
-                                    value="${EnrollmentPolicy.private_key_cycle__backup}"
+                                    value="${SystemConfiguration.private_key_cycle__backup}"
                                 />
                             </td>
                         </tr>
@@ -225,7 +215,7 @@
                                     type="text"
                                     class="form-control"
                                     name="acme_profile__backup"
-                                    value="${EnrollmentPolicy.acme_profile__backup or ''}"
+                                    value="${SystemConfiguration.acme_profile__backup or ''}"
                                 />
                                 <p class="help">
                                     Leave this blank for no profile.
@@ -237,7 +227,7 @@
                             <th>private_key_technology__backup</th>
                             <td>
                                ${admin_partials.formgroup__key_technology(
-                                   default=EnrollmentPolicy.private_key_technology__backup,
+                                   default=SystemConfiguration.private_key_technology__backup,
                                    field_name="private_key_technology__backup",
                                 )}
                             </td>
@@ -247,7 +237,7 @@
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__backup",
-                                   default=EnrollmentPolicy.private_key_cycle__backup,
+                                   default=SystemConfiguration.private_key_cycle__backup,
                                 )}
                             </td>
                         </tr>

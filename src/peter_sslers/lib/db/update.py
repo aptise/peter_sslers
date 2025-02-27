@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
-    from ...model.objects import EnrollmentPolicy
+    from ...model.objects import SystemConfiguration
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
@@ -214,11 +214,11 @@ def update_AcmeAccount__unset_active(
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     if (
-        dbAcmeAccount.enrollment_policys__primary
-        or dbAcmeAccount.enrollment_policys__backup
+        dbAcmeAccount.system_configurations__primary
+        or dbAcmeAccount.system_configurations__backup
     ):
         raise errors.InvalidTransition(
-            "This AcmeAccount is registered with EnrollmentPolicy(s)."
+            "This AcmeAccount is registered with SystemConfiguration(s)."
         )
     dbAcmeAccount.is_active = False
     event_status = "AcmeAccount__mark__inactive"
@@ -758,9 +758,9 @@ def update_DomainAutocert_with_AcmeOrder(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_EnrollmentPolicy(
+def update_SystemConfiguration(
     ctx: "ApiContext",
-    dbEnrollmentPolicy: "EnrollmentPolicy",
+    dbSystemConfiguration: "SystemConfiguration",
     acme_account_id__primary: int,
     private_key_cycle__primary: str,
     private_key_technology__primary: str,
@@ -814,7 +814,7 @@ def update_EnrollmentPolicy(
 
     # global MUST only allow account defaults
     # otherwise everything gets too confusing
-    if dbEnrollmentPolicy.name == "global":
+    if dbSystemConfiguration.name == "global":
         # primary
         if acme_profile__primary != "@":
             raise errors.InvalidTransition("Global `acme_profile__primary` MUST be `@`")
@@ -855,14 +855,14 @@ def update_EnrollmentPolicy(
         ("acme_profile__backup", acme_profile__backup),
     )
     for p in pairings:
-        if getattr(dbEnrollmentPolicy, p[0]) != p[1]:
-            setattr(dbEnrollmentPolicy, p[0], p[1])
+        if getattr(dbSystemConfiguration, p[0]) != p[1]:
+            setattr(dbSystemConfiguration, p[0], p[1])
             changes = True
 
     if changes:
-        if not dbEnrollmentPolicy.is_configured:
-            if dbEnrollmentPolicy.acme_account_id__primary:
-                dbEnrollmentPolicy.is_configured = True
+        if not dbSystemConfiguration.is_configured:
+            if dbSystemConfiguration.acme_account_id__primary:
+                dbSystemConfiguration.is_configured = True
 
     return changes
 

@@ -23,7 +23,7 @@
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
-                <th><!-- EnrollmentPolicy info --></th>
+                <th><!-- SystemConfiguration info --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -51,7 +51,7 @@
                         % endif
                     </td>
                     <td>
-                        <!-- TODO: show EnrollmentPolicy Info -->
+                        <!-- TODO: show SystemConfiguration Info -->
                     </td>
                     <td>
                         <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
@@ -1029,7 +1029,7 @@
 </%def>
 
 
-<%def name="table_EnrollmentPolicys(data, perspective=None)">
+<%def name="table_SystemConfigurations(data, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -1041,9 +1041,9 @@
         <tbody>
             % for policy in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/enrollment-policy/${policy.slug}">
+                    <td><a class="label label-info" href="${admin_prefix}/system-configuration/${policy.slug}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        EnrollmentPolicy-${policy.id}</a>
+                        SystemConfiguration-${policy.id}</a>
                     </td>
                     <td>
                         <span class="label label-default">${policy.name}</span>
@@ -1565,17 +1565,17 @@
 </%def>
 
 
-<%def name="messaging_EnrollmentPolicy_global()">
-    % if not  EnrollmentPolicy_global.is_configured:
+<%def name="messaging_SystemConfiguration_global()">
+    % if not  SystemConfiguration_global.is_configured:
     <div class="alert alert-warning">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-        The global EnrollmentPolicy is not configured.
+        The global SystemConfiguration is not configured.
         Please configure the policy to set the Global Default and Backup AcmeAccounts.
         <a  class="label label-info"
-            href="${admin_prefix}/enrollment-policy/global"
+            href="${admin_prefix}/system-configuration/global"
         >
             <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
-            EnrollmentPolicy-Global
+            SystemConfiguration-Global
         </a>
     </div>
     % endif
@@ -1605,7 +1605,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbEnrollmentPolicy=None,)">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbSystemConfiguration=None,)">
     <%
         checked = {
             "none": "",
@@ -1618,10 +1618,10 @@
             checked["account_key_global_default"] = 'checked="checked"'
         elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
-        if not dbEnrollmentPolicy:
-            dbEnrollmentPolicy = EnrollmentPolicy_global
+        if not dbSystemConfiguration:
+            dbSystemConfiguration = SystemConfiguration_global
             
-        acmeAccount_GlobalDefault = EnrollmentPolicy_global.acme_account__primary
+        acmeAccount_GlobalDefault = SystemConfiguration_global.acme_account__primary
     %>
     <p>Select a Primary AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
@@ -1679,12 +1679,12 @@
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Default AcmeAccount configured.
-                Any Account can be configured as the Global Default through the global EnrollmentPolicy
+                Any Account can be configured as the Global Default through the global SystemConfiguration
                 <a  class="label label-info"
-                    href="${admin_prefix}/enrollment-policy/global"
+                    href="${admin_prefix}/system-configuration/global"
                 >
                     <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
-                    EnrollmentPolicy-global
+                    SystemConfiguration-global
                 </a>
             </div>
         % endif
@@ -1723,7 +1723,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='', dbEnrollmentPolicy=None)">
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='', dbSystemConfiguration=None)">
     <%
         checked = {
             "none": "",
@@ -1740,10 +1740,10 @@
         else:
             checked["none"] = 'checked="checked"'
         
-        if not dbEnrollmentPolicy:
-            dbEnrollmentPolicy = EnrollmentPolicy_global
+        if not dbSystemConfiguration:
+            dbSystemConfiguration = SystemConfiguration_global
         
-        acmeAccount_GlobalBackup = EnrollmentPolicy_global.acme_account__backup
+        acmeAccount_GlobalBackup = SystemConfiguration_global.acme_account__backup
         
     %>
     <p>Select a Backup AcmeAccount with one of the following options</p>
@@ -1808,12 +1808,12 @@
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Backup AcmeAccount configured.
-                The backup can be configured through the Global EnrollmentPolicy
+                The backup can be configured through the Global SystemConfiguration
                 <a  class="label label-info"
-                    href="${admin_prefix}/enrollment-policy/global"
+                    href="${admin_prefix}/system-configuration/global"
                 >
                     <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
-                    EnrollmentPolicy-global
+                    SystemConfiguration-global
                 </a>
             </div>
         % endif

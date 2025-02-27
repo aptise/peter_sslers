@@ -49,15 +49,15 @@
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
                     support_profiles=True,
-                    default_profile=EnrollmentPolicy_global.acme_profile__primary,
-                    dbEnrollmentPolicy=EnrollmentPolicy_global,
+                    default_profile=SystemConfiguration_global.acme_profile__primary,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
                 <h4>PrivateKey</h4>
                 
                 ${admin_partials.formgroup__private_key_cycle(
                     field_name="private_key_cycle__primary",
-                    default=EnrollmentPolicy_global.private_key_cycle__primary,
+                    default=SystemConfiguration_global.private_key_cycle__primary,
                 )}
                 ${admin_partials.formgroup__PrivateKey_selector__advanced(
                     support_upload=False,
@@ -72,20 +72,20 @@
                 <h3>Backup Certificate</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__backup(
                     support_profiles=True,
-                    default_profile=EnrollmentPolicy_global.acme_profile__backup,
-                    dbEnrollmentPolicy=EnrollmentPolicy_global,
+                    default_profile=SystemConfiguration_global.acme_profile__backup,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
                 <h4>PrivateKey</h4>
                 ${admin_partials.formgroup__private_key_cycle(
                     field_name="private_key_cycle__backup",
                     label="[Backup Certificate]",
-                    default=EnrollmentPolicy_global.private_key_cycle__backup,
+                    default=SystemConfiguration_global.private_key_cycle__backup,
                 )}
                 ${admin_partials.formgroup__key_technology(
                     field_name="private_key_technology__backup",
                     label="[Backup Certificate]",
-                    default=EnrollmentPolicy_global.private_key_technology__backup,
+                    default=SystemConfiguration_global.private_key_technology__backup,
                     options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
                 )}
                 <hr/>

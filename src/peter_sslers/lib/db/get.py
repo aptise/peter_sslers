@@ -44,7 +44,7 @@ from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
 from ...model.objects import DomainBlocklisted
-from ...model.objects import EnrollmentPolicy
+from ...model.objects import SystemConfiguration
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
@@ -2867,20 +2867,19 @@ def get__DomainBlocklisted__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__EnrollmentPolicy__count(ctx: "ApiContext") -> int:
-    q = ctx.dbSession.query(EnrollmentPolicy)
+def get__SystemConfiguration__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(SystemConfiguration)
     counted = q.count()
     return counted
 
 
-def get__EnrollmentPolicy__paginated(
+def get__SystemConfiguration__paginated(
     ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[EnrollmentPolicy]:
+) -> List[SystemConfiguration]:
     q = (
-        ctx.dbSession.query(EnrollmentPolicy)
+        ctx.dbSession.query(SystemConfiguration)
         .order_by(
-            EnrollmentPolicy.is_system.desc(),
-            EnrollmentPolicy.name.asc(),
+            SystemConfiguration.name.asc(),
         )
         .limit(limit)
         .offset(offset)
@@ -2889,31 +2888,33 @@ def get__EnrollmentPolicy__paginated(
     return items_paged
 
 
-def get__EnrollmentPolicy__by_id(
+def get__SystemConfiguration__by_id(
     ctx: "ApiContext", id_: int
-) -> Optional[EnrollmentPolicy]:
-    q = ctx.dbSession.query(EnrollmentPolicy).filter(EnrollmentPolicy.id == id_)
+) -> Optional[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(SystemConfiguration.id == id_)
     item = q.first()
     return item
 
 
-def get__EnrollmentPolicy__by_name(
+def get__SystemConfiguration__by_name(
     ctx: "ApiContext", name: str
-) -> Optional[EnrollmentPolicy]:
+) -> Optional[SystemConfiguration]:
     if not name:
         raise ValueError("`name` required")
-    q = ctx.dbSession.query(EnrollmentPolicy).filter(EnrollmentPolicy.name == name)
+    q = ctx.dbSession.query(SystemConfiguration).filter(
+        SystemConfiguration.name == name
+    )
     item = q.first()
     return item
 
 
-def get__EnrollmentPolicys__by_acmeAccountId(
+def get__SystemConfigurations__by_acmeAccountId(
     ctx: "ApiContext", acme_account_id: int
-) -> List[EnrollmentPolicy]:
-    q = ctx.dbSession.query(EnrollmentPolicy).filter(
+) -> List[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(
         sqlalchemy.or_(
-            EnrollmentPolicy.acme_account_id__primary == acme_account_id,
-            EnrollmentPolicy.acme_account_id__backup == acme_account_id,
+            SystemConfiguration.acme_account_id__primary == acme_account_id,
+            SystemConfiguration.acme_account_id__backup == acme_account_id,
         )
     )
     items = q.all()

@@ -47,7 +47,7 @@
                     support_profiles=True,
                     dbAcmeAccountReuse=RenewalConfiguration.acme_account__primary,
                     default_profile=RenewalConfiguration.acme_profile__primary,
-                    dbEnrollmentPolicy=EnrollmentPolicy_global,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <h4>PrivateKey</h4>
                 ${admin_partials.formgroup__private_key_cycle(
@@ -67,7 +67,7 @@
                     support_profiles=True,
                     dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
                     default_profile=RenewalConfiguration.acme_profile__backup,
-                    dbEnrollmentPolicy=EnrollmentPolicy_global,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
                 <h4>PrivateKey</h4>

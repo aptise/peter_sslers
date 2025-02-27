@@ -68,7 +68,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        self.request.api_context._load_EnrollmentPolicy_global()
+        self.request.api_context._load_SystemConfiguration_global()
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
             "%s/acme-accounts/{0}"
@@ -87,8 +87,8 @@ class View_List(Handler):
                 "pagination": json_pagination(items_count, pager),
             }
             if pager._current == 1:
-                rval["EnrollmentPolicy_global"] = (
-                    self.request.api_context.dbEnrollmentPolicy_global.as_json
+                rval["SystemConfiguration_global"] = (
+                    self.request.api_context.dbSystemConfiguration_global.as_json
                 )
             return rval
         return {
@@ -96,7 +96,7 @@ class View_List(Handler):
             "AcmeAccounts_count": items_count,
             "AcmeAccounts": items_paged,
             "pager": pager,
-            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
         }
 
 

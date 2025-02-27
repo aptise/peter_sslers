@@ -500,12 +500,12 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
     acme_dns_server_id = Int(not_empty=True)
 
 
-class Form_EnrollmentPolicy_Global_edit(_Form_Schema_Base):
+class Form_SystemConfiguration_Global_edit(_Form_Schema_Base):
     acme_account_id__primary = Int(not_empty=True)
     acme_account_id__backup = Int(not_empty=False, if_missing=None)
 
 
-class Form_EnrollmentPolicy_edit(_Form_Schema_Base):
+class Form_SystemConfiguration_edit(_Form_Schema_Base):
     acme_account_id__primary = Int(not_empty=True)
     private_key_cycle__primary = OneOf(
         model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,

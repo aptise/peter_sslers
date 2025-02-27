@@ -290,7 +290,7 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         ]
     )
 
-    # !!!: EnrollmentPolicies
+    # !!!: SystemConfigurations
     for _name in (
         "global",
         "autocert",
@@ -298,30 +298,29 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     ):
         if not utils.validate_websafe_slug(_name):
             raise ValueError("invalid name")
-        dbEnrollmentPolicy = model_objects.EnrollmentPolicy()
-        dbEnrollmentPolicy.name = _name
-        dbEnrollmentPolicy.is_system = True
-        dbEnrollmentPolicy.is_configured = False
-        dbEnrollmentPolicy.acme_account_id__primary = 0
-        dbEnrollmentPolicy.acme_account_id__backup = 0
-        dbEnrollmentPolicy.private_key_technology_id__primary = (
+        dbSystemConfiguration = model_objects.SystemConfiguration()
+        dbSystemConfiguration.name = _name
+        dbSystemConfiguration.is_configured = False
+        dbSystemConfiguration.acme_account_id__primary = 0
+        dbSystemConfiguration.acme_account_id__backup = 0
+        dbSystemConfiguration.private_key_technology_id__primary = (
             model_utils.KeyTechnology.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.private_key_technology_id__backup = (
+        dbSystemConfiguration.private_key_technology_id__backup = (
             model_utils.KeyTechnology.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.private_key_cycle_id__primary = (
+        dbSystemConfiguration.private_key_cycle_id__primary = (
             model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.private_key_cycle_id__backup = (
+        dbSystemConfiguration.private_key_cycle_id__backup = (
             model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.acme_profile__primary = "@"
-        dbEnrollmentPolicy.acme_profile__backup = "@"
-        ctx.dbSession.add(dbEnrollmentPolicy)
+        dbSystemConfiguration.acme_profile__primary = "@"
+        dbSystemConfiguration.acme_profile__backup = "@"
+        ctx.dbSession.add(dbSystemConfiguration)
         ctx.dbSession.flush(
             objects=[
-                dbEnrollmentPolicy,
+                dbSystemConfiguration,
             ]
         )
 

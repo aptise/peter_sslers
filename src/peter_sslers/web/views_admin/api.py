@@ -223,7 +223,7 @@ class ViewAdminApi_Domain(Handler):
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
-                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
                 # Form_API_Domain_certificate_if_needed
                 "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
                     "processing_strategy"
@@ -245,7 +245,7 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def certificate_if_needed(self):
-        self.request.api_context._load_EnrollmentPolicy_cin()
+        self.request.api_context._load_SystemConfiguration_cin()
         self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._certificate_if_needed__submit()
@@ -330,10 +330,10 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
-        self.request.api_context._load_EnrollmentPolicy_autocert()
+        self.request.api_context._load_SystemConfiguration_autocert()
         return {
             "project": "peter_sslers",
-            "EnrollmentPolicy_autocert": self.request.api_context.dbEnrollmentPolicy_autocert,
+            "SystemConfiguration_autocert": self.request.api_context.dbSystemConfiguration_autocert,
         }
 
     @view_config(route_name="admin:api:domain:autocert|json", renderer="json")
@@ -345,7 +345,7 @@ class ViewAdminApi_Domain(Handler):
             "POST": True,
             "GET": None,
             "system.requires": [
-                "dbEnrollmentPolicy_autocert",
+                "dbSystemConfiguration_autocert",
             ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
@@ -360,12 +360,12 @@ class ViewAdminApi_Domain(Handler):
                 "domain_name": "required; a single domain name to process",
             },
             "valid_options": {
-                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
             },
         }
     )
     def autocert(self):
-        self.request.api_context._load_EnrollmentPolicy_autocert()
+        self.request.api_context._load_SystemConfiguration_autocert()
         if self.request.method == "POST":
             return self._autocert__submit()
         return self._autocert__print()
@@ -380,8 +380,8 @@ class ViewAdminApi_Domain(Handler):
         # scoping
         dbDomainAutocert = None
         dbAcmeOrder = None
-        dbEnrollmentPolicy_autocert = (
-            self.request.api_context.dbEnrollmentPolicy_autocert
+        dbSystemConfiguration_autocert = (
+            self.request.api_context.dbSystemConfiguration_autocert
         )
 
         try:
@@ -395,11 +395,11 @@ class ViewAdminApi_Domain(Handler):
                 raise formhandling.FormInvalid()
 
             if (
-                not dbEnrollmentPolicy_autocert
-                or not dbEnrollmentPolicy_autocert.is_configured
+                not dbSystemConfiguration_autocert
+                or not dbSystemConfiguration_autocert.is_configured
             ):
                 formStash.fatal_form(
-                    "The `autocert` EnrollmentPolicy has not been configured"
+                    "The `autocert` SystemConfiguration has not been configured"
                 )
 
             # this ensures only one domain
@@ -502,17 +502,17 @@ class ViewAdminApi_Domain(Handler):
                         self.request.api_context,
                         domains_challenged=domains_challenged,
                         # PRIMARY cert
-                        dbAcmeAccount__primary=dbEnrollmentPolicy_autocert.acme_account__primary,
-                        private_key_cycle_id__primary=dbEnrollmentPolicy_autocert.private_key_cycle_id__primary,
-                        private_key_technology_id__primary=dbEnrollmentPolicy_autocert.private_key_technology_id__primary,
-                        acme_profile__primary=dbEnrollmentPolicy_autocert.acme_profile__primary,
+                        dbAcmeAccount__primary=dbSystemConfiguration_autocert.acme_account__primary,
+                        private_key_cycle_id__primary=dbSystemConfiguration_autocert.private_key_cycle_id__primary,
+                        private_key_technology_id__primary=dbSystemConfiguration_autocert.private_key_technology_id__primary,
+                        acme_profile__primary=dbSystemConfiguration_autocert.acme_profile__primary,
                         # BACKUP cert
-                        dbAcmeAccount__backup=dbEnrollmentPolicy_autocert.acme_account__backup,
-                        private_key_cycle_id__backup=dbEnrollmentPolicy_autocert.private_key_cycle_id__backup,
-                        private_key_technology_id__backup=dbEnrollmentPolicy_autocert.private_key_technology_id__backup,
-                        acme_profile__backup=dbEnrollmentPolicy_autocert.acme_profile__backup,
+                        dbAcmeAccount__backup=dbSystemConfiguration_autocert.acme_account__backup,
+                        private_key_cycle_id__backup=dbSystemConfiguration_autocert.private_key_cycle_id__backup,
+                        private_key_technology_id__backup=dbSystemConfiguration_autocert.private_key_technology_id__backup,
+                        acme_profile__backup=dbSystemConfiguration_autocert.acme_profile__backup,
                         # misc
-                        dbEnrollmentPolicy=dbEnrollmentPolicy_autocert,
+                        dbSystemConfiguration=dbSystemConfiguration_autocert,
                     )
                     is_duplicate_renewal = False  # noqa: F841
                 except errors.DuplicateRenewalConfiguration as exc:

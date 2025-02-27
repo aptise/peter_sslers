@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from ..model.objects import AcmeServer
     from ..model.objects import AcmeDnsServer
     from ..model.objects import OperationsEvent
-    from ..model.objects import EnrollmentPolicy
+    from ..model.objects import SystemConfiguration
 
 
 # ==============================================================================
@@ -87,50 +87,52 @@ class ApiContext(object):
 
     # -----
 
-    # Official Enrollment Policies
-    dbEnrollmentPolicy_autocert: Optional["EnrollmentPolicy"] = None
-    dbEnrollmentPolicy_cin: Optional["EnrollmentPolicy"] = None
-    dbEnrollmentPolicy_global: Optional["EnrollmentPolicy"] = None
+    # Official SystemConfigurations
+    dbSystemConfiguration_autocert: Optional["SystemConfiguration"] = None
+    dbSystemConfiguration_cin: Optional["SystemConfiguration"] = None
+    dbSystemConfiguration_global: Optional["SystemConfiguration"] = None
     dbAcmeServers: Optional[List["AcmeServer"]] = None
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None
 
     # -----
 
-    def _load_EnrollmentPolicy_autocert(
+    def _load_SystemConfiguration_autocert(
         self, force: bool = False
-    ) -> Optional["EnrollmentPolicy"]:
+    ) -> Optional["SystemConfiguration"]:
         """
-        Loads the autocert :class:`model.objects.EnrollmentPolicy` into the view's :attr:`.dbEnrollmentPolicy_autocert`.
+        Loads the autocert :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_autocert`.
         """
-        if not self.dbEnrollmentPolicy_autocert or force:
-            self.dbEnrollmentPolicy_autocert = (
-                lib_db.get.get__EnrollmentPolicy__by_name(self, "autocert")
+        if not self.dbSystemConfiguration_autocert or force:
+            self.dbSystemConfiguration_autocert = (
+                lib_db.get.get__SystemConfiguration__by_name(self, "autocert")
             )
-        return self.dbEnrollmentPolicy_autocert
+        return self.dbSystemConfiguration_autocert
 
-    def _load_EnrollmentPolicy_cin(
+    def _load_SystemConfiguration_cin(
         self, force: bool = False
-    ) -> Optional["EnrollmentPolicy"]:
+    ) -> Optional["SystemConfiguration"]:
         """
-        Loads the certificate-if-needed :class:`model.objects.EnrollmentPolicy` into the view's :attr:`.dbEnrollmentPolicy_cin`.
+        Loads the certificate-if-needed :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_cin`.
         """
-        if not self.dbEnrollmentPolicy_cin or force:
-            self.dbEnrollmentPolicy_cin = lib_db.get.get__EnrollmentPolicy__by_name(
-                self, "certificate-if-needed"
+        if not self.dbSystemConfiguration_cin or force:
+            self.dbSystemConfiguration_cin = (
+                lib_db.get.get__SystemConfiguration__by_name(
+                    self, "certificate-if-needed"
+                )
             )
-        return self.dbEnrollmentPolicy_cin
+        return self.dbSystemConfiguration_cin
 
-    def _load_EnrollmentPolicy_global(
+    def _load_SystemConfiguration_global(
         self, force: bool = False
-    ) -> Optional["EnrollmentPolicy"]:
+    ) -> Optional["SystemConfiguration"]:
         """
-        Loads the global :class:`model.objects.EnrollmentPolicy` into the view's :attr:`.dbEnrollmentPolicy_global`.
+        Loads the global :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_global`.
         """
-        if not self.dbEnrollmentPolicy_global or force:
-            self.dbEnrollmentPolicy_global = lib_db.get.get__EnrollmentPolicy__by_name(
-                self, "global"
+        if not self.dbSystemConfiguration_global or force:
+            self.dbSystemConfiguration_global = (
+                lib_db.get.get__SystemConfiguration__by_name(self, "global")
             )
-        return self.dbEnrollmentPolicy_global
+        return self.dbSystemConfiguration_global
 
     # -----
 

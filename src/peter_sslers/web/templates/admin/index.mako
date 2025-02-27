@@ -3,16 +3,16 @@
 
 
 <%block name="page_header_col">
-    % if not EnrollmentPolicy_global.is_configured:
+    % if not SystemConfiguration_global.is_configured:
         <div class="alert alert-warning">
             <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
             <b>Setup Not Finished</b>
-            The global EnrollmentPolicy has not been configured.
+            The global SystemConfiguration has not been configured.
             <a  class="label label-info"
-                href="${admin_prefix}/enrollment-policys"
+                href="${admin_prefix}/system-configurations"
             >
                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                EnrollmentPolicys
+                SystemConfigurations
             </a>
         </div>
     % endif
@@ -35,11 +35,11 @@
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                 Settings</a>
-            <a  href="${admin_prefix}/enrollment-policys"
+            <a  href="${admin_prefix}/system-configurations"
                 class="btn btn-xs btn-warning"
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
-                Enrollment Policies</a>
+                SystemConfigurations</a>
             <a href="${admin_prefix}/api"
                 class="btn btn-xs btn-warning"
             >

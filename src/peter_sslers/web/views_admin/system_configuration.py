@@ -13,46 +13,48 @@ from pyramid.view import view_config
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
-from ..lib.forms import Form_EnrollmentPolicy_edit
-from ..lib.forms import Form_EnrollmentPolicy_Global_edit
+from ..lib.forms import Form_SystemConfiguration_edit
+from ..lib.forms import Form_SystemConfiguration_Global_edit
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model.objects import EnrollmentPolicy
+from ...model.objects import SystemConfiguration
 
 # ==============================================================================
 
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:enrollment_policys",
-        renderer="/admin/enrollment_policys.mako",
+        route_name="admin:system_configurations",
+        renderer="/admin/system_configurations.mako",
     )
     @view_config(
-        route_name="admin:enrollment_policys|json",
+        route_name="admin:system_configurations|json",
         renderer="json",
     )
     @docify(
         {
-            "endpoint": "/enrollment-policys.json",
-            "section": "enrollment-policys",
-            "about": """list EnrollmentPolicy(s)""",
+            "endpoint": "/system-configurations.json",
+            "section": "system-configurations",
+            "about": """list SystemConfiguration(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/enrollment-policys.json",
+            "example": "curl {ADMIN_PREFIX}/system-configurations.json",
         }
     )
     def list(self):
-        url_template = "%s/enrollment-policys" % (
+        url_template = "%s/system-configurations" % (
             self.request.api_context.application_settings["admin_prefix"],
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
 
-        items_count = lib_db.get.get__EnrollmentPolicy__count(self.request.api_context)
+        items_count = lib_db.get.get__SystemConfiguration__count(
+            self.request.api_context
+        )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__EnrollmentPolicy__paginated(
+        items_paged = lib_db.get.get__SystemConfiguration__paginated(
             self.request.api_context,
             limit=items_per_page,
             offset=offset,
@@ -60,13 +62,13 @@ class View_List(Handler):
         if self.request.wants_json:
             # admin_url = self.request.admin_url
             return {
-                "EnrollmentPolicys": [i.as_json for i in items_paged],
+                "SystemConfigurations": [i.as_json for i in items_paged],
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "EnrollmentPolicys_count": items_count,
-            "EnrollmentPolicys": items_paged,
+            "SystemConfigurations_count": items_count,
+            "SystemConfigurations": items_paged,
             "pager": pager,
         }
 
@@ -75,71 +77,73 @@ class View_List(Handler):
 
 
 class View_Focus(Handler):
-    dbEnrollmentPolicy: Optional[EnrollmentPolicy] = None
+    dbSystemConfiguration: Optional[SystemConfiguration] = None
 
-    def _focus(self) -> EnrollmentPolicy:
-        if self.dbEnrollmentPolicy is None:
+    def _focus(self) -> SystemConfiguration:
+        if self.dbSystemConfiguration is None:
             _identifier = self.request.matchdict["websafe_or_id"]
             if _identifier.isnumeric():
-                dbEnrollmentPolicy = lib_db.get.get__EnrollmentPolicy__by_id(
+                dbSystemConfiguration = lib_db.get.get__SystemConfiguration__by_id(
                     self.request.api_context,
                     _identifier,
                 )
             else:
-                dbEnrollmentPolicy = lib_db.get.get__EnrollmentPolicy__by_name(
+                dbSystemConfiguration = lib_db.get.get__SystemConfiguration__by_name(
                     self.request.api_context,
                     _identifier,
                 )
-            if not dbEnrollmentPolicy:
-                raise HTTPNotFound("the EnrollmentPolicy was not found")
-            self.dbEnrollmentPolicy = dbEnrollmentPolicy
-            self._focus_url = "%s/enrollment-policy/%s" % (
+            if not dbSystemConfiguration:
+                raise HTTPNotFound("the SystemConfiguration was not found")
+            self.dbSystemConfiguration = dbSystemConfiguration
+            self._focus_url = "%s/system-configuration/%s" % (
                 self.request.admin_url,
-                self.dbEnrollmentPolicy.id,
+                self.dbSystemConfiguration.id,
             )
-        return self.dbEnrollmentPolicy
+        return self.dbSystemConfiguration
 
     # ---------------
 
     @view_config(
-        route_name="admin:enrollment_policy:focus",
-        renderer="/admin/enrollment_policy-focus.mako",
+        route_name="admin:system_configuration:focus",
+        renderer="/admin/system_configuration-focus.mako",
     )
-    @view_config(route_name="admin:enrollment_policy:focus|json", renderer="json")
+    @view_config(route_name="admin:system_configuration:focus|json", renderer="json")
     @docify(
         {
-            "endpoint": "/enrollment-policy/{ID}.json",
-            "section": "enrollment-policy",
-            "about": """EnrollmentPolicy focus""",
+            "endpoint": "/system-configuration/{ID}.json",
+            "section": "system-configuration",
+            "about": """SystemConfiguration focus""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/enrollment-policy/1.json",
+            "example": "curl {ADMIN_PREFIX}/system-configuration/1.json",
         }
     )
     def focus(self):
-        dbEnrollmentPolicy = self._focus()
+        dbSystemConfiguration = self._focus()
         if self.request.wants_json:
             return {
-                "EnrollmentPolicy": dbEnrollmentPolicy.as_json,
+                "SystemConfiguration": dbSystemConfiguration.as_json,
             }
         return {
             "project": "peter_sslers",
-            "EnrollmentPolicy": dbEnrollmentPolicy,
+            "SystemConfiguration": dbSystemConfiguration,
         }
 
     @view_config(
-        route_name="admin:enrollment_policy:focus:edit",
-        renderer="/admin/enrollment_policy-focus-edit.mako",
+        route_name="admin:system_configuration:focus:edit",
+        renderer="/admin/system_configuration-focus-edit.mako",
     )
-    @view_config(route_name="admin:enrollment_policy:focus:edit|json", renderer="json")
+    @view_config(
+        route_name="admin:system_configuration:focus:edit|json", renderer="json"
+    )
     @docify(
         {
-            "endpoint": "/enrollment-policy/{ID}/edit.json",
-            "section": "enrollment-policy",
-            "about": """EnrollmentPolicy focus edit""",
+            "endpoint": "/system-configuration/{ID}/edit.json",
+            "section": "system-configuration",
+            "about": """SystemConfiguration focus edit""",
             "POST": None,
             "GET": True,
-            "instructions": "curl {ADMIN_PREFIX}/enrollment-policy/global/edit.json",
+            "instructions": "curl {ADMIN_PREFIX}/system-configuration/global/edit.json",
             "examples": [],
             "form_fields": {
                 "acme_account_id__backup": "which provider",
@@ -153,16 +157,16 @@ class View_Focus(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle": Form_EnrollmentPolicy_edit.fields[
+                "private_key_cycle": Form_SystemConfiguration_edit.fields[
                     "private_key_cycle__primary"
                 ].list,
-                "private_key_cycle__backup": Form_EnrollmentPolicy_edit.fields[
+                "private_key_cycle__backup": Form_SystemConfiguration_edit.fields[
                     "private_key_cycle__backup"
                 ].list,
-                "private_key_technology__primary": Form_EnrollmentPolicy_edit.fields[
+                "private_key_technology__primary": Form_SystemConfiguration_edit.fields[
                     "private_key_technology__primary"
                 ].list,
-                "private_key_technology__backup": Form_EnrollmentPolicy_edit.fields[
+                "private_key_technology__backup": Form_SystemConfiguration_edit.fields[
                     "private_key_technology__backup"
                 ].list,
             },
@@ -170,59 +174,59 @@ class View_Focus(Handler):
         }
     )
     def edit(self):
-        dbEnrollmentPolicy = self._focus()  # noqa: F841
+        dbSystemConfiguration = self._focus()  # noqa: F841
         if self.request.method == "POST":
-            if dbEnrollmentPolicy.name == "global":
+            if dbSystemConfiguration.name == "global":
                 return self._edit__submit__global()
             return self._edit__submit()
         return self._edit__print()
 
     def _edit__print(self):
-        assert self.dbEnrollmentPolicy is not None
+        assert self.dbSystemConfiguration is not None
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
             limit=None,
         )
         if self.request.wants_json:
-            return formatted_get_docs(self, "/enrollment-policy/{ID}/edit.json")
+            return formatted_get_docs(self, "/system-configuration/{ID}/edit.json")
         return render_to_response(
-            "/admin/enrollment_policy-focus-edit.mako",
+            "/admin/system_configuration-focus-edit.mako",
             {
-                "EnrollmentPolicy": self.dbEnrollmentPolicy,
+                "SystemConfiguration": self.dbSystemConfiguration,
                 "AcmeAccounts": self.dbAcmeAccounts_all,
             },
             self.request,
         )
 
     def _edit__submit__global(self):
-        assert self.dbEnrollmentPolicy is not None
-        assert self.dbEnrollmentPolicy.name == "global"
+        assert self.dbSystemConfiguration is not None
+        assert self.dbSystemConfiguration.name == "global"
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_EnrollmentPolicy_Global_edit,
+                schema=Form_SystemConfiguration_Global_edit,
                 validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             try:
-                result = lib_db.update.update_EnrollmentPolicy(
+                result = lib_db.update.update_SystemConfiguration(
                     self.request.api_context,
-                    self.dbEnrollmentPolicy,
+                    self.dbSystemConfiguration,
                     acme_account_id__primary=formStash.results[
                         "acme_account_id__primary"
                     ],
                     acme_account_id__backup=formStash.results[
                         "acme_account_id__backup"
                     ],
-                    private_key_cycle__primary=self.dbEnrollmentPolicy.private_key_cycle__primary,
-                    private_key_technology__primary=self.dbEnrollmentPolicy.private_key_technology__primary,
-                    acme_profile__primary=self.dbEnrollmentPolicy.acme_profile__primary,
-                    private_key_cycle__backup=self.dbEnrollmentPolicy.private_key_cycle__backup,
-                    private_key_technology__backup=self.dbEnrollmentPolicy.private_key_technology__backup,
-                    acme_profile__backup=self.dbEnrollmentPolicy.acme_profile__backup,
+                    private_key_cycle__primary=self.dbSystemConfiguration.private_key_cycle__primary,
+                    private_key_technology__primary=self.dbSystemConfiguration.private_key_technology__primary,
+                    acme_profile__primary=self.dbSystemConfiguration.acme_profile__primary,
+                    private_key_cycle__backup=self.dbSystemConfiguration.private_key_cycle__backup,
+                    private_key_technology__backup=self.dbSystemConfiguration.private_key_technology__backup,
+                    acme_profile__backup=self.dbSystemConfiguration.acme_profile__backup,
                 )
             except Exception as exc:
                 formStash.fatal_form(message=str(exc))
@@ -230,13 +234,13 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "EnrollmentPolicy": self.dbEnrollmentPolicy.as_json,
+                    "SystemConfiguration": self.dbSystemConfiguration.as_json,
                 }
             return HTTPSeeOther(
-                "%s/enrollment-policy/%s?result=success&operation=edit"
+                "%s/system-configuration/%s?result=success&operation=edit"
                 % (
                     self.request.admin_url,
-                    self.dbEnrollmentPolicy.id,
+                    self.dbSystemConfiguration.id,
                 )
             )
 
@@ -246,18 +250,18 @@ class View_Focus(Handler):
             return formhandling.form_reprint(self.request, self._edit__print)
 
     def _edit__submit(self):
-        assert self.dbEnrollmentPolicy is not None
+        assert self.dbSystemConfiguration is not None
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_EnrollmentPolicy_edit, validate_get=False
+                self.request, schema=Form_SystemConfiguration_edit, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             try:
-                result = lib_db.update.update_EnrollmentPolicy(
+                result = lib_db.update.update_SystemConfiguration(
                     self.request.api_context,
-                    self.dbEnrollmentPolicy,
+                    self.dbSystemConfiguration,
                     acme_account_id__primary=formStash.results[
                         "acme_account_id__primary"
                     ],
@@ -285,13 +289,13 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "EnrollmentPolicy": self.dbEnrollmentPolicy.as_json,
+                    "SystemConfiguration": self.dbSystemConfiguration.as_json,
                 }
             return HTTPSeeOther(
-                "%s/enrollment-policy/%s?result=success&operation=edit"
+                "%s/system-configuration/%s?result=success&operation=edit"
                 % (
                     self.request.admin_url,
-                    self.dbEnrollmentPolicy.id,
+                    self.dbSystemConfiguration.id,
                 )
             )
 

@@ -483,17 +483,17 @@ def parse_AcmeAccountSelection(
 
         # Ensure it is th Global Default
         if account_key_option == "account_key_global_default":
-            request.api_context._load_EnrollmentPolicy_global()
+            request.api_context._load_SystemConfiguration_global()
             if (
-                not request.api_context.dbEnrollmentPolicy_global
-                or not request.api_context.dbEnrollmentPolicy_global.is_configured
+                not request.api_context.dbSystemConfiguration_global
+                or not request.api_context.dbSystemConfiguration_global.is_configured
             ):
                 formStash.fatal_field(
                     field=account_key_option,
                     message="There is no Global Default configured.",
                 )
             if (
-                request.api_context.dbEnrollmentPolicy_global.acme_account_id__primary
+                request.api_context.dbSystemConfiguration_global.acme_account_id__primary
                 != dbAcmeAccount.id
             ):
                 formStash.fatal_field(
@@ -568,17 +568,17 @@ def parse_AcmeAccountSelection_backup(
         assert dbAcmeAccount is not None
 
     # Ensure it is th Global Default
-    request.api_context._load_EnrollmentPolicy_global()
+    request.api_context._load_SystemConfiguration_global()
     if (
-        not request.api_context.dbEnrollmentPolicy_global
-        or not request.api_context.dbEnrollmentPolicy_global.is_configured
+        not request.api_context.dbSystemConfiguration_global
+        or not request.api_context.dbSystemConfiguration_global.is_configured
     ):
         formStash.fatal_field(
             field=account_key_option,
             message="The Global Default is not configured.",
         )
     if (
-        request.api_context.dbEnrollmentPolicy_global.acme_account_id__backup
+        request.api_context.dbSystemConfiguration_global.acme_account_id__backup
         != dbAcmeAccount.id
     ):
         formStash.fatal_field(

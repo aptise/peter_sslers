@@ -633,7 +633,7 @@ class View_Focus_New(View_Focus):
                 ],
             ],
             "valid_options": {
-                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new_configuration.fields[
                     "account_key_option"
                 ].list,
@@ -664,7 +664,7 @@ class View_Focus_New(View_Focus):
         """
         This is basically forking the configuration
         """
-        self.request.api_context._load_EnrollmentPolicy_global()
+        self.request.api_context._load_SystemConfiguration_global()
         self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
@@ -682,7 +682,7 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_configuration.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
-                "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
+                "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
                 "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.request.api_context.dbAcmeServers,
             },
@@ -1111,7 +1111,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 ],
             ],
             "valid_options": {
-                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_RenewalConfig_new.fields[
                     "account_key_option"
                 ].list,
@@ -1144,7 +1144,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         }
     )
     def new(self):
-        self.request.api_context._load_EnrollmentPolicy_global()
+        self.request.api_context._load_SystemConfiguration_global()
         self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
@@ -1157,7 +1157,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         return render_to_response(
             "/admin/renewal_configuration-new.mako",
             {
-                "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
+                "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
                 "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
                 "AcmeServers": self.request.api_context.dbAcmeServers,
                 "domain_names_http01": self.request.params.get(
