@@ -15,9 +15,9 @@ from cert_utils import letsencrypt_info
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import utils
+from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import getcreate as lib_db_getcreate
 from peter_sslers.model import utils as model_utils
-from peter_sslers.lib.utils import ApiContext
 from ._utils import AppTest
 
 # ==============================================================================
@@ -37,9 +37,9 @@ class _MixIn_AcmeAccount(object):
         """
         create a new AcmeAccount with a given private_key_cycle
         """
+        _kwargs: lib_db_getcreate.getcreate__AcmeAccount__kwargs = {}
         if contact is None:
             contact = "%s@example.com" % private_key_cycle
-        _kwargs = {}
         if private_key_technology is not None:
             _kwargs["private_key_technology_id"] = (
                 model_utils.KeyTechnology.from_string(private_key_technology)
@@ -55,15 +55,18 @@ class _MixIn_AcmeAccount(object):
             )
             key_pem = self._filedata_testfile(_key_filename)
 
+        _kwargs["acme_account_key_source_id"] = (
+            model_utils.AcmeAccountKeySource.IMPORTED
+        )
+        _kwargs["key_pem"] = key_pem
+        _kwargs["acme_server_id"] = 1  # pebble
+        _kwargs["contact"] = contact
+        _kwargs["order_default_private_key_cycle_id"] = (
+            model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+        )
+
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
-            acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
-            key_pem=key_pem,
-            acme_server_id=1,  # pebble
-            contact=contact,
-            order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
-                private_key_cycle
-            ),
             **_kwargs,
         )
         return dbAcmeAccount

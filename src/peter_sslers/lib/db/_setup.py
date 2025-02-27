@@ -20,7 +20,7 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -300,20 +300,24 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
             raise ValueError("invalid name")
         dbEnrollmentPolicy = model_objects.EnrollmentPolicy()
         dbEnrollmentPolicy.name = _name
-        dbEnrollmentPolicy.acme_account_id = 0
+        dbEnrollmentPolicy.is_system = True
+        dbEnrollmentPolicy.is_configured = False
+        dbEnrollmentPolicy.acme_account_id__primary = 0
         dbEnrollmentPolicy.acme_account_id__backup = 0
-        dbEnrollmentPolicy.key_technology_id = model_utils.KeyTechnology.ACCOUNT_DEFAULT
-        dbEnrollmentPolicy.key_technology_id__backup = (
+        dbEnrollmentPolicy.private_key_technology_id__primary = (
             model_utils.KeyTechnology.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.private_key_cycle_id = (
+        dbEnrollmentPolicy.private_key_technology_id__backup = (
+            model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        )
+        dbEnrollmentPolicy.private_key_cycle_id__primary = (
             model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
         )
         dbEnrollmentPolicy.private_key_cycle_id__backup = (
             model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
         )
-        dbEnrollmentPolicy.acme_profile = "*ACCOUNT_DEFAULT*"
-        dbEnrollmentPolicy.acme_profile__backup = "*ACCOUNT_DEFAULT*"
+        dbEnrollmentPolicy.acme_profile__primary = "@"
+        dbEnrollmentPolicy.acme_profile__backup = "@"
         ctx.dbSession.add(dbEnrollmentPolicy)
         ctx.dbSession.flush(
             objects=[
@@ -338,12 +342,5 @@ def application_started(ctx: "ApiContext", application_settings: Dict) -> Litera
     Right now this remains as a hook, but no code is worth running here.
 
     """
-
-    # first handle the Default CertificateAuthority
-
-    # dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
-    # if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
-    #    dbAcmeAccount.is_global_default = None
-    #    ctx.dbSession.flush()
 
     return True

@@ -55,8 +55,8 @@
                         <td><timestamp>${RenewalConfiguration.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>acme_profile</th>
-                        <td><code>${RenewalConfiguration.acme_profile or ''}</code></td>
+                        <th>acme_profile__primary</th>
+                        <td><code>${RenewalConfiguration.acme_profile__primary or ''}</code></td>
                     </tr>
                     <tr>
                         <th>acme_profile__backup</th>
@@ -88,15 +88,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_cycle</th>
+                        <th>private_key_cycle__primary</th>
                         <td>
-                            <code>${RenewalConfiguration.private_key_cycle}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                            <code>${RenewalConfiguration.private_key_cycle__primary}</code>
+                            % if RenewalConfiguration.private_key_cycle__primary == "account_default":
                                 <span class="label label-default">
-                                    [${RenewalConfiguration.acme_account.order_default_private_key_cycle}]
+                                    [${RenewalConfiguration.private_key_cycle__primary__effective}]
                                 </span>
                             % endif
-                            % if RenewalConfiguration.private_key_cycle == "single_use__reuse_1_year" or RenewalConfiguration.private_key_cycle__effective == "single_use__reuse_1_year":
+                            % if RenewalConfiguration.private_key_cycle__primary == "single_use__reuse_1_year" or RenewalConfiguration.private_key_cycle__primary__effective == "single_use__reuse_1_year":
                                 % if RenewalConfiguration.private_key_reuse:
                                     <a  class="btn btn-xs btn-primary"
                                         href="${admin_prefix}/private-key/${RenewalConfiguration.private_key_reuse.id}"
@@ -114,24 +114,24 @@
                     </tr>
                     <tr>
                         <th>key_technology</th>
-                        <td><code>${RenewalConfiguration.key_technology}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                        <td><code>${RenewalConfiguration.private_key_technology__primary}</code>
+                            % if RenewalConfiguration.private_key_technology__primary == "account_default":
                                 <span class="label label-default">
-                                    [${RenewalConfiguration.acme_account.order_default_private_key_technology}]
+                                    [${RenewalConfiguration.private_key_technology__primary__effective}]
                                 </span>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_account</th>
+                        <th>acme_account__primary</th>
                         <td>
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id}"
+                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__primary}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${RenewalConfiguration.acme_account_id}
+                                AcmeAccount-${RenewalConfiguration.acme_account_id__primary}
                                 |
-                                ${RenewalConfiguration.acme_account.acme_server.directory}
+                                ${RenewalConfiguration.acme_account__primary.acme_server.directory}
                             </a>
                         </td>
                     </tr>

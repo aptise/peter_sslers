@@ -1,7 +1,7 @@
 from . import _disable_warnings  # noqa: F401
 
 # stdlib
-import os
+import os  # noqa: I100
 import os.path
 import sys
 
@@ -18,7 +18,7 @@ from ..models import get_tm_session
 from ...lib import db as lib_db
 from ...lib.compat import certbot as compat_certbot
 from ...lib.config_utils import ApplicationSettings
-from ...lib.utils import ApiContext
+from ...lib.context import ApiContext
 from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 

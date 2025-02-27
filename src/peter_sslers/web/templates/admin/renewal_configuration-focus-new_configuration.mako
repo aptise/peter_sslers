@@ -44,26 +44,41 @@
                 <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
-                    dbAcmeAccountReuse=RenewalConfiguration.acme_account,
                     support_profiles=True,
-                    default_profile=RenewalConfiguration.acme_profile,
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__primary,
+                    default_profile=RenewalConfiguration.acme_profile__primary,
+                    dbEnrollmentPolicy=EnrollmentPolicy_global,
                 )}
+                <h4>PrivateKey</h4>
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__primary",
+                    default=RenewalConfiguration.private_key_cycle__primary,
+                )}
+                ${admin_partials.formgroup__key_technology(
+                    field_name="private_key_technology__primary",
+                    default=RenewalConfiguration.private_key_technology__primary,
+                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                )}
+                <hr/>
                 <hr/>
 
                 <h3>AcmeAccount - Backup</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__backup(
-                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
                     support_profiles=True,
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
                     default_profile=RenewalConfiguration.acme_profile__backup,
+                    dbEnrollmentPolicy=EnrollmentPolicy_global,
                 )}
                 <hr/>
-
+                <h4>PrivateKey</h4>
                 ${admin_partials.formgroup__private_key_cycle(
-                    default=RenewalConfiguration.private_key_cycle,
+                    field_name="private_key_cycle__backup",
+                    default=RenewalConfiguration.private_key_cycle__backup,
                 )}
                 ${admin_partials.formgroup__key_technology(
-                    default=RenewalConfiguration.key_technology,
+                    field_name="private_key_technology__backup",
                     options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                    default=RenewalConfiguration.private_key_technology__backup,
                 )}
 
                 ${admin_partials.formgroup__domain_names(

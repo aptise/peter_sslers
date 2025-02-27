@@ -3,39 +3,19 @@
 
 
 <%block name="page_header_col">
-##    <h2>Admin Index</h2>
-
-    % if not AcmeAccount_GlobalDefault:
+    % if not EnrollmentPolicy_global.is_configured:
         <div class="alert alert-warning">
             <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
             <b>Setup Not Finished</b>
-            There is no Global Default AcmeAccount configured.
-            Any AcmeAccount for can be configured as the Global Default.
-            Browse AcmeAccounts at
+            The global EnrollmentPolicy has not been configured.
             <a  class="label label-info"
-                href="${admin_prefix}/acme-accounts"
+                href="${admin_prefix}/enrollment-policys"
             >
                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                AcmeAccounts
+                EnrollmentPolicys
             </a>
         </div>
     % endif
-    % if not AcmeAccount_GlobalBackup:
-        <div class="alert alert-warning">
-            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-            <b>Setup Not Finished</b>
-            There is no Global Backup AcmeAccount configured.
-            Any AcmeAccount for can be configured as the Global Backup.
-            Browse AcmeAccounts at
-            <a  class="label label-info"
-                href="${admin_prefix}/acme-accounts"
-            >
-                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                AcmeAccounts
-            </a>
-        </div>
-    % endif
-
 </%block>
 
 

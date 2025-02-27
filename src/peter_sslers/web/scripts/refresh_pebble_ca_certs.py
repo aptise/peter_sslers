@@ -1,7 +1,7 @@
 from . import _disable_warnings  # noqa: F401
 
 # stdlib
-import os
+import os  # noqa: I100
 import sys
 
 # pypi
@@ -14,7 +14,7 @@ from ..models import get_engine
 from ..models import get_session_factory
 from ...lib import db as lib_db
 from ...lib.config_utils import ApplicationSettings
-from ...lib.utils import ApiContext
+from ...lib.context import ApiContext
 from ...lib.utils import RequestCommandline
 from ...model.meta import Base
 

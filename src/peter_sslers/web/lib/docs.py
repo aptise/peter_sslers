@@ -87,62 +87,97 @@ def formatted_get_docs(view_instance, endpoint):
             else:
                 docs[field] = _endpoint_docs[field]
 
+    # define these with a placeholder like "{RENDER_ON_REQUEST}"
     if "valid_options" in docs:
-        # define these with a placeholder like "{RENDER_ON_REQUEST}"
+
         # !!!: Render `acme_server_id`
         try:
             if "acme_server_id" in docs["valid_options"]:
                 docs["valid_options"]["acme_server_id"] = {
                     i.id: "%s (%s)" % (i.name, i.url)
-                    for i in view_instance.dbAcmeServers
+                    for i in view_instance.request.api_context.dbAcmeServers
                 }
         except Exception as exc:  # noqa: F841
             log.critical("@docify error: valid_options:acme_server_id %s", endpoint)
+            log.critical(exc)
             pass
+
         # !!!: Render `acme_dns_server_id`
         try:
             if "acme_dns_server_id" in docs["valid_options"]:
                 docs["valid_options"]["acme_dns_server_id"] = [
-                    i.id for i in view_instance.dbAcmeDnsServers
+                    i.id for i in view_instance.dbAcmeDnsServers_all
                 ]
         except Exception as exc:  # noqa: F841
             log.critical("@docify error: valid_options:acme_dns_server_id %s", endpoint)
+            log.critical(exc)
             pass
-        # !!!: Render `AcmeAccount_GlobalDefault`
+
+        # !!!: Render `AcmeAccounts`
         try:
-            if "AcmeAccount_GlobalDefault" in docs["valid_options"]:
-                docs["valid_options"]["AcmeAccount_GlobalDefault"] = (
-                    view_instance.dbAcmeAccount_GlobalDefault.as_json_minimal
-                    if view_instance.dbAcmeAccount_GlobalDefault
-                    else None
+            if "AcmeAccounts" in docs["valid_options"]:
+                if (
+                    docs["valid_options"]["AcmeAccounts"]
+                    == "{RENDER_ON_REQUEST::as_json_label}"
+                ):
+                    docs["valid_options"]["AcmeAccounts"] = []
+                    if view_instance.dbAcmeAccounts_all:
+                        docs["valid_options"]["AcmeAccounts"] = [
+                            i.as_json_labels for i in view_instance.dbAcmeAccounts_all
+                        ]
+        except Exception as exc:  # noqa: F841
+            log.critical("@docify error: valid_options:AcmeAccounts %s", endpoint)
+            log.critical(exc)
+            pass
+
+        # !!!: Render `EnrollmentPolicy_Global`
+        try:
+            if "EnrollmentPolicys" in docs["valid_options"]:
+                docs["valid_options"]["EnrollmentPolicys"] = {}
+
+            # !!! Required- global
+            dbEnrollmentPolicy_global = (
+                view_instance.request.api_context._load_EnrollmentPolicy_global()
+            )
+            if dbEnrollmentPolicy_global:
+                docs["valid_options"]["EnrollmentPolicys"][
+                    "global"
+                ] = dbEnrollmentPolicy_global.as_json_docs
+            # !!!: Conditional- Autocert
+            if view_instance.request.api_context.dbEnrollmentPolicy_autocert:
+                docs["valid_options"]["EnrollmentPolicys"][
+                    "autocert"
+                ] = (
+                    view_instance.request.api_context.dbEnrollmentPolicy_autocert.as_json_docs
                 )
+            # !!!: Conditional- CertificateIfNeeeded
+            if view_instance.request.api_context.dbEnrollmentPolicy_cin:
+                docs["valid_options"]["EnrollmentPolicys"][
+                    "certificate-if-needed"
+                ] = (
+                    view_instance.request.api_context.dbEnrollmentPolicy_cin.as_json_docs
+                )
+
         except Exception as exc:  # noqa: F841
             log.critical(
-                "@docify error: valid_options:AcmeAccount_GlobalDefault %s", endpoint
+                "@docify error: valid_options:EnrollmentPolicy_Global %s", endpoint
             )
-            pass
-        # !!!: Render `AcmeAccount_GlobalBackup`
-        try:
-            if "AcmeAccount_GlobalBackup" in docs["valid_options"]:
-                docs["valid_options"]["AcmeAccount_GlobalBackup"] = (
-                    view_instance.dbAcmeAccount_GlobalBackup.as_json_minimal
-                    if view_instance.dbAcmeAccount_GlobalBackup
-                    else None
-                )
-        except Exception as exc:  # noqa: F841
-            log.critical(
-                "@docify error: valid_options:AcmeAccount_GlobalBackup %s", endpoint
-            )
+            log.critical(exc)
             pass
 
     if _endpoint_docs.get("POST") is True:
         _instructions_append("HTTP POST required")
     system_requires = _endpoint_docs.get("system.requires")
     if system_requires:
-        if "dbAcmeAccount_GlobalDefault" in system_requires:
-            if view_instance.dbAcmeAccount_GlobalDefault is None:
+        if "dbEnrollmentPolicy_autocert" in system_requires:
+            if (
+                view_instance.request.api_context.dbEnrollmentPolicy_autocert is None
+            ) or (
+                view_instance.request.api_context.dbEnrollmentPolicy_autocert.is_configured
+                is not True
+            ):
                 _instructions_append(
-                    "IMPORTANT: No global AcmeAccount is configured yet."
+                    "IMPORTANT: The `autocert` Enrollment Policy MUST be configured."
                 )
 
     return docs

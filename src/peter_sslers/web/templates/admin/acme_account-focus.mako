@@ -97,7 +97,7 @@
                                         </button>
                                     </form>
                                 % else:
-                                    % if not AcmeAccount.is_global_default and not AcmeAccount.is_global_backup:
+                                    % if not AcmeAccount.is_can_unset_active:
                                         <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
@@ -105,13 +105,6 @@
                                                 inactive
                                             </button>
                                         </form>
-                                    % else:
-                                        <span
-                                            class="label label-warning"
-                                        >
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            select another global default and backup key to deactivate this one
-                                        </span>
                                     % endif
                                 % endif
                             % endif
@@ -125,42 +118,33 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Global Default</th>
+                        <th>Enrollment Policies</th>
                         <td>
-                            % if AcmeAccount.is_global_default:
-                                <span class="label label-success">Global Default</span>
-                            % else:
-                                <span class="label label-default"></span>
+                            % if AcmeAccount.enrollment_policies__primary:
+                                <b>Configured as Primary</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_policies__primary:
+                                        <li>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentPolicy-${ep.name}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
                             % endif
-                            &nbsp;
-                            % if AcmeAccount.is_global_default_candidate:
-                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="global_default"/>
-                                    <button class="btn btn-xs btn-primary" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        Set Global Default
-                                    </button>
-                                </form>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Global Backup</th>
-                        <td>
-                            % if AcmeAccount.is_global_backup:
-                                <span class="label label-success">Global Backup</span>
-                            % else:
-                                <span class="label label-default"></span>
-                            % endif
-                            &nbsp;
-                            % if AcmeAccount.is_global_backup_candidate:
-                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="global_backup"/>
-                                    <button class="btn btn-xs btn-primary" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        Set Global Backup
-                                    </button>
-                                </form>
+                            % if AcmeAccount.enrollment_policies__backup:
+                                <b>Configured as Backup</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_policies__backup:
+                                        <li>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentPolicy-${ep.name}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
                             % endif
                         </td>
                     </tr>
@@ -385,8 +369,8 @@
                     <tr>
                         <th>RenewalConfigurations(s) - Primary</th>
                         <td>
-                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__5, perspective="AcmeAccount")}
-                            % if AcmeAccount.renewal_configurations__5:
+                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__primary__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.renewal_configurations__primary__5:
                                 ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>

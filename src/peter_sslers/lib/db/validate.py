@@ -10,7 +10,7 @@ from .get import get__DomainBlocklisted__by_name
 from .. import errors
 
 if TYPE_CHECKING:
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 

@@ -1,10 +1,9 @@
 URGENT
 =====
     
-EnrollmentPolicy
-    use for autocert
-    use for certificate-if-needed
-    use for globals
+AcmeServer
+    detect and cache changes
+    just compare the 'meta' as boulder adds random entries to toplevel
 
 Backend
     Change "global backup" and "global default" to use Enrollment Policy
@@ -12,9 +11,7 @@ Backend
 Regular Cert defaults
     Backup use Default?
 
-
-
-Renewal Template?
+OnboardingTemplate?
 
 AcmeOrdering
     Ensure Poilcy is in Directory before ordering
@@ -23,6 +20,8 @@ AcmeOrdering
 QueryString errors and encodings
     redo    
 
+SQLAlchemy
+    Domain.[advanced relationships] will break eager loading
 
 Tests:
     AcmeAccounts:
@@ -32,10 +31,8 @@ Tests:
     AcmeOrder:
         test with valid profile
         test with invalid profile
-    EnrollmentPolicy:
-        edit
     Renewal Configuration
-        ensure acme_profile__backup and *ACCOUNT_DEFAULT* work
+        ensure acme_profile__backup and @ work
 
  UX:
     do a quick overview of key objects

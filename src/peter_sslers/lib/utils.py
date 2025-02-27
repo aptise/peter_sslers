@@ -14,17 +14,14 @@ import pyramid_tm
 import requests
 import transaction
 import zope.sqlalchemy
-from zope.sqlalchemy import mark_changed
 
 # local
 from . import config_utils
 from .. import USER_AGENT
 
 if TYPE_CHECKING:
-    from pyramid.request import Request
     from sqlalchemy.orm.session import Session
-    from .config_utils import ApplicationSettings
-    from ..model.objects import OperationsEvent
+    from .context import ApiContext
 
 # ==============================================================================
 
@@ -136,70 +133,6 @@ def issuer_to_endpoint(
         if sock_data["issuer"][1][0][1] == "Let's Encrypt":
             return "https://acme-v02.api.letsencrypt.org/directory"
     return None
-
-
-# ------------------------------------------------------------------------------
-
-
-class ApiContext(object):
-    """
-    A context object
-    API Calls can rely on this object to assist in logging.
-
-    This implements an interface that guarantees several properties.  Substitutes may be used-
-
-    :param request: - Pyramid `request` object
-    :param timestamp: `datetime.datetime.now(datetime.timezone.utc)`
-    :param dbSession: - SqlAlchemy `Session` object
-    :param dbOperationsEvent: - the top OperationsEvent object for the active `request`, if any
-    """
-
-    dbOperationsEvent: Optional["OperationsEvent"] = None
-    dbSession: "Session"
-    timestamp: datetime.datetime
-    request: Optional["Request"] = None
-    config_uri: Optional[str] = None
-    application_settings: Optional["ApplicationSettings"] = None
-
-    def __init__(
-        self,
-        request: Optional["Request"] = None,
-        dbOperationsEvent: Optional["OperationsEvent"] = None,
-        dbSession: Optional["Session"] = None,
-        timestamp: Optional[datetime.datetime] = None,
-        config_uri: Optional[str] = None,
-        application_settings: Optional["ApplicationSettings"] = None,
-    ):
-        self.request = request
-        self.dbOperationsEvent = dbOperationsEvent
-        if dbSession:
-            self.dbSession = dbSession
-        if timestamp is None:
-            timestamp = datetime.datetime.now(datetime.timezone.utc)
-        self.timestamp = timestamp
-        self.config_uri = config_uri
-        self.application_settings = application_settings
-
-    @property
-    def transaction_manager(self) -> "transaction.manager":
-        # this is the pyramid_tm interface
-        if self.request is None:
-            raise ValueError("`self.request` not set")
-        return self.request.tm
-
-    def pyramid_transaction_commit(self) -> None:
-        """this method does some ugly stuff to commit the pyramid transaction"""
-        # mark_changed is oblivious to the `keep_session` we created the session with
-        mark_changed(self.dbSession, keep_session=True)
-        self.transaction_manager.commit()
-        self.transaction_manager.begin()
-        if self.dbOperationsEvent:
-            self.dbOperationsEvent = self.dbSession.merge(self.dbOperationsEvent)
-
-    def pyramid_transaction_rollback(self) -> None:
-        """this method does some ugly stuff to rollback the pyramid transaction"""
-        self.transaction_manager.abort()
-        self.transaction_manager.begin()
 
 
 # ------------------------------------------------------------------------------

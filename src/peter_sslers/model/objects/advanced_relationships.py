@@ -172,15 +172,15 @@ AcmeAccount.certificate_signeds__5 = sa_orm_relationship(
 )
 
 
-# note: AcmeAccount.renewal_configurations__5
-AcmeAccount.renewal_configurations__5 = sa_orm_relationship(
+# note: AcmeAccount.renewal_configurations__primary__5
+AcmeAccount.renewal_configurations__primary__5 = sa_orm_relationship(
     RenewalConfiguration,
     primaryjoin=(
         sa.and_(
-            AcmeAccount.id == RenewalConfiguration.acme_account_id,
+            AcmeAccount.id == RenewalConfiguration.acme_account_id__primary,
             RenewalConfiguration.id.in_(
                 sa.select((RenewalConfiguration.id))
-                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id)
+                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id__primary)
                 .order_by(RenewalConfiguration.id.desc())
                 .limit(5)
                 .correlate()
@@ -635,13 +635,16 @@ Domain.certificate_requests__5 = sa_orm_relationship(
 
 
 # note: Domain.certificate_signeds__5
+"""
+    Domain > CertificateSigned
+    Old : Domain > UniqueFQDNSet2Domain > CertificateSigned
+"""
 Domain.certificate_signeds__5 = sa_orm_relationship(
     CertificateSigned,
     primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
     secondary=(
-        """join(UniqueFQDNSet2Domain,
-                CertificateSigned,
-                UniqueFQDNSet2Domain.unique_fqdn_set_id == CertificateSigned.unique_fqdn_set_id
+        """join(CertificateSigned, UniqueFQDNSet2Domain,
+                CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )"""
     ),
     secondaryjoin=(
@@ -651,9 +654,10 @@ Domain.certificate_signeds__5 = sa_orm_relationship(
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(
+                .join(
+                    UniqueFQDNSet2Domain,
                     CertificateSigned.unique_fqdn_set_id
-                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
@@ -696,15 +700,20 @@ Domain.certificate_signeds__single_primary_5 = sa_orm_relationship(
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(
-                    CertificateSigned.unique_fqdn_set_id
-                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                .join(
+                    AcmeOrder,
+                    CertificateSigned.id == AcmeOrder.certificate_signed_id,
                 )
-                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .join(
+                    UniqueFQDNSet2Domain,
+                    AcmeOrder.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+                )
                 .where(
                     AcmeOrder.certificate_type_id
                     == model_utils.CertificateType.MANAGED_PRIMARY
                 )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()
@@ -744,15 +753,19 @@ Domain.certificate_signeds__single_backup_5 = sa_orm_relationship(
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(
-                    CertificateSigned.unique_fqdn_set_id
-                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
                 )
-                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .join(
+                    UniqueFQDNSet2Domain,
+                    AcmeOrder.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+                )
                 .where(
                     AcmeOrder.certificate_type_id
                     == model_utils.CertificateType.MANAGED_BACKUP
                 )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
                 .correlate()

@@ -14,8 +14,6 @@ from typing_extensions import Literal
 
 # localapp
 from .get import get__AcmeAccount__by_id
-from .get import get__AcmeAccount__GlobalBackup
-from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
 from .get import get__AcmeDnsServer__by_root_url
 from .get import get__AcmeDnsServer__GlobalDefault
@@ -40,7 +38,7 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -171,86 +169,6 @@ def update_AcmeAccount__set_deactivated(
     return event_status
 
 
-def update_AcmeAccount__set_global_default(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> Tuple[str, Dict]:
-    if dbAcmeAccount.is_global_backup:
-        raise errors.InvalidTransition("Account is global backup.")
-    if dbAcmeAccount.is_global_default:
-        raise errors.InvalidTransition("Already global default.")
-
-    # # Is there a reason to require the Default Account to be from the Default Server?
-    # if not dbAcmeAccount.acme_server.is_default:
-    #    raise errors.InvalidTransition(
-    #        "This AcmeAccount is not from the default AcmeServer."
-    #    )
-
-    dbAcmeAccount_backup = get__AcmeAccount__GlobalBackup(ctx)
-    if dbAcmeAccount_backup:
-        if dbAcmeAccount_backup.acme_server_id == dbAcmeAccount.acme_server_id:
-            raise errors.InvalidTransition(
-                "The Global AcmeAccount MUST be on a different server than the Backup AcmeAccount."
-            )
-
-    alt_info: Dict = {}
-    formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
-    if formerDefaultAccount:
-        formerDefaultAccount.is_global_default = None
-        ctx.dbSession.flush(
-            objects=[
-                formerDefaultAccount,
-            ]
-        )
-        alt_info["event_payload_dict"] = {
-            "acme_account_id.former_default": formerDefaultAccount.id,
-        }
-        alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
-    dbAcmeAccount.is_global_default = True
-    event_status = "AcmeAccount__mark__default"
-    return event_status, alt_info
-
-
-def update_AcmeAccount__set_global_backup(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> Tuple[str, Dict]:
-    if dbAcmeAccount.is_global_backup:
-        raise errors.InvalidTransition("Already global backup.")
-    if dbAcmeAccount.is_global_default:
-        raise errors.InvalidTransition("Account is global default.")
-
-    # # Is there a reason to require the Default Account to be from the Default Server?
-    # if not dbAcmeAccount.acme_server.is_default:
-    #    raise errors.InvalidTransition(
-    #        "This AcmeAccount is not from the default AcmeServer."
-    #    )
-
-    dbAcmeAccount_global = get__AcmeAccount__GlobalDefault(ctx)
-    if dbAcmeAccount_global:
-        if dbAcmeAccount_global.acme_server_id == dbAcmeAccount.acme_server_id:
-            raise errors.InvalidTransition(
-                "The Backup AcmeAccount MUST be on a different server than the Global AcmeAccount."
-            )
-
-    alt_info: Dict = {}
-    formerBackupAccount = get__AcmeAccount__GlobalBackup(ctx)
-    if formerBackupAccount:
-        formerBackupAccount.is_global_backup = None
-        ctx.dbSession.flush(
-            objects=[
-                formerBackupAccount,
-            ]
-        )
-        alt_info["event_payload_dict"] = {
-            "acme_account_id.former_backup": formerBackupAccount.id,
-        }
-        alt_info["event_alt"] = ("AcmeAccount__mark__notbackup", formerBackupAccount)
-    dbAcmeAccount.is_global_backup = True
-    event_status = "AcmeAccount__mark__backup"
-    return event_status, alt_info
-
-
 def update_AcmeAccount__terms_of_service(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
@@ -295,9 +213,12 @@ def update_AcmeAccount__unset_active(
     log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeAccount.is_global_default:
+    if (
+        dbAcmeAccount.enrollment_policies__primary
+        or dbAcmeAccount.enrollment_policies__backup
+    ):
         raise errors.InvalidTransition(
-            "You can not deactivate the global default. Set another `AcmeAccount` as the global default first."
+            "This AcmeAccount is registered with EnrollmentPolicy(s)."
         )
     dbAcmeAccount.is_active = False
     event_status = "AcmeAccount__mark__inactive"
@@ -840,57 +761,104 @@ def update_DomainAutocert_with_AcmeOrder(
 def update_EnrollmentPolicy(
     ctx: "ApiContext",
     dbEnrollmentPolicy: "EnrollmentPolicy",
-    acme_account_id: int,
-    private_key_cycle: str,
-    key_technology: str,
-    acme_profile: Optional[str],
+    acme_account_id__primary: int,
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    acme_profile__primary: Optional[str],
     acme_account_id__backup: int,
     private_key_cycle__backup: str,
-    key_technology__backup: str,
+    private_key_technology__backup: str,
     acme_profile__backup: Optional[str],
 ) -> bool:
-    if not any((acme_account_id, private_key_cycle, key_technology)):
+    if not any(
+        (
+            acme_account_id__primary,
+            private_key_cycle__primary,
+            private_key_technology__primary,
+        )
+    ):
         raise errors.InvalidTransition("Missing Required Primary.")
 
-    dbAcmeAccount = get__AcmeAccount__by_id(ctx, acme_account_id)
-    if not dbAcmeAccount:
+    dbAcmeAccountPrimary = get__AcmeAccount__by_id(ctx, acme_account_id__primary)
+    if not dbAcmeAccountPrimary:
         raise errors.InvalidTransition("Could not load Primary")
 
     if acme_account_id__backup:
         dbAcmeAccountBackup = get__AcmeAccount__by_id(ctx, acme_account_id__backup)
         if not dbAcmeAccountBackup:
             raise errors.InvalidTransition("Could not load Backup")
-        if dbAcmeAccount.acme_server_id == dbAcmeAccountBackup.acme_server_id:
+        if dbAcmeAccountPrimary.acme_server_id == dbAcmeAccountBackup.acme_server_id:
             raise errors.InvalidTransition(
-                "Backup AcmeAccount MUST be on a different server than Primary"
+                "Primary and Backup AcmeAccounts MUST be on different servers."
             )
 
     changes = False
 
-    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
-    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+        private_key_technology__primary
+    )
 
     private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
         private_key_cycle__backup
     )
-    key_technology_id__backup = model_utils.KeyTechnology.from_string(
-        key_technology__backup
+    private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+        private_key_technology__backup
     )
 
+    # global MUST only allow account defaults
+    # otherwise everything gets too confusing
+    if dbEnrollmentPolicy.name == "global":
+        # primary
+        if acme_profile__primary != "@":
+            raise errors.InvalidTransition("Global `acme_profile__primary` MUST be `@`")
+        if private_key_cycle_id__primary != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            raise errors.InvalidTransition(
+                "Global `private_key_cycle__primary` MUST be `account_default`"
+            )
+        if (
+            private_key_technology_id__primary
+            != model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        ):
+            raise errors.InvalidTransition(
+                "Global `private_key_technology__primary` MUST be `account_default`"
+            )
+        # backup
+        if acme_profile__backup != "@":
+            raise errors.InvalidTransition("Global `acme_profile__backup` MUST be `@`")
+        if private_key_cycle_id__backup != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            raise errors.InvalidTransition(
+                "Global `private_key_cycle__backup` MUST be `account_default`"
+            )
+        if (
+            private_key_technology_id__backup
+            != model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        ):
+            raise errors.InvalidTransition(
+                "Global `private_key_technology__backup` MUST be `account_default`"
+            )
+
     pairings = (
-        ("acme_account_id", acme_account_id),
-        ("private_key_cycle_id", private_key_cycle_id),
-        ("key_technology_id", key_technology_id),
-        ("acme_profile", acme_profile),
+        ("acme_account_id__primary", acme_account_id__primary),
+        ("private_key_cycle_id__primary", private_key_cycle_id__primary),
+        ("private_key_technology_id__primary", private_key_technology_id__primary),
+        ("acme_profile__primary", acme_profile__primary),
         ("acme_account_id__backup", acme_account_id__backup),
         ("private_key_cycle_id__backup", private_key_cycle_id__backup),
-        ("key_technology_id__backup", key_technology_id__backup),
+        ("private_key_technology_id__backup", private_key_technology_id__backup),
         ("acme_profile__backup", acme_profile__backup),
     )
     for p in pairings:
         if getattr(dbEnrollmentPolicy, p[0]) != p[1]:
             setattr(dbEnrollmentPolicy, p[0], p[1])
             changes = True
+
+    if changes:
+        if not dbEnrollmentPolicy.is_configured:
+            if dbEnrollmentPolicy.acme_account_id__primary:
+                dbEnrollmentPolicy.is_configured = True
 
     return changes
 

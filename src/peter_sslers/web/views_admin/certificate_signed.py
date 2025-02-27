@@ -1342,7 +1342,7 @@ class View_Focus_Manipulate(View_Focus):
             )
         try:
             # could raise `InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
 
             dbDomains = [
                 c2d.domain for c2d in dbCertificateSigned.unique_fqdn_set.to_domains

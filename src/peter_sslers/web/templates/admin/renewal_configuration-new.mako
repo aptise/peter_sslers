@@ -36,6 +36,8 @@
 
     <div class="row">
         <div class="col-sm-6">
+        
+            ${admin_partials.messaging_EnrollmentPolicy_global()}
 
             <form
                 action="${admin_prefix}/renewal-configuration/new"
@@ -45,38 +47,56 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccount - Primary</h3>
+                <h3>Primary Certificate</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
                     support_profiles=True,
+                    default_profile=EnrollmentPolicy_global.acme_profile__primary,
+                    dbEnrollmentPolicy=EnrollmentPolicy_global,
                 )}
-                <hr/>
-
-                <h3>AcmeAccount - Backup</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__backup(
-                    support_profiles=True,
+                <h4>PrivateKey</h4>
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__primary",
+                    default=EnrollmentPolicy_global.private_key_cycle__primary,
                 )}
-                <hr/>
-
-                ${admin_partials.formgroup__private_key_cycle()}
                 ${admin_partials.formgroup__key_technology(
+                    field_name="private_key_technology__primary",
                     default=model_websafe.KeyTechnology._DEFAULT_RenewalConfiguration,
                     options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
                 )}
+                <hr/>
+                <hr/>
 
+                <h3>Backup Certificate</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__backup(
+                    support_profiles=True,
+                    default_profile=EnrollmentPolicy_global.acme_profile__backup,
+                    dbEnrollmentPolicy=EnrollmentPolicy_global,
+                )}
+                <h4>PrivateKey</h4>
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__backup",
+                    label="[Backup Certificate]",
+                    default=EnrollmentPolicy_global.private_key_cycle__backup,
+                )}
+                ${admin_partials.formgroup__key_technology(
+                    field_name="private_key_technology__backup",
+                    label="[Backup Certificate]",
+                    default=model_websafe.KeyTechnology._DEFAULT_RenewalConfiguration,
+                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                )}
+                <hr/>
+                <hr/>
+
+                <h3>Shared Configuration</h3>
                 ${admin_partials.formgroup__domain_names(
                     specify_challenge=True,
                     domain_names_http01=domain_names_http01,
                     domain_names_dns01=domain_names_dns01,
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
-                    
                 ${admin_partials.formgroup__note()}
-                    
                 <hr/>
-
-                <hr/>
-
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

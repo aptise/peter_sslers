@@ -384,7 +384,7 @@ class _PrivateKeySelection(object):
         self.private_key_option = private_key_option
 
     @property
-    def key_technology_id(self) -> int:
+    def private_key_technology_id(self) -> int:
         if TYPE_CHECKING:
             # this will be set before this function is run
             assert self.private_key_generate
@@ -399,8 +399,8 @@ class _PrivateKeySelection(object):
             raise ValueError("Unsupported `private_key_option")
 
     @property
-    def key_technology(self) -> str:
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+    def private_key_technology(self) -> str:
+        return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
 
 def parse_AcmeAccountSelection(
@@ -418,7 +418,6 @@ def parse_AcmeAccountSelection(
     """
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
-    is_global_default: Optional[bool] = None
 
     account_key_option = formStash.results["account_key_option"]
 
@@ -443,7 +442,6 @@ def parse_AcmeAccountSelection(
         if account_key_option == "account_key_global_default":
             acmeAccountSelection.selection = "global_default"
             account_key_pem_md5 = formStash.results["account_key_global_default"]
-            is_global_default = True
         elif account_key_option == "account_key_existing":
             acmeAccountSelection.selection = "existing"
             account_key_pem_md5 = formStash.results["account_key_existing"]
@@ -482,12 +480,27 @@ def parse_AcmeAccountSelection(
             )
         if TYPE_CHECKING:
             assert dbAcmeAccount is not None
-        if is_global_default and not dbAcmeAccount.is_global_default:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field=account_key_option,
-                message="The selected AcmeAccount is not the current default.",
-            )
+
+        # Ensure it is th Global Default
+        if account_key_option == "account_key_global_default":
+            request.api_context._load_EnrollmentPolicy_global()
+            if (
+                not request.api_context.dbEnrollmentPolicy_global
+                or not request.api_context.dbEnrollmentPolicy_global.is_configured
+            ):
+                formStash.fatal_field(
+                    field=account_key_option,
+                    message="There is no Global Default configured.",
+                )
+            if (
+                request.api_context.dbEnrollmentPolicy_global.acme_account_id__primary
+                != dbAcmeAccount.id
+            ):
+                formStash.fatal_field(
+                    field=account_key_option,
+                    message="The selected AcmeAccount is not the global default.",
+                )
+
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
         return acmeAccountSelection
     # `formStash.fatal_form()` will raise `FormInvalid()`
@@ -505,7 +518,6 @@ def parse_AcmeAccountSelection_backup(
     """
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
-    is_global_backup: Optional[bool] = None
 
     account_key_option = formStash.results["account_key_option_backup"]
 
@@ -516,7 +528,6 @@ def parse_AcmeAccountSelection_backup(
         error_field = "account_key_global_backup"
         acmeAccountSelection.selection = "global_backup"
         account_key_pem_md5 = formStash.results["account_key_global_backup"]
-        is_global_backup = True
     elif account_key_option == "account_key_existing":
         error_field = "account_key_existing_backup"
         acmeAccountSelection.selection = "existing"
@@ -555,12 +566,26 @@ def parse_AcmeAccountSelection_backup(
         )
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
-    if is_global_backup and not dbAcmeAccount.is_global_backup:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+
+    # Ensure it is th Global Default
+    request.api_context._load_EnrollmentPolicy_global()
+    if (
+        not request.api_context.dbEnrollmentPolicy_global
+        or not request.api_context.dbEnrollmentPolicy_global.is_configured
+    ):
         formStash.fatal_field(
-            field=error_field,
-            message="The selected AcmeAccount is not the current default.",
+            field=account_key_option,
+            message="The Global Default is not configured.",
         )
+    if (
+        request.api_context.dbEnrollmentPolicy_global.acme_account_id__backup
+        != dbAcmeAccount.id
+    ):
+        formStash.fatal_field(
+            field=account_key_option,
+            message="The selected AcmeAccount is not the global backup.",
+        )
+
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
     return acmeAccountSelection
 
@@ -605,10 +630,10 @@ def parse_PrivateKeySelection(
         privateKeySelection.PrivateKey = dbPrivateKey
         if private_key_option == "private_key_generate":
             privateKeySelection.selection = "generate"
-            key_technology_str = formStash.results[
+            private_key_technology_str = formStash.results[
                 "private_key_generate"
             ]  # this is a model_utils.KeyTechnology
-            privateKeySelection.private_key_generate = key_technology_str
+            privateKeySelection.private_key_generate = private_key_technology_str
 
         elif private_key_option == "account_default":
             privateKeySelection.selection = "account_default"

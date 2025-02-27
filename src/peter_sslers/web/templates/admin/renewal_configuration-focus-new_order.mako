@@ -56,22 +56,22 @@
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id}"
+                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__primary}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${RenewalConfiguration.acme_account_id}
+                                AcmeAccount-${RenewalConfiguration.acme_account_id__primary}
                             </a>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-server/${RenewalConfiguration.acme_account.acme_server_id}"
+                                href="${admin_prefix}/acme-server/${RenewalConfiguration.acme_account__primary.acme_server_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeServer-${RenewalConfiguration.acme_account.acme_server_id}
+                                AcmeServer-${RenewalConfiguration.acme_account__primary.acme_server_id}
                                 |
-                                ${RenewalConfiguration.acme_account.acme_server.server}
+                                ${RenewalConfiguration.acme_account__primary.acme_server.server}
                             </a>
                             <br/>
-                            <code>${RenewalConfiguration.acme_account.acme_account_key.key_pem_sample}</code>
+                            <code>${RenewalConfiguration.acme_account__primary.acme_account_key.key_pem_sample}</code>
                         </td>
                     </tr>
                     % if RenewalConfiguration.acme_account__backup:
@@ -135,25 +135,54 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_cycle</th>
+                        <th>private_key_cycle [Primary]</th>
                         <td>
-                            <code>${RenewalConfiguration.private_key_cycle}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                            <code>${RenewalConfiguration.private_key_cycle__primary}</code>
+                            % if RenewalConfiguration.private_key_cycle__primary == "account_default":
                                 <span class="label label-default">
-                                    AcmeAccount[${RenewalConfiguration.acme_account.order_default_private_key_cycle}]
+                                    AcmeAccount[${RenewalConfiguration.acme_account__primary.order_default_private_key_cycle}]
                                 </span>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>key_technology</th>
-                        <td><code>${RenewalConfiguration.key_technology}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                        <th>private_key_technology [Primary]</th>
+                        <td><code>${RenewalConfiguration.private_key_technology__primary}</code>
+                            % if RenewalConfiguration.private_key_technology__primary == "account_default":
                                 <span class="label label-default">
-                                    AcmeAccount[${RenewalConfiguration.acme_account.order_default_private_key_technology}]
+                                    AcmeAccount[${RenewalConfiguration.acme_account__primary.order_default_private_key_technology}]
                                 </span>
                             % endif
                         </td>
+                    </tr>
+                    <tr>
+                        <th>ACME profile [Primary]</th>
+                        <td><code>${RenewalConfiguration.acme_profile__primary}</code></td>
+                    </tr>
+                    <tr>
+                        <th>private_key_cycle [Backup]</th>
+                        <td>
+                            <code>${RenewalConfiguration.private_key_cycle__backup}</code>
+                            % if RenewalConfiguration.private_key_cycle__backup == "account_default":
+                                <span class="label label-default">
+                                    AcmeAccount[${RenewalConfiguration.acme_account__backup.order_default_private_key_cycle}]
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>private_key_technology [Backup]</th>
+                        <td><code>${RenewalConfiguration.private_key_technology__backup}</code>
+                            % if RenewalConfiguration.private_key_technology__backup == "account_default":
+                                <span class="label label-default">
+                                    AcmeAccount[${RenewalConfiguration.acme_account__backup.order_default_private_key_technology}]
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ACME profile [Backup]</th>
+                        <td><code>${RenewalConfiguration.acme_profile__backup}</code></td>
                     </tr>
                     <tr>
                         <th>replaces</th>
@@ -269,10 +298,6 @@
                                 </tbody>
                             </table>
                         </td>
-                    </tr>
-                    <tr>
-                        <th>ACME profile</th>
-                        <td><code>${RenewalConfiguration.acme_profile}</code></td>
                     </tr>
                     <tr>
                         <th>note</th>

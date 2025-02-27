@@ -5,6 +5,8 @@ from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
+import pdb  # noqa: F401
+import pprint  # noqa: F401
 import shutil
 import sqlite3
 import subprocess
@@ -12,6 +14,7 @@ import time
 import traceback
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import overload
 from typing import Tuple
@@ -47,12 +50,12 @@ from peter_sslers.lib import errors
 from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
 from peter_sslers.lib.config_utils import ApplicationSettings
+from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
-from peter_sslers.lib.utils import ApiContext
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -1064,7 +1067,7 @@ TEST_FILES: Dict = {
                 "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
-                "private_key_cycle": "account_daily",
+                "private_key_cycle__primary": "account_daily",
                 "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
@@ -1077,7 +1080,7 @@ TEST_FILES: Dict = {
                 "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
-                "private_key_cycle": "account_daily",
+                "private_key_cycle__primary": "account_daily",
                 "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
@@ -1435,17 +1438,41 @@ def routes_tested(*args):
 def do__AcmeServers_sync(
     testCase: CustomizedTestCase,
 ) -> bool:
-    # both exist after setup
-    dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
-    if not dbAcmeAccount_backup:
-        raise ValueError("AcmeAccount__GlobalBackup not configured")
-    dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
-    if not dbAcmeAccount_default:
-        raise ValueError("AcmeAccount__GlobalDefault not configured")
+    acme_server_ids: List[int] = []
+    policy_names = (
+        "global",
+        "autocert",
+        "certificate-if-needed",
+    )
+    for _pname in policy_names:
+        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+            testCase.ctx, _pname
+        )
+        assert dbEnrollmentPolicy
+        if dbEnrollmentPolicy.is_configured:
+            if (
+                dbEnrollmentPolicy.acme_account__primary.acme_server_id
+                not in acme_server_ids
+            ):
+                acme_server_ids.append(
+                    dbEnrollmentPolicy.acme_account__primary.acme_server_id
+                )
+            if dbEnrollmentPolicy.acme_account__backup:
+                assert dbEnrollmentPolicy.acme_account__backup.acme_server
+                if (
+                    dbEnrollmentPolicy.acme_account__backup.acme_server_id
+                    not in acme_server_ids
+                ):
+                    acme_server_ids.append(
+                        dbEnrollmentPolicy.acme_account__backup.acme_server_id
+                    )
+        else:
+            if _pname == "global":
+                raise ValueError("EnrollmentPolicy[global] not configured")
 
-    for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
+    for _acme_server_id in acme_server_ids:
         res = testCase.testapp.get(
-            "/.well-known/peter_sslers/acme-server/%s" % _dbAcmeAccount.acme_server_id,
+            "/.well-known/peter_sslers/acme-server/%s" % _acme_server_id,
             status=200,
         )
         form = res.forms["form-check_support"]
@@ -1453,9 +1480,8 @@ def do__AcmeServers_sync(
         assert res2.status_code == 303
         assert res2.location.endswith(
             "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
-            % _dbAcmeAccount.acme_server_id
+            % _acme_server_id
         )
-
     return True
 
 
@@ -1528,7 +1554,7 @@ def make_one__AcmeOrder(
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
     account_key_option_backup: Optional[str] = None,
-    acme_profile: Optional[str] = None,
+    acme_profile__primary: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
@@ -1541,13 +1567,13 @@ def make_one__AcmeOrder(
     assert "account_key_option" in _form_fields
     form["account_key_option"].force_value("account_key_global_default")
     form["private_key_option"].force_value("account_default")
-    form["private_key_cycle"].force_value("account_default")
+    form["private_key_cycle__primary"].force_value("account_default")
     if domain_names_http01:
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
         form["domain_names_dns01"] = domain_names_dns01
-    if acme_profile:
-        form["acme_profile"] = acme_profile
+    if acme_profile__primary:
+        form["acme_profile__primary"] = acme_profile__primary
     if acme_profile__backup:
         form["acme_profile__backup"] = acme_profile__backup
     if account_key_option_backup:
@@ -1610,8 +1636,8 @@ def make_one__RenewalConfiguration(
     form: Dict[str, Optional[str]] = {}
     form["account_key_option"] = "account_key_existing"
     form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
-    form["private_key_cycle"] = private_key_cycle
-    form["key_technology"] = key_technology
+    form["private_key_cycle__primary"] = private_key_cycle
+    form["private_key_technology__primary"] = key_technology
     form["domain_names_http01"] = domain_names_http01
 
     res2 = testCase.testapp.post(
@@ -1633,6 +1659,63 @@ def make_one__RenewalConfiguration(
     return dbRenewalConfiguration
 
 
+def setup_EnrollmentPolicy(
+    testCase: CustomizedTestCase,
+    policy_name: Literal["global", "autocert", "certificate-if-needed"],
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+
+    if policy_name == "global":
+        raise ValueError("`global` is not supported")
+
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+        status=200,
+    )
+    assert "form_fields" in res.json
+
+    dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+        testCase.ctx, "global"
+    )
+    assert dbEnrollmentPolicy_global
+    assert dbEnrollmentPolicy_global.is_configured
+
+    form = {}
+    form["acme_account_id__backup"] = dbEnrollmentPolicy_global.acme_account_id__backup
+    form["acme_account_id__primary"] = (
+        dbEnrollmentPolicy_global.acme_account_id__primary
+    )
+    form["acme_profile__backup"] = dbEnrollmentPolicy_global.acme_profile__backup
+    form["acme_profile__primary"] = dbEnrollmentPolicy_global.acme_profile__primary
+    form["private_key_cycle__backup"] = (
+        dbEnrollmentPolicy_global.private_key_cycle__backup
+    )
+    form["private_key_cycle__primary"] = (
+        dbEnrollmentPolicy_global.private_key_cycle__primary
+    )
+    form["private_key_technology__backup"] = (
+        dbEnrollmentPolicy_global.private_key_technology__backup
+    )
+    form["private_key_technology__primary"] = (
+        dbEnrollmentPolicy_global.private_key_technology__primary
+    )
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+        form,
+    )
+    assert res2.json["result"] == "success"
+    assert "EnrollmentPolicy" in res2.json
+
+    dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+        testCase.ctx, policy_name
+    )
+
+    assert dbEnrollmentPolicy
+    assert dbEnrollmentPolicy.is_configured
+    return dbEnrollmentPolicy
+
+
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
     message = "Error communicating with the acme-dns server."
     if response_type == "html":
@@ -1651,6 +1734,7 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
 
 def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     testCase.ctx.pyramid_transaction_commit()
+    # note: deactivate AcmeOrders
     dbAcmeOrders = (
         testCase.ctx.dbSession.query(model_objects.AcmeOrder)
         .order_by(model_objects.AcmeOrder.id.asc())
@@ -1659,6 +1743,7 @@ def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    # note: deactivate RenewalConfigurations
     dbRenewalConfigurations = (
         testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
         .order_by(model_objects.RenewalConfiguration.id.asc())
@@ -1669,6 +1754,17 @@ def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
         _result = lib_db_update.update_RenewalConfiguration__unset_active(
             testCase.ctx, _dbRenewalConfiguration
         )
+    # note: unset EnrollmentPolicies
+    dbEnrollmentPolicies = (
+        testCase.ctx.dbSession.query(model_objects.EnrollmentPolicy)
+        .filter(
+            model_objects.EnrollmentPolicy.name != "global",
+            model_objects.EnrollmentPolicy.is_configured.is_(True),
+        )
+        .all()
+    )
+    for dbEnrollmentPolicy in dbEnrollmentPolicies:
+        dbEnrollmentPolicy.is_configured = False
     testCase.ctx.pyramid_transaction_commit()
     return True
 
@@ -2183,21 +2279,31 @@ class AppTest(AppTestCore):
                         )
                         # print(_dbAcmeAccount_1, _is_created)
                         # self.ctx.pyramid_transaction_commit()
+
                         if _id == "1":
                             _dbAcmeAccount_1 = _dbAcmeAccount
-                            if not _dbAcmeAccount.is_global_default:
-                                db.update.update_AcmeAccount__set_global_default(
-                                    self.ctx, _dbAcmeAccount
-                                )
-                            self.ctx.pyramid_transaction_commit()
-                        # 11 is same as 1, but on `pebble_alt`
-                        if _id == "5":
+                        elif _id == "5":
+                            # 11 is same as 1, but on `pebble_alt`
                             _dbAcmeAccount_2 = _dbAcmeAccount
-                            if not _dbAcmeAccount.is_global_backup:
-                                db.update.update_AcmeAccount__set_global_backup(
-                                    self.ctx, _dbAcmeAccount_2
-                                )
-                            self.ctx.pyramid_transaction_commit()
+                        self.ctx.pyramid_transaction_commit()
+
+                    dbEnrollmentPolicy_global = (
+                        lib_db_get.get__EnrollmentPolicy__by_name(self.ctx, "global")
+                    )
+                    assert dbEnrollmentPolicy_global
+
+                    _updated = lib_db_update.update_EnrollmentPolicy(
+                        ctx=self.ctx,
+                        dbEnrollmentPolicy=dbEnrollmentPolicy_global,
+                        acme_account_id__primary=_dbAcmeAccount_1.id,
+                        private_key_cycle__primary=dbEnrollmentPolicy_global.private_key_cycle__primary,
+                        private_key_technology__primary=dbEnrollmentPolicy_global.private_key_technology__primary,
+                        acme_profile__primary=dbEnrollmentPolicy_global.acme_profile__primary,
+                        acme_account_id__backup=_dbAcmeAccount_2.id,
+                        private_key_cycle__backup=dbEnrollmentPolicy_global.private_key_cycle__backup,
+                        private_key_technology__backup=dbEnrollmentPolicy_global.private_key_technology__backup,
+                        acme_profile__backup=dbEnrollmentPolicy_global.acme_profile__backup,
+                    )
 
                     # note: pre-populate CertificateCA
                     # this should create `/certificate-ca/1`
@@ -2457,10 +2563,10 @@ class AppTest(AppTestCore):
 
                     _dbRenewalConfiguration = db.create.create__RenewalConfiguration(
                         self.ctx,
-                        dbAcmeAccount=_dbAcmeAccount_1,
-                        private_key_cycle_id=_private_key_cycle_id__renewal,
-                        key_technology_id=_dbPrivateKey_1.key_technology_id,
                         domains_challenged=_domains_challenged,
+                        dbAcmeAccount__primary=_dbAcmeAccount_1,
+                        private_key_cycle_id__primary=_private_key_cycle_id__renewal,
+                        private_key_technology_id__primary=_dbPrivateKey_1.key_technology_id,
                         note="setUp",
                     )
 

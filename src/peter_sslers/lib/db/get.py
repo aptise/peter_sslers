@@ -58,7 +58,7 @@ from ...model.objects import UniquelyChallengedFQDNSet2Domain
 
 
 if TYPE_CHECKING:
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -159,7 +159,7 @@ def get__AcmeAccount__paginated(
     query = ctx.dbSession.query(AcmeAccount)
     if active_only:
         query = query.filter(AcmeAccount.is_active.is_(True))
-    query = query.order_by(AcmeAccount.id.desc()).limit(limit).offset(offset)
+    query = query.order_by(AcmeAccount.id.asc()).limit(limit).offset(offset)
     dbAcmeAccounts = query.all()
     return dbAcmeAccounts
 
@@ -187,26 +187,6 @@ def get__AcmeAccount__by_pemMd5(
     if is_active:
         q = q.filter(AcmeAccount.is_active.is_(True))
         q = q.filter(AcmeAccountKey.is_active.is_(True))
-    item = q.first()
-    return item
-
-
-def get__AcmeAccount__GlobalDefault(
-    ctx: "ApiContext", active_only: Optional[bool] = None
-) -> Optional[AcmeAccount]:
-    q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_default.is_(True))
-    if active_only:
-        q = q.filter(AcmeAccount.is_active.is_(True))
-    item = q.first()
-    return item
-
-
-def get__AcmeAccount__GlobalBackup(
-    ctx: "ApiContext", active_only: Optional[bool] = None
-) -> Optional[AcmeAccount]:
-    q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_backup.is_(True))
-    if active_only:
-        q = q.filter(AcmeAccount.is_active.is_(True))
     item = q.first()
     return item
 
@@ -1970,7 +1950,7 @@ def get__CertificateSigned_replaces_candidates(
         # !!!: Filter- lock down to the same AcmeServer
         q = q.filter(
             AcmeAccount.acme_server_id
-            == dbRenewalConfiguration.acme_account.acme_server_id,
+            == dbRenewalConfiguration.acme_account__primary.acme_server_id,
         )
     elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
         # !!!: Filter- lock down to the same AcmeServer
@@ -2638,7 +2618,9 @@ def _get__Domain__core(q, preload: bool = False, eagerload_web: bool = False):
         q = q.options(
             subqueryload(Domain.acme_orders__5),
             subqueryload(Domain.certificate_requests__5),
-            subqueryload(Domain.certificate_signeds__5),
+            # subqueryload(Domain.certificate_signeds__5),
+            # subqueryload(Domain.certificate_signeds__single_primary_5),
+            # subqueryload(Domain.certificate_signeds__single_backup_5),
         )
     return q
 
@@ -2896,7 +2878,10 @@ def get__EnrollmentPolicy__paginated(
 ) -> List[EnrollmentPolicy]:
     q = (
         ctx.dbSession.query(EnrollmentPolicy)
-        .order_by(EnrollmentPolicy.name.asc())
+        .order_by(
+            EnrollmentPolicy.is_system.desc(),
+            EnrollmentPolicy.name.asc(),
+        )
         .limit(limit)
         .offset(offset)
     )
@@ -2920,6 +2905,19 @@ def get__EnrollmentPolicy__by_name(
     q = ctx.dbSession.query(EnrollmentPolicy).filter(EnrollmentPolicy.name == name)
     item = q.first()
     return item
+
+
+def get__EnrollmentPolicys__by_acmeAccountId(
+    ctx: "ApiContext", acme_account_id: int
+) -> List[EnrollmentPolicy]:
+    q = ctx.dbSession.query(EnrollmentPolicy).filter(
+        sqlalchemy.or_(
+            EnrollmentPolicy.acme_account_id__primary == acme_account_id,
+            EnrollmentPolicy.acme_account_id__backup == acme_account_id,
+        )
+    )
+    items = q.all()
+    return items
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3238,7 +3236,7 @@ def get__RenewalConfigurations__by_AcmeAccountId__count(
     acme_account_id: int,
 ) -> int:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.acme_account_id == acme_account_id
+        RenewalConfiguration.acme_account_id__primary == acme_account_id
     )
     counted = q.count()
     return counted
@@ -3251,7 +3249,7 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
     offset: int = 0,
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.acme_account_id == acme_account_id
+        RenewalConfiguration.acme_account_id__primary == acme_account_id
     )
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()

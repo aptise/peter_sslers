@@ -17,13 +17,13 @@ from .lib.handler import api_host
 from .lib.handler import load_CertificateCAPreferences
 from ..lib.config_utils import ApplicationSettings
 from ..lib.config_utils import set_bool_setting
+from ..lib.context import ApiContext
 from ..lib.db import _setup
-from ..lib.utils import ApiContext
 from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
 
 if TYPE_CHECKING:
-    # from .utils import ApiContext
+    # from .context import ApiContext
     # from ..model.objects import Domain
     from pyramid.request import Request
 

@@ -40,22 +40,34 @@
     % if pager._current == 1:
         <table class="table table-condensed">
             <tr>
-                <th>Global Default</th>
+                <th>Global EnrollmentPolicy</th>
                 <td>
-                    % if AcmeAccount_GlobalDefault:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}">
+                    <a class="label label-info" href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_global.slug}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        EnrollmentPolicy-${EnrollmentPolicy_global.slug}</a>
+                </td>
+            </tr>
+            <tr>
+                <th>Default AcmeAccount</th>
+                <td>
+                    % if EnrollmentPolicy_global.acme_account__primary:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy_global.acme_account_id__primary}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${AcmeAccount_GlobalDefault.id}</a>
+                            AcmeAccount-${EnrollmentPolicy_global.acme_account_id__primary}</a>
+                    % else:
+                        Please Configure
                     % endif            
                 </td>
             </tr>
             <tr>
-                <th>Global Backup</th>
+                <th>Backup AcmeAccount</th>
                 <td>
-                    % if AcmeAccount_GlobalBackup:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}">
+                    % if EnrollmentPolicy_global.acme_account_id__backup:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy_global.acme_account_id__backup}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${AcmeAccount_GlobalBackup.id}</a>
+                            AcmeAccount-${EnrollmentPolicy_global.acme_account_id__backup}</a>
+                    % else:
+                        Please Configure
                     % endif            
                 </td>
             </tr>

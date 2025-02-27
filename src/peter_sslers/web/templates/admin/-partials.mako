@@ -23,7 +23,7 @@
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
-                <th><!-- global_backup | global_default --></th>
+                <th><!-- EnrollmentPolicy info --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -51,12 +51,7 @@
                         % endif
                     </td>
                     <td>
-                        % if account.is_global_backup:
-                            <span class="label label-success">global backup</span>
-                        % endif
-                        % if account.is_global_default:
-                            <span class="label label-success">global default</span>
-                        % endif
+                        <!-- TODO: show EnrollmentPolicy Info -->
                     </td>
                     <td>
                         <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
@@ -1040,6 +1035,7 @@
             <tr>
                 <th>id</th>
                 <th>name</th>
+                <th>configured?</th>
             </tr>
         </thead>
         <tbody>
@@ -1048,9 +1044,16 @@
                     <td><a class="label label-info" href="${admin_prefix}/enrollment-policy/${policy.slug}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         EnrollmentPolicy-${policy.id}</a>
-                        </td>
+                    </td>
                     <td>
                         <span class="label label-default">${policy.name}</span>
+                    </td>
+                    <td>
+                        % if policy.is_configured:
+                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
                     </td>
                 </tr>
             % endfor
@@ -1261,14 +1264,15 @@
     <%
         cols = ("id",
                 "timestamp_created",
-                "acme_account_id",
+                "acme_account_id__primary",
+                "acme_account_id__backup",
                 "unique_fqdn_set_id",
                 "uniquely_challenged_fqdn_set_id",
                )
         if perspective == 'RenewalConfiguration':
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
-            cols = [c for c in cols if c != "acme_account_id"]
+            cols = [c for c in cols if c != "acme_account_id__primary"]
         elif perspective == 'UniquelyChallengedFQDNSet':
             cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         elif perspective == 'Domain':
@@ -1296,10 +1300,10 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     RenewalConfiguration-${renewal_configuration.id}
                                 </a>
-                            % elif c == 'acme_account_id':
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id}">
+                            % elif c == 'acme_account_id__primary':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${renewal_configuration.acme_account_id}
+                                    AcmeAccount-${renewal_configuration.acme_account_id__primary}
                                 </a>
                             % elif c == 'unique_fqdn_set_id':
                                 <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">
@@ -1561,10 +1565,34 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_select(acmeAccounts=None, default=None, field_name='acme_account_id')">
+<%def name="messaging_EnrollmentPolicy_global()">
+    % if not  EnrollmentPolicy_global.is_configured:
+    <div class="alert alert-warning">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        The global EnrollmentPolicy is not configured.
+        Please configure the policy to set the Global Default and Backup AcmeAccounts.
+        <a  class="label label-info"
+            href="${admin_prefix}/enrollment-policy/global"
+        >
+            <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+            EnrollmentPolicy-Global
+        </a>
+    </div>
+    % endif
+</%def>
+
+
+
+
+<%def name="formgroup__AcmeAccount_select(acmeAccounts=None, default=None, field_name='acme_account_id', allow_none=False)">
     <div class="form-group">
         <label for="${field_name}">ACME Account</label>
         <select class="form-control" name="${field_name}">
+            % if allow_none:
+                <option value="0"${" selected" if (not default) else ""}>
+                    Not Configured
+                </option>
+            % endif
             % for acc in acmeAccounts:
                 <option value="${acc.id}"${" selected" if (acc.id == default) else ""}>
                     ${acc.displayable}
@@ -1577,7 +1605,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='*ACCOUNT_DEFAULT*')">
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbEnrollmentPolicy=None,)">
     <%
         checked = {
             "none": "",
@@ -1590,6 +1618,10 @@
             checked["account_key_global_default"] = 'checked="checked"'
         elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
+        if not dbEnrollmentPolicy:
+            dbEnrollmentPolicy = EnrollmentPolicy_global
+            
+        acmeAccount_GlobalDefault = EnrollmentPolicy_global.acme_account__primary
     %>
     <p>Select a Primary AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
@@ -1618,7 +1650,7 @@
                 </p>
             </div>
         % endif
-        % if AcmeAccount_GlobalDefault:
+        % if acmeAccount_GlobalDefault:
             <div class="radio">
                 <label>
                     <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]}/>
@@ -1626,34 +1658,33 @@
                 </label>
                 <p class="form-control-static">
                     <b>resource:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}"
+                                         href="${admin_prefix}/acme-account/${acmeAccount_GlobalDefault.id}"
                                      >
-                                         AcmeAccount-${AcmeAccount_GlobalDefault.id}
+                                         AcmeAccount-${acmeAccount_GlobalDefault.id}
                                      </a><br/>
                     <b>server:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalDefault.acme_server.id}"
+                                         href="${admin_prefix}/acme-server/${acmeAccount_GlobalDefault.acme_server.id}"
                                      >
-                                         AcmeServer-${AcmeAccount_GlobalDefault.acme_server.id}
+                                         AcmeServer-${acmeAccount_GlobalDefault.acme_server.id}
                                          |
-                                        ${AcmeAccount_GlobalDefault.acme_server.server}
+                                        ${acmeAccount_GlobalDefault.acme_server.server}
                                      </a><br/>
-                    <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
-                    <b>known profiles:</b> <code>${AcmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
+                    <b>pem md5:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${acmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
+                    <input type="hidden" name="account_key_global_default" value="${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Default AcmeAccount configured.
-                Any Account can be configured as the Global Default.
-                Browse Accounts at
+                Any Account can be configured as the Global Default through the global EnrollmentPolicy
                 <a  class="label label-info"
-                    href="${admin_prefix}/acme-accounts"
+                    href="${admin_prefix}/enrollment-policy/global"
                 >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    AcmeAccounts
+                    <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                    EnrollmentPolicy-global
                 </a>
             </div>
         % endif
@@ -1676,15 +1707,15 @@
             </div>
         % endif
         % if support_profiles:
-            <label for="acme_profile">
+            <label for="acme_profile__primary">
                 [Optional] The name of an ACME Profile on the server
             </label>
             <p class="help">
                 Leave this blank for no profile.
-                If you want to defer to the AcmeAccount, use the special name <code>*ACCOUNT_DEFAULT*</code>.
+                If you want to defer to the AcmeAccount, use the special name <code>@</code>.
             </p>
             <div class="form-control-static">
-               <input class="form-control" name="acme_profile" id="acme_profile" type="text" value="${default_profile or ""}"/>
+               <input class="form-control" name="acme_profile__primary" id="acme_profile__primary" type="text" value="${default_profile or ""}"/>
             </div>
         % endif
     </div>
@@ -1692,7 +1723,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='*ACCOUNT_DEFAULT*')">
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='', dbEnrollmentPolicy=None)">
     <%
         checked = {
             "none": "",
@@ -1708,6 +1739,12 @@
                 checked["none"] = 'checked="checked"'
         else:
             checked["none"] = 'checked="checked"'
+        
+        if not dbEnrollmentPolicy:
+            dbEnrollmentPolicy = EnrollmentPolicy_global
+        
+        acmeAccount_GlobalBackup = EnrollmentPolicy_global.acme_account__backup
+        
     %>
     <p>Select a Backup AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
@@ -1742,7 +1779,7 @@
                 </p>
             </div>
         % endif
-        % if AcmeAccount_GlobalBackup:
+        % if acmeAccount_GlobalBackup:
             <div class="radio">
                 <label>
                     <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]}/>
@@ -1750,34 +1787,33 @@
                 </label>
                 <p class="form-control-static">
                     <b>resource:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}"
+                                         href="${admin_prefix}/acme-account/${acmeAccount_GlobalBackup.id}"
                                      >
-                                         AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                                         AcmeAccount-${acmeAccount_GlobalBackup.id}
                                      </a><br/>
                     <b>server:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalBackup.acme_server.id}"
+                                         href="${admin_prefix}/acme-server/${acmeAccount_GlobalBackup.acme_server.id}"
                                      >
-                                         AcmeServer-${AcmeAccount_GlobalBackup.acme_server.id}
+                                         AcmeServer-${acmeAccount_GlobalBackup.acme_server.id}
                                          |
-                                        ${AcmeAccount_GlobalBackup.acme_server.server}
+                                        ${acmeAccount_GlobalBackup.acme_server.server}
                                      </a><br/>
-                    <b>pem md5:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
-                    <b>known profiles:</b> <code>${AcmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_backup" value="${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                    <b>pem md5:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${acmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
+                    <input type="hidden" name="account_key_global_backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Backup AcmeAccount configured.
-                Any Account can be configured as the Global Backup.
-                Browse Accounts at
+                The backup can be configured through the Global EnrollmentPolicy
                 <a  class="label label-info"
-                    href="${admin_prefix}/acme-accounts"
+                    href="${admin_prefix}/enrollment-policy/global"
                 >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    AcmeAccounts
+                    <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                    EnrollmentPolicy-global
                 </a>
             </div>
         % endif
@@ -1791,12 +1827,12 @@
             </div>
         </div>
         % if support_profiles:
-            <label for="acme_profile">
+            <label for="acme_profile__backup">
                 [Optional] The name of an ACME Profile on the server
             </label>
             <p class="help">
                 Leave this blank for no profile.
-                If you want to defer to the AcmeAccount, use the special name <code>*ACCOUNT_DEFAULT*</code>.
+                If you want to defer to the AcmeAccount, use the special name <code>@</code>.
             </p>
             <div class="form-control-static">
                <input class="form-control" name="acme_profile__backup" id="acme_profile__backup" type="text" value="${default_profile or ""}"/>
@@ -2028,11 +2064,11 @@
 </%def>
 
 
-<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology')">
+<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology', label='')">
     <% default = default or model_websafe.KeyTechnology._DEFAULT %>
     <% options = options or model_websafe.KeyTechnology._options_all %>
     <div class="form-group">
-        <label for="${field_name}">Key Technology</label>
+        <label for="${field_name}">Key Technology ${label}</label>
         <select class="form-control" name="${field_name}">
             % for _option_text in options:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
@@ -2073,10 +2109,10 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle(default=None, field_name='private_key_cycle')">
+<%def name="formgroup__private_key_cycle(default=None, field_name='private_key_cycle', label='')">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="${field_name}">Private Key Cycle - Renewals</label>
+        <label for="${field_name}">Private Key Cycle - Renewals ${label}</label>
         <select class="form-control" name="${field_name}">
             % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
@@ -2088,8 +2124,10 @@
 
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None,)">
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None, concept=None)">
     <%
+        if concept not in ("primary", "backup"):
+            concept = "primary"
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",

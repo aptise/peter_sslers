@@ -68,8 +68,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_EnrollmentPolicy_global()
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
             "%s/acme-accounts/{0}"
@@ -88,26 +87,16 @@ class View_List(Handler):
                 "pagination": json_pagination(items_count, pager),
             }
             if pager._current == 1:
-                rval["globals"] = {
-                    "default": (
-                        self.dbAcmeAccount_GlobalDefault.as_json
-                        if self.dbAcmeAccount_GlobalDefault
-                        else {}
-                    ),
-                    "backup": (
-                        self.dbAcmeAccount_GlobalBackup.as_json
-                        if self.dbAcmeAccount_GlobalBackup
-                        else {}
-                    ),
-                }
+                rval["EnrollmentPolicy_global"] = (
+                    self.request.api_context.dbEnrollmentPolicy_global.as_json
+                )
             return rval
         return {
             "project": "peter_sslers",
             "AcmeAccounts_count": items_count,
             "AcmeAccounts": items_paged,
             "pager": pager,
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
         }
 
 
@@ -170,13 +159,13 @@ class View_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        self._load_AcmeServers()
+        self.request.api_context._load_AcmeServers()
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/upload.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-upload.mako",
-            {"AcmeServers": self.dbAcmeServers},
+            {"AcmeServers": self.request.api_context.dbAcmeServers},
             self.request,
         )
 
@@ -203,8 +192,10 @@ class View_New(Handler):
             # not required if uploading LE json fields
             acme_server_id = key_create_args.get("acme_server_id")
             if acme_server_id:
-                self._load_AcmeServers()
-                _acme_server_ids__all = [i.id for i in self.dbAcmeServers]
+                self.request.api_context._load_AcmeServers()
+                _acme_server_ids__all = [
+                    i.id for i in self.request.api_context.dbAcmeServers
+                ]
                 if acme_server_id not in _acme_server_ids__all:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
@@ -329,13 +320,13 @@ class View_New(Handler):
         return self._new__print()
 
     def _new__print(self):
-        self._load_AcmeServers()
+        self.request.api_context._load_AcmeServers()
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-new.mako",
-            {"AcmeServers": self.dbAcmeServers},
+            {"AcmeServers": self.request.api_context.dbAcmeServers},
             self.request,
         )
 
@@ -347,10 +338,12 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            self._load_AcmeServers()
-            _acme_server_ids__all = [i.id for i in self.dbAcmeServers]
+            self.request.api_context._load_AcmeServers()
+            _acme_server_ids__all = [
+                i.id for i in self.request.api_context.dbAcmeServers
+            ]
             _acme_server_ids__enabled = [
-                i.id for i in self.dbAcmeServers if i.is_enabled
+                i.id for i in self.request.api_context.dbAcmeServers if i.is_enabled
             ]
 
             acme_server_id = formStash.results["acme_server_id"]
@@ -1525,31 +1518,6 @@ class View_Focus_Manipulate(View_Focus):
                     event_status = lib_db.update.update_AcmeAccount__unset_active(
                         self.request.api_context, dbAcmeAccount
                     )
-
-                elif action == "global_default":
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_AcmeAccount__set_global_default(
-                        self.request.api_context, dbAcmeAccount
-                    )
-                    if alt_info:
-                        for k, v in alt_info["event_payload_dict"].items():
-                            event_payload_dict[k] = v
-                        event_alt = alt_info["event_alt"]
-
-                elif action == "global_backup":
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_AcmeAccount__set_global_backup(
-                        self.request.api_context, dbAcmeAccount
-                    )
-                    if alt_info:
-                        for k, v in alt_info["event_payload_dict"].items():
-                            event_payload_dict[k] = v
-                        event_alt = alt_info["event_alt"]
-
                 else:
                     raise errors.InvalidTransition("Invalid option")
 

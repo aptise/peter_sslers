@@ -1,6 +1,7 @@
 # stdlib
 import logging
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -27,6 +28,9 @@ from ...lib import errors
 from ...lib import utils_nginx
 from ...lib import utils_redis
 from ...model.objects import Domain
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeDnsServers
 
 
 # ==============================================================================
@@ -479,7 +483,7 @@ class View_Focus(Handler):
             )
         try:
             # could raise `InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
 
             success, dbEvent = utils_nginx.nginx_expire_cache(
                 self.request, self.request.api_context, dbDomains=[dbDomain]
@@ -1234,6 +1238,9 @@ class View_Focus(Handler):
 
 
 class View_Focus_AcmeDnsServerAccounts(View_Focus):
+
+    dbAcmeDnsServers_all: Optional[List["AcmeDnsServers"]] = None
+
     @view_config(
         route_name="admin:domain:focus:acme_dns_server_accounts",
         renderer="/admin/domain-focus-acme_dns_server_accounts.mako",
@@ -1318,7 +1325,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             )
             return HTTPSeeOther(_url)
 
-        self.dbAcmeDnsServers = lib_db.get.get__AcmeDnsServer__paginated(
+        self.dbAcmeDnsServers_all = lib_db.get.get__AcmeDnsServer__paginated(
             self.request.api_context
         )
         if self.request.method == "POST":
@@ -1333,7 +1340,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             {
                 "project": "peter_sslers",
                 "Domain": self.dbDomain,
-                "AcmeDnsServers": self.dbAcmeDnsServers,
+                "AcmeDnsServers": self.dbAcmeDnsServers_all,
             },
             self.request,
         )

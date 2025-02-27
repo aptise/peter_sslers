@@ -48,7 +48,7 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
-    from ..utils import ApiContext
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge

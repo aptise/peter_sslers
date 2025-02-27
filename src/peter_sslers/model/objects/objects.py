@@ -43,7 +43,7 @@ from ..utils import TZDateTime
 from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 
 if TYPE_CHECKING:
-    from ...lib.utils import ApiContext
+    from ...lib.context import ApiContext
 
 
 # ==============================================================================
@@ -58,24 +58,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_account"
-    __table_args__ = (
-        sa.Index(
-            "uidx_acme_account_default",
-            "is_global_default",
-            unique=True,
-        ),
-        sa.Index(
-            "uidx_acme_account_backup",
-            "is_global_backup",
-            unique=True,
-        ),
-    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-
     contact: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
     name: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True, unique=True
@@ -83,14 +70,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
-
     count_acme_orders: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
     count_certificate_signeds: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-
     timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
         mapped_column(TZDateTime(timezone=True), nullable=True)
     )
@@ -100,19 +85,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     timestamp_last_authenticated: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True
     )
-
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
-    is_global_default: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None  # NONE for uidx
-    )
-    is_global_backup: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None  # NONE for uidx
-    )
-
     acme_server_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_server.id"), nullable=False
     )
-
     private_key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
@@ -126,11 +102,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     order_default_acme_profile: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
-
     timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True
     )
-
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -168,16 +142,14 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
-    enrollment_policies = sa_orm_relationship(
+    enrollment_policies__primary = sa_orm_relationship(
         "EnrollmentPolicy",
-        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id",
-        uselist=False,
-        back_populates="acme_account",
+        primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__primary",
+        back_populates="acme_account__primary",
     )
     enrollment_policies__backup = sa_orm_relationship(
         "EnrollmentPolicy",
         primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__backup",
-        uselist=False,
         back_populates="acme_account__backup",
     )
     operations_object_events = sa_orm_relationship(
@@ -196,10 +168,10 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account__owner",
     )
-    renewal_configurations = sa_orm_relationship(
+    renewal_configurations__primary = sa_orm_relationship(
         "RenewalConfiguration",
-        primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id",
-        back_populates="acme_account",
+        primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id__primary",
+        back_populates="acme_account__primary",
     )
     renewal_configurations__backup = sa_orm_relationship(
         "RenewalConfiguration",
@@ -220,7 +192,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     def displayable(self) -> str:
         return "[%s] %s (%s) @ %s" % (
             self.id,
-            self.name,
+            self.name or "",
             self.contact,
             self.acme_server.name,
         )
@@ -242,6 +214,16 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_deactivate(self) -> bool:
+        if self.enrollment_policies__primary or self.enrollment_policies__backup:
+            return False
+        if self.is_active:
+            return True
+        return False
+
+    @property
+    def is_can_unset_active(self) -> bool:
+        if self.enrollment_policies__primary or self.enrollment_policies__backup:
+            return False
         if self.is_active:
             return True
         return False
@@ -251,34 +233,6 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         if self.is_active:
             return True
         return False
-
-    @property
-    def is_global_backup_candidate(self) -> bool:
-        if self.is_global_backup:
-            return False
-        if self.is_global_default:
-            return False
-        if not self.is_active:
-            return False
-        if not self.acme_account_key:
-            return False
-        if not self.acme_account_key.is_active:
-            return False
-        return True
-
-    @property
-    def is_global_default_candidate(self) -> bool:
-        if self.is_global_backup:
-            return False
-        if self.is_global_default:
-            return False
-        if not self.is_active:
-            return False
-        if not self.acme_account_key:
-            return False
-        if not self.acme_account_key.is_active:
-            return False
-        return True
 
     @reify
     def key_spki_search(self) -> str:
@@ -324,8 +278,6 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
             # - -
             "is_active": True if self.is_active else False,
             "is_deactivated": self.timestamp_deactivated or False,
-            "is_global_backup": True if self.is_global_backup else False,
-            "is_global_default": True if self.is_global_default else False,
             "acme_server_id": self.acme_server_id,
             "acme_server_name": self.acme_server.name,
             "acme_server_url": self.acme_server.url,
@@ -349,11 +301,22 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def as_json_minimal_extended(self) -> Dict:
-        rval = {"id": self.id, "account_url": self.account_url}
+        rval = {
+            "id": self.id,
+            "account_url": self.account_url,
+        }
         rval["AcmeAccountKey"] = (
             self.acme_account_key.as_json_minimal if self.acme_account_key else None
         )
         rval["AcmeServer"] = self.acme_server.as_json_minimal
+        return rval
+
+    @property
+    def as_json_labels(self) -> Dict:
+        rval = {
+            "id": self.id,
+            "label": self.displayable,
+        }
         return rval
 
 
@@ -478,7 +441,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id:
+        if self.key_technology_id is not None:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
@@ -2632,7 +2595,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id:
+        if self.key_technology_id is not None:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
@@ -2956,7 +2919,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id:
+        if self.key_technology_id is not None:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
@@ -3397,7 +3360,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id:
+        if self.key_technology_id is not None:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
@@ -3938,36 +3901,44 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
     __tablename__ = "enrollment_policy"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    is_system: Mapped[bool] = mapped_column(sa.Boolean, nullable=True, default=None)
+    is_configured: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=False
+    )
 
-    acme_account_id: Mapped[int] = mapped_column(
+    # Primary Cert
+    acme_account_id__primary: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    key_technology_id: Mapped[int] = mapped_column(
+    private_key_technology_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
-    private_key_cycle_id: Mapped[int] = mapped_column(
+    private_key_cycle_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
-    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    acme_profile__primary: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True
+    )
 
+    # Backup Cert
     acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
-    key_technology_id__backup: Mapped[int] = mapped_column(
+    private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
-    private_key_cycle_id__backup: Mapped[int] = mapped_column(
+    private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
 
-    acme_account = sa_orm_relationship(
+    acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="EnrollmentPolicy.acme_account_id==AcmeAccount.id",
+        primaryjoin="EnrollmentPolicy.acme_account_id__primary==AcmeAccount.id",
         uselist=False,
-        back_populates="enrollment_policies",
+        back_populates="enrollment_policies__primary",
     )
     acme_account__backup = sa_orm_relationship(
         "AcmeAccount",
@@ -3975,21 +3946,34 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
         uselist=False,
         back_populates="enrollment_policies__backup",
     )
+    renewal_configurations = sa_orm_relationship(
+        "RenewalConfiguration",
+        primaryjoin="EnrollmentPolicy.id==RenewalConfiguration.enrollment_policy_id__via",
+        back_populates="enrollment_policy__via",
+    )
 
     @property
-    def key_technology(self) -> str:
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+    def private_key_technology__primary(self) -> str:
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__primary
+        )
 
     @property
-    def private_key_cycle(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+    def private_key_technology__backup(self) -> Optional[str]:
+        if self.private_key_technology_id__backup is None:
+            return None
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__backup
+        )
 
     @property
-    def key_technology__backup(self) -> str:
-        return model_utils.KeyTechnology.as_string(self.key_technology_id__backup)
+    def private_key_cycle__primary(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
 
     @property
-    def private_key_cycle__backup(self) -> str:
+    def private_key_cycle__backup(self) -> Optional[str]:
+        if self.private_key_cycle_id__backup is None:
+            return None
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
 
     @property
@@ -4001,21 +3985,40 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
         return {
             "id": self.id,
             # - -
-            "acme_account_id": self.acme_account_id,
+            "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
-            "acme_profile": self.acme_profile,
+            "acme_profile__primary": self.acme_profile__primary,
+            "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
-            "acme_profile__effective": self.acme_profile__effective,
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
-            "key_technology": self.key_technology,
-            "key_technology__backup": self.key_technology__backup,
-            "key_technology__effective": self.key_technology__effective,
-            "key_technology__backup__effective": self.key_technology__backup__effective,
-            "private_key_cycle": self.private_key_cycle,
+            "is_system": self.is_system,
+            "is_configured": self.is_configured,
+            "private_key_technology__primary": self.private_key_technology__primary,
+            "private_key_technology__primary__effective": self.private_key_technology__primary__effective,
+            "private_key_technology__backup": self.private_key_technology__backup,
+            "private_key_technology__backup__effective": self.private_key_technology__backup__effective,
+            "private_key_cycle__primary": self.private_key_cycle__primary,
+            "private_key_cycle__primary__effective": self.private_key_cycle__primary__effective,
             "private_key_cycle__backup": self.private_key_cycle__backup,
-            "private_key_cycle__effective": self.private_key_cycle__effective,
             "private_key_cycle__backup__effective": self.private_key_cycle__backup__effective,
         }
+
+    @property
+    def as_json_docs(self) -> Dict:
+        rval = self.as_json
+        rval["AcmeAccounts"] = {
+            "primary": (
+                self.acme_account__primary.as_json_minimal
+                if self.acme_account__primary
+                else None
+            ),
+            "backup": (
+                self.acme_account__backup.as_json_minimal
+                if self.acme_account__backup
+                else None
+            ),
+        }
+        return rval
 
 
 # ==============================================================================
@@ -4434,7 +4437,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id:
+        if self.key_technology_id is not None:
             return model_utils.KeyTechnology.as_string(self.key_technology_id)
         return None
 
@@ -4523,38 +4526,57 @@ class RenewalConfiguration(
     is_save_alternate_chains: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, default=True
     )
-    private_key_cycle_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
-    key_technology_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.KeyTechnology
-    acme_account_id: Mapped[int] = mapped_column(
+
+    # Primary Cert
+    acme_account_id__primary: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    acme_account_id__backup: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    private_key_cycle_id__primary: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyCycle
+    private_key_technology_id__primary: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+    acme_profile__primary: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True
     )
+
+    # Backup Cert
+    acme_account_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True, default=None
+    )
+    # see .utils.PrivateKeyCycle
+    private_key_cycle_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, nullable=True, default=None
+    )
+    # see .utils.KeyTechnology
+    private_key_technology_id__backup: Mapped[int] = mapped_column(
+        sa.Integer, nullable=True, default=None
+    )
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, default=None
+    )
+
+    # core
     uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
     )
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
+    enrollment_policy_id__via: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("enrollment_policy.id"), nullable=True
+    )
+    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    acme_profile: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
-    acme_profile__backup: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True
-    )
 
-    acme_account = sa_orm_relationship(
+    acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="RenewalConfiguration.acme_account_id==AcmeAccount.id",
+        primaryjoin="RenewalConfiguration.acme_account_id__primary==AcmeAccount.id",
         uselist=False,
-        back_populates="renewal_configurations",
+        back_populates="renewal_configurations__primary",
     )
     acme_account__backup = sa_orm_relationship(
         "AcmeAccount",
@@ -4568,6 +4590,13 @@ class RenewalConfiguration(
         back_populates="renewal_configuration",
         uselist=True,
     )
+    enrollment_policy__via = sa_orm_relationship(
+        "EnrollmentPolicy",
+        primaryjoin="RenewalConfiguration.enrollment_policy_id__via==EnrollmentPolicy.id",
+        uselist=False,
+        back_populates="renewal_configurations",
+    )
+
     # only used for reused key cycles
     private_key_reuse = sa_orm_relationship(
         "PrivateKey",
@@ -4620,31 +4649,47 @@ class RenewalConfiguration(
         return self._domains_challenged
 
     @property
-    def key_technology(self) -> str:
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+    def private_key_technology__primary(self) -> str:
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__primary
+        )
 
     @property
-    def private_key_cycle(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+    def private_key_cycle__primary(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
+
+    @property
+    def private_key_technology__backup(self) -> str:
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__backup
+        )
+
+    @property
+    def private_key_cycle__backup(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
 
     @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
             # - -
-            "acme_account_id": self.acme_account_id,
+            "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
-            "acme_profile": self.acme_profile,
-            "acme_profile__effective": self.acme_profile__effective,
+            "acme_profile__primary": self.acme_profile__primary,
+            "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
             "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
-            "key_technology": self.key_technology,
-            "key_technology__effective": self.key_technology__effective,
             "note": self.note,
-            "private_key_cycle": self.private_key_cycle,
-            "private_key_cycle__effective": self.private_key_cycle__effective,
+            "private_key_cycle__primary": self.private_key_cycle__primary,
+            "private_key_cycle__primary__effective": self.private_key_cycle__primary__effective,
+            "private_key_cycle__backup": self.private_key_cycle__backup,
+            "private_key_cycle__backup__effective": self.private_key_cycle__backup__effective,
+            "private_key_technology__primary": self.private_key_technology__primary,
+            "private_key_technology__primary__effective": self.private_key_technology__primary__effective,
+            "private_key_technology__backup": self.private_key_technology__backup,
+            "private_key_technology__backup__effective": self.private_key_technology__backup__effective,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
@@ -5074,7 +5119,6 @@ class UniquelyChallengedFQDNSet2Domain(Base):
 
 
 # ==============================================================================
-
 
 __all__ = (
     "AcmeAccount",

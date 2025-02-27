@@ -25,12 +25,10 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeAccount_GlobalBackup()
+        self.request.api_context._load_EnrollmentPolicy_global()
         return {
             "project": "peter_sslers",
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
             "enable_redis": self.request.api_context.application_settings[
                 "enable_redis"
             ],
@@ -244,13 +242,15 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_EnrollmentPolicy_global()
+        self.request.api_context._load_EnrollmentPolicy_autocert()
+        self.request.api_context._load_EnrollmentPolicy_cin()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "EnrollmentPolicy_global": self.request.api_context.dbEnrollmentPolicy_global,
+            "EnrollmentPolicy_autocert": self.request.api_context.dbEnrollmentPolicy_autocert,
+            "EnrollmentPolicy_cin": self.request.api_context.dbEnrollmentPolicy_cin,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

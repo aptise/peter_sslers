@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.objects import UniquelyChallengedFQDNSet
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 

@@ -30,8 +30,16 @@ This routine does two tasks:
 certificate is created, only the primary is ordered.  The backup order is deferred
 to manual ordering or being picked up by this routine.
 
-2- Renews expiring certificates.
+2- Renews expiring certificates, based on ARI Data and the certificate's expiry
 
+This routine will spin up a public server on the port identified by `http_port.renewals` in the `.ini` configuration file.
+
+This server WILL NOT expose the admin urls.
+
+This sever WILL expose the following urls:
+
+* `/.well-known/acme-challenge` - directory
+* `/.well-known/public/whoami` - URL prints host
 
 
 

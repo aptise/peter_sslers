@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
     from .db.logger import AcmeLogger
-    from .utils import ApiContext
+    from .context import ApiContext
     from email.message import Message
     from http.client import HTTPMessage
     from requests import Response

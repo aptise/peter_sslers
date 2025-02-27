@@ -168,6 +168,20 @@
 
         datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
 
+    Data Changes
+        Global Default and Global Backup were moved into a Global "EnrollmentPolicy"
+
+
+        + "AcmeAccount_Defaults": "{RENDER_ON_REQUEST}", -> EnrollmentPolicy_Global
+        - "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
+        - "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+        
+        AND
+        - AcmeAccount_GlobalDefault
+
+
+
+
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

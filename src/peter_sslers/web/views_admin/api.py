@@ -223,8 +223,7 @@ class ViewAdminApi_Domain(Handler):
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
-                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
-                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
                 # Form_API_Domain_certificate_if_needed
                 "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
                     "processing_strategy"
@@ -246,9 +245,8 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def certificate_if_needed(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeServers()
+        self.request.api_context._load_EnrollmentPolicy_cin()
+        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._certificate_if_needed__submit()
         return self._certificate_if_needed__print()
@@ -307,16 +305,18 @@ class ViewAdminApi_Domain(Handler):
             if TYPE_CHECKING:
                 assert acmeAccountSelection.AcmeAccount is not None
                 assert privateKeySelection.PrivateKey is not None
-
-            api_results = lib_db.actions.api_domains__certificate_if_needed(
-                self.request.api_context,
-                dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                dbPrivateKey=privateKeySelection.PrivateKey,
-                domains_challenged=domains_challenged,
-                private_key_cycle=private_key_cycle,
-                key_technology=privateKeySelection.key_technology,
-                processing_strategy=processing_strategy,
-            )
+            try:
+                api_results = lib_db.actions.api_domains__certificate_if_needed(
+                    self.request.api_context,
+                    dbAcmeAccount=acmeAccountSelection.AcmeAccount,
+                    dbPrivateKey=privateKeySelection.PrivateKey,
+                    domains_challenged=domains_challenged,
+                    private_key_cycle=private_key_cycle,
+                    private_key_technology=privateKeySelection.private_key_technology,
+                    processing_strategy=processing_strategy,
+                )
+            except Exception as exc:
+                formStash.fatal_form(message="%s" % exc)
             return {"result": "success", "domain_results": api_results}
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
@@ -330,12 +330,10 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_EnrollmentPolicy_autocert()
         return {
             "project": "peter_sslers",
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "EnrollmentPolicy_autocert": self.request.api_context.dbEnrollmentPolicy_autocert,
         }
 
     @view_config(route_name="admin:api:domain:autocert|json", renderer="json")
@@ -347,7 +345,7 @@ class ViewAdminApi_Domain(Handler):
             "POST": True,
             "GET": None,
             "system.requires": [
-                "dbAcmeAccount_GlobalDefault",
+                "dbEnrollmentPolicy_autocert",
             ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
@@ -361,11 +359,13 @@ class ViewAdminApi_Domain(Handler):
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
             },
+            "valid_options": {
+                "EnrollmentPolicys": "{RENDER_ON_REQUEST}",
+            },
         }
     )
     def autocert(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_EnrollmentPolicy_autocert()
         if self.request.method == "POST":
             return self._autocert__submit()
         return self._autocert__print()
@@ -380,6 +380,10 @@ class ViewAdminApi_Domain(Handler):
         # scoping
         dbDomainAutocert = None
         dbAcmeOrder = None
+        dbEnrollmentPolicy_autocert = (
+            self.request.api_context.dbEnrollmentPolicy_autocert
+        )
+
         try:
             log.debug("attempting an autocert")
             (result, formStash) = formhandling.form_validate(
@@ -389,6 +393,14 @@ class ViewAdminApi_Domain(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid()
+
+            if (
+                not dbEnrollmentPolicy_autocert
+                or not dbEnrollmentPolicy_autocert.is_configured
+            ):
+                formStash.fatal_form(
+                    "The `autocert` EnrollmentPolicy has not been configured"
+                )
 
             # this ensures only one domain
             domains_challenged = form_utils.form_single_domain_challenge_typed(
@@ -458,15 +470,6 @@ class ViewAdminApi_Domain(Handler):
                         message="There is an active or recent autocert attempt for this domain",
                     )
 
-            if not self.dbAcmeAccount_GlobalDefault:
-                formStash.fatal_field(
-                    field="AcmeAccount",
-                    message="You must configure a global AcmeAccount.",
-                )
-
-            dbAcmeAccount = self.dbAcmeAccount_GlobalDefault
-            assert dbAcmeAccount
-
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
                 self.request.api_context, 0
             )
@@ -497,11 +500,19 @@ class ViewAdminApi_Domain(Handler):
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
-                        dbAcmeAccount=dbAcmeAccount,
-                        private_key_cycle_id=model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT,
-                        key_technology_id=model_utils.KeyTechnology.ACCOUNT_DEFAULT,
                         domains_challenged=domains_challenged,
-                        enrollment_policy="autocert",
+                        # PRIMARY cert
+                        dbAcmeAccount__primary=dbEnrollmentPolicy_autocert.acme_account__primary,
+                        private_key_cycle_id__primary=dbEnrollmentPolicy_autocert.private_key_cycle_id__primary,
+                        private_key_technology_id__primary=dbEnrollmentPolicy_autocert.private_key_technology_id__primary,
+                        acme_profile__primary=dbEnrollmentPolicy_autocert.acme_profile__primary,
+                        # BACKUP cert
+                        dbAcmeAccount__backup=dbEnrollmentPolicy_autocert.acme_account__backup,
+                        private_key_cycle_id__backup=dbEnrollmentPolicy_autocert.private_key_cycle_id__backup,
+                        private_key_technology_id__backup=dbEnrollmentPolicy_autocert.private_key_technology_id__backup,
+                        acme_profile__backup=dbEnrollmentPolicy_autocert.acme_profile__backup,
+                        # misc
+                        dbEnrollmentPolicy=dbEnrollmentPolicy_autocert,
                     )
                     is_duplicate_renewal = False  # noqa: F841
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -580,8 +591,11 @@ class ViewAdminApi_Domain(Handler):
                     return rval
 
                 # ???: should we raise something better?
-                log.debug("autocert - order exception")
-                raise
+                log.critical("autocert - order exception")
+
+                formStash.fatal_form(
+                    message="%s" % exc,
+                )
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
             message = "There was an error with your form."
@@ -637,7 +651,7 @@ class ViewAdminApi_Redis(Handler):
 
         try:
             # could raise `errors.InvalidRequest("redis is not enabled")`
-            self._ensure_redis()
+            self.request.api_context._ensure_redis()
             prime_style = utils_redis.redis_prime_style(self.request)
             if not prime_style:
                 raise errors.InvalidRequest("invalid `redis.prime_style`")
@@ -863,7 +877,7 @@ class ViewAdminApi_Nginx(Handler):
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
             success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
                 self.request, self.request.api_context
             )
@@ -919,7 +933,7 @@ class ViewAdminApi_Nginx(Handler):
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
             servers_status = utils_nginx.nginx_status(
                 self.request, self.request.api_context
             )

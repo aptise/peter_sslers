@@ -17,6 +17,7 @@
 * A PrivateKey is considered a secondary item to the RenewalConfiguration. One can be specified for a given AcmeOrder, but the RenewalConfiguration can specify it's own strategy when obtaining an initial Certificate or Renewing; and that strategy can default to the AcmeAccount.
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified.
 * An AcmeAccount can specify: use the same PrivateKey for up to 1 year, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week. The AcmeAccount can choose to use daily or weekly per-account or global keys.
+* An EnrollmentPolicy sets the default AcmeAccounts and Private Key options when using this system
 
 
 ### CertificateCAs and Certificate Chains
@@ -156,12 +157,18 @@ in an "autocert" functionality to nginx:
 
 * `/api/domain/certificate-if-needed` will instantiate a CertificateRequest if
   needed, or serve an existing Certificate. This is designed for programmatic access
-  and offers full control.
+  and offers full control.  Initiating a `certificate-if-needed` will create
+  a new RenewalConfiguration using the directives establised in the
+  "autocert" EnrollmentPolicy.
 
 * `/api/domain/autocert` will instantiate a CertificateRequest if needed, or
   serve existing Certificate. this is designed for automatically handling the
   Certificate process from within nginx, has some throttle protections, and
-  relies on configurable system default values.
+  relies on configurable system default values.  Only ONE domain is supported
+  and this must use the HTTP-01 challenge.  Initiating an `autocert` will create
+  a new RenewalConfiguration using the directives establised in the
+  "autocert" EnrollmentPolicy.
+  
 
 While several webservers offer "autocert" functionality, PeterSSLers is different
 because our integration handles the "autocert" from a secondary service that multiple

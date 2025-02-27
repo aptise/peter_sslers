@@ -7,13 +7,13 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/enrollment-policys">Enrollment Policys</a></li>
-        <li class="active">Focus [${EnrollmentPolicy.id}]</li>
+        <li class="active">Focus [${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>EnrollmentPolicy - Focus - [${EnrollmentPolicy.id}]</h2>
+    <h2>EnrollmentPolicy - Focus - [${EnrollmentPolicy.id}-`${EnrollmentPolicy.name}`]</h2>
 </%block>
 
 
@@ -54,6 +54,26 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>is_configured</th>
+                        <td>
+                            % if EnrollmentPolicy.is_configured:
+                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_system</th>
+                        <td>
+                            % if EnrollmentPolicy.is_system:
+                                <span class="label label-info">
+                                    System Policy
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>name</th>
                         <td>
                             <span class="label label-default">
@@ -63,51 +83,51 @@
                     </tr>
 
                     <tr>
-                        <th>AcmeAccount</th>
+                        <th>AcmeAccount Primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_account_id}
+                                ${EnrollmentPolicy.acme_account_id__primary}
                             </span>
-                            % if EnrollmentPolicy.acme_account_id:
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy.acme_account_id}">
+                            % if EnrollmentPolicy.acme_account_id__primary:
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${EnrollmentPolicy.acme_account_id}
+                                    AcmeAccount-${EnrollmentPolicy.acme_account_id__primary}
                                     |
-                                    ${EnrollmentPolicy.acme_account.displayable}
+                                    ${EnrollmentPolicy.acme_account__primary.displayable}
                                 </a>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_profile</th>
+                        <th>acme_profile__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.acme_profile or ""}
+                                ${EnrollmentPolicy.acme_profile__primary or ""}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.acme_profile__effective or ""}
+                                ${EnrollmentPolicy.acme_profile__primary__effective or ""}
                             </span>
                         </td>
                     </tr>
                     <tr>
-                        <th>key_technology</th>
+                        <th>private_key_technology__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.key_technology}
+                                ${EnrollmentPolicy.private_key_technology__primary}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.key_technology__effective}
+                                ${EnrollmentPolicy.private_key_technology__primary__effective}
                             </span>
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_cycle</th>
+                        <th>private_key_cycle__primary</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.private_key_cycle}
+                                ${EnrollmentPolicy.private_key_cycle__primary}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.private_key_cycle__effective}
+                                ${EnrollmentPolicy.private_key_cycle__primary__effective}
                             </span>
                         </td>
                     </tr>
@@ -117,7 +137,7 @@
                             <span class="label label-default">
                                 ${EnrollmentPolicy.acme_account_id__backup}
                             </span>
-                            % if EnrollmentPolicy.acme_account_id:
+                            % if EnrollmentPolicy.acme_account_id__backup:
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentPolicy.acme_account_id__backup}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${EnrollmentPolicy.acme_account_id__backup}
@@ -139,13 +159,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>key_technology__backup</th>
+                        <th>private_key_technology__backup</th>
                         <td>
                             <span class="label label-default">
-                                ${EnrollmentPolicy.key_technology__backup}
+                                ${EnrollmentPolicy.private_key_technology__backup}
                             </span>
                             <span class="label label-info">
-                                ${EnrollmentPolicy.key_technology__backup__effective}
+                                ${EnrollmentPolicy.private_key_technology__backup__effective}
                             </span>
                         </td>
                     </tr>

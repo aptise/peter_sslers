@@ -11,6 +11,7 @@ from typing import Union
 # pypi
 import cert_utils
 from dateutil import parser as dateutil_parser
+import sqlalchemy
 from typing_extensions import Literal
 
 # from typing_extensions import Required
@@ -55,10 +56,11 @@ if TYPE_CHECKING:
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentPolicy
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
-    from ..utils import ApiContext
+    from ..context import ApiContext
     from ...model.utils import DomainsChallenged
 
     # from ...lib.acme_v2 import AcmeOrderRFC
@@ -1277,15 +1279,20 @@ def create__PrivateKey(
 
 def create__RenewalConfiguration(
     ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    private_key_cycle_id: int,
-    key_technology_id: int,
     domains_challenged: "DomainsChallenged",
+    # Primary cert
+    dbAcmeAccount__primary: "AcmeAccount",
+    private_key_technology_id__primary: int,
+    private_key_cycle_id__primary: int,
+    acme_profile__primary: Optional[str] = None,
+    # Backup cert
     dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
-    acme_profile: Optional[str] = None,
+    private_key_technology_id__backup: Optional[int] = None,
+    private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
+    # misc
     note: Optional[str] = None,
-    enrollment_policy: Optional[str] = None,  # ="certificate-if-needed",
+    dbEnrollmentPolicy: Optional["EnrollmentPolicy"] = None,
 ) -> "RenewalConfiguration":
     """
     Sets params for AcmeOrders and Renewals
@@ -1293,37 +1300,61 @@ def create__RenewalConfiguration(
     This must happen within the context other events
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
-    :param note: (optional) A string to be associated with this record
-    :param acme_profile: (optional) A string of the server's profile
+
+    :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
+    :param private_key_technology_id__primary: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id__primary: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param acme_profile__primary: (optional) A string of the server's profile
+
+    :param dbAcmeAccount__backup: (required) A :class:`model.objects.AcmeAccount` object
+    :param private_key_technology_id__backup: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id__backup: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param acme_profile__backup: (optional) A string of the server's profile
+
+    :param note: (optional) A string to be associated with this record
+    :param dbEnrollmentPolicy: (required) A :class:`model.objects.EnrollmentPolicy` object
+
     :returns :class:`model.objects.RenewalConfiguration`
     """
     if (
-        private_key_cycle_id
+        private_key_cycle_id__primary
         not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
     ):
         raise ValueError(
-            "Unsupported `private_key_cycle_id`: %s" % private_key_cycle_id
+            "Unsupported `private_key_cycle_id__primary`: %s"
+            % private_key_cycle_id__primary
         )
     if (
-        key_technology_id
+        private_key_technology_id__primary
         not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id
     ):
-        raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
-    if not dbAcmeAccount.is_active:
+        raise ValueError(
+            "Unsupported `private_key_technology_id__primary`: %s"
+            % private_key_technology_id__primary
+        )
+    if not dbAcmeAccount__primary.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
     if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
         raise ValueError("`dbAcmeAccount__backup` is not active")
 
-    if acme_profile:
-        if acme_profile not in dbAcmeAccount.acme_server.profiles_list:
-            raise errors.UnknownAcmeProfile_Local(
-                "acme_profile", acme_profile, dbAcmeAccount.acme_server.profiles_list
+    if acme_profile__primary:
+        if acme_profile__primary != "@":
+            # `@` is special label for "use account default"
+            if (
+                acme_profile__primary
+                not in dbAcmeAccount__primary.acme_server.profiles_list
+            ):
+                raise errors.UnknownAcmeProfile_Local(
+                    "acme_profile__primary",
+                    acme_profile__primary,
+                    dbAcmeAccount__primary.acme_server.profiles_list,
+                )
+
+    if dbAcmeAccount__backup:
+        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
+            raise ValueError(
+                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
             )
 
     if acme_profile__backup:
@@ -1332,11 +1363,13 @@ def create__RenewalConfiguration(
                 "must supply active `dbAcmeAccount__backup` if `acme_profile__backup`"
             )
         if acme_profile__backup not in dbAcmeAccount__backup.acme_server.profiles_list:
-            raise errors.UnknownAcmeProfile_Local(
-                "acme_profile__backup",
-                acme_profile__backup,
-                dbAcmeAccount__backup.acme_server.profiles_list,
-            )
+            # `@` is special label for "use account default"
+            if acme_profile__backup != "@":
+                raise errors.UnknownAcmeProfile_Local(
+                    "acme_profile__backup",
+                    acme_profile__backup,
+                    dbAcmeAccount__backup.acme_server.profiles_list,
+                )
 
     assert ctx.timestamp
 
@@ -1382,20 +1415,34 @@ def create__RenewalConfiguration(
     # i.e. does the backup ever matter
     # e.g. what if the primary/backup are just reversed?
     _filters = [
-        model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
         model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
         == dbUniquelyChallengedFQDNSet.id,
-        model_objects.RenewalConfiguration.private_key_cycle_id == private_key_cycle_id,
-        model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
+        model_objects.RenewalConfiguration.acme_account_id__primary
+        == dbAcmeAccount__primary.id,
+        model_objects.RenewalConfiguration.private_key_cycle_id__primary
+        == private_key_cycle_id__primary,
+        model_objects.RenewalConfiguration.private_key_technology_id__primary
+        == private_key_technology_id__primary,
+        model_objects.RenewalConfiguration.acme_profile__primary
+        == acme_profile__primary,
     ]
     if dbAcmeAccount__backup:
-        _filters.append(
-            model_objects.RenewalConfiguration.acme_account_id__backup
-            == dbAcmeAccount__backup.id
+        _filters.extend(
+            [
+                model_objects.RenewalConfiguration.acme_account_id__backup
+                == dbAcmeAccount__backup.id,
+                model_objects.RenewalConfiguration.private_key_cycle_id__backup
+                == private_key_cycle_id__backup,
+                model_objects.RenewalConfiguration.private_key_technology_id__backup
+                == private_key_technology_id__backup,
+                model_objects.RenewalConfiguration.acme_profile__backup
+                == acme_profile__backup,
+            ]
         )
+
     existingRenewalConfiguration = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .filter(*_filters)
+        .filter(sqlalchemy.and_(*_filters))
         .first()
     )
     if existingRenewalConfiguration:
@@ -1413,18 +1460,36 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.operations_event_id__created = dbOperationsEvent.id
 
     # core elements
-    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
-    dbRenewalConfiguration.key_technology_id = key_technology_id
-    dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
-    if dbAcmeAccount__backup:
-        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
-        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id
     )
+
+    # primary cert
+    dbRenewalConfiguration.acme_account_id__primary = dbAcmeAccount__primary.id
+    dbRenewalConfiguration.private_key_cycle_id__primary = private_key_cycle_id__primary
+    dbRenewalConfiguration.private_key_technology_id__primary = (
+        private_key_technology_id__primary
+    )
+    dbRenewalConfiguration.acme_profile__primary = acme_profile__primary or None
+
+    # backup cert
+    if dbAcmeAccount__backup:
+        if TYPE_CHECKING:
+            assert private_key_cycle_id__backup is not None
+        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
+        dbRenewalConfiguration.private_key_cycle_id__backup = (
+            private_key_cycle_id__backup
+        )
+        dbRenewalConfiguration.private_key_technology_id__backup = (
+            private_key_technology_id__backup
+        )
+        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
+
+    # bonus
     dbRenewalConfiguration.note = note or None
-    dbRenewalConfiguration.acme_profile = acme_profile or None
+    if dbEnrollmentPolicy:
+        dbRenewalConfiguration.enrollment_policy_id__via = dbEnrollmentPolicy.id
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
@@ -1443,14 +1508,3 @@ def create__RenewalConfiguration(
     )
 
     return dbRenewalConfiguration
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-__all__ = (
-    "create__CertificateRequest",
-    "create__CertificateSigned",
-    "create__PrivateKey",
-    "create__RenewalConfiguration",
-)

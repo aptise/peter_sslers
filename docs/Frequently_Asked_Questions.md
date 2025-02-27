@@ -173,6 +173,28 @@ Alternate Chains are fully supported by PeterSSLers
   chains can override the default chain
 
 
+## Why are incorrect plural spellings used?
+
+Nice catch.  English can be a difficult language for non-native learners, as words
+can be pluralized in different ways.
+
+In an effort to make things more accessible, this project breaks some grammar rules
+and strives to just add an "s" for plurals:
+
+For instance, the second example below may be confusing to non-native users:
+
+    acme-account > acme-accounts
+    erollment-policy > enrollment-policies
+
+To accomodate that, bad grammar is used:
+
+    acme-account > acme-accounts
+    erollment-policy > enrollment-policys
+    
+Although this breaks language rules, the intent and meaning is clear and a larger
+English vocabulary is not needed to understand this.
+
+
 ## What does it look like?
 
 PeterSSLers was designed to be used on terminals, so it looks great on Lynx...

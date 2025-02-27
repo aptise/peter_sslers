@@ -40,34 +40,60 @@
     <div class="row">
         <div class="col-sm-12">
             <table class="table table-striped table-condensed">
-                <tr>
-                    <th>Global Default AcmeAccount</th>
-                    <td>
-                        % if not AcmeAccount_GlobalDefault:
-                            Not configured                        
-                        % else:
-                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}" span class="label label-info">
-                                AcmeAccount-${AcmeAccount_GlobalDefault.id}
+                <thead>
+                    <tr>
+                        <th>EnrollmentPolicy</th>
+                        <th>Link</th>
+                        <th>Configured?</th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Global</th>
+                        <td>
+                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_global.slug}" class="label label-info">
+                                EnrollmentPolicy-${EnrollmentPolicy_global.slug}
                             </a>
-                            <code>${AcmeAccount_GlobalDefault.key_pem_sample}</code>
-                        % endif
-                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Global Backup AcmeAccount</th>
-                    <td>
-                        % if not AcmeAccount_GlobalBackup:
-                            Not configured                        
-                        % else:
-                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}" span class="label label-info">
-                                AcmeAccount-${AcmeAccount_GlobalBackup.id}
+                        </td>
+                        <td>
+                            % if EnrollmentPolicy_global.is_configured:
+                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Autocert</th>
+                        <td>
+                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_autocert.slug}" class="label label-info">
+                                EnrollmentPolicy-${EnrollmentPolicy_autocert.slug}
                             </a>
-                            <code>${AcmeAccount_GlobalBackup.key_pem_sample}</code>
-                        % endif
-                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
-                    </td>
-                </tr>
+                        </td>
+                        <td>
+                            % if EnrollmentPolicy_autocert.is_configured:
+                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Certificate-If-Needed</th>
+                        <td>
+                            <a href="${admin_prefix}/enrollment-policy/${EnrollmentPolicy_cin.slug}" class="label label-info">
+                                EnrollmentPolicy-${EnrollmentPolicy_cin.slug}
+                            </a>
+                        </td>
+                        <td>
+                            % if EnrollmentPolicy_cin.is_configured:
+                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>

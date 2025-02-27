@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 
 # ==============================================================================
@@ -594,7 +594,7 @@ def api_domains__certificate_if_needed(
     dbPrivateKey: "PrivateKey",
     domains_challenged: "DomainsChallenged",
     private_key_cycle: str,
-    key_technology: str,
+    private_key_technology: str,
     processing_strategy: str,
 ) -> Dict:
     """
@@ -605,7 +605,7 @@ def api_domains__certificate_if_needed(
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
     :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
-    :param key_technology: (required)  A value from :class:`model.utils.KeyTechnology`
+    :param private_key_technology: (required)  A value from :class:`model.utils.KeyTechnology`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
 
     results will be a dict:
@@ -623,6 +623,13 @@ def api_domains__certificate_if_needed(
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
     # validate this first!
+
+    dbEnollmentPolicy = ctx._load_EnrollmentPolicy_cin()
+    if not dbEnollmentPolicy or not dbEnollmentPolicy.is_configured:
+        raise errors.DisplayableError(
+            "the `certificate-if-needed` EnrollmentPolicy is not configured"
+        )
+
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
@@ -733,12 +740,12 @@ def api_domains__certificate_if_needed(
                 try:
                     dbRenewalConfiguration = create.create__RenewalConfiguration(
                         ctx,
-                        dbAcmeAccount=dbAcmeAccount,
-                        private_key_cycle_id=private_key_cycle_id,
-                        key_technology_id=model_utils.KeyTechnology.from_string(
-                            key_technology
-                        ),
                         domains_challenged=_domains_challenged__single,
+                        dbAcmeAccount__primary=dbAcmeAccount,
+                        private_key_cycle_id__primary=private_key_cycle_id,
+                        private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
+                            private_key_technology
+                        ),
                         enrollment_policy="certificate-if-needed",
                     )
                     is_duplicate_renewal = False
@@ -793,8 +800,8 @@ def api_domains__certificate_if_needed(
                             "ApiDomains__certificate_if_needed__certificate_new_fail"
                         )
                     )
-                else:
-                    raise
+
+                raise
 
         # log domain event
         if DEBUG_CONCEPT:
@@ -1195,7 +1202,7 @@ def routine__order_missing(
         )
         .filter(
             model_objects.RenewalConfiguration.is_active.is_(True),
-            model_objects.RenewalConfiguration.acme_account_id.is_not(None),
+            model_objects.RenewalConfiguration.acme_account_id__primary.is_not(None),
             sqlalchemy_or(
                 model_objects.AcmeOrder.id.is_(None),
                 sqlalchemy_and(
@@ -1303,6 +1310,8 @@ def routine__order_missing(
                     "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
                     % (exc, _dbRenewalConfiguration.id)
                 )
+                # TODO: how should we handle this?
+                # raise or catch and continue?
                 raise
 
         for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
@@ -1362,7 +1371,6 @@ def routine__renew_expiring(
                     "EXPECTED %s GOT %s"
                     % (count_expected_configurations, len(_expiring_certs))
                 )
-                pdb.set_trace()
                 raise
 
                 # all_certs = get.get_CertificateSigneds_renew_now(ctx)
@@ -1429,7 +1437,6 @@ def routine__renew_expiring(
                             dbAcmeOrderNew.certificate_signed_id,
                         )
 
-                    pdb.set_trace()
                     _debug()
 
                 if dbAcmeOrderNew.certificate_signed_id:
@@ -1439,6 +1446,8 @@ def routine__renew_expiring(
                 ctx.pyramid_transaction_commit()
             except Exception as exc:
                 log.critical("Exception %s when processing AcmeOrder" % exc)
+                # TODO: How should these be handled?
+                # should we raise to end the process, or catch this and continue?
                 raise
     finally:
         wsgi_server.shutdown()

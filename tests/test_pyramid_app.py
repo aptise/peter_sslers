@@ -4,7 +4,7 @@ from io import StringIO  # noqa: F401
 import json
 import logging
 import pdb  # noqa: F401
-import pprint
+import pprint  # noqa: F401
 import time
 from typing import Dict
 from typing import Optional
@@ -54,6 +54,7 @@ from ._utils import RUN_API_TESTS__EXTENDED
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
+from ._utils import setup_EnrollmentPolicy
 from ._utils import TEST_FILES
 from ._utils import under_pebble
 from ._utils import under_pebble_alt
@@ -346,11 +347,23 @@ class FunctionalTests_AcmeAccount(AppTest):
         self, not_acme_server_id: Optional[int] = None
     ) -> Tuple[model_objects.AcmeAccount, int]:
         # grab a Key
+        q_sub = (
+            self.ctx.dbSession.query(model_objects.AcmeAccount.id)
+            .join(
+                model_objects.EnrollmentPolicy,
+                sqlalchemy.or_(
+                    model_objects.EnrollmentPolicy.acme_account_id__backup
+                    == model_objects.AcmeAccount.id,
+                    model_objects.EnrollmentPolicy.acme_account_id__primary
+                    == model_objects.AcmeAccount.id,
+                ),
+            )
+            .subquery()
+        )
         q_focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.is_active.is_(True))
-            .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
-            .filter(model_objects.AcmeAccount.is_global_backup.is_not(True))
+            .filter(model_objects.AcmeAccount.id.not_in(q_sub))
         )
         if not_acme_server_id:
             q_focus_item = q_focus_item.filter(
@@ -576,14 +589,16 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
 
-        if focus_item.is_global_backup:
-            raise ValueError("this should not be the global backup")
-
-        if focus_item.is_global_default:
-            raise ValueError("this should not be the global default")
-
         if not focus_item.is_active:
             raise ValueError("this should be active")
+
+        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+            self.ctx, "global"
+        )
+        if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
+            raise ValueError("this should not be the global backup")
+        if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
+            raise ValueError("this should not be the global default")
 
         # fail making this active
         res = self.testapp.post(
@@ -609,15 +624,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
-            {"action": "global_default"},
-        )
-        assert res.status_code == 303
-        assert res.location.endswith(
-            "?result=success&operation=mark&action=global_default"
-        )
 
         # edit nothing
         res = self.testapp.get(
@@ -667,14 +673,16 @@ class FunctionalTests_AcmeAccount(AppTest):
             not_acme_server_id=focus_item.acme_server_id
         )
 
-        if focus_item.is_global_default:
-            raise ValueError("this should not be the global default")
-
-        if focus_item.is_global_backup:
-            raise ValueError("this should not be the global backup")
-
         if not focus_item.is_active:
             raise ValueError("this should be active")
+
+        dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
+            self.ctx, "global"
+        )
+        if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
+            raise ValueError("this should not be the global backup")
+        if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
+            raise ValueError("this should not be the global default")
 
         # fail making this active
         res = self.testapp.post(
@@ -706,28 +714,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id
         assert res.json["AcmeAccount"]["is_active"] is True
-
-        # then global_default
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
-            {"action": "global_default"},
-        )
-        assert res.status_code == 200
-        assert "AcmeAccount" in res.json
-        assert res.json["AcmeAccount"]["id"] == focus_id
-        assert res.json["AcmeAccount"]["is_global_default"] is True
-
-        # trying to be global backup should fail
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
-            {"action": "global_backup"},
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Account is global default."
-        )
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, status=200
@@ -5277,7 +5263,9 @@ class FunctionalTests_Domain(AppTest):
         assert "HTTP POST required" in res4.json["instructions"]  # already covered
         assert "valid_options" in res4.json
         assert "acme_dns_server_id" in res4.json["valid_options"]
-        assert 1 in res4.json["valid_options"]["acme_dns_server_id"]
+        assert (
+            1 in res4.json["valid_options"]["acme_dns_server_id"]
+        )  # "int in str" error indicates server issue
 
         res5 = self.testapp.post(
             "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
@@ -5493,7 +5481,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_global_default")
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
@@ -5519,7 +5507,7 @@ class FunctionalTests_EnrollmentPolicy(AppTest):
     def test_list_json(self):
         # json
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-policys", status=200
+            "/.well-known/peter_sslers/enrollment-policys.json", status=200
         )
         assert "EnrollmentPolicys" in res.json
 
@@ -5537,7 +5525,52 @@ class FunctionalTests_EnrollmentPolicy(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-policy/1/edit", status=200
         )
-        raise ValueError("TODO")
+
+        policy_name = "autocert"
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/%s" % policy_name, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/%s/edit" % policy_name,
+            status=200,
+        )
+
+        # use the global as a tempalte
+        dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+            self.ctx, "global"
+        )
+        assert dbEnrollmentPolicy_global
+        assert dbEnrollmentPolicy_global.is_configured
+
+        form = res.forms["form-enrollment_policy-edit"]
+        form["acme_account_id__backup"].force_value(
+            dbEnrollmentPolicy_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"].force_value(
+            dbEnrollmentPolicy_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"].force_value(
+            dbEnrollmentPolicy_global.acme_profile__backup
+        )
+        form["acme_profile__primary"].force_value(
+            dbEnrollmentPolicy_global.acme_profile__primary
+        )
+        form["private_key_cycle__backup"].force_value(
+            dbEnrollmentPolicy_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"].force_value(
+            dbEnrollmentPolicy_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"].force_value(
+            dbEnrollmentPolicy_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"].force_value(
+            dbEnrollmentPolicy_global.private_key_technology__primary
+        )
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+        print(res2.location)
 
     @routes_tested(
         (
@@ -5556,7 +5589,50 @@ class FunctionalTests_EnrollmentPolicy(AppTest):
         )
         assert "instructions" in res.json
 
-        raise ValueError("TODO")
+        policy_name = "autocert"
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "form_fields" in res.json
+
+        # use the global as a tempalte
+        dbEnrollmentPolicy_global = lib_db_get.get__EnrollmentPolicy__by_name(
+            self.ctx, "global"
+        )
+        assert dbEnrollmentPolicy_global
+        assert dbEnrollmentPolicy_global.is_configured
+
+        form = {}
+        form["acme_account_id__backup"] = (
+            dbEnrollmentPolicy_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"] = (
+            dbEnrollmentPolicy_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"] = dbEnrollmentPolicy_global.acme_profile__backup
+        form["acme_profile__primary"] = dbEnrollmentPolicy_global.acme_profile__primary
+        form["private_key_cycle__backup"] = (
+            dbEnrollmentPolicy_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"] = (
+            dbEnrollmentPolicy_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"] = (
+            dbEnrollmentPolicy_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"] = (
+            dbEnrollmentPolicy_global.private_key_technology__primary
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-policy/%s/edit.json" % policy_name,
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "EnrollmentPolicy" in res2.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -5998,15 +6074,15 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
+        account_key_global_default = res.json["valid_options"]["EnrollmentPolicys"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = account_key_global_default
-        form["private_key_cycle"] = "account_default"
-        form["key_technology"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
+        form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
 
         res2 = self.testapp.post(
@@ -6381,10 +6457,10 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form = {
             "account_key_option": "account_key_global_default",
             "account_key_global_default": res.json["valid_options"][
-                "AcmeAccount_GlobalDefault"
-            ]["AcmeAccountKey"]["key_pem_md5"],
-            "private_key_cycle": "account_default",
-            "key_technology": "account_default",
+                "EnrollmentPolicys"
+            ]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"],
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__primary": "account_default",
             "processing_strategy": "create_order",
             "domain_names_http01": ",".join(
                 [focus_item.domains_as_list[0], generate_random_domain(testCase=self)]
@@ -6417,8 +6493,8 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form["account_key_option"].force_value("account_key_global_default")
         # this is rendered in the html
         # form["account_key_global_default"] =
-        form["private_key_cycle"].force_value("account_default")
-        form["key_technology"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
+        form["private_key_technology__primary"].force_value("account_default")
         form["domain_names_http01"] = generate_random_domain(testCase=self)
         form["note"] = note
 
@@ -6440,17 +6516,17 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
+        account_key_global_default = res.json["valid_options"]["EnrollmentPolicys"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         note = generate_random_domain(testCase=self)
 
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = account_key_global_default
-        form["private_key_cycle"] = "account_default"
-        form["key_technology"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
+        form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
         form["note"] = note
 
@@ -8222,7 +8298,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -8422,7 +8498,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"].force_value(processing_strategy)
         form["note"].force_value(note)
@@ -8747,7 +8823,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = res.forms["form-renewal_configuration-new_configuration"]
 
         # we can just change the `private_key_cycle`
-        form["private_key_cycle"].force_value("single_use")
+        form["private_key_cycle__primary"].force_value("single_use")
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
@@ -8835,7 +8911,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -9194,7 +9270,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"] = processing_strategy
         form["note"] = note
@@ -9476,8 +9552,8 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = {
             "account_key_option": "account_key_reuse",
             "account_key_reuse": account_key,
-            "key_technology": "account_default",
-            "private_key_cycle": "single_use",
+            "private_key_technology__primary": "account_default",
+            "private_key_cycle__primary": "single_use",
             "domain_names_http01": renewal_configuration_1__domains,
         }
         res = self.testapp.post(
@@ -9567,7 +9643,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "single_use"
+        form["private_key_cycle__primary"] = "single_use"
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -10488,12 +10564,29 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert res.json["certificate_signed__latest_single"] is None
         assert res.json["certificate_signed__latest_multi"] is None
 
+        # Test 0 -- fail because the policy is not set up:
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-1.example.com"},
+            status=200,
+        )
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert "Error_Main" in res.json["form_errors"]
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. The `autocert` EnrollmentPolicy has not been configured"
+        )
+
+        setup_EnrollmentPolicy(self, "autocert")
+
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/autocert.json",
             {"domain_name": "test-domain-autocert-1.example.com"},
             status=200,
         )
+        pprint.pprint(res.json)
         assert res.json["result"] == "success"
         assert "Domain" in res.json
         assert "certificate_signed__latest_multi" in res.json
@@ -10783,7 +10876,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             domain_names_http01="test-multi-pebble-renewal-simple.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
@@ -10838,7 +10931,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
@@ -10901,7 +10994,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             domain_names_http01="test-multi-pebble-renewal-problematic.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
@@ -10982,7 +11075,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             status=200,
         )
         form = res.forms["form-renewal_configuration-new_configuration"]
-        form["private_key_cycle"].force_value("single_use")
+        form["private_key_cycle__primary"].force_value("single_use")
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
@@ -11501,7 +11594,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccountKey.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
         resp = requests.post(
@@ -11788,10 +11881,30 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
-        assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
-        key_pem_md5 = res.json["valid_options"]["AcmeAccount_GlobalDefault"][
+        assert "EnrollmentPolicys" in res.json["valid_options"]
+        assert "global" in res.json["valid_options"]["EnrollmentPolicys"]
+        assert (
+            "AcmeAccounts" in res.json["valid_options"]["EnrollmentPolicys"]["global"]
+        )
+        assert (
+            "primary"
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"]
+        )
+        assert (
             "AcmeAccountKey"
-        ]["key_pem_md5"]
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
+                "primary"
+            ]
+        )
+        assert (
+            "key_pem_md5"
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
+                "primary"
+            ]["AcmeAccountKey"]
+        )
+        key_pem_md5 = res.json["valid_options"]["EnrollmentPolicys"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", {}, status=200
@@ -11805,7 +11918,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["account_key_global_default"] = key_pem_md5
         form["account__order_default_private_key_cycle"] = "account_daily"
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
@@ -11920,10 +12033,30 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
         assert "instructions" in res.json
-        assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
-        key_pem_md5 = res.json["valid_options"]["AcmeAccount_GlobalDefault"][
+        assert "EnrollmentPolicys" in res.json["valid_options"]
+        assert "global" in res.json["valid_options"]["EnrollmentPolicys"]
+        assert (
+            "AcmeAccounts" in res.json["valid_options"]["EnrollmentPolicys"]["global"]
+        )
+        assert (
+            "primary"
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"]
+        )
+        assert (
             "AcmeAccountKey"
-        ]["key_pem_md5"]
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
+                "primary"
+            ]
+        )
+        assert (
+            "key_pem_md5"
+            in res.json["valid_options"]["EnrollmentPolicys"]["global"]["AcmeAccounts"][
+                "primary"
+            ]["AcmeAccountKey"]
+        )
+        key_pem_md5 = res.json["valid_options"]["EnrollmentPolicys"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         form = {}
         form["account_key_option"] = "account_key_global_default"
@@ -11938,6 +12071,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
         )
+        pprint.pprint(res.json)
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "domain_results" in res.json
