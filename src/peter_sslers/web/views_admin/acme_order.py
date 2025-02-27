@@ -1143,7 +1143,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
 
     def _new_freeform__submit(self):
         """
-        much of this logic is shared with /api/domain-certificate-if-needed
+        Creates a RenewalConfiguration and then initiates an AcmeOrder
         """
         try:
             (result, formStash) = formhandling.form_validate(
@@ -1199,6 +1199,9 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 )
 
                 # BACKUP cert
+                private_key_cycle_id__backup: Optional[int] = None
+                private_key_technology_id__backup: Optional[int] = None
+                acme_profile__backup: Optional[str] = None
                 private_key_technology__backup = formStash.results[
                     "private_key_technology__backup"
                 ]

@@ -690,9 +690,7 @@ class View_Focus_New(View_Focus):
         )
 
     def _new_configuration__submit(self):
-        """
-        much of this logic is shared with /api/domain-certificate-if-needed
-        """
+        """ """
         dbRenewalConfiguration = self._focus()
         try:
             (result, formStash) = formhandling.form_validate(
@@ -1171,9 +1169,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         )
 
     def _new__submit(self):
-        """
-        much of this logic is shared with /api/domain-certificate-if-needed
-        """
+        """ """
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,

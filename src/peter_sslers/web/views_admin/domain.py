@@ -30,7 +30,7 @@ from ...lib import utils_redis
 from ...model.objects import Domain
 
 if TYPE_CHECKING:
-    from ...model.objects import AcmeDnsServers
+    from ...model.objects import AcmeDnsServer
 
 
 # ==============================================================================
@@ -1239,7 +1239,7 @@ class View_Focus(Handler):
 
 class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
-    dbAcmeDnsServers_all: Optional[List["AcmeDnsServers"]] = None
+    dbAcmeDnsServers_all: Optional[List["AcmeDnsServer"]] = None
 
     @view_config(
         route_name="admin:domain:focus:acme_dns_server_accounts",

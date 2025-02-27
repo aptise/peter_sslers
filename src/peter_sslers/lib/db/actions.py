@@ -624,8 +624,8 @@ def api_domains__certificate_if_needed(
     """
     # validate this first!
 
-    dbEnollmentPolicy = ctx._load_EnrollmentPolicy_cin()
-    if not dbEnollmentPolicy or not dbEnollmentPolicy.is_configured:
+    dbEnrollmentPolicy = ctx._load_EnrollmentPolicy_cin()
+    if not dbEnrollmentPolicy or not dbEnrollmentPolicy.is_configured:
         raise errors.DisplayableError(
             "the `certificate-if-needed` EnrollmentPolicy is not configured"
         )
@@ -746,7 +746,7 @@ def api_domains__certificate_if_needed(
                         private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
                             private_key_technology
                         ),
-                        enrollment_policy="certificate-if-needed",
+                        dbEnrollmentPolicy=dbEnrollmentPolicy,
                     )
                     is_duplicate_renewal = False
                 except errors.DuplicateRenewalConfiguration as exc:

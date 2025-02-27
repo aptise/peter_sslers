@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+import typing
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -2405,6 +2406,8 @@ def do__AcmeV2_AcmeOrder__new(
                 account_selection = "primary"
             else:
                 if replaces in ("primary", "backup"):
+                    if TYPE_CHECKING:
+                        replaces = typing.cast(Literal["primary", "backup"], replaces)
                     account_selection = replaces
 
             if replaces_type == model_utils.ReplacesType_Enum.RETRY:
@@ -2701,6 +2704,10 @@ def do__AcmeV2_AcmeOrder__new(
                 raise ValueError("backup `private_key_cycle__backup` not configured ")
             private_key_technology = (
                 dbRenewalConfiguration.private_key_technology__backup
+            )
+            assert (
+                dbRenewalConfiguration.private_key_technology__backup__effective
+                is not None
             )
             private_key_technology__effective = (
                 dbRenewalConfiguration.private_key_technology__backup__effective

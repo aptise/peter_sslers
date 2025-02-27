@@ -863,6 +863,7 @@ class AcmeOrderType(_mixin_mapping):
     # ACME_AUTOMATED_RENEW_CUSTOM = 4
     CERTIFICATE_IF_NEEDED = 5  # CIN=Certificate-If-Needed
     AUTOCERT = 6
+    # ENROLLMENT_FACTORY = 7
     # QUEUE_CERTIFICATE = 11
     # QUEUE_DOMAINS = 12
     RENEWAL_CONFIGURATION_REQUEST = 21
@@ -874,6 +875,7 @@ class AcmeOrderType(_mixin_mapping):
         # 4: "ACME Automated (Renew Custom)",
         5: "ACME (New - Certificate if Needed)",
         6: "ACME (New - Autocert)",
+        # 7: "ACME (New - EnrollmentFactory)",
         # 11: "Queue - Certificate Renewal",
         # 12: "Queue - Domains",
         21: "RenewalConfiguration - Request",

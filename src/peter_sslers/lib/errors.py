@@ -1,21 +1,46 @@
+# stdlib
+from typing import Dict
+from urllib.parse import quote_plus
+from urllib.parse import unquote_plus
+
+# pypy
 from pyramid_formencode_classic import FormStash
 
 # ==============================================================================
 
 
+def _querystring_safe(text: str) -> str:
+    text = quote_plus(text)
+    return text
+
+
 def formstash_to_querystring(formStash: FormStash) -> str:
     err = []
-    for k, v in formStash.errors.items():
-        err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
+    for k, v in list(formStash.errors.items()):
+        k = _querystring_safe(k)
+        v = _querystring_safe(v)
+        err.append("%s--%s" % (k, v))
     err = sorted(err)
     _err = "---".join(err)
     return _err
 
 
+def querystring_to_dict(querystring: str) -> Dict[str, str]:
+    formstash = {}
+    pairs = querystring.split("---")
+    for p in pairs:
+        k, v = p.split("--")
+        k = unquote_plus(k)
+        v = unquote_plus(v)
+        formstash[k] = v
+    return formstash
+
+
 class _UrlSafeException(Exception):
+
     @property
     def as_querystring(self) -> str:
-        return str(self).replace("\n", "+").replace(" ", "+")
+        return _querystring_safe(str(self))
 
 
 class GarfieldMinusGarfield(Exception):

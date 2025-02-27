@@ -142,12 +142,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
-    enrollment_policies__primary = sa_orm_relationship(
+    enrollment_policys__primary = sa_orm_relationship(
         "EnrollmentPolicy",
         primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__primary",
         back_populates="acme_account__primary",
     )
-    enrollment_policies__backup = sa_orm_relationship(
+    enrollment_policys__backup = sa_orm_relationship(
         "EnrollmentPolicy",
         primaryjoin="AcmeAccount.id==EnrollmentPolicy.acme_account_id__backup",
         back_populates="acme_account__backup",
@@ -214,7 +214,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_deactivate(self) -> bool:
-        if self.enrollment_policies__primary or self.enrollment_policies__backup:
+        if self.enrollment_policys__primary or self.enrollment_policys__backup:
             return False
         if self.is_active:
             return True
@@ -222,7 +222,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_unset_active(self) -> bool:
-        if self.enrollment_policies__primary or self.enrollment_policies__backup:
+        if self.enrollment_policys__primary or self.enrollment_policys__backup:
             return False
         if self.is_active:
             return True
@@ -441,9 +441,9 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is not None:
-            return model_utils.KeyTechnology.as_string(self.key_technology_id)
-        return None
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @reify
     def key_spki_search(self) -> str:
@@ -2595,9 +2595,9 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is not None:
-            return model_utils.KeyTechnology.as_string(self.key_technology_id)
-        return None
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @property
     def as_json(self) -> Dict:
@@ -2919,9 +2919,9 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is not None:
-            return model_utils.KeyTechnology.as_string(self.key_technology_id)
-        return None
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @property
     def as_json(self) -> Dict:
@@ -3360,9 +3360,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is not None:
-            return model_utils.KeyTechnology.as_string(self.key_technology_id)
-        return None
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @property
     def renewal__private_key_strategy_id(self) -> int:
@@ -3925,26 +3925,32 @@ class EnrollmentPolicy(Base, _Mixin_AcmeAccount_Effective):
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
     private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=False
+        sa.Integer,
+        nullable=True,
+        default=None,
     )  # see .utils.KeyTechnology
     private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=False
+        sa.Integer,
+        nullable=True,
+        default=None,
     )  # see .utils.PrivateKeyCycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True
+        sa.Unicode(64),
+        nullable=True,
+        default=None,
     )
 
     acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="EnrollmentPolicy.acme_account_id__primary==AcmeAccount.id",
         uselist=False,
-        back_populates="enrollment_policies__primary",
+        back_populates="enrollment_policys__primary",
     )
     acme_account__backup = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="EnrollmentPolicy.acme_account_id__backup==AcmeAccount.id",
         uselist=False,
-        back_populates="enrollment_policies__backup",
+        back_populates="enrollment_policys__enrollment_policys__backup",
     )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
@@ -4437,9 +4443,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is not None:
-            return model_utils.KeyTechnology.as_string(self.key_technology_id)
-        return None
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @reify
     def private_key_source(self) -> str:
@@ -4542,15 +4548,15 @@ class RenewalConfiguration(
     )
 
     # Backup Cert
-    acme_account_id__backup: Mapped[int] = mapped_column(
+    acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True, default=None
     )
     # see .utils.PrivateKeyCycle
-    private_key_cycle_id__backup: Mapped[int] = mapped_column(
+    private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True, default=None
     )
     # see .utils.KeyTechnology
-    private_key_technology_id__backup: Mapped[int] = mapped_column(
+    private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True, default=None
     )
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
@@ -4659,13 +4665,17 @@ class RenewalConfiguration(
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
 
     @property
-    def private_key_technology__backup(self) -> str:
+    def private_key_technology__backup(self) -> Optional[str]:
+        if self.private_key_technology_id__backup is None:
+            return None
         return model_utils.KeyTechnology.as_string(
             self.private_key_technology_id__backup
         )
 
     @property
-    def private_key_cycle__backup(self) -> str:
+    def private_key_cycle__backup(self) -> Optional[str]:
+        if self.private_key_cycle_id__backup is None:
+            return None
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
 
     @property

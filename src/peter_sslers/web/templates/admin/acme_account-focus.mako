@@ -120,10 +120,10 @@
                     <tr>
                         <th>Enrollment Policies</th>
                         <td>
-                            % if AcmeAccount.enrollment_policies__primary:
+                            % if AcmeAccount.enrollment_policys__primary:
                                 <b>Configured as Primary</b>
                                 <ul>
-                                    % for ep in AcmeAccount.enrollment_policies__primary:
+                                    % for ep in AcmeAccount.enrollment_policys__primary:
                                         <li>
                                             <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -133,10 +133,10 @@
                                     % endfor
                                 </ul>
                             % endif
-                            % if AcmeAccount.enrollment_policies__backup:
+                            % if AcmeAccount.enrollment_policys__backup:
                                 <b>Configured as Backup</b>
                                 <ul>
-                                    % for ep in AcmeAccount.enrollment_policies__backup:
+                                    % for ep in AcmeAccount.enrollment_policys__backup:
                                         <li>
                                             <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-policy/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

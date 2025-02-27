@@ -1,6 +1,6 @@
 URGENT
 =====
-    
+
 AcmeServer
     detect and cache changes
     just compare the 'meta' as boulder adds random entries to toplevel
@@ -11,14 +11,40 @@ Backend
 Regular Cert defaults
     Backup use Default?
 
-OnboardingTemplate?
+
+EnrollmentPolicy -> SystemConfiguration
+EnrollmentFactory
+    user-space version of EnrollmentConfiguration
+        PrimaryCertificate Creds
+        BackupCertificate Creds
+        FactoryPattern
+            Given: FQDN
+            Do
+                  {FQDN}
+                *.{FQDN}
+                mail.{FQDN}
+                www.{FQDN}
+
+
+
+
+
+
+    allows for a TEMPLATE based onboarding:
+
+
+
 
 AcmeOrdering
     Ensure Poilcy is in Directory before ordering
     Auto-update directory samples
-    
+
 QueryString errors and encodings
-    redo    
+    redo
+    urlify/unurlify
+
+
+
 
 SQLAlchemy
     Domain.[advanced relationships] will break eager loading
@@ -46,9 +72,9 @@ Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
 
-   
-    
-    
+
+
+
 
 
 
@@ -87,9 +113,9 @@ acme-account register
         Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
     External Account Binding
 
-    
 
-Not Urgent 
+
+Not Urgent
 ================
 
 test to property handle:
@@ -118,13 +144,13 @@ audit exception classes and usage
 * update API logging;
     [x] dedicated outlet
     [ ] formatting check
-    
+
 Test the scripts
 
 Audit
     private_key_reuse - make sure correct forms check for it
     tests don't seem to run ApplicationSettings.from_settings_dict ?
-    
+
 Tests
     selfsigned-1.example.com - disable authz/order
     split out functional under_pebble that are really integrated
@@ -132,7 +158,7 @@ Tests
         private_key_reuse on new/retry order
     /renewal_configuration.py
         key_technology_id might be wrong on new; should this be detectd via parsed?
-    
+
 Docs
     application design
     ValueError: ('Authorization status should be `deactivated`; instead it is `%s`', '*404*')
@@ -155,7 +181,7 @@ systems with large numbers of rows
 
 should this allow an option to attempt renewals
 
-  
+
 
 Application
 -----------
@@ -169,7 +195,7 @@ Application
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
 
-    
+
 Questions:
 ----------
 * Should we ensure an AcmeAccountKey is unique (not used across servers)
@@ -278,7 +304,7 @@ Deferred
 	They are not necessarily written to RFC right now, but lax rules by parsers
 	just seem to work.
 
-ensure_chain_order 
+ensure_chain_order
 	The pure-python does not correctly ensure the chain order.
 	it just looks at the subject/issuer for matches
 
@@ -374,7 +400,7 @@ Rejected Tasks
 		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
 		- new set(s): [a.example.com,]
     Rejection
-    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"    
+    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"
 * Take into account the validity of existing LetsEncrypt authz and challenges when requesting certs.
     Rejection
     - The cached validity time may drastically change as short-life certs re introduced.

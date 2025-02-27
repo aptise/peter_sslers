@@ -10,6 +10,7 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import Union
 import unittest
 import zipfile
 
@@ -595,6 +596,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
             self.ctx, "global"
         )
+        assert dbEnrollmentPolicy
         if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
             raise ValueError("this should not be the global backup")
         if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
@@ -679,6 +681,7 @@ class FunctionalTests_AcmeAccount(AppTest):
         dbEnrollmentPolicy = lib_db_get.get__EnrollmentPolicy__by_name(
             self.ctx, "global"
         )
+        assert dbEnrollmentPolicy is not None
         if focus_item.id == dbEnrollmentPolicy.acme_account_id__backup:
             raise ValueError("this should not be the global backup")
         if focus_item.id == dbEnrollmentPolicy.acme_account_id__primary:
@@ -5605,7 +5608,7 @@ class FunctionalTests_EnrollmentPolicy(AppTest):
         assert dbEnrollmentPolicy_global
         assert dbEnrollmentPolicy_global.is_configured
 
-        form = {}
+        form: Dict[str, Union[int, str, None]] = {}
         form["acme_account_id__backup"] = (
             dbEnrollmentPolicy_global.acme_account_id__backup
         )

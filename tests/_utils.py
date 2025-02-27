@@ -1680,7 +1680,7 @@ def setup_EnrollmentPolicy(
     assert dbEnrollmentPolicy_global
     assert dbEnrollmentPolicy_global.is_configured
 
-    form = {}
+    form: Dict[str, Union[int, str, None]] = {}
     form["acme_account_id__backup"] = dbEnrollmentPolicy_global.acme_account_id__backup
     form["acme_account_id__primary"] = (
         dbEnrollmentPolicy_global.acme_account_id__primary

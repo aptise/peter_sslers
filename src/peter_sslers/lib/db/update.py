@@ -214,8 +214,8 @@ def update_AcmeAccount__unset_active(
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     if (
-        dbAcmeAccount.enrollment_policies__primary
-        or dbAcmeAccount.enrollment_policies__backup
+        dbAcmeAccount.enrollment_policys__primary
+        or dbAcmeAccount.enrollment_policys__backup
     ):
         raise errors.InvalidTransition(
             "This AcmeAccount is registered with EnrollmentPolicy(s)."
@@ -765,9 +765,9 @@ def update_EnrollmentPolicy(
     private_key_cycle__primary: str,
     private_key_technology__primary: str,
     acme_profile__primary: Optional[str],
-    acme_account_id__backup: int,
-    private_key_cycle__backup: str,
-    private_key_technology__backup: str,
+    acme_account_id__backup: Optional[int],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
     acme_profile__backup: Optional[str],
 ) -> bool:
     if not any(
@@ -801,11 +801,15 @@ def update_EnrollmentPolicy(
         private_key_technology__primary
     )
 
-    private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-        private_key_cycle__backup
+    private_key_cycle_id__backup = (
+        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        if private_key_cycle__backup
+        else None
     )
-    private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
-        private_key_technology__backup
+    private_key_technology_id__backup = (
+        model_utils.KeyTechnology.from_string(private_key_technology__backup)
+        if private_key_technology__backup
+        else None
     )
 
     # global MUST only allow account defaults
