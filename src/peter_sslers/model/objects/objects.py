@@ -142,14 +142,14 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account",
     )
-    system_configurations__primary = sa_orm_relationship(
-        "SystemConfiguration",
-        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__primary",
+    enrollment_factorys__primary = sa_orm_relationship(
+        "EnrollmentFactory",
+        primaryjoin="AcmeAccount.id==EnrollmentFactory.acme_account_id__primary",
         back_populates="acme_account__primary",
     )
-    system_configurations__backup = sa_orm_relationship(
-        "SystemConfiguration",
-        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__backup",
+    enrollment_factorys__backup = sa_orm_relationship(
+        "EnrollmentFactory",
+        primaryjoin="AcmeAccount.id==EnrollmentFactory.acme_account_id__backup",
         back_populates="acme_account__backup",
     )
     operations_object_events = sa_orm_relationship(
@@ -176,6 +176,16 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     renewal_configurations__backup = sa_orm_relationship(
         "RenewalConfiguration",
         primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id__backup",
+        back_populates="acme_account__backup",
+    )
+    system_configurations__primary = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__primary",
+        back_populates="acme_account__primary",
+    )
+    system_configurations__backup = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="AcmeAccount.id==SystemConfiguration.acme_account_id__backup",
         back_populates="acme_account__backup",
     )
     tos = sa_orm_relationship(
@@ -3896,14 +3906,22 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
+class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
 
-    __tablename__ = "system_configuration"
+    __tablename__ = "enrollment_factory"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
-    is_configured: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=True, default=False
+
+    # for consumers
+    domain_template_http01: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
     )
+    domain_template_dns01: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
+    )
+
+    # for consumers
+    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True, default=None)
 
     # Primary Cert
     acme_account_id__primary: Mapped[int] = mapped_column(
@@ -3924,37 +3942,31 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
     private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        nullable=True,
-        default=None,
+        sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
     private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        nullable=True,
-        default=None,
+        sa.Integer, nullable=False
     )  # see .utils.PrivateKeyCycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64),
-        nullable=True,
-        default=None,
+        sa.Unicode(64), nullable=True
     )
 
     acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="SystemConfiguration.acme_account_id__primary==AcmeAccount.id",
+        primaryjoin="EnrollmentFactory.acme_account_id__primary==AcmeAccount.id",
         uselist=False,
-        back_populates="system_configurations__primary",
+        back_populates="enrollment_factorys__primary",
     )
     acme_account__backup = sa_orm_relationship(
         "AcmeAccount",
-        primaryjoin="SystemConfiguration.acme_account_id__backup==AcmeAccount.id",
+        primaryjoin="EnrollmentFactory.acme_account_id__backup==AcmeAccount.id",
         uselist=False,
-        back_populates="system_configurations__system_configurations__backup",
+        back_populates="enrollment_factorys__backup",
     )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
-        primaryjoin="SystemConfiguration.id==RenewalConfiguration.system_configuration_id__via",
-        back_populates="system_configuration__via",
+        primaryjoin="EnrollmentFactory.id==RenewalConfiguration.enrollment_factory_id__via",
+        back_populates="enrollment_factory__via",
     )
 
     @property
@@ -3982,21 +3994,20 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
 
     @property
-    def slug(self) -> Union[str, int]:
-        return self.name or self.id
-
-    @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
             # - -
+            "name": self.name,
+            "note": self.note,
+            "domain_template_http01": self.domain_template_http01,
+            "domain_template_dns01": self.domain_template_dns01,
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
-            "is_configured": self.is_configured,
             "private_key_technology__primary": self.private_key_technology__primary,
             "private_key_technology__primary__effective": self.private_key_technology__primary__effective,
             "private_key_technology__backup": self.private_key_technology__backup,
@@ -4531,6 +4542,24 @@ class RenewalConfiguration(
         sa.Boolean, nullable=False, default=True
     )
 
+    # core
+    uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
+    )
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+    enrollment_factory_id__via: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("enrollment_factory.id"), nullable=True
+    )
+    system_configuration_id__via: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("system_configuration.id"), nullable=True
+    )
+    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    operations_event_id__created: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
     # Primary Cert
     acme_account_id__primary: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
@@ -4561,21 +4590,6 @@ class RenewalConfiguration(
         sa.Unicode(64), nullable=True, default=None
     )
 
-    # core
-    uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
-    )
-    unique_fqdn_set_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-    system_configuration_id__via: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("system_configuration.id"), nullable=True
-    )
-    note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    operations_event_id__created: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-
     acme_account__primary = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="RenewalConfiguration.acme_account_id__primary==AcmeAccount.id",
@@ -4594,19 +4608,24 @@ class RenewalConfiguration(
         back_populates="renewal_configuration",
         uselist=True,
     )
-    system_configuration__via = sa_orm_relationship(
-        "SystemConfiguration",
-        primaryjoin="RenewalConfiguration.system_configuration_id__via==SystemConfiguration.id",
+    enrollment_factory__via = sa_orm_relationship(
+        "EnrollmentFactory",
+        primaryjoin="RenewalConfiguration.enrollment_factory_id__via==EnrollmentFactory.id",
         uselist=False,
         back_populates="renewal_configurations",
     )
-
     # only used for reused key cycles
     private_key_reuse = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="RenewalConfiguration.id==PrivateKey.renewal_configuration_id",
         back_populates="renewal_configuration",
         uselist=False,
+    )
+    system_configuration__via = sa_orm_relationship(
+        "SystemConfiguration",
+        primaryjoin="RenewalConfiguration.system_configuration_id__via==SystemConfiguration.id",
+        uselist=False,
+        back_populates="renewal_configurations",
     )
     uniquely_challenged_fqdn_set = sa_orm_relationship(
         "UniquelyChallengedFQDNSet",
@@ -4814,6 +4833,135 @@ class RootStoreVersion_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
 
 
 # ==============================================================================
+
+
+class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
+
+    __tablename__ = "system_configuration"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    is_configured: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=False
+    )
+
+    # Primary Cert
+    acme_account_id__primary: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
+    )
+    private_key_technology_id__primary: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+    private_key_cycle_id__primary: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyCycle
+    acme_profile__primary: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True
+    )
+
+    # Backup Cert
+    acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    )
+    private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        default=None,
+    )  # see .utils.KeyTechnology
+    private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        default=None,
+    )  # see .utils.PrivateKeyCycle
+    acme_profile__backup: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64),
+        nullable=True,
+        default=None,
+    )
+
+    acme_account__primary = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="SystemConfiguration.acme_account_id__primary==AcmeAccount.id",
+        uselist=False,
+        back_populates="system_configurations__primary",
+    )
+    acme_account__backup = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="SystemConfiguration.acme_account_id__backup==AcmeAccount.id",
+        uselist=False,
+        back_populates="system_configurations__backup",
+    )
+    renewal_configurations = sa_orm_relationship(
+        "RenewalConfiguration",
+        primaryjoin="SystemConfiguration.id==RenewalConfiguration.system_configuration_id__via",
+        back_populates="system_configuration__via",
+    )
+
+    @property
+    def private_key_technology__primary(self) -> str:
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__primary
+        )
+
+    @property
+    def private_key_technology__backup(self) -> Optional[str]:
+        if self.private_key_technology_id__backup is None:
+            return None
+        return model_utils.KeyTechnology.as_string(
+            self.private_key_technology_id__backup
+        )
+
+    @property
+    def private_key_cycle__primary(self) -> str:
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
+
+    @property
+    def private_key_cycle__backup(self) -> Optional[str]:
+        if self.private_key_cycle_id__backup is None:
+            return None
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+
+    @property
+    def slug(self) -> Union[str, int]:
+        return self.name or self.id
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "acme_account_id__primary": self.acme_account_id__primary,
+            "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_profile__primary": self.acme_profile__primary,
+            "acme_profile__primary__effective": self.acme_profile__primary__effective,
+            "acme_profile__backup": self.acme_profile__backup,
+            "acme_profile__backup__effective": self.acme_profile__backup__effective,
+            "is_configured": self.is_configured,
+            "private_key_technology__primary": self.private_key_technology__primary,
+            "private_key_technology__primary__effective": self.private_key_technology__primary__effective,
+            "private_key_technology__backup": self.private_key_technology__backup,
+            "private_key_technology__backup__effective": self.private_key_technology__backup__effective,
+            "private_key_cycle__primary": self.private_key_cycle__primary,
+            "private_key_cycle__primary__effective": self.private_key_cycle__primary__effective,
+            "private_key_cycle__backup": self.private_key_cycle__backup,
+            "private_key_cycle__backup__effective": self.private_key_cycle__backup__effective,
+        }
+
+    @property
+    def as_json_docs(self) -> Dict:
+        rval = self.as_json
+        rval["AcmeAccounts"] = {
+            "primary": (
+                self.acme_account__primary.as_json_minimal
+                if self.acme_account__primary
+                else None
+            ),
+            "backup": (
+                self.acme_account__backup.as_json_minimal
+                if self.acme_account__backup
+                else None
+            ),
+        }
+        return rval
 
 
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
@@ -5159,6 +5307,7 @@ __all__ = (
     "Domain",
     "DomainAutocert",
     "DomainBlocklisted",
+    "EnrollmentFactory",
     "SystemConfiguration",
     "OperationsEvent",
     "OperationsObjectEvent",

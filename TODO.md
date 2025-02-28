@@ -5,44 +5,11 @@ AcmeServer
     detect and cache changes
     just compare the 'meta' as boulder adds random entries to toplevel
 
-Backend
-    Change "global backup" and "global default" to use Enrollment Policy
-
-Regular Cert defaults
-    Backup use Default?
-
-EnrollmentFactory
-    user-space version of EnrollmentConfiguration
-        PrimaryCertificate Creds
-        BackupCertificate Creds
-        FactoryPattern
-            Given: FQDN
-            Do
-                  {FQDN}
-                *.{FQDN}
-                mail.{FQDN}
-                www.{FQDN}
-
-
-
-
-
-
-    allows for a TEMPLATE based onboarding:
-
-
 
 
 AcmeOrdering
     Ensure Poilcy is in Directory before ordering
     Auto-update directory samples
-
-QueryString errors and encodings
-    redo
-    urlify/unurlify
-
-
-
 
 SQLAlchemy
     Domain.[advanced relationships] will break eager loading
@@ -57,6 +24,9 @@ Tests:
         test with invalid profile
     Renewal Configuration
         ensure acme_profile__backup and @ work
+    EnrollmentFactory
+        improve testing
+            fail predictablly
 
  UX:
     do a quick overview of key objects
@@ -115,6 +85,12 @@ acme-account register
 
 Not Urgent
 ================
+
+QueryString errors and encodings
+    redo urlify/unurlify/etc
+    redo querystring partial
+
+
 
 test to property handle:
     sync acme challenge against a 404 challenge

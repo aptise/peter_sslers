@@ -1029,31 +1029,23 @@
 </%def>
 
 
-<%def name="table_SystemConfigurations(data, perspective=None)">
+<%def name="table_EnrollmentFactorys(data, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th>name</th>
-                <th>configured?</th>
             </tr>
         </thead>
         <tbody>
-            % for policy in data:
+            % for factory in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/system-configuration/${policy.slug}">
+                    <td><a class="label label-info" href="${admin_prefix}/enrollment-factory/${factory.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        SystemConfiguration-${policy.id}</a>
+                        EnrollmentFactory-${factory.id}</a>
                     </td>
                     <td>
-                        <span class="label label-default">${policy.name}</span>
-                    </td>
-                    <td>
-                        % if policy.is_configured:
-                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                        % else:
-                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                        % endif
+                        <span class="label label-default">${factory.name}</span>
                     </td>
                 </tr>
             % endfor
@@ -1357,6 +1349,39 @@
 
 
 
+<%def name="table_SystemConfigurations(data, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>configured?</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for policy in data:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/system-configuration/${policy.slug}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        SystemConfiguration-${policy.id}</a>
+                    </td>
+                    <td>
+                        <span class="label label-default">${policy.name}</span>
+                    </td>
+                    <td>
+                        % if policy.is_configured:
+                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -1581,6 +1606,22 @@
     % endif
 </%def>
 
+
+<%def name="formgroup__acme_profile(field_name='acme_profile')">
+    <div class="form-group">
+        <label for="${field_name}">ACME Profile</label>
+        <input
+            type="text"
+            class="form-control"
+            name="${field_name}"
+            value=""
+        />
+        <p class="help">
+            Leave this blank for no profile.
+            If you want to defer to the AcmeAccount, use the special name <code>@</code>.
+        </p>
+    </div>
+</%def>
 
 
 
@@ -2064,6 +2105,17 @@
 </%def>
 
 
+<%def name="formgroup__domain_templates(default_http01='', default_dns01='')">
+    <div class="form-group">
+        <label for="domain_template_http01">Domain Template - HTTP-01</label>
+        <textarea class="form-control" rows="4" name="domain_template_http01" id="domain_template_http01">${default_http01}</textarea>
+        <hr/>
+        <label for="domain_template_dns01">Domain Template - DNS-01</label>
+        <textarea class="form-control" rows="4" name="domain_template_dns01" id="domain_template_dns01">${default_dns01}</textarea>
+    </div>
+</%def>
+
+
 <%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology', label='')">
     <% default = default or model_websafe.KeyTechnology._DEFAULT %>
     <% options = options or model_websafe.KeyTechnology._options_all %>
@@ -2078,10 +2130,23 @@
 </%def>
 
 
-<%def name="formgroup__note()">
-    <label for="note">Note</label>
-    <textarea class="form-control" rows="4" name="note" id="note"></textarea>
+<%def name="formgroup__note(default='')">
+    <div class="form-group">
+        <label for="note">Note</label>
+        <textarea class="form-control" rows="4" name="note" id="note">${default}</textarea>
+    </div>
 </%def>
+
+
+<%def name="formgroup__name(default='')">
+    <div class="form-group">
+        <label for="name">Name</label>
+        <input class="form-control" type="text" name="name" id="name" value="${default}"/>
+    </div>
+</%def>
+
+
+
 
 
 <%def name="formgroup__processing_strategy()">

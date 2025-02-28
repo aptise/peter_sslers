@@ -1,5 +1,6 @@
 # stdlib
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
@@ -24,7 +25,8 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...model.objects import CertificateCA
 
-
+if TYPE_CHECKING:
+    from pyramid_formencode_classic import FormStash
 # ==============================================================================
 
 
@@ -83,7 +85,7 @@ class View_List(Handler):
 
 
 class View_Preferred(Handler):
-    def _get_active_selection(self, formStash):
+    def _get_active_selection(self, formStash: "FormStash"):
         """
         Queries the loaded preferences for a Fingerprint+Slot matching the
         the corresponding record indicated in the submitted ``formStash``.

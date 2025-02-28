@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentFactory
     from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
@@ -1227,6 +1228,56 @@ def create__DomainAutocert(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def create__EnrollmentFactory(
+    ctx: "ApiContext",
+    name: str,
+    # Primary cert
+    dbAcmeAccount_primary: "AcmeAccount",
+    private_key_technology_id__primary: int,
+    private_key_cycle_id__primary: int,
+    acme_profile__primary: Optional[str] = None,
+    # Backup cert
+    dbAcmeAccount_backup: Optional["AcmeAccount"] = None,
+    private_key_technology_id__backup: Optional[int] = None,
+    private_key_cycle_id__backup: Optional[int] = None,
+    acme_profile__backup: Optional[str] = None,
+    # misc
+    note: Optional[str] = None,
+    domain_template_http01: Optional[str] = None,
+    domain_template_dns01: Optional[str] = None,
+) -> "EnrollmentFactory":
+    if not domain_template_http01 and not domain_template_dns01:
+        raise ValueError("at least one template is required")
+
+    if dbAcmeAccount_backup:
+        if dbAcmeAccount_primary.acme_server_id == dbAcmeAccount_backup.acme_server_id:
+            raise ValueError("Primary and Backup ACME servers must be different")
+
+    dbEnrollmentFactory = model_objects.EnrollmentFactory()
+    dbEnrollmentFactory.name = name
+    # p
+    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
+    dbEnrollmentFactory.private_key_technology_id__primary = (
+        private_key_technology_id__primary
+    )
+    dbEnrollmentFactory.private_key_cycle_id__primary = private_key_cycle_id__primary
+    dbEnrollmentFactory.acme_profile__primary = acme_profile__primary
+    # b
+    if dbAcmeAccount_backup:
+        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount_backup.id
+        dbEnrollmentFactory.private_key_technology_id__backup = (
+            private_key_technology_id__backup
+        )
+        dbEnrollmentFactory.private_key_cycle_id__backup = private_key_cycle_id__backup
+        dbEnrollmentFactory.acme_profile__backup = acme_profile__backup
+    # m
+    dbEnrollmentFactory.note = note
+    dbEnrollmentFactory.domain_template_http01 = domain_template_http01
+    dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
+
+    ctx.dbSession.add(dbEnrollmentFactory)
+    ctx.dbSession.flush(objects=[dbEnrollmentFactory])
+    return dbEnrollmentFactory
 
 
 def create__PrivateKey(

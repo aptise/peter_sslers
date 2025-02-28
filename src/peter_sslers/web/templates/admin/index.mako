@@ -40,6 +40,11 @@
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                 SystemConfigurations</a>
+            <a  href="${admin_prefix}/enrollment-factorys"
+                class="btn btn-xs btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                EnrollmentFactorys</a>
             <a href="${admin_prefix}/api"
                 class="btn btn-xs btn-warning"
             >

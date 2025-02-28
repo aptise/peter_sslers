@@ -44,13 +44,14 @@ from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
 from ...model.objects import DomainBlocklisted
-from ...model.objects import SystemConfiguration
+from ...model.objects import EnrollmentFactory
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
+from ...model.objects import SystemConfiguration
 from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
 from ...model.objects import UniquelyChallengedFQDNSet
@@ -2867,19 +2868,20 @@ def get__DomainBlocklisted__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SystemConfiguration__count(ctx: "ApiContext") -> int:
-    q = ctx.dbSession.query(SystemConfiguration)
+def get__EnrollmentFactory__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(EnrollmentFactory)
     counted = q.count()
     return counted
 
 
-def get__SystemConfiguration__paginated(
+def get__EnrollmentFactory__paginated(
     ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[SystemConfiguration]:
+) -> List[EnrollmentFactory]:
     q = (
-        ctx.dbSession.query(SystemConfiguration)
+        ctx.dbSession.query(EnrollmentFactory)
         .order_by(
-            SystemConfiguration.name.asc(),
+            EnrollmentFactory.id.asc(),
+            EnrollmentFactory.name.asc(),
         )
         .limit(limit)
         .offset(offset)
@@ -2888,33 +2890,31 @@ def get__SystemConfiguration__paginated(
     return items_paged
 
 
-def get__SystemConfiguration__by_id(
+def get__EnrollmentFactory__by_id(
     ctx: "ApiContext", id_: int
-) -> Optional[SystemConfiguration]:
-    q = ctx.dbSession.query(SystemConfiguration).filter(SystemConfiguration.id == id_)
+) -> Optional[EnrollmentFactory]:
+    q = ctx.dbSession.query(EnrollmentFactory).filter(EnrollmentFactory.id == id_)
     item = q.first()
     return item
 
 
-def get__SystemConfiguration__by_name(
+def get__EnrollmentFactory__by_name(
     ctx: "ApiContext", name: str
-) -> Optional[SystemConfiguration]:
+) -> Optional[EnrollmentFactory]:
     if not name:
         raise ValueError("`name` required")
-    q = ctx.dbSession.query(SystemConfiguration).filter(
-        SystemConfiguration.name == name
-    )
+    q = ctx.dbSession.query(EnrollmentFactory).filter(EnrollmentFactory.name == name)
     item = q.first()
     return item
 
 
-def get__SystemConfigurations__by_acmeAccountId(
+def get__EnrollmentFactorys__by_acmeAccountId(
     ctx: "ApiContext", acme_account_id: int
-) -> List[SystemConfiguration]:
-    q = ctx.dbSession.query(SystemConfiguration).filter(
+) -> List[EnrollmentFactory]:
+    q = ctx.dbSession.query(EnrollmentFactory).filter(
         sqlalchemy.or_(
-            SystemConfiguration.acme_account_id__primary == acme_account_id,
-            SystemConfiguration.acme_account_id__backup == acme_account_id,
+            EnrollmentFactory.acme_account_id__primary == acme_account_id,
+            EnrollmentFactory.acme_account_id__backup == acme_account_id,
         )
     )
     items = q.all()
@@ -3403,6 +3403,60 @@ def get__RootStoreVersion__by_id(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__SystemConfiguration__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(SystemConfiguration)
+    counted = q.count()
+    return counted
+
+
+def get__SystemConfiguration__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[SystemConfiguration]:
+    q = (
+        ctx.dbSession.query(SystemConfiguration)
+        .order_by(
+            SystemConfiguration.name.asc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__SystemConfiguration__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(SystemConfiguration.id == id_)
+    item = q.first()
+    return item
+
+
+def get__SystemConfiguration__by_name(
+    ctx: "ApiContext", name: str
+) -> Optional[SystemConfiguration]:
+    if not name:
+        raise ValueError("`name` required")
+    q = ctx.dbSession.query(SystemConfiguration).filter(
+        SystemConfiguration.name == name
+    )
+    item = q.first()
+    return item
+
+
+def get__SystemConfigurations__by_acmeAccountId(
+    ctx: "ApiContext", acme_account_id: int
+) -> List[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(
+        sqlalchemy.or_(
+            SystemConfiguration.acme_account_id__primary == acme_account_id,
+            SystemConfiguration.acme_account_id__backup == acme_account_id,
+        )
+    )
+    items = q.all()
+    return items
 
 
 def get__TermsOfService__by_AcmeAccountId__count(

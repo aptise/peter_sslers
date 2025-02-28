@@ -94,6 +94,25 @@
             * adding new `single_use__reuse_1_year`
             * dropping _options_AcmeAccount_private_key_cycle
             * dropping account__private_key_cycle
+        * SystemConfiguration
+            Defaults for global, autocert and certificate-if-needed
+        * EnrollmentFactory
+            defaults for onboarding a pattern of domains;
+            i.e. define a template like:
+            
+                {DOMAIN}
+                dash.{DOMAIN}
+                www.{DOMAIN}
+                main.{DOMAIN}
+                
+            when invoked against an endpoint, autoexpand a single domain into:
+            
+                EXAMPLE.COM
+                dash.EXAMPLE.COM
+                www.EXAMPLE.COM
+                main.EXAMPLE.COM
+            
+            
 
     New commandline routines:
         routine__clear_old_ari_checks

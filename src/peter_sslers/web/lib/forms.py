@@ -500,6 +500,43 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
     acme_dns_server_id = Int(not_empty=True)
 
 
+class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
+
+    # do not update on edit
+    name = UnicodeString(not_empty=True, if_missing=None, strip=True, max=64)
+
+    domain_template_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    domain_template_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+
+    acme_account_id__primary = Int(not_empty=True)
+    private_key_cycle__primary = OneOf(
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+        not_empty=True,
+    )
+    private_key_technology__primary = OneOf(
+        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+        not_empty=True,
+    )
+    acme_profile__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
+
+    acme_account_id__backup = Int(not_empty=False, if_missing=None)
+    private_key_cycle__backup = OneOf(
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+        not_empty=True,
+    )
+    private_key_technology__backup = OneOf(
+        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+        not_empty=True,
+    )
+    acme_profile__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
+
+
 class Form_SystemConfiguration_Global_edit(_Form_Schema_Base):
     acme_account_id__primary = Int(not_empty=True)
     acme_account_id__backup = Int(not_empty=False, if_missing=None)

@@ -1,10 +1,11 @@
 # stdlib
 from typing import Dict
+from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
 from urllib.parse import unquote_plus
 
-# pypy
-from pyramid_formencode_classic import FormStash
+if TYPE_CHECKING:
+    from pyramid_formencode_classic import FormStash
 
 # ==============================================================================
 
@@ -14,7 +15,7 @@ def _querystring_safe(text: str) -> str:
     return text
 
 
-def formstash_to_querystring(formStash: FormStash) -> str:
+def formstash_to_querystring(formStash: "FormStash") -> str:
     err = []
     for k, v in list(formStash.errors.items()):
         k = _querystring_safe(k)

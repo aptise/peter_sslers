@@ -32,13 +32,13 @@ class _Mixin_AcmeAccount_Effective(object):
         private_key_cycle_id__primary: Mapped[int]
 
     @property
-    def private_key_technology__primary__effective(self) -> str:
+    def private_key_technology__primary__effective(self) -> Optional[str]:
         if (
             self.private_key_technology_id__primary
             == model_utils.KeyTechnology.ACCOUNT_DEFAULT
         ):
             if not self.acme_account__primary:
-                raise ValueError("`acme_account__primary` not configured")
+                return None
             return self.acme_account__primary.order_default_private_key_technology
         return model_utils.KeyTechnology.as_string(
             self.private_key_technology_id__primary

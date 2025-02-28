@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
-from pyramid_formencode_classic import FormStash
 
 # local
 from . import formhandling
@@ -15,6 +14,7 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+    from pyramid_formencode_classic import FormStash
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
     from ...model.objects import PrivateKey
@@ -51,7 +51,7 @@ class AcmeAccountUploadParser(object):
 
     # set in __init__
     getcreate_args: Dict
-    formStash: FormStash
+    formStash: "FormStash"
 
     # tracked
     acme_server_id: Optional[int] = None
@@ -66,7 +66,7 @@ class AcmeAccountUploadParser(object):
 
     upload_type: Optional[str] = None  # pem OR letsencrypt
 
-    def __init__(self, formStash: FormStash):
+    def __init__(self, formStash: "FormStash"):
         self.formStash = formStash
         self.getcreate_args = {}
 
@@ -330,13 +330,13 @@ class _PrivateKeyUploadParser(object):
 
     # overwritten in __init__
     getcreate_args: Dict
-    formStash: FormStash
+    formStash: "FormStash"
 
     # tracked
     private_key_pem: Optional[str] = None
     upload_type: Optional[str] = None  # pem
 
-    def __init__(self, formStash: FormStash):
+    def __init__(self, formStash: "FormStash"):
         self.formStash = formStash
         self.getcreate_args = {}
 
@@ -405,7 +405,7 @@ class _PrivateKeySelection(object):
 
 def parse_AcmeAccountSelection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     allow_none: Optional[bool] = None,
     require_contact: Optional[bool] = None,
     support_upload: Optional[bool] = None,
@@ -509,7 +509,7 @@ def parse_AcmeAccountSelection(
 
 def parse_AcmeAccountSelection_backup(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     allow_none: Optional[bool] = True,
 ) -> _AcmeAccountSelection:
     """
@@ -592,7 +592,7 @@ def parse_AcmeAccountSelection_backup(
 
 def parse_PrivateKeySelection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     private_key_option: str,
     support_upload: Optional[bool] = None,
 ) -> _PrivateKeySelection:
@@ -677,7 +677,7 @@ def parse_PrivateKeySelection(
 
 def form_key_selection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     require_contact: Optional[bool] = None,
     support_upload_AcmeAccount: Optional[bool] = None,
     support_upload_PrivateKey: Optional[bool] = None,
@@ -750,7 +750,7 @@ def form_key_selection(
 
 def form_domains_challenge_typed(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     http01_only: bool = False,
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
 ) -> model_utils.DomainsChallenged:
@@ -822,7 +822,7 @@ def form_domains_challenge_typed(
 
 def form_single_domain_challenge_typed(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     challenge_type: str = "http-01",
 ) -> model_utils.DomainsChallenged:
     """

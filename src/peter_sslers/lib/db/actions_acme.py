@@ -2686,6 +2686,10 @@ def do__AcmeV2_AcmeOrder__new(
             private_key_technology = (
                 dbRenewalConfiguration.private_key_technology__primary
             )
+            assert (
+                dbRenewalConfiguration.private_key_technology__primary__effective
+                is not None
+            )
             private_key_technology__effective = (
                 dbRenewalConfiguration.private_key_technology__primary__effective
             )

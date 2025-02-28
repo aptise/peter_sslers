@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentFactory
     from ...model.objects import SystemConfiguration
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
@@ -758,6 +759,159 @@ def update_DomainAutocert_with_AcmeOrder(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def update_EnrollmentFactory(
+    ctx: "ApiContext",
+    dbEnrollmentFactory: "EnrollmentFactory",
+    acme_account_id__primary: int,
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    acme_profile__primary: Optional[str],
+    acme_account_id__backup: Optional[int],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
+    acme_profile__backup: Optional[str],
+    name: Optional[str],
+    note: Optional[str],
+    domain_template_http01: Optional[str],
+    domain_template_dns01: Optional[str],
+) -> bool:
+    if not any(
+        (
+            acme_account_id__primary,
+            private_key_cycle__primary,
+            private_key_technology__primary,
+        )
+    ):
+        raise errors.InvalidTransition("Missing Required Primary.")
+
+    dbAcmeAccountPrimary = get__AcmeAccount__by_id(ctx, acme_account_id__primary)
+    if not dbAcmeAccountPrimary:
+        raise errors.InvalidTransition("Could not load Primary")
+
+    if not any((domain_template_http01, domain_template_dns01)):
+        raise errors.InvalidTransition("must submit a template")
+
+    if acme_account_id__backup:
+        dbAcmeAccountBackup = get__AcmeAccount__by_id(ctx, acme_account_id__backup)
+        if not dbAcmeAccountBackup:
+            raise errors.InvalidTransition("Could not load Backup")
+        if dbAcmeAccountPrimary.acme_server_id == dbAcmeAccountBackup.acme_server_id:
+            raise errors.InvalidTransition(
+                "Primary and Backup AcmeAccounts MUST be on different servers."
+            )
+
+    changes = False
+
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+        private_key_technology__primary
+    )
+
+    private_key_cycle_id__backup = (
+        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        if private_key_cycle__backup
+        else None
+    )
+    private_key_technology_id__backup = (
+        model_utils.KeyTechnology.from_string(private_key_technology__backup)
+        if private_key_technology__backup
+        else None
+    )
+
+    pairings = (
+        ("acme_account_id__primary", acme_account_id__primary),
+        ("private_key_cycle_id__primary", private_key_cycle_id__primary),
+        ("private_key_technology_id__primary", private_key_technology_id__primary),
+        ("acme_profile__primary", acme_profile__primary),
+        ("acme_account_id__backup", acme_account_id__backup),
+        ("private_key_cycle_id__backup", private_key_cycle_id__backup),
+        ("private_key_technology_id__backup", private_key_technology_id__backup),
+        ("acme_profile__backup", acme_profile__backup),
+        ("name", name),
+        ("note", note),
+        ("domain_template_http01", domain_template_http01),
+        ("domain_template_dns01", domain_template_dns01),
+    )
+    for p in pairings:
+        if getattr(dbEnrollmentFactory, p[0]) != p[1]:
+            setattr(dbEnrollmentFactory, p[0], p[1])
+            changes = True
+    return changes
+
+
+def update_PrivateKey__set_active(
+    ctx: "ApiContext",
+    dbPrivateKey: "PrivateKey",
+) -> str:
+    if dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    if dbPrivateKey.is_compromised:
+        raise errors.InvalidTransition("Can not activate a compromised key")
+    dbPrivateKey.is_active = True
+    event_status = "PrivateKey__mark__active"
+    return event_status
+
+
+def update_PrivateKey__set_compromised(
+    ctx: "ApiContext",
+    dbPrivateKey: "PrivateKey",
+    dbOperationsEvent: "OperationsEvent",
+) -> str:
+    if dbPrivateKey.is_compromised:
+        raise errors.InvalidTransition("Already compromised")
+    dbPrivateKey.is_active = False
+    dbPrivateKey.is_compromised = True
+    ctx.dbSession.flush(objects=[dbPrivateKey])
+
+    lib.events.PrivateKey_compromised(
+        ctx,
+        dbPrivateKey,
+        dbOperationsEvent=dbOperationsEvent,
+    )
+
+    event_status = "PrivateKey__mark__compromised"
+    return event_status
+
+
+def update_PrivateKey__unset_active(
+    ctx: "ApiContext",
+    dbPrivateKey: "PrivateKey",
+) -> str:
+    if not dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Already deactivated")
+    dbPrivateKey.is_active = False
+    event_status = "PrivateKey__mark__inactive"
+    return event_status
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_RenewalConfiguration__set_active(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+) -> str:
+    if dbRenewalConfiguration.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    dbRenewalConfiguration.is_active = True
+    event_status = "RenewalConfiguration__mark__active"
+    return event_status
+
+
+def update_RenewalConfiguration__unset_active(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+) -> str:
+    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    if not dbRenewalConfiguration.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    dbRenewalConfiguration.is_active = False
+    event_status = "RenewalConfiguration__mark__inactive"
+    return event_status
+
+
 def update_SystemConfiguration(
     ctx: "ApiContext",
     dbSystemConfiguration: "SystemConfiguration",
@@ -865,74 +1019,3 @@ def update_SystemConfiguration(
                 dbSystemConfiguration.is_configured = True
 
     return changes
-
-
-def update_PrivateKey__set_active(
-    ctx: "ApiContext",
-    dbPrivateKey: "PrivateKey",
-) -> str:
-    if dbPrivateKey.is_active:
-        raise errors.InvalidTransition("Already activated.")
-    if dbPrivateKey.is_compromised:
-        raise errors.InvalidTransition("Can not activate a compromised key")
-    dbPrivateKey.is_active = True
-    event_status = "PrivateKey__mark__active"
-    return event_status
-
-
-def update_PrivateKey__set_compromised(
-    ctx: "ApiContext",
-    dbPrivateKey: "PrivateKey",
-    dbOperationsEvent: "OperationsEvent",
-) -> str:
-    if dbPrivateKey.is_compromised:
-        raise errors.InvalidTransition("Already compromised")
-    dbPrivateKey.is_active = False
-    dbPrivateKey.is_compromised = True
-    ctx.dbSession.flush(objects=[dbPrivateKey])
-
-    lib.events.PrivateKey_compromised(
-        ctx,
-        dbPrivateKey,
-        dbOperationsEvent=dbOperationsEvent,
-    )
-
-    event_status = "PrivateKey__mark__compromised"
-    return event_status
-
-
-def update_PrivateKey__unset_active(
-    ctx: "ApiContext",
-    dbPrivateKey: "PrivateKey",
-) -> str:
-    if not dbPrivateKey.is_active:
-        raise errors.InvalidTransition("Already deactivated")
-    dbPrivateKey.is_active = False
-    event_status = "PrivateKey__mark__inactive"
-    return event_status
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def update_RenewalConfiguration__set_active(
-    ctx: "ApiContext",
-    dbRenewalConfiguration: "RenewalConfiguration",
-) -> str:
-    if dbRenewalConfiguration.is_active:
-        raise errors.InvalidTransition("Already activated.")
-    dbRenewalConfiguration.is_active = True
-    event_status = "RenewalConfiguration__mark__active"
-    return event_status
-
-
-def update_RenewalConfiguration__unset_active(
-    ctx: "ApiContext",
-    dbRenewalConfiguration: "RenewalConfiguration",
-) -> str:
-    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
-    if not dbRenewalConfiguration.is_active:
-        raise errors.InvalidTransition("Already deactivated.")
-    dbRenewalConfiguration.is_active = False
-    event_status = "RenewalConfiguration__mark__inactive"
-    return event_status

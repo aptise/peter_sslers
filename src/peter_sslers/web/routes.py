@@ -982,20 +982,26 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
-    # !!!: SystemConfigurations
+    # !!!: EnrollmentFactorys
     config.add_route_7(
-        "admin:system_configurations",
-        "/system-configurations",
+        "admin:enrollment_factorys",
+        "/enrollment-factorys",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factorys:new",
+        "/enrollment-factorys/new",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:system_configuration:focus",
-        "/system-configuration/{@websafe_or_id}",
+        "admin:enrollment_factory:focus",
+        "/enrollment-factory/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:system_configuration:focus:edit",
-        "/system-configuration/{@websafe_or_id}/edit",
+        "admin:enrollment_factory:focus:edit",
+        "/enrollment-factory/{@id}/edit",
         jsonify=True,
     )
 
@@ -1165,6 +1171,23 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:root_store_version:focus",
         "/root-store-version/{@id}",
+        jsonify=True,
+    )
+
+    # !!!: SystemConfigurations
+    config.add_route_7(
+        "admin:system_configurations",
+        "/system-configurations",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:system_configuration:focus",
+        "/system-configuration/{@websafe_or_id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:system_configuration:focus:edit",
+        "/system-configuration/{@websafe_or_id}/edit",
         jsonify=True,
     )
 

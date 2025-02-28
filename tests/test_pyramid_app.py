@@ -5497,48 +5497,86 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
 
-class FunctionalTests_SystemConfiguration(AppTest):
+class FunctionalTests_EnrollmentFactorys(AppTest):
 
-    @routes_tested(("admin:system_configurations",))
+    def _makeOne__EnrollmentFactory(self):
+        _res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
+            status=200,
+        )
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": dbSystemConfiguration_global.acme_account_id__backup,
+            "acme_account_id__primary": dbSystemConfiguration_global.acme_account_id__primary,
+            "acme_profile__backup": "@",
+            "acme_profile__primary": "@",
+            "domain_template_dns01": "",
+            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "name": domain,
+            "note": note,
+            "private_key_cycle__backup": "account_default",
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__backup": "account_default",
+            "private_key_technology__primary": "account_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
+            form,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "EnrollmentFactory" in res.json
+
+        return True
+
+    def _ensureOne__EnrollmentFactory(self):
+        focusItem = self.ctx.dbSession.query(model_objects.EnrollmentFactory).first()
+        if not focusItem:
+            self._makeOne__EnrollmentFactory()
+        return True
+
+    @routes_tested(
+        (
+            "admin:enrollment_factorys",
+            "admin:enrollment_factorys-paginated",
+        )
+    )
     def test_list_html(self):
+        self._ensureOne__EnrollmentFactory()
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configurations", status=200
+            "/.well-known/peter_sslers/enrollment-factorys", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/1", status=200
         )
 
-    @routes_tested(("admin:system_configurations|json",))
+    @routes_tested(
+        (
+            "admin:enrollment_factorys|json",
+            "admin:enrollment_factorys-paginated|json",
+        )
+    )
     def test_list_json(self):
         # json
+        self._ensureOne__EnrollmentFactory()
         res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configurations.json", status=200
+            "/.well-known/peter_sslers/enrollment-factorys/1.json", status=200
         )
-        assert "SystemConfigurations" in res.json
+        assert "EnrollmentFactorys" in res.json
 
-    @routes_tested(
-        (
-            "admin:system_configuration:focus",
-            "admin:system_configuration:focus:edit",
-        )
-    )
-    def test_manipulate_html(self):
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/1", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/1/edit", status=200
-        )
-
-        policy_name = "autocert"
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/%s" % policy_name,
-            status=200,
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/%s/edit" % policy_name,
-            status=200,
-        )
-
+    @routes_tested(("admin:enrollment_factorys:new",))
+    def test_new_html(self):
         # use the global as a tempalte
         dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
             self.ctx, "global"
@@ -5546,99 +5584,153 @@ class FunctionalTests_SystemConfiguration(AppTest):
         assert dbSystemConfiguration_global
         assert dbSystemConfiguration_global.is_configured
 
-        form = res.forms["form-system_configuration-edit"]
-        form["acme_account_id__backup"].force_value(
-            dbSystemConfiguration_global.acme_account_id__backup
-        )
-        form["acme_account_id__primary"].force_value(
-            dbSystemConfiguration_global.acme_account_id__primary
-        )
-        form["acme_profile__backup"].force_value(
-            dbSystemConfiguration_global.acme_profile__backup
-        )
-        form["acme_profile__primary"].force_value(
-            dbSystemConfiguration_global.acme_profile__primary
-        )
-        form["private_key_cycle__backup"].force_value(
-            dbSystemConfiguration_global.private_key_cycle__backup
-        )
-        form["private_key_cycle__primary"].force_value(
-            dbSystemConfiguration_global.private_key_cycle__primary
-        )
-        form["private_key_technology__backup"].force_value(
-            dbSystemConfiguration_global.private_key_technology__backup
-        )
-        form["private_key_technology__primary"].force_value(
-            dbSystemConfiguration_global.private_key_technology__primary
-        )
-
-        res2 = form.submit()
-        assert res2.status_code == 303
-        print(res2.location)
-
-    @routes_tested(
-        (
-            "admin:system_configuration:focus|json",
-            "admin:system_configuration:focus:edit|json",
-        )
-    )
-    def test_manipulate_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/1.json", status=200
+            "/.well-known/peter_sslers/enrollment-factorys/new", status=200
         )
-        assert "SystemConfiguration" in res.json
+        form = res.form
 
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/1/edit.json", status=200
-        )
-        assert "instructions" in res.json
+        domain = generate_random_domain()
+        note = generate_random_domain()
 
-        policy_name = "autocert"
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
-            status=200,
-        )
-        assert "instructions" in res.json
-        assert "form_fields" in res.json
-
-        # use the global as a tempalte
-        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
-            self.ctx, "global"
-        )
-        assert dbSystemConfiguration_global
-        assert dbSystemConfiguration_global.is_configured
-
-        form: Dict[str, Union[int, str, None]] = {}
         form["acme_account_id__backup"] = (
             dbSystemConfiguration_global.acme_account_id__backup
         )
         form["acme_account_id__primary"] = (
             dbSystemConfiguration_global.acme_account_id__primary
         )
-        form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
-        form["acme_profile__primary"] = (
-            dbSystemConfiguration_global.acme_profile__primary
+        form["domain_template_http01"] = (
+            "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain
         )
-        form["private_key_cycle__backup"] = (
-            dbSystemConfiguration_global.private_key_cycle__backup
-        )
-        form["private_key_cycle__primary"] = (
-            dbSystemConfiguration_global.private_key_cycle__primary
-        )
-        form["private_key_technology__backup"] = (
-            dbSystemConfiguration_global.private_key_technology__backup
-        )
-        form["private_key_technology__primary"] = (
-            dbSystemConfiguration_global.private_key_technology__primary
-        )
+        form["name"] = domain
+        form["note"] = note
+        res2 = form.submit()
 
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+        assert res2.status_code == 303
+        assert ".well-known/peter_sslers/enrollment-factory/" in res2.location
+
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @routes_tested(("admin:enrollment_factorys:new|json",))
+    def test_new_json(self):
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": dbSystemConfiguration_global.acme_account_id__backup,
+            "acme_account_id__primary": dbSystemConfiguration_global.acme_account_id__primary,
+            "acme_profile__backup": "@",
+            "acme_profile__primary": "@",
+            "domain_template_dns01": "",
+            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "name": domain,
+            "note": note,
+            "private_key_cycle__backup": "account_default",
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__backup": "account_default",
+            "private_key_technology__primary": "account_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
             form,
         )
-        assert res2.json["result"] == "success"
-        assert "SystemConfiguration" in res2.json
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "EnrollmentFactory" in res.json
+
+    @routes_tested(
+        (
+            "admin:enrollment_factory:focus",
+            "admin:enrollment_factory:focus:edit",
+        )
+    )
+    def test_manipulate_html(self):
+        self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit", status=200
+        )
+        form = res.form
+        domain = generate_random_domain()
+        form["domain_template_http01"] = (
+            "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain
+        )
+        res2 = form.submit()
+
+        assert res2.status_code == 303
+        assert ".well-known/peter_sslers/enrollment-factory/" in res2.location
+
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @routes_tested(
+        (
+            "admin:enrollment_factory:focus|json",
+            "admin:enrollment_factory:focus:edit|json",
+        )
+    )
+    def test_manipulate_json(self):
+        self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1.json", status=200
+        )
+        assert "EnrollmentFactory" in res.json
+
+        res2 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit.json", status=200
+        )
+        assert "instructions" in res2.json
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": res.json["EnrollmentFactory"][
+                "acme_account_id__backup"
+            ],
+            "acme_account_id__primary": res.json["EnrollmentFactory"][
+                "acme_account_id__primary"
+            ],
+            "acme_profile__backup": res.json["EnrollmentFactory"][
+                "acme_profile__backup"
+            ],
+            "acme_profile__primary": res.json["EnrollmentFactory"][
+                "acme_profile__primary"
+            ],
+            "domain_template_dns01": res.json["EnrollmentFactory"][
+                "domain_template_dns01"
+            ],
+            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "name": res.json["EnrollmentFactory"]["name"],
+            "note": res.json["EnrollmentFactory"]["note"],
+            "private_key_cycle__backup": res.json["EnrollmentFactory"][
+                "private_key_cycle__backup"
+            ],
+            "private_key_cycle__primary": res.json["EnrollmentFactory"][
+                "private_key_cycle__primary"
+            ],
+            "private_key_technology__backup": res.json["EnrollmentFactory"][
+                "private_key_technology__backup"
+            ],
+            "private_key_technology__primary": res.json["EnrollmentFactory"][
+                "private_key_technology__primary"
+            ],
+        }
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit.json", form
+        )
+        assert res3.status_code == 200
+        assert res3.json["result"] == "success"
+        assert "EnrollmentFactory" in res3.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -6697,6 +6789,150 @@ class FunctionalTests_RootStoreVersion(AppTest):
         )
         assert "RootStoreVersion" in res.json
         assert res.json["RootStoreVersion"]["id"] == focus_id
+
+
+class FunctionalTests_SystemConfiguration(AppTest):
+
+    @routes_tested(("admin:system_configurations",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configurations", status=200
+        )
+
+    @routes_tested(("admin:system_configurations|json",))
+    def test_list_json(self):
+        # json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configurations.json", status=200
+        )
+        assert "SystemConfigurations" in res.json
+
+    @routes_tested(
+        (
+            "admin:system_configuration:focus",
+            "admin:system_configuration:focus:edit",
+        )
+    )
+    def test_manipulate_html(self):
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1/edit", status=200
+        )
+
+        policy_name = "autocert"
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s" % policy_name,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s/edit" % policy_name,
+            status=200,
+        )
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        form = res.forms["form-system_configuration-edit"]
+        form["acme_account_id__backup"].force_value(
+            dbSystemConfiguration_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"].force_value(
+            dbSystemConfiguration_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"].force_value(
+            dbSystemConfiguration_global.acme_profile__backup
+        )
+        form["acme_profile__primary"].force_value(
+            dbSystemConfiguration_global.acme_profile__primary
+        )
+        form["private_key_cycle__backup"].force_value(
+            dbSystemConfiguration_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"].force_value(
+            dbSystemConfiguration_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"].force_value(
+            dbSystemConfiguration_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"].force_value(
+            dbSystemConfiguration_global.private_key_technology__primary
+        )
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+        print(res2.location)
+
+    @routes_tested(
+        (
+            "admin:system_configuration:focus|json",
+            "admin:system_configuration:focus:edit|json",
+        )
+    )
+    def test_manipulate_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1.json", status=200
+        )
+        assert "SystemConfiguration" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1/edit.json", status=200
+        )
+        assert "instructions" in res.json
+
+        policy_name = "autocert"
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "form_fields" in res.json
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        form: Dict[str, Union[int, str, None]] = {}
+        form["acme_account_id__backup"] = (
+            dbSystemConfiguration_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"] = (
+            dbSystemConfiguration_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
+        form["acme_profile__primary"] = (
+            dbSystemConfiguration_global.acme_profile__primary
+        )
+        form["private_key_cycle__backup"] = (
+            dbSystemConfiguration_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"] = (
+            dbSystemConfiguration_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"] = (
+            dbSystemConfiguration_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"] = (
+            dbSystemConfiguration_global.private_key_technology__primary
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "SystemConfiguration" in res2.json
 
 
 class FunctionalTests_UniqueFQDNSet(AppTest):
