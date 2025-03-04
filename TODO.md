@@ -1,22 +1,14 @@
 URGENT
 =====
 
-AcmeServer
-    detect and cache changes
-    just compare the 'meta' as boulder adds random entries to toplevel
-
-
 SQLAlchemy
     Domain.[advanced relationships] will break eager loading
 
-Audit/Remove OperationsEvent tracking
-Audit/Remove CoverageAssuranceEvent tracking
+Audit/Remove? OperationsEvent tracking
+Audit/Remove? CoverageAssuranceEvent tracking
 
 
 Tests:
-
-
-
     AcmeAccounts:
         These all work as intended, but unitests should ensure:
             test to ensure a Default can't be set to the same server as Backup
@@ -24,8 +16,6 @@ Tests:
             test to ensure 2 acme accounts don't have the same key
             * test against active account key
             * test against prior account key
-            *
-                
     AcmeOrder:
         test with valid profile
         test with invalid profile
@@ -34,16 +24,14 @@ Tests:
     EnrollmentFactory
         improve testing
             fail predictablly
-            "*.{DOMAIN}, "
+            "*.{DOMAIN}," - not allowed in HTTP-01; requires DNS setup
 
  UX:
     do a quick overview of key objects
     reorganize
-    
     JSON endpoints:
         generate pre-filled forms/objects
     
-
 * AcmeDNS
     dev docs
     tests

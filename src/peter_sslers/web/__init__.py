@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pyramid.config import Configurator
 from pyramid.events import BeforeRender
 from pyramid.renderers import JSON
+from pyramid.scripts.common import get_config_loader
 from pyramid.tweens import EXCVIEW
 import transaction
 
@@ -97,6 +98,25 @@ def main(global_config, **settings):
     application_settings = ApplicationSettings(config_uri)
     application_settings.from_settings_dict(settings)
     config.registry.settings["application_settings"] = application_settings
+
+    if config_uri:
+        _config_loader = get_config_loader(config_uri)
+        # _config_loader.get_sections()
+        # > ['app:main', 'filter:proxy-prefix', 'server:main', 'loggers', 'handlers', 'formatters', 'logger_root', 'logger_peter_sslers', 'logger_sqlalchemy', 'handler_console', 'formatter_generic']
+        assert "server:main" in _config_loader.get_sections()
+        _server_settings = _config_loader.get_settings("server:main")
+        _host = _server_settings.get("host")
+        _port = _server_settings.get("port")
+        _admin_server = "http://%s:%s" % (_host, _port)
+        if _admin_server != config.registry.settings["admin_server"]:
+            print("* ====================================================== *")
+            print("Updating `admin_server` setting:")
+            print(
+                "app:main file states:   %s" % config.registry.settings["admin_server"]
+            )
+            print("server:main calculates: %s" % _admin_server)
+            print("* ====================================================== *")
+            config.registry.settings["admin_server"] = _admin_server
 
     # let's extend the request too!
     config.add_request_method(
