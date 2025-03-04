@@ -159,6 +159,7 @@ def get__AcmeAccount__paginated(
     offset: int = 0,
     active_only: bool = False,
     render_in_selects: bool = False,
+    render_in_selects_include: Optional[List[int]] = None,
 ) -> List[AcmeAccount]:
     if render_in_selects:
         limit = None
@@ -168,7 +169,16 @@ def get__AcmeAccount__paginated(
     if active_only:
         query = query.filter(AcmeAccount.is_active.is_(True))
     if render_in_selects:
-        query = query.filter(AcmeAccount.is_render_in_selects.is_(True))
+        if render_in_selects_include:
+            query = query.filter(
+                sqlalchemy.or_(
+                    AcmeAccount.is_render_in_selects.is_(True),
+                    AcmeAccount.id.in_(render_in_selects_include),
+                )
+            )
+        else:
+            query = query.filter(AcmeAccount.is_render_in_selects.is_(True))
+
     query = (
         query.order_by(
             AcmeAccount.is_render_in_selects.desc(),

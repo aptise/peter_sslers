@@ -224,7 +224,7 @@ class View_Focus(Handler):
 
     def _check_support__submit(self, dbAcmeServer):
         try:
-            result = lib_db.actions_acme.check_endpoint_support(
+            changed = lib_db.actions_acme.check_endpoint_support(
                 self.request.api_context,
                 dbAcmeServer,
             )
@@ -232,14 +232,16 @@ class View_Focus(Handler):
                 return {
                     "result": "success",
                     "operation": "check-support",
-                    "check-support": result,
+                    "check-support": True,
                     "AcmeServer": dbAcmeServer.as_json,
+                    "changes-detected": changed,
                 }
             url_result = (
-                "%s?result=success&operation=check-support&check-support=%s"
+                "%s?result=success&operation=check-support&check-support=%s&changes-detected=%s"
                 % (
                     self._focus_url,
-                    result,
+                    True,
+                    changed,
                 )
             )
         except Exception as exc:

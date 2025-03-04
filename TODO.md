@@ -10,6 +10,7 @@ SQLAlchemy
     Domain.[advanced relationships] will break eager loading
 
 Audit/Remove OperationsEvent tracking
+Audit/Remove CoverageAssuranceEvent tracking
 
 
 Tests:

@@ -659,7 +659,8 @@ def check_endpoint_support(
 
     # note - the above `check` should autoupdate...
     acme_directory = resp.json()
-    return update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
+    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
+    return changed
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(

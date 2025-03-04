@@ -1343,11 +1343,6 @@ class View_Focus_Manipulate(View_Focus):
                 "message": _message,
             }
 
-        if not is_authenticated:
-            import pdb
-
-            pdb.set_trace()
-
         return HTTPSeeOther(
             "%s?result=%s&operation=acme-server--authenticate&is_authenticated=%s"
             % (self._focus_url, _result, is_authenticated)

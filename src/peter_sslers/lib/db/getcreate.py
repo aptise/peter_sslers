@@ -20,6 +20,7 @@ from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
+from .get import get__AcmeAccount__count
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_root_url
@@ -357,6 +358,10 @@ def getcreate__AcmeAccount(
         dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
     )
 
+    # always show the acme_account in the selects
+    total_accounts = get__AcmeAccount__count(ctx)
+    is_render_in_selects = True if total_accounts < 12 else False
+
     # first, create the AcmeAccount
     dbAcmeAccount = model_objects.AcmeAccount()
     dbAcmeAccount.timestamp_created = ctx.timestamp
@@ -372,6 +377,8 @@ def getcreate__AcmeAccount(
     )
     dbAcmeAccount.order_default_acme_profile = order_default_acme_profile
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
+    dbAcmeAccount.is_render_in_selects = is_render_in_selects
+
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
 

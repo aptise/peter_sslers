@@ -287,9 +287,18 @@ class View_Focus(Handler):
     def _edit__print(self):
         assert self.dbEnrollmentFactory is not None
         # quick setup, we need a bunch of options for dropdowns...
+        _required_ids = [
+            i
+            for i in [
+                self.dbEnrollmentFactory.acme_account_id__primary,
+                self.dbEnrollmentFactory.acme_account_id__backup,
+            ]
+            if i
+        ]
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
             render_in_selects=True,
+            render_in_selects_include=_required_ids,
         )
         if self.request.wants_json:
             return formatted_get_docs(self, "/enrollment-factory/{ID}/edit.json")

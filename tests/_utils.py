@@ -1478,10 +1478,11 @@ def do__AcmeServers_sync(
         form = res.forms["form-check_support"]
         res2 = form.submit()
         assert res2.status_code == 303
-        assert res2.location.endswith(
+        assert (
             "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
             % _acme_server_id
-        )
+        ) in res2.location
+
     return True
 
 
@@ -1716,6 +1717,50 @@ def setup_SystemConfiguration(
     assert dbSystemConfiguration
     assert dbSystemConfiguration.is_configured
     return dbSystemConfiguration
+
+
+def auth_SystemConfiguration_accounts(
+    testCase: CustomizedTestCase,
+    dbSystemConfiguration: model_objects.SystemConfiguration,
+    auth_only: Optional[Literal["primary", "backup"]] = None,
+) -> bool:
+    _did_authenticate = False
+    account_ids: List[int]
+    if auth_only == "primary":
+        account_ids = [
+            dbSystemConfiguration.acme_account_id__primary,
+        ]
+    elif auth_only == "backup":
+        account_ids = (
+            [
+                dbSystemConfiguration.acme_account_id__backup,
+            ]
+            if dbSystemConfiguration.acme_account_id__backup
+            else []
+        )
+    else:
+        account_ids = [
+            i
+            for i in [
+                dbSystemConfiguration.acme_account_id__primary,
+                dbSystemConfiguration.acme_account_id__backup,
+            ]
+            if i
+        ]
+
+    for _acme_account_id in account_ids:
+        # authenticate will register; check will not
+        # during test-runs, the pebble server will lose state so check will fail
+        _resCheck = testCase.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+            % _acme_account_id,
+            {},
+        )
+        assert _resCheck.location.endswith(
+            "?result=success&operation=acme-server--authenticate&is_authenticated=True"
+        )
+        _did_authenticate = True
+    return _did_authenticate
 
 
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):

@@ -653,6 +653,12 @@ def parse_AcmeAccountSelections_v2(
         == "system_configuration_default"
     ):
         dbAcmeAccount_backup = dbSystemConfiguration.acme_account__backup
+    elif formStash.results["account_key_option__backup"] == "none":
+        # explicitly declared
+        dbAcmeAccount_backup = None
+    elif formStash.results["account_key_option__backup"] is None:
+        # not submitted
+        dbAcmeAccount_backup = None
     elif formStash.results["account_key_option__backup"] == "account_key_existing":
         account_key_pem_md5 = formStash.results["account_key_existing__backup"]
         dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_pemMd5(
@@ -790,6 +796,10 @@ def parse_PrivateKeySelections_v2(
             private_key_technology__effective_backup
         )
     elif formStash.results["private_key_option__backup"] == "none":
+        # explicitly declare None
+        pass
+    elif formStash.results["private_key_option__backup"] is None:
+        # value not submitted
         pass
     else:
         formStash.fatal_field(
