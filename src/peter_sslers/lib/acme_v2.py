@@ -119,6 +119,9 @@ def url_request(
     :param dict post_data: (optional) Data to POST to the url
     :param str err_msg: (optional) A custom error message
     :param int depth: (optional) An integer nothing the depth of this function being called
+    :param `model_objects.AcmeServer` dbAcmeServer: an AcmeServer, or compatible object,
+        with a function `local_ca_bundle(ctx)` that will return a CA Bundle filepath
+        if a custom CA bundle is needed
 
     returns (resp_data, status_code, headers)
     """
@@ -539,6 +542,9 @@ class AuthenticatedUser(object):
 
         if acme_directory is None:
             acme_directory = acme_directory_get(self.ctx, acmeAccount)
+            db_update.update_AcmeServer_directory(
+                ctx, acmeAccount.acme_server, acme_directory
+            )
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
@@ -2296,7 +2302,7 @@ def sanitize_directory_object(directory: Dict) -> Dict:
     This unfortunately makes it harder to detect changes, such as new fields.
     We can, at least, monitor existing fields:
     """
-    _allowed_fields = [
+    _tracked_fields = [
         "keyChange",
         "meta",
         "newAccount",
@@ -2305,8 +2311,29 @@ def sanitize_directory_object(directory: Dict) -> Dict:
         "renewalInfo",
         "revokeCert",
     ]
-    d2 = {k: v for k, v in directory.items() if k in _allowed_fields}
+    d2 = {k: v for k, v in directory.items() if k in _tracked_fields}
     return d2
+
+
+def serialize_directory_object(directory: Dict) -> str:
+    directory_sanitized = sanitize_directory_object(directory)
+    directory_string = json.dumps(directory_sanitized, sort_keys=True)
+    return directory_string
+
+
+def parse_acme_directory(
+    directory: Dict[str, Union[str, Dict]]
+) -> Tuple[Optional[Dict], Optional[str]]:
+    """extracts relevant parts"""
+    meta: Optional[Dict] = None
+    profiles_str: Optional[str] = None
+    _meta = directory.get("meta")
+    if isinstance(_meta, dict):
+        meta = _meta
+        _profiles = _meta.get("profiles")
+        if _profiles:
+            profiles_str = ",".join(sorted(_profiles.keys()))
+    return meta, profiles_str
 
 
 def check_endpoint_for_meta(

@@ -1389,14 +1389,7 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {
-                "action": [
-                    "active",
-                    "inactive",
-                    "revoked",
-                    # "renew_manual",
-                    # "renew_auto",
-                    "unrevoke",
-                ]
+                "action": Form_CertificateSigned_mark.fields["action"].list,
             },
         }
     )

@@ -23,6 +23,7 @@
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
+                <th><!-- is_render_in_selects --></th>
                 <th><!-- SystemConfiguration info --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
@@ -37,12 +38,10 @@
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${account.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeAccount-${account.id}</a>
-                        
                         % if account.name:
                             <span class="label label-default">${account.name}</span>
                         % endif
-                        
-                        </td>
+                    </td>
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
@@ -50,6 +49,11 @@
                             <span class="label label-warning">deactivated</span>
                         % endif
                     </td>
+                    <td>
+                        % if account.is_render_in_selects:
+                            <span class="label label-success">Render in Select</span>
+                        % endif
+                    </td>                    
                     <td>
                         <!-- TODO: show SystemConfiguration Info -->
                     </td>

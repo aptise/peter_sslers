@@ -6,19 +6,25 @@ AcmeServer
     just compare the 'meta' as boulder adds random entries to toplevel
 
 
-
-AcmeOrdering
-    Ensure Poilcy is in Directory before ordering
-    Auto-update directory samples
-
 SQLAlchemy
     Domain.[advanced relationships] will break eager loading
 
+Audit/Remove OperationsEvent tracking
+
+
 Tests:
+
+
+
     AcmeAccounts:
-        test to ensure a Default can't be set to the same server as Backup
-        test to ensure a Backup can't be set to the same server as Default
-        ensure 2 acme accounts don't have the same key
+        These all work as intended, but unitests should ensure:
+            test to ensure a Default can't be set to the same server as Backup
+            test to ensure a Backup can't be set to the same server as Default
+            test to ensure 2 acme accounts don't have the same key
+            * test against active account key
+            * test against prior account key
+            *
+                
     AcmeOrder:
         test with valid profile
         test with invalid profile
@@ -27,10 +33,15 @@ Tests:
     EnrollmentFactory
         improve testing
             fail predictablly
+            "*.{DOMAIN}, "
 
  UX:
     do a quick overview of key objects
     reorganize
+    
+    JSON endpoints:
+        generate pre-filled forms/objects
+    
 
 * AcmeDNS
     dev docs
@@ -86,6 +97,10 @@ acme-account register
 Not Urgent
 ================
 
+AcmeAccount
+    max 10 can appear on dropdowns
+    
+    
 QueryString errors and encodings
     redo urlify/unurlify/etc
     redo querystring partial

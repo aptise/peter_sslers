@@ -62,6 +62,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>onboard</th>
+                        <td>
+                            <a href="${admin_prefix}/renewal-configuration/new-enrollment?enrollment_factory_id=${EnrollmentFactory.id}" class="btn btn-xs btn-primary">
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                Onboard
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>note</th>
                         <td>
                             <code>${EnrollmentFactory.note}</code>

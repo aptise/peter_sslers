@@ -55,7 +55,10 @@
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             AcmeAccount-${SystemConfiguration_global.acme_account_id__primary}</a>
                     % else:
-                        Please Configure
+                        <span class="label label-warning">
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            Please Configure
+                        </span>
                     % endif            
                 </td>
             </tr>
@@ -67,7 +70,10 @@
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             AcmeAccount-${SystemConfiguration_global.acme_account_id__backup}</a>
                     % else:
-                        Please Configure
+                        <span class="label label-warning">
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            Please Configure
+                        </span>
                     % endif            
                 </td>
             </tr>

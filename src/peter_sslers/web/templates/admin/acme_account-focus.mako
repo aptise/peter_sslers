@@ -118,6 +118,30 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>render in selects?</th>
+                        <td>
+                            % if AcmeAccount.is_render_in_selects:
+                                <span class="label label-success">render</span>
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="no_render_in_selects"/>
+                                    <button class="btn btn-xs btn-danger" type="submit">
+                                        <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+                                        Unset
+                                    </button>
+                                </form>
+                            % else:
+                                <span class="label label-default">not rendered</span>
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="is_render_in_selects"/>
+                                    <button class="btn btn-xs btn-success" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        Render
+                                    </button>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>SystemConfigurations</th>
                         <td>
                             % if AcmeAccount.system_configurations__primary:

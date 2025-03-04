@@ -186,7 +186,7 @@ class View_Focus(Handler):
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
-            limit=None,
+            render_in_selects=True,
         )
         if self.request.wants_json:
             return formatted_get_docs(self, "/system-configuration/{ID}/edit.json")

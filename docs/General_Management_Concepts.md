@@ -159,7 +159,7 @@ in an "autocert" functionality to nginx:
   needed, or serve an existing Certificate. This is designed for programmatic access
   and offers full control.  Initiating a `certificate-if-needed` will create
   a new RenewalConfiguration using the directives establised in the
-  "autocert" EnrollmentPolicy.
+  "certificate-if-needed" EnrollmentPolicy.
 
 * `/api/domain/autocert` will instantiate a CertificateRequest if needed, or
   serve existing Certificate. this is designed for automatically handling the

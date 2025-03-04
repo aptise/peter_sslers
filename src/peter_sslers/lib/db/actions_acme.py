@@ -1,6 +1,5 @@
 # stdlib
 import datetime
-import json
 import logging
 import typing
 from typing import Callable
@@ -17,7 +16,6 @@ from typing_extensions import Literal
 # localapp
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
-from .create import create__AcmeServerConfiguration
 from .create import create__AriCheck
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
@@ -46,7 +44,7 @@ from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .update import update_AcmeOrder_finalized
-from .update import update_AcmeServer_profiles
+from .update import update_AcmeServer_directory
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
@@ -654,32 +652,14 @@ def check_endpoint_support(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
 ) -> bool:
-
+    # endpoints should automatically update now, but we can offer a manual
     resp = acme_v2.check_endpoint(
         ctx, dbAcmeServer.directory, dbAcmeServer=dbAcmeServer
     )
-    directory = acme_v2.sanitize_directory_object(resp.json())
-    directory_string = json.dumps(directory, sort_keys=True)
 
-    if not dbAcmeServer.directory_latest or (
-        directory_string != dbAcmeServer.directory_latest.directory
-    ):
-        directoryLatest = create__AcmeServerConfiguration(
-            ctx,
-            dbAcmeServer,
-            directory_string,
-        )
-
-    _meta = directory.get("meta")
-    if _meta:
-        _profiles = _meta.get("profiles")
-        if _profiles:
-            profiles = ",".join(sorted(_profiles.keys()))
-            if profiles != dbAcmeServer.profiles:
-                _result = update_AcmeServer_profiles(
-                    ctx, dbAcmeServer, profiles
-                )  # noqa: F841
-    return True
+    # note - the above `check` should autoupdate...
+    acme_directory = resp.json()
+    return update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
@@ -2683,6 +2663,16 @@ def do__AcmeV2_AcmeOrder__new(
         private_key_technology__effective: str
 
         if account_selection == "primary":
+            # !!!: primary:private_key_cycle
+            private_key_cycle = dbRenewalConfiguration.private_key_cycle__primary
+            assert (
+                dbRenewalConfiguration.private_key_cycle__primary__effective is not None
+            )
+            private_key_cycle__effective = (
+                dbRenewalConfiguration.private_key_cycle__primary__effective
+            )
+
+            # !!!: primary:private_key_technology
             private_key_technology = (
                 dbRenewalConfiguration.private_key_technology__primary
             )
@@ -2693,19 +2683,43 @@ def do__AcmeV2_AcmeOrder__new(
             private_key_technology__effective = (
                 dbRenewalConfiguration.private_key_technology__primary__effective
             )
-            private_key_cycle = dbRenewalConfiguration.private_key_cycle__primary
-            assert (
-                dbRenewalConfiguration.private_key_cycle__primary__effective is not None
-            )
-            private_key_cycle__effective = (
-                dbRenewalConfiguration.private_key_cycle__primary__effective
-            )
+
+            # !!!: dereference-> primary:private_key_cycle
+            # note: system_configuration_default can return "account_default"
+            if private_key_cycle__effective == "system_configuration_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_cycle__primary
+                )
+            if private_key_cycle__effective == "account_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.acme_account__primary.order_default_private_key_cycle
+                )
+
+            # !!!: dereference-> primary:private_key_technology
+            # note: system_configuration_default can return "account_default"
+            if private_key_technology__effective == "system_configuration_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_technology__primary
+                )
+            if private_key_technology__effective == "account_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.acme_account__primary.order_default_private_key_technology
+                )
 
         elif account_selection == "backup":
             if not dbRenewalConfiguration.private_key_technology__backup:
                 raise ValueError("backup `private_key_technology` not configured ")
             if not dbRenewalConfiguration.private_key_cycle__backup:
                 raise ValueError("backup `private_key_cycle__backup` not configured ")
+            # !!!: backup:private_key_cycle
+            private_key_cycle = dbRenewalConfiguration.private_key_cycle__backup
+            assert (
+                dbRenewalConfiguration.private_key_cycle__backup__effective is not None
+            )
+            private_key_cycle__effective = (
+                dbRenewalConfiguration.private_key_cycle__backup__effective
+            )
+            # !!!: backup:private_key_technology
             private_key_technology = (
                 dbRenewalConfiguration.private_key_technology__backup
             )
@@ -2716,30 +2730,49 @@ def do__AcmeV2_AcmeOrder__new(
             private_key_technology__effective = (
                 dbRenewalConfiguration.private_key_technology__backup__effective
             )
-            private_key_cycle = dbRenewalConfiguration.private_key_cycle__backup
-            assert (
-                dbRenewalConfiguration.private_key_cycle__backup__effective is not None
-            )
-            private_key_cycle__effective = (
-                dbRenewalConfiguration.private_key_cycle__backup__effective
-            )
+
+            # !!!: dereference-> backup:private_key_cycle
+            # note: system_configuration_default can return "account_default"
+            if private_key_cycle__effective == "system_configuration_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_cycle__primary
+                )
+            if private_key_cycle__effective == "account_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.acme_account__backup.order_default_private_key_cycle
+                )
+
+            # !!!: dereference-> backup:private_key_technology
+            # note: system_configuration_default can return "account_default"
+            if private_key_technology__effective == "system_configuration_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_technology__backup
+                )
+            if private_key_technology__effective == "account_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.acme_account__backup.order_default_private_key_technology
+                )
+
         else:
             raise ValueError("unknown `account_selection`: %s" % account_selection)
 
-        private_key_technology_id = model_utils.KeyTechnology.from_string(
-            private_key_technology
-        )
-        private_key_technology_id__effective = model_utils.KeyTechnology.from_string(
-            private_key_technology__effective
-        )
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle
         )
         private_key_cycle_id__effective = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle__effective
         )
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+        private_key_technology_id__effective = model_utils.KeyTechnology.from_string(
+            private_key_technology__effective
+        )
 
+        assert private_key_cycle_id is not None
         assert private_key_cycle_id__effective is not None
+        assert private_key_technology_id is not None
+        assert private_key_technology_id__effective is not None
 
         #
         # The following block MUST happen after determining the `account_selection`
@@ -2817,7 +2850,13 @@ def do__AcmeV2_AcmeOrder__new(
 
             # private_key_cycle vs private_key_cycle__effective
             if private_key_cycle__effective == "account_default":
-                raise ValueError("Impossible")
+                raise ValueError(
+                    "Impossible: `account_default` must be calculated before order."
+                )
+            elif private_key_cycle__effective == "system_configuration_default":
+                raise ValueError(
+                    "Impossible: `system_configuration_default` must be calculated before order."
+                )
             elif private_key_cycle__effective in (
                 "account_daily",
                 "global_daily",
@@ -2836,20 +2875,18 @@ def do__AcmeV2_AcmeOrder__new(
                     model_utils.PrivateKeyStrategy.DEFERRED_GENERATE
                 )
 
-                # what are we generating?
-                if account_selection == "primary":
-                    private_key_deferred_id = model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                        dbRenewalConfiguration.private_key_technology_id__primary__effective
+                # `private_key_technology_id__effective` was calculated above:
+                private_key_deferred_id = (
+                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
+                        private_key_technology_id__effective
                     )
-                elif account_selection == "backup":
-                    private_key_deferred_id = model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                        dbRenewalConfiguration.private_key_technology_id__backup__effective
-                    )
-                else:
-                    raise ValueError("invalid account_selection")
+                )
+            else:
+                raise ValueError("unknown `private_key_cycle__effective`")
 
         profile: Optional[str] = None
         certificate_type_id: int
+        # TODO - how do system_configuration_default factor in to this?
         if account_selection == "primary":
             dbAcmeAccount = dbRenewalConfiguration.acme_account__primary
             profile = dbRenewalConfiguration.acme_profile__primary__effective
@@ -2868,14 +2905,15 @@ def do__AcmeV2_AcmeOrder__new(
 
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
         if profile:
-            _meta = authenticatedUser.acme_directory.get("meta")
+            _meta, _profiles_str = acme_v2.parse_acme_directory(
+                authenticatedUser.acme_directory
+            )
             if _meta:
-                _profiles = _meta.get("profiles")
-                if not _profiles:
+                if not _profiles_str:
                     raise errors.FieldError(
                         "profile", "The AcmeServer no longer offers profiles"
                     )
-                if profile not in _profiles:
+                if profile not in _profiles_str.split(","):
                     raise errors.FieldError(
                         "profile",
                         "The AcmeServer no longer offers the selected profile",

@@ -207,6 +207,36 @@
                         <td><code>${RenewalConfiguration.note or ''}</code>
                         </td>
                     </tr>
+
+                    <tr>
+                        <th>enrollment_factory__via</th>
+                        <td>
+                            % if RenewalConfiguration.enrollment_factory_id__via:
+                            <a href="${admin_prefix}/enrollment-factory/${RenewalConfiguration.enrollment_factory_id__via}"
+                                title="EnrollmentFactory"
+                                class="btn btn-info btn-xs"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                EnrollmentFactory-${RenewalConfiguration.enrollment_factory_id__via}
+                            </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>system_configuration__via</th>
+                        <td>
+                            % if RenewalConfiguration.system_configuration_id__via:
+                            <a href="${admin_prefix}/system-configuration/${RenewalConfiguration.system_configuration_id__via}"
+                                title="SystemConfiguration"
+                                class="btn btn-info btn-xs"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                SystemConfiguration-${RenewalConfiguration.system_configuration_id__via}
+                            </a>
+                            % endif
+                        </tr>
+                    </tr>
+
                 </tbody>
                 <thead>
                     <tr>

@@ -138,7 +138,6 @@ class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
 
     Base for:
         Form_AcmeOrder_new_freeform
-        Form_API_Domain_certificate_if_needed
 
     """
 
@@ -277,7 +276,8 @@ class Form_AcmeAccount_new__upload(_Form_Schema_Base):
 
 class Form_AcmeAccount_mark(_Form_Schema_Base):
     action = OneOf(
-        ("global_default", "global_backup", "active", "inactive"), not_empty=True
+        ("active", "inactive", "is_render_in_selects", "no_render_in_selects"),
+        not_empty=True,
     )
 
 
@@ -412,17 +412,73 @@ class Form_API_Domain_autocert(_Form_Schema_Base):
     domain_name = UnicodeString(not_empty=True, strip=True)
 
 
-class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
+class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
+    # CORE
     domain_name = UnicodeString(not_empty=True, strip=True)
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
         not_empty=True,
     )
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle = OneOf(
-        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+    # PRIMARY
+    account_key_option__primary = OneOf(
+        model_utils.AcmeAccountKeyOption.options_streamlined,
         not_empty=True,
+    )
+    account_key_existing__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__primary = OneOf(
+        model_utils.PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle,
+        not_empty=True,
+    )
+    private_key_option__primary = OneOf(
+        model_utils.PrivateKeyOption.options_streamlined,
+        not_empty=True,
+    )
+    private_key_existing__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    private_key_technology__primary = OneOf(
+        model_utils.KeyTechnology._options_CertificateIfNeeded,
+        not_empty=True,
+    )
+    acme_profile__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
+
+    # BACKUP
+    account_key_option__backup = OneOf(
+        model_utils.AcmeAccountKeyOption.options_streamlined_backup,
+        not_empty=False,
+        if_missing=None,
+    )
+    account_key_existing__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__backup = OneOf(
+        model_utils.PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle,
+        not_empty=False,
+        if_missing=None,
+    )
+    private_key_option__backup = OneOf(
+        model_utils.PrivateKeyOption.options_streamlined_backup,
+        not_empty=False,
+        if_missing=None,
+    )
+    private_key_existing__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    private_key_technology__backup = OneOf(
+        model_utils.KeyTechnology._options_CertificateIfNeeded,
+        not_empty=False,
+        if_missing=None,
+    )
+    acme_profile__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
     )
 
 
@@ -535,6 +591,10 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+
+
+class Form_Notification_mark(_Form_Schema_Base):
+    action = OneOf(("dismiss"), not_empty=True)
 
 
 class Form_SystemConfiguration_Global_edit(_Form_Schema_Base):
@@ -695,6 +755,12 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     )
 
     acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+
+
+class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
+    enrollment_factory_id = Int(not_empty=True)
+    domain_name = UnicodeString(not_empty=True, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 

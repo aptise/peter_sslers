@@ -1053,7 +1053,7 @@ class View_New(Handler):
                 "note": "A string to associate with the AcmeOrder.",
                 # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "acme_profile": """The name of an ACME Profile on the ACME Server.

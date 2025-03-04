@@ -255,10 +255,10 @@ class View_Focus(Handler):
                 "resolution": "the intended resolution",
             },
             "valid_options": {
+                "action": Form_CoverageAssuranceEvent_mark.fields["action"].list,
                 "resolution": Form_CoverageAssuranceEvent_mark.fields[
                     "resolution"
                 ].list,
-                "action": "resolved",
             },
         }
     )

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
+from typing_extensions import Literal
 
 # local
 from . import formhandling
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
     from ...model.objects import PrivateKey
+    from ...model.objects import SystemConfiguration
 
 
 # ==============================================================================
@@ -403,6 +405,23 @@ class _PrivateKeySelection(object):
         return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
 
 
+class _PrivateKeySelection_v2(object):
+    dbPrivateKey: Optional["PrivateKey"] = None
+    private_key_option: Literal["private_key_existing", "private_key_generate", "none"]
+    private_key_technology: str
+    private_key_technology__effective: Optional[
+        str
+    ]  # required for Primary; optional for Backup
+
+    def __init__(
+        self,
+        private_key_option: Literal[
+            "private_key_existing", "private_key_generate", "none"
+        ],
+    ):
+        self.private_key_option = private_key_option
+
+
 def parse_AcmeAccountSelection(
     request: "Request",
     formStash: "FormStash",
@@ -588,6 +607,197 @@ def parse_AcmeAccountSelection_backup(
 
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
     return acmeAccountSelection
+
+
+def parse_AcmeAccountSelections_v2(
+    request: "Request",
+    formStash: "FormStash",
+    dbSystemConfiguration: "SystemConfiguration",
+) -> Tuple["AcmeAccount", Optional["AcmeAccount"]]:
+    dbAcmeAccount_primary: "AcmeAccount"
+    dbAcmeAccount_backup: Optional["AcmeAccount"] = None
+
+    # !!!: dbAcmeAccount_primary
+    if (
+        formStash.results["account_key_option__primary"]
+        == "system_configuration_default"
+    ):
+        dbAcmeAccount_primary = dbSystemConfiguration.acme_account__primary
+    elif formStash.results["account_key_option__primary"] == "account_key_existing":
+        account_key_pem_md5 = formStash.results["account_key_existing__primary"]
+        _candidate = lib_db.get.get__AcmeAccount__by_pemMd5(
+            request.api_context, account_key_pem_md5
+        )
+        if not _candidate:
+            formStash.fatal_field(
+                field="account_key_existing__primary",
+                message="The selected AcmeAccount is not enrolled in the system.",
+            )
+        elif not _candidate.is_active:
+            formStash.fatal_field(
+                field="account_key_existing__primary",
+                message="The selected AcmeAccount is not active.",
+            )
+        if TYPE_CHECKING:
+            assert _candidate
+        dbAcmeAccount_primary = _candidate
+    else:
+        formStash.fatal_field(
+            field="account_key_option__primary",
+            message="Invalid option.",
+        )
+
+    # !!!: dbAcmeAccount_backup
+    if (
+        formStash.results["account_key_option__backup"]
+        == "system_configuration_default"
+    ):
+        dbAcmeAccount_backup = dbSystemConfiguration.acme_account__backup
+    elif formStash.results["account_key_option__backup"] == "account_key_existing":
+        account_key_pem_md5 = formStash.results["account_key_existing__backup"]
+        dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_pemMd5(
+            request.api_context, account_key_pem_md5
+        )
+        if not dbAcmeAccount_backup:
+            formStash.fatal_field(
+                field="account_key_option__backup",
+                message="The selected AcmeAccount is not enrolled in the system.",
+            )
+        elif not dbAcmeAccount_backup.is_active:
+            formStash.fatal_field(
+                field="account_key_option__backup",
+                message="The selected AcmeAccount is not active.",
+            )
+    else:
+        formStash.fatal_field(
+            field="account_key_option__backup",
+            message="Invalid option.",
+        )
+
+    return dbAcmeAccount_primary, dbAcmeAccount_backup
+
+
+def parse_PrivateKeySelections_v2(
+    request: "Request",
+    formStash: "FormStash",
+    dbSystemConfiguration: "SystemConfiguration",
+) -> Tuple[_PrivateKeySelection_v2, _PrivateKeySelection_v2]:
+
+    pkeySelection__primary = _PrivateKeySelection_v2(
+        formStash.results["private_key_option__primary"]
+    )
+    pkeySelection__backup = _PrivateKeySelection_v2(
+        formStash.results["private_key_option__backup"]
+    )
+
+    # !!!: primary
+    if formStash.results["private_key_option__primary"] == "private_key_existing":
+        private_key_pem_md5 = formStash.results["private_key_existing__primary"]
+        dbPrivateKey_primary = lib_db.get.get__PrivateKey__by_pemMd5(
+            request.api_context,
+            private_key_pem_md5,
+        )
+        if not dbPrivateKey_primary:
+            formStash.fatal_field(
+                field="private_key_existing__primary",
+                message="The selected PrivateKey is not enrolled in the system.",
+            )
+        elif not dbPrivateKey_primary.is_active:
+            formStash.fatal_field(
+                field="private_key_existing__primary",
+                message="The selected PrivateKey is not active.",
+            )
+        pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
+
+    elif formStash.results["private_key_option__primary"] == "private_key_generate":
+        dbPrivateKey_primary = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
+        if not dbPrivateKey_primary:
+            formStash.fatal_field(
+                field="private_key_option__primary",
+                message="Could not load the placeholder PrivateKey.",
+            )
+        pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
+
+        private_key_technology__primary = formStash.results[
+            "private_key_technology__primary"
+        ]
+        pkeySelection__primary.private_key_technology = private_key_technology__primary
+
+        # note, this will not show the account effectiveness
+        private_key_technology__effective_primary: str
+        if private_key_technology__primary == "system_configuration_default":
+            private_key_technology__effective_primary = (
+                dbSystemConfiguration.private_key_technology__primary
+            )
+        else:
+            private_key_technology__effective_primary = private_key_technology__primary
+        pkeySelection__primary.private_key_technology__effective = (
+            private_key_technology__effective_primary
+        )
+    else:
+        formStash.fatal_field(
+            field="private_key_option__primary",
+            message="Invalid option.",
+        )
+
+    # !!!: backup
+    if formStash.results["private_key_option__backup"] == "private_key_existing":
+        private_key_pem_md5 = formStash.results["private_key_existing__backup"]
+        dbPrivateKey_backup = lib_db.get.get__PrivateKey__by_pemMd5(
+            request.api_context,
+            private_key_pem_md5,
+        )
+        if not dbPrivateKey_backup:
+            formStash.fatal_field(
+                field="private_key_existing__backup",
+                message="The selected PrivateKey is not enrolled in the system.",
+            )
+        elif not dbPrivateKey_backup.is_active:
+            formStash.fatal_field(
+                field="private_key_existing__backup",
+                message="The selected PrivateKey is not active.",
+            )
+        pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
+
+    elif formStash.results["private_key_option__backup"] == "private_key_generate":
+        dbPrivateKey_backup = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
+        if not dbPrivateKey_backup:
+            formStash.fatal_field(
+                field="private_key_option__backup",
+                message="Could not load the placeholder PrivateKey.",
+            )
+        pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
+
+        private_key_technology__backup = formStash.results[
+            "private_key_technology__backup"
+        ]
+        pkeySelection__backup.private_key_technology = private_key_technology__backup
+
+        # note, this will not show the account effectiveness
+        private_key_technology__effective_backup: Optional[str]
+        if private_key_technology__backup == "system_configuration_default":
+            if not dbSystemConfiguration.private_key_technology__backup:
+                formStash.fatal_field(
+                    field="private_key_option__backup",
+                    message="SystemConfiguration not configured.",
+                )
+            private_key_technology__effective_backup = (
+                dbSystemConfiguration.private_key_technology__backup
+            )
+        else:
+            private_key_technology__effective_backup = private_key_technology__backup
+        pkeySelection__backup.private_key_technology__effective = (
+            private_key_technology__effective_backup
+        )
+    elif formStash.results["private_key_option__backup"] == "none":
+        pass
+    else:
+        formStash.fatal_field(
+            field="private_key_option__backup",
+            message="Invalid option.",
+        )
+
+    return pkeySelection__primary, pkeySelection__backup
 
 
 def parse_PrivateKeySelection(
@@ -801,7 +1011,7 @@ def form_domains_challenge_typed(
                     if d[0] == "*":
                         # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
                         formStash.fatal_form(
-                            message="wildcards (*) must use `dns-01`.",
+                            message="wildcards (*) MUST use `dns-01`.",
                         )
 
         # see DOMAINS_CHALLENGED_FIELDS

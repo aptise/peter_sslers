@@ -51,6 +51,20 @@
                 <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span>
                 api endpoints
                 </a>
+            <%
+                if Notifications_count:
+                    notifications_class = "danger"
+                    notifications_badge = '<span class="badge">%s</span>' % Notifications_count
+                else:
+                    notifications_class = "warning"
+                    notifications_badge = ''
+            %>
+            <a href="${admin_prefix}/notifications"
+                class="btn btn-xs btn-${notifications_class}"
+            >
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                notifications ${notifications_badge|n}
+                </a>
         </div>
     </div>
 

@@ -27,6 +27,7 @@ from ...model.objects import EnrollmentFactory
 if TYPE_CHECKING:
     from pyramid_formencode_classic import FormStash
     from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeDnsServer
 
 # ==============================================================================
 
@@ -59,7 +60,10 @@ def validate_domains_template(template: str) -> Tuple[Optional[str], Optional[st
     return normalized, None
 
 
-def validate_formstash_domains(formStash: "FormStash") -> Tuple[str, str]:
+def validate_formstash_domains(
+    formStash: "FormStash",
+    dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
+) -> Tuple[str, str]:
     """will raise an exception if fails"""
 
     domain_template_http01 = formStash.results["domain_template_http01"]
@@ -76,6 +80,48 @@ def validate_formstash_domains(formStash: "FormStash") -> Tuple[str, str]:
         _error = "Domains HTTP-01 or DNS-01 MUST be specified"
         formStash.fatal_field(field="domain_template_http01", message=_error)
         formStash.fatal_field(field="domain_template_dns01", message=_error)
+
+    # now we test these...
+    domains_challenged = model_utils.DomainsChallenged()
+    domain_names_all = []
+    if domain_template_dns01:
+        domain_names = domain_template_dns01.replace("{DOMAIN}", "example.com")
+        domain_names = cert_utils.utils.domains_from_string(domain_names)
+        if domain_names:
+            domain_names_all.extend(domain_names)
+            domains_challenged["dns-01"] = domain_names
+    if domain_template_http01:
+        domain_names = domain_template_http01.replace("{DOMAIN}", "example.com")
+        domain_names = cert_utils.utils.domains_from_string(domain_names)
+        if domain_names:
+            domain_names_all.extend(domain_names)
+            domains_challenged["http-01"] = domain_names
+    # 2: ensure there are domains
+    if not domain_names_all:
+        formStash.fatal_form(message="templates did not expand to domains")
+    # 3: ensure there is no overlap
+    domain_names_all_set = set(domain_names_all)
+    if len(domain_names_all) != len(domain_names_all_set):
+        formStash.fatal_form(
+            message="a domain name can only be associated to one challenge type",
+        )
+
+    for chall, ds in domains_challenged.items():
+        if chall == "dns-01":
+            continue
+        if ds:
+            for d in ds:
+                if d[0] == "*":
+                    formStash.fatal_form(
+                        message="wildcards (*) MUST use `dns-01`.",
+                    )
+    if domains_challenged["dns-01"]:
+        if not dbAcmeDnsServer_GlobalDefault:
+            formStash.fatal_field(
+                field="domain_template_dns01",
+                message="The global acme-dns server is not configured.",
+            )
+
     return domain_template_http01, domain_template_dns01
 
 
@@ -216,7 +262,7 @@ class View_Focus(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
                     "private_key_cycle__primary"
                 ].list,
                 "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
@@ -232,6 +278,7 @@ class View_Focus(Handler):
         }
     )
     def edit(self):
+        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         dbEnrollmentFactory = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._edit__submit()
@@ -242,7 +289,7 @@ class View_Focus(Handler):
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
-            limit=None,
+            render_in_selects=True,
         )
         if self.request.wants_json:
             return formatted_get_docs(self, "/enrollment-factory/{ID}/edit.json")
@@ -251,6 +298,7 @@ class View_Focus(Handler):
             {
                 "EnrollmentFactory": self.dbEnrollmentFactory,
                 "AcmeAccounts": self.dbAcmeAccounts_all,
+                "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
             },
             self.request,
         )
@@ -267,7 +315,10 @@ class View_Focus(Handler):
             # these require some validation
             # nest outside of the try to minimize Exception catching
             (domain_template_http01, domain_template_dns01) = (
-                validate_formstash_domains(formStash)
+                validate_formstash_domains(
+                    formStash,
+                    dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
+                )
             )
 
             try:
@@ -353,7 +404,7 @@ class View_New(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
                     "private_key_cycle__primary"
                 ].list,
                 "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
@@ -369,10 +420,11 @@ class View_New(Handler):
         }
     )
     def new(self):
+        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
-            limit=None,
+            render_in_selects=True,
         )
         if self.request.method == "POST":
             return self._new__submit()
@@ -385,6 +437,7 @@ class View_New(Handler):
             "/admin/enrollment_factorys-new.mako",
             {
                 "AcmeAccounts": self.dbAcmeAccounts_all,
+                "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
             },
             self.request,
         )
@@ -412,8 +465,20 @@ class View_New(Handler):
                 acme_profile__backup: Optional[str]
 
                 # these require some validation
+                existingEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_name(
+                    self.request.api_context, name
+                )
+                if existingEnrollmentFactory:
+                    formStash.fatal_field(
+                        field="name",
+                        message="An EnrollmentFactory already exists with this name.",
+                    )
+
                 (domain_template_http01, domain_template_dns01) = (
-                    validate_formstash_domains(formStash)
+                    validate_formstash_domains(
+                        formStash,
+                        dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
+                    )
                 )
 
                 # PRIMARY config

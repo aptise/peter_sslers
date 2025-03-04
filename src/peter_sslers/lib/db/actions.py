@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
     from ..context import ApiContext
@@ -590,23 +591,45 @@ def operations_update_recents__global(
 
 def api_domains__certificate_if_needed(
     ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    dbPrivateKey: "PrivateKey",
     domains_challenged: "DomainsChallenged",
-    private_key_cycle: str,
-    private_key_technology: str,
+    # PRIMARY
+    dbAcmeAccount__primary: "AcmeAccount",
+    dbPrivateKey__primary: Optional["PrivateKey"],
+    acme_profile__primary: Optional[str],
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    # BACKUP
+    dbAcmeAccount__backup: Optional["AcmeAccount"],
+    dbPrivateKey__backup: Optional["PrivateKey"],
+    acme_profile__backup: Optional[str],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
+    # SHARED
+    note: Optional[str],
     processing_strategy: str,
+    dbSystemConfiguration: "SystemConfiguration",
 ) -> Dict:
     """
     Adds Domains if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
-    :param private_key_cycle: (required)  A value from :class:`model.utils.PrivateKeyCycle`
-    :param private_key_technology: (required)  A value from :class:`model.utils.KeyTechnology`
+
+    :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
+    :param dbPrivateKey__primary: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology__primary: (required)  A value from :class:`model.utils.PrivateKeyTechnology`
+    :param acme_profile__primary: (optional)
+
+    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
+    :param dbPrivateKey__backup: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param acme_profile__backup: (optional)  str
+    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology__backup: (optional)  A value from :class:`model.utils.PrivateKeyTechnology`
+
+    :param note: (optional)  user note
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+    :param dbSystemConfiguration: (required) The sytem configuration
 
     results will be a dict:
 
@@ -623,8 +646,7 @@ def api_domains__certificate_if_needed(
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
     # validate this first!
-
-    dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
+    # dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
     if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:
         raise errors.DisplayableError(
             "the `certificate-if-needed` SystemConfiguration is not configured"
@@ -633,7 +655,37 @@ def api_domains__certificate_if_needed(
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
-    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_cycle_id__backup: Optional[int] = None
+    private_key_technology_id__backup: Optional[int] = None
+    if dbAcmeAccount__backup:
+        # private_key_cycle__backup and private_key_technology__backup are required
+        # acme_profile__backup is not required
+        if not private_key_cycle__backup:
+            raise errors.DisplayableError("missing `private_key_cycle__backup`")
+        if not private_key_technology__backup:
+            raise errors.DisplayableError("missing `private_key_technology__backup`")
+
+        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__backup
+        )
+        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+            private_key_technology__backup
+        )
+    else:
+        acme_profile__backup = None
+        private_key_cycle__backup = None
+        private_key_technology__backup = None
+
+    if dbAcmeAccount__primary is None:
+        raise errors.DisplayableError("missing AcmeAccount[Primary]")
+    elif not dbAcmeAccount__primary.is_active:
+        raise errors.DisplayableError("AcmeAccount[Primary] is not active")
+
+    if not dbPrivateKey__primary:
+        raise errors.DisplayableError("missing PrivateKey[Primary]")
 
     # bookkeeping
     event_payload_dict = lib.utils.new_event_payload_dict()
@@ -644,14 +696,6 @@ def api_domains__certificate_if_needed(
         ),
         event_payload_dict,
     )
-
-    if dbAcmeAccount is None:
-        raise errors.DisplayableError("missing AcmeAccount")
-    if not dbAcmeAccount.is_active:
-        raise errors.DisplayableError("AcmeAccount is not active")
-
-    if not dbPrivateKey:
-        raise errors.DisplayableError("missing PrivateKey")
 
     # this function checks the domain names match a simple regex
     domain_names = domains_challenged.domains_as_list
@@ -741,11 +785,20 @@ def api_domains__certificate_if_needed(
                     dbRenewalConfiguration = create.create__RenewalConfiguration(
                         ctx,
                         domains_challenged=_domains_challenged__single,
-                        dbAcmeAccount__primary=dbAcmeAccount,
-                        private_key_cycle_id__primary=private_key_cycle_id,
+                        # Primary cert
+                        dbAcmeAccount__primary=dbAcmeAccount__primary,
                         private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
-                            private_key_technology
+                            private_key_technology__primary
                         ),
+                        private_key_cycle_id__primary=private_key_cycle_id__primary,
+                        acme_profile__primary=acme_profile__primary,
+                        # Backup cert
+                        dbAcmeAccount__backup=dbAcmeAccount__backup,
+                        private_key_technology_id__backup=private_key_technology_id__backup,
+                        private_key_cycle_id__backup=private_key_cycle_id__backup,
+                        acme_profile__backup=acme_profile__backup,
+                        # misc
+                        note=note,
                         dbSystemConfiguration=dbSystemConfiguration,
                     )
                     is_duplicate_renewal = False
@@ -759,7 +812,7 @@ def api_domains__certificate_if_needed(
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
                     acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
-                    dbPrivateKey=dbPrivateKey,
+                    dbPrivateKey=dbPrivateKey__primary,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                 )
 
@@ -785,6 +838,7 @@ def api_domains__certificate_if_needed(
 
             except Exception as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
+
                 if isinstance(exc, errors.AcmeOrderCreatedError):
                     dbAcmeOrder = exc.acme_order
                     exc = exc.original_exception

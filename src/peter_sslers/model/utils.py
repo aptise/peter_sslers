@@ -274,13 +274,15 @@ class _OperationsUnified(_mixin_mapping):
         133: "AcmeAccount__mark__default",
         134: "AcmeAccount__mark__notdefault",
         135: "AcmeAccount__edit",
-        137: "AcmeAccount__edit_AcmeAccountKey",
-        142: "AcmeAccount__edit__name",
         136: "AcmeAccount__edit__order_defaults",
+        137: "AcmeAccount__edit_AcmeAccountKey",
         138: "AcmeAccount__edit__private_key_technology",
-        140: "AcmeAccount__mark__backup",
         139: "AcmeAccount__mark__deactivated",
+        140: "AcmeAccount__mark__backup",
         141: "AcmeAccount__mark__notbackup",
+        142: "AcmeAccount__edit__name",
+        143: "AcmeAccount__mark__is_render_in_selects",
+        144: "AcmeAccount__mark__no_render_in_selects",
         150: "AcmeAccountKey__insert",
         151: "AcmeAccountKey__create",
         152: "AcmeAccountKey__mark__inactive",
@@ -727,6 +729,16 @@ class AcmeAccountKeyOption(object):
         "account_key_existing",
     )
 
+    options_streamlined = (
+        "system_configuration_default",
+        "account_key_existing",
+    )
+    options_streamlined_backup = (
+        "none",
+        "system_configuration_default",
+        "account_key_existing",
+    )
+
     options_basic_reuse = (
         "account_key_global_default",
         "account_key_existing",
@@ -1082,6 +1094,7 @@ class KeyTechnology(_mixin_mapping):
     """
 
     ACCOUNT_DEFAULT = 0  # PlaceHolder
+    SYSTEM_CONFIGURATION_DEFAULT = 99
     RSA_2048 = 1
     RSA_3072 = 2
     RSA_4096 = 3
@@ -1095,12 +1108,23 @@ class KeyTechnology(_mixin_mapping):
         3: "RSA_4096",
         4: "EC_P256",
         5: "EC_P384",
+        99: "system_configuration_default",
     }
 
     _options_all_id = (0, 1, 2, 3, 4, 5)
     _options_AcmeAccount_private_key_technology_id = (1, 2, 3, 4, 5)
     _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
+    _options_CertificateIfNeeded_id = (0, 1, 2, 3, 4, 5, 99)
     _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
+    _options_RenewalConfiguration_private_key_technology_id__alt = (
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        99,
+    )
     _options_Generate_id = (1, 2, 3, 4, 5)
     _options_RSA_id = (1, 2, 3)
     _options_EC_id = (4, 5)
@@ -1125,6 +1149,8 @@ class KeyTechnology(_mixin_mapping):
     _options_AcmeAccount_order_default: List[str]
     _options_Generate: List[str]
     _options_RenewalConfiguration_private_key_technology: List[str]
+    _options_RenewalConfiguration_private_key_technology__alt: List[str]
+    _options_CertificateIfNeeded: List[str]
 
     @classmethod
     def to_new_args(cls, id_) -> NewKeyArgs:
@@ -1177,12 +1203,19 @@ KeyTechnology._options_AcmeAccount_order_default = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_AcmeAccount_order_default_id
 ]
+KeyTechnology._options_CertificateIfNeeded = [
+    KeyTechnology._mapping[_id] for _id in KeyTechnology._options_CertificateIfNeeded_id
+]
 KeyTechnology._options_Generate = [
     KeyTechnology._mapping[_id] for _id in KeyTechnology._options_Generate_id
 ]
 KeyTechnology._options_RenewalConfiguration_private_key_technology = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+]
+KeyTechnology._options_RenewalConfiguration_private_key_technology__alt = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_RenewalConfiguration_private_key_technology_id__alt
 ]
 
 KeyTechnology._DEFAULT_id = KeyTechnology.from_string(KeyTechnology._DEFAULT)
@@ -1206,6 +1239,14 @@ KeyTechnology._DEFAULT_RenewalConfiguration_id = KeyTechnology.from_string(
 )
 
 
+class NotificationType(_mixin_mapping):
+    ACME_SERVER_CHANGED = 1
+
+    _mapping = {
+        1: "acme_server_changed",
+    }
+
+
 class PrivateKeyCycle(_mixin_mapping):
     """
     How should a PrivateKey be cycled on renewal?
@@ -1218,6 +1259,7 @@ class PrivateKeyCycle(_mixin_mapping):
     ACCOUNT_WEEKLY = 5
     GLOBAL_WEEKLY = 6
     SINGLE_USE__REUSE_1_YEAR = 7
+    SYSTEM_CONFIGURATION_DEFAULT = 8
 
     _mapping = {
         1: "account_default",  # use the Account Default
@@ -1227,6 +1269,7 @@ class PrivateKeyCycle(_mixin_mapping):
         5: "account_weekly",  # use the account's weekly key
         6: "global_weekly",  # use the global weekly key
         7: "single_use__reuse_1_year",  # reuse the single certificate for up to one year
+        8: "system_configuration_default",  # use the SystemConfiguration Default
     }
     _options_AcmeAccount_order_default_id = (
         # 1, #  this IS the Account Default
@@ -1246,6 +1289,26 @@ class PrivateKeyCycle(_mixin_mapping):
         6,
         7,
     )
+    _options_RenewalConfiguration_private_key_cycle_id__alt = (  # testing sysconfig
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+    )
+    _options_CertificateIfNeeded_private_key_cycle_id = (
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+    )
     _DEFAULT_order_logic = "single_use"
     _DEFAULT_AcmeOrder = "account_default"
     _DEFAULT_AcmeAccount_order_default = "single_use__reuse_1_year"
@@ -1253,6 +1316,8 @@ class PrivateKeyCycle(_mixin_mapping):
 
     _options_AcmeAccount_order_default: List[str]
     _options_RenewalConfiguration_private_key_cycle: List[str]
+    _options_CertificateIfNeeded_private_key_cycle: List[str]
+    _options_RenewalConfiguration_private_key_cycle__alt: List[str]
 
 
 # compute this for ease of `curl` options
@@ -1263,6 +1328,14 @@ PrivateKeyCycle._options_AcmeAccount_order_default = [
 PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle = [
     PrivateKeyCycle._mapping[_id]
     for _id in PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
+]
+PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle = [
+    PrivateKeyCycle._mapping[_id]
+    for _id in PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle_id
+]
+PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle__alt = [
+    PrivateKeyCycle._mapping[_id]
+    for _id in PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
 ]
 
 
@@ -1282,24 +1355,26 @@ class PrivateKeyDeferred(_mixin_mapping):
     NOT_DEFERRED = 0
     ACCOUNT_DEFAULT = 1  # Placeholder
     ACCOUNT_ASSOCIATE = 2
+    SYSTEM_CONFIGURATION_DEFAULT = 3  # Placeholder
 
     # Specifically Requested Keys
-    GENERATE__RSA_2048 = 5
-    GENERATE__RSA_3072 = 6
-    GENERATE__RSA_4096 = 7
-    GENERATE__EC_P256 = 8
-    GENERATE__EC_P384 = 9
+    GENERATE__RSA_2048 = 11
+    GENERATE__RSA_3072 = 12
+    GENERATE__RSA_4096 = 13
+    GENERATE__EC_P256 = 14
+    GENERATE__EC_P384 = 15
 
     _mapping = {
         0: "not_deferred",
         1: "account_default",
         2: "account_associate",
+        3: "system_configuration_default",
         # Specifically Requested Keys
-        5: "generate__rsa_2048",
-        6: "generate__rsa_3072",
-        7: "generate__rsa_4096",
-        8: "generate__ec_p256",
-        9: "generate__ec_p384",
+        11: "generate__rsa_2048",
+        12: "generate__rsa_3072",
+        13: "generate__rsa_4096",
+        14: "generate__ec_p256",
+        15: "generate__ec_p384",
     }
 
     _options_generate = (
@@ -1362,6 +1437,17 @@ class PrivateKeyOption(object):
         "account_default",
         "private_key_existing",
         "private_key_generate",
+    )
+
+    options_streamlined = (
+        "private_key_generate",
+        "private_key_existing",
+    )
+
+    options_streamlined_backup = (
+        "none",
+        "private_key_generate",
+        "private_key_existing",
     )
 
 

@@ -10,6 +10,7 @@ import sqlalchemy
 # local
 from ..lib import configuration_options
 from ..lib.handler import Handler
+from ...lib.db.get import get__Notification__count
 from ...model import objects as model_objects
 
 # ==============================================================================
@@ -26,9 +27,13 @@ class ViewAdminMain(Handler):
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
         self.request.api_context._load_SystemConfiguration_global()
+        _active_notifications_count = get__Notification__count(
+            self.request.api_context, active_only=True
+        )
         return {
             "project": "peter_sslers",
             "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+            "Notifications_count": _active_notifications_count,
             "enable_redis": self.request.api_context.application_settings[
                 "enable_redis"
             ],

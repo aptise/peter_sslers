@@ -86,6 +86,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_render_in_selects: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
     acme_server_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_server.id"), nullable=False
     )
@@ -4039,6 +4042,33 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
 # ==============================================================================
 
 
+class Notification(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "notification"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    notification_type_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # references NotificationType
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    message: Mapped[str] = mapped_column(sa.Text, nullable=False)
+
+    @property
+    def notification_type(self) -> str:
+        return model_utils.NotificationType.as_string(self.notification_type_id)
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "notification_type_id": self.notification_type,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "is_active": self.is_active,
+            "message": self.message,
+        }
+
+
 class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
     Certain events are tracked for bookkeeping
@@ -5309,6 +5339,7 @@ __all__ = (
     "DomainBlocklisted",
     "EnrollmentFactory",
     "SystemConfiguration",
+    "Notification",
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",

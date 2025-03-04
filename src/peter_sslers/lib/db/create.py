@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
     from ...model.objects import EnrollmentFactory
+    from ...model.objects import Notification
     from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
@@ -132,7 +133,7 @@ def create__AcmeServerConfiguration(
         if TYPE_CHECKING:
             assert directoryOld
         directoryOld.is_active = None
-
+        ctx.dbSession.flush(objects=[directoryOld])
     directoryLatest = model_objects.AcmeServerConfiguration()
     directoryLatest.acme_server_id = dbAcmeServer.id
     directoryLatest.timestamp_created = ctx.timestamp
@@ -141,13 +142,7 @@ def create__AcmeServerConfiguration(
 
     ctx.dbSession.add(directoryLatest)
     dbAcmeServer.directory_latest = directoryLatest
-    ctx.dbSession.flush(
-        objects=[
-            dbAcmeServer,
-            directoryLatest,
-        ]
-    )
-
+    ctx.dbSession.flush(objects=[dbAcmeServer])
     return directoryLatest
 
 
@@ -1254,7 +1249,7 @@ def create__EnrollmentFactory(
             raise ValueError("Primary and Backup ACME servers must be different")
 
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
-    dbEnrollmentFactory.name = name
+    dbEnrollmentFactory.name = name.lower()  # uniqueness on lower(name)
     # p
     dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
     dbEnrollmentFactory.private_key_technology_id__primary = (
@@ -1278,6 +1273,21 @@ def create__EnrollmentFactory(
     ctx.dbSession.add(dbEnrollmentFactory)
     ctx.dbSession.flush(objects=[dbEnrollmentFactory])
     return dbEnrollmentFactory
+
+
+def create__Notification(
+    ctx: "ApiContext",
+    notification_type_id: int,
+    message: str,
+) -> "Notification":
+    dbNotification = model_objects.Notification()
+    dbNotification.notification_type_id = notification_type_id
+    dbNotification.timestamp_created = ctx.timestamp
+    dbNotification.is_active = True
+    dbNotification.message = message
+    ctx.dbSession.add(dbNotification)
+    ctx.dbSession.flush(objects=[dbNotification])
+    return dbNotification
 
 
 def create__PrivateKey(
@@ -1343,6 +1353,7 @@ def create__RenewalConfiguration(
     acme_profile__backup: Optional[str] = None,
     # misc
     note: Optional[str] = None,
+    dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
     """
@@ -1364,21 +1375,23 @@ def create__RenewalConfiguration(
     :param acme_profile__backup: (optional) A string of the server's profile
 
     :param note: (optional) A string to be associated with this record
-    :param dbSystemConfiguration: (required) A :class:`model.objects.SystemConfiguration` object
+    :param dbEnrollmentFactory: (optional) A :class:`model.objects.EnrollmentFactory` object
+    :param dbSystemConfiguration: (optional) A :class:`model.objects.SystemConfiguration` object
 
     :returns :class:`model.objects.RenewalConfiguration`
     """
     if (
         private_key_cycle_id__primary
-        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
     ):
+        # alt -- allowed for Sysconfig CIN/AutoCert
         raise ValueError(
             "Unsupported `private_key_cycle_id__primary`: %s"
             % private_key_cycle_id__primary
         )
     if (
         private_key_technology_id__primary
-        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id__alt
     ):
         raise ValueError(
             "Unsupported `private_key_technology_id__primary`: %s"
@@ -1416,6 +1429,10 @@ def create__RenewalConfiguration(
         if acme_profile__backup not in dbAcmeAccount__backup.acme_server.profiles_list:
             # `@` is special label for "use account default"
             if acme_profile__backup != "@":
+                # TODO: INVESTIGATE
+                import pdb
+
+                pdb.set_trace()
                 raise errors.UnknownAcmeProfile_Local(
                     "acme_profile__backup",
                     acme_profile__backup,
@@ -1539,6 +1556,8 @@ def create__RenewalConfiguration(
 
     # bonus
     dbRenewalConfiguration.note = note or None
+    if dbEnrollmentFactory:
+        dbRenewalConfiguration.enrollment_factory_id__via = dbEnrollmentFactory.id
     if dbSystemConfiguration:
         dbRenewalConfiguration.system_configuration_id__via = dbSystemConfiguration.id
 

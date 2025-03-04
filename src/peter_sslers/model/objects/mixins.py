@@ -12,6 +12,8 @@ from .. import utils as model_utils
 
 if TYPE_CHECKING:
     from .objects import AcmeAccount
+    from .objects import EnrollmentFactory
+    from .objects import SystemConfiguration
 
 
 # ==============================================================================
@@ -26,10 +28,14 @@ class _Mixin_AcmeAccount_Effective(object):
         acme_account_id__primary: Mapped[int]
         acme_profile__backup: Mapped[Optional[str]]
         acme_profile__primary: Mapped[Optional[str]]
+        enrollment_factory_id__via: Mapped[Optional[int]]
+        enrollment_factory__via: Mapped[Optional["EnrollmentFactory"]]
         private_key_technology_id__backup: Mapped[Optional[int]]
         private_key_technology_id__primary: Mapped[int]
         private_key_cycle_id__backup: Mapped[Optional[int]]
         private_key_cycle_id__primary: Mapped[int]
+        system_configuration_id__via: Mapped[Optional[int]]
+        system_configuration__via: Mapped[Optional["SystemConfiguration"]]
 
     @property
     def private_key_technology__primary__effective(self) -> Optional[str]:
@@ -92,6 +98,15 @@ class _Mixin_AcmeAccount_Effective(object):
             if not self.acme_account__primary:
                 return None
             return self.acme_account__primary.order_default_private_key_cycle
+        elif (
+            self.private_key_cycle_id__primary
+            == model_utils.PrivateKeyCycle.SYSTEM_CONFIGURATION_DEFAULT
+        ):
+            if not self.system_configuration_id__via:
+                return None
+            if TYPE_CHECKING:
+                assert self.system_configuration__via
+            return self.system_configuration__via.private_key_cycle__primary
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
 
     @property
@@ -103,6 +118,15 @@ class _Mixin_AcmeAccount_Effective(object):
             if not self.acme_account__primary:
                 return None
             return self.acme_account__primary.order_default_private_key_cycle_id
+        elif (
+            self.private_key_cycle_id__primary
+            == model_utils.PrivateKeyCycle.SYSTEM_CONFIGURATION_DEFAULT
+        ):
+            if not self.system_configuration_id__via:
+                return None
+            if TYPE_CHECKING:
+                assert self.system_configuration__via
+            return self.system_configuration__via.private_key_cycle_id__primary
         return self.private_key_cycle_id__primary
 
     @property
@@ -116,6 +140,15 @@ class _Mixin_AcmeAccount_Effective(object):
             if not self.acme_account__backup:
                 return None
             return self.acme_account__backup.order_default_private_key_cycle
+        elif (
+            self.private_key_cycle_id__backup
+            == model_utils.PrivateKeyCycle.SYSTEM_CONFIGURATION_DEFAULT
+        ):
+            if not self.system_configuration_id__via:
+                return None
+            if TYPE_CHECKING:
+                assert self.system_configuration__via
+            return self.system_configuration__via.private_key_cycle__backup
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
 
     @property
@@ -127,6 +160,15 @@ class _Mixin_AcmeAccount_Effective(object):
             if not self.acme_account__backup:
                 return None
             return self.acme_account__backup.order_default_private_key_cycle_id
+        elif (
+            self.private_key_cycle_id__backup
+            == model_utils.PrivateKeyCycle.SYSTEM_CONFIGURATION_DEFAULT
+        ):
+            if not self.system_configuration_id__via:
+                return None
+            if TYPE_CHECKING:
+                assert self.system_configuration__via
+            return self.system_configuration__via.private_key_cycle_id__backup
         return self.private_key_cycle_id__backup
 
     @property

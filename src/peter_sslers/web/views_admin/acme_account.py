@@ -1025,9 +1025,15 @@ class View_Focus_Manipulate(View_Focus):
                 "account__order_default_acme_profile": "Default acme profile for orders",
             },
             "valid_options": {
-                "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-                "account__order_default_private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
-                "account__order_default_private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_order_default,
+                "account__private_key_technology": Form_AcmeAccount_edit.fields[
+                    "account__private_key_technology"
+                ].list,
+                "account__order_default_private_key_cycle": Form_AcmeAccount_edit.fields[
+                    "account__order_default_private_key_cycle"
+                ].list,
+                "account__order_default_private_key_technology": Form_AcmeAccount_edit.fields[
+                    "account__order_default_private_key_technology"
+                ].list,
             },
         }
     )
@@ -1336,6 +1342,12 @@ class View_Focus_Manipulate(View_Focus):
                 "result": _result,
                 "message": _message,
             }
+
+        if not is_authenticated:
+            import pdb
+
+            pdb.set_trace()
+
         return HTTPSeeOther(
             "%s?result=%s&operation=acme-server--authenticate&is_authenticated=%s"
             % (self._focus_url, _result, is_authenticated)
@@ -1430,6 +1442,7 @@ class View_Focus_Manipulate(View_Focus):
                 if "detail" in exc.args[1]:
                     _message = exc.args[1]["detail"]
         except Exception as exc:
+            raise
             log.critical(exc)
             _result = "error"
             _message = str(exc)
@@ -1465,7 +1478,7 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {
-                "action": ["global_default", "global_backup", "active", "inactive"]
+                "action": Form_AcmeAccount_mark.fields["action"].list,
             },
         }
     )
@@ -1518,6 +1531,21 @@ class View_Focus_Manipulate(View_Focus):
                     event_status = lib_db.update.update_AcmeAccount__unset_active(
                         self.request.api_context, dbAcmeAccount
                     )
+
+                elif action == "is_render_in_selects":
+                    event_status = (
+                        lib_db.update.update_AcmeAccount__is_render_in_selects(
+                            self.request.api_context, dbAcmeAccount, "enable"
+                        )
+                    )
+
+                elif action == "no_render_in_selects":
+                    event_status = (
+                        lib_db.update.update_AcmeAccount__is_render_in_selects(
+                            self.request.api_context, dbAcmeAccount, "disable"
+                        )
+                    )
+
                 else:
                     raise errors.InvalidTransition("Invalid option")
 

@@ -348,10 +348,9 @@ class View_Preferred(Handler):
                 "priority": "the new priority for the current record",
             },
             "valid_options": {
-                "priority": [
-                    "increase",
-                    "decrease",
-                ]
+                "priority": Form_CertificateCAPreference__prioritize.fields[
+                    "priority"
+                ].list,
             },
         }
     )

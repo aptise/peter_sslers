@@ -442,6 +442,11 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
+        "admin:acme_server:focus:acme_server_configurations",
+        "/acme-server/{@id}/acme-server-configurations",
+        paginate=True,
+    )
+    config.add_route_7(
         "admin:acme_server:focus:check_support",
         "/acme-server/{@id}/check-support",
         jsonify=True,
@@ -455,7 +460,9 @@ def _admin_views(config: "Configurator") -> None:
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
     config.add_route_7(
-        "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
+        "admin:api:domain:certificate_if_needed",
+        "/api/domain/certificate-if-needed",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:api:domain:autocert",
@@ -1006,6 +1013,20 @@ def _admin_views(config: "Configurator") -> None:
     )
 
     # !!!: Operations & Sync Events
+    config.add_route_7(
+        "admin:notifications:all",
+        "/notifications",
+        paginate=True,
+        jsonify=True,
+    )
+    # -
+    config.add_route_7(
+        "admin:notification:focus:mark",
+        "/notification/{@id}/mark",
+        jsonify=True,
+    )
+
+    # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -
     config.add_route_7(
@@ -1115,6 +1136,11 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:renewal_configuration:new",
         "/renewal-configuration/new",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:new_enrollment",
+        "/renewal-configuration/new-enrollment",
         jsonify=True,
     )
 

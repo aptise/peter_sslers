@@ -115,6 +115,9 @@ def validate_websafe_slug(slug: str) -> bool:
 # ------------------------------------------------------------------------------
 
 
+# ------------------------------------------------------------------------------
+
+
 def issuer_to_endpoint(
     cert_data: Optional[Dict] = None,  # via parse_cert
     sock_data: Optional[Dict] = None,  # via socket analysis

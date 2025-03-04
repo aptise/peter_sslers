@@ -5,6 +5,7 @@ import json
 import logging
 import pdb  # noqa: F401
 import pprint  # noqa: F401
+import re
 import time
 from typing import Dict
 from typing import Optional
@@ -28,6 +29,7 @@ from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from . import _utils
@@ -5497,9 +5499,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         )
 
 
-class FunctionalTests_EnrollmentFactorys(AppTest):
+class _MixinEnrollmentFactory:
 
-    def _makeOne__EnrollmentFactory(self):
+    def _makeOne__EnrollmentFactory(self) -> int:
         _res = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factorys/new.json",
             status=200,
@@ -5521,7 +5523,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
             "acme_profile__backup": "@",
             "acme_profile__primary": "@",
             "domain_template_dns01": "",
-            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -5536,14 +5538,16 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "EnrollmentFactory" in res.json
+        return res.json["EnrollmentFactory"]["id"]
 
-        return True
-
-    def _ensureOne__EnrollmentFactory(self):
+    def _ensureOne__EnrollmentFactory(self) -> int:
         focusItem = self.ctx.dbSession.query(model_objects.EnrollmentFactory).first()
         if not focusItem:
-            self._makeOne__EnrollmentFactory()
-        return True
+            return self._makeOne__EnrollmentFactory()
+        return focusItem.id
+
+
+class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
 
     @routes_tested(
         (
@@ -5598,9 +5602,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
         form["acme_account_id__primary"] = (
             dbSystemConfiguration_global.acme_account_id__primary
         )
-        form["domain_template_http01"] = (
-            "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain
-        )
+        form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         form["name"] = domain
         form["note"] = note
         res2 = form.submit()
@@ -5628,7 +5630,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
             "acme_profile__backup": "@",
             "acme_profile__primary": "@",
             "domain_template_dns01": "",
-            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -5661,9 +5663,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
         )
         form = res.form
         domain = generate_random_domain()
-        form["domain_template_http01"] = (
-            "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain
-        )
+        form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         res2 = form.submit()
 
         assert res2.status_code == 303
@@ -5709,7 +5709,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest):
             "domain_template_dns01": res.json["EnrollmentFactory"][
                 "domain_template_dns01"
             ],
-            "domain_template_http01": "mail.{DOMAIN}, *.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "name": res.json["EnrollmentFactory"]["name"],
             "note": res.json["EnrollmentFactory"]["note"],
             "private_key_cycle__backup": res.json["EnrollmentFactory"][
@@ -6148,7 +6148,7 @@ class FunctionalTests_PrivateKey(AppTest):
         assert "HTTP POST required" in res.json["instructions"]
 
 
-class FunctionalTests_RenewalConfiguration(AppTest):
+class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration
     """
@@ -6630,6 +6630,65 @@ class FunctionalTests_RenewalConfiguration(AppTest):
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/new.json",
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
+
+    @routes_tested(("admin:renewal_configuration:new_enrollment",))
+    def test_new_enrollment_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
+        """
+        eFactory_id = self._makeOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment?enrollment_factory_id=%s"
+            % eFactory_id,
+            status=200,
+        )
+
+        note = generate_random_domain(testCase=self)
+
+        form = res.form
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_RenewalConfiguration.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
+
+    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
+    def test_new_enrollment_json(self):
+        eFactory_id = self._makeOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
+            status=200,
+        )
+        pprint.pprint(res.json)
+        assert "form_fields" in res.json
+
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
+        note = generate_random_domain(testCase=self)
+
+        form = {}
+        form["enrollment_factory_id"] = eFactory_id
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
             form,
         )
         assert res2.json["result"] == "success"
@@ -7760,11 +7819,20 @@ class FunctionalTests_API(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_API
     """
 
-    @routes_tested(("admin:api", "admin:api:domain:autocert"))
+    @routes_tested(
+        (
+            "admin:api",
+            "admin:api:domain:autocert",
+            "admin:api:domain:certificate_if_needed",
+        )
+    )
     def test_passive(self):
         res = self.testapp.get("/.well-known/peter_sslers/api", status=200)
         res = self.testapp.get(
             "/.well-known/peter_sslers/api/domain/autocert", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
 
     @routes_tested(
@@ -11846,6 +11914,148 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         return resp
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested(
+        (
+            "admin:acme_server:focus:acme_server_configurations-paginated",
+            "admin:acme_server:focus:acme_server_configurations",
+            "admin:notifications:all-paginated",
+            "admin:notifications:all",
+            "admin:notifications:all-paginated|json",
+            "admin:notifications:all|json",
+            "admin:notification:focus:mark|json",
+            "admin:notification:focus:mark",
+        )
+    )
+    def test_AcmeServer_Notifications(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeServer_Notifications
+        """
+
+        def acme_account_update(acme_account_id: int) -> bool:
+            # authenticating will auto-update the directory and create a notification
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+                % acme_account_id,
+                {},
+            )
+            assert (
+                res.location
+                == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--authenticate&is_authenticated=True"""
+                % acme_account_id
+            )
+            return True
+
+        def _adjust_directory() -> bool:
+            dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+                self.ctx, "global"
+            )
+            assert dbSystemConfiguration
+            if not dbSystemConfiguration.acme_account_id__primary:
+                raise ValueError("dbSystemConfiguration not set up")
+            # grab these before losing session state
+            _acme_account_id__primary = dbSystemConfiguration.acme_account_id__primary
+            dbAcmeAccount = dbSystemConfiguration.acme_account__primary
+            dbAcmeServer = dbAcmeAccount.acme_server
+            if not dbAcmeServer.directory_latest:
+                raise ValueError("dbAcmeServer.directory_latest does not exist")
+            _directoryJson = json.loads(dbAcmeServer.directory_latest.directory)
+            if "peterSSLersTesting" not in _directoryJson:
+                _directoryJson["peterSSLersTesting"] = 0
+            _directoryJson["peterSSLersTesting"] += 1
+            dbAcmeServer.directory_latest.directory = json.dumps(_directoryJson)
+            self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
+            self.ctx.dbSession.commit()
+
+            acme_account_update(_acme_account_id__primary)
+
+            return True
+
+        # base everything off the dbSystemConfiguration
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration
+        if not dbSystemConfiguration.acme_account_id__primary:
+            raise ValueError("dbSystemConfiguration not set up")
+        acme_account_id__primary = dbSystemConfiguration.acme_account_id__primary
+        acme_server_id__primary = (
+            dbSystemConfiguration.acme_account__primary.acme_server_id
+        )
+
+        # run this first to be safe
+        acme_account_update(acme_account_id__primary)
+
+        # this will adjust, then update
+        _adjust_directory()
+
+        res = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
+        res2 = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
+
+        assert res2.forms
+        form = res2.forms[0]
+
+        # make sure it's the mark|html
+        re_expected = re.compile(r"/\.well-known/peter_sslers/notification/\d+/mark")
+        assert re_expected.match(form.action)
+
+        # submit it
+        res3 = form.submit()
+        assert (
+            res3.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/notifications?result=success&operation=mark&action=dismiss"
+        )
+
+        # this will adjust, then update
+        _adjust_directory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notifications.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notifications/1.json", status=200
+        )
+        assert res.json["result"] == "success"
+        assert "Notifications" in res.json
+
+        _active_notification_id = None
+        for notification in res.json["Notifications"]:
+            if notification["is_active"]:
+                _active_notification_id = notification["id"]
+                break
+        assert _active_notification_id
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notification/%s/mark.json"
+            % _active_notification_id,
+            status=200,
+        )
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/notification/%s/mark.json"
+            % _active_notification_id,
+            {"action": "dismiss"},
+            status=200,
+        )
+
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "mark"
+        assert res.json["action"] == "dismiss"
+        assert res.json["Notification"]["is_active"] is False
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s/acme-server-configurations"
+            % acme_server_id__primary,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s/acme-server-configurations/1"
+            % acme_server_id__primary,
+            status=200,
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
     def test_AcmeOrder_multiple_domains(self):
         """
@@ -12112,18 +12322,49 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 )
                 self.ctx.pyramid_transaction_commit()
 
+    def _ensure_policy_cin(self, ctx):
+        dbSystemConfiguration_cin = lib_db_get.get__SystemConfiguration__by_name(
+            ctx, "certificate-if-needed"
+        )
+        assert dbSystemConfiguration_cin
+        if not dbSystemConfiguration_cin.is_configured:
+            dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+                ctx, "global"
+            )
+            assert dbSystemConfiguration_global
+            _updated = lib_db_update.update_SystemConfiguration(
+                ctx=ctx,
+                dbSystemConfiguration=dbSystemConfiguration_cin,
+                acme_account_id__primary=dbSystemConfiguration_global.acme_account_id__primary,
+                private_key_cycle__primary=dbSystemConfiguration_global.private_key_cycle__primary,
+                private_key_technology__primary=dbSystemConfiguration_global.private_key_technology__primary,
+                acme_profile__primary=dbSystemConfiguration_global.acme_profile__primary,
+                acme_account_id__backup=dbSystemConfiguration_global.acme_account_id__backup,
+                private_key_cycle__backup=dbSystemConfiguration_global.private_key_cycle__backup,
+                private_key_technology__backup=dbSystemConfiguration_global.private_key_technology__backup,
+                acme_profile__backup=dbSystemConfiguration_global.acme_profile__backup,
+            )
+            self.ctx.pyramid_transaction_commit()
+        return dbSystemConfiguration_cin
+
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
     @under_pebble_strict
-    @routes_tested(("admin:api:domain:certificate-if-needed",))
+    @routes_tested(("admin:api:domain:certificate_if_needed|json",))
     def test_domain_certificate_if_needed(self):
         """
         python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+        pytest tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
         """
+        dbSystemConfiguration_cin = self._ensure_policy_cin(self.ctx)
+
         res = self.testapp.get(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
+            status=200,
         )
         assert "instructions" in res.json
         assert "SystemConfigurations" in res.json["valid_options"]
+        # valid_options"]["SystemConfigurations"]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
         assert "global" in res.json["valid_options"]["SystemConfigurations"]
         assert (
             "AcmeAccounts"
@@ -12147,30 +12388,105 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 "AcmeAccounts"
             ]["primary"]["AcmeAccountKey"]
         )
-        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
+        # valid_options"]["SystemConfigurations"]["certificate-if-needed"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
+        assert (
+            "certificate-if-needed" in res.json["valid_options"]["SystemConfigurations"]
+        )
+        assert (
             "AcmeAccounts"
-        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
-
+            in res.json["valid_options"]["SystemConfigurations"][
+                "certificate-if-needed"
+            ]
+        )
+        assert (
+            "primary"
+            in res.json["valid_options"]["SystemConfigurations"][
+                "certificate-if-needed"
+            ]["AcmeAccounts"]
+        )
+        assert (
+            res.json["valid_options"]["SystemConfigurations"]["certificate-if-needed"][
+                "AcmeAccounts"
+            ]["primary"]
+            is not None
+        )
+        assert (
+            "AcmeAccountKey"
+            in res.json["valid_options"]["SystemConfigurations"][
+                "certificate-if-needed"
+            ]["AcmeAccounts"]["primary"]
+        )
+        assert (
+            "key_pem_md5"
+            in res.json["valid_options"]["SystemConfigurations"][
+                "certificate-if-needed"
+            ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
+        )
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", {}, status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
+            {},
+            status=200,
         )
         assert "instructions" not in res2.json
         assert res2.json["result"] == "error"
 
+        #
+
+        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
         # prep the form
-        form = {}
-        form["account_key_option"] = "account_key_global_default"
-        form["account_key_global_default"] = key_pem_md5
-        form["account__order_default_private_key_cycle"] = "account_daily"
-        form["private_key_option"] = "account_default"
-        form["private_key_cycle__primary"] = "account_default"
+        form: Dict[str, str] = {}
+        # primary
+        form["account_key_option__primary"] = "system_configuration_default"
+        form["private_key_cycle__primary"] = "system_configuration_default"
+        form["private_key_option__primary"] = "private_key_generate"
+        form["private_key_technology__primary"] = "system_configuration_default"
+        form["acme_profile__primary"] = "shortlived"
+        # backup
+        form["account_key_option__backup"] = "system_configuration_default"
+        form["private_key_cycle__backup"] = "system_configuration_default"
+        form["private_key_option__backup"] = "private_key_generate"
+        form["private_key_technology__backup"] = "system_configuration_default"
+        form["acme_profile__backup"] = "shortlived"
+        # shared
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res3 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
+        )
+        assert res3.status_code == 200
+
+        _did_authenticate = False
+        if res3.json["result"] == "error":
+            if ("acme_profile__primary" in res3.json["form_errors"]) or (
+                "acme_profile__backup" in res3.json["form_errors"]
+            ):
+                for _acme_account_id in (
+                    dbSystemConfiguration_cin.acme_account_id__primary,
+                    dbSystemConfiguration_cin.acme_account_id__backup,
+                ):
+                    if not _acme_account_id:
+                        continue
+                    # authenticate will register; check will not
+                    # during test-runs, the pebble server will lose state so check will fail
+                    _resCheck = self.testapp.post(
+                        "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+                        % _acme_account_id,
+                        {},
+                    )
+                    assert _resCheck.location.endswith(
+                        "?result=success&operation=acme-server--authenticate&is_authenticated=True"
+                    )
+                    _did_authenticate = True
+
+        # try this again...
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res3.status_code == 200
         assert res3.json["result"] == "success"
@@ -12180,7 +12496,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             res3.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "new"
         )
-        assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
+        if _did_authenticate:
+            # if we authenticated due to a failed form, we would have saved the dbDomain
+            assert (
+                res3.json["domain_results"][_domain_name]["domain.status"] == "existing"
+            )
+        else:
+            assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
         assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
 
         # Pass 2 - Try multiple domains
@@ -12190,7 +12512,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         form["domain_name"] = ",".join(_domain_names)
         res4 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res4.status_code == 200
         assert res4.json["result"] == "error"
@@ -12203,26 +12525,31 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _domain_name = "fail-a-1.example.com"
         form["domain_name"] = _domain_name
         res5 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res5.status_code == 200
-        assert res5.json["result"] == "success"
+        #         assert res5.json["result"] == "success"
+        #         assert (
+        #             res5.json["domain_results"][_domain_name]["certificate_signed.status"]
+        #             == "fail"
+        #         )
+        #         assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
+        #         assert res5.json["domain_results"][_domain_name]["acme_order.id"] is not None
+        #         assert (
+        #             res5.json["domain_results"][_domain_name]["error"]
+        #             == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
+        #         )
+        assert res5.json["result"] == "error"
         assert (
-            res5.json["domain_results"][_domain_name]["certificate_signed.status"]
-            == "fail"
-        )
-        assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res5.json["domain_results"][_domain_name]["acme_order.id"] is not None
-        assert (
-            res5.json["domain_results"][_domain_name]["error"]
-            == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
+            res5.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. An AcmeOrder-3 was created but errored"
         )
 
         # Pass 4 - redo the first domain, again
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res6 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res6.status_code == 200
         assert res6.json["result"] == "success"
@@ -12237,11 +12564,10 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         # Pass 5 - do it again
         # originally this disabled the domain, but now we just do a duplicate
-
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_name"] = _domain_name
         res7 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res7.status_code == 200
         assert res7.json["result"] == "success"

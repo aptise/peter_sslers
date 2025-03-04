@@ -33,6 +33,7 @@ from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
 from ...model.objects import AcmeServer
+from ...model.objects import AcmeServerConfiguration
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
@@ -45,6 +46,7 @@ from ...model.objects import Domain
 from ...model.objects import DomainAutocert
 from ...model.objects import DomainBlocklisted
 from ...model.objects import EnrollmentFactory
+from ...model.objects import Notification
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
@@ -156,11 +158,26 @@ def get__AcmeAccount__paginated(
     limit: Optional[int] = None,
     offset: int = 0,
     active_only: bool = False,
+    render_in_selects: bool = False,
 ) -> List[AcmeAccount]:
+    if render_in_selects:
+        limit = None
+        offset = 0
+        active_only = False
     query = ctx.dbSession.query(AcmeAccount)
     if active_only:
         query = query.filter(AcmeAccount.is_active.is_(True))
-    query = query.order_by(AcmeAccount.id.asc()).limit(limit).offset(offset)
+    if render_in_selects:
+        query = query.filter(AcmeAccount.is_render_in_selects.is_(True))
+    query = (
+        query.order_by(
+            AcmeAccount.is_render_in_selects.desc(),
+            AcmeAccount.is_active.desc(),
+            AcmeAccount.id.asc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
     dbAcmeAccounts = query.all()
     return dbAcmeAccounts
 
@@ -1326,6 +1343,32 @@ def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+def get__AcmeServerConfiguration__by_AcmeServerId__count(
+    ctx: "ApiContext",
+    acme_server_id: int,
+) -> int:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id
+    )
+    return query.count()
+
+
+def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAccount]:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id
+    )
+    query = (
+        query.order_by(AcmeServerConfiguration.id.desc()).limit(limit).offset(offset)
+    )
+    dbAcmeServerConfigurations = query.all()
+    return dbAcmeServerConfigurations
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2903,7 +2946,11 @@ def get__EnrollmentFactory__by_name(
 ) -> Optional[EnrollmentFactory]:
     if not name:
         raise ValueError("`name` required")
-    q = ctx.dbSession.query(EnrollmentFactory).filter(EnrollmentFactory.name == name)
+    # uniqueness on lower(name)
+    name = name.lower()
+    q = ctx.dbSession.query(EnrollmentFactory).filter(
+        sqlalchemy.func.lower(EnrollmentFactory.name) == name
+    )
     item = q.first()
     return item
 
@@ -2922,6 +2969,38 @@ def get__EnrollmentFactorys__by_acmeAccountId(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__Notification__by_id(
+    ctx: "ApiContext", notification_id: int
+) -> Optional[Notification]:
+    q = ctx.dbSession.query(Notification).filter(Notification.id == notification_id)
+    item = q.first()
+    return item
+
+
+def get__Notification__count(ctx: "ApiContext", active_only=False) -> int:
+    q = ctx.dbSession.query(Notification)
+    if active_only:
+        q = q.filter(Notification.is_active.is_(True))
+    counted = q.count()
+    return counted
+
+
+def get__Notification__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[Notification]:
+    q = (
+        ctx.dbSession.query(Notification)
+        .order_by(
+            Notification.is_active.desc(),
+            Notification.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
 
 
 def get__OperationsObjectEvent__count(ctx: "ApiContext") -> int:

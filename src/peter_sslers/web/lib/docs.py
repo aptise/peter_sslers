@@ -135,33 +135,36 @@ def formatted_get_docs(view_instance, endpoint):
             if "SystemConfigurations" in docs["valid_options"]:
                 docs["valid_options"]["SystemConfigurations"] = {}
 
-            # !!! Required- global
-            dbSystemConfiguration_global = (
-                view_instance.request.api_context._load_SystemConfiguration_global()
-            )
-            if dbSystemConfiguration_global:
-                docs["valid_options"]["SystemConfigurations"][
-                    "global"
-                ] = dbSystemConfiguration_global.as_json_docs
-            # !!!: Conditional- Autocert
-            if view_instance.request.api_context.dbSystemConfiguration_autocert:
-                docs["valid_options"]["SystemConfigurations"][
-                    "autocert"
-                ] = (
-                    view_instance.request.api_context.dbSystemConfiguration_autocert.as_json_docs
+                # !!! Required- global
+                dbSystemConfiguration_global = (
+                    view_instance.request.api_context._load_SystemConfiguration_global()
                 )
-            # !!!: Conditional- CertificateIfNeeeded
-            if view_instance.request.api_context.dbSystemConfiguration_cin:
-                docs["valid_options"]["SystemConfigurations"][
-                    "certificate-if-needed"
-                ] = (
-                    view_instance.request.api_context.dbSystemConfiguration_cin.as_json_docs
-                )
+                if dbSystemConfiguration_global:
+                    docs["valid_options"]["SystemConfigurations"][
+                        "global"
+                    ] = dbSystemConfiguration_global.as_json_docs
+                # !!!: Conditional- Autocert
+                if view_instance.request.api_context.dbSystemConfiguration_autocert:
+                    docs["valid_options"]["SystemConfigurations"][
+                        "autocert"
+                    ] = (
+                        view_instance.request.api_context.dbSystemConfiguration_autocert.as_json_docs
+                    )
+                # !!!: Conditional- CertificateIfNeeeded
+                if view_instance.request.api_context.dbSystemConfiguration_cin:
+                    docs["valid_options"]["SystemConfigurations"][
+                        "certificate-if-needed"
+                    ] = (
+                        view_instance.request.api_context.dbSystemConfiguration_cin.as_json_docs
+                    )
 
         except Exception as exc:  # noqa: F841
             log.critical(
                 "@docify error: valid_options:SystemConfiguration_Global %s", endpoint
             )
+            import pdb
+
+            pdb.set_trace()
             log.critical(exc)
             pass
 

@@ -155,6 +155,14 @@
         - testing edge cases on form submission
         - `contact` not required by application; better reporting of server error
 
+    AcmeOrdering
+        Ensure Poilcy is in Directory before ordering
+        Auto-update directory samples and profiles
+    
+    Notifications
+        a notification will be logged if the AcmeDirectory substantially changes
+
+
     New Bundled CAs
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
