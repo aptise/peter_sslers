@@ -257,7 +257,8 @@ class View_Focus(Handler):
                 "note": "user note",
                 "domain_template_http01": "template",
                 "domain_template_dns01": "template",
-                "name": "name",
+                "name": "name. EDIT is not supported.",
+                "is_export_filesystem": "export certs?",
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
@@ -272,6 +273,9 @@ class View_Focus(Handler):
                 ].list,
                 "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
                     "private_key_technology__backup"
+                ].list,
+                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                    "is_export_filesystem"
                 ].list,
             },
         }
@@ -331,6 +335,10 @@ class View_Focus(Handler):
 
             try:
 
+                is_export_filesystem = (
+                    True if formStash.results["is_export_filesystem"] == "on" else False
+                )
+
                 result = lib_db.update.update_EnrollmentFactory(
                     self.request.api_context,
                     self.dbEnrollmentFactory,
@@ -357,6 +365,7 @@ class View_Focus(Handler):
                         "private_key_technology__backup"
                     ],
                     acme_profile__backup=formStash.results["acme_profile__backup"],
+                    is_export_filesystem=is_export_filesystem,
                     # misc
                     note=formStash.results["note"],
                     domain_template_http01=domain_template_http01,
@@ -399,6 +408,7 @@ class View_New(Handler):
             "form_fields": {
                 "name": "name",
                 "note": "note",
+                "is_export_filesystem": "export certs?",
                 "domain_template_http01": "template",
                 "domain_template_dns01": "template",
                 "acme_account_id__backup": "which provider",
@@ -423,6 +433,9 @@ class View_New(Handler):
                 ].list,
                 "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
                     "private_key_technology__backup"
+                ].list,
+                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                    "is_export_filesystem"
                 ].list,
             },
         }

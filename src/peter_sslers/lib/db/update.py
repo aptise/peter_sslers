@@ -869,6 +869,7 @@ def update_EnrollmentFactory(
     note: Optional[str],
     domain_template_http01: Optional[str],
     domain_template_dns01: Optional[str],
+    is_export_filesystem: Optional[bool],
 ) -> bool:
     if not any(
         (
@@ -926,6 +927,8 @@ def update_EnrollmentFactory(
     )
 
     name = lib_utils.normalize_unique_text(name) if name else None
+    if name != dbEnrollmentFactory.name:
+        raise errors.InvalidTransition("`EnrollmentFactory.name` can not be changed.")
 
     pairings = (
         ("acme_account_id__primary", acme_account_id__primary),
@@ -936,10 +939,10 @@ def update_EnrollmentFactory(
         ("private_key_cycle_id__backup", private_key_cycle_id__backup),
         ("private_key_technology_id__backup", private_key_technology_id__backup),
         ("acme_profile__backup", acme_profile__backup),
-        ("name", name),
         ("note", note),
         ("domain_template_http01", domain_template_http01),
         ("domain_template_dns01", domain_template_dns01),
+        ("is_export_filesystem", is_export_filesystem),
     )
     for p in pairings:
         if getattr(dbEnrollmentFactory, p[0]) != p[1]:

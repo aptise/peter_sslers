@@ -2146,10 +2146,34 @@
 </%def>
 
 
-<%def name="formgroup__note(default='')">
-    <div class="form-group">
-        <label for="note">Note</label>
-        <textarea class="form-control" rows="4" name="note" id="note">${default}</textarea>
+
+
+<%def name="formgroup__is_export_filesystem(default=None)">
+    <%
+        checked = {
+            "on": "",
+            "off": "",
+        }
+        if default:
+            checked["on"] = 'checked="checked"'
+        else:
+            checked["off"] = 'checked="checked"'
+    
+    %>
+    <div class="form-group clearfix">
+        <label for="is_export_filesystem">Export Filesystem</label>
+        <div class="radio">
+            <label>
+                <input type="radio" name="is_export_filesystem" value="on" ${checked["on"]}/>
+                On
+            </label>
+        </div>
+        <div class="radio">
+            <label>
+                <input type="radio" name="is_export_filesystem" value="off" ${checked["off"]}/>
+                Off
+            </label>
+        </div>
     </div>
 </%def>
 
@@ -2162,7 +2186,12 @@
 </%def>
 
 
-
+<%def name="formgroup__note(default='')">
+    <div class="form-group">
+        <label for="note">Note</label>
+        <textarea class="form-control" rows="4" name="note" id="note">${default}</textarea>
+    </div>
+</%def>
 
 
 <%def name="formgroup__processing_strategy()">

@@ -3092,13 +3092,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     acme_account = sa_orm_relationship(
         AcmeAccount,
         primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
-        secondary=(
-            "join("
-            "AcmeOrder, "
-            "AcmeAccount, "
-            "AcmeOrder.acme_account_id==AcmeAccount.id"
-            ")"
-        ),
+        secondary="join(AcmeOrder, AcmeAccount, AcmeOrder.acme_account_id==AcmeAccount.id)",
         uselist=False,
         viewonly=True,
     )
@@ -3915,12 +3909,15 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
 
-    # for consumers
     domain_template_http01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )
     domain_template_dns01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
+    )
+
+    is_export_filesystem: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
     )
 
     # for consumers

@@ -565,6 +565,13 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     domain_template_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    is_export_filesystem = OneOf(
+        (
+            "on",
+            "off",
+        ),
+        not_empty=True,
+    )
 
     acme_account_id__primary = Int(not_empty=True)
     private_key_cycle__primary = OneOf(

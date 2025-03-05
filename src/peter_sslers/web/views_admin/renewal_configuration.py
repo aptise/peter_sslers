@@ -196,7 +196,7 @@ class View_List(Handler):
 
         url_template = "%s/renewal-configurations/%s/{0}" % (
             self.request.api_context.application_settings["admin_prefix"],
-            "sidenav_option",
+            sidenav_option,
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template

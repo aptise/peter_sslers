@@ -157,6 +157,12 @@
                             </td>
                         </tr>
                         <tr>
+                            <td>is_export_filesystem</td>
+                            <td>
+                                ${admin_partials.formgroup__is_export_filesystem()}
+                            </td>
+                        </tr>
+                        <tr>
                             <td>note</td>
                             <td>
                                 ${admin_partials.formgroup__note()}

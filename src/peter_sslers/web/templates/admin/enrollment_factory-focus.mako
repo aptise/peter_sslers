@@ -62,6 +62,20 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>is_export_filesystem</th>
+                        <td>
+                            % if EnrollmentFactory.is_export_filesystem:
+                                <span class="label label-default">
+                                    on
+                                </span>
+                            % else:
+                                <span class="label label-default">
+                                    off
+                                </span>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>onboard</th>
                         <td>
                             <a href="${admin_prefix}/renewal-configuration/new-enrollment?enrollment_factory_id=${EnrollmentFactory.id}" class="btn btn-xs btn-primary">

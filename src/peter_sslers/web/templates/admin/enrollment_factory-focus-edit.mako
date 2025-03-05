@@ -64,6 +64,13 @@
                         <th>name</th>
                         <td>
                             ${admin_partials.formgroup__name(default=EnrollmentFactory.name)}
+                            <em>Edit is NOT supported</em>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_export_filesystem</th>
+                        <td>
+                            ${admin_partials.formgroup__is_export_filesystem(default=EnrollmentFactory.is_export_filesystem)}
                         </td>
                     </tr>
                     <tr>
