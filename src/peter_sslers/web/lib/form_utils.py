@@ -500,7 +500,7 @@ def parse_AcmeAccountSelection(
         if TYPE_CHECKING:
             assert dbAcmeAccount is not None
 
-        # Ensure it is th Global Default
+        # Ensure it is the Global Default
         if account_key_option == "account_key_global_default":
             request.api_context._load_SystemConfiguration_global()
             if (
@@ -574,6 +574,7 @@ def parse_AcmeAccountSelection_backup(
         formStash.fatal_field(field=error_field, message="You did not provide a value")
     if TYPE_CHECKING:
         assert account_key_pem_md5 is not None
+
     dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
         request.api_context, account_key_pem_md5, is_active=True
     )
@@ -586,24 +587,25 @@ def parse_AcmeAccountSelection_backup(
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
 
-    # Ensure it is th Global Default
-    request.api_context._load_SystemConfiguration_global()
-    if (
-        not request.api_context.dbSystemConfiguration_global
-        or not request.api_context.dbSystemConfiguration_global.is_configured
-    ):
-        formStash.fatal_field(
-            field=account_key_option,
-            message="The Global Default is not configured.",
-        )
-    if (
-        request.api_context.dbSystemConfiguration_global.acme_account_id__backup
-        != dbAcmeAccount.id
-    ):
-        formStash.fatal_field(
-            field=account_key_option,
-            message="The selected AcmeAccount is not the global backup.",
-        )
+    if account_key_option == "account_key_global_backup":
+        # Ensure it is the Global Default
+        request.api_context._load_SystemConfiguration_global()
+        if (
+            not request.api_context.dbSystemConfiguration_global
+            or not request.api_context.dbSystemConfiguration_global.is_configured
+        ):
+            formStash.fatal_field(
+                field=account_key_option,
+                message="The Global Backup is not configured.",
+            )
+        if (
+            request.api_context.dbSystemConfiguration_global.acme_account_id__backup
+            != dbAcmeAccount.id
+        ):
+            formStash.fatal_field(
+                field=account_key_option,
+                message="The selected AcmeAccount is not the global backup.",
+            )
 
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
     return acmeAccountSelection
