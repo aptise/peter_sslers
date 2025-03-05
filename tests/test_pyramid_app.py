@@ -2669,8 +2669,6 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.post(
             "/.well-known/peter_sslers/acme-server/1/check-support.json"
         )
-        pprint.pprint(res.json)
-
         assert "result" in res.json
         assert res.json["result"] == "success"
 
@@ -5525,6 +5523,7 @@ class _MixinEnrollmentFactory:
             "acme_profile__primary": "@",
             "domain_template_dns01": "",
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "is_export_filesystem": "off",
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -5606,6 +5605,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         form["name"] = domain
         form["note"] = note
+        form["is_export_filesystem"] = "off"
         res2 = form.submit()
 
         assert res2.status_code == 303
@@ -5632,6 +5632,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "acme_profile__primary": "@",
             "domain_template_dns01": "",
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "is_export_filesystem": "off",
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -5651,6 +5652,10 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         (
             "admin:enrollment_factory:focus",
             "admin:enrollment_factory:focus:edit",
+            "admin:enrollment_factory:focus:certificate_signeds",
+            "admin:enrollment_factory:focus:certificate_signeds-paginated",
+            "admin:enrollment_factory:focus:renewal_configurations",
+            "admin:enrollment_factory:focus:renewal_configurations-paginated",
         )
     )
     def test_manipulate_html(self):
@@ -5672,10 +5677,31 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
 
         res3 = self.testapp.get(res2.location, status=200)
 
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations/1",
+            status=200,
+        )
+
     @routes_tested(
         (
             "admin:enrollment_factory:focus|json",
             "admin:enrollment_factory:focus:edit|json",
+            "admin:enrollment_factory:focus:certificate_signeds|json",
+            "admin:enrollment_factory:focus:certificate_signeds-paginated|json",
+            "admin:enrollment_factory:focus:renewal_configurations|json",
+            "admin:enrollment_factory:focus:renewal_configurations-paginated|json",
         )
     )
     def test_manipulate_json(self):
@@ -5713,6 +5739,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "name": res.json["EnrollmentFactory"]["name"],
             "note": res.json["EnrollmentFactory"]["note"],
+            "is_export_filesystem": "off",
             "private_key_cycle__backup": res.json["EnrollmentFactory"][
                 "private_key_cycle__backup"
             ],
@@ -5732,6 +5759,24 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert res3.status_code == 200
         assert res3.json["result"] == "success"
         assert "EnrollmentFactory" in res3.json
+
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds.json"
+        )
+        assert "CertificateSigneds" in res4.json
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds.json"
+        )
+        assert "CertificateSigneds" in res4.json
+
+        res5 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
+        )
+        assert "RenewalConfigurations" in res5.json
+        res5 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
+        )
+        assert "RenewalConfigurations" in res5.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -6674,7 +6719,6 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
             status=200,
         )
-        pprint.pprint(res.json)
         assert "form_fields" in res.json
 
         account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
@@ -10897,7 +10941,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {"domain_name": "test-domain-autocert-1.example.com"},
             status=200,
         )
-        pprint.pprint(res.json)
         assert res.json["result"] == "success"
         assert "Domain" in res.json
         assert "certificate_signed__latest_multi" in res.json
@@ -12693,6 +12736,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 class CoverageAssurance_AuditTests(AppTest):
     """
     python -m unittest tests.test_pyramid_app.CoverageAssurance_AuditTests
+    pytest tests/test_pyramid_app.py::CoverageAssurance_AuditTests
     """
 
     def test_audit_route_coverage(self):

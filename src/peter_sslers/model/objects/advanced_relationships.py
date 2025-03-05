@@ -24,6 +24,7 @@ from .objects import CertificateSigned
 from .objects import CoverageAssuranceEvent
 from .objects import Domain
 from .objects import DomainAutocert
+from .objects import EnrollmentFactory
 from .objects import PrivateKey
 from .objects import RenewalConfiguration
 from .objects import UniqueFQDNSet
@@ -857,6 +858,82 @@ Domain.renewal_configurations__5 = sa.orm.relationship(
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(RenewalConfiguration.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=RenewalConfiguration.id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: EnrollmentFactory.certificate_signeds__5
+"""
+    EnrollmentFactory > CertificateSigned
+    Old : EnrollmentFactory > RenewalConfiguration > AcmeOrder > CertificateSigned
+"""
+join_CertificateSigned_RenewalConfiguration = sa.join(
+    CertificateSigned,
+    AcmeOrder,
+    CertificateSigned.id == AcmeOrder.certificate_signed_id,
+).join(
+    RenewalConfiguration,
+    AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+)
+CertificateSigned_via_RenewalConfiguration = sa.orm.aliased(
+    CertificateSigned, join_CertificateSigned_RenewalConfiguration, flat=True
+)
+EnrollmentFactory.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned_via_RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            EnrollmentFactory.id
+            == join_CertificateSigned_RenewalConfiguration.c.renewal_configuration_enrollment_factory_id__via,
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
+                .join(
+                    RenewalConfiguration,
+                    RenewalConfiguration.id == AcmeOrder.renewal_configuration_id,
+                )
+                .where(
+                    RenewalConfiguration.enrollment_factory_id__via
+                    == EnrollmentFactory.id
+                )
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateSigned.id.desc(),
+    viewonly=True,
+)
+
+
+# note: EnrollmentFactory.renewal_configurations__5
+"""
+    EnrollmentFactory > RenewalConfiguration
+"""
+EnrollmentFactory.renewal_configurations__5 = sa.orm.relationship(
+    RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            EnrollmentFactory.id == RenewalConfiguration.enrollment_factory_id__via,
+            RenewalConfiguration.id.in_(
+                sa.select((RenewalConfiguration.id))
+                .where(
+                    EnrollmentFactory.id
+                    == RenewalConfiguration.enrollment_factory_id__via
+                )
                 .order_by(RenewalConfiguration.id.desc())
                 .limit(5)
                 .correlate()

@@ -1280,6 +1280,8 @@
             cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         elif perspective == 'Domain':
             cols = [c for c in cols]
+        elif perspective == 'EnrollmentFactory':
+            cols = [c for c in cols]
         else:
             raise ValueError("invalid `perspective`")
     %>

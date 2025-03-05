@@ -1011,6 +1011,18 @@ def _admin_views(config: "Configurator") -> None:
         "/enrollment-factory/{@id}/edit",
         jsonify=True,
     )
+    config.add_route_7(
+        "admin:enrollment_factory:focus:certificate_signeds",
+        "/enrollment-factory/{@id}/certificate-signeds",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factory:focus:renewal_configurations",
+        "/enrollment-factory/{@id}/renewal-configurations",
+        jsonify=True,
+        paginate=True,
+    )
 
     # !!!: Operations & Sync Events
     config.add_route_7(

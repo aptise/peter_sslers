@@ -2243,6 +2243,54 @@ def get__CertificateSigned__by_DomainId__latest(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__CertificateSigned__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext", enrollment_factory_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 def get__CertificateSigned__by_PrivateKeyId__count(
     ctx: "ApiContext", key_id: int
 ) -> int:
@@ -3421,6 +3469,31 @@ def get__RenewalConfigurations__by_DomainId__paginated(
         q = q.filter(UniqueFQDNSet.count_domains == 1)
     elif facet == "multi":
         q = q.filter(UniqueFQDNSet.count_domains > 1)
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__RenewalConfiguration__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfiguration__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+    )
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged

@@ -40,6 +40,28 @@
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
+                
+                % if RenewalConfiguration.enrollment_factory_id__via:
+                    <div class="alert alert-danger">
+                        <p>
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            This RenewalConfiguration is associated to 
+                            <a class="label label-info" 
+                                href="${admin_prefix}/enrollment-factory/${RenewalConfiguration.enrollment_factory_id__via}"
+                            >
+                                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                                EnrollmentFactory-${RenewalConfiguration.enrollment_factory_id__via}
+                            </a>                        
+                        </p>
+                        <p>
+                            A new RenewalConfiguration based on this record WILL NOT keep the EnrollmentFactory association.
+                        </p>
+
+
+                        
+                    </div>
+                % endif
+                
 
                 <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(

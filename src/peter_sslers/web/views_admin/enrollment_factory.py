@@ -392,6 +392,98 @@ class View_Focus(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)
 
+    @view_config(
+        route_name="admin:enrollment_factory:focus:certificate_signeds",
+        renderer="/admin/enrollment_factory-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:certificate_signeds-paginated",
+        renderer="/admin/enrollment_factory-focus-certificate_signeds.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:certificate_signeds|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:certificate_signeds-paginated|json",
+        renderer="json",
+    )
+    def related__CertificateSigneds(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        items_count = lib_db.get.get__CertificateSigned__by_EnrollmentFactoryId__count(
+            self.request.api_context, dbEnrollmentFactory.id
+        )
+        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__CertificateSigned__by_EnrollmentFactoryId__paginated(
+                self.request.api_context,
+                dbEnrollmentFactory.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        if self.request.wants_json:
+            _CertificateSigneds = [k.as_json for k in items_paged]
+            return {
+                "CertificateSigneds": _CertificateSigneds,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "EnrollmentFactory": dbEnrollmentFactory,
+            "CertificateSigneds_count": items_count,
+            "CertificateSigneds": items_paged,
+            "pager": pager,
+        }
+
+    @view_config(
+        route_name="admin:enrollment_factory:focus:renewal_configurations",
+        renderer="/admin/enrollment_factory-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:renewal_configurations-paginated",
+        renderer="/admin/enrollment_factory-focus-renewal_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:renewal_configurations|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:renewal_configurations-paginated|json",
+        renderer="json",
+    )
+    def related__RenewalConfigurations(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        items_count = (
+            lib_db.get.get__RenewalConfiguration__by_EnrollmentFactoryId__count(
+                self.request.api_context, dbEnrollmentFactory.id
+            )
+        )
+        url_template = "%s/renewal-configurations/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__RenewalConfiguration__by_EnrollmentFactoryId__paginated(
+                self.request.api_context,
+                dbEnrollmentFactory.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        if self.request.wants_json:
+            _RenewalConfigurations = [k.as_json for k in items_paged]
+            return {
+                "RenewalConfigurations": _RenewalConfigurations,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "EnrollmentFactory": dbEnrollmentFactory,
+            "RenewalConfigurations_count": items_count,
+            "RenewalConfigurations": items_paged,
+            "pager": pager,
+        }
+
 
 class View_New(Handler):
     @view_config(route_name="admin:enrollment_factorys:new")

@@ -103,6 +103,13 @@
                             </p>
                         </td>
                     </tr>
+                    <thead>
+                        <tr>
+                            <th colspan="2">
+                                Primary Certificate
+                            </th>
+                        </tr>
+                    </thead>
                     <tr>
                         <th>AcmeAccount Primary</th>
                         <td>
@@ -152,6 +159,13 @@
                             </span>
                         </td>
                     </tr>
+                    <thead>
+                        <tr>
+                            <th colspan="2">
+                                BACKUP Certficate
+                            </th>
+                        </tr>
+                    </thead>
                     <tr>
                         <th>AcmeAccount [Backup]</th>
                         <td>
@@ -199,6 +213,29 @@
                             <span class="label label-info">
                                 ${EnrollmentFactory.private_key_cycle__backup__effective}
                             </span>
+                        </td>
+                    </tr>
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            RELATIONS
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>CertificateSigneds</th>
+                        <td>
+                            ${admin_partials.table_CertificateSigneds(EnrollmentFactory.certificate_signeds__5, perspective='EnrollmentFactory')}
+                            ${admin_partials.nav_pager("%s/enrollment-factory/%s/certificate-signeds" % (admin_prefix, EnrollmentFactory.id))}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>RenewalConfigurations</th>
+                        <td>
+                            ${admin_partials.table_RenewalConfigurations(EnrollmentFactory.renewal_configurations__5, perspective='EnrollmentFactory')}
+                            ${admin_partials.nav_pager("%s/enrollment-factory/%s/renewal-configurations" % (admin_prefix, EnrollmentFactory.id))}
                         </td>
                     </tr>
                 </tbody>
