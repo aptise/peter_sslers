@@ -91,9 +91,9 @@
                                 % if not AcmeAccount.is_active:
                                     <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="active"/>
-                                        <button class="btn btn-xs btn-info" type="submit">
+                                        <button class="btn btn-xs btn-primary" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            active
+                                            Activate
                                         </button>
                                     </form>
                                 % else:
@@ -102,7 +102,7 @@
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                                inactive
+                                                Deactivate
                                             </button>
                                         </form>
                                     % endif
@@ -149,7 +149,7 @@
                                 <ul>
                                     % for ep in AcmeAccount.system_configurations__primary:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/system-configuration/${ep.slug}">
+                                            <a class="label label-info" href="${admin_prefix}/system-configuration/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                                 SystemConfiguration-${ep.name}
                                             </a>
@@ -162,7 +162,7 @@
                                 <ul>
                                     % for ep in AcmeAccount.system_configurations__backup:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/system-configuration/${ep.slug}">
+                                            <a class="label label-info" href="${admin_prefix}/system-configuration/${ep.slug}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                                 SystemConfiguration-${ep.name}
                                             </a>
@@ -180,7 +180,7 @@
                                 <ul>
                                     % for ep in AcmeAccount.enrollment_factorys__primary:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                            <a class="label label-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                                 EnrollmentFactory-${ep.id}
                                             </a>
@@ -193,7 +193,7 @@
                                 <ul>
                                     % for ep in AcmeAccount.enrollment_factorys__backup:
                                         <li>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                            <a class="label label-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
                                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                                 EnrollmentFactory-${ep.id}
                                             </a>
@@ -334,7 +334,7 @@
                         <td>
                             <code>${AcmeAccount.private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -348,7 +348,7 @@
                         <td>
                             <code>${AcmeAccount.order_default_private_key_cycle}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -360,7 +360,7 @@
                         <td>
                             <code>${AcmeAccount.order_default_private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -372,7 +372,7 @@
                         <td>
                             <code>${AcmeAccount.order_default_acme_profile or ""}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit

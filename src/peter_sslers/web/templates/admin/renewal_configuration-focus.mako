@@ -73,7 +73,7 @@
                                     <input type="hidden" name="action" value="active"/>
                                     <button class="btn btn-xs btn-info" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        active
+                                        Activate
                                     </button>
                                 </form>
                             % else:
@@ -81,7 +81,7 @@
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        inactive
+                                        Deactivate
                                     </button>
                                 </form>
                             % endif
@@ -125,7 +125,7 @@
                     <tr>
                         <th>acme_account__primary</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__primary}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -139,7 +139,7 @@
                         <th>acme_account__backup</th>
                         <td>
                             % if RenewalConfiguration.acme_account_id__backup:
-                                <a  class="btn btn-xs btn-primary"
+                                <a  class="label label-info"
                                     href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__backup}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -153,7 +153,7 @@
                     <tr>
                         <th>unique_fqdn_set</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/unique-fqdn-set/${RenewalConfiguration.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -166,7 +166,7 @@
                     <tr>
                         <th>uniquely_challenged_fqdn_set</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/uniquely-challenged-fqdn-set/${RenewalConfiguration.uniquely_challenged_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -214,7 +214,7 @@
                             % if RenewalConfiguration.enrollment_factory_id__via:
                             <a href="${admin_prefix}/enrollment-factory/${RenewalConfiguration.enrollment_factory_id__via}"
                                 title="EnrollmentFactory"
-                                class="btn btn-info btn-xs"
+                                class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 EnrollmentFactory-${RenewalConfiguration.enrollment_factory_id__via}
@@ -228,7 +228,7 @@
                             % if RenewalConfiguration.system_configuration_id__via:
                             <a href="${admin_prefix}/system-configuration/${RenewalConfiguration.system_configuration_id__via}"
                                 title="SystemConfiguration"
-                                class="btn btn-info btn-xs"
+                                class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 SystemConfiguration-${RenewalConfiguration.system_configuration_id__via}

@@ -246,7 +246,7 @@
                             &nbsp;
                             <a
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/audit"
-                                class="btn btn-xs btn-info"
+                                class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 Audit Report

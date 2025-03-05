@@ -1,11 +1,12 @@
 URGENT
 =====
 
-SQLAlchemy
-    Domain.[advanced relationships] will break eager loading
-
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
+
+Bug
+    Ordering a backup cert will deactivate the primary cert
+
 
 
 Tests:

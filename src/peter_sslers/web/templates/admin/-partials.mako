@@ -1685,7 +1685,7 @@
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]}/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]|n}/>
                     <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
@@ -1710,7 +1710,7 @@
         % if acmeAccount_GlobalDefault:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]}/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]|n}/>
                     The Global Default AcmeAccount.
                 </label>
                 <p class="form-control-static">
@@ -1807,14 +1807,14 @@
     <div class="form-horizontal">
         <div class="radio">
             <label>
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]}/>
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]|n}/>
                 No Backup Certificate
             </label>
         </div>
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]}/>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]|n}/>
                     <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
@@ -1839,7 +1839,7 @@
         % if acmeAccount_GlobalBackup:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]}/>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]|n}/>
                     The Global Backup AcmeAccount.
                 </label>
                 <p class="form-control-static">
@@ -2164,13 +2164,13 @@
         <label for="is_export_filesystem">Export Filesystem</label>
         <div class="radio">
             <label>
-                <input type="radio" name="is_export_filesystem" value="on" ${checked["on"]}/>
+                <input type="radio" name="is_export_filesystem" value="on" ${checked["on"]|n}/>
                 On
             </label>
         </div>
         <div class="radio">
             <label>
-                <input type="radio" name="is_export_filesystem" value="off" ${checked["off"]}/>
+                <input type="radio" name="is_export_filesystem" value="off" ${checked["off"]|n}/>
                 Off
             </label>
         </div>
@@ -2262,7 +2262,7 @@
         % if option_account_default:
             <div class="radio">
                 <label for="private_key_option-account_default">
-                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]}>
+                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]|n}>
                     Use the AcmeAccount&#39;s Default PrivateKey Settings
                 </label>
             </div>
@@ -2270,7 +2270,7 @@
         % if dbPrivateKeyReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]}/>
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]|n}/>
                     <input type="hidden" name="private_key_reuse" value="${dbPrivateKeyReuse.key_pem_md5}"/>
                     Select to renew with the same PrivateKey
                 </label>
@@ -2294,7 +2294,7 @@
         % if option_generate_new:
             <div class="radio">
                 <label for="private_key_option-private_key_generate">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]}>
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]|n}>
                     Generate a new Private Key
 
                     <select class="form-control" id="private_key_option-private_key_generate-select" name="private_key_generate">
