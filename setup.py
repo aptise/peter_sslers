@@ -106,5 +106,6 @@ setup(
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
+      update_filepaths = peter_sslers.web.scripts.update_filepaths:main
       """,
 )

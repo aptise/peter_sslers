@@ -184,12 +184,12 @@ and strives to just add an "s" for plurals:
 For instance, the second example below may be confusing to non-native users:
 
     acme-account > acme-accounts
-    erollment-policy > enrollment-policies
+    enrollment-factory > enrollment-factories
 
 To accomodate that, bad grammar is used:
 
     acme-account > acme-accounts
-    erollment-policy > enrollment-policys
+    enrollment-factory > enrollment-factorys
     
 Although this breaks language rules, the intent and meaning is clear and a larger
 English vocabulary is not needed to understand this.

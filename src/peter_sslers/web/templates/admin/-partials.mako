@@ -28,7 +28,7 @@
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
-                <th>count certificate requests</th>
+                ## <th>count certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -66,7 +66,7 @@
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
-                    <td><span class="badge">${account.count_acme_orders or ''}</span></td>
+                    ## <td><span class="badge">${account.count_acme_orders or ''}</span></td>
                     <td><span class="badge">${account.count_certificate_signeds or ''}</span></td>
                 </tr>
             % endfor
@@ -857,7 +857,9 @@
             <tr>
                 <th>id</th>
                 <th>active?</th>
-                <th>auto-renew?</th>
+                % if perspective != "RenewalConfiguration":
+                    <th>auto-renew?</th>
+                % endif
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
                 % if show_expiring_days:
@@ -885,7 +887,11 @@
                             ${'Active' if cert.is_active else 'inactive'}
                         </span>
                     % endif
+                    <span class="label label-default">
+                        ${cert.certificate_type}
+                    </span>
                 </td>
+                % if perspective != "RenewalConfiguration":
                 <td>
                     % if cert.acme_order:
                         <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
@@ -906,6 +912,7 @@
                         </span>
                     % endif
                 </td>
+                % endif
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                 % if show_expiring_days:
@@ -1219,7 +1226,7 @@
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
                 <th>count active certificates</th>
-                <th>count certificate requests</th>
+                ## <th>count certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -1245,7 +1252,7 @@
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                 <td><code>${key.key_pem_md5}</code></td>
                 <td><span class="badge">${key.count_active_certificates or ''}</span></td>
-                <td><span class="badge">${key.count_acme_orders or ''}</span></td>
+                ## <td><span class="badge">${key.count_acme_orders or ''}</span></td>
                 <td><span class="badge">${key.count_certificate_signeds or ''}</span></td>
             </tr>
         % endfor
@@ -1268,7 +1275,7 @@
         if perspective == 'RenewalConfiguration':
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
-            cols = [c for c in cols if c != "acme_account_id__primary"]
+            cols = [c for c in cols if c not in ("acme_account_id__primary", "acme_account_id__backup")]
         elif perspective == 'UniquelyChallengedFQDNSet':
             cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         elif perspective == 'Domain':
@@ -1300,6 +1307,11 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${renewal_configuration.acme_account_id__primary}
+                                </a>
+                            % elif c == 'acme_account_id__backup':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id__backup}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${renewal_configuration.acme_account_id__backup}
                                 </a>
                             % elif c == 'unique_fqdn_set_id':
                                 <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">

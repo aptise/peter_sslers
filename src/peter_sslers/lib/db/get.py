@@ -3315,7 +3315,7 @@ def get__RenewalConfiguration__paginated(
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration)
     if active_status in (True, False):
-        q = q.filter(RenewalConfiguration.is_active == active_status)
+        q = q.filter(RenewalConfiguration.is_active.is_(active_status))
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged

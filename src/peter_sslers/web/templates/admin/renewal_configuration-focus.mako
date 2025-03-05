@@ -252,9 +252,21 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>CertificateSigneds - ALL</th>
                         <td>
                             ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__5, perspective='RenewalConfiguration')}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds - Primary</th>
+                        <td>
+                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__primary__5, perspective='RenewalConfiguration')}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds - Backup</th>
+                        <td>
+                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__backup__5, perspective='RenewalConfiguration')}
                         </td>
                     </tr>
                 </tbody>

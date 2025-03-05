@@ -4730,6 +4730,15 @@ class RenewalConfiguration(
         return {
             "id": self.id,
             # - -
+            "CertificateSigneds_5_primary": [
+                i.as_json_replaces_candidate
+                for i in self.certificate_signeds__primary__5
+            ],
+            "CertificateSigneds_5_backup": [
+                i.as_json_replaces_candidate
+                for i in self.certificate_signeds__backup__5
+            ],
+            # - -
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
             "acme_profile__primary": self.acme_profile__primary,

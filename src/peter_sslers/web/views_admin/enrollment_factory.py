@@ -169,7 +169,6 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             # admin_url = self.request.admin_url
-            print(items_paged)
             return {
                 "EnrollmentFactorys": [i.as_json for i in items_paged],
                 "pagination": json_pagination(items_count, pager),

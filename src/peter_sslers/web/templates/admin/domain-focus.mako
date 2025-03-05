@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li class="active">Focus [${Domain.id}]</li>
+        <li class="active">Focus [${Domain.id}-${Domain.domain_name}]</li>
     </ol>
 </%block>
 
@@ -245,10 +245,32 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>CertificateSigneds ALL</th>
                         <td>
                             % if Domain.certificate_signeds__5:
                             ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
+                            % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds Single Primary</th>
+                        <td>
+                            % if Domain.certificate_signeds__single_primary_5:
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_primary_5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
+                            % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds Single Backup</th>
+                        <td>
+                            % if Domain.certificate_signeds__single_backup_5:
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_backup_5, show_domains=True, show_expiring_days=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif

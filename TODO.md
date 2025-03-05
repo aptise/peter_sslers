@@ -8,6 +8,12 @@ Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
 
+ACMESERVER-
+    unique name lower
+ACMEACCOUNT
+    show enrollment factorys
+
+
 Tests:
     AcmeAccounts:
         These all work as intended, but unitests should ensure:
@@ -42,7 +48,8 @@ Streamline Onboarding
 
 
 
-
+SQLAlchemy
+    audit use of `secondary` again, as that pattern is fragile on some of our selects -- so they may need to be replaced with the aliased pattern.
 
 
 

@@ -173,6 +173,37 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>EnrollmentFactorys</th>
+                        <td>
+                            % if AcmeAccount.enrollment_factorys__primary:
+                                <b>Configured as Primary</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_factorys__primary:
+                                        <li>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentFactory-${ep.id}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
+                            % if AcmeAccount.enrollment_factorys__backup:
+                                <b>Configured as Backup</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_factorys__backup:
+                                        <li>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentFactory-${ep.id}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>source</th>
                         <td>
                             <span class="label label-default">${AcmeAccount.acme_account_key.acme_account_key_source}</span>
