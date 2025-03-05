@@ -298,6 +298,7 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     ):
         if not utils.validate_websafe_slug(_name):
             raise ValueError("invalid name")
+        _name = utils.normalize_unique_text(_name)
         dbSystemConfiguration = model_objects.SystemConfiguration()
         dbSystemConfiguration.name = _name
         dbSystemConfiguration.is_configured = False

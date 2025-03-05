@@ -1078,6 +1078,7 @@ class View_Focus_Manipulate(View_Focus):
 
             # !!!: edit: private_key_technology
             name = formStash.results["name"] or None
+            name = utils.normalize_unique_text(name)
             if name != self.dbAcmeAccount.name:
                 try:
                     event_payload_dict["edit"]["old"]["name"] = self.dbAcmeAccount.name

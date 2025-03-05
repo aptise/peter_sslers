@@ -26,6 +26,7 @@ from .validate import validate_domain_names
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib import utils as lib_utils
 from ...lib.db import get as _get  # noqa: F401
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -103,10 +104,12 @@ def create__AcmeServer(
 
     assert ctx.timestamp
 
+    name = lib_utils.normalize_unique_text(name)
+
     # ok, try to build one...
     dbAcmeServer = model_objects.AcmeServer()
     dbAcmeServer.timestamp_created = ctx.timestamp
-    dbAcmeServer.name = name
+    dbAcmeServer.name = name  # unique
     dbAcmeServer.directory = directory
     dbAcmeServer.is_default = None  # legacy and unused
     dbAcmeServer.is_enabled = True  # legacy and unused
@@ -1248,8 +1251,10 @@ def create__EnrollmentFactory(
         if dbAcmeAccount_primary.acme_server_id == dbAcmeAccount_backup.acme_server_id:
             raise ValueError("Primary and Backup ACME servers must be different")
 
+    name = lib_utils.normalize_unique_text(name)
+
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
-    dbEnrollmentFactory.name = name.lower()  # uniqueness on lower(name)
+    dbEnrollmentFactory.name = name  # uniqueness on lower(name)
     # p
     dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
     dbEnrollmentFactory.private_key_technology_id__primary = (
@@ -1430,9 +1435,7 @@ def create__RenewalConfiguration(
             # `@` is special label for "use account default"
             if acme_profile__backup != "@":
                 # TODO: INVESTIGATE
-                import pdb
-
-                pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 raise errors.UnknownAcmeProfile_Local(
                     "acme_profile__backup",
                     acme_profile__backup,

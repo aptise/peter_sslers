@@ -8,12 +8,6 @@ Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
 
-ACMESERVER-
-    unique name lower
-ACMEACCOUNT
-    show enrollment factorys
-
-
 Tests:
     AcmeAccounts:
         These all work as intended, but unitests should ensure:

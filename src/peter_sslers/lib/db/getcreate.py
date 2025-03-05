@@ -42,6 +42,7 @@ from .validate import validate_domain_names
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -1224,13 +1225,15 @@ def getcreate__Domain__by_domainName(
     """
     is_created = False
     dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
+    domain_name = lib_utils.normalize_unique_text(domain_name)
+
     if not dbDomain:
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx, model_utils.OperationsEventType.from_string("Domain__insert")
         )
         dbDomain = model_objects.Domain()
-        dbDomain.domain_name = domain_name
+        dbDomain.domain_name = domain_name  # unique
         dbDomain.timestamp_created = ctx.timestamp
         dbDomain.operations_event_id__created = dbOperationsEvent.id
         dbDomain.discovery_type = discovery_type

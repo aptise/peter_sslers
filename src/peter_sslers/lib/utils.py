@@ -112,6 +112,12 @@ def validate_websafe_slug(slug: str) -> bool:
     return False
 
 
+def normalize_unique_text(text: str) -> str:
+    if text:
+        return text.strip().lower()
+    return text
+
+
 # ------------------------------------------------------------------------------
 
 

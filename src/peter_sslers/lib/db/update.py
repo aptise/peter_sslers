@@ -25,7 +25,7 @@ from .. import errors
 from ... import lib
 from ...lib import acme_v2
 from ...lib import events as _events  # noqa: F401
-from ...lib import utils as lib_utils  # noqa: F401
+from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -59,6 +59,7 @@ def update_AcmeAccount__name(
     dbAcmeAccount: "AcmeAccount",
     name: Optional[str],
 ) -> str:
+    name = lib_utils.normalize_unique_text(name)
     if dbAcmeAccount.name != name:
         dbAcmeAccount.name = name
         ctx.dbSession.flush(objects=[dbAcmeAccount])
@@ -924,6 +925,8 @@ def update_EnrollmentFactory(
         else None
     )
 
+    name = lib_utils.normalize_unique_text(name)
+
     pairings = (
         ("acme_account_id__primary", acme_account_id__primary),
         ("private_key_cycle_id__primary", private_key_cycle_id__primary),
@@ -933,7 +936,7 @@ def update_EnrollmentFactory(
         ("private_key_cycle_id__backup", private_key_cycle_id__backup),
         ("private_key_technology_id__backup", private_key_technology_id__backup),
         ("acme_profile__backup", acme_profile__backup),
-        ("name", name.lower() if name else None),
+        ("name", name),
         ("note", note),
         ("domain_template_http01", domain_template_http01),
         ("domain_template_dns01", domain_template_dns01),
