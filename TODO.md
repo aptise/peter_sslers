@@ -9,6 +9,7 @@ Bug
 
 
 
+
 Tests:
     AcmeAccounts:
         These all work as intended, but unitests should ensure:
@@ -22,6 +23,8 @@ Tests:
         test with invalid profile
     Renewal Configuration
         ensure acme_profile__backup and @ work
+        renewing an INACTIVE duplciate will still return the INACTIVE dupicate (works, just needs coverage)
+        
     EnrollmentFactory
         improve testing
             fail predictablly

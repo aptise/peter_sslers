@@ -604,7 +604,7 @@ def parse_AcmeAccountSelection_backup(
         ):
             formStash.fatal_field(
                 field=account_key_option,
-                message="The selected AcmeAccount is not the global backup.",
+                message="The selected AcmeAccount is not the Global Backup.",
             )
 
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
