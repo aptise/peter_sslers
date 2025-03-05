@@ -59,7 +59,7 @@ def update_AcmeAccount__name(
     dbAcmeAccount: "AcmeAccount",
     name: Optional[str],
 ) -> str:
-    name = lib_utils.normalize_unique_text(name)
+    name = lib_utils.normalize_unique_text(name) if name else None
     if dbAcmeAccount.name != name:
         dbAcmeAccount.name = name
         ctx.dbSession.flush(objects=[dbAcmeAccount])
@@ -925,7 +925,7 @@ def update_EnrollmentFactory(
         else None
     )
 
-    name = lib_utils.normalize_unique_text(name)
+    name = lib_utils.normalize_unique_text(name) if name else None
 
     pairings = (
         ("acme_account_id__primary", acme_account_id__primary),
