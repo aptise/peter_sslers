@@ -99,7 +99,7 @@
                             )}
                             <p>
                                 Create or Upload additional
-                                <a href="${admin_prefix}/acme-accounts" class="btn btn-xs btn-info">
+                                <a href="${admin_prefix}/acme-accounts" class="label label-info">
                                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                     AcmeAccounts
                                 </a>
@@ -152,7 +152,7 @@
                             )}
                             <p>
                                 Create or Upload additional
-                                <a href="${admin_prefix}/acme-accounts" class="btn btn-xs btn-info">
+                                <a href="${admin_prefix}/acme-accounts" class="label label-info">
                                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                     AcmeAccounts
                                 </a>

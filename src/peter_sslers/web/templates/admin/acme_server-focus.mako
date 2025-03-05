@@ -138,7 +138,7 @@
                         % if not AcmeServer.is_unlimited_pending_authz:
                             <form action="${admin_prefix}/acme-server/${AcmeServer.id}/mark" method="POST" style="display:inline;" id="form-mark">
                                 <input type="hidden" name="action" value="is_unlimited_pending_authz-true"/>
-                                <button class="btn btn-xs btn-info" type="submit">
+                                <button class="btn btn-xs btn-primary" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                     set
                                 </button>

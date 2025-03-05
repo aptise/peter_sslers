@@ -37,6 +37,7 @@ requires = [
     "python-dateutil",
     "requests",
     "SQLAlchemy>2",
+    "tldextract",
     "typing_extensions",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3

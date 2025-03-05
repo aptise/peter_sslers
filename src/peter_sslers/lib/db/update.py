@@ -869,6 +869,7 @@ def update_EnrollmentFactory(
     note: Optional[str],
     domain_template_http01: Optional[str],
     domain_template_dns01: Optional[str],
+    label_template: Optional[str],
     is_export_filesystem: Optional[bool],
 ) -> bool:
     if not any(
@@ -940,6 +941,7 @@ def update_EnrollmentFactory(
         ("private_key_technology_id__backup", private_key_technology_id__backup),
         ("acme_profile__backup", acme_profile__backup),
         ("note", note),
+        ("label_template", label_template),
         ("domain_template_http01", domain_template_http01),
         ("domain_template_dns01", domain_template_dns01),
         ("is_export_filesystem", is_export_filesystem),

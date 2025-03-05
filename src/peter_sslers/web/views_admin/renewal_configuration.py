@@ -605,6 +605,7 @@ class View_Focus_New(View_Focus):
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the RenewalConfiguration.",
+                "label": "A short string used to label the RenewalConfiguration on exports. [Optional]",
                 # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
@@ -725,6 +726,12 @@ class View_Focus_New(View_Focus):
 
             # shared
             note = formStash.results["note"]
+            label = formStash.results["label"]
+            label = utils.normalize_unique_text(label)
+            if not utils.validate_label(label):
+                formStash.fatal_field(
+                    field="label", message="the `label` is not compliant"
+                )
 
             # PRIMARY cert
             acme_profile__primary = formStash.results["acme_profile__primary"]
@@ -836,6 +843,7 @@ class View_Focus_New(View_Focus):
                         acme_profile__backup=acme_profile__backup,
                         # misc
                         note=note,
+                        label=label,
                     )
                     is_duplicate_renewal = False
 
@@ -1079,6 +1087,7 @@ class View_New(Handler):
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the RenewalConfiguration.",
+                "label": "A short string used to label the RenewalConfiguration on exports. [Optional]",
                 # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
@@ -1203,6 +1212,12 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
 
             # shared
             note = formStash.results["note"]
+            label = formStash.results["label"]
+            label = utils.normalize_unique_text(label)
+            if not utils.validate_label(label):
+                formStash.fatal_field(
+                    field="label", message="the `label` is not compliant"
+                )
 
             # PRIMARY cert
             private_key_technology__primary = formStash.results[
@@ -1314,6 +1329,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                         acme_profile__backup=acme_profile__backup,
                         # misc
                         note=note,
+                        label=label,
                     )
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True
@@ -1509,6 +1525,7 @@ class View_New_Enrollment(Handler):
                         )
 
             domain_name = domains_challenged["http-01"][0]
+            reverse_domain_name = utils.reverse_domain_name(domain_name)
 
             # does the domain exist?
             # we should check to see if it does and has certs
@@ -1535,8 +1552,9 @@ class View_New_Enrollment(Handler):
                 templated_domains = (
                     self.dbEnrollmentFactory.domain_template_dns01.replace(
                         "{DOMAIN}", domain_name
-                    )
+                    ).replace("{NIAMOD}", reverse_domain_name)
                 )
+                # domains will also be lowercase+strip
                 submitted_ = cert_utils.utils.domains_from_string(templated_domains)
                 domain_names_all.extend(submitted_)
                 domains_challenged["dns-01"] = submitted_
@@ -1545,8 +1563,9 @@ class View_New_Enrollment(Handler):
                 templated_domains = (
                     self.dbEnrollmentFactory.domain_template_http01.replace(
                         "{DOMAIN}", domain_name
-                    )
+                    ).replace("{NIAMOD}", reverse_domain_name)
                 )
+                # domains will also be lowercase+strip
                 submitted_ = cert_utils.utils.domains_from_string(templated_domains)
                 domain_names_all.extend(submitted_)
                 domains_challenged["http-01"] = submitted_
@@ -1590,6 +1609,17 @@ class View_New_Enrollment(Handler):
             #
 
             note = formStash.results["note"]
+            label = formStash.results["label"]
+            if label:
+                label = utils.apply_domain_template(
+                    label, domain_name, reverse_domain_name
+                )
+                label = utils.normalize_unique_text(label)
+                if not utils.validate_label(label):
+                    formStash.fatal_field(
+                        field="label", message="the `label` is not compliant"
+                    )
+
             is_duplicate_renewal: bool
             try:
                 dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
@@ -1619,6 +1649,7 @@ class View_New_Enrollment(Handler):
                     ),
                     # misc
                     note=note,
+                    label=label,
                     dbEnrollmentFactory=self.dbEnrollmentFactory,
                 )
                 is_duplicate_renewal = False  # noqa: F841

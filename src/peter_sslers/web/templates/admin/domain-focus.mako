@@ -85,7 +85,7 @@
                 </div>
             % endif
 
-            <table class="table table-condensed">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -105,6 +105,14 @@
                     <tr>
                         <th>domain_name</th>
                         <td><code>${Domain.domain_name}</code></td>
+                    </tr>
+                    <tr>
+                        <th>registered</th>
+                        <td><code>${Domain.registered}</code></td>
+                    </tr>
+                    <tr>
+                        <th>suffix</th>
+                        <td><code>${Domain.suffix}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>

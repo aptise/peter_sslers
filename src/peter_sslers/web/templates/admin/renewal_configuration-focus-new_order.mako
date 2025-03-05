@@ -67,9 +67,10 @@
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeServer-${RenewalConfiguration.acme_account__primary.acme_server_id}
-                                |
-                                ${RenewalConfiguration.acme_account__primary.acme_server.server}
                             </a>
+                            <span class="label label-default">
+                                ${RenewalConfiguration.acme_account__primary.acme_server.name}
+                            </span>
                             <br/>
                             <code>${RenewalConfiguration.acme_account__primary.acme_account_key.key_pem_sample}</code>
                         </td>
@@ -91,9 +92,10 @@
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeServer-${RenewalConfiguration.acme_account__backup.acme_server_id}
-                                    |
-                                    ${RenewalConfiguration.acme_account__backup.acme_server.server}
                                 </a>
+                                <span class="label label-default">
+                                    ${RenewalConfiguration.acme_account__backup.acme_server.server}
+                                </span>
                                 <br/>
                                 <code>${RenewalConfiguration.acme_account__backup.acme_account_key.key_pem_sample}</code>
                             </td>

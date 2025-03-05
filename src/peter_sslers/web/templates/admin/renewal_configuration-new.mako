@@ -96,6 +96,7 @@
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
                 ${admin_partials.formgroup__note()}
+                ${admin_partials.formgroup__label()}
                 <hr/>
                 <hr/>
 

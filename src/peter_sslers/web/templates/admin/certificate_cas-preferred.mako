@@ -100,7 +100,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
                 <input type="text" name="fingerprint_sha1"/>
-                <button class="btn btn-xs btn-info" type="submit">
+                <button class="btn btn-xs btn-primary" type="submit">
                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                     Add
                 </button>

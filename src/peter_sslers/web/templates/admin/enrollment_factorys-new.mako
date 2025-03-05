@@ -50,7 +50,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>AcmeAccount</td>
+                            <th>AcmeAccount</th>
                             <td>
                                ${admin_partials.formgroup__AcmeAccount_select(
                                    acmeAccounts=AcmeAccounts,
@@ -59,7 +59,7 @@
                                 )}
                                 <p>
                                     Create or Upload additional
-                                    <a href="${admin_prefix}/acme-accounts" class="btn btn-xs btn-info">
+                                    <a href="${admin_prefix}/acme-accounts" class="label label-info">
                                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                         AcmeAccounts
                                     </a>
@@ -68,7 +68,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Profile</td>
+                            <th>Profile</th>
                             <td>
                                ${admin_partials.formgroup__acme_profile(
                                    field_name="acme_profile__primary",
@@ -76,7 +76,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Key Technology</td>
+                            <th>Key Technology</th>
                             <td>
                                ${admin_partials.formgroup__key_technology(
                                    field_name="private_key_technology__primary",
@@ -84,7 +84,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Key Cycling</td>
+                            <th>Key Cycling</th>
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__primary",
@@ -101,7 +101,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>AcmeAccount</td>
+                            <th>AcmeAccount</th>
                             <td>
                                ${admin_partials.formgroup__AcmeAccount_select(
                                    acmeAccounts=AcmeAccounts,
@@ -110,7 +110,7 @@
                                 )}
                                 <p>
                                     Create or Upload additional
-                                    <a href="${admin_prefix}/acme-accounts" class="btn btn-xs btn-info">
+                                    <a href="${admin_prefix}/acme-accounts" class="label label-info">
                                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                                         AcmeAccounts
                                     </a>
@@ -119,7 +119,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Profile</td>
+                            <th>Profile</th>
                             <td>
                                ${admin_partials.formgroup__acme_profile(
                                    field_name="acme_profile__backup",
@@ -127,7 +127,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Key Technology</td>
+                            <th>Key Technology</th>
                             <td>
                                ${admin_partials.formgroup__key_technology(
                                    field_name="private_key_technology__backup",
@@ -135,7 +135,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Key Cycle</td>
+                            <th>Key Cycle</th>
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__backup",
@@ -151,31 +151,37 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>name</td>
+                            <th>name</th>
                             <td>
                                 ${admin_partials.formgroup__name()}
                             </td>
                         </tr>
                         <tr>
-                            <td>is_export_filesystem</td>
+                            <th>is_export_filesystem</th>
                             <td>
                                 ${admin_partials.formgroup__is_export_filesystem()}
                             </td>
                         </tr>
                         <tr>
-                            <td>note</td>
+                            <th>note</th>
                             <td>
                                 ${admin_partials.formgroup__note()}
                             </td>
                         </tr>
                         <tr>
-                            <td>template</td>
+                            <th>label template</th>
+                            <td>
+                                ${admin_partials.formgroup__label_template(default="{DOMAIN}")}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>template</th>
                             <td>
                                 ${admin_partials.formgroup__domain_templates(default_http01="{DOMAIN}")}
                             </td>
                         </tr>
                         <tr>
-                            <td></td>
+                            <th></th>
                             <td>
                                 <button class="btn btn-primary" type="submit" name="submit" value="submit">
                                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

@@ -21,6 +21,7 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
 
@@ -30,6 +31,16 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServer
 
 # ==============================================================================
+
+
+def validate_label_template(template: str) -> Tuple[bool, Optional[str]]:
+    if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
+        return False, "Missing {DOMAIN} or {NIAMOD} marker"
+    _expanded = lib_utils.apply_domain_template(template, "example.com", "com.example")
+    _normalized = lib_utils.normalize_unique_text(_expanded)
+    if not lib_utils.validate_label(_normalized):
+        return False, "the `label_template` is not compliant"
+    return True, None
 
 
 def validate_domains_template(template: str) -> Tuple[Optional[str], Optional[str]]:
@@ -46,21 +57,24 @@ def validate_domains_template(template: str) -> Tuple[Optional[str], Optional[st
         return None, "Nothing submitted"
     # remove any spaces
     template = template.replace(" ", "")
-    ds = template.split(",")
-    ds = [i.strip() for i in ds]
-    for i in ds:
-        if "{DOMAIN}" not in i:
-            return None, "Missing {DOMAIN} marker"
-    ds2 = [i.replace("{DOMAIN}", "example.com") for i in ds]
+
+    if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
+        return None, "Missing {DOMAIN} or {NIAMOD} marker"
+
+    templated = template.replace("{DOMAIN}", "example.com").replace(
+        "{NIAMOD}", "com.example"
+    )
+
+    ds = [i.strip() for i in templated.split(",")]
     try:
-        cert_utils.validate_domains(ds2)
+        cert_utils.validate_domains(ds)
     except Exception:
         return None, "Invalid Domain(s) Detected"
-    normalized = ", ".join(ds)
+    normalized = templated
     return normalized, None
 
 
-def validate_formstash_domains(
+def validate_formstash_domain_templates(
     formStash: "FormStash",
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
 ) -> Tuple[str, str]:
@@ -86,12 +100,16 @@ def validate_formstash_domains(
     domain_names_all = []
     if domain_template_dns01:
         domain_names = domain_template_dns01.replace("{DOMAIN}", "example.com")
+        domain_names = domain_template_dns01.replace("{NIAMOD}", "com.example")
+        # domains will also be lowercase+strip
         domain_names = cert_utils.utils.domains_from_string(domain_names)
         if domain_names:
             domain_names_all.extend(domain_names)
             domains_challenged["dns-01"] = domain_names
     if domain_template_http01:
         domain_names = domain_template_http01.replace("{DOMAIN}", "example.com")
+        domain_names = domain_template_http01.replace("{NIAMOD}", "com.example")
+        # domains will also be lowercase+strip
         domain_names = cert_utils.utils.domains_from_string(domain_names)
         if domain_names:
             domain_names_all.extend(domain_names)
@@ -327,11 +345,16 @@ class View_Focus(Handler):
             # these require some validation
             # nest outside of the try to minimize Exception catching
             (domain_template_http01, domain_template_dns01) = (
-                validate_formstash_domains(
+                validate_formstash_domain_templates(
                     formStash,
                     dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
                 )
             )
+            label_template = formStash.results["label_template"]
+            if label_template:
+                _valid, _err = validate_label_template(label_template)
+                if not _valid:
+                    formStash.fatal_field(field="label_template", message=_err)
 
             try:
 
@@ -368,6 +391,7 @@ class View_Focus(Handler):
                     is_export_filesystem=is_export_filesystem,
                     # misc
                     note=formStash.results["note"],
+                    label_template=label_template,
                     domain_template_http01=domain_template_http01,
                     domain_template_dns01=domain_template_dns01,
                 )
@@ -500,6 +524,7 @@ class View_New(Handler):
             "form_fields": {
                 "name": "name",
                 "note": "note",
+                "label_template": "template used for RenewalConfiguration labels",
                 "is_export_filesystem": "export certs?",
                 "domain_template_http01": "template",
                 "domain_template_dns01": "template",
@@ -588,7 +613,7 @@ class View_New(Handler):
                     )
 
                 (domain_template_http01, domain_template_dns01) = (
-                    validate_formstash_domains(
+                    validate_formstash_domain_templates(
                         formStash,
                         dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
                     )
@@ -663,6 +688,12 @@ class View_New(Handler):
                     private_key_technology_id__backup = None
                     acme_profile__backup = None
 
+                label_template = formStash.results["label_template"]
+                if label_template:
+                    _valid, _err = validate_label_template(label_template)
+                    if not _valid:
+                        formStash.fatal_field(field="label_template", message=_err)
+
                 # make it
 
                 dbEnrollmentFactory = lib_db.create.create__EnrollmentFactory(
@@ -682,6 +713,7 @@ class View_New(Handler):
                     note=note,
                     domain_template_http01=domain_template_http01,
                     domain_template_dns01=domain_template_dns01,
+                    label_template=label_template,
                 )
             except formhandling.FormInvalid as exc:  # noqa: F841
                 raise

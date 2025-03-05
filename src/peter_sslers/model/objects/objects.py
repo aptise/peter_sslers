@@ -3626,6 +3626,9 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    registered: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    suffix: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
@@ -3908,6 +3911,8 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     __tablename__ = "enrollment_factory"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+
+    label_template: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
 
     domain_template_http01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
@@ -4564,6 +4569,9 @@ class RenewalConfiguration(
         TZDateTime(timezone=True), nullable=False
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+
+    label: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+
     # this should always be true; maybe one day it will be a toggle
     is_save_alternate_chains: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, default=True

@@ -1228,12 +1228,16 @@ def getcreate__Domain__by_domainName(
     domain_name = lib_utils.normalize_unique_text(domain_name)
 
     if not dbDomain:
+        _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx, model_utils.OperationsEventType.from_string("Domain__insert")
         )
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name  # unique
+        dbDomain.registered = _registered
+        dbDomain.suffix = _suffix
         dbDomain.timestamp_created = ctx.timestamp
         dbDomain.operations_event_id__created = dbOperationsEvent.id
         dbDomain.discovery_type = discovery_type

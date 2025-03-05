@@ -6,12 +6,15 @@ import logging
 import re
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
+import cert_utils
 from pyramid.decorator import reify
 import pyramid_tm
 import requests
+import tldextract
 import transaction
 import zope.sqlalchemy
 
@@ -118,7 +121,85 @@ def normalize_unique_text(text: str) -> str:
     return text
 
 
+# 64chars
+RE_label = re.compile(r"^([a-zA-Z0-9\-\.\_]{1,64})$")
+
+
+def validate_label(label: str) -> bool:
+    if RE_label.match(label):
+        return True
+    return False
+
+
+def apply_domain_template(
+    template: str,
+    domain_name: str,
+    reverse_domain_name: str,
+) -> str:
+    template = template.replace("{DOMAIN}", domain_name).replace(
+        "{NIAMOD}", reverse_domain_name
+    )
+    return template
+
+
+def validate_label_template(template: str) -> Tuple[bool, Optional[str]]:
+    if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
+        return False, "Missing {DOMAIN} or {NIAMOD} marker"
+    _expanded = apply_domain_template(template, "example.com", "com.example")
+    _normalized = normalize_unique_text(_expanded)
+    if not validate_label(_normalized):
+        return False, "the `label_template` is not compliant"
+    return True, None
+
+
+def validate_domains_template(
+    template: str,
+    require_markers: bool = False,
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    validates and normalizes the template
+    return value is a tuple:
+        Optional[NormalizedTemplate], Optional[ErrorMessage]
+    Success will return:
+        [String, None]
+    Failure will yield:
+        [None, String]
+    """
+    if not template:
+        return None, "Nothing submitted"
+    # remove any spaces
+    template = template.replace(" ", "")
+
+    if require_markers:
+        if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
+            return None, "Missing {DOMAIN} or {NIAMOD} marker"
+
+    templated = apply_domain_template(template, "example.com", "com.example")
+
+    ds = [i.strip() for i in templated.split(",")]
+    try:
+        cert_utils.validate_domains(ds)
+    except Exception:
+        return None, "Invalid Domain(s) Detected"
+    normalized = templated
+    return normalized, None
+
+
 # ------------------------------------------------------------------------------
+
+
+def parse_domain_name(domain: str) -> Tuple[str, str]:
+    # parses a domain into the result.domain and result.suffix
+    result = tldextract.extract(domain)
+    return result.domain, result.suffix
+
+
+def reverse_domain_name(domain: str) -> str:
+    result = tldextract.extract(domain)
+    stack = [result.suffix, result.domain]
+    if result.subdomain:
+        stack.extend(reversed(result.subdomain.split(".")))
+    return ".".join(stack)
 
 
 # ------------------------------------------------------------------------------

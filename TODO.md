@@ -7,6 +7,12 @@ Audit/Remove? CoverageAssuranceEvent tracking
 Bug
     Ordering a backup cert will deactivate the primary cert
 
+BUG
+    EnrollmentFactory-New:
+        These can have an either/or situation
+        * validate_domains_template
+        * validate_formstash_domains
+    
 
 
 

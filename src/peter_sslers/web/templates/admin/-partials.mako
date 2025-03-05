@@ -433,22 +433,24 @@
                         <td>
                             <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeDnsServer-${a2d.acme_dns_server_id} | ${a2d.acme_dns_server.root_url}
+                                AcmeDnsServer-${a2d.acme_dns_server_id}
                             </a>
+                            <spa class="label label-default">${a2d.acme_dns_server.root_url}</span>
                         </td>
                     % endif
                     % if perspective != "Domain":
                         <td>
                             <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Domain-${a2d.domain_id} | ${a2d.domain.domain_name} 
+                                Domain-${a2d.domain_id}
                             </a>
+                            <spa class="label label-default">${a2d.domain.domain_name}</span>
                         </td>
                     % endif
                     <td>
                         <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            acme-dns Account Focus
+                            AcmeDnsServerAccount-${a2d.id}
                         </a>
                     </td>
                     <td>
@@ -786,9 +788,9 @@
     %>
     <%
         cols = ("id",
-                "type"
+                "type",
                 "timestamp_created",
-                "certificate_request_source_id",
+                "AcmeOrder",
                 "unique_fqdn_set_id",
                )
         if perspective == 'AcmeAccount':
@@ -821,29 +823,42 @@
             % for certificate_request in certificate_requests:
                 <tr>
                     % for c in cols:
-                        <td>
-                            % if c == 'id':
+                        % if c == 'id':
+                            <td>
                                 <a  class="label label-info"
                                     href="${admin_prefix}/certificate-request/${certificate_request.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     CertificateRequest-${certificate_request.id}</a>
-                            % elif c == 'type':
+                            </td>
+                        % elif c == 'type':
+                            <td>
                                 <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                            % elif c == 'timestamp_created':
+                            </td>
+                        % elif c == 'timestamp_created':
+                            <td>
                                 <timestamp>${certificate_request.timestamp_created}</timestamp>
-                            % elif c == 'certificate_request_source_id':
-                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                            % elif c == 'unique_fqdn_set_id':
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                            </td>
+                        % elif c == 'AcmeOrder':
+                            <td>
+                                % if certificate_request.certificate_request_source_id == model_websafe.CertificateRequestSource.ACME_ORDER:
+                                    <a  class="label label-info"
+                                    href="${admin_prefix}/acme-order/${certificate_request.acme_orders[0].id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
-                            % endif
-                        </td>
-                        % if show_domains:
-                             <td><code>${certificate_request.domains_as_string}</code></td>
+                                    AcmeOrder-${certificate_request.acme_orders[0].id}</a>
+                                % endif
+                            </td>
+                        % elif c == 'unique_fqdn_set_id':
+                            <td>
+                                <a  class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
+                            </td>
                         % endif
                     % endfor
+                    % if show_domains:
+                         <td><code>${certificate_request.domains_as_string}</code></td>
+                    % endif
                 </tr>
             % endfor
         </tbody>
@@ -1725,9 +1740,9 @@
                                          href="${admin_prefix}/acme-server/${acmeAccount_GlobalDefault.acme_server.id}"
                                      >
                                          AcmeServer-${acmeAccount_GlobalDefault.acme_server.id}
-                                         |
-                                        ${acmeAccount_GlobalDefault.acme_server.server}
-                                     </a><br/>
+                                     </a>
+                                     <span class="label label-default">${acmeAccount_GlobalDefault.acme_server.name}</span>
+                                     <br/>
                     <b>pem md5:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
                     <b>known profiles:</b> <code>${acmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
@@ -1849,14 +1864,15 @@
                                          href="${admin_prefix}/acme-account/${acmeAccount_GlobalBackup.id}"
                                      >
                                          AcmeAccount-${acmeAccount_GlobalBackup.id}
-                                     </a><br/>
+                                     </a>
+                                     <br/>
                     <b>server:</b> <a  class="label label-info"
                                          href="${admin_prefix}/acme-server/${acmeAccount_GlobalBackup.acme_server.id}"
                                      >
                                          AcmeServer-${acmeAccount_GlobalBackup.acme_server.id}
-                                         |
-                                        ${acmeAccount_GlobalBackup.acme_server.server}
-                                     </a><br/>
+                                     </a>
+                                     <span class="label label-default">${acmeAccount_GlobalBackup.acme_server.name}</span>
+                                     <br/>
                     <b>pem md5:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
                     <b>known profiles:</b> <code>${acmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
@@ -2125,6 +2141,26 @@
 
 <%def name="formgroup__domain_templates(default_http01='', default_dns01='')">
     <div class="form-group">
+        <p>
+            Creating a "RenewalConfiguration" via "EnrollmentFactory" will only 
+            require submitting a single Domain Name.  The DomainTemplates will be expanded with the following rules applied to the submitted Domain Name:
+            <ul>
+                <li><code>{DOMAIN}</code> will be replaced with the registered domain name.
+                    <ul>
+                        <li><code>`example.com` &raquo; `example.com`</code></li>                                     
+                    </ul>
+                </li>
+                <li><code>{NIAMOD}</code> will be replaced with a modified reverse syntax domain name.
+                    <ul>
+                        <li><code>`example.com` &raquo; `com.example`</code></li>                                     
+                        <li><code>`www.example.com` &raquo; `com.example.www`</code></li>                                     
+                        <li><code>`example.co.uk` &raquo; `co.uk.example`</code></li>                                     
+                        <li><code>`www.example.co.uk` &raquo; `co.uk.example.www`</code></li>                                     
+                    </ul>
+                </li>
+            </ul>
+            AT LEAST ONE of the templates MUST be submitted, and it MUST have one of the two commands above.
+        </p>
         <label for="domain_template_http01">Domain Template - HTTP-01</label>
         <textarea class="form-control" rows="4" name="domain_template_http01" id="domain_template_http01">${default_http01}</textarea>
         <hr/>
@@ -2132,22 +2168,6 @@
         <textarea class="form-control" rows="4" name="domain_template_dns01" id="domain_template_dns01">${default_dns01}</textarea>
     </div>
 </%def>
-
-
-<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology', label='')">
-    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
-    <% options = options or model_websafe.KeyTechnology._options_all %>
-    <div class="form-group">
-        <label for="${field_name}">Key Technology ${label}</label>
-        <select class="form-control" name="${field_name}">
-            % for _option_text in options:
-                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
-            % endfor
-        </select>
-    </div>
-</%def>
-
-
 
 
 <%def name="formgroup__is_export_filesystem(default=None)">
@@ -2180,10 +2200,50 @@
 </%def>
 
 
+<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology', label='')">
+    <% default = default or model_websafe.KeyTechnology._DEFAULT %>
+    <% options = options or model_websafe.KeyTechnology._options_all %>
+    <div class="form-group">
+        <label for="${field_name}">Key Technology ${label}</label>
+        <select class="form-control" name="${field_name}">
+            % for _option_text in options:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+<%def name="formgroup__label(default='', context_enrollment_factory=False)">
+    <div class="form-group">
+        <label for="label">Label</label>
+        <input class="form-control" type="text" name="label" id="label" value="${default or ''}"/>
+        <p>
+            A label may only have the following characters: letters, numbers, dash, period, underscore.
+            Labels are only used when exporting certificate data.
+            % if context_enrollment_factory:
+                If used in the context of an Enrollment Factory, it supports the <code>{DOMAIN}</code> and <code>{NIAMOD}</code> macros.
+            % endif
+        </p>
+    </div>
+</%def>
+
+
+<%def name="formgroup__label_template(default='')">
+    <div class="form-group">
+        <label for="label_template">Label Template</label>
+        <input class="form-control" type="text" name="label_template" id="label_template" value="${default or ''}"/>
+        <p>
+            A `label template` is used to generate the label for a RenewalConfiguration.  It can use the <code>{DOMAIN}</code> and <code>{NIAMOD}</code> macros.
+        </p>
+    </div>
+</%def>
+
+
 <%def name="formgroup__name(default='')">
     <div class="form-group">
         <label for="name">Name</label>
-        <input class="form-control" type="text" name="name" id="name" value="${default}"/>
+        <input class="form-control" type="text" name="name" id="name" value="${default or ''}"/>
     </div>
 </%def>
 
@@ -2191,7 +2251,7 @@
 <%def name="formgroup__note(default='')">
     <div class="form-group">
         <label for="note">Note</label>
-        <textarea class="form-control" rows="4" name="note" id="note">${default}</textarea>
+        <textarea class="form-control" rows="4" name="note" id="note">${default or ''}</textarea>
     </div>
 </%def>
 

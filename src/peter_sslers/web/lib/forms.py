@@ -559,7 +559,9 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
 class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
 
     # do not update on edit
-    name = UnicodeString(not_empty=True, if_missing=None, strip=True, max=64)
+    name = UnicodeString(not_empty=True, strip=True, max=64)
+
+    label_template = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
     domain_template_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_template_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -709,6 +711,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
     # PRIMARY cert
     acme_profile__primary = UnicodeString(
@@ -763,12 +766,14 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
 
     acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
 
 class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
     enrollment_factory_id = Int(not_empty=True)
     domain_name = UnicodeString(not_empty=True, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):

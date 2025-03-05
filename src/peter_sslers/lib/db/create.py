@@ -1226,6 +1226,8 @@ def create__DomainAutocert(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def create__EnrollmentFactory(
     ctx: "ApiContext",
     name: str,
@@ -1243,6 +1245,7 @@ def create__EnrollmentFactory(
     note: Optional[str] = None,
     domain_template_http01: Optional[str] = None,
     domain_template_dns01: Optional[str] = None,
+    label_template: Optional[str] = None,
 ) -> "EnrollmentFactory":
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
@@ -1274,6 +1277,7 @@ def create__EnrollmentFactory(
     dbEnrollmentFactory.note = note
     dbEnrollmentFactory.domain_template_http01 = domain_template_http01
     dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
+    dbEnrollmentFactory.label_template = label_template
 
     ctx.dbSession.add(dbEnrollmentFactory)
     ctx.dbSession.flush(objects=[dbEnrollmentFactory])
@@ -1358,6 +1362,7 @@ def create__RenewalConfiguration(
     acme_profile__backup: Optional[str] = None,
     # misc
     note: Optional[str] = None,
+    label: Optional[str] = None,
     dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
@@ -1443,6 +1448,8 @@ def create__RenewalConfiguration(
                 )
 
     assert ctx.timestamp
+
+    label = lib_utils.normalize_unique_text(label) if label else None
 
     # this may raise errors.AcmeDomainsBlocklisted
     _domain_names_all = domains_challenged.domains_as_list
@@ -1559,6 +1566,7 @@ def create__RenewalConfiguration(
 
     # bonus
     dbRenewalConfiguration.note = note or None
+    dbRenewalConfiguration.label = label or None
     if dbEnrollmentFactory:
         dbRenewalConfiguration.enrollment_factory_id__via = dbEnrollmentFactory.id
     if dbSystemConfiguration:

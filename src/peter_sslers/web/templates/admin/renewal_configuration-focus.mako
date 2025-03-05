@@ -51,6 +51,10 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>label</th>
+                        <td><code>${RenewalConfiguration.label or ''}</code></td>
+                    </tr>
+                    <tr>
                         <th>timestamp_created</th>
                         <td><timestamp>${RenewalConfiguration.timestamp_created or ''}</timestamp></td>
                     </tr>
@@ -71,7 +75,7 @@
                             % if not RenewalConfiguration.is_active:
                                 <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-active">
                                     <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-info" type="submit">
+                                    <button class="btn btn-xs btn-success" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         Activate
                                     </button>
@@ -130,9 +134,10 @@
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccount-${RenewalConfiguration.acme_account_id__primary}
-                                |
-                                ${RenewalConfiguration.acme_account__primary.acme_server.directory}
                             </a>
+                            <span class="label label-default">
+                                ${RenewalConfiguration.acme_account__primary.acme_server.name}
+                            </span>
                         </td>
                     </tr>
                     <tr>
@@ -144,9 +149,10 @@
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${RenewalConfiguration.acme_account_id__backup}
-                                    |
-                                    ${RenewalConfiguration.acme_account__backup.acme_server.directory}
                                 </a>
+                                <span class="label label-default">
+                                    ${RenewalConfiguration.acme_account__backup.acme_server.name}
+                                </span>
                             % endif
                         </td>
                     </tr>

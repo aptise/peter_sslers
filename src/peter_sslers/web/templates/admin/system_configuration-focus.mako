@@ -82,9 +82,10 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${SystemConfiguration.acme_account_id__primary}
-                                    |
-                                    ${SystemConfiguration.acme_account__primary.displayable}
                                 </a>
+                                <span class="label label-default">
+                                    ${SystemConfiguration.acme_account__primary.displayable}
+                                </span>
                             % endif
                         </td>
                     </tr>
@@ -131,9 +132,10 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration.acme_account_id__backup}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${SystemConfiguration.acme_account_id__backup}
-                                    |
-                                    ${SystemConfiguration.acme_account__backup.displayable}
                                 </a>
+                                <span class="label label-default">
+                                    ${SystemConfiguration.acme_account__backup.displayable}
+                                </label>
                             % endif
                         </td>
                     </tr>

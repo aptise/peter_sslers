@@ -985,6 +985,7 @@ def form_domains_challenge_typed(
             if submitted_:
                 # this function checks the domain names match a simple regex
                 # it will raise a `ValueError("invalid domain")` on the first invalid domain
+                # domains will also be lowercase+strip
                 submitted_ = cert_utils.utils.domains_from_string(submitted_)
                 if submitted_:
                     domain_names_all.extend(submitted_)
@@ -1053,6 +1054,7 @@ def form_single_domain_challenge_typed(
     domains_challenged = model_utils.DomainsChallenged()
 
     # this function checks the domain names match a simple regex
+    # domains will also be lowercase+strip
     domain_names = cert_utils.utils.domains_from_string(
         formStash.results["domain_name"]
     )

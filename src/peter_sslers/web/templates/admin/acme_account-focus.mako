@@ -237,7 +237,7 @@
                             <code>${AcmeAccount.terms_of_service or ''}</code>
 
                             <a
-                                class="btn btn-xs btn-info"
+                                class="label label-info"
                                 href="${admin_prefix}/acme-account/${AcmeAccount.id}/terms-of-service"
                             >
                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -292,7 +292,7 @@
                                     <td>
                                         <code>${AcmeAccount.acme_account_key.spki_sha256}</code>
                                         <a
-                                            class="btn btn-xs btn-info"
+                                            class="btn btn-xs btn-primary"
                                             href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_spki_search}"
                                         >
                                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -304,9 +304,9 @@
                                     <td>
                                         ## ${'tracked' if AcmeAccount.acme_account_key.key_pem else 'untracked'}
                                         ## <textarea class="form-control">${AcmeAccount.acme_account_key.key_pem}</textarea>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem">key.pem</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem">key.pem</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
                                     </td>
                                 </tr>
                                 <tr>

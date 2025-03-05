@@ -74,6 +74,12 @@
                         <td><code>${EnrollmentFactory.domain_template_dns01}</code></td>
                     </tr>
                     <tr>
+                        <th>Label</th>
+                        <td>
+${admin_partials.formgroup__label(default=EnrollmentFactory.label_template, context_enrollment_factory=True)}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Domain Name</th>
                         <td>
                         

@@ -266,7 +266,7 @@
                         <td>
                             <code>${CertificateSigned.spki_sha256}</code>
                             <a
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/search?${CertificateSigned.cert_spki_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -277,7 +277,7 @@
                         <th>cert_subject</th>
                         <td>
                             <a
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/search?${CertificateSigned.cert_subject_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -290,7 +290,7 @@
                         <th>cert_issuer</th>
                         <td>
                             <a
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/search?${CertificateSigned.cert_issuer_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -419,7 +419,7 @@
                                                     style="display:inline;"
                                                     id="form-certificate_signed-ari_check"
                                                 >
-                                                    <button class="btn btn-xs btn-success" type="submit">
+                                                    <button class="btn btn-xs btn-primary" type="submit">
                                                         <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                                         Check ARI
                                                     </button>
@@ -505,9 +505,8 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-server/${CertificateSigned.acme_order.acme_account.acme_server_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeServer-${CertificateSigned.acme_order.acme_account.acme_server_id}
-                                    |
-                                    ${CertificateSigned.acme_order.acme_account.acme_server.url}
                                     </a>
+                                    <span class="label label-default">${CertificateSigned.acme_order.acme_account.acme_server.name}</span>
                                 <br/>
                                 <em>The CertificateSigned belongs to this AcmeAccount through an AcmeOrder.</em>
                             % else:
@@ -676,19 +675,19 @@
                         <th>cert_pem</th>
                         <td>
                             ## <textarea class="form-control">${CertificateSigned.key_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem">
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem (PEM)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem.txt">
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.pem.txt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem.txt (PEM)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.crt">
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.crt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.crt (DER)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.cer">
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.cer">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.cer (DER)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.der">
+                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/cert.der">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.der (DER)</a>
                         </td>
@@ -704,7 +703,7 @@
                                 The Default Chain is ${CertificateSigned.certificate_ca_chain__preferred.button_view|n}
                                 </p>
 
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
+                                <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.json">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     config.json</a><br/>
                                 <hr/>
@@ -714,7 +713,7 @@
                             <ul class="list list-unstyled">
                                 % for _to_certificate_ca_chain in CertificateSigned.certificate_signed_chains:
                                     <li>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.json">
+                                        <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
                                             config.json</a>
@@ -736,7 +735,7 @@
                                 </p>
 
                                 <a
-                                    class="btn btn-xs btn-info"
+                                    class="label label-info"
                                     href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/config.zip"
                                     data-certificate_ca_chain-id="${CertificateSigned.certificate_ca_chain__preferred.id}"
                                     data-certificate_ca_chain-certificate_ca_0-id="${CertificateSigned.certificate_ca_chain__preferred.certificate_ca_0.id}"
@@ -754,7 +753,7 @@
                                 % for _to_certificate_ca_chain in CertificateSigned.certificate_signed_chains:
                                     <li>
                                         <a
-                                            class="btn btn-xs btn-info"
+                                            class="label label-info"
                                             href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.zip"
                                             data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain.id}"
                                             data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
@@ -785,13 +784,13 @@
                                     <tr>
                                         <th>privatekey</th>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem.txt">
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem">
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.key">
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/privkey.key">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.key (der)</a>
                                         </td>
@@ -807,7 +806,7 @@
                                                 </th>
                                                 <td>
                                                     <a
-                                                        class="btn btn-xs btn-info"
+                                                        class="label label-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem.txt"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
                                                         data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
@@ -818,7 +817,7 @@
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
                                                     <a
-                                                        class="btn btn-xs btn-info"
+                                                        class="label label-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
                                                         data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
@@ -836,7 +835,7 @@
                                                 </th>
                                                 <td>
                                                     <a
-                                                        class="btn btn-xs btn-info"
+                                                        class="label label-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem.txt"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
                                                         data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
@@ -847,7 +846,7 @@
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
                                                     <a
-                                                        class="btn btn-xs btn-info"
+                                                        class="label label-info"
                                                         href="${admin_prefix}/certificate-signed/${CertificateSigned.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem"
                                                         data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
                                                         data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"

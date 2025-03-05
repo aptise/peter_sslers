@@ -120,9 +120,10 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentFactory.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${EnrollmentFactory.acme_account_id__primary}
-                                    |
-                                    ${EnrollmentFactory.acme_account__primary.displayable}
                                 </a>
+                                <span class="label label-default">
+                                    ${EnrollmentFactory.acme_account__primary.displayable}
+                                </span>
                             % endif
                         </td>
                     </tr>
@@ -176,9 +177,10 @@
                                 <a class="label label-info" href="${admin_prefix}/acme-account/${EnrollmentFactory.acme_account_id__backup}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${EnrollmentFactory.acme_account_id__backup}
-                                    |
-                                    ${EnrollmentFactory.acme_account__backup.displayable}
                                 </a>
+                                <span class="label label-default">
+                                    ${EnrollmentFactory.acme_account__backup.displayable}
+                                </span>
                             % endif
                         </td>
                     </tr>

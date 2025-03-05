@@ -111,6 +111,7 @@
                     )}
 
                 ${admin_partials.formgroup__note()}
+                ${admin_partials.formgroup__label(default=RenewalConfiguration.label)}
                 <hr/>
 
                 <hr/>
