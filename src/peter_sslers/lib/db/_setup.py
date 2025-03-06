@@ -260,7 +260,10 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
 
-    slot_id = 1
+    dbCertificateCAPreferencePolicy = db_create.create__CertificateCAPreferencePolicy(
+        ctx, "global"
+    )
+
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
         # cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
         # cert_enddate = datetime.datetime(*cert_payload[".enddate"])
@@ -275,10 +278,9 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         dbCertificateCA = certs_lookup[cert_id]
         dbPref = db_create.create__CertificateCAPreference(  # noqa: F841
             ctx,
+            dbCertificateCAPreferencePolicy=dbCertificateCAPreferencePolicy,
             dbCertificateCA=dbCertificateCA,
-            slot_id=slot_id,
         )
-        slot_id += 1  # increment the slot
 
     # !!!: DomainBlocklisted
     dbDomainBlocklisted = model_objects.DomainBlocklisted()

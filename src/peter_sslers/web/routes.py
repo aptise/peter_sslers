@@ -548,27 +548,6 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred",
-        "/certificate-cas/preferred",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:add",
-        "/certificate-cas/preferred/add",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:delete",
-        "/certificate-cas/preferred/delete",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:prioritize",
-        "/certificate-cas/preferred/prioritize",
-        jsonify=True,
-    )
-
-    config.add_route_7(
         "admin:certificate_ca:focus",
         "/certificate-ca/{@id}",
         jsonify=True,
@@ -625,6 +604,34 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_ca_chain:upload_chain",
         "/certificate-ca-chain/upload-chain",
+        jsonify=True,
+    )
+
+    # !!!: CertificateCAPreferencePolicys
+    config.add_route_7(
+        "admin:certificate_ca_preference_policys",
+        "/certificate-ca-preference-policys",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus",
+        "/certificate-ca-preference-policy/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:add",
+        "/certificate-ca-preference-policy/{@id}/add",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:delete",
+        "/certificate-ca-preference-policy/{@id}/delete",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:prioritize",
+        "/certificate-ca-preference-policy/{@id}/prioritize",
         jsonify=True,
     )
 

@@ -46,8 +46,8 @@ def encode_CertificateSigned_a(
 ) -> A_CertPayload:
     payload: A_CertPayload = {
         "cert.pem": dbCertificateSigned.cert_pem,
-        "chain.pem": dbCertificateSigned.cert_chain_pem,
-        "fullchain.pem": dbCertificateSigned.cert_fullchain_pem,
+        "chain.pem": dbCertificateSigned.cert_chain_pem or "",
+        "fullchain.pem": dbCertificateSigned.cert_fullchain_pem or "",
         "pkey.pem": dbCertificateSigned.private_key.key_pem,
     }
     return payload
@@ -70,7 +70,7 @@ def encode_RenewalConfiguration_a(
             assert dbCert.cert_chain_pem
             assert dbCert.fullchain_pem
         payload = encode_CertificateSigned_a(dbCert)
-        directory_payload[dest] = payload
+        directory_payload[dest] = payload  # type: ignore[literal-required]
     return directory_payload
 
 

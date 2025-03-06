@@ -18,6 +18,7 @@ from sqlalchemy.orm import subqueryload
 from typing_extensions import Literal
 
 # localapp
+from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeAccount_2_TermsOfService
@@ -38,6 +39,7 @@ from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
 from ...model.objects import CertificateCAPreference
+from ...model.objects import CertificateCAPreferencePolicy
 from ...model.objects import CertificateRequest
 from ...model.objects import CertificateSigned
 from ...model.objects import CertificateSignedChain
@@ -1681,6 +1683,60 @@ def get__CertificateCAChain__by_CertificateCAIdN__paginated(
     )
     items_paged = (
         query.order_by(CertificateCAChain.id.desc()).limit(limit).offset(offset).all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__CertificateCAPreferencePolicy__by_name(
+    ctx: "ApiContext",
+    name: str,
+    eagerload_preferences: bool = False,
+) -> Optional[CertificateCAPreferencePolicy]:
+    name = lib_utils.normalize_unique_text(name)
+    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
+        CertificateCAPreferencePolicy.name == name
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
+        )
+    dbCertificateCAPreferencePolicy = q.first()
+    return dbCertificateCAPreferencePolicy
+
+
+def get__CertificateCAPreferencePolicy__by_id(
+    ctx: "ApiContext",
+    id_: int,
+    eagerload_preferences: bool = False,
+) -> Optional[CertificateCAPreferencePolicy]:
+    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
+        CertificateCAPreferencePolicy.id == id_
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
+        )
+    dbCertificateCAPreferencePolicy = q.first()
+    return dbCertificateCAPreferencePolicy
+
+
+def get__CertificateCAPreferencePolicy__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(CertificateCAPreferencePolicy).count()
+    return counted
+
+
+def get__CertificateCAPreferencePolicy__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateCAPreferencePolicy]:
+    items_paged = (
+        ctx.dbSession.query(CertificateCAPreferencePolicy)
+        .order_by(CertificateCAPreferencePolicy.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
     )
     return items_paged
 

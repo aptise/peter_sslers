@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateCAPreference
+    from ...model.objects import CertificateCAPreferencePolicy
     from ...model.objects import CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
@@ -662,8 +663,28 @@ def create__AriCheck(
     return dbAriCheck
 
 
+def create__CertificateCAPreferencePolicy(
+    ctx: "ApiContext",
+    name: str,
+) -> "CertificateCAPreferencePolicy":
+    """
+    Create a new CertificateCAPreference entry
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
+    :param slot_id: (optional) The id, if any. defaults to db managing the id
+    """
+    name = lib_utils.normalize_unique_text(name)
+    dbCertificateCAPreferencePolicy = model_objects.CertificateCAPreferencePolicy()
+    dbCertificateCAPreferencePolicy.name = name
+    ctx.dbSession.add(dbCertificateCAPreferencePolicy)
+    ctx.dbSession.flush(objects=[dbCertificateCAPreferencePolicy])
+    return dbCertificateCAPreferencePolicy
+
+
 def create__CertificateCAPreference(
     ctx: "ApiContext",
+    dbCertificateCAPreferencePolicy: "CertificateCAPreferencePolicy",
     dbCertificateCA: "CertificateCA",
     slot_id: Optional[int] = None,
 ) -> "CertificateCAPreference":
@@ -675,9 +696,21 @@ def create__CertificateCAPreference(
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     dbCertificateCAPreference = model_objects.CertificateCAPreference()
-    if slot_id:
-        dbCertificateCAPreference.id = slot_id
+    dbCertificateCAPreference.certificate_ca_preference_policy_id = (
+        dbCertificateCAPreferencePolicy.id
+    )
     dbCertificateCAPreference.certificate_ca_id = dbCertificateCA.id
+    if slot_id is None:
+        slot_id = (
+            ctx.dbSession.query(model_objects.CertificateCAPreference)
+            .filter(
+                model_objects.CertificateCAPreference.certificate_ca_preference_policy_id
+                == dbCertificateCAPreferencePolicy.id
+            )
+            .count()
+            + 1
+        )
+    dbCertificateCAPreference.slot_id = slot_id
     ctx.dbSession.add(dbCertificateCAPreference)
     ctx.dbSession.flush(objects=[dbCertificateCAPreference])
     return dbCertificateCAPreference

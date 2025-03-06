@@ -4,7 +4,6 @@ import logging
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import CertificateSigned
     from ...model.objects import CertificateCAPreference
+    from ...model.objects import CertificateCAPreferencePolicy
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
     from ...model.objects import EnrollmentFactory
@@ -577,72 +577,74 @@ def update_AcmeServer_directory(
     return _changed
 
 
-def update_CertificateCAPreference_reprioritize(
+def update_CertificateCAPreferencePolicy_reprioritize(
     ctx: "ApiContext",
+    dbCertificateCaPreferencePolicy: "CertificateCAPreferencePolicy",
     dbPreference_active: "CertificateCAPreference",
-    dbCertificateCAPreferences: Sequence["CertificateCAPreference"],
     priority: str,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbCertificateCaPreferencePolicy: (required) A single instance of
+        :class:`model.objects.CertificateCaPreferencePolicy`
     :param dbPreference_active: (required) A single instance of
         :class:`model.objects.CertificateCAPreference` which is being moved
-        within the Preference list
-    :param dbCertificateCAPreferences: (required) The full listing of
-        :class:`model.objects.CertificateCAPreference` objects
+        within the Preference list of `dbCertificateCaPreferencePolicy`
     :param priority: string. required. must be "increase" or "decrease"
     """
     dbPref_other = None
     if priority == "increase":
-        if dbPreference_active.id <= 1:
+        if dbPreference_active.slot_id <= 1:
             raise errors.InvalidTransition(
                 "This item can not be increased in priority."
             )
-        target_slot_id = dbPreference_active.id - 1
+        target_slot_id = dbPreference_active.slot_id - 1
         # okay, now iterate over the list...
-        for _dbPref in dbCertificateCAPreferences:
-            if _dbPref.id == target_slot_id:
+        for _dbPref in dbCertificateCaPreferencePolicy.certificate_ca_preferences:
+            if _dbPref.slot_id == target_slot_id:
                 dbPref_other = _dbPref
                 break
         if not dbPref_other:
             raise errors.InvalidTransition("Illegal Operation.")
 
         # set the other to a placeholder
-        dbPref_other.id = 999
+        dbPref_other.slot_id = 999
         ctx.dbSession.flush(objects=[dbPref_other])
 
         # set the new
-        dbPreference_active.id = target_slot_id
+        dbPreference_active.slot_id = target_slot_id
         ctx.dbSession.flush(objects=[dbPreference_active])
 
         # and update the other
-        dbPref_other.id = dbPreference_active.id + 1
+        dbPref_other.slot_id = dbPreference_active.slot_id + 1
         ctx.dbSession.flush(objects=[dbPref_other])
 
     elif priority == "decrease":
-        if dbPreference_active.id == len(dbCertificateCAPreferences):
+        if dbPreference_active.slot_id == len(
+            dbCertificateCaPreferencePolicy.certificate_ca_preferences
+        ):
             raise errors.InvalidTransition(
                 "This item can not be decreased in priority."
             )
-        target_slot_id = dbPreference_active.id + 1
+        target_slot_id = dbPreference_active.slot_id + 1
         # okay, now iterate over the list...
-        for _dbPref in dbCertificateCAPreferences:
-            if _dbPref.id == target_slot_id:
+        for _dbPref in dbCertificateCaPreferencePolicy.certificate_ca_preferences:
+            if _dbPref.slot_id == target_slot_id:
                 dbPref_other = _dbPref
                 break
         if not dbPref_other:
             raise errors.InvalidTransition("Illegal Operation.")
 
         # set the old to a placeholder
-        dbPref_other.id = 999
+        dbPref_other.slot_id = 999
         ctx.dbSession.flush(objects=[dbPref_other])
 
         # set the new
-        dbPreference_active.id = target_slot_id
+        dbPreference_active.slot_id = target_slot_id
         ctx.dbSession.flush(objects=[dbPreference_active])
 
         # and update the other
-        dbPref_other.id = dbPreference_active.id - 1
+        dbPref_other.slot_id = dbPreference_active.slot_id - 1
         ctx.dbSession.flush(objects=[dbPref_other])
 
     else:

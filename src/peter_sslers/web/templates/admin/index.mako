@@ -187,6 +187,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-ca-chains</a></li>
+                <li><a href="${admin_prefix}/certificate-ca-preference-policys"
+                       title="CertificateCAPreferencePolicys"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificate-ca-preference-policys</a></li>
             </ul>
 
 

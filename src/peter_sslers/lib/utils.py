@@ -5,7 +5,6 @@ import json
 import logging
 import re
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -26,7 +25,7 @@ from .. import USER_AGENT
 if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
     from .context import ApiContext
-    from ..model.objects import CertificateCAPreference
+    from ..model.objects import CertificateCAPreferencePolicy
 
 # ==============================================================================
 
@@ -294,10 +293,10 @@ class RequestCommandline(object):
         return admin_url(self)
 
     @reify
-    def dbCertificateCAPreferences(self) -> List["CertificateCAPreference"]:
-        from ..web.lib.handler import load_CertificateCAPreferences
+    def dbCertificateCAPreferencePolicy(self) -> "CertificateCAPreferencePolicy":
+        from ..web.lib.handler import load_CertificateCAPreferencePolicy_global
 
-        return load_CertificateCAPreferences(self)
+        return load_CertificateCAPreferencePolicy_global(self)
 
 
 def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":

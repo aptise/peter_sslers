@@ -1,6 +1,5 @@
 # stdlib
 from typing import Dict
-from typing import List
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -10,7 +9,7 @@ from pyramid.httpexceptions import HTTPFound
 
 # localapp
 from ...lib import db as lib_db
-from ...model.objects import CertificateCAPreference
+from ...model.objects import CertificateCAPreferencePolicy
 
 
 # ==============================================================================
@@ -51,16 +50,21 @@ def admin_url(request: "Request") -> str:
     return request.api_host + request.api_context.application_settings["admin_prefix"]
 
 
-def load_CertificateCAPreferences(
+def load_CertificateCAPreferencePolicy_global(
     request: "Request",
-) -> List["CertificateCAPreference"]:
+) -> "CertificateCAPreferencePolicy":
     """
     loads `model.objects.CertificateCAPreferences` onto the request
     """
-    dbCertificateCAPreferences = lib_db.get.get__CertificateCAPreference__paginated(
-        request.api_context
+    dbCertificateCAPreferencePolicy = (
+        lib_db.get.get__CertificateCAPreferencePolicy__by_name(
+            request.api_context,
+            "global",
+            eagerload_preferences=True,
+        )
     )
-    return dbCertificateCAPreferences
+    assert dbCertificateCAPreferencePolicy is not None
+    return dbCertificateCAPreferencePolicy
 
 
 # ==============================================================================

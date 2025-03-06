@@ -2780,6 +2780,43 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class CertificateCAPreferencePolicy(Base):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a CertificateSigned and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "certificate_ca_preference_policy"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_ca_preferences = sa_orm_relationship(
+        "CertificateCAPreference",
+        primaryjoin="CertificateCAPreferencePolicy.id==CertificateCAPreference.certificate_ca_preference_policy_id",
+        order_by="CertificateCAPreference.slot_id.asc()",
+        back_populates="certificate_ca_preference_policy",
+    )
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            # --
+            "certificate_ca_preferences": [
+                i.as_json_minimal for i in self.certificate_ca_preferences
+            ],
+            # --
+            "name": self.name,
+        }
+
+
 class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
@@ -2790,18 +2827,54 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "certificate_ca_preference"
+    __table_args__ = (
+        sa.Index(
+            "uidx_certificate_ca_preference_a",
+            "certificate_ca_preference_policy_id",
+            "slot_id",
+            unique=True,
+        ),
+        sa.Index(
+            "uidx_certificate_ca_preference_b",
+            "certificate_ca_preference_policy_id",
+            "certificate_ca_id",
+            unique=True,
+        ),
+    )
+
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    certificate_ca_preference_policy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("certificate_ca_preference_policy.id"),
+        nullable=False,
+    )
+    slot_id = mapped_column(sa.Integer, nullable=False)
     certificate_ca_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    certificate_ca_preference_policy = sa_orm_relationship(
+        "CertificateCAPreferencePolicy",
+        primaryjoin="CertificateCAPreference.certificate_ca_preference_policy_id==CertificateCAPreferencePolicy.id",
+        back_populates="certificate_ca_preferences",
+        uselist=False,
+    )
     certificate_ca = sa_orm_relationship(
         "CertificateCA",
         primaryjoin="CertificateCAPreference.certificate_ca_id==CertificateCA.id",
         uselist=False,
     )
+
+    @property
+    def as_json_minimal(self):
+        return {
+            "id": self.id,
+            # --
+            "slot_id": self.slot_id,
+            "certificate_ca_id": self.certificate_ca_id,
+        }
 
 
 # ==============================================================================
@@ -3345,7 +3418,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def fullchain(self) -> str:
-        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))
+        return "\n".join((self.cert_pem.strip(), (self.cert_chain_pem or "")))
 
     @property
     def is_can_renew_letsencrypt(self) -> bool:
@@ -5349,6 +5422,7 @@ __all__ = (
     "CertificateCA",
     "CertificateCAChain",
     "CertificateCAPreference",
+    "CertificateCAPreferencePolicy",
     "CertificateCAReconciliation",
     "CertificateRequest",
     "CertificateSigned",
