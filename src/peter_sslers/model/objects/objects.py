@@ -15,6 +15,7 @@ Style note:
 # stdlib
 import datetime
 import json
+import logging
 import os
 import pprint
 from typing import Dict
@@ -45,6 +46,9 @@ from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
 
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 # ==============================================================================
 
@@ -3253,8 +3257,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             # we have None! so just return the first one we have
             return self.certificate_signed_chains[0].certificate_ca_chain
 
-        except Exception as exc:  # noqa: F841
-            pass
+        except Exception as exc:
+            log.critical(exc)
         return None
 
     def custom_config_payload(
@@ -3325,13 +3329,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def expiring_days(self) -> Optional[int]:
-        if self._expiring_days is None:
-            self._expiring_days = (
-                self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
-            ).days
-        return self._expiring_days
-
-    _expiring_days: Optional[int] = None
+        return (
+            self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
+        ).days
 
     @reify
     def expiring_days_label(self) -> str:
@@ -3344,6 +3344,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return "danger"
 
     @property
+    def fullchain(self) -> str:
+        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))
+
+    @property
     def is_can_renew_letsencrypt(self) -> bool:
         """only allow renew of LE certificates"""
         # if self.acme_account_id:
@@ -3351,7 +3355,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return False
 
     @property
-    def is_ari_check_timely(self):
+    def is_ari_check_timely(self) -> bool:
         timely_date = (
             datetime.datetime.now(datetime.timezone.utc) - timedelta_ARI_CHECKS_TIMELY
         )
@@ -3360,7 +3364,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return True
 
     @property
-    def is_ari_supported(self):
+    def is_ari_supported(self) -> bool:
         if self.is_ari_supported__cert or self.is_ari_supported__order:
             return True
         return False

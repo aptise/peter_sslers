@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -25,6 +26,7 @@ from .. import USER_AGENT
 if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
     from .context import ApiContext
+    from ..model.objects import CertificateCAPreference
 
 # ==============================================================================
 
@@ -290,3 +292,61 @@ class RequestCommandline(object):
         from ..web.lib.handler import admin_url
 
         return admin_url(self)
+
+    @reify
+    def dbCertificateCAPreferences(self) -> List["CertificateCAPreference"]:
+        from ..web.lib.handler import load_CertificateCAPreferences
+
+        return load_CertificateCAPreferences(self)
+
+
+def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":
+    from .context import ApiContext
+    from pyramid.paster import get_appsettings
+    from pyramid.paster import setup_logging
+
+    from .config_utils import ApplicationSettings
+    from ..model.meta import Base
+    from ..web.models import get_engine
+    from ..web.models import get_session_factory
+
+    """
+    Alt Pattern:
+
+        with transaction.manager:
+            dbSession = get_tm_session(None, session_factory, transaction.manager)
+            ctx = ApiContext()
+            ...
+            tasks
+            ...
+        transaction.commit()
+    """
+
+    setup_logging(config_uri)
+    settings = get_appsettings(config_uri, options=options)
+
+    engine = get_engine(settings)
+
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(engine)
+
+    application_settings = ApplicationSettings(config_uri)
+    application_settings.from_settings_dict(settings)
+
+    dbSession = session_factory()
+    # dbSession = get_tm_session(None, session_factory, transaction.manager)
+
+    ctx = ApiContext(
+        dbSession=dbSession,
+        request=RequestCommandline(
+            dbSession,
+            application_settings=application_settings,
+        ),
+        config_uri=config_uri,
+        application_settings=application_settings,
+    )
+    assert ctx.request
+    ctx.request.api_context = ctx
+
+    return ctx

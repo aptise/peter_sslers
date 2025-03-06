@@ -7,17 +7,10 @@ import sys
 from typing import List
 
 # pypi
-from pyramid.paster import get_appsettings
-from pyramid.paster import setup_logging
 
 # local
-from ..models import get_engine
-from ..models import get_session_factory
 from ...lib import db as lib_db
-from ...lib.config_utils import ApplicationSettings
-from ...lib.context import ApiContext
-from ...lib.utils import RequestCommandline
-from ...model.meta import Base
+from ...lib.utils import new_scripts_setup
 from ...model.utils import AcmeServerInput
 
 # ==============================================================================
@@ -122,28 +115,9 @@ def main(argv=sys.argv):
         if not servers:
             raise ValueError("servers not found")
 
-        #
-        setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
-
-        engine = get_engine(settings)
-        Base.metadata.create_all(engine)
-        session_factory = get_session_factory(engine)
-
-        application_settings = ApplicationSettings(config_uri)
-        application_settings.from_settings_dict(settings)
-
-        dbSession = session_factory()
-        ctx = ApiContext(
-            dbSession=dbSession,
-            request=RequestCommandline(
-                dbSession, application_settings=application_settings
-            ),
-            config_uri=config_uri,
-            application_settings=application_settings,
-        )
-
+        ctx = new_scripts_setup(config_uri, options=None)
         lib_db.actions.register_acme_servers(ctx, servers, "user")
+        ctx.pyramid_transaction_commit()
 
     elif action == "export":
 
@@ -151,25 +125,7 @@ def main(argv=sys.argv):
             raise ValueError("filepath `%s` exists" % fpath)
 
         #
-        setup_logging(config_uri)
-        settings = get_appsettings(config_uri)
-
-        engine = get_engine(settings)
-        Base.metadata.create_all(engine)
-        session_factory = get_session_factory(engine)
-
-        application_settings = ApplicationSettings(config_uri)
-        application_settings.from_settings_dict(settings)
-
-        dbSession = session_factory()
-        ctx = ApiContext(
-            dbSession=dbSession,
-            request=RequestCommandline(
-                dbSession, application_settings=application_settings
-            ),
-            config_uri=config_uri,
-            application_settings=application_settings,
-        )
+        ctx = new_scripts_setup(config_uri, options=None)
 
         exportServers = []
         dbServers = lib_db.get.get__AcmeServers__paginated(ctx, limit=None, offset=0)

@@ -6,6 +6,7 @@ Audit/Remove? CoverageAssuranceEvent tracking
 
 Bug
     Ordering a backup cert will deactivate the primary cert
+    Ordering a replacement should deactivate the replaces
 
 BUG
     EnrollmentFactory-New:
@@ -14,7 +15,14 @@ BUG
         * validate_formstash_domains
     
 
+dbCertificateCaPreference:
+    Certificate
+        > RenewalConfiguration
+            > Family
+    SystemConfiguration
 
+Audit
+    objects | certificate has some odd attributes that should be removed
 
 Tests:
     AcmeAccounts:
