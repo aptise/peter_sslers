@@ -4005,6 +4005,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
             # - -
             "name": self.name,
             "note": self.note,
+            "label_template": self.label_template,
             "domain_template_http01": self.domain_template_http01,
             "domain_template_dns01": self.domain_template_dns01,
             "acme_account_id__primary": self.acme_account_id__primary,
@@ -4752,6 +4753,7 @@ class RenewalConfiguration(
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
             "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
+            "label": self.label,
             "note": self.note,
             "private_key_cycle__primary": self.private_key_cycle__primary,
             "private_key_cycle__primary__effective": self.private_key_cycle__primary__effective,
