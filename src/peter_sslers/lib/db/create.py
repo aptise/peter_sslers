@@ -1288,6 +1288,8 @@ def create__EnrollmentFactory(
             raise ValueError("Primary and Backup ACME servers must be different")
 
     name = lib_utils.normalize_unique_text(name)
+    if name.startswith("rc-") or name.startswith("global"):
+        raise ValueError("`name` contains a reserved prefix or is a reserved word")
 
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
     dbEnrollmentFactory.name = name  # uniqueness on lower(name)
@@ -1483,7 +1485,9 @@ def create__RenewalConfiguration(
     assert ctx.timestamp
 
     label = lib_utils.normalize_unique_text(label) if label else None
-
+    if label:
+        if label.startswith("rc-") or label.startswith("global"):
+            raise ValueError("`label` contains a reserved prefix or is a reserved word")
     # this may raise errors.AcmeDomainsBlocklisted
     _domain_names_all = domains_challenged.domains_as_list
     validate_domain_names(ctx, _domain_names_all)

@@ -884,7 +884,11 @@ def update_EnrollmentFactory(
         raise errors.InvalidTransition("Missing Required Primary.")
 
     # these require some validation
+    name = lib_utils.normalize_unique_text(name) if name else None
     if name:
+        if name.startswith("rc-") or name.startswith("global"):
+            raise ValueError("`name` contains a reserved prefix or is a reserved word")
+
         existingEnrollmentFactory = get__EnrollmentFactory__by_name(ctx, name)
         if existingEnrollmentFactory and (
             existingEnrollmentFactory.id != dbEnrollmentFactory.id
@@ -929,7 +933,6 @@ def update_EnrollmentFactory(
         else None
     )
 
-    name = lib_utils.normalize_unique_text(name) if name else None
     if name != dbEnrollmentFactory.name:
         raise errors.InvalidTransition("`EnrollmentFactory.name` can not be changed.")
 

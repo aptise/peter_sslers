@@ -3311,13 +3311,14 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             request = dbSession.info.get("request")
 
             # only search for a preference if they exist
-            if request and request.dbCertificateCAPreferences:
+            if request and request.dbCertificateCAPreferencePolicy:
                 # TODO: first match or shortest match?
                 # first match for now!
                 # there are a lot of ways to compute this,
                 # this is not efficient. this is just a quick pass
                 preferred_ca_ids = [
-                    i.certificate_ca_id for i in request.dbCertificateCAPreferences
+                    i.certificate_ca_id
+                    for i in request.dbCertificateCAPreferencePolicy.certificate_ca_preferences
                 ]
                 for _preferred_ca_id in preferred_ca_ids:
                     for _csc in self.certificate_signed_chains:

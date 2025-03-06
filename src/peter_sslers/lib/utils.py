@@ -243,22 +243,24 @@ class RequestCommandline(object):
     api_context: "ApiContext"
     environ: Dict
     registry: MockedRegistry
+    application_settings: config_utils.ApplicationSettings
 
     def __init__(
         self,
         dbSession: "Session",
+        application_settings: config_utils.ApplicationSettings,
         transaction_manager: "transaction.manager" = transaction.manager,
-        application_settings: Optional[config_utils.ApplicationSettings] = None,
         settings: Optional[Dict] = None,
     ):
         # the normal app constructs the request with this; we must inject it
         dbSession.info["request"] = self
 
+        self.dbSession = dbSession
+        self.application_settings = application_settings
+
         zope.sqlalchemy.register(
             dbSession, transaction_manager=transaction_manager, keep_session=True
         )
-
-        self.dbSession = dbSession
 
         if settings is None:
             settings = {}

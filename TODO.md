@@ -7,14 +7,7 @@ Audit/Remove? CoverageAssuranceEvent tracking
 Bug
     Ordering a backup cert will deactivate the primary cert
     Ordering a replacement should deactivate the replaces
-
-BUG
-    EnrollmentFactory-New:
-        These can have an either/or situation
-        * validate_domains_template
-        * validate_formstash_domains
     
-
 dbCertificateCaPreference:
     Certificate
         > RenewalConfiguration
@@ -43,6 +36,7 @@ Tests:
         improve testing
             fail predictablly
             "*.{DOMAIN}," - not allowed in HTTP-01; requires DNS setup
+        tests showing 'global' is prohibited as a factory name
 
  UX:
     do a quick overview of key objects
