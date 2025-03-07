@@ -794,11 +794,12 @@ class View_Focus_New(View_Focus):
             # shared
             note = formStash.results["note"]
             label = formStash.results["label"]
-            label = utils.normalize_unique_text(label)
-            if not utils.validate_label(label):
-                formStash.fatal_field(
-                    field="label", message="the `label` is not compliant"
-                )
+            if label:
+                label = utils.normalize_unique_text(label)
+                if not utils.validate_label(label):
+                    formStash.fatal_field(
+                        field="label", message="the `label` is not compliant"
+                    )
 
             # PRIMARY cert
             acme_profile__primary = formStash.results["acme_profile__primary"]
@@ -1280,11 +1281,12 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
             # shared
             note = formStash.results["note"]
             label = formStash.results["label"]
-            label = utils.normalize_unique_text(label)
-            if not utils.validate_label(label):
-                formStash.fatal_field(
-                    field="label", message="the `label` is not compliant"
-                )
+            if label:
+                label = utils.normalize_unique_text(label)
+                if not utils.validate_label(label):
+                    formStash.fatal_field(
+                        field="label", message="the `label` is not compliant"
+                    )
 
             # PRIMARY cert
             private_key_technology__primary = formStash.results[

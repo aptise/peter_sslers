@@ -4072,13 +4072,13 @@ class FunctionalTests_CertificateSigned(AppTest):
 
         # same url patterns, but different view/mako/json
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-signeds/active-dupl.json",
+            "/.well-known/peter_sslers/certificate-signeds/active-duplicates.json",
             status=200,
         )
-        assert "CertificateSigneds" in res.json
+        assert "CertificateSignedsPairs" in res.json
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-signeds/active-dupl/1.json",
+            "/.well-known/peter_sslers/certificate-signeds/active-duplicates/1.json",
             status=200,
         )
         assert "CertificateSignedsPairs" in res.json
@@ -6437,6 +6437,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             "admin:renewal_configuration:focus:acme_orders-paginated",
             "admin:renewal_configuration:focus:certificate_signeds",
             "admin:renewal_configuration:focus:certificate_signeds-paginated",
+            "admin:renewal_configuration:focus:lineages",
         )
     )
     def test_focus_html(self):
@@ -6464,6 +6465,10 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/lineages" % focus_id,
+            status=200,
+        )
 
     @routes_tested(
         (
@@ -6472,6 +6477,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             "admin:renewal_configuration:focus:acme_orders-paginated|json",
             "admin:renewal_configuration:focus:certificate_signeds|json",
             "admin:renewal_configuration:focus:certificate_signeds-paginated|json",
+            "admin:renewal_configuration:focus:lineages|json",
         )
     )
     def test_focus_json(self):
@@ -6514,6 +6520,12 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             status=200,
         )
         assert "CertificateSigneds" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/lineages.json"
+            % focus_id,
+            status=200,
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -7077,7 +7089,6 @@ class FunctionalTests_SystemConfiguration(AppTest):
 
         res2 = form.submit()
         assert res2.status_code == 303
-        print(res2.location)
 
     @routes_tested(
         (
@@ -9575,6 +9586,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             assert "form-renewal_configuration-mark-inactive" in res.forms
         except:
             print(res.text)
+            raise
         form = res.forms["form-renewal_configuration-mark-inactive"]
         res = form.submit()
         assert res.status_code == 303

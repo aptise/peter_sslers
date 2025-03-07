@@ -16,7 +16,7 @@ Instead of a normal pip install...
 Make sure to install the testing extras
 
     pip install -e .[testing]
-    
+
 ## Server Configuration
 
 Edit your hosts
@@ -154,6 +154,9 @@ To ensure fresh tests, all 3 files can be removed:
     `ssl_minnow_test.sqlite-AppTest`
     `ssl_minnow_test.sqlite-AppTestCore`
 
+The tests can be fragile; if one test fails then subsequent tests can cause failures.
+
+It is recommended to delete the test databases after a failure and when dealing with regressions.
 
 ## ACME-DNS Testing
 
@@ -297,10 +300,6 @@ Go is already installed, however if we need to do a new version...
 ## Support for CAs with non-public roots
 
 If a CA has a non-public root, for example a Private CA or testing CA, TLS support
-is achieved by setting a `server_ca_cert_bundle` value on the database record.  
+is achieved by setting a `server_ca_cert_bundle` value on the database record.
 
 This can be provided in the initial configuration.
-
-
-
-

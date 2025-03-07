@@ -1421,13 +1421,29 @@ def routine__renew_expiring(
             try:
                 assert len(_expiring_certs) == count_expected_configurations
             except Exception:
+                print("routine__renew_expiring(")
                 print(
-                    "EXPECTED %s GOT %s"
+                    "\tEXPECTED %s GOT %s"
                     % (count_expected_configurations, len(_expiring_certs))
                 )
+                for rc_id in renewal_configuration_ids__only_process:
+                    print("\t\tRenewalConfiguration: [%s]" % rc_id)
+                    rcCerts = get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+                        ctx, rc_id
+                    )
+                    for dbCert in rcCerts:
+                        print(
+                            "\t\t\tCertificateSigned[%s]" % dbCert.id,
+                            dbCert.timestamp_not_after,
+                        )
                 raise
-
+                # Debugging Info
+                #
+                # for cert in expiring_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
+                #
                 # all_certs = get.get_CertificateSigneds_renew_now(ctx)
+                # all_certs = get.get_CertificateSigneds_renew_now(ctx, datetime.datetime.now(datetime.timezone.utc))
+                #
                 # for cert in all_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
         expiring_certs = _expiring_certs
 

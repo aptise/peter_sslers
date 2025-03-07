@@ -2608,12 +2608,16 @@ def get_CertificateSigneds_renew_now(
         # runner interval; assume the next time we run this is in an houur
         # TODO: make this configurable
         TIMEDELTA_runner_interval = datetime.timedelta(minutes=60)
-        # maths: subtract these times from the current timestamp
+        # maths: add these times from the current timestamp
         timestamp_max_expiry = (
-            ctx.timestamp - TIMEDELTA_clockdrift - TIMEDELTA_runner_interval
+            ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
         )
 
-    expiring_certs = (
+    # print("get_CertificateSigneds_renew_now(")
+    # print("\tctx.timestamp:", ctx.timestamp)
+    # print("\ttimestamp_max_expiry:", timestamp_max_expiry)
+
+    q = (
         ctx.dbSession.query(CertificateSigned)
         # joinpath 1: CertificateSigned>AriCheck
         .outerjoin(
@@ -2634,6 +2638,10 @@ def get_CertificateSigneds_renew_now(
             AcmeOrder.certificate_type_id.in_(
                 model_utils.CertificateType._options_AcmeOrder_id
             ),
+            # Do not renew deactivated certs
+            CertificateSigned.is_active.is_(True),
+            # Do not renew deactivated certs
+            RenewalConfiguration.is_active.is_(True),
             # this is the same info as `AcmeOrder.certificate_type_id`
             # the cert role might change though; the order role will never change
             # CertificateSigned.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
@@ -2643,11 +2651,13 @@ def get_CertificateSigneds_renew_now(
             # again, ARI is not guaranteed - but it also might be in the future like pebble
             sqlalchemy.or_(
                 CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
-                AriCheck.suggested_window_end >= timestamp_max_expiry,
+                AriCheck.suggested_window_end <= timestamp_max_expiry,
             ),
         )
-        .all()
     )
+    # print(q.statement.compile(ctx.dbSession.connection().engine))
+    # print(q.statement.compile())
+    expiring_certs = q.all()
     return expiring_certs
 
 
