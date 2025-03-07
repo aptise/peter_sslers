@@ -32,6 +32,12 @@
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: Certificate (Existing)</a>
+        &nbsp;
+        <a href="${admin_prefix}/certificate-signeds/active-duplicates" class="label label-info">
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            active-duplicates
+        </a>
+        &nbsp;
         % if sidenav_option == 'expiring' :
             <a href="${admin_prefix}/certificate-signeds/expiring.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>

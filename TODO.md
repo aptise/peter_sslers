@@ -4,15 +4,24 @@ URGENT
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
-Bug
+Bug - Fixed
     Ordering a backup cert will deactivate the primary cert
     Ordering a replacement should deactivate the replaces
+
+Renewal Lineages
+    added the lineages page to visualize these
     
-dbCertificateCaPreference:
-    Certificate
-        > RenewalConfiguration
-            > Family
-    SystemConfiguration
+    http://127.0.0.1:7201/.well-known/peter_sslers/renewal-configuration/29
+    
+    issue 1:
+        not seeing a candiate for new-order, even though i should
+    issue 2:
+        renewal configuration is not picking this up, but it's expired
+        
+
+    
+    
+
 
 Audit
     objects | certificate has some odd attributes that should be removed
@@ -52,7 +61,8 @@ Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
 
-
+CertificateCaPreferencePolicy
+    allow creating custom policies, and assigning to RC/EF
 
 SQLAlchemy
     audit use of `secondary` again, as that pattern is fragile on some of our selects -- so they may need to be replaced with the aliased pattern.

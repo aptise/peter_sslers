@@ -149,7 +149,7 @@ def main(argv=sys.argv):
             .all()
         )
 
-        config_payload: exports.A_ConfigPayload = {
+        config_payload2: exports.A_ConfigPayload = {
             "directories": {},
             "labels": {},
         }
@@ -159,9 +159,9 @@ def main(argv=sys.argv):
             )
             directory_name = "rc-%s" % dbRc.id
             if DEBUG_STRUCTURE:
-                config_payload[directory_name] = directory_payload  # type: ignore[literal-required]
+                config_payload2[directory_name] = directory_payload  # type: ignore[literal-required]
                 if dbRc.label:
-                    config_payload["labels"][dbRc.label] = directory_name
+                    config_payload2["labels"][dbRc.label] = directory_name
 
             # this will persist to disk
             dir_renewal = os.path.join(dir_global, directory_name)
@@ -178,7 +178,7 @@ def main(argv=sys.argv):
                 relative_symlink(dir_renewal, dir_label)
 
         if DEBUG_STRUCTURE:
-            pprint.pprint(config_payload)
+            pprint.pprint(config_payload2)
 
         if os.path.exists(EXPORTS_DIR):
             shutil.rmtree(EXPORTS_DIR)

@@ -433,6 +433,73 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:renewal_configuration:focus:lineages",
+        renderer="/admin/renewal_configuration-focus-lineages.mako",
+    )
+    @view_config(
+        route_name="admin:renewal_configuration:focus:lineages|json",
+        renderer="json",
+    )
+    def related__Lineages(self):
+        """
+        Initial, inefficient, first version of Certificate Lineaages
+        """
+        dbRenewalConfiguration = self._focus()
+        items_all = (
+            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+                self.request.api_context,
+                dbRenewalConfiguration.id,
+                limit=None,
+                offset=0,
+            )
+        )
+
+        certId_2_certIdReplacedBy = {}
+        certId_2_certIdReplaces = {}
+        # these certs are Desc, but this loop doesn't care
+        for dbCert in items_all:
+            if dbCert.certificate_signed_id__replaced_by:
+                certId_2_certIdReplacedBy[dbCert.id] = (
+                    dbCert.certificate_signed_id__replaced_by
+                )
+            if dbCert.certificate_signed_id__replaces:
+                certId_2_certIdReplaces[dbCert.id] = (
+                    dbCert.certificate_signed_id__replaces
+                )
+
+        Lineages = {}
+        # this loop is easier asc
+        for dbCert in reversed(items_all):
+            if not dbCert.certificate_signed_id__replaces:
+                # this doesn't replace anything, it's a new lineage
+                Lineages[dbCert.id] = [
+                    dbCert,
+                ]
+            else:
+                _replaces_id = dbCert.certificate_signed_id__replaces
+                while True:
+                    _candidate = certId_2_certIdReplaces.get(_replaces_id)
+                    if not _candidate:
+                        break
+                    _replaces_id = _candidate
+                if _replaces_id not in Lineages:
+                    raise ValueError("ugh")
+                Lineages[_replaces_id].append(dbCert)
+
+        if self.request.wants_json:
+            _Lineages = {}
+            for k, v in Lineages.items():
+                _Lineages[k] = [c.as_json for c in v]
+            return {
+                "Lineages": _Lineages,
+            }
+        return {
+            "project": "peter_sslers",
+            "RenewalConfiguration": dbRenewalConfiguration,
+            "Lineages": Lineages,
+        }
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

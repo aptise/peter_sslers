@@ -108,5 +108,6 @@ setup(
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       update_filepaths = peter_sslers.web.scripts.update_filepaths:main
+      deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
       """,
 )

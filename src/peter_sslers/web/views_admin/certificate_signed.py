@@ -434,6 +434,64 @@ class View_List(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:certificate_signeds:active_duplicates",
+        renderer="/admin/certificate_signeds-active_duplicates.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_duplicates-paginated",
+        renderer="/admin/certificate_signeds-active_duplicates.mako",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_duplicates|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:certificate_signeds:active_duplicates-paginated|json",
+        renderer="json",
+    )
+    def active_duplicates(self):
+        """
+        undocumented test route
+        """
+        url_template = (
+            "%s/certificate-signeds/active-duplicates/{0}"
+            % self.request.api_context.application_settings["admin_prefix"]
+        )
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+
+        alt_items_per_page = 100
+
+        items_count = lib_db.get.get_CertificateSigneds_duplicatePairs__count(
+            self.request.api_context
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template=url_template, items_per_page=alt_items_per_page
+        )
+
+        items_paged = lib_db.get.get_CertificateSigneds_duplicatePairs__paginated(
+            self.request.api_context,
+            limit=alt_items_per_page,
+            offset=offset,
+        )
+
+        if self.request.matched_route.name.endswith("|json"):
+            _certificates = [
+                (i[0].as_json_replaces_candidate, i[1].as_json_replaces_candidate)
+                for i in items_paged
+            ]
+            return {
+                "CertificateSignedsPairs": _certificates,
+                "pagination": json_pagination(items_count, pager),
+            }
+
+        return {
+            "project": "peter_sslers",
+            "CertificateSignedsPairs": items_paged,
+            "pager": pager,
+        }
+
 
 class View_Search(Handler):
     @view_config(

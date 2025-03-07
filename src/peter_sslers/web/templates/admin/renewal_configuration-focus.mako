@@ -261,6 +261,9 @@
                         <th>CertificateSigneds - ALL</th>
                         <td>
                             ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__5, perspective='RenewalConfiguration')}
+                            % if RenewalConfiguration.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/renewal-configuration/%s/certificate-signeds" % (admin_prefix, RenewalConfiguration.id))}
+                            % endif
                         </td>
                     </tr>
                     <tr>
@@ -273,6 +276,18 @@
                         <th>CertificateSigneds - Backup</th>
                         <td>
                             ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__backup__5, perspective='RenewalConfiguration')}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Certificate Lineages</th>
+                        <td>
+                            <a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/lineages"
+                                title="Lineages"
+                                class="label label-info"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                Calculate Lineages
+                            </a>                            
                         </td>
                     </tr>
                 </tbody>

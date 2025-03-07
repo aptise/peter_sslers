@@ -1078,6 +1078,7 @@ def create__CertificateSigned(
         dbAcmeOrder.certificate_signed__replaces.certificate_signed_id__replaced_by = (
             dbCertificateSigned.id
         )
+        dbAcmeOrder.certificate_signed__replaces.is_active = False
         ctx.dbSession.flush(objects=[dbAcmeOrder])
 
     dbCertificateSignedChain = model_objects.CertificateSignedChain()

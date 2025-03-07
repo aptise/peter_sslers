@@ -160,6 +160,14 @@
                                         <span class="label label-danger">auto-renew disabled</span>
                                     % endif
                                 % endif
+                                
+                                <a href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration_id}/lineages"
+                                    title="Lineages"
+                                    class="label label-info"
+                                >
+                                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                    Calculate Lineages
+                                </a>                            
                             % else:
                                 <span class="label label-warning">
                                     unavailable
@@ -321,13 +329,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ARI</th>
+                        <th>ARI and Lineage</th>
                         <td>
-                            <table class="table table-striped">
-                                <tr>
-                                    <th>ari_identifier</th>
-                                    <td><code>${CertificateSigned.ari_identifier}</code></td>
-                                </tr>
+                            <table class="table table-striped table-condensed">
                                 <tr>
                                     <th>ari_identifier__replaced_by</th>
                                     <td>
@@ -348,12 +352,36 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th colspan="2"><hr/></th>
+                                </tr>
+                                <tr>
+                                    <th>ari_identifier</th>
+                                    <td><code>${CertificateSigned.ari_identifier}</code></td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2"><hr/></th>
+                                </tr>
+                                <tr>
+                                    <th>Certificate replaces</th>
+                                    <td>
+                                        % if CertificateSigned.certificate_signed_id__replaces:
+                                            <a class="label label-info" href="${admin_prefix}/certificate-signed/${CertificateSigned.certificate_signed_id__replaces}">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                CertificateSigned-${CertificateSigned.certificate_signed_id__replaces}
+                                            </a>
+                                        % endif
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th>ari_identifier__replaces</th>
                                     <td>
                                         % if CertificateSigned.ari_identifier__replaces:
                                             <code>${CertificateSigned.ari_identifier__replaces}</code>
                                         % endif
                                     </td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2"><hr/></th>
                                 </tr>
                                 % if CertificateSigned.is_ari_supported:
                                     <tr>

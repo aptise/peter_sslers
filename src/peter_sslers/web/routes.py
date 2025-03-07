@@ -703,6 +703,12 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
+        "admin:certificate_signeds:active_duplicates",
+        "/certificate-signeds/active-duplicates",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
         "admin:certificate_signeds:search",
         "/certificate-signeds/search",
         jsonify=True,
@@ -1179,6 +1185,12 @@ def _admin_views(config: "Configurator") -> None:
         "/renewal-configuration/{@id}/certificate-signeds",
         jsonify=True,
         paginate=True,
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:lineages",
+        "/renewal-configuration/{@id}/lineages",
+        jsonify=True,
+        paginate=False,
     )
 
     config.add_route_7(

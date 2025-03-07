@@ -3991,6 +3991,8 @@ class FunctionalTests_CertificateSigned(AppTest):
             "admin:certificate_signeds:active_expired-paginated",
             "admin:certificate_signeds:inactive_unexpired",
             "admin:certificate_signeds:inactive_unexpired-paginated",
+            "admin:certificate_signeds:active_duplicates",
+            "admin:certificate_signeds:active_duplicates-paginated",
         )
     )
     def test_list_html(self):
@@ -4010,6 +4012,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             "inactive",
             "active-expired",
             "inactive-unexpired",
+            "active-duplicates",  # same url patterns, but different view/mako/json
         ):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/certificate-signeds/%s" % _type, status=200
@@ -4033,6 +4036,8 @@ class FunctionalTests_CertificateSigned(AppTest):
             "admin:certificate_signeds:active_expired-paginated|json",
             "admin:certificate_signeds:inactive_unexpired|json",
             "admin:certificate_signeds:inactive_unexpired-paginated|json",
+            "admin:certificate_signeds:active_duplicates|json",
+            "admin:certificate_signeds:active_duplicates-paginated|json",
         )
     )
     def test_list_json(self):
@@ -4064,6 +4069,19 @@ class FunctionalTests_CertificateSigned(AppTest):
                 status=200,
             )
             assert "CertificateSigneds" in res.json
+
+        # same url patterns, but different view/mako/json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/active-dupl.json",
+            status=200,
+        )
+        assert "CertificateSigneds" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/active-dupl/1.json",
+            status=200,
+        )
+        assert "CertificateSignedsPairs" in res.json
 
     @routes_tested(
         (

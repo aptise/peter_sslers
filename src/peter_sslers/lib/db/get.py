@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 import sqlalchemy
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
@@ -64,6 +65,10 @@ from ...model.objects import UniquelyChallengedFQDNSet2Domain
 
 if TYPE_CHECKING:
     from ..context import ApiContext
+
+# aliases used for some selects
+CertificateSigned_Alt = aliased(CertificateSigned)
+AcmeOrder_Alt = aliased(AcmeOrder)
 
 # ==============================================================================
 
@@ -2537,6 +2542,60 @@ def get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _get_CertificateSigneds_duplicatePairs__core(
+    ctx: "ApiContext",
+):
+    q = (
+        ctx.dbSession.query(CertificateSigned, CertificateSigned_Alt)
+        .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .join(
+            AcmeOrder_Alt,
+            RenewalConfiguration.id == AcmeOrder_Alt.renewal_configuration_id,
+        )
+        .join(
+            CertificateSigned_Alt,
+            AcmeOrder_Alt.certificate_signed_id == CertificateSigned_Alt.id,
+        )
+        .filter(
+            AcmeOrder.id != AcmeOrder_Alt.id,
+            AcmeOrder.certificate_type_id == AcmeOrder_Alt.certificate_type_id,
+            CertificateSigned.is_active.is_(True),
+            CertificateSigned_Alt.is_active.is_(True),
+            CertificateSigned.id > CertificateSigned_Alt.id,
+        )
+    )
+    return q
+
+
+def get_CertificateSigneds_duplicatePairs__count(
+    ctx: "ApiContext",
+) -> int:
+    q = _get_CertificateSigneds_duplicatePairs__core(ctx)
+    return q.count()
+
+
+def get_CertificateSigneds_duplicatePairs__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Tuple[CertificateSigned, CertificateSigned]]:
+    q = _get_CertificateSigneds_duplicatePairs__core(ctx)
+    q = (
+        q.order_by(
+            CertificateSigned.id.desc(),
+            CertificateSigned_Alt.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    pairs = q.all()
+    return pairs
+
+
 def get_CertificateSigneds_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
@@ -2583,13 +2642,12 @@ def get_CertificateSigneds_renew_now(
             # CertificateSigned.ari_identifier__replaced_by.is_(None),
             # again, ARI is not guaranteed - but it also might be in the future like pebble
             sqlalchemy.or_(
-                CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
+                CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
                 AriCheck.suggested_window_end >= timestamp_max_expiry,
             ),
         )
         .all()
     )
-
     return expiring_certs
 
 

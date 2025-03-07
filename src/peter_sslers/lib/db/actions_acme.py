@@ -1874,11 +1874,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         dbAcmeOrder.private_key_strategy_id__final = (
             model_utils.PrivateKeyStrategy.from_string(private_key_strategy__final)
         )
-        ctx.dbSession.flush(
-            objects=[
-                dbAcmeOrder,
-            ]
-        )
+        ctx.dbSession.flush(objects=[dbAcmeOrder])
 
         private_key_pem = dbAcmeOrder.private_key.key_pem
 

@@ -866,7 +866,7 @@
 </%def>
 
 
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False, show_replace=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -874,6 +874,9 @@
                 <th>active?</th>
                 % if perspective != "RenewalConfiguration":
                     <th>auto-renew?</th>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <th></th>
                 % endif
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
@@ -927,6 +930,18 @@
                         </span>
                     % endif
                 </td>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <td>
+                        % if cert.acme_order:
+                            % if cert.certificate_signed_id__replaces:
+                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % endif
+                            % if cert.certificate_signed_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % endif
+                    % endif
+                    </td>
                 % endif
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>

@@ -195,11 +195,17 @@
 
         datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
 
+    Renewal Configuration: Lineages
+        added the lineages page to visualize these
+    
+    Certificates Signed:
+        added route to show active duplicates
+        added tool to deactivate duplicates
+
     CaCertificiatePreferences were moved into a new `CaCertificiatePreferencePolicy` concept.
     by default a "global" policy is used.
     
     in the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
-
 
     Data Changes
         Global Default and Global Backup were moved into a Global "SystemConfiguration"
