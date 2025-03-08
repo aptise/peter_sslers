@@ -9,17 +9,10 @@ Bug - Fixed
     Ordering a replacement should deactivate the replaces
 
 Renewal Lineages
-    added the lineages page to visualize these
-    
-    http://127.0.0.1:7201/.well-known/peter_sslers/renewal-configuration/29
-    
-    issue 1:
-        not seeing a candiate for new-order, even though i should
-    issue 2:
-        renewal configuration is not picking this up, but it's expired
-        
-
-    
+    added the lineages page to visualize issues
+    updated expiry check to better do the timestamps; they were completely wrong
+    updated expiry check to only address ACTIVE Renewals and Certificates
+    added tool to deactivate all duplicates
     
 
 

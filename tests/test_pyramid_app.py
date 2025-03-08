@@ -29,7 +29,6 @@ from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
-from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from . import _utils
@@ -42,6 +41,7 @@ from ._utils import CustomizedTestCase
 from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import do__AcmeServers_sync
+from ._utils import ensure_SystemConfiguration
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
 from ._utils import make_one__AcmeAccount__pem
@@ -127,6 +127,9 @@ log.setLevel(logging.CRITICAL)
 
 
 # ==============================================================================
+
+# if a buffer is used on the expiry, this must be true
+SLEEP_FOR_EXPIRY = False
 
 
 def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
@@ -8924,6 +8927,13 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
 
 class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
+    def test_a(self):
+        """
+        this exists just to ensure running the setup/teardown before other tests
+        this helps ensure parity between runs of single and multiple tests
+        """
+        pass
+
     @routes_tested(("admin:acme_order:new:freeform",))
     def _prep_AcmeOrder_html(
         self,
@@ -11364,8 +11374,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         assert res2.status_code == 303
         assert res2.location.endswith("?result=success&operation=renewal+configuration")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         _results = lib_db_actions.routine__renew_expiring(
             self.ctx,
@@ -11406,8 +11417,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             acme_profile__backup="shortlived",
         )
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # actually, we order the backups first
         _results_11 = lib_db_actions.routine__order_missing(
@@ -11417,8 +11429,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         )
         assert _results_11 == (1, 0)  # Order Backup for RC1
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # then we renew the expiring
         _results_12 = lib_db_actions.routine__renew_expiring(
@@ -11493,8 +11506,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             _debug()
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # actually, we order the backups first
         _results_11 = lib_db_actions.routine__order_missing(
@@ -11509,8 +11523,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             print("just: routine__order_missing-1")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # then we renew the expiring
         _results_12 = lib_db_actions.routine__renew_expiring(
@@ -11565,8 +11580,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
 
         renewal_configuration_id__2 = dbRenewalConfiguration_2.id
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # order_missing MUST pick up the missing backup and missing Primary
         _results_21 = lib_db_actions.routine__order_missing(
@@ -11581,8 +11597,10 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             print("just: routine__order_missing-2")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
+
         # then we renew the expiring
         _results_22 = lib_db_actions.routine__renew_expiring(
             self.ctx,
@@ -11959,6 +11977,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
     python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer
     """
+
+    def test_a(self):
+        """
+        this exists just to ensure running the setup/teardown before other tests
+        this helps ensure parity between runs of single and multiple tests
+        """
+        pass
 
     def _calculate_stats(self):
         stats = {}
@@ -12483,41 +12508,20 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 )
                 self.ctx.pyramid_transaction_commit()
 
-    def _ensure_policy_cin(self, ctx):
-        dbSystemConfiguration_cin = lib_db_get.get__SystemConfiguration__by_name(
-            ctx, "certificate-if-needed"
-        )
-        assert dbSystemConfiguration_cin
-        if not dbSystemConfiguration_cin.is_configured:
-            dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
-                ctx, "global"
-            )
-            assert dbSystemConfiguration_global
-            _updated = lib_db_update.update_SystemConfiguration(
-                ctx=ctx,
-                dbSystemConfiguration=dbSystemConfiguration_cin,
-                acme_account_id__primary=dbSystemConfiguration_global.acme_account_id__primary,
-                private_key_cycle__primary=dbSystemConfiguration_global.private_key_cycle__primary,
-                private_key_technology__primary=dbSystemConfiguration_global.private_key_technology__primary,
-                acme_profile__primary=dbSystemConfiguration_global.acme_profile__primary,
-                acme_account_id__backup=dbSystemConfiguration_global.acme_account_id__backup,
-                private_key_cycle__backup=dbSystemConfiguration_global.private_key_cycle__backup,
-                private_key_technology__backup=dbSystemConfiguration_global.private_key_technology__backup,
-                acme_profile__backup=dbSystemConfiguration_global.acme_profile__backup,
-            )
-            self.ctx.pyramid_transaction_commit()
-        return dbSystemConfiguration_cin
-
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
     @under_pebble_strict
     @routes_tested(("admin:api:domain:certificate_if_needed|json",))
     def test_domain_certificate_if_needed(self):
         """
-        python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
-        pytest tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
+               python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+               pytest -p no:logging
+        tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
         """
-        dbSystemConfiguration_cin = self._ensure_policy_cin(self.ctx)
+        dbSystemConfiguration_cin = ensure_SystemConfiguration(
+            self, "certificate-if-needed"
+        )
+        assert dbSystemConfiguration_cin.is_configured
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
@@ -12687,9 +12691,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         #             == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
         #         )
         assert res5.json["result"] == "error"
-        assert (
-            res5.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. An AcmeOrder-3 was created but errored"
+        assert res5.json["form_errors"]["Error_Main"].startswith(
+            "There was an error with your form. An AcmeOrder was created but errored. The AcmeOrder id is: "
         )
 
         # Pass 4 - redo the first domain, again
@@ -12744,7 +12747,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -munittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_redis
         """
 
-        dbSystemConfiguration_cin = self._ensure_policy_cin(self.ctx)
+        dbSystemConfiguration_cin = ensure_SystemConfiguration(
+            self, "certificate-if-needed"
+        )
+        assert dbSystemConfiguration_cin.is_configured
+
         auth_SystemConfiguration_accounts(
             self,
             dbSystemConfiguration_cin,

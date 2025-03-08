@@ -1071,7 +1071,7 @@ def update_SystemConfiguration(
                 "Primary and Backup AcmeAccounts MUST be on different servers."
             )
 
-    changes = False
+    changes = []
 
     private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
         private_key_cycle__primary
@@ -1136,7 +1136,7 @@ def update_SystemConfiguration(
     for p in pairings:
         if getattr(dbSystemConfiguration, p[0]) != p[1]:
             setattr(dbSystemConfiguration, p[0], p[1])
-            changes = True
+            changes.append(p[0])
 
     if changes:
         if not dbSystemConfiguration.is_configured:
@@ -1144,4 +1144,4 @@ def update_SystemConfiguration(
                 dbSystemConfiguration.is_configured = True
         ctx.dbSession.flush(objects=[dbSystemConfiguration])
 
-    return changes
+    return True if changes else False

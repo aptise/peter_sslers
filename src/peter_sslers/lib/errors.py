@@ -217,7 +217,9 @@ class AcmeOrderCreatedError(AcmeOrderError):
     """
 
     def __str__(self):
-        return "An AcmeOrder-{0} was created but errored".format(self.args[0].id)
+        return "An AcmeOrder was created but errored. The AcmeOrder id is: {0}".format(
+            self.args[0].id
+        )
 
     @property
     def acme_order(self):

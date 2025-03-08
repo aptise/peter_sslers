@@ -1608,7 +1608,7 @@ def make_one__AcmeOrder__random(
 def make_one__DomainBlocklisted(
     testCase: CustomizedTestCase,
     domain_name: str,
-):
+) -> model_objects.DomainBlocklisted:
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = domain_name
     testCase.ctx.dbSession.add(dbDomainBlocklisted)
@@ -1618,6 +1618,7 @@ def make_one__DomainBlocklisted(
         ]
     )
     testCase.ctx.pyramid_transaction_commit()
+    dbDomainBlocklisted = testCase.ctx.dbSession.merge(dbDomainBlocklisted)
     return dbDomainBlocklisted
 
 
@@ -1627,7 +1628,7 @@ def make_one__RenewalConfiguration(
     domain_names_http01: str,
     private_key_cycle: Optional[str] = "account_default",
     key_technology: Optional[str] = "account_default",
-) -> model_objects.AcmeOrder:
+) -> model_objects.RenewalConfiguration:
     """use the json api!"""
     res = testCase.testapp.get(
         "/.well-known/peter_sslers/renewal-configuration/new.json", status=200
@@ -1761,6 +1762,43 @@ def auth_SystemConfiguration_accounts(
         )
         _did_authenticate = True
     return _did_authenticate
+
+
+def ensure_SystemConfiguration(
+    testCase: CustomizedTestCase,
+    policy_name: Literal["autocert", "certificate-if-needed"],
+) -> model_objects.SystemConfiguration:
+    """
+    NOTE:
+        `unset_testing_data` will set dbSystemConfiguration.is_configured to False
+        but everything else will remain configured
+        this is just to accomodate tests that flow through the setup
+    """
+    dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+        testCase.ctx, policy_name
+    )
+    assert dbSystemConfiguration
+    if not dbSystemConfiguration.is_configured:
+        _sysconfigGlobal = lib_db_get.get__SystemConfiguration__by_name(
+            testCase.ctx, "global"
+        )
+        assert _sysconfigGlobal
+        _updated = lib_db_update.update_SystemConfiguration(
+            ctx=testCase.ctx,
+            dbSystemConfiguration=dbSystemConfiguration,
+            acme_account_id__primary=_sysconfigGlobal.acme_account_id__primary,
+            private_key_cycle__primary=_sysconfigGlobal.private_key_cycle__primary,
+            private_key_technology__primary=_sysconfigGlobal.private_key_technology__primary,
+            acme_profile__primary=_sysconfigGlobal.acme_profile__primary,
+            acme_account_id__backup=_sysconfigGlobal.acme_account_id__backup,
+            private_key_cycle__backup=_sysconfigGlobal.private_key_cycle__backup,
+            private_key_technology__backup=_sysconfigGlobal.private_key_technology__backup,
+            acme_profile__backup=_sysconfigGlobal.acme_profile__backup,
+        )
+        testCase.ctx.pyramid_transaction_commit()
+        dbSystemConfiguration = testCase.ctx.dbSession.merge(dbSystemConfiguration)
+        assert dbSystemConfiguration.is_configured
+    return dbSystemConfiguration
 
 
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
