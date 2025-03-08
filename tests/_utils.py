@@ -1794,6 +1794,7 @@ def ensure_SystemConfiguration(
             private_key_cycle__backup=_sysconfigGlobal.private_key_cycle__backup,
             private_key_technology__backup=_sysconfigGlobal.private_key_technology__backup,
             acme_profile__backup=_sysconfigGlobal.acme_profile__backup,
+            force_reconcilation=True,
         )
         testCase.ctx.pyramid_transaction_commit()
         dbSystemConfiguration = testCase.ctx.dbSession.merge(dbSystemConfiguration)
