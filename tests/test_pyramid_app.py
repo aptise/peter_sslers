@@ -35,21 +35,21 @@ from . import _utils
 from ._utils import _ROUTES_TESTED
 from ._utils import AppTest
 from ._utils import AppTestWSGI
-from ._utils import auth_SystemConfiguration_accounts
+from ._utils import auth_SystemConfiguration_accounts__api
 from ._utils import check_error_AcmeDnsServerError
 from ._utils import CustomizedTestCase
 from ._utils import db_freeze
 from ._utils import db_unfreeze
-from ._utils import do__AcmeServers_sync
-from ._utils import ensure_SystemConfiguration
+from ._utils import do__AcmeServers_sync__api
+from ._utils import ensure_SystemConfiguration__database
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
-from ._utils import make_one__AcmeAccount__pem
-from ._utils import make_one__AcmeAccount__random
-from ._utils import make_one__AcmeOrder
-from ._utils import make_one__AcmeOrder__random
-from ._utils import make_one__DomainBlocklisted
-from ._utils import make_one__RenewalConfiguration
+from ._utils import make_one__AcmeAccount__pem__api
+from ._utils import make_one__AcmeAccount__random__api
+from ._utils import make_one__AcmeOrder__api
+from ._utils import make_one__AcmeOrder__random__api
+from ._utils import make_one__DomainBlocklisted__database
+from ._utils import make_one__RenewalConfiguration__api
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import ResponseFailureOkay
 from ._utils import routes_tested
@@ -58,7 +58,7 @@ from ._utils import RUN_API_TESTS__EXTENDED
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
-from ._utils import setup_SystemConfiguration
+from ._utils import setup_SystemConfiguration__api
 from ._utils import TEST_FILES
 from ._utils import under_pebble
 from ._utils import under_pebble_alt
@@ -152,7 +152,7 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
             print("setup_testing_data | creating new database records")
             _orders = []
             for i in range(0, 3):
-                dbAcmeOrder = make_one__AcmeOrder__random(testCase)
+                dbAcmeOrder = make_one__AcmeOrder__random__api(testCase)
                 _orders.append(dbAcmeOrder)
 
             # This is all to generate a valid ARI Check
@@ -8472,7 +8472,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         return focus_item, focus_item.id
 
     def _make_one_AcmeAccount(self) -> Tuple[model_objects.AcmeAccount, int]:
-        focus_item, focus_item_id = make_one__AcmeAccount__random(self)
+        focus_item, focus_item_id = make_one__AcmeAccount__random__api(self)
         return (focus_item, focus_item_id)
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -8750,7 +8750,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         # we need two for this test
         assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -8955,7 +8955,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(self._domain_names_http01) == 2
         domain_names_http01 = ",".join(self._domain_names_http01)
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -9369,7 +9369,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(_test_data["acme-order/new/freeform#2"]["domain_names_http01"]) == 2
 
         # the original test setup was for an interface that accepted account data
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#2"][
                 "account__contact"
@@ -9732,7 +9732,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(self._domain_names_http01) == 2
         domain_names_http01 = ",".join(self._domain_names_http01)
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -10105,7 +10105,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(_test_data["acme-order/new/freeform#2"]["domain_names_http01"]) == 2
 
         # the original test setup was for an interface that accepted account data
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#2"][
                 "account__contact"
@@ -11060,7 +11060,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             == "There was an error with your form. The `autocert` SystemConfiguration has not been configured"
         )
 
-        setup_SystemConfiguration(self, "autocert")
+        setup_SystemConfiguration__api(self, "autocert")
 
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
@@ -11089,7 +11089,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "AcmeOrder" not in res.json
 
         # Test 3 -- blocklist a domain, then try to autocert
-        dbDomainBlocklisted = make_one__DomainBlocklisted(
+        dbDomainBlocklisted = make_one__DomainBlocklisted__database(
             testCase=self,
             domain_name="test-domain-autocert-2.example.com",
         )
@@ -11243,19 +11243,19 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             lineage_2_certdata[_lineage_name] = (_cert_id, _ari_id)
 
         # prep with some orders of different lineage
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # same UniqueFQDNSet, different UniquelyChallengedFqdnSet
-        dbAcmeOrder_2 = make_one__AcmeOrder(
+        dbAcmeOrder_2 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # different domains
-        dbAcmeOrder_3 = make_one__AcmeOrder(
+        dbAcmeOrder_3 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="b.test-replaces.example.com",
             processing_strategy="process_single",
@@ -11349,10 +11349,10 @@ class IntegratedTests_Renewals(AppTestWSGI):
             Renew BOTH certs
         """
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-simple.example.com",
             processing_strategy="process_single",
@@ -11405,10 +11405,10 @@ class IntegratedTests_Renewals(AppTestWSGI):
             Issue Backup
         """
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
             processing_strategy="process_single",
@@ -11470,10 +11470,10 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # # START - mimic `test_multi_pebble_renewal__realistic`
         # #
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-problematic.example.com",
             processing_strategy="process_single",
@@ -11630,7 +11630,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # this tests a new order using every PrivateKey Option
 
         domain_names_http01 = "test-AcmeOrder-multiple-domains-1.example.com"
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__random(self)
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__random__api(self)
 
         def _update_AcmeAccount(acc__pkey_cycle: str, acc__pkey_technology: str):
             dbAcmeAccount.order_default_private_key_cycle_id = (
@@ -11741,7 +11741,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
                             )
                         )
 
-                        _dbRenewalConfiguration = make_one__RenewalConfiguration(
+                        _dbRenewalConfiguration = make_one__RenewalConfiguration__api(
                             self,
                             dbAcmeAccount=dbAcmeAccount,
                             domain_names_http01=domain_names_http01,
@@ -11872,14 +11872,14 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         """
         # Scenario A
         # step 1 - create the account
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
         )
 
         # step 1b - create the account AGAIN, this should work
-        (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
@@ -11890,7 +11890,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         # Scenario B
         # same key, different contact
         try:
-            (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem(
+            (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem__api(
                 self,
                 account__contact="dbAcmeAccount3@example.com",
                 pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
@@ -11909,7 +11909,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         # Scenario C
         # different key, same contact
         try:
-            (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem(
+            (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem__api(
                 self,
                 account__contact="dbAcmeAccount@example.com",
                 pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
@@ -11951,7 +11951,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
 
         # Scenario E
         # alter the database, so db1 has db5s AcmeAccountKey and url
-        (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount5@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
@@ -12514,11 +12514,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
     @routes_tested(("admin:api:domain:certificate_if_needed|json",))
     def test_domain_certificate_if_needed(self):
         """
-               python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
-               pytest -p no:logging
-        tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
+        python -m unittest \
+            tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+        pytest -p no:logging \
+            tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
         """
-        dbSystemConfiguration_cin = ensure_SystemConfiguration(
+        dbSystemConfiguration_cin = ensure_SystemConfiguration__database(
             self, "certificate-if-needed"
         )
         assert dbSystemConfiguration_cin.is_configured
@@ -12529,64 +12530,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         assert "instructions" in res.json
         assert "SystemConfigurations" in res.json["valid_options"]
-        # valid_options"]["SystemConfigurations"]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
-        assert "global" in res.json["valid_options"]["SystemConfigurations"]
-        assert (
+        assert res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
-            in res.json["valid_options"]["SystemConfigurations"]["global"]
-        )
-        assert (
-            "primary"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]
-        )
-        assert (
-            "AcmeAccountKey"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]["primary"]
-        )
-        assert (
-            "key_pem_md5"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]["primary"]["AcmeAccountKey"]
-        )
-        # valid_options"]["SystemConfigurations"]["certificate-if-needed"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
-        assert (
-            "certificate-if-needed" in res.json["valid_options"]["SystemConfigurations"]
-        )
-        assert (
-            "AcmeAccounts"
-            in res.json["valid_options"]["SystemConfigurations"][
-                "certificate-if-needed"
-            ]
-        )
-        assert (
-            "primary"
-            in res.json["valid_options"]["SystemConfigurations"][
-                "certificate-if-needed"
-            ]["AcmeAccounts"]
-        )
-        assert (
-            res.json["valid_options"]["SystemConfigurations"]["certificate-if-needed"][
-                "AcmeAccounts"
-            ]["primary"]
-            is not None
-        )
-        assert (
-            "AcmeAccountKey"
-            in res.json["valid_options"]["SystemConfigurations"][
-                "certificate-if-needed"
-            ]["AcmeAccounts"]["primary"]
-        )
-        assert (
-            "key_pem_md5"
-            in res.json["valid_options"]["SystemConfigurations"][
-                "certificate-if-needed"
-            ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
-        )
+        ]["primary"]["AcmeAccountKey"]
+        assert res.json["valid_options"]["SystemConfigurations"][
+            "certificate-if-needed"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
             {},
@@ -12631,7 +12580,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             if ("acme_profile__primary" in res3.json["form_errors"]) or (
                 "acme_profile__backup" in res3.json["form_errors"]
             ):
-                _did_authenticate = auth_SystemConfiguration_accounts(
+                _did_authenticate = auth_SystemConfiguration_accounts__api(
                     self, dbSystemConfiguration_cin
                 )
 
@@ -12747,12 +12696,12 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -munittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_redis
         """
 
-        dbSystemConfiguration_cin = ensure_SystemConfiguration(
+        dbSystemConfiguration_cin = ensure_SystemConfiguration__database(
             self, "certificate-if-needed"
         )
         assert dbSystemConfiguration_cin.is_configured
 
-        auth_SystemConfiguration_accounts(
+        auth_SystemConfiguration_accounts__api(
             self,
             dbSystemConfiguration_cin,
             auth_only="primary",
@@ -12768,28 +12717,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert "instructions" in res.json
         assert "SystemConfigurations" in res.json["valid_options"]
         assert "global" in res.json["valid_options"]["SystemConfigurations"]
-        assert (
+        assert res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
-            in res.json["valid_options"]["SystemConfigurations"]["global"]
-        )
-        assert (
-            "primary"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]
-        )
-        assert (
-            "AcmeAccountKey"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]["primary"]
-        )
-        assert (
-            "key_pem_md5"
-            in res.json["valid_options"]["SystemConfigurations"]["global"][
-                "AcmeAccounts"
-            ]["primary"]["AcmeAccountKey"]
-        )
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
         key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
         ]["primary"]["AcmeAccountKey"]["key_pem_md5"]

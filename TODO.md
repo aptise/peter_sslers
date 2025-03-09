@@ -15,6 +15,14 @@ Renewal Lineages
     added tool to deactivate all duplicates
     
 
+Feature
+    write to disk on renewal
+    example client that monitors
+    routine that does everything; single cronjob that schedules everythign
+    
+
+
+
 
 Audit
     objects | certificate has some odd attributes that should be removed

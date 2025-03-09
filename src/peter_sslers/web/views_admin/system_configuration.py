@@ -227,6 +227,9 @@ class View_Focus(Handler):
                     private_key_cycle__backup=self.dbSystemConfiguration.private_key_cycle__backup,
                     private_key_technology__backup=self.dbSystemConfiguration.private_key_technology__backup,
                     acme_profile__backup=self.dbSystemConfiguration.acme_profile__backup,
+                    force_reconciliation=formStash.results[
+                        "force_reconciliation"
+                    ],  # undocumented
                 )
             except Exception as exc:
                 formStash.fatal_form(message=str(exc))
@@ -282,6 +285,9 @@ class View_Focus(Handler):
                         "private_key_technology__backup"
                     ],
                     acme_profile__backup=formStash.results["acme_profile__backup"],
+                    force_reconciliation=formStash.results[
+                        "force_reconciliation"
+                    ],  # undocumented
                 )
             except Exception as exc:
                 formStash.fatal_form(message=str(exc))

@@ -1435,7 +1435,7 @@ def routes_tested(*args):
 # =====
 
 
-def do__AcmeServers_sync(
+def do__AcmeServers_sync__api(
     testCase: CustomizedTestCase,
 ) -> bool:
     acme_server_ids: List[int] = []
@@ -1487,7 +1487,7 @@ def do__AcmeServers_sync(
 
 
 @routes_tested("admin:acme_account:new|json")
-def make_one__AcmeAccount__random(
+def make_one__AcmeAccount__random__api(
     testCase: CustomizedTestCase,
 ) -> Tuple[model_objects.AcmeAccount, int]:
     """use the json api!"""
@@ -1515,7 +1515,7 @@ def make_one__AcmeAccount__random(
 
 
 @routes_tested("admin:acme_account:upload|json")
-def make_one__AcmeAccount__pem(
+def make_one__AcmeAccount__pem__api(
     testCase: CustomizedTestCase,
     account__contact: str,
     pem_file_name: str,
@@ -1550,7 +1550,7 @@ def make_one__AcmeAccount__pem(
 
 
 @routes_tested("admin:acme_order:new:freeform|json")
-def make_one__AcmeOrder(
+def make_one__AcmeOrder__api(
     testCase: CustomizedTestCase,
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
@@ -1593,19 +1593,19 @@ def make_one__AcmeOrder(
 
 
 @routes_tested("admin:acme_order:new:freeform|json")
-def make_one__AcmeOrder__random(
+def make_one__AcmeOrder__random__api(
     testCase: CustomizedTestCase,
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
     domain_names_http01 = generate_random_domain(testCase=testCase)
-    dbAcmeOrder = make_one__AcmeOrder(
+    dbAcmeOrder = make_one__AcmeOrder__api(
         testCase=testCase, domain_names_http01=domain_names_http01
     )
     assert dbAcmeOrder
     return dbAcmeOrder
 
 
-def make_one__DomainBlocklisted(
+def make_one__DomainBlocklisted__database(
     testCase: CustomizedTestCase,
     domain_name: str,
 ) -> model_objects.DomainBlocklisted:
@@ -1622,7 +1622,7 @@ def make_one__DomainBlocklisted(
     return dbDomainBlocklisted
 
 
-def make_one__RenewalConfiguration(
+def make_one__RenewalConfiguration__api(
     testCase: CustomizedTestCase,
     dbAcmeAccount: model_objects.AcmeAccount,
     domain_names_http01: str,
@@ -1661,7 +1661,7 @@ def make_one__RenewalConfiguration(
     return dbRenewalConfiguration
 
 
-def setup_SystemConfiguration(
+def setup_SystemConfiguration__api(
     testCase: CustomizedTestCase,
     policy_name: Literal["global", "autocert", "certificate-if-needed"],
 ) -> model_objects.AcmeOrder:
@@ -1703,6 +1703,7 @@ def setup_SystemConfiguration(
     form["private_key_technology__primary"] = (
         dbSystemConfiguration_global.private_key_technology__primary
     )
+    form["force_reconciliation"] = 1
 
     res2 = testCase.testapp.post(
         "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
@@ -1720,7 +1721,7 @@ def setup_SystemConfiguration(
     return dbSystemConfiguration
 
 
-def auth_SystemConfiguration_accounts(
+def auth_SystemConfiguration_accounts__api(
     testCase: CustomizedTestCase,
     dbSystemConfiguration: model_objects.SystemConfiguration,
     auth_only: Optional[Literal["primary", "backup"]] = None,
@@ -1764,7 +1765,7 @@ def auth_SystemConfiguration_accounts(
     return _did_authenticate
 
 
-def ensure_SystemConfiguration(
+def ensure_SystemConfiguration__database(
     testCase: CustomizedTestCase,
     policy_name: Literal["autocert", "certificate-if-needed"],
 ) -> model_objects.SystemConfiguration:
@@ -2389,6 +2390,7 @@ class AppTest(AppTestCore):
                         private_key_cycle__backup=dbSystemConfiguration_global.private_key_cycle__backup,
                         private_key_technology__backup=dbSystemConfiguration_global.private_key_technology__backup,
                         acme_profile__backup=dbSystemConfiguration_global.acme_profile__backup,
+                        force_reconciliation=True,
                     )
 
                     # note: pre-populate CertificateCA

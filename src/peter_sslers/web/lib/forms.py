@@ -609,6 +609,7 @@ class Form_Notification_mark(_Form_Schema_Base):
 class Form_SystemConfiguration_Global_edit(_Form_Schema_Base):
     acme_account_id__primary = Int(not_empty=True)
     acme_account_id__backup = Int(not_empty=False, if_missing=None)
+    force_reconciliation = Int(not_empty=False, if_missing=None)  # undocumented
 
 
 class Form_SystemConfiguration_edit(_Form_Schema_Base):
@@ -637,6 +638,7 @@ class Form_SystemConfiguration_edit(_Form_Schema_Base):
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+    force_reconciliation = Int(not_empty=False, if_missing=None)  # undocumented
 
 
 class Form_PrivateKey_new__autogenerate(_Form_Schema_Base):
