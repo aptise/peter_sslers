@@ -1048,7 +1048,7 @@ def update_SystemConfiguration(
     private_key_cycle__backup: Optional[str],
     private_key_technology__backup: Optional[str],
     acme_profile__backup: Optional[str],
-    force_reconcilation: bool = False,
+    force_reconciliation: bool = False,
 ) -> bool:
     if not any(
         (
@@ -1139,7 +1139,7 @@ def update_SystemConfiguration(
             setattr(dbSystemConfiguration, p[0], p[1])
             changes.append(p[0])
 
-    if changes or force_reconcilation:
+    if changes or force_reconciliation:
         if not dbSystemConfiguration.is_configured:
             if dbSystemConfiguration.acme_account_id__primary:
                 dbSystemConfiguration.is_configured = True
