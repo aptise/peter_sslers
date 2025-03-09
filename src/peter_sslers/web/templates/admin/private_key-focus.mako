@@ -117,7 +117,7 @@
                             % if not PrivateKey.is_placeholder:
                                 <code>${PrivateKey.spki_sha256}</code>
                                 <a
-                                    class="btn btn-xs btn-info"
+                                    class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/search?${PrivateKey.key_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -133,9 +133,9 @@
                             ## ${'tracked' if PrivateKey.key_pem else 'untracked'}
                             ## <textarea class="form-control">${PrivateKey.key_pem}</textarea>
                             % if not PrivateKey.is_placeholder:
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem">key.pem</a>
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem.txt">key.pem.txt</a>
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.key">key.key (der)</a>
+                                <a class="label label-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem">key.pem</a>
+                                <a class="label label-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem.txt">key.pem.txt</a>
+                                <a class="label label-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.key">key.key (der)</a>
                             % endif
                         </td>
                     </tr>
@@ -168,7 +168,7 @@
                                     Replaces Compromised
                                 </span>
                                 <a
-                                    class="btn btn-xs btn-info"
+                                    class="label label-info"
                                     href="${admin_prefix}/private-key/${PrivateKey.private_key_id__replaces}"
                                 >
                                     PrivateKey-${PrivateKey.private_key_id__replaces}

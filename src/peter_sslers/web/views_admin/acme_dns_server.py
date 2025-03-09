@@ -398,6 +398,7 @@ class View_Focus(Handler):
 
             try:
                 # this function checks the domain names match a simple regex
+                # domains will also be lowercase+strip
                 domain_names = cert_utils.utils.domains_from_string(
                     formStash.results["domain_names"]
                 )
@@ -586,6 +587,7 @@ class View_Focus(Handler):
             for test_domain in ("domain_name", "fulldomain"):
                 try:
                     # this function checks the domain names match a simple regex
+                    # domains will also be lowercase+strip
                     _domain_names = cert_utils.utils.domains_from_string(
                         formStash.results[test_domain]
                     )

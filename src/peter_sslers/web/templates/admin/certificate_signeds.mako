@@ -32,33 +32,39 @@
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: Certificate (Existing)</a>
+        &nbsp;
+        <a href="${admin_prefix}/certificate-signeds/active-duplicates" class="label label-info">
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            active-duplicates
+        </a>
+        &nbsp;
         % if sidenav_option == 'expiring' :
-            <a href="${admin_prefix}/certificate-signeds/expiring.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/expiring.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'active' :
-            <a href="${admin_prefix}/certificate-signeds/active.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/active.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'active-expired' :
-            <a href="${admin_prefix}/certificate-signeds/active-expired.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/active-expired.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'inactive' :
-            <a href="${admin_prefix}/certificate-signeds/inactive.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/inactive.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'inactive-unexpired' :
-            <a href="${admin_prefix}/certificate-signeds/inactive-unexpired.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/inactive-unexpired.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % else:
-            <a href="${admin_prefix}/certificate-signeds/all.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/certificate-signeds/all.json" class="label label-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>

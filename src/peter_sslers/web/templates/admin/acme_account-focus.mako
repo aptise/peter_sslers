@@ -91,27 +91,20 @@
                                 % if not AcmeAccount.is_active:
                                     <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="active"/>
-                                        <button class="btn btn-xs btn-info" type="submit">
+                                        <button class="btn btn-xs btn-primary" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            active
+                                            Activate
                                         </button>
                                     </form>
                                 % else:
-                                    % if not AcmeAccount.is_global_default and not AcmeAccount.is_global_backup:
+                                    % if not AcmeAccount.is_can_unset_active:
                                         <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="inactive"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                                inactive
+                                                Deactivate
                                             </button>
                                         </form>
-                                    % else:
-                                        <span
-                                            class="label label-warning"
-                                        >
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            select another global default and backup key to deactivate this one
-                                        </span>
                                     % endif
                                 % endif
                             % endif
@@ -125,42 +118,88 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Global Default</th>
+                        <th>render in selects?</th>
                         <td>
-                            % if AcmeAccount.is_global_default:
-                                <span class="label label-success">Global Default</span>
-                            % else:
-                                <span class="label label-default"></span>
-                            % endif
-                            &nbsp;
-                            % if AcmeAccount.is_global_default_candidate:
+                            % if AcmeAccount.is_render_in_selects:
+                                <span class="label label-success">render</span>
                                 <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="global_default"/>
-                                    <button class="btn btn-xs btn-primary" type="submit">
+                                    <input type="hidden" name="action" value="no_render_in_selects"/>
+                                    <button class="btn btn-xs btn-danger" type="submit">
+                                        <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+                                        Unset
+                                    </button>
+                                </form>
+                            % else:
+                                <span class="label label-default">not rendered</span>
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="is_render_in_selects"/>
+                                    <button class="btn btn-xs btn-success" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        Set Global Default
+                                        Render
                                     </button>
                                 </form>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>Global Backup</th>
+                        <th>SystemConfigurations</th>
                         <td>
-                            % if AcmeAccount.is_global_backup:
-                                <span class="label label-success">Global Backup</span>
-                            % else:
-                                <span class="label label-default"></span>
+                            % if AcmeAccount.system_configurations__primary:
+                                <b>Configured as Primary</b>
+                                <ul>
+                                    % for ep in AcmeAccount.system_configurations__primary:
+                                        <li>
+                                            <a class="label label-info" href="${admin_prefix}/system-configuration/${ep.slug}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                SystemConfiguration-${ep.name}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
                             % endif
-                            &nbsp;
-                            % if AcmeAccount.is_global_backup_candidate:
-                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="global_backup"/>
-                                    <button class="btn btn-xs btn-primary" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        Set Global Backup
-                                    </button>
-                                </form>
+                            % if AcmeAccount.system_configurations__backup:
+                                <b>Configured as Backup</b>
+                                <ul>
+                                    % for ep in AcmeAccount.system_configurations__backup:
+                                        <li>
+                                            <a class="label label-info" href="${admin_prefix}/system-configuration/${ep.slug}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                SystemConfiguration-${ep.name}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>EnrollmentFactorys</th>
+                        <td>
+                            % if AcmeAccount.enrollment_factorys__primary:
+                                <b>Configured as Primary</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_factorys__primary:
+                                        <li>
+                                            <a class="label label-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentFactory-${ep.id}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
+                            % endif
+                            % if AcmeAccount.enrollment_factorys__backup:
+                                <b>Configured as Backup</b>
+                                <ul>
+                                    % for ep in AcmeAccount.enrollment_factorys__backup:
+                                        <li>
+                                            <a class="label label-info" href="${admin_prefix}/enrollment-factory/${ep.id}">
+                                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                                EnrollmentFactory-${ep.id}
+                                            </a>
+                                        </li>
+                                    % endfor
+                                </ul>
                             % endif
                         </td>
                     </tr>
@@ -198,7 +237,7 @@
                             <code>${AcmeAccount.terms_of_service or ''}</code>
 
                             <a
-                                class="btn btn-xs btn-info"
+                                class="label label-info"
                                 href="${admin_prefix}/acme-account/${AcmeAccount.id}/terms-of-service"
                             >
                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -253,7 +292,7 @@
                                     <td>
                                         <code>${AcmeAccount.acme_account_key.spki_sha256}</code>
                                         <a
-                                            class="btn btn-xs btn-info"
+                                            class="btn btn-xs btn-primary"
                                             href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_spki_search}"
                                         >
                                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -265,9 +304,9 @@
                                     <td>
                                         ## ${'tracked' if AcmeAccount.acme_account_key.key_pem else 'untracked'}
                                         ## <textarea class="form-control">${AcmeAccount.acme_account_key.key_pem}</textarea>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem">key.pem</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem">key.pem</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
+                                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
                                     </td>
                                 </tr>
                                 <tr>
@@ -295,7 +334,7 @@
                         <td>
                             <code>${AcmeAccount.private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -303,13 +342,13 @@
                             <em>key rollovers will use this technology setting.</em>      
                         </td>
                     </tr>
-                    <tr><td colspan="2"><hr/></td></tr>
+                    <tr><td colspan="2">Order Defautls<hr/></td></tr>
                     <tr>
                         <th>Order Defaults: PrivateKey Cycle</th>
                         <td>
                             <code>${AcmeAccount.order_default_private_key_cycle}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -321,7 +360,19 @@
                         <td>
                             <code>${AcmeAccount.order_default_private_key_technology}</code>
                             <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
-                                class="btn btn-xs btn-info"
+                                class="btn btn-xs btn-primary"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>                        
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Order Defaults: Acme Profile</th>
+                        <td>
+                            <code>${AcmeAccount.order_default_acme_profile or ""}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                                 Edit
@@ -373,8 +424,8 @@
                     <tr>
                         <th>RenewalConfigurations(s) - Primary</th>
                         <td>
-                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__5, perspective="AcmeAccount")}
-                            % if AcmeAccount.renewal_configurations__5:
+                            ${admin_partials.table_RenewalConfigurations(AcmeAccount.renewal_configurations__primary__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.renewal_configurations__primary__5:
                                 ${admin_partials.nav_pager("%s/acme-account/%s/renewal-configurations" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>

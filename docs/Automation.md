@@ -3,6 +3,82 @@
 
 # Automation
 
+## Onboarding
+
+To facilitate repetitive onboarding, the concept of "EnrollmentFactorys" was created.
+
+An EnrollmentFactory defines the following for re-use,
+which can be quickly turned into a RenewalConfiguration.
+
+    AcmeAccount(s) for Primary (and optionally backup) Certificate(s)
+    PrivateKey Technology 
+    PrivateKey Cycling
+    ACME profile
+    Domain Template
+
+### Domain Template
+
+The Domain Template concept is unique to an Enrollment Factory.
+
+The template will accept a single domain name, and then expand it as needed.
+
+For example, given the following template:
+
+
+    {DOMAIN}, www.{DOMAIN}, mail.{DOMAIN}
+    
+It would become expended for `example.com` into:
+
+    example.com, www.example.com, mail.example.com
+    
+An Enrollment Factory features separate templates for HTTP-01 and DNS-01 challenges
+
+By defining an Enrollment Factory, new clients/domains can be easily on-boarded
+
+
+## Routines
+
+Several routines are designed for integration with cron scheduling:
+
+* routine__run_ari_checks 
+
+This is low-overhead and can run hourly, if not multiple times per day.
+
+This routine iterates all the enrolled certificates and polls them for ARI information.
+
+The ARI information is used to hint at renewal time.
+
+This routine does not require inbound traffic or firewall adjustment.
+
+
+* routine__automatic_orders 
+
+This has moderate overhead and should run at least once a day.
+
+This routine may require inbound traffic and firewall adjustment.
+
+This routine does two tasks:
+
+1- Orders missing certificates.  When a RenewalConfiguration supporting a backup
+certificate is created, only the primary is ordered.  The backup order is deferred
+to manual ordering or being picked up by this routine.
+
+2- Renews expiring certificates, based on ARI Data and the certificate's expiry
+
+This routine will spin up a public server on the port identified by `http_port.renewals` in the `.ini` configuration file.
+
+This server WILL NOT expose the admin urls.
+
+This sever WILL expose the following urls:
+
+* `/.well-known/acme-challenge` - directory
+* `/.well-known/public/whoami` - URL prints host
+
+
+
+
+
+
 ## Routes Designed for JSON Automation
 
 ### `/.well-known/peter_sslers/api/deactivate-expired.json`

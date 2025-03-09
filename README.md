@@ -12,7 +12,7 @@ certificate loading.
 ACME-V2 support involved a large rewrite of the Client and the Certificate
 Manager's design. The central object changed from a `CertificateSigned` to the
 `AcmeOrder`, which caused a ripple effect.  The V1 release again changed the
-central object to a new `RenewalConfiguration` concept.
+central object to a new `RenewalConfiguration` concept and streamlined operations.
 
 
 peter_sslers README
@@ -66,16 +66,14 @@ Peter combines an integrated ACME V2 Client designed to primarily operate agains
 the LetsEncrypt service, alongside tools designed to manage, deploy and troubleshoot
 SSL Certificates.
 
-The client supported ACME v1 until version `0.4.0`.
-**As of 0.4.0, Only ACME V2 is supported.**
-**As of 0.5.0, Only lua-resty-peter_sslers >0.5.0 is supported.**
-
 It is highly likely that PeterSSLers will work with most, if not all, ACME Servers.
-However, **only LetsEncrypt is supported as a target ACME Server** at this time.
+However, **only LetsEncrypt's Boulder and Pebble are target ACME Servers at this time**.
 LetsEncrypt implementation of the ACME RFC,
 [Boulder](https://github.com/letsencrypt/boulder) has made some unique decisions
 regarding RFC spec-compliant implementation details, and this system was written
-to support those first and foremost.
+to support those first and foremost.  Widespread compatibility is hopefully achieved
+by using the [Pebble](https://github.com/letsencrypt/pebble) ACME Server for
+testing.
 
 Peter's core tool is a lightweight database-backed
 [Pyramid](https://github.com/pylons/pyramid) application that can:
@@ -150,18 +148,11 @@ may not be necessary at all -- or might only be needed for brief periods of time
 
 SQLAlchemy is the underlying database library, so virtually any database can be used
 (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but
-the package is deployed against PostgreSQL. SQLite is actually kind of great,
+the package has been deployed against PostgreSQL. SQLite is actually kind of great,
 because a single `.sqlite` file can be sftp'd on-to and off-of different machines
 for distribution and local viewings.
 
-Peter will use installed Python cryptography modules whenever possible.
-If the required packages are not available, Peter will leverage the system's
-installed OpenSSL binaries using subprocesses. The reason is to minimize the
-amount of installations/downloads/packages when used for emergency debugging.
-*Every single operation involved with procuring and inspecting SSL Certificates
-is implemented Python-first, with an OpenSSL fallback.*  This is because an
-initial purpose of Peter was import, troubleshoot and ultimately replace
-complex Certbot installations.
+Peter only uses the Cryptography package, support for PyOpenSSL was dropped.
 
 
 How?
@@ -180,6 +171,7 @@ There are 2 main libraries:
   * A webserver application for obtaining and managing certificates
     * designed for JSON/API programmatic usage
     * usable by humans with simplified html
+  * An isolated library and model for building custom applications
 
 Provisioning Certificates and initial orders are currently done through the web
 interface.
@@ -225,9 +217,6 @@ Peter SSLers is fully functional and deployed in production environments for:
 * Manual Renewal
 * Programmatic Renewal
 * Interrogating and syncing against ACME Servers
-
-The following features are being actively reworked and semi-functional:
-
 * Queuing new Domains for Certificate Provisioning
 * Automatic Renewal
 
@@ -406,7 +395,8 @@ Full Documentation
 
 Related Projects
 ==================
-* [aptise/lura-resty_peter_sslers](https://github.com/aptise/lua-resty-peter_sslers)
+* [aptise/lua-resty_peter_sslers](https://github.com/aptise/lua-resty-peter_sslers)
+* [aptise/cert_utils](https://github.com/aptise/cert_utils)
 * OpenResty
   * [Github Source](https://github.com/openresty/openresty)
   * [Project Homepage](https://openresty.org)

@@ -99,7 +99,7 @@
                             % if CertificateRequest.spki_sha256:
                                 <code>${CertificateRequest.spki_sha256}</code>
                                 <a
-                                    class="btn btn-xs btn-info"
+                                    class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/search?${CertificateRequest.csr_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -112,9 +112,9 @@
                         <td>
                             % if CertificateRequest.csr_pem:
                                 ## <textarea class="form-control">${CertificateRequest.csr_pem}</textarea>
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
+                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
                             % else:
                                 <em>pem is not tracked</em>
                             % endif

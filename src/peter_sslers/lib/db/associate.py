@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServerAccount
     from ...model.objects import Domain
     from ...model.objects import RenewalConfiguration
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 
 # ==============================================================================
