@@ -2,6 +2,7 @@
 import datetime
 import logging
 import pdb
+import pprint
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -61,31 +62,9 @@ log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
 
-"""
-TODO: sqlalchemy 1.4 rename
-* ``isnot`` is now ``is_not``
-* ``notin_`` is now ``not_in``
-"""
 
-
-_SA_VERSION = None  # parsed version
-_SA_1_4 = None  # Boolean
-
+DEBUG_CIN = True
 DEBUG_CONCEPT = False
-
-
-def scalar_subquery(query):
-    global _SA_VERSION
-    global _SA_1_4
-    if _SA_VERSION is None:
-        _SA_VERSION = tuple(int(i) for i in sqlalchemy.__version__.split("."))
-        if _SA_VERSION >= (1, 4, 0):
-            _SA_1_4 = True
-        else:
-            _SA_1_4 = False
-    if _SA_1_4:
-        return query.scalar_subquery()
-    return query.subquery().as_scalar()
 
 
 def operations_deactivate_expired(
@@ -197,8 +176,8 @@ def operations_reconcile_cas(
     dbCertificateCAs = (
         ctx.dbSession.query(model_objects.CertificateCA)
         .filter(
-            model_objects.CertificateCA.cert_issuer_uri.isnot(None),
-            model_objects.CertificateCA.cert_issuer__reconciled.isnot(True),
+            model_objects.CertificateCA.cert_issuer_uri.is_not(None),
+            model_objects.CertificateCA.cert_issuer__reconciled.is_not(True),
         )
         .all()
     )
@@ -331,7 +310,7 @@ def operations_update_recents__domains(
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_single=_q_sub)
@@ -357,7 +336,7 @@ def operations_update_recents__domains(
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
         .values(certificate_signed_id__latest_multi=_q_sub)
@@ -406,7 +385,7 @@ def operations_update_recents__global(
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_single=_q_sub
@@ -432,7 +411,7 @@ def operations_update_recents__global(
         .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
         .limit(1)
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
             certificate_signed_id__latest_multi=_q_sub
@@ -495,7 +474,7 @@ def operations_update_recents__global(
             )
         )
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.CertificateCA.__table__.update().values(
             count_active_certificates=_q_sub
@@ -512,7 +491,7 @@ def operations_update_recents__global(
     ).filter(
         model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
@@ -522,7 +501,7 @@ def operations_update_recents__global(
     ).filter(
         model_objects.CertificateSigned.private_key_id == model_objects.PrivateKey.id,
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
             count_certificate_signeds=_q_sub
@@ -538,7 +517,7 @@ def operations_update_recents__global(
     ).filter(
         model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
@@ -549,7 +528,7 @@ def operations_update_recents__global(
         model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
         model_objects.AcmeOrder.certificate_signed_id.is_not(None),
     )
-    _q_sub = scalar_subquery(_q_sub)
+    _q_sub = _q_sub.subquery().as_scalar()
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
             count_certificate_signeds=_q_sub
@@ -651,9 +630,6 @@ def api_domains__certificate_if_needed(
         raise errors.DisplayableError(
             "the `certificate-if-needed` SystemConfiguration is not configured"
         )
-
-    DEBUG_CIN = True
-    import pprint
 
     if DEBUG_CIN:
         print("api_domains__certificate_if_needed")
