@@ -16,7 +16,7 @@ from ..model import utils as model_utils
 
 
 if TYPE_CHECKING:
-    from .utils import ApiContext
+    from .context import ApiContext
     from ..model.objects import Domain
     from pyramid.request import Request
 

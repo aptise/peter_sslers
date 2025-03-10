@@ -1,7 +1,5 @@
 # stdlib
 from typing import Dict
-from typing import List
-from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -11,15 +9,13 @@ from pyramid.httpexceptions import HTTPFound
 
 # localapp
 from ...lib import db as lib_db
-from ...lib.errors import InvalidRequest
-from ...model.objects import CertificateCAPreference
+from ...model.objects import CertificateCAPreferencePolicy
 
 
 # ==============================================================================
 
 if TYPE_CHECKING:
     from pyramid.request import Request
-    from ...model.objects import AcmeAccount
 
 
 # misc config options
@@ -54,16 +50,21 @@ def admin_url(request: "Request") -> str:
     return request.api_host + request.api_context.application_settings["admin_prefix"]
 
 
-def load_CertificateCAPreferences(
+def load_CertificateCAPreferencePolicy_global(
     request: "Request",
-) -> List["CertificateCAPreference"]:
+) -> "CertificateCAPreferencePolicy":
     """
     loads `model.objects.CertificateCAPreferences` onto the request
     """
-    dbCertificateCAPreferences = lib_db.get.get__CertificateCAPreference__paginated(
-        request.api_context
+    dbCertificateCAPreferencePolicy = (
+        lib_db.get.get__CertificateCAPreferencePolicy__by_name(
+            request.api_context,
+            "global",
+            eagerload_preferences=True,
+        )
     )
-    return dbCertificateCAPreferences
+    assert dbCertificateCAPreferencePolicy is not None
+    return dbCertificateCAPreferencePolicy
 
 
 # ==============================================================================
@@ -74,10 +75,6 @@ class Handler(object):
 
     #: The active :class:`Pyramid.request.Request`
     request: "Request"
-
-    #: The default :class:`model.objects.AcmeAccount`
-    dbAcmeAccount_GlobalDefault: Optional["AcmeAccount"] = None
-    dbAcmeAccount_GlobalBackup: Optional["AcmeAccount"] = None
 
     def __init__(self, request: "Request"):
         """
@@ -118,57 +115,3 @@ class Handler(object):
         return pager, ((page_requested - 1) * items_per_page)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _ensure_nginx(self):
-        """
-        if nginx is not enabled, raise a HTTPFound to the admin dashboard
-        """
-        if not self.request.api_context.application_settings["enable_nginx"]:
-            raise InvalidRequest("nginx is not enabled")
-
-    def _ensure_redis(self):
-        """
-        if redis is not enabled, raise a HTTPFound to the admin dashboard
-        """
-        if not self.request.api_context.application_settings["enable_redis"]:
-            raise InvalidRequest("redis is not enabled")
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _load_AcmeAccount_GlobalDefault(self):
-        """
-        Loads the default :class:`model.objects.AcmeAccount` into the view's :attr:`.dbAcmeAccount_GlobalDefault`.
-        """
-        self.dbAcmeAccount_GlobalDefault = lib_db.get.get__AcmeAccount__GlobalDefault(
-            self.request.api_context, active_only=True
-        )
-        return self.dbAcmeAccount_GlobalDefault
-
-    def _load_AcmeAccount_GlobalBackup(self):
-        """
-        Loads the default :class:`model.objects.AcmeAccount` into the view's :attr:`.dbAcmeAccount_GlobalBackup`.
-        """
-        self.dbAcmeAccount_GlobalBackup = lib_db.get.get__AcmeAccount__GlobalBackup(
-            self.request.api_context, active_only=True
-        )
-        return self.dbAcmeAccount_GlobalBackup
-
-    def _load_AcmeDnsServer_GlobalDefault(self):
-        """
-        Loads the default :class:`model.objects.AcmeDnsServer` into the view's :attr:`.dbAcmeDnsServer_GlobalDefault`.
-        """
-        self.dbAcmeDnsServer_GlobalDefault = (
-            lib_db.get.get__AcmeDnsServer__GlobalDefault(
-                self.request.api_context,
-            )
-        )
-        return self.dbAcmeDnsServer_GlobalDefault
-
-    def _load_AcmeServers(self):
-        """
-        Loads the options for :class:`model.objects.AcmeServer` into the view's :attr:`.dbAcmeServers`.
-        """
-        self.dbAcmeServers = lib_db.get.get__AcmeServers__paginated(
-            self.request.api_context, is_enabled=True
-        )
-        return self.dbAcmeServers

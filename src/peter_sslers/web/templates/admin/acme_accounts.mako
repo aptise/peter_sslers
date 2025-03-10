@@ -40,22 +40,40 @@
     % if pager._current == 1:
         <table class="table table-condensed">
             <tr>
-                <th>Global Default</th>
+                <th>Global SystemConfiguration</th>
                 <td>
-                    % if AcmeAccount_GlobalDefault:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}">
+                    <a class="label label-info" href="${admin_prefix}/system-configuration/${SystemConfiguration_global.slug}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        SystemConfiguration-${SystemConfiguration_global.slug}</a>
+                </td>
+            </tr>
+            <tr>
+                <th>Default AcmeAccount</th>
+                <td>
+                    % if SystemConfiguration_global.acme_account__primary:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration_global.acme_account_id__primary}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${AcmeAccount_GlobalDefault.id}</a>
+                            AcmeAccount-${SystemConfiguration_global.acme_account_id__primary}</a>
+                    % else:
+                        <span class="label label-warning">
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            Please Configure
+                        </span>
                     % endif            
                 </td>
             </tr>
             <tr>
-                <th>Global Backup</th>
+                <th>Backup AcmeAccount</th>
                 <td>
-                    % if AcmeAccount_GlobalBackup:
-                        <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}">
+                    % if SystemConfiguration_global.acme_account_id__backup:
+                        <a class="label label-info" href="${admin_prefix}/acme-account/${SystemConfiguration_global.acme_account_id__backup}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccount-${AcmeAccount_GlobalBackup.id}</a>
+                            AcmeAccount-${SystemConfiguration_global.acme_account_id__backup}</a>
+                    % else:
+                        <span class="label label-warning">
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            Please Configure
+                        </span>
                     % endif            
                 </td>
             </tr>

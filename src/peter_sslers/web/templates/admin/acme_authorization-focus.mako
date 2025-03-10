@@ -49,7 +49,7 @@
                                 action="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/sync"
                                 id="form-acme_server-sync"
                             >
-                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-sync">
+                                <button class="btn btn-xs btn-primary ${_btn_class}" id="btn-acme_authorization-sync">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Sync AcmeAuthorization Against ACME Server 
                                 </button>
@@ -60,7 +60,7 @@
                                 action="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/deactivate"
                                 id="form-acme_server-deactivate"
                             >
-                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-deactivate">
+                                <button class="btn btn-xs btn-danger ${_btn_class}" id="btn-acme_authorization-deactivate">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Deactivate Against ACME Server
                                 </button>

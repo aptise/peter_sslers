@@ -51,7 +51,7 @@
                                 action="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/sync"
                                 id="form-acme_server-sync"
                             >
-                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_challenge-sync">
+                                <button class="btn btn-xs btn-primary ${_btn_class}" id="btn-acme_challenge-sync">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Sync AcmeChallenge Against ACME Server
                                 </button>
@@ -62,7 +62,7 @@
                                 action="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/trigger"
                                 id="form-acme_server-trigger"
                             >
-                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_challenge-trigger">
+                                <button class="btn btn-xs btn-primary ${_btn_class}" id="btn-acme_challenge-trigger">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Trigger ACME Server
                                 </button>

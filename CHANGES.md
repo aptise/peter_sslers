@@ -94,6 +94,25 @@
             * adding new `single_use__reuse_1_year`
             * dropping _options_AcmeAccount_private_key_cycle
             * dropping account__private_key_cycle
+        * SystemConfiguration
+            Defaults for global, autocert and certificate-if-needed
+        * EnrollmentFactory
+            defaults for onboarding a pattern of domains;
+            i.e. define a template like:
+            
+                {DOMAIN}
+                dash.{DOMAIN}
+                www.{DOMAIN}
+                main.{DOMAIN}
+                
+            when invoked against an endpoint, autoexpand a single domain into:
+            
+                EXAMPLE.COM
+                dash.EXAMPLE.COM
+                www.EXAMPLE.COM
+                main.EXAMPLE.COM
+            
+            
 
     New commandline routines:
         routine__clear_old_ari_checks
@@ -136,6 +155,14 @@
         - testing edge cases on form submission
         - `contact` not required by application; better reporting of server error
 
+    AcmeOrdering
+        Ensure Poilcy is in Directory before ordering
+        Auto-update directory samples and profiles
+    
+    Notifications
+        a notification will be logged if the AcmeDirectory substantially changes
+
+
     New Bundled CAs
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
@@ -167,6 +194,23 @@
           would leave the database with blocking auths.
 
         datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
+
+    Renewal Configuration: Lineages
+        added the lineages page to visualize these
+    
+    Certificates Signed:
+        added route to show active duplicates
+        added tool to deactivate duplicates
+
+    CaCertificiatePreferences were moved into a new `CaCertificiatePreferencePolicy` concept.
+    by default a "global" policy is used.
+    
+    in the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
+
+    Data Changes
+        Global Default and Global Backup were moved into a Global "SystemConfiguration"
+
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

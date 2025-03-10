@@ -54,6 +54,9 @@
 
     ${next.body()}
 
+    <ol class="breadcrumb">
+        <timestamp>${request.api_context.timestamp.isoformat()|n}</timestamp>
+    </ol>
 </div>
 </body>
 </html>

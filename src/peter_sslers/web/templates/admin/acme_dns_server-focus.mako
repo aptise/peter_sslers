@@ -121,14 +121,14 @@
             </a>
 
             <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/ensure-domains"
-               class="btn btn-info"
+               class="btn btn-primary"
             >
                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                 Ensure Domains
             </a>
 
             <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/import-domain"
-               class="btn btn-info"
+               class="btn btn-primary"
             >
                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                 Import Domain

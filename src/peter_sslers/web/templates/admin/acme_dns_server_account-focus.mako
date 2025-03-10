@@ -45,23 +45,25 @@
                     <td>
                         <a
                             href="${admin_prefix}/acme-dns-server/${AcmeDnsServerAccount.acme_dns_server_id}"
-                            class="btn btn-xs btn-info"
+                            class="label label-info"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeDnsServer | ${AcmeDnsServerAccount.acme_dns_server_id}
+                            AcmeDnsServer-${AcmeDnsServerAccount.acme_dns_server_id}
                         </a>
                     </td>
                 </tr>        
                 <tr>
                     <th>Domain</th>
                     <td>
+                    
                         <a
                             href="${admin_prefix}/domain/${AcmeDnsServerAccount.domain_id}"
-                            class="btn btn-xs btn-info"
+                            class="label label-info"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Domain | ${AcmeDnsServerAccount.domain_id} | ${AcmeDnsServerAccount.domain.domain_name}
+                            Domain-${AcmeDnsServerAccount.domain_id}
                         </a>
+                        <span class="label label-default">${AcmeDnsServerAccount.domain.domain_name}</span>
                     </td>
                 </tr>        
 

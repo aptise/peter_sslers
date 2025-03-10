@@ -37,6 +37,7 @@ requires = [
     "python-dateutil",
     "requests",
     "SQLAlchemy>2",
+    "tldextract",
     "typing_extensions",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
@@ -106,5 +107,7 @@ setup(
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
+      update_filepaths = peter_sslers.web.scripts.update_filepaths:main
+      deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
       """,
 )
