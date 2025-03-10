@@ -12580,30 +12580,54 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             if ("acme_profile__primary" in res3.json["form_errors"]) or (
                 "acme_profile__backup" in res3.json["form_errors"]
             ):
+                print("\n\n\n\n\n")
+                print("AUTHENTICATING....")
                 _did_authenticate = auth_SystemConfiguration_accounts__api(
                     self, dbSystemConfiguration_cin
                 )
+                print("did authenticate?", _did_authenticate)
 
         # try this again...
-        res3 = self.testapp.post(
+        res3b = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
-        assert res3.status_code == 200
-        assert res3.json["result"] == "success"
-        assert "domain_results" in res3.json
-        assert _domain_name in res3.json["domain_results"]
+        assert res3b.status_code == 200
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("_did_authenticate ?", _did_authenticate)
+        pprint.pprint(res3b.json)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        assert res3b.json["result"] == "success"
+        assert "domain_results" in res3b.json
+        assert _domain_name in res3b.json["domain_results"]
         assert (
-            res3.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res3b.json["domain_results"][_domain_name]["certificate_signed.status"]
             == "new"
         )
         if _did_authenticate:
             # if we authenticated due to a failed form, we would have saved the dbDomain
             assert (
-                res3.json["domain_results"][_domain_name]["domain.status"] == "existing"
+                res3b.json["domain_results"][_domain_name]["domain.status"]
+                == "existing"
             )
         else:
-            assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
+            assert res3b.json["domain_results"][_domain_name]["domain.status"] == "new"
+        assert res3b.json["domain_results"][_domain_name]["acme_order.id"] is not None
 
         # Pass 2 - Try multiple domains
         _domain_names = (
