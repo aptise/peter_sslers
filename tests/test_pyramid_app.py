@@ -12524,6 +12524,24 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
         assert dbSystemConfiguration_cin.is_configured
 
+        if True:
+            # Try to replicate bug/flaky-test
+            dbSystemConfiguration_cin.acme_account__primary.acme_server.profiles = ""
+            if dbSystemConfiguration_cin.acme_account__backup:
+                dbSystemConfiguration_cin.acme_account__backup.acme_server.profiles = ""
+            self.ctx.pyramid_transaction_commit()
+            dbSystemConfiguration_cin = self.ctx.dbSession.merge(
+                dbSystemConfiguration_cin
+            )
+
+        DOMAIN_NAME__SINGLE = "test-domain-certificate-if-needed-1.example.com"
+        DOMAIN_NAME__MULTI = (
+            "test-domain-certificate-if-needed-1.example.com",
+            "test-domain-certificate-if-needed-2.example.com",
+        )
+        DOMAIN_NAME__FAIL = "fail-a-1.example.com"
+
+        # res1 - GET - instructions
         res = self.testapp.get(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
             status=200,
@@ -12536,6 +12554,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res.json["valid_options"]["SystemConfigurations"][
             "certificate-if-needed"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
+
+        # res2 - POST - instructions
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
             {},
@@ -12544,8 +12564,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert "instructions" not in res2.json
         assert res2.json["result"] == "error"
 
-        #
-
+        # grab the key from `res1 - GET - instructions`
         key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
             "AcmeAccounts"
         ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
@@ -12568,8 +12587,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res3 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
@@ -12577,6 +12595,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         _did_authenticate = False
         if res3.json["result"] == "error":
+            print("#" * 80)
+            print("#" * 80)
+            print("Pass 1 - Generate a single domain")
+            print("res3.json == ERROR")
+            pprint.pprint(res3.json)
+            print("#" * 80)
+            print("#" * 80)
             if ("acme_profile__primary" in res3.json["form_errors"]) or (
                 "acme_profile__backup" in res3.json["form_errors"]
             ):
@@ -12586,6 +12611,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                     self, dbSystemConfiguration_cin
                 )
                 print("did authenticate?", _did_authenticate)
+            else:
+                raise
 
         # try this again...
         res3b = self.testapp.post(
@@ -12614,27 +12641,31 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         print("*" * 80)
         assert res3b.json["result"] == "success"
         assert "domain_results" in res3b.json
-        assert _domain_name in res3b.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
         assert (
-            res3b.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res3b.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "new"
         )
         if _did_authenticate:
             # if we authenticated due to a failed form, we would have saved the dbDomain
             assert (
-                res3b.json["domain_results"][_domain_name]["domain.status"]
+                res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
                 == "existing"
             )
         else:
-            assert res3b.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res3b.json["domain_results"][_domain_name]["acme_order.id"] is not None
+            assert (
+                res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+                == "new"
+            )
+        assert (
+            res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"]
+            is not None
+        )
 
         # Pass 2 - Try multiple domains
-        _domain_names = (
-            "test-domain-certificate-if-needed-1.example.com",
-            "test-domain-certificate-if-needed-2.example.com",
-        )
-        form["domain_name"] = ",".join(_domain_names)
+        form["domain_name"] = ",".join(DOMAIN_NAME__MULTI)
         res4 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
@@ -12646,62 +12677,58 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         # Pass 3 - Try a failure domain
-        _domain_name = "fail-a-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__FAIL
         res5 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res5.status_code == 200
-        #         assert res5.json["result"] == "success"
-        #         assert (
-        #             res5.json["domain_results"][_domain_name]["certificate_signed.status"]
-        #             == "fail"
-        #         )
-        #         assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
-        #         assert res5.json["domain_results"][_domain_name]["acme_order.id"] is not None
-        #         assert (
-        #             res5.json["domain_results"][_domain_name]["error"]
-        #             == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
-        #         )
         assert res5.json["result"] == "error"
         assert res5.json["form_errors"]["Error_Main"].startswith(
             "There was an error with your form. An AcmeOrder was created but errored. The AcmeOrder id is: "
         )
 
         # Pass 4 - redo the first domain, again
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res6 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res6.status_code == 200
         assert res6.json["result"] == "success"
         assert "domain_results" in res6.json
-        assert _domain_name in res6.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res6.json["domain_results"]
         assert (
-            res6.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res6.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "exists"
         )
-        assert res6.json["domain_results"][_domain_name]["domain.status"] == "existing"
-        assert res6.json["domain_results"][_domain_name]["acme_order.id"] is None
+        assert (
+            res6.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+            == "existing"
+        )
+        assert res6.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is None
 
         # Pass 5 - do it again
         # originally this disabled the domain, but now we just do a duplicate
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res7 = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res7.status_code == 200
         assert res7.json["result"] == "success"
         assert "domain_results" in res7.json
-        assert _domain_name in res7.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res7.json["domain_results"]
         assert (
-            res7.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res7.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "exists"
         )
-        assert res7.json["domain_results"][_domain_name]["domain.status"] == "existing"
-        assert res7.json["domain_results"][_domain_name]["acme_order.id"] is None
+        assert (
+            res7.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+            == "existing"
+        )
+        assert res7.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is None
 
     @unittest.skipUnless(RUN_REDIS_TESTS, "Not Running Against: redis")
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -12730,6 +12757,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             dbSystemConfiguration_cin,
             auth_only="primary",
         )
+
+        DOMAIN_NAME__SINGLE = "test-redis-1.example.com"
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we have a cert
@@ -12761,21 +12790,22 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # shared
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
-        _domain_name = "test-redis-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "domain_results" in res.json
-        assert _domain_name in res.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res.json["domain_results"]
         assert (
-            res.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res.json["domain_results"][DOMAIN_NAME__SINGLE]["certificate_signed.status"]
             == "new"
         )
-        assert res.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res.json["domain_results"][_domain_name]["acme_order.id"] is not None
+        assert res.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"] == "new"
+        assert (
+            res.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is not None
+        )
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents

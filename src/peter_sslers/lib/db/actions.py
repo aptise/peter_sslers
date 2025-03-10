@@ -652,6 +652,13 @@ def api_domains__certificate_if_needed(
             "the `certificate-if-needed` SystemConfiguration is not configured"
         )
 
+    DEBUG_CIN = True
+    import pprint
+
+    if DEBUG_CIN:
+        print("api_domains__certificate_if_needed")
+        pprint.pprint(locals())
+
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
@@ -701,6 +708,10 @@ def api_domains__certificate_if_needed(
     domain_names = domains_challenged.domains_as_list
     results: Dict = {d: None for d in domain_names}
     # _timestamp = dbOperationsEvent.timestamp_event
+
+    if DEBUG_CIN:
+        print("domain_names", domain_names)
+
     for _domain_name in domain_names:
         # scoping
         _logger_args: Dict = {
@@ -756,10 +767,17 @@ def api_domains__certificate_if_needed(
         # log Domain event
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
 
+        if DEBUG_CIN:
+            print("commiting for domain work")
+            print("_result")
+            pprint.pprint(_result)
+            print("_logger_args")
+            pprint.pprint(_logger_args)
+
         # do commit, just because we may have created a domain; also, logging!
         ctx.pyramid_transaction_commit()
 
-        # go for the certificate
+        # look for a certificate
         _logger_args = {"event_status_id": None}
         _dbCertificateSigned = lib.db.get.get__CertificateSigned__by_DomainId__latest(
             ctx, _dbDomain.id
@@ -854,7 +872,6 @@ def api_domains__certificate_if_needed(
                             "ApiDomains__certificate_if_needed__certificate_new_fail"
                         )
                     )
-
                 raise
 
         # log domain event

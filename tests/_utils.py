@@ -1750,6 +1750,7 @@ def auth_SystemConfiguration_accounts__api(
             if i
         ]
 
+    # return True if we authenticate for either account
     for _acme_account_id in account_ids:
         # authenticate will register; check will not
         # during test-runs, the pebble server will lose state so check will fail
