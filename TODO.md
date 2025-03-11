@@ -8,9 +8,13 @@ Feature
     example client that monitors
     routine that does everything; single cronjob that schedules everythign
     
-    
 acme-dns:
-
+    onboarding
+    
+    audit credentials
+        waiting on
+            https://github.com/joohoi/acme-dns/pull/378
+    
 
 commandline tools:
     import acme-dns payload

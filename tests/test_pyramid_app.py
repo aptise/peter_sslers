@@ -2223,7 +2223,7 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         )
         assert "AcmeDnsServerAccount" in res.json
         assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
-        assert "Results" in res.json
+        assert "audit" in res.json
 
 
 class FunctionalTests_AcmeEventLog(AppTest):
@@ -5677,6 +5677,7 @@ class _MixinEnrollmentFactory:
             form,
         )
         assert res.status_code == 200
+        pprint.pprint(res.json)
         assert res.json["result"] == "success"
         assert "EnrollmentFactory" in res.json
         return res.json["EnrollmentFactory"]["id"]

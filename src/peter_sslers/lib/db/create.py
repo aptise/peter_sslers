@@ -1295,7 +1295,7 @@ def create__EnrollmentFactory(
 
     if (
         is_export_filesystem_id
-        not in model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem
+        not in model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem_id
     ):
         raise ValueError("`is_export_filesystem_id` not valid for EnrollmentFactory")
 

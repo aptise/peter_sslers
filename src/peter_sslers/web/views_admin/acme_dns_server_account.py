@@ -144,7 +144,11 @@ class View_Focus(Handler):
         }
 
         if self.request.wants_json:
-            return rval
+            return {
+                "result": "success",
+                "AcmeDnsServerAccount": dbAcmeDnsServerAccount,
+                "audit": rval,
+            }
         return {
             "project": "peter_sslers",
             "AcmeDnsServerAccount": dbAcmeDnsServerAccount,
