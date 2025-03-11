@@ -1280,6 +1280,7 @@ def create__EnrollmentFactory(
     domain_template_http01: Optional[str] = None,
     domain_template_dns01: Optional[str] = None,
     label_template: Optional[str] = None,
+    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
 ) -> "EnrollmentFactory":
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
@@ -1291,6 +1292,12 @@ def create__EnrollmentFactory(
     name = lib_utils.normalize_unique_text(name)
     if name.startswith("rc-") or name.startswith("global"):
         raise ValueError("`name` contains a reserved prefix or is a reserved word")
+
+    if (
+        is_export_filesystem_id
+        not in model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem
+    ):
+        raise ValueError("`is_export_filesystem_id` not valid for EnrollmentFactory")
 
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
     dbEnrollmentFactory.name = name  # uniqueness on lower(name)
@@ -1314,6 +1321,7 @@ def create__EnrollmentFactory(
     dbEnrollmentFactory.domain_template_http01 = domain_template_http01
     dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
     dbEnrollmentFactory.label_template = label_template
+    dbEnrollmentFactory.is_export_filesystem_id = is_export_filesystem_id
 
     ctx.dbSession.add(dbEnrollmentFactory)
     ctx.dbSession.flush(objects=[dbEnrollmentFactory])
@@ -1399,6 +1407,7 @@ def create__RenewalConfiguration(
     # misc
     note: Optional[str] = None,
     label: Optional[str] = None,
+    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
     dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
@@ -1423,6 +1432,7 @@ def create__RenewalConfiguration(
     :param note: (optional) A string to be associated with this record
     :param dbEnrollmentFactory: (optional) A :class:`model.objects.EnrollmentFactory` object
     :param dbSystemConfiguration: (optional) A :class:`model.objects.SystemConfiguration` object
+    :param is_export_filesystem_id: (optional) A value from `is_export_filesystem_id`
 
     :returns :class:`model.objects.RenewalConfiguration`
     """
@@ -1482,6 +1492,12 @@ def create__RenewalConfiguration(
                     acme_profile__backup,
                     dbAcmeAccount__backup.acme_server.profiles_list,
                 )
+
+    if is_export_filesystem_id == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT:
+        if not dbEnrollmentFactory:
+            raise ValueError(
+                "`is_export_filesystem_id` option requires an Enrollment Factory"
+            )
 
     assert ctx.timestamp
 
@@ -1605,6 +1621,7 @@ def create__RenewalConfiguration(
     # bonus
     dbRenewalConfiguration.note = note or None
     dbRenewalConfiguration.label = label or None
+    dbRenewalConfiguration.is_export_filesystem_id = is_export_filesystem_id
     if dbEnrollmentFactory:
         dbRenewalConfiguration.enrollment_factory_id__via = dbEnrollmentFactory.id
     if dbSystemConfiguration:

@@ -1404,7 +1404,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             # wonderful! now we need to "register" against acme-dns
             try:
                 # initialize a client
-                acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
+                acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.api_url)
                 account = acmeDnsClient.register_account(None)  # arg = allowlist ips
             except Exception as exc:  # noqa: F841
                 # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)

@@ -155,6 +155,14 @@ PEBBLE_ALT_CONFIG_FILE = "/".join(
     ]
 )
 
+ACMEDNS_CONFIG_FILE = "/".join(
+    __file__.split("/")[:-1]
+    + [
+        "test_configuration",
+        "acme-dns--local.config",
+    ]
+)
+
 
 if RUN_API_TESTS__PEBBLE:
     if not GOPATH:
@@ -185,6 +193,7 @@ RUN_API_TESTS__ACME_DNS_API = bool(
     int(os.environ.get("SSL_RUN_API_TESTS__ACME_DNS_API", 0))
 )
 ACME_DNS_API = os.environ.get("SSL_ACME_DNS_API", "http://127.0.0.1:8011")
+ACME_DNS_DOMAIN = os.environ.get("SSL_ACME_DNS_API", "dev.2xlp.com")
 ACME_DNS_BINARY = os.environ.get("SSL_ACME_DNS_BINARY", "")
 ACME_DNS_CONFIG = os.environ.get("SSL_ACME_DNS_CONFIG", "")
 
@@ -217,15 +226,24 @@ if DISABLE_WARNINGS:
 # override to "test_local.ini" if needed
 TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
 
-# This is some fancy footwork to update our settings
-GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
-GLOBAL_appsettings["config_uri"] = TEST_INI
-cert_utils.update_from_appsettings(GLOBAL_appsettings)
 
+GLOBAL_appsettings: dict = {}
+
+
+def intialize_appsettings():
+    global GLOBAL_appsettings
+    # This is some fancy footwork to update our settings
+    GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
+    GLOBAL_appsettings["config_uri"] = TEST_INI
+    cert_utils.update_from_appsettings(GLOBAL_appsettings)
+
+
+intialize_appsettings()
 
 # SEMAPHORE?
 PEBBLE_RUNNING = None
 PEBBLE_ALT_RUNNING = None
+ACMEDNS_RUNNING = None
 
 # RUN_ID
 RUN_START = datetime.datetime.now()
@@ -252,8 +270,6 @@ if DEBUG_ACMEORDERS:
     peter_sslers.lib.acme_v2.log_api.setLevel(100)
 
     # silence cert_utils
-    import cert_utils
-
     cert_utils.log.setLevel(100)
 
 
@@ -798,6 +814,80 @@ def under_redis(_function):
     return _wrapper
 
 
+def under_acme_dns(_function):
+    """
+    decorator to spin up an external acme_dns server
+    """
+    global ACMEDNS_RUNNING
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("`acme-dns`: spinning up for `%s`" % _function.__qualname__)
+        log.info("`acme-dns`: ACMEDNS_CONFIG_FILE : %s", ACMEDNS_CONFIG_FILE)
+        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
+        res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-acme_dns.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
+        with psutil.Popen(
+            ["sudo", "acme-dns", "-c", ACMEDNS_CONFIG_FILE],
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            _waits = 0
+            while not ready:
+                log.info("`acme-dns`: waiting for ready | %s" % _waits)
+                _waits += 1
+                if _waits >= 30:
+                    raise ValueError("`acme-dns`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if b"Listening HTTP" in line:
+                                log.info("`acme-dns`: ready")
+                                ready = True
+                                break
+                else:
+                    # acme-dns logs to STDERR, not STDOUT
+                    for line in iter(proc.stderr.readline, b""):
+                        if b"Listening HTTP" in line:
+                            log.info("`acme-dns`: ready")
+                            ready = True
+                            break
+                time.sleep(1)
+            try:
+                ACMEDNS_RUNNING = True
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("`acme-dns`: finished. terminating")
+                proc.terminate()
+                ACMEDNS_RUNNING = False
+        return res
+
+    return _wrapper
+
+
 # ==============================================================================
 
 
@@ -1027,16 +1117,20 @@ TEST_FILES: Dict = {
     },
     "AcmeDnsServer": {
         "1": {
-            "root_url": ACME_DNS_API,
+            "api_url": ACME_DNS_API,
+            "domain": ACME_DNS_DOMAIN,
         },
         "2": {
-            "root_url": "https://acme-dns.example.com",
+            "api_url": "https://acme-dns.example.com",
+            "domain": "acme-dns.example.com",
         },
         "3": {
-            "root_url": "https://acme-dns-alt.example.com",
+            "api_url": "https://acme-dns-alt.example.com",
+            "domain": "acme-dns-alt.example.com",
         },
         "4": {
-            "root_url": "https://acme-dns-alt-2.example.com",
+            "api_url": "https://acme-dns-alt-2.example.com",
+            "domain": "acme-dns-alt-2.example.com",
         },
     },
     "AcmeDnsServerAccount": {
@@ -2743,7 +2837,8 @@ class AppTest(AppTestCore):
                     # note: pre-populate AcmeDnsServer
                     (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
                         self.ctx,
-                        root_url=ACME_DNS_API,
+                        api_url=ACME_DNS_API,
+                        domain=ACME_DNS_DOMAIN,
                         is_global_default=True,
                     )
 
@@ -2755,7 +2850,8 @@ class AppTest(AppTestCore):
                     try:
                         (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
                             self.ctx,
-                            root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                            api_url=TEST_FILES["AcmeDnsServer"]["2"]["api_url"],
+                            domain=TEST_FILES["AcmeDnsServer"]["2"]["domain"],
                         )
                         if _acme_dns_support == "basic":
                             raise ValueError(

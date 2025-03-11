@@ -210,6 +210,19 @@
     Data Changes
         Global Default and Global Backup were moved into a Global "SystemConfiguration"
 
+    Bug - Fixed
+        Ordering a backup cert will deactivate the primary cert
+        Ordering a replacement should deactivate the replaces
+
+    Renewal Lineages
+        added the lineages page to visualize issues
+        updated expiry check to better do the timestamps; they were completely wrong
+        updated expiry check to only address ACTIVE Renewals and Certificates
+        added tool to deactivate all duplicates
+    
+
+    Feature
+        write to disk on renewal
 
 
 0.6.0

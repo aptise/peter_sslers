@@ -80,6 +80,12 @@ ${admin_partials.formgroup__label(default=EnrollmentFactory.label_template, cont
                         </td>
                     </tr>
                     <tr>
+                        <th>is_export_filesystem</th>
+                       <td>
+                           <code>${model_websafe.OptionsOnOff.as_string(model_websafe.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT)}</code>
+                           </td>
+                    </tr>
+                    <tr>
                         <th>Domain Name</th>
                         <td>
                         

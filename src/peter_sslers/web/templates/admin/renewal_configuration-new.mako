@@ -97,6 +97,7 @@
                     )}
                 ${admin_partials.formgroup__note()}
                 ${admin_partials.formgroup__label()}
+                ${admin_partials.formgroup__is_export_filesystem(default="off", support_enrollment_factory_default=False)}
                 <hr/>
                 <hr/>
 

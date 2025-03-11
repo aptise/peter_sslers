@@ -14,16 +14,11 @@ from pyramid.scripts.common import parse_vars
 from ...lib import exports
 from ...lib.utils import new_scripts_setup
 from ...model import objects as model_objects
+from ...model import utils as model_utils
 
 # ==============================================================================
 
 DEBUG_STRUCTURE: bool = False
-
-
-def relative_symlink(src, dst):
-    dir = os.path.dirname(dst)
-    src = os.path.relpath(src, dir)
-    return os.symlink(src, dst)
 
 
 def usage(argv):
@@ -60,12 +55,7 @@ def main(argv=sys.argv):
     """
 
     # set up our exports root directory
-    EXPORTS_DIR = os.path.join(
-        ctx.request.application_settings["data_dir"], "certificates"
-    )
-    EXPORTS_DIR_WORKING = os.path.join(
-        ctx.request.application_settings["data_dir"], "certificates.working"
-    )
+    (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
     if os.path.exists(EXPORTS_DIR_WORKING):
         raise ValueError(
             "An existing working directory has been encountered. If another process is not responsible, manual cleanup will be necessary."
@@ -73,12 +63,12 @@ def main(argv=sys.argv):
     os.mkdir(EXPORTS_DIR_WORKING)
 
     try:
-
         # !!!: first, export EnrollmentFactorys into their own namespace
         dbEnrollmentFactorys = (
             ctx.dbSession.query(model_objects.EnrollmentFactory)
             .filter(
-                model_objects.EnrollmentFactory.is_export_filesystem.is_(True),
+                model_objects.EnrollmentFactory.is_export_filesystem_id
+                == model_utils.OptionsOnOff.ON,
             )
             .all()
         )
@@ -86,9 +76,9 @@ def main(argv=sys.argv):
         for dbFactory in dbEnrollmentFactorys:
             print("Processing `%s`" % dbFactory.name)
             dir_factory = os.path.join(EXPORTS_DIR_WORKING, dbFactory.name)
-            dir_backup = "%s.bk" % dir_factory
-            if os.path.exists(dir_factory):
-                shutil.move(dir_factory, dir_backup)
+            # dir_factory_backup = "%s.bk" % dir_factory
+            # if os.path.exists(dir_factory):
+            #    shutil.move(dir_factory, dir_factory_backup)
             os.mkdir(dir_factory)
 
             dbRenewalConfigurations = (
@@ -97,6 +87,8 @@ def main(argv=sys.argv):
                     model_objects.RenewalConfiguration.enrollment_factory_id__via
                     == dbFactory.id,
                     model_objects.RenewalConfiguration.is_active.is_(True),
+                    model_objects.RenewalConfiguration.is_export_filesystem_id
+                    == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT,
                 )
                 .all()
             )
@@ -127,7 +119,7 @@ def main(argv=sys.argv):
                         exports.write_pem(dir_type, fname, directory_payload[cert_type][fname])  # type: ignore[literal-required]
                 if dbRc.label:
                     dir_label = os.path.join(dir_factory, dbRc.label)
-                    relative_symlink(dir_renewal, dir_label)
+                    exports.relative_symlink(dir_renewal, dir_label)
 
             if DEBUG_STRUCTURE:
                 pprint.pprint(config_payload)
@@ -135,9 +127,9 @@ def main(argv=sys.argv):
         # !!!: next, lone RenewalConfigurations go under a `global` namespace
         print("Processing `global`")
         dir_global = os.path.join(EXPORTS_DIR_WORKING, "global")
-        dir_backup = "%s.bk" % dir_global
-        if os.path.exists(dir_global):
-            shutil.move(dir_global, dir_backup)
+        # dir_global_backup = "%s.bk" % dir_global
+        # if os.path.exists(dir_global):
+        #    shutil.move(dir_global, dir_global_backup)
         os.mkdir(dir_global)
 
         dbRenewalConfigurations = (
@@ -145,6 +137,8 @@ def main(argv=sys.argv):
             .filter(
                 model_objects.RenewalConfiguration.enrollment_factory_id__via.is_(None),
                 model_objects.RenewalConfiguration.is_active.is_(True),
+                model_objects.RenewalConfiguration.is_export_filesystem_id
+                == model_utils.OptionsOnOff.ON,
             )
             .all()
         )
@@ -175,7 +169,7 @@ def main(argv=sys.argv):
                     exports.write_pem(dir_type, fname, directory_payload[cert_type][fname])  # type: ignore[literal-required]
             if dbRc.label:
                 dir_label = os.path.join(dir_global, dbRc.label)
-                relative_symlink(dir_renewal, dir_label)
+                exports.relative_symlink(dir_renewal, dir_label)
 
         if DEBUG_STRUCTURE:
             pprint.pprint(config_payload2)

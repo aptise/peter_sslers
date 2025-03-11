@@ -38,7 +38,7 @@
                     <select class="form-control" id="acme_dns_server_id" name="acme_dns_server_id">
                         % for option in AcmeDnsServers:
                             % if option.is_active:
-                                <option value="${option.id}" ${'selected' if option.is_global_default else ''}>${option.root_url} (${option.id})</option>
+                                <option value="${option.id}" ${'selected' if option.is_global_default else ''}>${option.api_url} (${option.id})</option>
                             % endif
                         % endfor
                     </select>

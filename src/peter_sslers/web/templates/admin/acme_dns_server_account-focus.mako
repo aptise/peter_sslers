@@ -19,6 +19,11 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
+        <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/audit" class="btn btn-sm btn-primary">
+            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+            audit
+        </a>
+
         <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
@@ -93,6 +98,22 @@
                     <td><code>${AcmeDnsServerAccount.allowfrom}</code></td>
                 </tr>
             </table>
+            
+            
+            <p>
+                The ACME server expects this CNAME record:
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <td>source</td>
+                        <td> <code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
+                    </tr>
+                    <tr>
+                        <td>destination</td>
+                        <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
+                    </tr>
+                </table>
+            </p>
+            
 
             ## <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/get"
             ##   class="btn btn-info"

@@ -41,7 +41,7 @@
                             <th>id</th>
                             <th>active?</th>
                             <th>global default?</th>
-                            <th>root_url</th>
+                            <th>api_url</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,7 +54,7 @@
                             </td>
                             <td><code>${item.is_active}</td>
                             <td><code>${item.is_global_default}</td>
-                            <td><code>${item.root_url}</td>
+                            <td><code>${item.api_url}</td>
                         </tr>
                     % endfor
                     </tbody>

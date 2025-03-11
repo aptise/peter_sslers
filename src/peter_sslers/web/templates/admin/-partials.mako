@@ -416,26 +416,35 @@
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
+                <th>Focus</th>
+                <th>active</th>
                 % if perspective != "AcmeDnsServer":
                     <th>AcmeDnsServer</th>
                 % endif
                 % if perspective != "Domain":
                     <th>Domain</th>
                 % endif
-                <th>Focus</th>
-                <th>active</th>
             </tr>
         </thead>
         <tbody>
             % for a2d in AcmeDnsServerAccounts:
                 <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeDnsServerAccount-${a2d.id}
+                        </a>
+                    </td>
+                    <td>
+                        <code>${a2d.is_active}</code>
+                    </td>
                     % if perspective != "AcmeDnsServer":
                         <td>
                             <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeDnsServer-${a2d.acme_dns_server_id}
                             </a>
-                            <spa class="label label-default">${a2d.acme_dns_server.root_url}</span>
+                            <spa class="label label-default">${a2d.acme_dns_server.api_url}</span>
                         </td>
                     % endif
                     % if perspective != "Domain":
@@ -447,15 +456,6 @@
                             <spa class="label label-default">${a2d.domain.domain_name}</span>
                         </td>
                     % endif
-                    <td>
-                        <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeDnsServerAccount-${a2d.id}
-                        </a>
-                    </td>
-                    <td>
-                        <code>${a2d.is_active}</code>
-                    </td>
                 </tr>
             % endfor
         </tbody>
@@ -2185,16 +2185,19 @@
 </%def>
 
 
-<%def name="formgroup__is_export_filesystem(default=None)">
+<%def name="formgroup__is_export_filesystem(default=None, support_enrollment_factory_default=False)">
     <%
         checked = {
             "on": "",
             "off": "",
+            "enrollment_factory_default": "",
         }
-        if default:
+        if default == "on":
             checked["on"] = 'checked="checked"'
-        else:
+        elif default == "off":
             checked["off"] = 'checked="checked"'
+        elif default =="enrollment_factory_default":
+            checked["enrollment_factory_default"] = 'checked="checked"'
     
     %>
     <div class="form-group clearfix">
@@ -2211,6 +2214,14 @@
                 Off
             </label>
         </div>
+        % if support_enrollment_factory_default:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="is_export_filesystem" value="enrollment_factory_default" ${checked["enrollment_factory_default"]|n}/>
+                    Off
+                </label>
+            </div>
+        % endif
     </div>
 </%def>
 

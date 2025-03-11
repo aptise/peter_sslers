@@ -1567,7 +1567,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res2.status_code == 303
             assert RE_AcmeDnsServer_marked_active.match(res2.location)
 
-        def _edit_url(_item_id, _root_url, expect_failure_nochange=None):
+        def _edit_url_domain(_item_id, _api_url, _domain, expect_failure_nochange=None):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
@@ -1578,7 +1578,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert "form-edit" in res.forms
             form = res.forms["form-edit"]
-            form["root_url"] = _root_url
+            form["api_url"] = _api_url
+            form["domain"] = _domain
             res2 = form.submit()
 
             if expect_failure_nochange:
@@ -1679,14 +1680,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             _make_active(focus_id)
 
         # test: edit
-        url_og = focus_item.root_url
+        url_og = focus_item.api_url
+        domain_og = focus_item.domain
 
         # fail editing the url
-        _edit_url(focus_id, url_og, expect_failure_nochange=True)
+        _edit_url_domain(focus_id, url_og, domain_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(focus_id, url_og + "123")
-        _edit_url(focus_id, url_og)
+        _edit_url_domain(focus_id, url_og + "123", domain_og)
+        _edit_url_domain(focus_id, url_og, domain_og)
 
         # ensure domains
         _ensure_domains(focus_id)
@@ -1802,7 +1804,9 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert "AcmeDnsServer" in res4.json
             assert res4.json["AcmeDnsServer"]["is_active"] is True
 
-        def _edit_url(_item_id, _root_url, expect_failure_nochange=False):
+        def _edit_url_domain(
+            _item_id, _api_url, _domain, expect_failure_nochange=False
+        ):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
                 status=200,
@@ -1828,16 +1832,17 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             if not expect_failure_nochange:
                 res4 = self.testapp.post(
                     "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
-                    {"root_url": _root_url},
+                    {"api_url": _api_url, "domain": _domain},
                     status=200,
                 )
                 assert res4.json["result"] == "success"
                 assert "AcmeDnsServer" in res4.json
-                assert res4.json["AcmeDnsServer"]["root_url"] == _root_url
+                assert res4.json["AcmeDnsServer"]["api_url"] == _api_url
+                assert res4.json["AcmeDnsServer"]["domain"] == _domain
             else:
                 res4 = self.testapp.post(
                     "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
-                    {"root_url": _root_url},
+                    {"api_url": _api_url, "domain": _domain},
                     status=200,
                 )
                 assert res4.json["result"] == "error"
@@ -1983,14 +1988,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             _make_active(focus_id)
 
         # test: edit
-        url_og = focus_item.root_url
+        url_og = focus_item.api_url
+        domain_og = focus_item.domain
 
         # fail editing the url
-        _edit_url(focus_id, url_og, expect_failure_nochange=True)
+        _edit_url_domain(focus_id, url_og, domain_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(focus_id, url_og + "123")
-        _edit_url(focus_id, url_og)
+        _edit_url_domain(focus_id, url_og + "123", "www." + domain_og)
+        _edit_url_domain(focus_id, url_og, domain_og)
 
         # ensure_domains
         _ensure_domains(focus_id)
@@ -2055,7 +2061,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "/.well-known/peter_sslers/acme-dns-server/new", status=200
         )
         form = res.form
-        form["root_url"] = TEST_FILES["AcmeDnsServer"]["3"]["root_url"]
+        form["api_url"] = TEST_FILES["AcmeDnsServer"]["3"]["api_url"]
+        form["domain"] = TEST_FILES["AcmeDnsServer"]["3"]["domain"]
         res2 = form.submit()
 
         matched = RE_AcmeDnsServer_created.match(res2.location)
@@ -2096,7 +2103,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        _payload = {"root_url": TEST_FILES["AcmeDnsServer"]["4"]["root_url"]}
+        _payload = {
+            "api_url": TEST_FILES["AcmeDnsServer"]["4"]["api_url"],
+            "domain": TEST_FILES["AcmeDnsServer"]["4"]["domain"],
+        }
         res = self.testapp.post(
             "/.well-known/peter_sslers/acme-dns-server/new.json", _payload, status=200
         )
@@ -2172,7 +2182,12 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         )
         assert "AcmeDnsServerAccounts" in res.json
 
-    @routes_tested(("admin:acme_dns_server_account:focus",))
+    @routes_tested(
+        (
+            "admin:acme_dns_server_account:focus",
+            "admin:acme_dns_server_account:focus:audit",
+        )
+    )
     def test_focus_html(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2180,8 +2195,17 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
             "/.well-known/peter_sslers/acme-dns-server-account/%s" % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit" % focus_id,
+            status=200,
+        )
 
-    @routes_tested(("admin:acme_dns_server_account:focus|json",))
+    @routes_tested(
+        (
+            "admin:acme_dns_server_account:focus|json",
+            "admin:acme_dns_server_account:focus:audit|json",
+        )
+    )
     def test_focus_json(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2191,6 +2215,15 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         )
         assert "AcmeDnsServerAccount" in res.json
         assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit.json"
+            % focus_id,
+            status=200,
+        )
+        assert "AcmeDnsServerAccount" in res.json
+        assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
+        assert "Results" in res.json
 
 
 class FunctionalTests_AcmeEventLog(AppTest):

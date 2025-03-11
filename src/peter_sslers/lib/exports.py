@@ -1,13 +1,16 @@
 # stdlib
 import os
+import os.path
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
+    from .context import ApiContext
     from ..model.objects import CertificateSigned
     from ..model.objects import RenewalConfiguration
 
@@ -74,8 +77,24 @@ def encode_RenewalConfiguration_a(
     return directory_payload
 
 
+def relative_symlink(src, dst):
+    dir = os.path.dirname(dst)
+    src = os.path.relpath(src, dir)
+    return os.symlink(src, dst)
+
+
 def write_pem(directory: str, filename: str, filecontents: str) -> bool:
     fpath = os.path.join(directory, filename)
     with open(fpath, "w") as fh:
         fh.write(filecontents)
     return True
+
+
+def get_exports_dirs(ctx: "ApiContext") -> Tuple[str, str]:
+    if TYPE_CHECKING:
+        assert ctx.application_settings
+    EXPORTS_DIR = os.path.join(ctx.application_settings["data_dir"], "certificates")
+    EXPORTS_DIR_WORKING = os.path.join(
+        ctx.application_settings["data_dir"], "certificates.working"
+    )
+    return (EXPORTS_DIR, EXPORTS_DIR_WORKING)

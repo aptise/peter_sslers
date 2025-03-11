@@ -252,8 +252,10 @@
                     href="${admin_prefix}/certificate-signed/${dbCert.id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    CertificateSigned-${dbCert.id} | notAfter ${dbCert.timestamp_not_after_isoformat}
+                    CertificateSigned-${dbCert.id}
                 </a>
+                <span class="label label-default">ari: ${dbCert.ari_identifier}</span>
+                <span class="label label-default">notAfter: ${dbCert.timestamp_not_after_isoformat}</span>
             </div>
         </div>
     % endfor
@@ -290,8 +292,10 @@
                         href="${admin_prefix}/certificate-signed/${dbCert.id}"
                     >
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        CertificateSigned-${dbCert.id} | notAfter ${dbCert.timestamp_not_after_isoformat}
+                        CertificateSigned-${dbCert.id}
                     </a>
+                    <span class="label label-default">ari: ${dbCert.ari_identifier}</span>
+                    <span class="label label-default">notAfter: ${dbCert.timestamp_not_after_isoformat}</span>
                 </div>
             </div>
         % endfor

@@ -1288,7 +1288,8 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
     is_global_default: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
-    root_url: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    api_url: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    domain: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -1313,7 +1314,8 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
     def as_json(self) -> Dict:
         return {
             "id": self.id,
-            "root_url": self.root_url,
+            "api_url": self.api_url,
+            "domain": self.domain,
             "timestamp_created": self.timestamp_created_isoformat,
             "is_active": True if self.is_active else False,
             "is_global_default": True if self.is_global_default else False,
@@ -1383,6 +1385,14 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
         return "%s...%s" % (self.password[:5], self.password[-5:])
 
     @property
+    def cname_source(self) -> str:
+        return "_acme-challenge.%s" % self.domain.domain_name
+
+    @property
+    def cname_target(self) -> str:
+        return "%s.%s" % (self.subdomain, self.acme_dns_server.domain)
+
+    @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
@@ -1395,6 +1405,9 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
             "fulldomain": self.fulldomain,
             "subdomain": self.subdomain,
             "allowfrom": json.loads(self.allowfrom) if self.allowfrom else [],
+            # - -
+            "cname_source": self.cname_source,
+            "cname_target": self.cname_target,
         }
 
     @property
@@ -3998,10 +4011,9 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     domain_template_dns01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )
-
-    is_export_filesystem: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
+    is_export_filesystem_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.OptionsOnOff
 
     # for consumers
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True, default=None)
@@ -4025,10 +4037,10 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
     private_key_technology_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=False
+        sa.Integer, nullable=True
     )  # see .utils.KeyTechnology
     private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=False
+        sa.Integer, nullable=True
     )  # see .utils.PrivateKeyCycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
@@ -4051,6 +4063,10 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
         primaryjoin="EnrollmentFactory.id==RenewalConfiguration.enrollment_factory_id__via",
         back_populates="enrollment_factory__via",
     )
+
+    @property
+    def is_export_filesystem(self) -> str:
+        return model_utils.OptionsOnOff.as_string(self.is_export_filesystem_id)
 
     @property
     def private_key_technology__primary(self) -> str:
@@ -4655,6 +4671,9 @@ class RenewalConfiguration(
     is_save_alternate_chains: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, default=True
     )
+    is_export_filesystem_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.OptionsOnOff
 
     # core
     uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
@@ -4784,6 +4803,10 @@ class RenewalConfiguration(
                 _domains_challenged[_acme_challenge_type].append(_domain_name)
             self._domains_challenged = _domains_challenged
         return self._domains_challenged
+
+    @property
+    def is_export_filesystem(self) -> str:
+        return model_utils.OptionsOnOff.as_string(self.is_export_filesystem_id)
 
     @property
     def private_key_technology__primary(self) -> str:

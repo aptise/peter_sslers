@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 import logging
+import os
 import typing
 from typing import Callable
 from typing import Dict
@@ -50,6 +51,7 @@ from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
 from ...lib import acme_v2
+from ...lib import exports
 from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -1998,6 +2000,70 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbCertificateRequest=dbAcmeOrder.certificate_request,
             transaction_commit=True,
         )
+
+        # nest in a try to fails don't break the procurement
+        try:
+            if dbAcmeOrder.renewal_configuration:
+                export = None
+                type_dir: str
+                rc_dir = "rc-%s" % dbAcmeOrder.renewal_configuration.id
+                rc_label = dbAcmeOrder.renewal_configuration.label or None
+
+                if (
+                    dbAcmeOrder.renewal_configuration.is_export_filesystem_id
+                    == model_utils.OptionsOnOff.ON
+                ):
+                    export = True
+                    type_dir = "global"
+
+                elif (
+                    dbAcmeOrder.renewal_configuration.is_export_filesystem_id
+                    == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT
+                ):
+                    if dbAcmeOrder.renewal_configuration.enrollment_factory__via:
+                        if (
+                            dbAcmeOrder.renewal_configuration.enrollment_factory__via.is_export_filesystem_id
+                            == model_utils.OptionsOnOff.ON
+                        ):
+                            export = True
+                            type_dir = (
+                                dbAcmeOrder.renewal_configuration.enrollment_factory__via.name
+                            )
+                if export:
+                    log.info("Writing Certificate to disk...")
+                    if (
+                        dbAcmeOrder.certificate_type_id
+                        == model_utils.CertificateType.MANAGED_PRIMARY
+                    ):
+                        subdir = "primary"
+                    elif (
+                        dbAcmeOrder.certificate_type_id
+                        == model_utils.CertificateType.MANAGED_BACKUP
+                    ):
+                        subdir = "backup"
+                    else:
+                        raise ValueError("unknown dir type")
+                    (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    type_path = os.path.join(EXPORTS_DIR, type_dir)
+                    rc_path = os.path.join(type_path, rc_dir)
+                    if not os.path.exists(rc_path):
+                        os.mkdir(rc_path)
+                    if rc_label:
+                        rc_label_path = os.path.join(type_path, rc_label)
+                        if not os.path.exists(rc_label_path):
+                            exports.relative_symlink(rc_path, rc_label_path)
+                    cert_path = os.path.join(rc_path, subdir)
+                    if not os.path.exists(cert_path):
+                        os.mkdir(cert_path)
+                    cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
+                    for fname, fcontents in cert_data.items():
+                        exports.write_pem(
+                            cert_path, fname, cert_data[fname]
+                        )  # type:ignore[literal-required]
+                        log.info("\t%s" % cert_path)
+        except Exception as exc:
+            log.critical("EXCEPTION: %s", exc)
+            pass
 
         # don't commit here, as that will trigger an error on object refresh
         return dbAcmeOrder

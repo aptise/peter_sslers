@@ -888,10 +888,10 @@ def get__AcmeChallengeUnknownPoll__by_id(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeDnsServer__by_root_url(
-    ctx: "ApiContext", root_url: str
+def get__AcmeDnsServer__by_api_url(
+    ctx: "ApiContext", api_url: str
 ) -> Optional[AcmeDnsServer]:
-    q = ctx.dbSession.query(AcmeDnsServer).filter(AcmeDnsServer.root_url == root_url)
+    q = ctx.dbSession.query(AcmeDnsServer).filter(AcmeDnsServer.api_url == api_url)
     return q.first()
 
 
@@ -2030,12 +2030,19 @@ def get__CertificateSigned_replaces_candidates(
         model_utils.CertificateType_Enum.MANAGED_PRIMARY,
         model_utils.CertificateType_Enum.MANAGED_BACKUP,
     ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+    timestamp_min_expiry: Optional[datetime.datetime] = None,
 ) -> List[CertificateSigned]:
     """
     relevant fields:
         CertificateSigned.ari_identifier__replaced_by
         CertificateSigned.certificate_signed_id__replaced_by
     """
+    if not timestamp_min_expiry:
+        # how many days ago should we allow an attempted renewal?
+        TIMEDELTA_days = datetime.timedelta(days=10)
+        # maths: add these times from the current timestamp
+        timestamp_min_expiry = ctx.timestamp - TIMEDELTA_days
+
     if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
         if not dbRenewalConfiguration.acme_account_id__backup:
             return []
@@ -2058,7 +2065,7 @@ def get__CertificateSigned_replaces_candidates(
             CertificateSigned.ari_identifier__replaced_by.is_(None),
             CertificateSigned.ari_identifier.is_not(None),
             # !!!: Filter- the Cert needs to be timely
-            CertificateSigned.timestamp_not_after > ctx.timestamp,
+            CertificateSigned.timestamp_not_after > timestamp_min_expiry,
         )
     )
     if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:

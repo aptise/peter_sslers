@@ -1,11 +1,13 @@
 If you'd like to jump to the [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md), otherwise keep reading.
 
-
 Project History
 ===============
 
-The project started at Aptise Media as an internal tool for obtaining and managing
-SSL Certificates for customer domains.  The project integrated an ACME(v1)
+PeterSSLers is a bundled ACME Client, Certificate Manager, OpenResty/Nginx Plugin
+and Python-based framework designed for programmatically managing SSL Certificates.
+
+This project started at Aptise Media as an internal tool for obtaining and managing
+SSL Certificates for partner/customer domains.  The project integrated an ACME(v1)
 Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
 certificate loading.
 

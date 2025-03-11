@@ -9,6 +9,7 @@ from .utils import CertificateRequestSource  # noqa: F401
 from .utils import CertificateType  # noqa: F401
 from .utils import CoverageAssuranceResolution  # noqa: F401
 from .utils import KeyTechnology  # noqa: F401
+from .utils import OptionsOnOff  # noqa: F401
 from .utils import PrivateKeyCycle  # noqa: F401
 from .utils import PrivateKeyDeferred  # noqa: F401
 from .utils import PrivateKeySource  # noqa: F401

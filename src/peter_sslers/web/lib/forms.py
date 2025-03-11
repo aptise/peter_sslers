@@ -25,6 +25,9 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
+OPTIONS_on_off = ("on", "off")
+
+
 class OnlyOneOf(FormValidator):
     # Field that only one of is allowed
     only_one_ofs: List[str]
@@ -294,7 +297,8 @@ class Form_AcmeAccount_deactivate_authorizations(_Form_Schema_Base):
 
 
 class Form_AcmeDnsServer_new(_Form_Schema_Base):
-    root_url = UnicodeString(not_empty=True, strip=True)
+    api_url = UnicodeString(not_empty=True, strip=True)
+    domain = UnicodeString(not_empty=True, strip=True)
 
 
 class Form_AcmeDnsServer_mark(_Form_Schema_Base):
@@ -309,7 +313,8 @@ class Form_AcmeDnsServer_mark(_Form_Schema_Base):
 
 
 class Form_AcmeDnsServer_edit(_Form_Schema_Base):
-    root_url = UnicodeString(not_empty=True, strip=True)
+    api_url = UnicodeString(not_empty=True, strip=True)
+    domain = UnicodeString(not_empty=True, strip=True)
 
 
 class Form_AcmeDnsServer_ensure_domains(_Form_Schema_Base):
@@ -568,11 +573,9 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
 
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
     is_export_filesystem = OneOf(
-        (
-            "on",
-            "off",
-        ),
-        not_empty=True,
+        model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem,
+        not_empty=False,
+        if_missing="off",
     )
 
     acme_account_id__primary = Int(not_empty=True)
@@ -714,6 +717,11 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
     label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    is_export_filesystem = OneOf(
+        model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
+        not_empty=False,
+        if_missing="off",
+    )
 
     # PRIMARY cert
     acme_profile__primary = UnicodeString(
@@ -769,6 +777,11 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
     label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    is_export_filesystem = OneOf(
+        model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
+        not_empty=False,
+        if_missing="off",
+    )
 
 
 class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
@@ -776,10 +789,18 @@ class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
     domain_name = UnicodeString(not_empty=True, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
     label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    is_export_filesystem = OneOf(
+        model_utils.OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem,
+        not_empty=False,
+        if_missing="off",
+    )
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):
-    action = OneOf(("active", "inactive"), not_empty=True)
+    action = OneOf(
+        ("active", "inactive", "is_export_filesystem-on", "is_export_filesystem-off"),
+        not_empty=True,
+    )
 
 
 class Form_UniqueFQDNSet_modify(_Form_Schema_Base):

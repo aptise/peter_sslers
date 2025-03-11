@@ -64,12 +64,12 @@
                     <tr>
                         <th>is_export_filesystem</th>
                         <td>
-                            % if EnrollmentFactory.is_export_filesystem:
-                                <span class="label label-default">
+                            % if EnrollmentFactory.is_export_filesystem_id == model_websafe.OptionsOnOff.ON:
+                                <span class="label label-success">
                                     on
                                 </span>
                             % else:
-                                <span class="label label-default">
+                                <span class="label label-danger">
                                     off
                                 </span>
                             % endif

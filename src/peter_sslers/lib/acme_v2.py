@@ -1437,7 +1437,7 @@ class AuthenticatedUser(object):
         try:
             # initialize a client
             acmeDnsClient = lib_acmedns.new_client(
-                dbAcmeDnsServerAccount.acme_dns_server.root_url
+                dbAcmeDnsServerAccount.acme_dns_server.api_url
             )
 
             # update the acmedns server

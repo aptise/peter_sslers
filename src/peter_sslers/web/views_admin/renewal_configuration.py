@@ -1087,7 +1087,12 @@ class View_Focus_Manipulate(View_Focus):
                             self.request.api_context, dbRenewalConfiguration
                         )
                     )
-
+                elif action in ("is_export_filesystem-on", "is_export_filesystem-off"):
+                    event_status = (
+                        lib_db.update.update_RenewalConfiguration__update_exports(
+                            self.request.api_context, dbRenewalConfiguration, action
+                        )
+                    )
                 else:
                     raise errors.InvalidTransition("Invalid option")
 
@@ -1174,6 +1179,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
 Leave this blank for no profile.
 If you want to defer to the AcmeAccount, use the special name `@`.""",
+                "is_export_filesystem": "should this be persisted to disk?",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
@@ -1209,6 +1215,9 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 ].list,
                 "private_key_technology__backup": Form_RenewalConfig_new.fields[
                     "private_key_technology__backup"
+                ].list,
+                "is_export_filesystem": Form_RenewalConfig_new.fields[
+                    "is_export_filesystem"
                 ].list,
             },
             "requirements": [
@@ -1320,6 +1329,11 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 )
             acme_profile__backup = formStash.results["acme_profile__backup"]
 
+            is_export_filesystem = formStash.results["is_export_filesystem"]
+            is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+                is_export_filesystem
+            )
+
             if not acmeAccountSelection_backup.AcmeAccount:
                 private_key_cycle_id__backup = None
                 private_key_technology_id__backup = None
@@ -1399,6 +1413,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                         # misc
                         note=note,
                         label=label,
+                        is_export_filesystem_id=is_export_filesystem_id,
                     )
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True

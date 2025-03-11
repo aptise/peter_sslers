@@ -16,7 +16,7 @@ from .create import create__AcmeServerConfiguration
 from .create import create__Notification
 from .get import get__AcmeAccount__by_id
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
-from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__Domain__by_name
 from .get import get__EnrollmentFactory__by_name
@@ -352,19 +352,18 @@ def update_AcmeDnsServer__set_global_default(
     return event_status, alt_info
 
 
-def update_AcmeDnsServer__root_url(
-    ctx: "ApiContext",
-    dbAcmeDnsServer: "AcmeDnsServer",
-    root_url: str,
+def update_AcmeDnsServer__api_url__domain(
+    ctx: "ApiContext", dbAcmeDnsServer: "AcmeDnsServer", api_url: str, domain: str
 ) -> bool:
-    if dbAcmeDnsServer.root_url == root_url:
+    if (dbAcmeDnsServer.api_url == api_url) and (dbAcmeDnsServer.domain == domain):
         raise errors.InvalidTransition("No change")
-    dbAcmeDnsServerAlt = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    dbAcmeDnsServerAlt = get__AcmeDnsServer__by_api_url(ctx, api_url)
     if dbAcmeDnsServerAlt:
         raise errors.InvalidTransition(
             "Another acme-dns Server is enrolled with this same root url."
         )
-    dbAcmeDnsServer.root_url = root_url
+    dbAcmeDnsServer.api_url = api_url
+    dbAcmeDnsServer.domain = domain
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     return True
 
@@ -872,7 +871,7 @@ def update_EnrollmentFactory(
     domain_template_http01: Optional[str],
     domain_template_dns01: Optional[str],
     label_template: Optional[str],
-    is_export_filesystem: Optional[bool],
+    is_export_filesystem_id: Optional[int],
 ) -> bool:
     if not any(
         (
@@ -896,6 +895,10 @@ def update_EnrollmentFactory(
             raise errors.InvalidTransition(
                 "An EnrollmentFactory already exists with this name."
             )
+
+    # default to original
+    if is_export_filesystem_id is None:
+        is_export_filesystem_id = dbEnrollmentFactory.is_export_filesystem_id
 
     dbAcmeAccountPrimary = get__AcmeAccount__by_id(ctx, acme_account_id__primary)
     if not dbAcmeAccountPrimary:
@@ -949,7 +952,7 @@ def update_EnrollmentFactory(
         ("label_template", label_template),
         ("domain_template_http01", domain_template_http01),
         ("domain_template_dns01", domain_template_dns01),
-        ("is_export_filesystem", is_export_filesystem),
+        ("is_export_filesystem_id", is_export_filesystem_id),
     )
     for p in pairings:
         if getattr(dbEnrollmentFactory, p[0]) != p[1]:
@@ -1034,6 +1037,37 @@ def update_RenewalConfiguration__unset_active(
     dbRenewalConfiguration.is_active = False
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
     event_status = "RenewalConfiguration__mark__inactive"
+    return event_status
+
+
+def update_RenewalConfiguration__update_exports(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+    action: Literal["is_export_filesystem-on", "is_export_filesystem-off"],
+) -> str:
+    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    if dbRenewalConfiguration.enrollment_factory_id__via:
+        raise errors.InvalidTransition(
+            "`is_export_filesystem` must be managed by the EnrollmentFactory"
+        )
+
+    if action == "is_export_filesystem-on":
+        if (
+            dbRenewalConfiguration.is_export_filesystem_id
+            == model_utils.OptionsOnOff.ON
+        ):
+            raise errors.InvalidTransition("`is_export_filesystem` already on")
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.ON
+        event_status = "RenewalConfiguration__mark__is_export_filesystem__on"
+    elif action == "is_export_filesystem-off":
+        if (
+            dbRenewalConfiguration.is_export_filesystem_id
+            == model_utils.OptionsOnOff.OFF
+        ):
+            raise errors.InvalidTransition("`is_export_filesystem` already off")
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.OFF
+        event_status = "RenewalConfiguration__mark__is_export_filesystem__off"
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
     return event_status
 
 

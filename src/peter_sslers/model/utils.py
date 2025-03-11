@@ -373,6 +373,8 @@ class _OperationsUnified(_mixin_mapping):
         1530: "RenewalConfiguration__mark",
         1531: "RenewalConfiguration__mark__active",
         1532: "RenewalConfiguration__mark__inactive",
+        1533: "RenewalConfiguration__mark__is_export_filesystem__on",
+        1534: "RenewalConfiguration__mark__is_export_filesystem__off",
         510: "UniqueFQDNSet__insert",
         511: "UniquelyChallengedFQDNSet__insert",
         1002: "operations__update_recents__global",
@@ -1245,6 +1247,39 @@ class NotificationType(_mixin_mapping):
     _mapping = {
         1: "acme_server_changed",
     }
+
+
+class OptionsOnOff(_mixin_mapping):
+    OFF = 0
+    ON = 1
+    ENROLLMENT_FACTORY_DEFAULT = 2
+
+    _mapping = {
+        0: "off",
+        1: "on",
+        2: "enrollment_factory_default",
+    }
+    _options_EnrollmentFactory_isExportFilesystem_id = (0, 1)
+    _options_EnrollmentFactory_isExportFilesystem: List[str]
+    _options_RenewalConfiguration_isExportFilesystem_id = (0, 1)
+    _options_RenewalConfiguration_isExportFilesystem: List[str]
+    _options_RenewalConfigurationFactory_isExportFilesystem_id = (2,)
+    _options_RenewalConfigurationFactory_isExportFilesystem: List[str]
+
+
+# compute this for ease of `curl` options
+OptionsOnOff._options_EnrollmentFactory_isExportFilesystem = [
+    OptionsOnOff._mapping[_id]
+    for _id in OptionsOnOff._options_EnrollmentFactory_isExportFilesystem_id
+]
+OptionsOnOff._options_RenewalConfiguration_isExportFilesystem = [
+    OptionsOnOff._mapping[_id]
+    for _id in OptionsOnOff._options_RenewalConfiguration_isExportFilesystem_id
+]
+OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem = [
+    OptionsOnOff._mapping[_id]
+    for _id in OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem_id
+]
 
 
 class PrivateKeyCycle(_mixin_mapping):

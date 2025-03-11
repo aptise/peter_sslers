@@ -4,19 +4,7 @@ URGENT
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
-Bug - Fixed
-    Ordering a backup cert will deactivate the primary cert
-    Ordering a replacement should deactivate the replaces
-
-Renewal Lineages
-    added the lineages page to visualize issues
-    updated expiry check to better do the timestamps; they were completely wrong
-    updated expiry check to only address ACTIVE Renewals and Certificates
-    added tool to deactivate all duplicates
-    
-
 Feature
-    write to disk on renewal
     example client that monitors
     routine that does everything; single cronjob that schedules everythign
     
@@ -50,12 +38,16 @@ Tests:
     Renewal Configuration
         ensure acme_profile__backup and @ work
         renewing an INACTIVE duplciate will still return the INACTIVE dupicate (works, just needs coverage)
+        toggle is_export_filesystem
         
     EnrollmentFactory
         improve testing
             fail predictablly
             "*.{DOMAIN}," - not allowed in HTTP-01; requires DNS setup
         tests showing 'global' is prohibited as a factory name
+        test creating with vs without backups
+        check contents of templates post-create and post-edit
+        try invalid submission of _options_EnrollmentFactory_isExportFilesystem
 
  UX:
     do a quick overview of key objects

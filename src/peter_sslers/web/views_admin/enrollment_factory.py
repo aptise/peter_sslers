@@ -56,21 +56,20 @@ def validate_domains_template(template: str) -> Tuple[Optional[str], Optional[st
     if not template:
         return None, "Nothing submitted"
     # remove any spaces
-    template = template.replace(" ", "")
+    normalized = template.replace(" ", "")
 
-    if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
+    if ("{DOMAIN}" not in normalized) and ("{NIAMOD}" not in normalized):
         return None, "Missing {DOMAIN} or {NIAMOD} marker"
 
-    templated = template.replace("{DOMAIN}", "example.com").replace(
+    _templated = normalized.replace("{DOMAIN}", "example.com").replace(
         "{NIAMOD}", "com.example"
     )
 
-    ds = [i.strip() for i in templated.split(",")]
+    ds = [i.strip() for i in _templated.split(",")]
     try:
         cert_utils.validate_domains(ds)
     except Exception:
         return None, "Invalid Domain(s) Detected"
-    normalized = templated
     return normalized, None
 
 
@@ -99,18 +98,20 @@ def validate_formstash_domain_templates(
     domains_challenged = model_utils.DomainsChallenged()
     domain_names_all = []
     if domain_template_dns01:
-        domain_names = domain_template_dns01.replace("{DOMAIN}", "example.com")
-        domain_names = domain_template_dns01.replace("{NIAMOD}", "com.example")
+        templated = domain_template_dns01.replace("{DOMAIN}", "example.com").replace(
+            "{NIAMOD}", "com.example"
+        )
         # domains will also be lowercase+strip
-        domain_names = cert_utils.utils.domains_from_string(domain_names)
+        domain_names = cert_utils.utils.domains_from_string(templated)
         if domain_names:
             domain_names_all.extend(domain_names)
             domains_challenged["dns-01"] = domain_names
     if domain_template_http01:
-        domain_names = domain_template_http01.replace("{DOMAIN}", "example.com")
-        domain_names = domain_template_http01.replace("{NIAMOD}", "com.example")
+        templated = domain_template_http01.replace("{DOMAIN}", "example.com").replace(
+            "{NIAMOD}", "com.example"
+        )
         # domains will also be lowercase+strip
-        domain_names = cert_utils.utils.domains_from_string(domain_names)
+        domain_names = cert_utils.utils.domains_from_string(templated)
         if domain_names:
             domain_names_all.extend(domain_names)
             domains_challenged["http-01"] = domain_names
@@ -358,8 +359,9 @@ class View_Focus(Handler):
 
             try:
 
-                is_export_filesystem = (
-                    True if formStash.results["is_export_filesystem"] == "on" else False
+                is_export_filesystem = formStash.results["is_export_filesystem"]
+                is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+                    is_export_filesystem
                 )
 
                 result = lib_db.update.update_EnrollmentFactory(
@@ -388,7 +390,7 @@ class View_Focus(Handler):
                         "private_key_technology__backup"
                     ],
                     acme_profile__backup=formStash.results["acme_profile__backup"],
-                    is_export_filesystem=is_export_filesystem,
+                    is_export_filesystem_id=is_export_filesystem_id,
                     # misc
                     note=formStash.results["note"],
                     label_template=label_template,
@@ -601,6 +603,10 @@ class View_New(Handler):
                 private_key_cycle_id__backup: Optional[int]
                 private_key_technology_id__backup: Optional[int]
                 acme_profile__backup: Optional[str]
+                is_export_filesystem = formStash.results["is_export_filesystem"]
+                is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+                    is_export_filesystem
+                )
 
                 # these require some validation
                 existingEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_name(
@@ -714,6 +720,7 @@ class View_New(Handler):
                     domain_template_http01=domain_template_http01,
                     domain_template_dns01=domain_template_dns01,
                     label_template=label_template,
+                    is_export_filesystem_id=is_export_filesystem_id,
                 )
             except formhandling.FormInvalid as exc:  # noqa: F841
                 raise

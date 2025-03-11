@@ -27,20 +27,26 @@ only to local network traffic.
 The [SQLAlchemy Project](https://sqlalchemy.org) is used to handle database activity.
 SQLAlchemy's ORM uses bind parameters and is inherently safe from SQL Injection Attacks.
 
+Like any other project, it is possible to expose Private Keys to the public internet --
+but it is also possible to ensure that never happens.
 
 ## Does this reformat Certificates?
 
 Yes. PEM certs are reformatted to have a single trailing newline (via stripping
 then padding the input) and newlines are standardized to unix ("\n"). This seems
-to be one of the more common standards people utilize for saving Certificates.
+to be one of the more common standards utilized when saving Certificates.
 Certificates may be reformatted for compliance with other details of open standards.
-The actual content of Certificates are unchanged.
+The actual contents of Certificates are unchanged.
 
 
 ## Is there a fast way to import existing Certificates?
 
-See the *TOOLS* section for an `invoke` script that can automate importing
-Certificates and other data from the LetsEncrypt data store.  The "invoke" tools
+If the certificates are on the same server, the `import_certbot` script will
+parse and enroll all of the Certbot data directly into the database.
+
+If the certificates are on another server, the *TOOLS* section has an
+ `invoke` script that can automate importing Certificates and other data from
+the Cerbot data store.  The "invoke" tools
 provide a commandline interface to batch POSTing data to the PeterSSLers server;
 one could use `curl` or write their own tools.
 
@@ -68,7 +74,7 @@ the most widely usable Certificate.
 ## How does this handle Certbot AccountKeys?
 
 Certbot stores RSA AccountKeys in a JWK (JSON Web Key) format.  AccountKeys from the
-Certbot Client are reformatted into PEM-encoded RSA key.  The data from the various
+Certbot Client are reformatted into PEM-encoded RSA or EC key.  The data from the various
 json files are archived into the database for use later. The account data is anayzed
 for the actual environment it is registered with, and that becomes part of the
 AcmeAccount record.
@@ -173,6 +179,21 @@ Alternate Chains are fully supported by PeterSSLers
   chains can override the default chain
 
 
+## Can Certificates be saved to disk?
+
+Yes. RenewalConfigurations and EnrollmentFactories can be configured to persist
+the most recent Certificate onto disk - both automatically and on demand.
+
+PeterSSLers does not offer deployment hooks and has no plans to. PeterSSLers
+offers a programmatic API and python library for interacting with the datastore.
+
+Instead of trying to jam a deployment script into the Certificate Provisioning
+process, the preferred method is to either:
+
+1- Write a deployment script that utilizes the programmatic API, or
+2- Monitor PeterSSLers API or on-disk storage for changes.
+
+
 ## Why are incorrect plural spellings used?
 
 Nice catch.  English can be a difficult language for non-native learners, as words
@@ -202,7 +223,7 @@ PeterSSLers was designed to be used on terminals, so it looks great on Lynx...
 ![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/lynx_01-admin_index.png)
 ![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/lynx_02-api_docs.png)
 
-And most endpoints over JSON versions, so you can process everything that way
+And most endpoints offer JSON versions, so you can process everything that way~
 
 But... This project uses bootstrap, so it looks fine on browsers!
 

@@ -23,7 +23,7 @@ from .create import create__PrivateKey
 from .get import get__AcmeAccount__count
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
-from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__count
 from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
@@ -747,7 +747,8 @@ def getcreate__AcmeChallenges_via_payload(
 
 def getcreate__AcmeDnsServer(
     ctx: "ApiContext",
-    root_url: str,
+    api_url: str,
+    domain: str,
     is_global_default: Optional[bool] = None,
 ) -> Tuple["AcmeDnsServer", bool]:
     """
@@ -756,12 +757,14 @@ def getcreate__AcmeDnsServer(
     return dbAcmeDnsServer, is_created
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param root_url:
+    :param api_url:
     """
-    if not root_url:
-        raise ValueError("`root_url` is required")
+    if not api_url:
+        raise ValueError("`api_url` is required")
+    if not domain:
+        raise ValueError("`domain` is required")
     is_created = False
-    dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    dbAcmeDnsServer = get__AcmeDnsServer__by_api_url(ctx, api_url)
     if not dbAcmeDnsServer:
         if not ctx.application_settings:
             raise ValueError("Could not load ApplicationSettings")
@@ -776,7 +779,8 @@ def getcreate__AcmeDnsServer(
             ctx, model_utils.OperationsEventType.from_string("AcmeDnsServer__insert")
         )
         dbAcmeDnsServer = model_objects.AcmeDnsServer()
-        dbAcmeDnsServer.root_url = root_url
+        dbAcmeDnsServer.api_url = api_url
+        dbAcmeDnsServer.domain = domain
         dbAcmeDnsServer.timestamp_created = ctx.timestamp
         dbAcmeDnsServer.operations_event_id__created = dbOperationsEvent.id
         dbAcmeDnsServer.is_active = True

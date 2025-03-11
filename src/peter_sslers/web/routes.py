@@ -318,6 +318,11 @@ def _admin_views(config: "Configurator") -> None:
         "/acme-dns-server-account/{@id}",
         jsonify=True,
     )
+    config.add_route_7(
+        "admin:acme_dns_server_account:focus:audit",
+        "/acme-dns-server-account/{@id}/audit",
+        jsonify=True,
+    )
 
     # !!!: AcmeEventLog
     config.add_route_7(

@@ -213,6 +213,30 @@
                         <td><code>${RenewalConfiguration.note or ''}</code>
                         </td>
                     </tr>
+                    <tr>
+                        <th>is_export_filesystem</th>
+                        <td><code>${RenewalConfiguration.is_export_filesystem}</code>
+                            % if not RenewalConfiguration.enrollment_factory_id__via:
+                                % if RenewalConfiguration.is_export_filesystem == "off":
+                                    <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-export_on">
+                                        <input type="hidden" name="action" value="is_export_filesystem-on"/>
+                                        <button class="btn btn-xs btn-success" type="submit">
+                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                            On
+                                        </button>
+                                    </form>
+                                % else:
+                                    <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-export_off">
+                                        <input type="hidden" name="action" value="is_export_filesystem-off"/>
+                                        <button class="btn btn-xs btn-danger" type="submit">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            Off
+                                        </button>
+                                    </form>
+                                % endif
+                            % endif
+                        </td>
+                    </tr>
 
                     <tr>
                         <th>enrollment_factory__via</th>
