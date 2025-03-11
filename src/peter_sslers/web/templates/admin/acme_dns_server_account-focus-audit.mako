@@ -43,13 +43,13 @@
                     <th>CNAME</th>
                     <td><code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
-                    <td><code>${Results["resolved"]["CNAME"] or ''}</code></td>
+                    <td><code>${AuditResults["resolved"]["CNAME"] or ''}</code></td>
                 </tr>
                 <tr>
                     <th>TXT</th>
                     <td><code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
-                    <td><code>${Results["resolved"]["TXT"] or ''}</code></td>
+                    <td><code>${AuditResults["resolved"]["TXT"] or ''}</code></td>
                 </tr>
             </table>
         </div>
