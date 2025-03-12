@@ -1,40 +1,40 @@
 1.0.0.dev
     This is large rewrite and reorganization of concepts.
-    
+
     This application was originally built to toss "domains" at, and then generate
     certificates for them. An exnternal process just queued domains onto a local
     install of PeterSSLers, and then PeterSSLers would be responsible for the
     initial procurement and segmenting of domains.  The external systems also
     requested the renewals of a cert, and later that ability was added onto this
-    application.  This setup did not work well, as the business logic was 
+    application.  This setup did not work well, as the business logic was
     increasingly handled on the external application and not maintained here.
-    
+
     Trying to build "renewals" off of Certificates was also a bit of an awkward
     design.  With a nod to Certbot, the primary object is now a
     RenewalConfiguration, which is the nexus of an Account + Domains
     (including preferred challenges per domain) + and Certificate Preferences.
-    
+
     This new model should handle future needs well; RenewalConfigurations can
     eventually support backup domains and technologies; and they can be edited
     indpendently of Certificates.
-    
+
     Under the new design:
-    
+
     * Accounts have specfic default preferences
     * The defaults are used to seed "RenewalConfiguration" objects
     * "RenewalConfigurations" are a nexus of Account + Domains + Preferences
-    
+
     For legacy concerns, the "/acme-order/new/freeform" interface still works -
     however it will first create a renewal configuration and then create an
     ACME Order.
-    
+
     Previous Flow:
         Create:
              an AcmeOrder
         A Certificate can be renewed:
             * quick
             * customized
-    
+
     New Flow:
         Create:
             an AcmeOrder will first create a RenewalConfiguration, or
@@ -48,7 +48,7 @@
         removed obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
             replaced by UniquelyChallengedFQDNSet
         removed configuration options; both deprecated in cert_utis and not needed:
-            openssl_path        
+            openssl_path
             openssl_path_conf
         removed support for PyOpenSSL/Tempfiles with cert_utils; only 100% Cryptography
         * `account__private_key_cycle`
@@ -58,9 +58,9 @@
 
 
     Limited:
-        There is now only a single acme-dns server and it will function as the 
+        There is now only a single acme-dns server and it will function as the
         global default.
-    
+
     New Features:
         * UniquelyChallengedFQDNSet
             a concept of UniqueFQDNSet, wherein each domain is tied to an AcmeChallenge type
@@ -99,20 +99,20 @@
         * EnrollmentFactory
             defaults for onboarding a pattern of domains;
             i.e. define a template like:
-            
+
                 {DOMAIN}
                 dash.{DOMAIN}
                 www.{DOMAIN}
                 main.{DOMAIN}
-                
+
             when invoked against an endpoint, autoexpand a single domain into:
-            
+
                 EXAMPLE.COM
                 dash.EXAMPLE.COM
                 www.EXAMPLE.COM
                 main.EXAMPLE.COM
-            
-            
+
+
 
     New commandline routines:
         periodic_tasks:
@@ -130,9 +130,9 @@
             this will order certs under the following conditions:
                 managed certs that are expiring, based on ARI or notAfter
                 active renewal configurations that have not ordered a primary or backup
-            
+
     new QuickStart guide
-    
+
     reorganization of files:
     * the database files for peter_sslers and acme_dns are moved into a
       `/_data_` subdirectory.
@@ -160,7 +160,7 @@
     AcmeOrdering
         Ensure Poilcy is in Directory before ordering
         Auto-update directory samples and profiles
-    
+
     Notifications
         a notification will be logged if the AcmeDirectory substantially changes
 
@@ -185,28 +185,28 @@
         The test suite was overhauled
         unit tests-
             now support database snapshots on sqlite
-            so expensive  core data does not need to be rebuilt for local tests. 
+            so expensive  core data does not need to be rebuilt for local tests.
         py313 testing integrated, then removed due to compat issues
-        
+
     Bugs Addressed
-        * Processing an ACME order could randomly generate an error. 
+        * Processing an ACME order could randomly generate an error.
           This was due to a change on polling; fixed.
         * Unit tests were failing because
           `tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup`
           would leave the database with blocking auths.
 
-        datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
+        datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc)
 
     Renewal Configuration: Lineages
         added the lineages page to visualize these
-    
+
     Certificates Signed:
         added route to show active duplicates
         added tool to deactivate duplicates
 
     CaCertificiatePreferences were moved into a new `CaCertificiatePreferencePolicy` concept.
     by default a "global" policy is used.
-    
+
     in the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
 
     Data Changes
@@ -221,7 +221,7 @@
         updated expiry check to better do the timestamps; they were completely wrong
         updated expiry check to only address ACTIVE Renewals and Certificates
         added tool to deactivate all duplicates
-    
+
 
     Feature
         write to disk on renewal
@@ -238,7 +238,7 @@
 
 0.5.0-dev
     unreleased
-    
+
     This release will require lua-resty-peter_sslers v0.5.0
 
 	Testing:
@@ -429,7 +429,7 @@
     * dropped py3.5 tests; ensured tests on py3.9
     * split README into /docs; merged Oddities.md into that.
     + other fixes and improvements
-    
+
     - 2021/11/05
     * chain verification via openssl now uses `-purpose sslserver`
 
@@ -437,7 +437,7 @@
     * update port on fakeserver to be customizable
     * change test matrix to support py27
     * support openssl 3.0.x; some changes were needed
-    
+
     - 2023/01/06
     * fix comment typo in workflow file
     * pastedeploy 3.0 was yanked, removed workaround code

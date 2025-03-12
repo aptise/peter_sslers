@@ -40,6 +40,7 @@ def main(argv=sys.argv):
     settings = get_appsettings(config_uri, options=options)
 
     schedule = Schedule(ctx)
+    print("Scheule file:", schedule.filepath)
     if not schedule.load():
         print("GENERATING NEW")
         schedule.new()

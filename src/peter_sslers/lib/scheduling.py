@@ -59,7 +59,8 @@ class Schedule:
         if TYPE_CHECKING:
             assert self.ctx.application_settings
         self.filepath = os.path.join(
-            self.ctx.application_settings["data_dir"], "schedule.json"
+            self.ctx.application_settings["data_dir"],
+            self.ctx.application_settings["scheduler"],
         )
 
     def load(self) -> bool:

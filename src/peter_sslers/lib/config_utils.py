@@ -56,6 +56,7 @@ class ApplicationSettings(dict):
             "redis.timeout.pkey"
             "redis.url",
             "requests.disable_ssl_warning",
+            "scheduler",
             # config_uri data
             "config_uri",
             "config_uri-path",
@@ -191,6 +192,8 @@ class ApplicationSettings(dict):
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
+
+        self["scheduler"] = settings.get("scheduler", "schedule.json")
 
         # let's try to validate it!
         self.validate()

@@ -5,22 +5,26 @@ Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
 Feature
-    example client that monitors
-    routine that does everything; single cronjob that schedules everythign
-    
+    example client that monitors?
+    db logging : control via config
+        operations events
+        acme
+
+
+
 acme-dns:
     onboarding
-    
+
     audit credentials
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
-    
+
 
 commandline tools:
     import acme-dns payload
     create enrollment-factory
     create renewal config
-    
+
 
 
 
@@ -43,7 +47,7 @@ Tests:
         ensure acme_profile__backup and @ work
         renewing an INACTIVE duplciate will still return the INACTIVE dupicate (works, just needs coverage)
         toggle is_export_filesystem
-        
+
     EnrollmentFactory
         improve testing
             fail predictablly
@@ -58,7 +62,7 @@ Tests:
     reorganize
     JSON endpoints:
         generate pre-filled forms/objects
-    
+
 * AcmeDNS
     dev docs
     tests
@@ -117,8 +121,8 @@ Not Urgent
 
 AcmeAccount
     max 10 can appear on dropdowns
-    
-    
+
+
 QueryString errors and encodings
     redo urlify/unurlify/etc
     redo querystring partial
