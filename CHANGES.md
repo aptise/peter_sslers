@@ -227,6 +227,7 @@
         write to disk on renewal
     
     ACME logging is now controlled by config options
+    we can pre-flight check dns-01 now
 
 
 0.6.0

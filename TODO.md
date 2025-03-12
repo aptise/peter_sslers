@@ -18,8 +18,6 @@ acme-dns:
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
 
-    we can pre-flight check dns-01 now
-
 
 commandline tools:
     import acme-dns payload

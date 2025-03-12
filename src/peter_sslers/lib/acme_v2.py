@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import re
-import ssl
 import time
 from typing import Any
 from typing import Callable
@@ -26,6 +25,7 @@ from urllib.request import urlopen
 import cert_utils
 from cert_utils.model import AccountKeyData
 import josepy
+import requests
 from requests.utils import parse_header_links
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
@@ -36,6 +36,7 @@ from . import acmedns as lib_acmedns
 from . import cas
 from . import errors
 from . import utils
+from . import utils_dns
 from .db import update as db_update
 from .utils import new_BrowserSession
 from .. import USER_AGENT
@@ -1356,6 +1357,7 @@ class AuthenticatedUser(object):
             dbAcmeChallenge.token,
         )
 
+        # note: preflight / precheck : http01
         # check that the file is in place
         try:
             assert ctx.request
@@ -1367,8 +1369,8 @@ class AuthenticatedUser(object):
                     "precheck_acme_challenges[http-01] | ensuring the challenge is readable"
                 )
                 try:
-                    resp = urlopen(wellknown_url)
-                    resp_data = resp.read().decode("utf8").strip()
+                    resp = requests.get(wellknown_url)
+                    resp_data = resp.content.decode("utf-8").strip()
                     assert resp_data == keyauthorization
                 except (IOError, AssertionError):
                     if ctx.application_settings["log.acme"]:
@@ -1383,27 +1385,11 @@ class AuthenticatedUser(object):
                             wellknown_url
                         )
                     )
-                except ssl.CertificateError as exc:
-                    if ctx.application_settings["log.acme"]:
-                        self.acmeLogger.log_challenge_error(
-                            "v2",
-                            dbAcmeChallenge,
-                            "precheck-2",
-                            transaction_commit=True,
-                        )
-                    if str(exc).startswith("hostname") and (
-                        "doesn't match" in str(exc)
-                    ):
-                        raise errors.DomainVerificationError(
-                            "Precheck Failure: Wrote keyauth challenge, but ssl can't "
-                            "view {0}. `{1}`".format(wellknown_url, str(exc))
-                        )
-                    raise
             else:
                 log.debug("no precheck configured for http-01")
         except (AssertionError, ValueError) as exc:
             raise errors.DomainVerificationError(
-                "couldn't download {0}: {1}".format(wellknown_url, exc)
+                "couldn't download `{0}`: {1}".format(wellknown_url, exc)
             )
 
     def _prepare_acme_challenge__dns01(
@@ -1443,6 +1429,11 @@ class AuthenticatedUser(object):
             raise ValueError("This should never happen!")
 
         dns_keyauthorization = create_dns01_keyauthorization(keyauthorization)
+        dns_record_prime = (
+            "_acme-challenge.%s." % dbAcmeAuthorization.domain.domain_name
+        )
+
+        expected_record_name = dbAcmeDnsServerAccount.pyacmedns_dict["fulldomain"]
 
         try:
             # initialize a client
@@ -1458,6 +1449,75 @@ class AuthenticatedUser(object):
         except Exception as exc:
             # ???: should be this `errors.AcmeDnsServerError`
             raise errors.DomainVerificationError(str(exc))
+
+        # note: preflight / precheck : dns-01
+        # check that the file is in place
+        try:
+            assert ctx.request
+            assert ctx.application_settings
+            if ctx.application_settings["precheck_acme_challenges"] and (
+                "dns-01" in ctx.application_settings["precheck_acme_challenges"]
+            ):
+                log.debug(
+                    "precheck_acme_challenges[dns-01] | ensuring the challenge is readable"
+                )
+                try:
+                    # check the first domain value
+                    # an easy mistake is a TXT not CNAME, so check that first
+                    record_txt = utils_dns.get_records(
+                        dns_record_prime, record_type="TXT"
+                    )
+                    if record_txt:
+                        raise errors.DomainVerificationError(
+                            "Found TXT record, not CNAME on `{0}`".format(
+                                dns_record_prime
+                            )
+                        )
+                    # check the CNAME
+                    record_cname = utils_dns.get_records(
+                        dns_record_prime, record_type="CNAME"
+                    )
+                    if not record_cname:
+                        raise errors.DomainVerificationError(
+                            "Did not find any CNAME on `{0}`".format(dns_record_prime)
+                        )
+                    found = False
+                    for _cname in record_cname:
+                        _candidate = _cname[:-1]
+                        if _candidate == expected_record_name:
+                            found = True
+                            break
+                    if not found:
+                        raise errors.DomainVerificationError(
+                            "Did not find valid CNAME on `{0}`".format(dns_record_prime)
+                        )
+                    # if we have a CNAME, check that acme-dns is updated correctly
+                    cnamed_txts = utils_dns.get_records(
+                        expected_record_name, record_type="TXT"
+                    )
+                    if not cnamed_txts:
+                        raise errors.DomainVerificationError(
+                            "Did not find any TXT on `{0}`".format(expected_record_name)
+                        )
+                    found = False
+                    for _txt in cnamed_txts:
+                        if _txt == dns_keyauthorization:
+                            found = True
+                            break
+                    if not found:
+                        raise errors.DomainVerificationError(
+                            "Did not find valid TXT on `{0}`".format(
+                                expected_record_name
+                            )
+                        )
+                except Exception:
+                    raise
+            else:
+                log.debug("no precheck configured for dns-01")
+        except (AssertionError, ValueError) as exc:
+            raise errors.DomainVerificationError(
+                "couldn't resolve {0}: {1}".format(dns_record_prime, exc)
+            )
 
     def acme_order_process_authorizations(
         self,
