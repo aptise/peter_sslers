@@ -20,9 +20,10 @@ from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
+from .get import get__AcmeAccount__count
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
-from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__count
 from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
@@ -41,6 +42,7 @@ from .validate import validate_domain_names
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -48,7 +50,7 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
-    from ..utils import ApiContext
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
@@ -91,6 +93,7 @@ class getcreate__AcmeAccount__kwargs(TypedDict, total=False):
     private_key_technology_id: Optional[int]
     order_default_private_key_cycle_id: Optional[int]
     order_default_private_key_technology_id: Optional[int]
+    order_default_acme_profile: Optional[str]
 
 
 def getcreate__AcmeAccount(
@@ -108,6 +111,7 @@ def getcreate__AcmeAccount(
     private_key_technology_id: Optional[int] = None,
     order_default_private_key_cycle_id: Optional[int] = None,
     order_default_private_key_technology_id: Optional[int] = None,
+    order_default_acme_profile: Optional[str] = None,
 ) -> Tuple["AcmeAccount", bool]:
     """
     Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
@@ -355,6 +359,10 @@ def getcreate__AcmeAccount(
         dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
     )
 
+    # always show the acme_account in the selects
+    total_accounts = get__AcmeAccount__count(ctx)
+    is_render_in_selects = True if total_accounts < 12 else False
+
     # first, create the AcmeAccount
     dbAcmeAccount = model_objects.AcmeAccount()
     dbAcmeAccount.timestamp_created = ctx.timestamp
@@ -368,7 +376,10 @@ def getcreate__AcmeAccount(
     dbAcmeAccount.order_default_private_key_technology_id = (
         order_default_private_key_technology_id
     )
+    dbAcmeAccount.order_default_acme_profile = order_default_acme_profile
     dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
+    dbAcmeAccount.is_render_in_selects = is_render_in_selects
+
     ctx.dbSession.add(dbAcmeAccount)
     ctx.dbSession.flush(objects=[dbAcmeAccount])
 
@@ -736,7 +747,8 @@ def getcreate__AcmeChallenges_via_payload(
 
 def getcreate__AcmeDnsServer(
     ctx: "ApiContext",
-    root_url: str,
+    api_url: str,
+    domain: str,
     is_global_default: Optional[bool] = None,
 ) -> Tuple["AcmeDnsServer", bool]:
     """
@@ -745,12 +757,14 @@ def getcreate__AcmeDnsServer(
     return dbAcmeDnsServer, is_created
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param root_url:
+    :param api_url:
     """
-    if not root_url:
-        raise ValueError("`root_url` is required")
+    if not api_url:
+        raise ValueError("`api_url` is required")
+    if not domain:
+        raise ValueError("`domain` is required")
     is_created = False
-    dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    dbAcmeDnsServer = get__AcmeDnsServer__by_api_url(ctx, api_url)
     if not dbAcmeDnsServer:
         if not ctx.application_settings:
             raise ValueError("Could not load ApplicationSettings")
@@ -765,7 +779,8 @@ def getcreate__AcmeDnsServer(
             ctx, model_utils.OperationsEventType.from_string("AcmeDnsServer__insert")
         )
         dbAcmeDnsServer = model_objects.AcmeDnsServer()
-        dbAcmeDnsServer.root_url = root_url
+        dbAcmeDnsServer.api_url = api_url
+        dbAcmeDnsServer.domain = domain
         dbAcmeDnsServer.timestamp_created = ctx.timestamp
         dbAcmeDnsServer.operations_event_id__created = dbOperationsEvent.id
         dbAcmeDnsServer.is_active = True
@@ -1214,13 +1229,19 @@ def getcreate__Domain__by_domainName(
     """
     is_created = False
     dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
+    domain_name = lib_utils.normalize_unique_text(domain_name)
+
     if not dbDomain:
+        _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx, model_utils.OperationsEventType.from_string("Domain__insert")
         )
         dbDomain = model_objects.Domain()
-        dbDomain.domain_name = domain_name
+        dbDomain.domain_name = domain_name  # unique
+        dbDomain.registered = _registered
+        dbDomain.suffix = _suffix
         dbDomain.timestamp_created = ctx.timestamp
         dbDomain.operations_event_id__created = dbOperationsEvent.id
         dbDomain.discovery_type = discovery_type

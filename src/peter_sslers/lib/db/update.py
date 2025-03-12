@@ -4,7 +4,6 @@ import logging
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import TYPE_CHECKING
 
@@ -13,15 +12,19 @@ from dateutil import parser as dateutil_parser
 from typing_extensions import Literal
 
 # localapp
-from .get import get__AcmeAccount__GlobalBackup
-from .get import get__AcmeAccount__GlobalDefault
+from .create import create__AcmeServerConfiguration
+from .create import create__Notification
+from .get import get__AcmeAccount__by_id
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
-from .get import get__AcmeDnsServer__by_root_url
+from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__Domain__by_name
+from .get import get__EnrollmentFactory__by_name
 from .. import errors
 from ... import lib
+from ...lib import acme_v2
 from ...lib import events as _events  # noqa: F401
+from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -33,12 +36,16 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import CertificateSigned
     from ...model.objects import CertificateCAPreference
+    from ...model.objects import CertificateCAPreferencePolicy
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentFactory
+    from ...model.objects import Notification
+    from ...model.objects import SystemConfiguration
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -52,8 +59,10 @@ def update_AcmeAccount__name(
     dbAcmeAccount: "AcmeAccount",
     name: Optional[str],
 ) -> str:
+    name = lib_utils.normalize_unique_text(name) if name else None
     if dbAcmeAccount.name != name:
         dbAcmeAccount.name = name
+        ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__edit__name"
     return event_status
 
@@ -63,6 +72,7 @@ def update_AcmeAccount__order_defaults(
     dbAcmeAccount: "AcmeAccount",
     order_default_private_key_cycle: str,
     order_default_private_key_technology: str,
+    order_default_acme_profile: Optional[str] = None,
 ) -> str:
     _transitions: List[str] = []
     if dbAcmeAccount.order_default_private_key_cycle != order_default_private_key_cycle:
@@ -110,8 +120,12 @@ def update_AcmeAccount__order_defaults(
             order_default_private_key_technology_id
         )
         _transitions.append("order_default_private_key_technology_id")
+    if dbAcmeAccount.order_default_acme_profile != order_default_acme_profile:
+        dbAcmeAccount.order_default_acme_profile = order_default_acme_profile
+        _transitions.append("order_default_acme_profile")
     if not _transitions:
         raise ValueError("No valid transitions atempted")
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__edit__order_defaults"
     return event_status
 
@@ -135,6 +149,7 @@ def update_AcmeAccount__private_key_technology(
     ):
         raise errors.InvalidTransition("Invalid option: `private_key_technology`")
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__edit__private_key_technology"
     return event_status
 
@@ -148,6 +163,7 @@ def update_AcmeAccount__set_active(
     if dbAcmeAccount.timestamp_deactivated:
         raise errors.InvalidTransition("AccountKey was deactivated.")
     dbAcmeAccount.is_active = True
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__mark__active"
     return event_status
 
@@ -161,88 +177,9 @@ def update_AcmeAccount__set_deactivated(
         raise errors.InvalidTransition("Already deactivated.")
     dbAcmeAccount.is_active = False
     dbAcmeAccount.timestamp_deactivated = ctx.timestamp
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__mark__deactivated"
     return event_status
-
-
-def update_AcmeAccount__set_global_default(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> Tuple[str, Dict]:
-    if dbAcmeAccount.is_global_backup:
-        raise errors.InvalidTransition("Account is global backup.")
-    if dbAcmeAccount.is_global_default:
-        raise errors.InvalidTransition("Already global default.")
-
-    # # Is there a reason to require the Default Account to be from the Default Server?
-    # if not dbAcmeAccount.acme_server.is_default:
-    #    raise errors.InvalidTransition(
-    #        "This AcmeAccount is not from the default AcmeServer."
-    #    )
-
-    dbAcmeAccount_backup = get__AcmeAccount__GlobalBackup(ctx)
-    if dbAcmeAccount_backup:
-        if dbAcmeAccount_backup.acme_server_id == dbAcmeAccount.acme_server_id:
-            raise errors.InvalidTransition(
-                "The Global AcmeAccount MUST be on a different server than the Backup AcmeAccount."
-            )
-
-    alt_info: Dict = {}
-    formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
-    if formerDefaultAccount:
-        formerDefaultAccount.is_global_default = None
-        ctx.dbSession.flush(
-            objects=[
-                formerDefaultAccount,
-            ]
-        )
-        alt_info["event_payload_dict"] = {
-            "acme_account_id.former_default": formerDefaultAccount.id,
-        }
-        alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
-    dbAcmeAccount.is_global_default = True
-    event_status = "AcmeAccount__mark__default"
-    return event_status, alt_info
-
-
-def update_AcmeAccount__set_global_backup(
-    ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-) -> Tuple[str, Dict]:
-    if dbAcmeAccount.is_global_backup:
-        raise errors.InvalidTransition("Already global backup.")
-    if dbAcmeAccount.is_global_default:
-        raise errors.InvalidTransition("Account is global default.")
-
-    # # Is there a reason to require the Default Account to be from the Default Server?
-    # if not dbAcmeAccount.acme_server.is_default:
-    #    raise errors.InvalidTransition(
-    #        "This AcmeAccount is not from the default AcmeServer."
-    #    )
-
-    dbAcmeAccount_global = get__AcmeAccount__GlobalDefault(ctx)
-    if dbAcmeAccount_global:
-        if dbAcmeAccount_global.acme_server_id == dbAcmeAccount.acme_server_id:
-            raise errors.InvalidTransition(
-                "The Backup AcmeAccount MUST be on a different server than the Global AcmeAccount."
-            )
-
-    alt_info: Dict = {}
-    formerBackupAccount = get__AcmeAccount__GlobalBackup(ctx)
-    if formerBackupAccount:
-        formerBackupAccount.is_global_backup = None
-        ctx.dbSession.flush(
-            objects=[
-                formerBackupAccount,
-            ]
-        )
-        alt_info["event_payload_dict"] = {
-            "acme_account_id.former_backup": formerBackupAccount.id,
-        }
-        alt_info["event_alt"] = ("AcmeAccount__mark__notbackup", formerBackupAccount)
-    dbAcmeAccount.is_global_backup = True
-    event_status = "AcmeAccount__mark__backup"
-    return event_status, alt_info
 
 
 def update_AcmeAccount__terms_of_service(
@@ -289,12 +226,37 @@ def update_AcmeAccount__unset_active(
     log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeAccount.is_global_default:
+    if (
+        dbAcmeAccount.system_configurations__primary
+        or dbAcmeAccount.system_configurations__backup
+    ):
         raise errors.InvalidTransition(
-            "You can not deactivate the global default. Set another `AcmeAccount` as the global default first."
+            "This AcmeAccount is registered with SystemConfiguration(s)."
         )
     dbAcmeAccount.is_active = False
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     event_status = "AcmeAccount__mark__inactive"
+    return event_status
+
+
+def update_AcmeAccount__is_render_in_selects(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    action: Literal["enable", "disable"],
+) -> str:
+    log.debug("update_AcmeAccount__is_render_in_selects", dbAcmeAccount.id)
+    if action == "enable":
+        if dbAcmeAccount.is_render_in_selects:
+            raise errors.InvalidTransition("Already enabled.")
+        # TODO: check max
+        dbAcmeAccount.is_render_in_selects = True
+        event_status = "AcmeAccount__mark__is_render_in_selects"
+    elif action == "disable":
+        if not dbAcmeAccount.is_render_in_selects:
+            raise errors.InvalidTransition("Already disabled.")
+        dbAcmeAccount.is_render_in_selects = False
+        event_status = "AcmeAccount__mark__no_render_in_selects"
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
     return event_status
 
 
@@ -390,19 +352,18 @@ def update_AcmeDnsServer__set_global_default(
     return event_status, alt_info
 
 
-def update_AcmeDnsServer__root_url(
-    ctx: "ApiContext",
-    dbAcmeDnsServer: "AcmeDnsServer",
-    root_url: str,
+def update_AcmeDnsServer__api_url__domain(
+    ctx: "ApiContext", dbAcmeDnsServer: "AcmeDnsServer", api_url: str, domain: str
 ) -> bool:
-    if dbAcmeDnsServer.root_url == root_url:
+    if (dbAcmeDnsServer.api_url == api_url) and (dbAcmeDnsServer.domain == domain):
         raise errors.InvalidTransition("No change")
-    dbAcmeDnsServerAlt = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    dbAcmeDnsServerAlt = get__AcmeDnsServer__by_api_url(ctx, api_url)
     if dbAcmeDnsServerAlt:
         raise errors.InvalidTransition(
             "Another acme-dns Server is enrolled with this same root url."
         )
-    dbAcmeDnsServer.root_url = root_url
+    dbAcmeDnsServer.api_url = api_url
+    dbAcmeDnsServer.domain = domain
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     return True
 
@@ -486,11 +447,7 @@ def update_AcmeOrder_finalized(
     _ari_replaces = finalize_response.get("replaces", None)
     if _ari_replaces:
         dbAcmeOrder.replaces = _ari_replaces
-        ctx.dbSession.flush(
-            objects=[
-                dbAcmeOrder,
-            ]
-        )
+        ctx.dbSession.flush(objects=[dbAcmeOrder])
 
     # deactivate any authz potentials
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
@@ -567,80 +524,126 @@ def update_AcmeServer__set_is_enabled(
 def update_AcmeServer_profiles(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
-    profiles: str,
+    profiles_str: Optional[str],
 ) -> bool:
     # TODO: anaylize/notify that profiles have changed
+    # BUT, we only call this from code that has made that comparison
     # _profiles_old = dbAcmeServer.profiles  # noqa: F841
-    dbAcmeServer.profiles = profiles
+    if dbAcmeServer.profiles != profiles_str:
+        dbAcmeServer.profiles = profiles_str
+        ctx.dbSession.flush(objects=[dbAcmeServer])
     return True
 
 
-def update_CertificateCAPreference_reprioritize(
+def update_AcmeServer_directory(
     ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    acme_directory: Dict,
+) -> bool:
+    # the LetsEncrypt server puts in a random entry, so the directory changes
+    directory_string = acme_v2.serialize_directory_object(acme_directory)
+    _changed = False
+    if (not dbAcmeServer.directory_latest) or (
+        dbAcmeServer.directory_latest.directory != directory_string
+    ):
+        initial_config = True if not dbAcmeServer.directory_latest else False
+        directoryLatest = create__AcmeServerConfiguration(  # noqa: F841
+            ctx,
+            dbAcmeServer,
+            directory_string,
+        )
+        _changed = True
+        if not initial_config:
+            message = (
+                "Detected a change in the `directory` of AcmeServer[%s]."
+                % dbAcmeServer.id
+            )
+            _notification = create__Notification(  # noqa: F841
+                ctx,
+                notification_type_id=model_utils.NotificationType.ACME_SERVER_CHANGED,
+                message=message,
+            )
+    _meta, _profiles_str = acme_v2.parse_acme_directory(acme_directory)
+    if _profiles_str != dbAcmeServer.profiles:
+        _result = update_AcmeServer_profiles(  # noqa: F841
+            ctx, dbAcmeServer, _profiles_str
+        )
+        _changed = True
+
+    if _changed:
+        ctx.dbSession.flush(objects=[dbAcmeServer])
+
+    return _changed
+
+
+def update_CertificateCAPreferencePolicy_reprioritize(
+    ctx: "ApiContext",
+    dbCertificateCaPreferencePolicy: "CertificateCAPreferencePolicy",
     dbPreference_active: "CertificateCAPreference",
-    dbCertificateCAPreferences: Sequence["CertificateCAPreference"],
     priority: str,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbCertificateCaPreferencePolicy: (required) A single instance of
+        :class:`model.objects.CertificateCaPreferencePolicy`
     :param dbPreference_active: (required) A single instance of
         :class:`model.objects.CertificateCAPreference` which is being moved
-        within the Preference list
-    :param dbCertificateCAPreferences: (required) The full listing of
-        :class:`model.objects.CertificateCAPreference` objects
+        within the Preference list of `dbCertificateCaPreferencePolicy`
     :param priority: string. required. must be "increase" or "decrease"
     """
     dbPref_other = None
     if priority == "increase":
-        if dbPreference_active.id <= 1:
+        if dbPreference_active.slot_id <= 1:
             raise errors.InvalidTransition(
                 "This item can not be increased in priority."
             )
-        target_slot_id = dbPreference_active.id - 1
+        target_slot_id = dbPreference_active.slot_id - 1
         # okay, now iterate over the list...
-        for _dbPref in dbCertificateCAPreferences:
-            if _dbPref.id == target_slot_id:
+        for _dbPref in dbCertificateCaPreferencePolicy.certificate_ca_preferences:
+            if _dbPref.slot_id == target_slot_id:
                 dbPref_other = _dbPref
                 break
         if not dbPref_other:
             raise errors.InvalidTransition("Illegal Operation.")
 
         # set the other to a placeholder
-        dbPref_other.id = 999
+        dbPref_other.slot_id = 999
         ctx.dbSession.flush(objects=[dbPref_other])
 
         # set the new
-        dbPreference_active.id = target_slot_id
+        dbPreference_active.slot_id = target_slot_id
         ctx.dbSession.flush(objects=[dbPreference_active])
 
         # and update the other
-        dbPref_other.id = dbPreference_active.id + 1
+        dbPref_other.slot_id = dbPreference_active.slot_id + 1
         ctx.dbSession.flush(objects=[dbPref_other])
 
     elif priority == "decrease":
-        if dbPreference_active.id == len(dbCertificateCAPreferences):
+        if dbPreference_active.slot_id == len(
+            dbCertificateCaPreferencePolicy.certificate_ca_preferences
+        ):
             raise errors.InvalidTransition(
                 "This item can not be decreased in priority."
             )
-        target_slot_id = dbPreference_active.id + 1
+        target_slot_id = dbPreference_active.slot_id + 1
         # okay, now iterate over the list...
-        for _dbPref in dbCertificateCAPreferences:
-            if _dbPref.id == target_slot_id:
+        for _dbPref in dbCertificateCaPreferencePolicy.certificate_ca_preferences:
+            if _dbPref.slot_id == target_slot_id:
                 dbPref_other = _dbPref
                 break
         if not dbPref_other:
             raise errors.InvalidTransition("Illegal Operation.")
 
         # set the old to a placeholder
-        dbPref_other.id = 999
+        dbPref_other.slot_id = 999
         ctx.dbSession.flush(objects=[dbPref_other])
 
         # set the new
-        dbPreference_active.id = target_slot_id
+        dbPreference_active.slot_id = target_slot_id
         ctx.dbSession.flush(objects=[dbPreference_active])
 
         # and update the other
-        dbPref_other.id = dbPreference_active.id - 1
+        dbPref_other.slot_id = dbPreference_active.slot_id - 1
         ctx.dbSession.flush(objects=[dbPref_other])
 
     else:
@@ -660,6 +663,7 @@ def update_CertificateSigned__mark_compromised(
     dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
     if dbCertificateSigned.is_active:
         dbCertificateSigned.is_active = False
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
     event_status = "CertificateSigned__mark__compromised"
     return event_status
 
@@ -688,6 +692,7 @@ def update_CertificateSigned__set_active(
 
     # now make it active!
     dbCertificateSigned.is_active = True
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
 
     # cleanup options
     event_status = "CertificateSigned__mark__active"
@@ -737,6 +742,8 @@ def update_CertificateSigned__set_revoked(
     # deactivate it, permanently
     dbCertificateSigned.is_deactivated = True
 
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
+
     # cleanup options
     event_status = "CertificateSigned__mark__revoked"
     return event_status
@@ -751,6 +758,8 @@ def update_CertificateSigned__unset_active(
 
     # inactivate it
     dbCertificateSigned.is_active = False
+
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
 
     event_status = "CertificateSigned__mark__inactive"
     return event_status
@@ -769,6 +778,8 @@ def update_CertificateSigned__unset_revoked(
 
     # unset the revoke
     dbCertificateSigned.is_revoked = False
+
+    ctx.dbSession.flush(objects=[dbCertificateSigned])
 
     # lead is_active and is_deactivated as-is
     # cleanup options
@@ -795,6 +806,7 @@ def update_CoverageAssuranceEvent__set_resolution(
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
     dbCoverageAssuranceEvent.coverage_assurance_resolution_id = resolution_id
+    ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])
     return True
 
 
@@ -831,6 +843,128 @@ def update_DomainAutocert_with_AcmeOrder(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def update_Notification__dismiss(
+    ctx: "ApiContext",
+    dbNotification: "Notification",
+) -> bool:
+    dbNotification.is_active = False
+    ctx.dbSession.flush(objects=[dbNotification])
+    return True
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_EnrollmentFactory(
+    ctx: "ApiContext",
+    dbEnrollmentFactory: "EnrollmentFactory",
+    acme_account_id__primary: int,
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    acme_profile__primary: Optional[str],
+    acme_account_id__backup: Optional[int],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
+    acme_profile__backup: Optional[str],
+    name: Optional[str],
+    note: Optional[str],
+    domain_template_http01: Optional[str],
+    domain_template_dns01: Optional[str],
+    label_template: Optional[str],
+    is_export_filesystem_id: Optional[int],
+) -> bool:
+    if not any(
+        (
+            acme_account_id__primary,
+            private_key_cycle__primary,
+            private_key_technology__primary,
+        )
+    ):
+        raise errors.InvalidTransition("Missing Required Primary.")
+
+    # these require some validation
+    name = lib_utils.normalize_unique_text(name) if name else None
+    if name:
+        if name.startswith("rc-") or name.startswith("global"):
+            raise ValueError("`name` contains a reserved prefix or is a reserved word")
+
+        existingEnrollmentFactory = get__EnrollmentFactory__by_name(ctx, name)
+        if existingEnrollmentFactory and (
+            existingEnrollmentFactory.id != dbEnrollmentFactory.id
+        ):
+            raise errors.InvalidTransition(
+                "An EnrollmentFactory already exists with this name."
+            )
+
+    # default to original
+    if is_export_filesystem_id is None:
+        is_export_filesystem_id = dbEnrollmentFactory.is_export_filesystem_id
+
+    dbAcmeAccountPrimary = get__AcmeAccount__by_id(ctx, acme_account_id__primary)
+    if not dbAcmeAccountPrimary:
+        raise errors.InvalidTransition("Could not load Primary")
+
+    if not any((domain_template_http01, domain_template_dns01)):
+        raise errors.InvalidTransition("must submit a template")
+
+    if acme_account_id__backup:
+        dbAcmeAccountBackup = get__AcmeAccount__by_id(ctx, acme_account_id__backup)
+        if not dbAcmeAccountBackup:
+            raise errors.InvalidTransition("Could not load Backup")
+        if dbAcmeAccountPrimary.acme_server_id == dbAcmeAccountBackup.acme_server_id:
+            raise errors.InvalidTransition(
+                "Primary and Backup AcmeAccounts MUST be on different servers."
+            )
+
+    changes = False
+
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+        private_key_technology__primary
+    )
+
+    private_key_cycle_id__backup = (
+        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        if private_key_cycle__backup
+        else None
+    )
+    private_key_technology_id__backup = (
+        model_utils.KeyTechnology.from_string(private_key_technology__backup)
+        if private_key_technology__backup
+        else None
+    )
+
+    if name != dbEnrollmentFactory.name:
+        raise errors.InvalidTransition("`EnrollmentFactory.name` can not be changed.")
+
+    pairings = (
+        ("acme_account_id__primary", acme_account_id__primary),
+        ("private_key_cycle_id__primary", private_key_cycle_id__primary),
+        ("private_key_technology_id__primary", private_key_technology_id__primary),
+        ("acme_profile__primary", acme_profile__primary),
+        ("acme_account_id__backup", acme_account_id__backup),
+        ("private_key_cycle_id__backup", private_key_cycle_id__backup),
+        ("private_key_technology_id__backup", private_key_technology_id__backup),
+        ("acme_profile__backup", acme_profile__backup),
+        ("note", note),
+        ("label_template", label_template),
+        ("domain_template_http01", domain_template_http01),
+        ("domain_template_dns01", domain_template_dns01),
+        ("is_export_filesystem_id", is_export_filesystem_id),
+    )
+    for p in pairings:
+        if getattr(dbEnrollmentFactory, p[0]) != p[1]:
+            setattr(dbEnrollmentFactory, p[0], p[1])
+            changes = True
+
+    if changes:
+        ctx.dbSession.flush(objects=[dbEnrollmentFactory])
+
+    return changes
+
+
 def update_PrivateKey__set_active(
     ctx: "ApiContext",
     dbPrivateKey: "PrivateKey",
@@ -840,6 +974,7 @@ def update_PrivateKey__set_active(
     if dbPrivateKey.is_compromised:
         raise errors.InvalidTransition("Can not activate a compromised key")
     dbPrivateKey.is_active = True
+    ctx.dbSession.flush(objects=[dbPrivateKey])
     event_status = "PrivateKey__mark__active"
     return event_status
 
@@ -872,6 +1007,7 @@ def update_PrivateKey__unset_active(
     if not dbPrivateKey.is_active:
         raise errors.InvalidTransition("Already deactivated")
     dbPrivateKey.is_active = False
+    ctx.dbSession.flush(objects=[dbPrivateKey])
     event_status = "PrivateKey__mark__inactive"
     return event_status
 
@@ -886,6 +1022,7 @@ def update_RenewalConfiguration__set_active(
     if dbRenewalConfiguration.is_active:
         raise errors.InvalidTransition("Already activated.")
     dbRenewalConfiguration.is_active = True
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
     event_status = "RenewalConfiguration__mark__active"
     return event_status
 
@@ -898,5 +1035,148 @@ def update_RenewalConfiguration__unset_active(
     if not dbRenewalConfiguration.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     dbRenewalConfiguration.is_active = False
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
     event_status = "RenewalConfiguration__mark__inactive"
     return event_status
+
+
+def update_RenewalConfiguration__update_exports(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: "RenewalConfiguration",
+    action: Literal["is_export_filesystem-on", "is_export_filesystem-off"],
+) -> str:
+    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    if dbRenewalConfiguration.enrollment_factory_id__via:
+        raise errors.InvalidTransition(
+            "`is_export_filesystem` must be managed by the EnrollmentFactory"
+        )
+
+    if action == "is_export_filesystem-on":
+        if (
+            dbRenewalConfiguration.is_export_filesystem_id
+            == model_utils.OptionsOnOff.ON
+        ):
+            raise errors.InvalidTransition("`is_export_filesystem` already on")
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.ON
+        event_status = "RenewalConfiguration__mark__is_export_filesystem__on"
+    elif action == "is_export_filesystem-off":
+        if (
+            dbRenewalConfiguration.is_export_filesystem_id
+            == model_utils.OptionsOnOff.OFF
+        ):
+            raise errors.InvalidTransition("`is_export_filesystem` already off")
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.OFF
+        event_status = "RenewalConfiguration__mark__is_export_filesystem__off"
+    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
+    return event_status
+
+
+def update_SystemConfiguration(
+    ctx: "ApiContext",
+    dbSystemConfiguration: "SystemConfiguration",
+    acme_account_id__primary: int,
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    acme_profile__primary: Optional[str],
+    acme_account_id__backup: Optional[int],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
+    acme_profile__backup: Optional[str],
+    force_reconciliation: bool = False,
+) -> bool:
+    if not any(
+        (
+            acme_account_id__primary,
+            private_key_cycle__primary,
+            private_key_technology__primary,
+        )
+    ):
+        raise errors.InvalidTransition("Missing Required Primary.")
+
+    dbAcmeAccountPrimary = get__AcmeAccount__by_id(ctx, acme_account_id__primary)
+    if not dbAcmeAccountPrimary:
+        raise errors.InvalidTransition("Could not load Primary")
+
+    if acme_account_id__backup:
+        dbAcmeAccountBackup = get__AcmeAccount__by_id(ctx, acme_account_id__backup)
+        if not dbAcmeAccountBackup:
+            raise errors.InvalidTransition("Could not load Backup")
+        if dbAcmeAccountPrimary.acme_server_id == dbAcmeAccountBackup.acme_server_id:
+            raise errors.InvalidTransition(
+                "Primary and Backup AcmeAccounts MUST be on different servers."
+            )
+
+    changes = []
+
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+        private_key_technology__primary
+    )
+
+    private_key_cycle_id__backup = (
+        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        if private_key_cycle__backup
+        else None
+    )
+    private_key_technology_id__backup = (
+        model_utils.KeyTechnology.from_string(private_key_technology__backup)
+        if private_key_technology__backup
+        else None
+    )
+
+    # global MUST only allow account defaults
+    # otherwise everything gets too confusing
+    if dbSystemConfiguration.name == "global":
+        # primary
+        if acme_profile__primary != "@":
+            raise errors.InvalidTransition("Global `acme_profile__primary` MUST be `@`")
+        if private_key_cycle_id__primary != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            raise errors.InvalidTransition(
+                "Global `private_key_cycle__primary` MUST be `account_default`"
+            )
+        if (
+            private_key_technology_id__primary
+            != model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        ):
+            raise errors.InvalidTransition(
+                "Global `private_key_technology__primary` MUST be `account_default`"
+            )
+        # backup
+        if acme_profile__backup != "@":
+            raise errors.InvalidTransition("Global `acme_profile__backup` MUST be `@`")
+        if private_key_cycle_id__backup != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+            raise errors.InvalidTransition(
+                "Global `private_key_cycle__backup` MUST be `account_default`"
+            )
+        if (
+            private_key_technology_id__backup
+            != model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        ):
+            raise errors.InvalidTransition(
+                "Global `private_key_technology__backup` MUST be `account_default`"
+            )
+
+    pairings = (
+        ("acme_account_id__primary", acme_account_id__primary),
+        ("private_key_cycle_id__primary", private_key_cycle_id__primary),
+        ("private_key_technology_id__primary", private_key_technology_id__primary),
+        ("acme_profile__primary", acme_profile__primary),
+        ("acme_account_id__backup", acme_account_id__backup),
+        ("private_key_cycle_id__backup", private_key_cycle_id__backup),
+        ("private_key_technology_id__backup", private_key_technology_id__backup),
+        ("acme_profile__backup", acme_profile__backup),
+    )
+    for p in pairings:
+        if getattr(dbSystemConfiguration, p[0]) != p[1]:
+            setattr(dbSystemConfiguration, p[0], p[1])
+            changes.append(p[0])
+
+    if changes or force_reconciliation:
+        if not dbSystemConfiguration.is_configured:
+            if dbSystemConfiguration.acme_account_id__primary:
+                dbSystemConfiguration.is_configured = True
+        ctx.dbSession.flush(objects=[dbSystemConfiguration])
+
+    return True if changes else False

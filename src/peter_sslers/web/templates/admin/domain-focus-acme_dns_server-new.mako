@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}]</a></li>
+        <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}-${Domain.domain_name}]</a></li>
         <li class="active">AcmeDnsServer: New</li>
     </ol>
 </%block>
@@ -38,7 +38,7 @@
                     <select class="form-control" id="acme_dns_server_id" name="acme_dns_server_id">
                         % for option in AcmeDnsServers:
                             % if option.is_active:
-                                <option value="${option.id}" ${'selected' if option.is_global_default else ''}>${option.root_url} (${option.id})</option>
+                                <option value="${option.id}" ${'selected' if option.is_global_default else ''}>${option.api_url} (${option.id})</option>
                             % endif
                         % endfor
                     </select>

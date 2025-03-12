@@ -103,61 +103,115 @@
                             </a>
                             <table class="table table-striped table-condensed">
                                 <tr>
-                                    <th>PrivateKey Cycling</th>
-                                    <td>${AcmeOrder.renewal_configuration.private_key_cycle or ""}</td>
+                                    <th>PrivateKey Cycling [Primary]</th>
+                                    <td>${AcmeOrder.renewal_configuration.private_key_cycle__primary or ""}</td>
                                 </tr>
                                 <tr>
-                                    <th>PrivateKey Technology</th>
-                                    <td>${AcmeOrder.renewal_configuration.key_technology or ""}</td>
+                                    <th>PrivateKey Technology [Primary]</th>
+                                    <td>${AcmeOrder.renewal_configuration.private_key_technology__primary or ""}</td>
                                 </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-
-
-
-
-                    <tr>
-                        <th>AcmeAccount</th>
-                        <td>
-                            <a
-                                class="label label-info"
-                                href="${admin_prefix}/acme-account/${AcmeOrder.acme_account_id}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${AcmeOrder.acme_account_id}
-                            </a>
-                            <table class="table table-striped table-condensed">
                                 <tr>
-                                    <th>AcmeServer</th>
+                                    <th>Acme Profile [Primary]</th>
+                                    <td>${AcmeOrder.renewal_configuration.acme_profile__primary or ""}</td>
+                                </tr>
+                                <tr>
+                                    <th>AcmeAccount [Primary]</th>
                                     <td>
                                         <a
                                             class="label label-info"
-                                            href="${admin_prefix}/acme-servers"
+                                            href="${admin_prefix}/acme-account/${AcmeOrder.renewal_configuration.acme_account_id__primary}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            AcmeServer-${AcmeOrder.acme_account.acme_server_id}
-                                            [${AcmeOrder.acme_account.acme_server.name}]
-                                            (${AcmeOrder.acme_account.acme_server.url})
+                                            AcmeAccount-${AcmeOrder.renewal_configuration.acme_account_id__primary}
                                         </a>
+                                        <table class="table table-striped table-condensed">
+                                            <tr>
+                                                <th>AcmeServer</th>
+                                                <td>
+                                                    <a
+                                                        class="label label-info"
+                                                        href="${admin_prefix}/acme-servers"
+                                                    >
+                                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                        AcmeServer-${AcmeOrder.renewal_configuration.acme_account__primary.acme_server_id}
+                                                        [${AcmeOrder.renewal_configuration.acme_account__primary.acme_server.name}]
+                                                        (${AcmeOrder.renewal_configuration.acme_account__primary.acme_server.url})
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>contact</th>
+                                                <td>${AcmeOrder.renewal_configuration.acme_account__primary.contact or ""}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Default PrivateKey Cycling</th>
+                                                <td>${AcmeOrder.renewal_configuration.acme_account__primary.order_default_private_key_cycle or ""}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Default PrivateKey Technology</th>
+                                                <td>${AcmeOrder.renewal_configuration.acme_account__primary.order_default_private_key_technology or ""}</td>
+                                            </tr>
+                                        </table>
                                     </td>
+                                </tr>                                
+                                <tr>
+                                    <th>PrivateKey Cycling [Backup]</th>
+                                    <td>${AcmeOrder.renewal_configuration.private_key_cycle__backup or ""}</td>
                                 </tr>
                                 <tr>
-                                    <th>contact</th>
-                                    <td>${AcmeOrder.acme_account.contact or ""}</td>
+                                    <th>PrivateKey Technology [Backup]</th>
+                                    <td>${AcmeOrder.renewal_configuration.private_key_technology__backup or ""}</td>
                                 </tr>
                                 <tr>
-                                    <th>Default PrivateKey Cycling</th>
-                                    <td>${AcmeOrder.acme_account.order_default_private_key_cycle or ""}</td>
+                                    <th>Acme Profile [Backup]</th>
+                                    <td>${AcmeOrder.renewal_configuration.acme_profile__backup or ""}</td>
                                 </tr>
                                 <tr>
-                                    <th>Default PrivateKey Technology</th>
-                                    <td>${AcmeOrder.acme_account.order_default_private_key_technology or ""}</td>
-                                </tr>
+                                    <th>AcmeAccount [Backup]</th>
+                                    <td>
+                                        % if AcmeOrder.renewal_configuration.acme_account_id__backup:
+                                            <a
+                                                class="label label-info"
+                                                href="${admin_prefix}/acme-account/${AcmeOrder.renewal_configuration.acme_account_id__backup}"
+                                            >
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                AcmeAccount-${AcmeOrder.renewal_configuration.acme_account_id__backup}
+                                            </a>
+                                            <table class="table table-striped table-condensed">
+                                                <tr>
+                                                    <th>AcmeServer</th>
+                                                    <td>
+                                                        <a
+                                                            class="label label-info"
+                                                            href="${admin_prefix}/acme-servers"
+                                                        >
+                                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                            AcmeServer-${AcmeOrder.renewal_configuration.acme_account__backup.acme_server_id}
+                                                            [${AcmeOrder.renewal_configuration.acme_account__backup.acme_server.name}]
+                                                            (${AcmeOrder.renewal_configuration.acme_account__backup.acme_server.url})
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>contact</th>
+                                                    <td>${AcmeOrder.renewal_configuration.acme_account__backup.contact or ""}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Default PrivateKey Cycling</th>
+                                                    <td>${AcmeOrder.renewal_configuration.acme_account__backup.order_default_private_key_cycle or ""}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Default PrivateKey Technology</th>
+                                                    <td>${AcmeOrder.renewal_configuration.acme_account__backup.order_default_private_key_technology or ""}</td>
+                                                </tr>
+                                            </table>
+                                        % endif
+                                    </td>
+                                </tr>         
                             </table>
                         </td>
                     </tr>
+
                     <tr>
                         <th>PrivateKey</th>
                         <td>
@@ -196,6 +250,7 @@
                             <code>${', '.join(AcmeOrder.domains_as_list)}</code>
                         </td>
                     </tr>
+
                     <tr>
                         <th>ACME Authorizations/Challenges</th>
                         <td>

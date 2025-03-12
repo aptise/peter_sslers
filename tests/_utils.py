@@ -5,12 +5,16 @@ from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
+import pdb  # noqa: F401
+import pprint  # noqa: F401
 import shutil
 import sqlite3
 import subprocess
 import time
 import traceback
+from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import overload
 from typing import Tuple
@@ -46,12 +50,12 @@ from peter_sslers.lib import errors
 from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
 from peter_sslers.lib.config_utils import ApplicationSettings
+from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
-from peter_sslers.lib.utils import ApiContext
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -151,6 +155,14 @@ PEBBLE_ALT_CONFIG_FILE = "/".join(
     ]
 )
 
+ACMEDNS_CONFIG_FILE = "/".join(
+    __file__.split("/")[:-1]
+    + [
+        "test_configuration",
+        "acme-dns--local.config",
+    ]
+)
+
 
 if RUN_API_TESTS__PEBBLE:
     if not GOPATH:
@@ -181,6 +193,7 @@ RUN_API_TESTS__ACME_DNS_API = bool(
     int(os.environ.get("SSL_RUN_API_TESTS__ACME_DNS_API", 0))
 )
 ACME_DNS_API = os.environ.get("SSL_ACME_DNS_API", "http://127.0.0.1:8011")
+ACME_DNS_DOMAIN = os.environ.get("SSL_ACME_DNS_API", "dev.2xlp.com")
 ACME_DNS_BINARY = os.environ.get("SSL_ACME_DNS_BINARY", "")
 ACME_DNS_CONFIG = os.environ.get("SSL_ACME_DNS_CONFIG", "")
 
@@ -198,6 +211,7 @@ OPENRESTY_PLUGIN_MINIMUM = packaging.version.parse(OPENRESTY_PLUGIN_MINIMUM_VERS
 # export this for some better debugging
 DEBUG_ACMEORDERS = bool(int(os.environ.get("DEBUG_ACMEORDERS", 0)))
 DEBUG_DBFREEZE = bool(int(os.environ.get("DEBUG_DBFREEZE", 0)))
+DEBUG_DBFREEZE_ARCHIVE = bool(int(os.environ.get("DEBUG_DBFREEZE_ARCHIVE", 0)))
 DEBUG_GITHUB_ENV = bool(int(os.environ.get("DEBUG_GITHUB_ENV", 0)))
 DEBUG_METRICS = bool(int(os.environ.get("DEBUG_METRICS", 0)))
 DEBUG_PEBBLE_REDIS = bool(int(os.environ.get("DEBUG_PEBBLE_REDIS", 0)))
@@ -212,15 +226,24 @@ if DISABLE_WARNINGS:
 # override to "test_local.ini" if needed
 TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
 
-# This is some fancy footwork to update our settings
-GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
-GLOBAL_appsettings["config_uri"] = TEST_INI
-cert_utils.update_from_appsettings(GLOBAL_appsettings)
 
+GLOBAL_appsettings: dict = {}
+
+
+def intialize_appsettings():
+    global GLOBAL_appsettings
+    # This is some fancy footwork to update our settings
+    GLOBAL_appsettings = get_appsettings(TEST_INI, name="main")
+    GLOBAL_appsettings["config_uri"] = TEST_INI
+    cert_utils.update_from_appsettings(GLOBAL_appsettings)
+
+
+intialize_appsettings()
 
 # SEMAPHORE?
 PEBBLE_RUNNING = None
 PEBBLE_ALT_RUNNING = None
+ACMEDNS_RUNNING = None
 
 # RUN_ID
 RUN_START = datetime.datetime.now()
@@ -247,8 +270,6 @@ if DEBUG_ACMEORDERS:
     peter_sslers.lib.acme_v2.log_api.setLevel(100)
 
     # silence cert_utils
-    import cert_utils
-
     cert_utils.log.setLevel(100)
 
 
@@ -277,6 +298,7 @@ if DEBUG_GITHUB_ENV:
     print("DEBUG_PEBBLE_REDIS:", DEBUG_PEBBLE_REDIS)
     print("DEBUG_METRICS:", DEBUG_METRICS)
     print("DEBUG_DBFREEZE:", DEBUG_DBFREEZE)
+    print("DEBUG_DBFREEZE_ARCHIVE:", DEBUG_DBFREEZE_ARCHIVE)
     print("DISABLE_WARNINGS:", DISABLE_WARNINGS)
     print("TEST_INI:", TEST_INI)
 
@@ -286,7 +308,14 @@ GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
 GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
 
 
-def clear_testing_setup_data(testCase: unittest.TestCase) -> Literal[True]:
+class CustomizedTestCase(unittest.TestCase):
+    ctx: ApiContext
+    testapp: Union[TestApp, StopableWSGIServer]
+    __name__: str
+    _filepath_testfile: Callable
+
+
+def clear_testing_setup_data(testCase: CustomizedTestCase) -> Literal[True]:
     """
     inverse to clear data
     """
@@ -355,7 +384,7 @@ def new_test_connections():
     request = FakeRequest()
     dbSession = session_factory(info={"request": request})
 
-    ctx = utils.ApiContext(
+    ctx = ApiContext(
         request=request,
         dbSession=dbSession,
         config_uri=TEST_INI,
@@ -785,6 +814,80 @@ def under_redis(_function):
     return _wrapper
 
 
+def under_acme_dns(_function):
+    """
+    decorator to spin up an external acme_dns server
+    """
+    global ACMEDNS_RUNNING
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("`acme-dns`: spinning up for `%s`" % _function.__qualname__)
+        log.info("`acme-dns`: ACMEDNS_CONFIG_FILE : %s", ACMEDNS_CONFIG_FILE)
+        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
+        # after layout updates, changing to the CWD will break this from running
+        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
+        res = None  # scoping
+        stdout: Union[int, BufferedWriter] = subprocess.PIPE
+        stderr: Union[int, BufferedWriter] = subprocess.PIPE
+        if DEBUG_PEBBLE_REDIS:
+            fname = (
+                (
+                    "%s/%s-acme_dns.txt"
+                    % (
+                        DIR_TESTRUN,
+                        _function.__qualname__,
+                    )
+                )
+                .replace("<", "_")
+                .replace(">", "_")
+            )
+            if "_locals_._wrapped-" in fname:
+                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
+            stdout = open(fname, "wb")
+        with psutil.Popen(
+            ["sudo", "acme-dns", "-c", ACMEDNS_CONFIG_FILE],
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            _waits = 0
+            while not ready:
+                log.info("`acme-dns`: waiting for ready | %s" % _waits)
+                _waits += 1
+                if _waits >= 30:
+                    raise ValueError("`acme-dns`: ERROR spinning up")
+                if DEBUG_PEBBLE_REDIS:
+                    with open(fname, "rb") as fh_read:
+                        for line in fh_read.readlines():
+                            if b"Listening HTTP" in line:
+                                log.info("`acme-dns`: ready")
+                                ready = True
+                                break
+                else:
+                    # acme-dns logs to STDERR, not STDOUT
+                    for line in iter(proc.stderr.readline, b""):
+                        if b"Listening HTTP" in line:
+                            log.info("`acme-dns`: ready")
+                            ready = True
+                            break
+                time.sleep(1)
+            try:
+                ACMEDNS_RUNNING = True
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("`acme-dns`: finished. terminating")
+                proc.terminate()
+                ACMEDNS_RUNNING = False
+        return res
+
+    return _wrapper
+
+
 # ==============================================================================
 
 
@@ -867,15 +970,18 @@ def _db_unfreeze__actual(
             print(excc)
 
         # if that doesn't work, log it to an artifact
-        if AppTestCore._currentTest:
-            # prefer the name
-            failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
-        else:
-            # otherwise, save it do a UUID
-            failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
-        if DEBUG_DBFREEZE:
-            print("DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname)
-        shutil.copy(active_filename, failname)
+        if DEBUG_DBFREEZE_ARCHIVE:
+            if AppTestCore._currentTest:
+                # prefer the name
+                failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
+            else:
+                # otherwise, save it do a UUID
+                failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+            if DEBUG_DBFREEZE:
+                print(
+                    "DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname
+                )
+            shutil.copy(active_filename, failname)
         # instead of raising an exc, just delete it
         # TODO: bugfix how/why this is only breaking in CI on
         if DEBUG_DBFREEZE:
@@ -912,7 +1018,7 @@ def _db_unfreeze__actual(
 def db_unfreeze(
     dbSession: Session,
     savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
-    testCase: Optional[unittest.TestCase] = None,
+    testCase: Optional[CustomizedTestCase] = None,
 ) -> Optional[bool]:
     """
     pass in the testCase to ensure we close those database connections
@@ -1011,16 +1117,20 @@ TEST_FILES: Dict = {
     },
     "AcmeDnsServer": {
         "1": {
-            "root_url": ACME_DNS_API,
+            "api_url": ACME_DNS_API,
+            "domain": ACME_DNS_DOMAIN,
         },
         "2": {
-            "root_url": "https://acme-dns.example.com",
+            "api_url": "https://acme-dns.example.com",
+            "domain": "acme-dns.example.com",
         },
         "3": {
-            "root_url": "https://acme-dns-alt.example.com",
+            "api_url": "https://acme-dns-alt.example.com",
+            "domain": "acme-dns-alt.example.com",
         },
         "4": {
-            "root_url": "https://acme-dns-alt-2.example.com",
+            "api_url": "https://acme-dns-alt-2.example.com",
+            "domain": "acme-dns-alt-2.example.com",
         },
     },
     "AcmeDnsServerAccount": {
@@ -1051,7 +1161,7 @@ TEST_FILES: Dict = {
                 "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
-                "private_key_cycle": "account_daily",
+                "private_key_cycle__primary": "account_daily",
                 "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
@@ -1064,7 +1174,7 @@ TEST_FILES: Dict = {
                 "acme_server_id": "1",
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
-                "private_key_cycle": "account_daily",
+                "private_key_cycle__primary": "account_daily",
                 "private_key_option": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
@@ -1419,36 +1529,60 @@ def routes_tested(*args):
 # =====
 
 
-def do__AcmeServers_sync(
-    testCase: unittest.TestCase,
+def do__AcmeServers_sync__api(
+    testCase: CustomizedTestCase,
 ) -> bool:
-    # both exist after setup
-    dbAcmeAccount_backup = lib_db_get.get__AcmeAccount__GlobalBackup(testCase.ctx)
-    if not dbAcmeAccount_backup:
-        raise ValueError("AcmeAccount__GlobalBackup not configured")
-    dbAcmeAccount_default = lib_db_get.get__AcmeAccount__GlobalDefault(testCase.ctx)
-    if not dbAcmeAccount_default:
-        raise ValueError("AcmeAccount__GlobalDefault not configured")
+    acme_server_ids: List[int] = []
+    policy_names = (
+        "global",
+        "autocert",
+        "certificate-if-needed",
+    )
+    for _pname in policy_names:
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+            testCase.ctx, _pname
+        )
+        assert dbSystemConfiguration
+        if dbSystemConfiguration.is_configured:
+            if (
+                dbSystemConfiguration.acme_account__primary.acme_server_id
+                not in acme_server_ids
+            ):
+                acme_server_ids.append(
+                    dbSystemConfiguration.acme_account__primary.acme_server_id
+                )
+            if dbSystemConfiguration.acme_account__backup:
+                assert dbSystemConfiguration.acme_account__backup.acme_server
+                if (
+                    dbSystemConfiguration.acme_account__backup.acme_server_id
+                    not in acme_server_ids
+                ):
+                    acme_server_ids.append(
+                        dbSystemConfiguration.acme_account__backup.acme_server_id
+                    )
+        else:
+            if _pname == "global":
+                raise ValueError("SystemConfiguration[global] not configured")
 
-    for _dbAcmeAccount in (dbAcmeAccount_backup, dbAcmeAccount_default):
+    for _acme_server_id in acme_server_ids:
         res = testCase.testapp.get(
-            "/.well-known/peter_sslers/acme-server/%s" % _dbAcmeAccount.acme_server_id,
+            "/.well-known/peter_sslers/acme-server/%s" % _acme_server_id,
             status=200,
         )
         form = res.forms["form-check_support"]
         res2 = form.submit()
         assert res2.status_code == 303
-        assert res2.location.endswith(
+        assert (
             "/.well-known/peter_sslers/acme-server/%s?result=success&operation=check-support&check-support=True"
-            % _dbAcmeAccount.acme_server_id
-        )
+            % _acme_server_id
+        ) in res2.location
 
     return True
 
 
 @routes_tested("admin:acme_account:new|json")
-def make_one__AcmeAccount__random(
-    testCase: unittest.TestCase,
+def make_one__AcmeAccount__random__api(
+    testCase: CustomizedTestCase,
 ) -> Tuple[model_objects.AcmeAccount, int]:
     """use the json api!"""
     form = {
@@ -1475,8 +1609,8 @@ def make_one__AcmeAccount__random(
 
 
 @routes_tested("admin:acme_account:upload|json")
-def make_one__AcmeAccount__pem(
-    testCase: unittest.TestCase,
+def make_one__AcmeAccount__pem__api(
+    testCase: CustomizedTestCase,
     account__contact: str,
     pem_file_name: str,
     expect_failure: bool = False,
@@ -1510,12 +1644,12 @@ def make_one__AcmeAccount__pem(
 
 
 @routes_tested("admin:acme_order:new:freeform|json")
-def make_one__AcmeOrder(
-    testCase: unittest.TestCase,
+def make_one__AcmeOrder__api(
+    testCase: CustomizedTestCase,
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
     account_key_option_backup: Optional[str] = None,
-    acme_profile: Optional[str] = None,
+    acme_profile__primary: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
@@ -1528,13 +1662,13 @@ def make_one__AcmeOrder(
     assert "account_key_option" in _form_fields
     form["account_key_option"].force_value("account_key_global_default")
     form["private_key_option"].force_value("account_default")
-    form["private_key_cycle"].force_value("account_default")
+    form["private_key_cycle__primary"].force_value("account_default")
     if domain_names_http01:
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
         form["domain_names_dns01"] = domain_names_dns01
-    if acme_profile:
-        form["acme_profile"] = acme_profile
+    if acme_profile__primary:
+        form["acme_profile__primary"] = acme_profile__primary
     if acme_profile__backup:
         form["acme_profile__backup"] = acme_profile__backup
     if account_key_option_backup:
@@ -1553,22 +1687,22 @@ def make_one__AcmeOrder(
 
 
 @routes_tested("admin:acme_order:new:freeform|json")
-def make_one__AcmeOrder__random(
-    testCase: unittest.TestCase,
+def make_one__AcmeOrder__random__api(
+    testCase: CustomizedTestCase,
 ) -> model_objects.AcmeOrder:
     """use the json api!"""
     domain_names_http01 = generate_random_domain(testCase=testCase)
-    dbAcmeOrder = make_one__AcmeOrder(
+    dbAcmeOrder = make_one__AcmeOrder__api(
         testCase=testCase, domain_names_http01=domain_names_http01
     )
     assert dbAcmeOrder
     return dbAcmeOrder
 
 
-def make_one__DomainBlocklisted(
-    testCase: unittest.TestCase,
+def make_one__DomainBlocklisted__database(
+    testCase: CustomizedTestCase,
     domain_name: str,
-):
+) -> model_objects.DomainBlocklisted:
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
     dbDomainBlocklisted.domain_name = domain_name
     testCase.ctx.dbSession.add(dbDomainBlocklisted)
@@ -1578,16 +1712,17 @@ def make_one__DomainBlocklisted(
         ]
     )
     testCase.ctx.pyramid_transaction_commit()
+    dbDomainBlocklisted = testCase.ctx.dbSession.merge(dbDomainBlocklisted)
     return dbDomainBlocklisted
 
 
-def make_one__RenewalConfiguration(
-    testCase: unittest.TestCase,
+def make_one__RenewalConfiguration__api(
+    testCase: CustomizedTestCase,
     dbAcmeAccount: model_objects.AcmeAccount,
     domain_names_http01: str,
     private_key_cycle: Optional[str] = "account_default",
     key_technology: Optional[str] = "account_default",
-) -> model_objects.AcmeOrder:
+) -> model_objects.RenewalConfiguration:
     """use the json api!"""
     res = testCase.testapp.get(
         "/.well-known/peter_sslers/renewal-configuration/new.json", status=200
@@ -1597,8 +1732,8 @@ def make_one__RenewalConfiguration(
     form: Dict[str, Optional[str]] = {}
     form["account_key_option"] = "account_key_existing"
     form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
-    form["private_key_cycle"] = private_key_cycle
-    form["key_technology"] = key_technology
+    form["private_key_cycle__primary"] = private_key_cycle
+    form["private_key_technology__primary"] = key_technology
     form["domain_names_http01"] = domain_names_http01
 
     res2 = testCase.testapp.post(
@@ -1620,6 +1755,149 @@ def make_one__RenewalConfiguration(
     return dbRenewalConfiguration
 
 
+def setup_SystemConfiguration__api(
+    testCase: CustomizedTestCase,
+    policy_name: Literal["global", "autocert", "certificate-if-needed"],
+) -> model_objects.AcmeOrder:
+    """use the json api!"""
+
+    if policy_name == "global":
+        raise ValueError("`global` is not supported")
+
+    res = testCase.testapp.get(
+        "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+        status=200,
+    )
+    assert "form_fields" in res.json
+
+    dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+        testCase.ctx, "global"
+    )
+    assert dbSystemConfiguration_global
+    assert dbSystemConfiguration_global.is_configured
+
+    form: Dict[str, Union[int, str, None]] = {}
+    form["acme_account_id__backup"] = (
+        dbSystemConfiguration_global.acme_account_id__backup
+    )
+    form["acme_account_id__primary"] = (
+        dbSystemConfiguration_global.acme_account_id__primary
+    )
+    form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
+    form["acme_profile__primary"] = dbSystemConfiguration_global.acme_profile__primary
+    form["private_key_cycle__backup"] = (
+        dbSystemConfiguration_global.private_key_cycle__backup
+    )
+    form["private_key_cycle__primary"] = (
+        dbSystemConfiguration_global.private_key_cycle__primary
+    )
+    form["private_key_technology__backup"] = (
+        dbSystemConfiguration_global.private_key_technology__backup
+    )
+    form["private_key_technology__primary"] = (
+        dbSystemConfiguration_global.private_key_technology__primary
+    )
+    form["force_reconciliation"] = 1
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+        form,
+    )
+    assert res2.json["result"] == "success"
+    assert "SystemConfiguration" in res2.json
+
+    dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+        testCase.ctx, policy_name
+    )
+
+    assert dbSystemConfiguration
+    assert dbSystemConfiguration.is_configured
+    return dbSystemConfiguration
+
+
+def auth_SystemConfiguration_accounts__api(
+    testCase: CustomizedTestCase,
+    dbSystemConfiguration: model_objects.SystemConfiguration,
+    auth_only: Optional[Literal["primary", "backup"]] = None,
+) -> bool:
+    _did_authenticate = False
+    account_ids: List[int]
+    if auth_only == "primary":
+        account_ids = [
+            dbSystemConfiguration.acme_account_id__primary,
+        ]
+    elif auth_only == "backup":
+        account_ids = (
+            [
+                dbSystemConfiguration.acme_account_id__backup,
+            ]
+            if dbSystemConfiguration.acme_account_id__backup
+            else []
+        )
+    else:
+        account_ids = [
+            i
+            for i in [
+                dbSystemConfiguration.acme_account_id__primary,
+                dbSystemConfiguration.acme_account_id__backup,
+            ]
+            if i
+        ]
+
+    # return True if we authenticate for either account
+    for _acme_account_id in account_ids:
+        # authenticate will register; check will not
+        # during test-runs, the pebble server will lose state so check will fail
+        _resCheck = testCase.testapp.post(
+            "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+            % _acme_account_id,
+            {},
+        )
+        assert _resCheck.location.endswith(
+            "?result=success&operation=acme-server--authenticate&is_authenticated=True"
+        )
+        _did_authenticate = True
+    return _did_authenticate
+
+
+def ensure_SystemConfiguration__database(
+    testCase: CustomizedTestCase,
+    policy_name: Literal["autocert", "certificate-if-needed"],
+) -> model_objects.SystemConfiguration:
+    """
+    NOTE:
+        `unset_testing_data` will set dbSystemConfiguration.is_configured to False
+        but everything else will remain configured
+        this is just to accomodate tests that flow through the setup
+    """
+    dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+        testCase.ctx, policy_name
+    )
+    assert dbSystemConfiguration
+    if not dbSystemConfiguration.is_configured:
+        _sysconfigGlobal = lib_db_get.get__SystemConfiguration__by_name(
+            testCase.ctx, "global"
+        )
+        assert _sysconfigGlobal
+        _updated = lib_db_update.update_SystemConfiguration(
+            ctx=testCase.ctx,
+            dbSystemConfiguration=dbSystemConfiguration,
+            acme_account_id__primary=_sysconfigGlobal.acme_account_id__primary,
+            private_key_cycle__primary=_sysconfigGlobal.private_key_cycle__primary,
+            private_key_technology__primary=_sysconfigGlobal.private_key_technology__primary,
+            acme_profile__primary=_sysconfigGlobal.acme_profile__primary,
+            acme_account_id__backup=_sysconfigGlobal.acme_account_id__backup,
+            private_key_cycle__backup=_sysconfigGlobal.private_key_cycle__backup,
+            private_key_technology__backup=_sysconfigGlobal.private_key_technology__backup,
+            acme_profile__backup=_sysconfigGlobal.acme_profile__backup,
+            force_reconciliation=True,
+        )
+        testCase.ctx.pyramid_transaction_commit()
+        dbSystemConfiguration = testCase.ctx.dbSession.merge(dbSystemConfiguration)
+        assert dbSystemConfiguration.is_configured
+    return dbSystemConfiguration
+
+
 def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], response):
     message = "Error communicating with the acme-dns server."
     if response_type == "html":
@@ -1636,8 +1914,9 @@ def check_error_AcmeDnsServerError(response_type: Literal["html", "json"], respo
                     raise lib_errors.AcmeDnsServerError()
 
 
-def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+def unset_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     testCase.ctx.pyramid_transaction_commit()
+    # note: deactivate AcmeOrders
     dbAcmeOrders = (
         testCase.ctx.dbSession.query(model_objects.AcmeOrder)
         .order_by(model_objects.AcmeOrder.id.asc())
@@ -1646,6 +1925,7 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+    # note: deactivate RenewalConfigurations
     dbRenewalConfigurations = (
         testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)
         .order_by(model_objects.RenewalConfiguration.id.asc())
@@ -1653,9 +1933,20 @@ def unset_testing_data(testCase: unittest.TestCase) -> Literal[True]:
         .all()
     )
     for _dbRenewalConfiguration in dbRenewalConfigurations:
-        result = lib_db_update.update_RenewalConfiguration__unset_active(
+        _result = lib_db_update.update_RenewalConfiguration__unset_active(
             testCase.ctx, _dbRenewalConfiguration
         )
+    # note: unset SystemConfigurations
+    dbSystemConfigurations = (
+        testCase.ctx.dbSession.query(model_objects.SystemConfiguration)
+        .filter(
+            model_objects.SystemConfiguration.name != "global",
+            model_objects.SystemConfiguration.is_configured.is_(True),
+        )
+        .all()
+    )
+    for dbSystemConfiguration in dbSystemConfigurations:
+        dbSystemConfiguration.is_configured = False
     testCase.ctx.pyramid_transaction_commit()
     return True
 
@@ -1735,7 +2026,7 @@ class _Mixin_filedata(object):
         return data_s
 
 
-class AppTestCore(unittest.TestCase, _Mixin_filedata):
+class AppTestCore(CustomizedTestCase, _Mixin_filedata):
     """
     AppTestCore provides the main support for testing.
 
@@ -1819,7 +2110,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
                 print("AppTestCore.setUp | recreating the database")
 
                 request = FakeRequest()
-                ctx = utils.ApiContext(
+                ctx = ApiContext(
                     dbSession=dbSession,
                     request=request,
                     config_uri=TEST_INI,
@@ -1882,10 +2173,10 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         self._session_factory = None
         self._turnoff_items()
 
-    _ctx: Optional[utils.ApiContext] = None
+    _ctx: Optional[ApiContext] = None
 
     @property
-    def ctx(self) -> utils.ApiContext:
+    def ctx(self) -> ApiContext:
         """
         originally in `AppTest`, not `AppTestCore` but some functions here need it
         """
@@ -1893,7 +2184,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
             dbSession_factory = self._pyramid_app.registry["dbSession_factory"]
             request = FakeRequest()
 
-            self._ctx = utils.ApiContext(
+            self._ctx = ApiContext(
                 request=request,
                 dbSession=dbSession_factory(info={"request": request}),
                 config_uri=TEST_INI,
@@ -2170,21 +2461,32 @@ class AppTest(AppTestCore):
                         )
                         # print(_dbAcmeAccount_1, _is_created)
                         # self.ctx.pyramid_transaction_commit()
+
                         if _id == "1":
                             _dbAcmeAccount_1 = _dbAcmeAccount
-                            if not _dbAcmeAccount.is_global_default:
-                                db.update.update_AcmeAccount__set_global_default(
-                                    self.ctx, _dbAcmeAccount
-                                )
-                            self.ctx.pyramid_transaction_commit()
-                        # 11 is same as 1, but on `pebble_alt`
-                        if _id == "5":
+                        elif _id == "5":
+                            # 11 is same as 1, but on `pebble_alt`
                             _dbAcmeAccount_2 = _dbAcmeAccount
-                            if not _dbAcmeAccount.is_global_backup:
-                                db.update.update_AcmeAccount__set_global_backup(
-                                    self.ctx, _dbAcmeAccount_2
-                                )
-                            self.ctx.pyramid_transaction_commit()
+                        self.ctx.pyramid_transaction_commit()
+
+                    dbSystemConfiguration_global = (
+                        lib_db_get.get__SystemConfiguration__by_name(self.ctx, "global")
+                    )
+                    assert dbSystemConfiguration_global
+
+                    _updated = lib_db_update.update_SystemConfiguration(
+                        ctx=self.ctx,
+                        dbSystemConfiguration=dbSystemConfiguration_global,
+                        acme_account_id__primary=_dbAcmeAccount_1.id,
+                        private_key_cycle__primary=dbSystemConfiguration_global.private_key_cycle__primary,
+                        private_key_technology__primary=dbSystemConfiguration_global.private_key_technology__primary,
+                        acme_profile__primary=dbSystemConfiguration_global.acme_profile__primary,
+                        acme_account_id__backup=_dbAcmeAccount_2.id,
+                        private_key_cycle__backup=dbSystemConfiguration_global.private_key_cycle__backup,
+                        private_key_technology__backup=dbSystemConfiguration_global.private_key_technology__backup,
+                        acme_profile__backup=dbSystemConfiguration_global.acme_profile__backup,
+                        force_reconciliation=True,
+                    )
 
                     # note: pre-populate CertificateCA
                     # this should create `/certificate-ca/1`
@@ -2233,6 +2535,7 @@ class AppTest(AppTestCore):
                             _event_payload_dict = utils.new_event_payload_dict()
                             _event_payload_dict["private_key.id"] = _dbPrivateKey_alt.id
                             _event_payload_dict["action"] = "compromised"
+                            # ALWAYS log PrivateKeyCompromised
                             _dbOperationsEvent = db.logger.log__OperationsEvent(
                                 self.ctx, _event_type_id, _event_payload_dict
                             )
@@ -2444,10 +2747,10 @@ class AppTest(AppTestCore):
 
                     _dbRenewalConfiguration = db.create.create__RenewalConfiguration(
                         self.ctx,
-                        dbAcmeAccount=_dbAcmeAccount_1,
-                        private_key_cycle_id=_private_key_cycle_id__renewal,
-                        key_technology_id=_dbPrivateKey_1.key_technology_id,
                         domains_challenged=_domains_challenged,
+                        dbAcmeAccount__primary=_dbAcmeAccount_1,
+                        private_key_cycle_id__primary=_private_key_cycle_id__renewal,
+                        private_key_technology_id__primary=_dbPrivateKey_1.key_technology_id,
                         note="setUp",
                     )
 
@@ -2535,18 +2838,21 @@ class AppTest(AppTestCore):
                     # note: pre-populate AcmeDnsServer
                     (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
                         self.ctx,
-                        root_url=ACME_DNS_API,
+                        api_url=ACME_DNS_API,
+                        domain=ACME_DNS_DOMAIN,
                         is_global_default=True,
                     )
 
                     dbAcmeDnsServer_2: Optional[model_objects.AcmeDnsServer] = None
+                    assert self.ctx.application_settings
                     _acme_dns_support = self.ctx.application_settings[
                         "acme_dns_support"
                     ]
                     try:
                         (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
                             self.ctx,
-                            root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                            api_url=TEST_FILES["AcmeDnsServer"]["2"]["api_url"],
+                            domain=TEST_FILES["AcmeDnsServer"]["2"]["domain"],
                         )
                         if _acme_dns_support == "basic":
                             raise ValueError(
@@ -2704,13 +3010,13 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
 # ==============================================================================
 
 
-def testcase_to_prefix(testCase: unittest.TestCase) -> str:
+def testcase_to_prefix(testCase: CustomizedTestCase) -> str:
     prefix = "%s.%s" % (testCase.__class__.__name__, testCase._testMethodName)
     prefix = prefix.replace("_", "-")
     return prefix
 
 
-def testcaseClass_to_prefix(testCase: unittest.TestCase) -> str:
+def testcaseClass_to_prefix(testCase: CustomizedTestCase) -> str:
     prefix = "%s." % testCase.__name__
     prefix = prefix.replace("_", "-")
     return prefix
@@ -2722,7 +3028,7 @@ def generate_random_emailaddress(template="%s@example.com") -> str:
 
 def generate_random_domain(
     template="%s.example.com",
-    testCase: Optional[unittest.TestCase] = None,
+    testCase: Optional[CustomizedTestCase] = None,
 ) -> str:
     # optionally provide a testcase to insert into the generated names
     # this is useful for debugging test creation

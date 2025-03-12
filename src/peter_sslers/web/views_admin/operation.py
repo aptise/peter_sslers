@@ -134,7 +134,7 @@ class ViewAdminOperations(Handler):
         try:
             # could raise `lib.errors.InvalidRequest`
             # is this needed for viewing logs though?
-            # self._ensure_redis()
+            # self.request.api_context._ensure_redis()
             _items_per_page = 25
             items_count = lib_db.get.get__OperationsEvent__count(
                 self.request.api_context,
@@ -200,7 +200,7 @@ class ViewAdminOperations(Handler):
         try:
             # could raise `lib.errors.InvalidRequest`
             # is this needed for viewing logs though?
-            # self._ensure_nginx()
+            # self.request.api_context._ensure_nginx()
 
             _items_per_page = 25
             _event_type_ids = (

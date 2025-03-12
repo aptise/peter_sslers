@@ -14,7 +14,7 @@ simply as:
 
     python setup.py test
 
-There are a few environment variables you can set:
+There are a few environment variables you can set, some of which include:
 
     # run tests that hit `Nginx` for cache clearing
     export SSL_RUN_NGINX_TESTS=True
@@ -30,9 +30,8 @@ There are a few environment variables you can set:
     # - test suite that responds to public requests
     export SSL_LETSENCRYPT_API_VALIDATES=True
 
-Tests are done on a SQLite database as specified in `test.ini` AND MAY REQUIRE
-CUSTOMIZATION FOR YOUR OPENSSL location. The `test.ini` should also reflect the
-OpenSSL for your distribution. Do not edit `test.ini` though, instead create a
+Tests are done on a SQLite database as specified in `test.ini` .
+ Do not edit `test.ini` though, instead create a
 `test_local.ini` file and set an environment variable to use that file. More info
 on this is available in the development readme file.
 

@@ -185,7 +185,22 @@ class ViewAdminApi_Domain(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:domain:certificate-if-needed", renderer="json")
+    @view_config(
+        route_name="admin:api:domain:certificate_if_needed",
+        renderer="/admin/api-domain-certificate_if_needed.mako",
+    )
+    def certificate_if_needed_html(self):
+        self.request.api_context._load_SystemConfiguration_cin()
+        return {
+            "project": "peter_sslers",
+            "SystemConfiguration_cin": self.request.api_context.dbSystemConfiguration_cin,
+            "Form_API_Domain_certificate_if_needed": Form_API_Domain_certificate_if_needed,
+        }
+
+    @view_config(
+        route_name="admin:api:domain:certificate_if_needed|json",
+        renderer="json",
+    )
     @docify(
         {
             "endpoint": "/api/domain/certificate-if-needed.json",
@@ -210,45 +225,67 @@ class ViewAdminApi_Domain(Handler):
                 "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
             ],
             "form_fields": {
+                # CORE
                 "domain_name": "required; a single domain name to process",
                 "processing_strategy": "How should the order be processed?",
-                "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
-                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "private_key_option": "How is the PrivateKey being specified?",
-                "private_key_existing": "pem_md5 of existing key",
-                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
+                "note": "a note to attach",
+                # PRIMARY
+                "account_key_option__primary": "How is the AcmeAccount specified?",
+                "account_key_existing__primary": "pem_md5 of intended AcmeAccount Key; only submit if `account_key_option__primary==account_key_existing`",
+                "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
+                "private_key_option__primary": "How is the PrivateKey indicated?",
+                "private_key_existing__primary": "pem_md5 of intended Private Key; only submit if `private_key_option__primary==private_key_existing`",
+                "acme_profile__primary": "profile",
+                # BACKUP
+                "account_key_option__backup": "How is the AcmeAccount specified?",
+                "account_key_existing__backup": "pem_md5 of intended AcmeAccount Key; only submit if `account_key_option__backup==account_key_existing`",
+                "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
+                "private_key_option__backup": "How is the PrivateKey indicated?",
+                "private_key_existing__backup": "pem_md5 of intended Private Key; only submit if `private_key_option__backup==private_key_existing`",
+                "acme_profile__backup": "profile",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
             ],
             "valid_options": {
-                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
-                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
                 # Form_API_Domain_certificate_if_needed
+                # CORE
                 "processing_strategy": Form_API_Domain_certificate_if_needed.fields[
                     "processing_strategy"
                 ].list,
-                "private_key_cycle": Form_API_Domain_certificate_if_needed.fields[
-                    "private_key_cycle"
+                # PRIMARY
+                "account_key_option__primary": Form_API_Domain_certificate_if_needed.fields[
+                    "account_key_option__primary"
                 ].list,
-                # _form_AcmeAccount_PrivateKey_core
-                "account_key_option": Form_API_Domain_certificate_if_needed.fields[
-                    "account_key_option"
+                "private_key_cycle__primary": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_cycle__primary"
                 ].list,
-                "private_key_option": Form_API_Domain_certificate_if_needed.fields[
-                    "private_key_option"
+                "private_key_option__primary": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_option__primary"
                 ].list,
-                "private_key_generate": Form_API_Domain_certificate_if_needed.fields[
-                    "private_key_generate"
+                "private_key_technology__primary": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_technology__primary"
+                ].list,
+                # BACKUP
+                "account_key_option__backup": Form_API_Domain_certificate_if_needed.fields[
+                    "account_key_option__backup"
+                ].list,
+                "private_key_cycle__backup": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_cycle__backup"
+                ].list,
+                "private_key_option__backup": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_option__backup"
+                ].list,
+                "private_key_technology__backup": Form_API_Domain_certificate_if_needed.fields[
+                    "private_key_technology__backup"
                 ].list,
             },
         }
     )
     def certificate_if_needed(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeServers()
+        self.request.api_context._load_SystemConfiguration_cin()
+        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._certificate_if_needed__submit()
         return self._certificate_if_needed__print()
@@ -274,49 +311,64 @@ class ViewAdminApi_Domain(Handler):
             )
             # domain_name = domains_challenged["http-01"][0]
 
-            acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
+            (
+                dbAcmeAccount__primary,
+                dbAcmeAccount__backup,
+            ) = form_utils.parse_AcmeAccountSelections_v2(
                 self.request,
                 formStash,
-                require_contact=False,
-                support_upload=False,
+                dbSystemConfiguration=self.request.api_context.dbSystemConfiguration_cin,
             )
-            if TYPE_CHECKING:
-                assert acmeAccountSelection.upload_parsed is not None
 
-            privateKeySelection = form_utils.parse_PrivateKeySelection(
+            (
+                privateKeySelection__primary,
+                privateKeySelection__backup,
+            ) = form_utils.parse_PrivateKeySelections_v2(
                 self.request,
                 formStash,
-                private_key_option=formStash.results["private_key_option"],
+                dbSystemConfiguration=self.request.api_context.dbSystemConfiguration_cin,
             )
-            if TYPE_CHECKING:
-                assert privateKeySelection.upload_parsed is not None
 
-            if not privateKeySelection.PrivateKey:
-                formStash.fatal_field(
-                    field="private_key_option",
-                    message="Could not load/configure the private key",
-                )
-
+            note = formStash.results["note"]
             # this is locked to `model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE`
             #   which is only `process_single`
             processing_strategy = formStash.results["processing_strategy"]
 
-            # allow anything in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
-            private_key_cycle = formStash.results["private_key_cycle"]
+            try:
+                api_results = lib_db.actions.api_domains__certificate_if_needed(
+                    self.request.api_context,
+                    domains_challenged=domains_challenged,
+                    # PRIMARY
+                    dbAcmeAccount__primary=dbAcmeAccount__primary,
+                    dbPrivateKey__primary=privateKeySelection__primary.dbPrivateKey,
+                    acme_profile__primary=formStash.results["acme_profile__primary"],
+                    private_key_cycle__primary=formStash.results[
+                        "private_key_cycle__primary"
+                    ],
+                    private_key_technology__primary=formStash.results[
+                        "private_key_technology__primary"
+                    ],
+                    # BACKUP
+                    dbAcmeAccount__backup=dbAcmeAccount__backup,
+                    dbPrivateKey__backup=privateKeySelection__backup.dbPrivateKey,
+                    acme_profile__backup=formStash.results["acme_profile__backup"],
+                    private_key_cycle__backup=formStash.results[
+                        "private_key_cycle__backup"
+                    ],
+                    private_key_technology__backup=formStash.results[
+                        "private_key_technology__backup"
+                    ],
+                    # shared
+                    note=note,
+                    processing_strategy=processing_strategy,
+                    dbSystemConfiguration=self.request.api_context.dbSystemConfiguration_cin,
+                )
 
-            if TYPE_CHECKING:
-                assert acmeAccountSelection.AcmeAccount is not None
-                assert privateKeySelection.PrivateKey is not None
-
-            api_results = lib_db.actions.api_domains__certificate_if_needed(
-                self.request.api_context,
-                dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                dbPrivateKey=privateKeySelection.PrivateKey,
-                domains_challenged=domains_challenged,
-                private_key_cycle=private_key_cycle,
-                key_technology=privateKeySelection.key_technology,
-                processing_strategy=processing_strategy,
-            )
+            except Exception as exc:
+                if isinstance(exc, errors.UnknownAcmeProfile_Local):
+                    _message = "`%s` not in `%s`" % (exc.args[1], exc.args[2])
+                    formStash.fatal_field(field=exc.args[0], message=_message)
+                formStash.fatal_form(message="%s" % exc)
             return {"result": "success", "domain_results": api_results}
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
@@ -330,12 +382,10 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_SystemConfiguration_autocert()
         return {
             "project": "peter_sslers",
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "SystemConfiguration_autocert": self.request.api_context.dbSystemConfiguration_autocert,
         }
 
     @view_config(route_name="admin:api:domain:autocert|json", renderer="json")
@@ -347,7 +397,7 @@ class ViewAdminApi_Domain(Handler):
             "POST": True,
             "GET": None,
             "system.requires": [
-                "dbAcmeAccount_GlobalDefault",
+                "dbSystemConfiguration_autocert",
             ],
             "instructions": [
                 "POST `domain_name` to automatically attempt a certificate provisioning",
@@ -361,11 +411,13 @@ class ViewAdminApi_Domain(Handler):
             "form_fields": {
                 "domain_name": "required; a single domain name to process",
             },
+            "valid_options": {
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
+            },
         }
     )
     def autocert(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_SystemConfiguration_autocert()
         if self.request.method == "POST":
             return self._autocert__submit()
         return self._autocert__print()
@@ -380,6 +432,10 @@ class ViewAdminApi_Domain(Handler):
         # scoping
         dbDomainAutocert = None
         dbAcmeOrder = None
+        dbSystemConfiguration_autocert = (
+            self.request.api_context.dbSystemConfiguration_autocert
+        )
+
         try:
             log.debug("attempting an autocert")
             (result, formStash) = formhandling.form_validate(
@@ -389,6 +445,14 @@ class ViewAdminApi_Domain(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid()
+
+            if (
+                not dbSystemConfiguration_autocert
+                or not dbSystemConfiguration_autocert.is_configured
+            ):
+                formStash.fatal_form(
+                    "The `autocert` SystemConfiguration has not been configured"
+                )
 
             # this ensures only one domain
             domains_challenged = form_utils.form_single_domain_challenge_typed(
@@ -458,15 +522,6 @@ class ViewAdminApi_Domain(Handler):
                         message="There is an active or recent autocert attempt for this domain",
                     )
 
-            if not self.dbAcmeAccount_GlobalDefault:
-                formStash.fatal_field(
-                    field="AcmeAccount",
-                    message="You must configure a global AcmeAccount.",
-                )
-
-            dbAcmeAccount = self.dbAcmeAccount_GlobalDefault
-            assert dbAcmeAccount
-
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
                 self.request.api_context, 0
             )
@@ -497,10 +552,19 @@ class ViewAdminApi_Domain(Handler):
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
-                        dbAcmeAccount=dbAcmeAccount,
-                        private_key_cycle_id=model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT,
-                        key_technology_id=model_utils.KeyTechnology.ACCOUNT_DEFAULT,
                         domains_challenged=domains_challenged,
+                        # PRIMARY cert
+                        dbAcmeAccount__primary=dbSystemConfiguration_autocert.acme_account__primary,
+                        private_key_cycle_id__primary=dbSystemConfiguration_autocert.private_key_cycle_id__primary,
+                        private_key_technology_id__primary=dbSystemConfiguration_autocert.private_key_technology_id__primary,
+                        acme_profile__primary=dbSystemConfiguration_autocert.acme_profile__primary,
+                        # BACKUP cert
+                        dbAcmeAccount__backup=dbSystemConfiguration_autocert.acme_account__backup,
+                        private_key_cycle_id__backup=dbSystemConfiguration_autocert.private_key_cycle_id__backup,
+                        private_key_technology_id__backup=dbSystemConfiguration_autocert.private_key_technology_id__backup,
+                        acme_profile__backup=dbSystemConfiguration_autocert.acme_profile__backup,
+                        # misc
+                        dbSystemConfiguration=dbSystemConfiguration_autocert,
                     )
                     is_duplicate_renewal = False  # noqa: F841
                 except errors.DuplicateRenewalConfiguration as exc:
@@ -579,8 +643,11 @@ class ViewAdminApi_Domain(Handler):
                     return rval
 
                 # ???: should we raise something better?
-                log.debug("autocert - order exception")
-                raise
+                log.critical("autocert - order exception")
+                log.critical(exc)
+                formStash.fatal_form(
+                    message="%s" % exc,
+                )
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
             message = "There was an error with your form."
@@ -636,7 +703,7 @@ class ViewAdminApi_Redis(Handler):
 
         try:
             # could raise `errors.InvalidRequest("redis is not enabled")`
-            self._ensure_redis()
+            self.request.api_context._ensure_redis()
             prime_style = utils_redis.redis_prime_style(self.request)
             if not prime_style:
                 raise errors.InvalidRequest("invalid `redis.prime_style`")
@@ -862,7 +929,7 @@ class ViewAdminApi_Nginx(Handler):
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
             success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
                 self.request, self.request.api_context
             )
@@ -918,7 +985,7 @@ class ViewAdminApi_Nginx(Handler):
             )
         try:
             # could raise `errors.InvalidRequest("nginx is not enabled")`
-            self._ensure_nginx()
+            self.request.api_context._ensure_nginx()
             servers_status = utils_nginx.nginx_status(
                 self.request, self.request.api_context
             )

@@ -25,13 +25,14 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
+    from ...model.objects import EnrollmentFactory
     from ...model.objects import OperationsEvent
     from ...model.objects import OperationsObjectEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.objects import UniquelyChallengedFQDNSet
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -546,8 +547,8 @@ def log__OperationsEvent(
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
     if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
-        # ???: TODO- investigate how this is happening; the ctx verion is merged
-        #            back in after a transaction commit
+        # if there are any issues with this, it is likely due to a transaction
+        # affecting the `ctx.dbOperationsEvent`::`lib.context.ApiContext`
         dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
 
     if event_payload_dict is None:
@@ -585,6 +586,7 @@ def _log_object_event(
     dbCertificateRequest: Optional["CertificateRequest"] = None,
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
+    dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbCertificateSigned: Optional["CertificateSigned"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
@@ -618,6 +620,8 @@ def _log_object_event(
         )
     elif dbDomain:
         dbOperationsObjectEvent.domain_id = dbDomain.id
+    elif dbEnrollmentFactory:
+        dbOperationsObjectEvent.enrollment_factory_id = dbEnrollmentFactory.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
     elif dbCertificateSigned:

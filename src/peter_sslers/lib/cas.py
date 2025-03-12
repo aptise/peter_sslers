@@ -1,6 +1,6 @@
 from typing import Union
 
-from peter_sslers.lib.utils import ApiContext
+from peter_sslers.lib.context import ApiContext
 
 # These will be used by Requests
 #

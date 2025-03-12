@@ -44,8 +44,12 @@
                 ${form.html_error_main_fillable()|n}
 
                 <div class="form-group">
-                    <label for="root_url">Root Url</label>
-                    <input type="text" name="root_url" value="${AcmeDnsServer.root_url}" class="form-control"/>
+                    <label for="api_url">Api Url</label>
+                    <input type="text" name="api_url" value="${AcmeDnsServer.api_url}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="domain">Domain</label>
+                    <input type="text" name="domain" value="${AcmeDnsServer.domain}" class="form-control"/>
                 </div>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

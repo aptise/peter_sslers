@@ -255,10 +255,10 @@ class View_Focus(Handler):
                 "resolution": "the intended resolution",
             },
             "valid_options": {
+                "action": Form_CoverageAssuranceEvent_mark.fields["action"].list,
                 "resolution": Form_CoverageAssuranceEvent_mark.fields[
                     "resolution"
                 ].list,
-                "action": "resolved",
             },
         }
     )
@@ -312,6 +312,7 @@ class View_Focus(Handler):
 
             self.request.api_context.dbSession.flush(objects=[dbCoverageAssuranceEvent])
 
+            # always log these
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type_id, event_payload_dict

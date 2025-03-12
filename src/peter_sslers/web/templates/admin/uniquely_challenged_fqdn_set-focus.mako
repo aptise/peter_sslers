@@ -75,7 +75,7 @@
                     <tr>
                         <th>unique_fqdn_set</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/unique-fqdn-set/${UniquelyChallengedFQDNSet.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

@@ -19,6 +19,11 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
+        <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/audit" class="btn btn-sm btn-primary">
+            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+            audit
+        </a>
+
         <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
@@ -45,23 +50,25 @@
                     <td>
                         <a
                             href="${admin_prefix}/acme-dns-server/${AcmeDnsServerAccount.acme_dns_server_id}"
-                            class="btn btn-xs btn-info"
+                            class="label label-info"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeDnsServer | ${AcmeDnsServerAccount.acme_dns_server_id}
+                            AcmeDnsServer-${AcmeDnsServerAccount.acme_dns_server_id}
                         </a>
                     </td>
                 </tr>        
                 <tr>
                     <th>Domain</th>
                     <td>
+                    
                         <a
                             href="${admin_prefix}/domain/${AcmeDnsServerAccount.domain_id}"
-                            class="btn btn-xs btn-info"
+                            class="label label-info"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Domain | ${AcmeDnsServerAccount.domain_id} | ${AcmeDnsServerAccount.domain.domain_name}
+                            Domain-${AcmeDnsServerAccount.domain_id}
                         </a>
+                        <span class="label label-default">${AcmeDnsServerAccount.domain.domain_name}</span>
                     </td>
                 </tr>        
 
@@ -91,6 +98,22 @@
                     <td><code>${AcmeDnsServerAccount.allowfrom}</code></td>
                 </tr>
             </table>
+            
+            
+            <p>
+                The ACME server expects this CNAME record:
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <td>source</td>
+                        <td> <code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
+                    </tr>
+                    <tr>
+                        <td>destination</td>
+                        <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
+                    </tr>
+                </table>
+            </p>
+            
 
             ## <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/get"
             ##   class="btn btn-info"

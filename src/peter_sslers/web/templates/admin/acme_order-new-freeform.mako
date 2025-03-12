@@ -45,30 +45,53 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccount - Primary</h3>
+                <h3>Primary Certificate</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
                     support_profiles=True,
+                    default_profile=SystemConfiguration_global.acme_profile__primary,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
-
-                <h3>AcmeAccount - Backup</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__backup(
-                    support_profiles=True,
+                <h4>PrivateKey</h4>
+                
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__primary",
+                    default=SystemConfiguration_global.private_key_cycle__primary,
                 )}
-                <hr/>
-
-                <h3>PrivateKey</h3>
                 ${admin_partials.formgroup__PrivateKey_selector__advanced(
+                    support_upload=False,
                     option_account_default=True,
                     option_generate_new=True,
                     default="account_default",
-                    support_upload=False,
+                    concept="primary",
                     )}
                 <hr/>
-                ${admin_partials.formgroup__private_key_cycle()}
                 <hr/>
 
+                <h3>Backup Certificate</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__backup(
+                    support_profiles=True,
+                    default_profile=SystemConfiguration_global.acme_profile__backup,
+                    dbSystemConfiguration=SystemConfiguration_global,
+                )}
+                <hr/>
+                <h4>PrivateKey</h4>
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__backup",
+                    label="[Backup Certificate]",
+                    default=SystemConfiguration_global.private_key_cycle__backup,
+                )}
+                ${admin_partials.formgroup__key_technology(
+                    field_name="private_key_technology__backup",
+                    label="[Backup Certificate]",
+                    default=SystemConfiguration_global.private_key_technology__backup,
+                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                )}
+                <hr/>
+                <hr/>
+
+                <h3>Shared Configuration</h3>
                 ${admin_partials.formgroup__domain_names(
                     specify_challenge=True,
                     domain_names_http01=domain_names_http01,
@@ -76,9 +99,7 @@
                     AcmeDnsServer_GlobalDefault=AcmeDnsServer_GlobalDefault,
                     )}
                 <hr/>
-
                 ${admin_partials.formgroup__note()}
-
                 ${admin_partials.formgroup__processing_strategy()}
                 <hr/>
 

@@ -40,30 +40,67 @@
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
+                
+                % if RenewalConfiguration.enrollment_factory_id__via:
+                    <div class="alert alert-danger">
+                        <p>
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            This RenewalConfiguration is associated to 
+                            <a class="label label-info" 
+                                href="${admin_prefix}/enrollment-factory/${RenewalConfiguration.enrollment_factory_id__via}"
+                            >
+                                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                                EnrollmentFactory-${RenewalConfiguration.enrollment_factory_id__via}
+                            </a>                        
+                        </p>
+                        <p>
+                            A new RenewalConfiguration based on this record WILL NOT keep the EnrollmentFactory association.
+                        </p>
+
+
+                        
+                    </div>
+                % endif
+                
 
                 <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__advanced(
                     support_upload=False,
-                    dbAcmeAccountReuse=RenewalConfiguration.acme_account,
                     support_profiles=True,
-                    default_profile=RenewalConfiguration.acme_profile,
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__primary,
+                    default_profile=RenewalConfiguration.acme_profile__primary,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
+                <h4>PrivateKey</h4>
+                ${admin_partials.formgroup__private_key_cycle(
+                    field_name="private_key_cycle__primary",
+                    default=RenewalConfiguration.private_key_cycle__primary,
+                )}
+                ${admin_partials.formgroup__key_technology(
+                    field_name="private_key_technology__primary",
+                    default=RenewalConfiguration.private_key_technology__primary,
+                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                )}
+                <hr/>
                 <hr/>
 
                 <h3>AcmeAccount - Backup</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__backup(
-                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
                     support_profiles=True,
+                    dbAcmeAccountReuse=RenewalConfiguration.acme_account__backup,
                     default_profile=RenewalConfiguration.acme_profile__backup,
+                    dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
-
+                <h4>PrivateKey</h4>
                 ${admin_partials.formgroup__private_key_cycle(
-                    default=RenewalConfiguration.private_key_cycle,
+                    field_name="private_key_cycle__backup",
+                    default=RenewalConfiguration.private_key_cycle__backup,
                 )}
                 ${admin_partials.formgroup__key_technology(
-                    default=RenewalConfiguration.key_technology,
+                    field_name="private_key_technology__backup",
                     options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                    default=RenewalConfiguration.private_key_technology__backup,
                 )}
 
                 ${admin_partials.formgroup__domain_names(
@@ -74,6 +111,7 @@
                     )}
 
                 ${admin_partials.formgroup__note()}
+                ${admin_partials.formgroup__label(default=RenewalConfiguration.label)}
                 <hr/>
 
                 <hr/>

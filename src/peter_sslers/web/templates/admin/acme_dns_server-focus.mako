@@ -48,9 +48,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>root url</th>
+                    <th>api_url</th>
                     <td>
-                        <code>${AcmeDnsServer.root_url}</code>
+                        <code>${AcmeDnsServer.api_url}</code>
 
                         <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/check" method="POST" style="display:inline;" id="form-check">
                             <input type="hidden" name="action" value="active"/>
@@ -60,6 +60,12 @@
                             </button>
                         </form>
 
+                    </td>
+                </tr>
+                <tr>
+                    <th>domain</th>
+                    <td>
+                        <code>${AcmeDnsServer.domain}</code>
                     </td>
                 </tr>
                 <tr>
@@ -121,14 +127,14 @@
             </a>
 
             <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/ensure-domains"
-               class="btn btn-info"
+               class="btn btn-primary"
             >
                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                 Ensure Domains
             </a>
 
             <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/import-domain"
-               class="btn btn-info"
+               class="btn btn-primary"
             >
                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                 Import Domain

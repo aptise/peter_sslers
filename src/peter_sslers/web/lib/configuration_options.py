@@ -32,11 +32,6 @@ documentation_grid = {
             "docstring": "A custom host this is served under. If omitted, this will default to the environment scheme+host.",
             "show_on_settings": True,
         },
-        "exception_redirect": {
-            "docstring": "If `True`, some views will redirect to a nice error page. If `False`, a raw exception will be raised.",
-            "default": "`None`",
-            "show_on_settings": True,
-        },
     },
     "Certificate Configuration": {
         "default_backup": {

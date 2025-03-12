@@ -174,7 +174,7 @@ class View_List(Handler):
 
         url_template = "%s/acme-orders/%s/{0}" % (
             self.request.api_context.application_settings["admin_prefix"],
-            "sidenav_option",
+            sidenav_option,
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
@@ -1049,19 +1049,24 @@ class View_New(Handler):
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "private_key_option": "How is the PrivateKey being specified?",
                 "private_key_existing": "pem_md5 of existing key",
-                "private_key_cycle": "how should the PrivateKey be cycled on renewals?",
                 "processing_strategy": "How should the order be processed?",
                 "note": "A string to associate with the AcmeOrder.",
                 # primary cert
                 "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "acme_profile": "The name of an ACME Profile on the ACME Server",
+                "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
+                "acme_profile": """The name of an ACME Profile on the ACME Server.
+Leave this blank for no profile.
+If you want to defer to the AcmeAccount, use the special name `@`.""",
                 # backup cert
                 "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
                 "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
                 "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
-                "acme_profile_backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
+                "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
+                "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
+Leave this blank for no profile.
+If you want to defer to the AcmeAccount, use the special name `@`.""",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
@@ -1070,18 +1075,17 @@ class View_New(Handler):
                     "account_key_option",
                     "account_key_global_default",
                     "account_key_existing",
-                    "acme_profile",
+                    "acme_profile__primary",
                 ],
                 [
                     "account_key_option_backup",
                     "account_key_global_backup",
                     "account_key_existing_backup",
-                    "acme_profile_backup",
+                    "acme_profile__backup",
                 ],
             ],
             "valid_options": {
-                "AcmeAccount_GlobalBackup": "{RENDER_ON_REQUEST}",
-                "AcmeAccount_GlobalDefault": "{RENDER_ON_REQUEST}",
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
                 "account_key_option": Form_AcmeOrder_new_freeform.fields[
                     "account_key_option"
                 ].list,
@@ -1091,8 +1095,11 @@ class View_New(Handler):
                 "private_key_option": Form_AcmeOrder_new_freeform.fields[
                     "private_key_option"
                 ].list,
-                "private_key_cycle": Form_AcmeOrder_new_freeform.fields[
-                    "private_key_cycle"
+                "private_key_cycle__primary": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_cycle__primary"
+                ].list,
+                "private_key_cycle__backup": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_cycle__backup"
                 ].list,
             },
             "requirements": [
@@ -1110,10 +1117,9 @@ class View_New(Handler):
         }
     )
     def new_freeform(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeDnsServer_GlobalDefault()
-        self._load_AcmeServers()
+        self.request.api_context._load_SystemConfiguration_global()
+        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
+        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new_freeform__submit()
         return self._new_freeform__print()
@@ -1124,10 +1130,9 @@ class View_New(Handler):
         return render_to_response(
             "/admin/acme_order-new-freeform.mako",
             {
-                "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-                "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
-                "AcmeDnsServer_GlobalDefault": self.dbAcmeDnsServer_GlobalDefault,
-                "AcmeServers": self.dbAcmeServers,
+                "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+                "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
+                "AcmeServers": self.request.api_context.dbAcmeServers,
                 "domain_names_http01": self.request.params.get(
                     "domain_names_http01", ""
                 ),
@@ -1138,7 +1143,7 @@ class View_New(Handler):
 
     def _new_freeform__submit(self):
         """
-        much of this logic is shared with /api/domain-certificate-if-needed
+        Creates a RenewalConfiguration and then initiates an AcmeOrder
         """
         try:
             (result, formStash) = formhandling.form_validate(
@@ -1152,7 +1157,7 @@ class View_New(Handler):
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
                 formStash,
-                dbAcmeDnsServer_GlobalDefault=self.dbAcmeDnsServer_GlobalDefault,
+                dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
             )
 
             is_duplicate_renewal = None
@@ -1177,21 +1182,50 @@ class View_New(Handler):
                     )
                 )
 
-                acme_profile = formStash.results["acme_profile"]
-                acme_profile__backup = formStash.results["acme_profile__backup"]
+                # shared
                 note = formStash.results["note"]
                 processing_strategy = formStash.results["processing_strategy"]
 
-                # we may be deferring a private key creation
-                # this is used so we don't have keys laying around for failed orders
-
-                private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-                    formStash.results["private_key_cycle"]
+                # PRIMARY cert
+                acme_profile__primary = formStash.results["acme_profile__primary"]
+                private_key_technology_id__primary = (
+                    privateKeySelection.private_key_technology_id
+                )
+                private_key_cycle__primary = formStash.results[
+                    "private_key_cycle__primary"
+                ]
+                private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+                    private_key_cycle__primary
                 )
 
-                # for the RenewalConfiguration we need the `key_technology`
-                # however this might come from a few places...
-                key_technology_id = privateKeySelection.key_technology_id
+                # BACKUP cert
+                private_key_cycle_id__backup: Optional[int] = None
+                private_key_technology_id__backup: Optional[int] = None
+                acme_profile__backup: Optional[str] = None
+                private_key_technology__backup = formStash.results[
+                    "private_key_technology__backup"
+                ]
+                if private_key_technology__backup:
+                    private_key_technology_id__backup = (
+                        model_utils.KeyTechnology.from_string(
+                            private_key_technology__backup
+                        )
+                    )
+                private_key_cycle__backup = formStash.results[
+                    "private_key_cycle__backup"
+                ]
+                if private_key_cycle__backup:
+                    private_key_cycle_id__backup = (
+                        model_utils.PrivateKeyCycle.from_string(
+                            private_key_cycle__backup
+                        )
+                    )
+                acme_profile__backup = formStash.results["acme_profile__backup"]
+
+                if not acmeAccountSelection_backup.AcmeAccount:
+                    private_key_cycle_id__backup = None
+                    private_key_technology_id__backup = None
+                    acme_profile__backup = None
 
                 #
                 # validate the domains
@@ -1223,18 +1257,23 @@ class View_New(Handler):
                                 ):
                                     raise
                                 # in "basic" mode we can just associate these to the global option
-                                if not self.dbAcmeDnsServer_GlobalDefault:
+                                if (
+                                    not self.request.api_context.dbAcmeDnsServer_GlobalDefault
+                                ):
                                     formStash.fatal_field(
                                         "domain_names_dns01",
                                         "No global acme-dns server configured.",
                                     )
-                                assert self.dbAcmeDnsServer_GlobalDefault is not None
+                                assert (
+                                    self.request.api_context.dbAcmeDnsServer_GlobalDefault
+                                    is not None
+                                )
                                 # exc.args[0] will be the listing of domains
                                 (domainObjects, adnsAccountObjects) = (
                                     lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                                         self.request.api_context,
                                         exc.args[0],
-                                        self.dbAcmeDnsServer_GlobalDefault,
+                                        self.request.api_context.dbAcmeDnsServer_GlobalDefault,
                                         discovery_type="via renewal_configuration.new",
                                     )
                                 )
@@ -1248,13 +1287,18 @@ class View_New(Handler):
                 try:
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
-                        dbAcmeAccount=acmeAccountSelection.AcmeAccount,
-                        private_key_cycle_id=private_key_cycle_id,
-                        key_technology_id=key_technology_id,
                         domains_challenged=domains_challenged,
+                        # PRIMARY cert
+                        dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
+                        private_key_cycle_id__primary=private_key_cycle_id__primary,
+                        private_key_technology_id__primary=private_key_technology_id__primary,
+                        acme_profile__primary=acme_profile__primary,
+                        # BACKUP cert
                         dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
-                        acme_profile=acme_profile,
+                        private_key_cycle_id__backup=private_key_cycle_id__backup,
+                        private_key_technology_id__backup=private_key_technology_id__backup,
                         acme_profile__backup=acme_profile__backup,
+                        # misc
                         note=note,
                     )
                     is_duplicate_renewal = False
@@ -1316,7 +1360,10 @@ class View_New(Handler):
                                     exc.as_querystring,
                                 )
                             )
-                    raise
+
+                    formStash.fatal_form(
+                        message="%s" % exc,
+                    )
 
                 if self.request.wants_json:
                     return {
@@ -1383,14 +1430,11 @@ class View_New(Handler):
 
             except Exception as exc:  # noqa: F841
                 raise
-                # note: allow this on testing
                 # raise
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/acme-orders/all?result=error&operation=new-freeform"
-                        % self.request.api_context.application_settings["admin_prefix"]
-                    )
-                raise
+                return HTTPSeeOther(
+                    "%s/acme-orders/all?result=error&operation=new-freeform"
+                    % self.request.api_context.application_settings["admin_prefix"]
+                )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
