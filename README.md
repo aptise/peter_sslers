@@ -303,6 +303,18 @@ Several "routines" and scripts are provided for commandline invocation:
 
 Routines for cron:
 
+* periodic_tasks
+  This routine runs all the other routines on a schedule
+  * on first run:
+    * it generates a line to enter into your crontab, using an random minute
+    * a json file is created that lists which hours the other routines will be run
+  * on subsequent runs:
+    * the json file is loaded and tasks are dispatched
+
+  The crontab should be installed to run every hour on a set minute, said set minute
+  recommended by the periodic_tasks script.  The scheduler will figure out what to run
+  on a given hour.
+
 * routine__automatic_orders
   This will order certs under the following conditions:
   * managed certs that are expiring, based on ARI or notAfter
