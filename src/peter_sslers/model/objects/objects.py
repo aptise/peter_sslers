@@ -4392,7 +4392,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     enrollment_factory = sa_orm_relationship(
         "EnrollmentFactory",
-        primaryjoin="OperationsObjectEvent.domain_id==EnrollmentFactory.id",
+        primaryjoin="OperationsObjectEvent.enrollment_factory_id==EnrollmentFactory.id",
         uselist=False,
         back_populates="operations_object_events",
     )
