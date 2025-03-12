@@ -8,7 +8,6 @@ Feature
     example client that monitors?
     db logging : control via config
         operations events
-        acme
 
 
 
@@ -18,6 +17,8 @@ acme-dns:
     audit credentials
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
+
+    we can pre-flight check dns-01 now
 
 
 commandline tools:

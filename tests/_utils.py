@@ -2535,6 +2535,7 @@ class AppTest(AppTestCore):
                             _event_payload_dict = utils.new_event_payload_dict()
                             _event_payload_dict["private_key.id"] = _dbPrivateKey_alt.id
                             _event_payload_dict["action"] = "compromised"
+                            # ALWAYS log PrivateKeyCompromised
                             _dbOperationsEvent = db.logger.log__OperationsEvent(
                                 self.ctx, _event_type_id, _event_payload_dict
                             )

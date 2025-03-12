@@ -791,7 +791,9 @@ class AuthenticatedUser(object):
             raise ValueError("directory does not support `newAccount`")
 
         # log the event to the db
-        self.acmeLogger.log_newAccount("v2", transaction_commit=True)
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_newAccount("v2", transaction_commit=True)
 
         # hit the acme api for the registration
         try:
@@ -1141,9 +1143,12 @@ class AuthenticatedUser(object):
             raise
         finally:
             # log the event to the db
-            dbEventLogged = self.acmeLogger.log_order_load(
-                "v2", dbAcmeOrder, transaction_commit=True
-            )
+            dbEventLogged = None
+            assert ctx.application_settings
+            if ctx.application_settings["log.acme"]:
+                dbEventLogged = self.acmeLogger.log_order_load(
+                    "v2", dbAcmeOrder, transaction_commit=True
+                )
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(
@@ -1264,9 +1269,12 @@ class AuthenticatedUser(object):
                 raise exc
 
         # log the event to the db
-        dbEventLogged = self.acmeLogger.log_newOrder(
-            "v2", dbUniqueFQDNSet, transaction_commit=True
-        )
+        dbEventLogged = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbEventLogged = self.acmeLogger.log_newOrder(
+                "v2", dbUniqueFQDNSet, transaction_commit=True
+            )
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(
@@ -1363,24 +1371,26 @@ class AuthenticatedUser(object):
                     resp_data = resp.read().decode("utf8").strip()
                     assert resp_data == keyauthorization
                 except (IOError, AssertionError):
-                    self.acmeLogger.log_challenge_error(
-                        "v2",
-                        dbAcmeChallenge,
-                        "precheck-1",
-                        transaction_commit=True,
-                    )
+                    if ctx.application_settings["log.acme"]:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeChallenge,
+                            "precheck-1",
+                            transaction_commit=True,
+                        )
                     raise errors.DomainVerificationError(
                         "Precheck Failure: Wrote keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
                 except ssl.CertificateError as exc:
-                    self.acmeLogger.log_challenge_error(
-                        "v2",
-                        dbAcmeChallenge,
-                        "precheck-2",
-                        transaction_commit=True,
-                    )
+                    if ctx.application_settings["log.acme"]:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeChallenge,
+                            "precheck-2",
+                            transaction_commit=True,
+                        )
                     if str(exc).startswith("hostname") and (
                         "doesn't match" in str(exc)
                     ):
@@ -1568,9 +1578,11 @@ class AuthenticatedUser(object):
         csr_der = cert_utils.convert_pem_to_der(csr_pem)
 
         # log this to the db
-        acmeLoggedEvent = self.acmeLogger.log_order_finalize(  # noqa: F841
-            "v2", transaction_commit=True
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            acmeLoggedEvent = self.acmeLogger.log_order_finalize(  # noqa: F841
+                "v2", transaction_commit=True
+            )
 
         payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
@@ -1748,13 +1760,15 @@ class AuthenticatedUser(object):
         log.info(") handle_authorization_payload")
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = (  # noqa: F841
-            self.acmeLogger.log_authorization_request(
-                "v2",
-                dbAcmeAuthorization=_dbAcmeAuthorization,
-                transaction_commit=True,
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (  # noqa: F841
+                self.acmeLogger.log_authorization_request(
+                    "v2",
+                    dbAcmeAuthorization=_dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
             )
-        )
 
         _response_domain = authorization_response["identifier"]["value"]
         if _dbAcmeAuthorization.domain.domain_name != _response_domain:
@@ -1906,11 +1920,16 @@ class AuthenticatedUser(object):
             authorization_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2",
-            dbAcmeAuthorization=dbAcmeAuthorization,
-            transaction_commit=True,
-        )  # log this to the db
+        dbAcmeEventLog_authorization_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (
+                self.acmeLogger.log_authorization_request(
+                    "v2",
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+            )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
@@ -1967,13 +1986,16 @@ class AuthenticatedUser(object):
             authorization_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = (
-            self.acmeLogger.log_authorization_deactivate(
-                "v2",
-                dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
-            )
-        )  # log this to the db
+        dbAcmeEventLog_authorization_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (
+                self.acmeLogger.log_authorization_deactivate(
+                    "v2",
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+            )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
@@ -2012,11 +2034,14 @@ class AuthenticatedUser(object):
             challenge_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
-            "v2",
-            dbAcmeChallenge=dbAcmeChallenge,
-            transaction_commit=True,
-        )  # log this to the db
+        dbAcmeEventLog_challenge_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
+                "v2",
+                dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=True,
+            )  # log this to the db
 
         return (challenge_response, dbAcmeEventLog_challenge_fetch)
 
@@ -2062,11 +2087,13 @@ class AuthenticatedUser(object):
         # POSTing an empty `dict` will trigger the challenge
 
         # note that we are about to trigger the challenge:
-        self.acmeLogger.log_challenge_trigger(
-            "v2",
-            dbAcmeChallenge,
-            transaction_commit=True,
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_challenge_trigger(
+                "v2",
+                dbAcmeChallenge,
+                transaction_commit=True,
+            )
         try:
             (
                 challenge_response,
@@ -2176,11 +2203,13 @@ class AuthenticatedUser(object):
             )
 
             # log this
-            self.acmeLogger.log_challenge_pass(
-                "v2",
-                dbAcmeChallenge,
-                transaction_commit=True,
-            )
+            assert ctx.application_settings
+            if ctx.application_settings["log.acme"]:
+                self.acmeLogger.log_challenge_pass(
+                    "v2",
+                    dbAcmeChallenge,
+                    transaction_commit=True,
+                )
 
             # update the authorization
             update_AcmeAuthorization_status(
@@ -2214,12 +2243,14 @@ class AuthenticatedUser(object):
 
         # # the following elif condition is implied
         # elif authorization_response["status"] != "valid":
-        self.acmeLogger.log_challenge_error(
-            "v2",
-            dbAcmeChallenge,
-            "fail-2",
-            transaction_commit=True,
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_challenge_error(
+                "v2",
+                dbAcmeChallenge,
+                "fail-2",
+                transaction_commit=True,
+            )
 
         # update the challenge
         # 1. find the challenge

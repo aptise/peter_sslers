@@ -62,7 +62,7 @@ class Test_CommandlineScripts(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sqlite_fpath = os.path.normpath(
-            GLOBAL_appsettings.get("sqlalchemy.url").replace("sqlite:///", "")
+            GLOBAL_appsettings.get("sqlalchemy.url", "").replace("sqlite:///", "")
         )
         if os.path.exists(sqlite_fpath):
             # if the db exists, no work to do
@@ -99,7 +99,7 @@ class Test_CommandlineScripts(unittest.TestCase):
         # then move it back in the finally block
         try:
             sqlite_fpath = os.path.normpath(
-                GLOBAL_appsettings.get("sqlalchemy.url").replace("sqlite:///", "")
+                GLOBAL_appsettings.get("sqlalchemy.url", "").replace("sqlite:///", "")
             )
             fpath_exists = os.path.exists(sqlite_fpath)
             fpath_archived = "%s-initdb" % sqlite_fpath

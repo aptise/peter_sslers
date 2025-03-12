@@ -2058,8 +2058,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
                     for fname, fcontents in cert_data.items():
                         exports.write_pem(
-                            cert_path, fname, cert_data[fname]
-                        )  # type:ignore[literal-required]
+                            cert_path,
+                            fname,
+                            cert_data[fname],  # type:ignore[literal-required]
+                        )
                         log.info("\t%s" % cert_path)
         except Exception as exc:
             log.critical("EXCEPTION: %s", exc)

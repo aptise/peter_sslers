@@ -4058,6 +4058,11 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
         uselist=False,
         back_populates="enrollment_factorys__backup",
     )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="EnrollmentFactory.id==OperationsObjectEvent.enrollment_factory_id",
+        back_populates="enrollment_factory",
+    )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
         primaryjoin="EnrollmentFactory.id==RenewalConfiguration.enrollment_factory_id__via",
@@ -4251,6 +4256,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
+            " CASE WHEN enrollment_factory_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
             " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN renewal_configuration_id IS NOT NULL THEN 1 ELSE 0 END "
@@ -4303,6 +4310,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     domain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("domain.id"), nullable=True
+    )
+    enrollment_factory_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("enrollment_factory.id"), nullable=True
     )
     private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
@@ -4377,6 +4387,12 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     domain = sa_orm_relationship(
         "Domain",
         primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    enrollment_factory = sa_orm_relationship(
+        "EnrollmentFactory",
+        primaryjoin="OperationsObjectEvent.domain_id==EnrollmentFactory.id",
         uselist=False,
         back_populates="operations_object_events",
     )

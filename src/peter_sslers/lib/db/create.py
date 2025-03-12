@@ -1325,6 +1325,25 @@ def create__EnrollmentFactory(
 
     ctx.dbSession.add(dbEnrollmentFactory)
     ctx.dbSession.flush(objects=[dbEnrollmentFactory])
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("EnrollmentFactory__insert")
+    )
+    event_payload_dict["enrollment_factory.id"] = dbEnrollmentFactory.id
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            "EnrollmentFactory__insert"
+        ),
+        dbEnrollmentFactory=dbEnrollmentFactory,
+    )
+
     return dbEnrollmentFactory
 
 

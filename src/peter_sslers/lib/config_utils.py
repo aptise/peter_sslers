@@ -40,8 +40,10 @@ class ApplicationSettings(dict):
             "enable_redis",
             "enable_views_admin",
             "enable_views_public",
-            "exception_redirect",
             "expiring_days",
+            "log.acme",
+            "log.objects",
+            "log.operations",
             "nginx.ca_bundle_pem",
             "nginx.reset_path",
             "nginx.servers_pool_allow_invalid",
@@ -115,9 +117,6 @@ class ApplicationSettings(dict):
             default_backup = "none"
         self["default_backup"] = default_backup
 
-        # will we redirect on error?
-        self["exception_redirect"] = set_bool_setting(settings, "exception_redirect")
-
         # this is an int
         self["expiring_days"] = set_int_setting(settings, "expiring_days", default=30)
 
@@ -127,7 +126,7 @@ class ApplicationSettings(dict):
         )
 
         # redis
-        self["enable_redis"] = set_bool_setting(settings, "enable_redis")
+        self["enable_redis"] = set_bool_setting(settings, "enable_redis", default=False)
         if self["enable_redis"]:
             # try to load, otherwise error out
             import redis  # noqa: F401
@@ -143,14 +142,14 @@ class ApplicationSettings(dict):
 
         # disable the ssl warning from requests?
         self["requests.disable_ssl_warning"] = set_bool_setting(
-            settings, "requests.disable_ssl_warning"
+            settings, "requests.disable_ssl_warning", default=False
         )
         if self["requests.disable_ssl_warning"]:
             import requests.packages.urllib3
 
             requests.packages.urllib3.disable_warnings()
 
-        self["enable_nginx"] = set_bool_setting(settings, "enable_nginx")
+        self["enable_nginx"] = set_bool_setting(settings, "enable_nginx", default=False)
         self["nginx.reset_path"] = (
             settings.get("nginx.reset_path")
             or "/.peter_sslers/nginx/shared_cache/expire"
@@ -171,7 +170,7 @@ class ApplicationSettings(dict):
                 set([i.strip() for i in settings["nginx.servers_pool"].split(",")])
             )
             self["nginx.servers_pool_allow_invalid"] = set_bool_setting(
-                settings, "nginx.servers_pool_allow_invalid"
+                settings, "nginx.servers_pool_allow_invalid", default=False
             )
 
         _ca_bundle_pem = settings.get("nginx.ca_bundle_pem")
@@ -190,10 +189,22 @@ class ApplicationSettings(dict):
             ]
         self["precheck_acme_challenges"] = _precheck_acme_challenges
 
-        self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
-        self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
+        self["enable_views_admin"] = set_bool_setting(
+            settings, "enable_views_admin", default=False
+        )
+        self["enable_views_public"] = set_bool_setting(
+            settings, "enable_views_public", default=True
+        )
 
         self["scheduler"] = settings.get("scheduler", "schedule.json")
+
+        self["scheduler"] = settings.get("scheduler", "schedule.json")
+
+        self["log.acme"] = set_bool_setting(settings, "log.acme", default=True)
+        self["log.objects"] = set_bool_setting(settings, "log.objects", default=True)
+        self["log.operations"] = set_bool_setting(
+            settings, "log.operations", default=True
+        )
 
         # let's try to validate it!
         self.validate()

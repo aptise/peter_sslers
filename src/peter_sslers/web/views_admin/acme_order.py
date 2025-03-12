@@ -1430,14 +1430,11 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
 
             except Exception as exc:  # noqa: F841
                 raise
-                # note: allow this on testing
                 # raise
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/acme-orders/all?result=error&operation=new-freeform"
-                        % self.request.api_context.application_settings["admin_prefix"]
-                    )
-                raise
+                return HTTPSeeOther(
+                    "%s/acme-orders/all?result=error&operation=new-freeform"
+                    % self.request.api_context.application_settings["admin_prefix"]
+                )
 
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:

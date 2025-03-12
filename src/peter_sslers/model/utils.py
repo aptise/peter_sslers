@@ -369,6 +369,7 @@ class _OperationsUnified(_mixin_mapping):
         740: "CertificateSigned__revoke",
         751: "CertificateSigned__deactivate_expired",
         752: "CertificateSigned__deactivate_duplicate",
+        1600: "EnrollmentFactory__insert",
         1500: "RenewalConfiguration__insert",
         1530: "RenewalConfiguration__mark",
         1531: "RenewalConfiguration__mark__active",
