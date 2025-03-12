@@ -55,6 +55,12 @@ Tests:
         test creating with vs without backups
         check contents of templates post-create and post-edit
         try invalid submission of _options_EnrollmentFactory_isExportFilesystem
+    
+    DNS-01 tests
+    
+    Not all routines are covered by tests
+    
+    
 
  UX:
     do a quick overview of key objects

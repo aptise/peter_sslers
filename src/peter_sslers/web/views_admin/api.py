@@ -644,7 +644,7 @@ class ViewAdminApi_Domain(Handler):
 
                 # ???: should we raise something better?
                 log.critical("autocert - order exception")
-
+                log.critical(exc)
                 formStash.fatal_form(
                     message="%s" % exc,
                 )

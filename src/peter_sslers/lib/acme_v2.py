@@ -1388,6 +1388,18 @@ class AuthenticatedUser(object):
             else:
                 log.debug("no precheck configured for http-01")
         except (AssertionError, ValueError) as exc:
+            log.critical(
+                "precheck_acme_challenges[http-01] | FAILED (%s) %s"
+                % (wellknown_url, exc)
+            )
+            raise errors.DomainVerificationError(
+                "couldn't download `{0}`: {1}".format(wellknown_url, exc)
+            )
+        except Exception as exc:
+            log.critical(
+                "precheck_acme_challenges[http-01] | FAILED GENERIC (%s) %s"
+                % (wellknown_url, exc)
+            )
             raise errors.DomainVerificationError(
                 "couldn't download `{0}`: {1}".format(wellknown_url, exc)
             )
@@ -1515,6 +1527,18 @@ class AuthenticatedUser(object):
             else:
                 log.debug("no precheck configured for dns-01")
         except (AssertionError, ValueError) as exc:
+            log.critical(
+                "precheck_acme_challenges[dns-01] | FAILED (%s) %s"
+                % (dns_record_prime, exc)
+            )
+            raise errors.DomainVerificationError(
+                "couldn't resolve {0}: {1}".format(dns_record_prime, exc)
+            )
+        except Exception as exc:
+            log.critical(
+                "precheck_acme_challenges[dns-01] | FAILED GENERIC (%s) %s"
+                % (dns_record_prime, exc)
+            )
             raise errors.DomainVerificationError(
                 "couldn't resolve {0}: {1}".format(dns_record_prime, exc)
             )
