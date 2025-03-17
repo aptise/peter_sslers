@@ -2614,7 +2614,10 @@ def get_CertificateSigneds_renew_now(
         TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
         # runner interval; assume the next time we run this is in an houur
         # TODO: make this configurable
-        TIMEDELTA_runner_interval = datetime.timedelta(minutes=60)
+
+        # offsets
+        _minutes = ctx.application_settings.get("offset.cert_renewals", 60)
+        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
         # maths: add these times from the current timestamp
         timestamp_max_expiry = (
             ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval

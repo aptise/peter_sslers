@@ -97,8 +97,6 @@ def new_BrowserSession() -> requests.Session:
     return sess
 
 
-timedelta_ARI_CHECKS_TIMELY = datetime.timedelta(days=3000)
-
 # ------------------------------------------------------------------------------
 
 

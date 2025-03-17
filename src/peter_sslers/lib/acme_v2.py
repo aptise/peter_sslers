@@ -143,8 +143,13 @@ def url_request(
         if alt_bundle:
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
-        log_api.info("Making a request with alt_bundle: %s", alt_bundle)
-        resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
+            log_api.info("Making a request with alt_bundle: %s", alt_bundle)
+        log_api.info(url)
+        log_api.info(post_data)
+        log_api.info(headers)
+        resp = urlopen(
+            Request(url, data=post_data, headers=headers), context=context, timeout=10
+        )
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
@@ -2531,9 +2536,10 @@ def ari_check(
     """
     log.info("ari_check(%s", dbCertificateSigned)
 
-    if not dbCertificateSigned.is_ari_check_timely:
+    if not dbCertificateSigned.is_ari_check_timely(ctx):
         if not force:
-            raise errors.AcmeAriCheckDeclined("ARI Check Not Timely")
+            _expiry = dbCertificateSigned.is_ari_check_timely_expiry(ctx)
+            raise errors.AcmeAriCheckDeclined("ARI Check Not Timely, %s" % _expiry)
 
     ari_identifier: Optional[str] = None
     check_ari_support: bool = True

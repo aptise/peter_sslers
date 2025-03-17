@@ -41,7 +41,6 @@ from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
 from ..meta import Base
 from ..utils import TZDateTime
-from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
@@ -3441,14 +3440,24 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         #    return True
         return False
 
-    @property
-    def is_ari_check_timely(self) -> bool:
-        timely_date = (
-            datetime.datetime.now(datetime.timezone.utc) - timedelta_ARI_CHECKS_TIMELY
-        )
-        if self.timestamp_not_after < timely_date:
+    def is_ari_check_timely(self, ctx: "ApiContext") -> bool:
+        timestamp_max_expiry = self.is_ari_check_timely_expiry(ctx)
+        if self.timestamp_not_after <= timestamp_max_expiry:
             return False
         return True
+
+    def is_ari_check_timely_expiry(self, ctx: "ApiContext") -> datetime.datetime:
+        # don't rely on ctx.timestamp, as it can be old
+        NOW = datetime.datetime.now(datetime.timezone.utc)
+        TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+        _minutes = ctx.application_settings.get("offset.ari_updates", 60)
+        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
+
+        # This is WILD
+        # usually we SUBTRACT for searches and automatic renewals to give a safer buffer
+        # here, we ADD the offset to give a wider buffer for on-demand
+        timestamp_max_expiry = NOW + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+        return timestamp_max_expiry
 
     @property
     def is_ari_supported(self) -> bool:

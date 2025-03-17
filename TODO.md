@@ -9,6 +9,15 @@ Feature
     db logging : control via config
         operations events
 
+Fix
+    ARI Checks
+        see:
+            errors.AcmeAriCheckDeclined
+        goals:
+            align timeliness of ari checks
+            on-demand (object) should support WIDER attempt
+            automatic (routine) should support narrower attempt
+            failed ARI checks need to be handled and set for renewal
 
 
 acme-dns:

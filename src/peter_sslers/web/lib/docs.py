@@ -162,9 +162,6 @@ def formatted_get_docs(view_instance, endpoint):
             log.critical(
                 "@docify error: valid_options:SystemConfiguration_Global %s", endpoint
             )
-            import pdb
-
-            pdb.set_trace()
             log.critical(exc)
             pass
 

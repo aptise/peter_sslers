@@ -34,7 +34,6 @@ from .. import events
 from ... import lib
 from ...lib import db as lib_db
 from ...lib.http import StopableWSGIServer
-from ...lib.utils import timedelta_ARI_CHECKS_TIMELY
 from ...lib.utils import url_to_server
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -1067,8 +1066,13 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.now(datetime.timezone.utc)
-    timely_date = NOW - timedelta_ARI_CHECKS_TIMELY
+    NOW = datetime.datetime.now(
+        datetime.timezone.utc
+    )  # don't rely on ctx.timestamp, as it can be old
+    TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+    _minutes = ctx.application_settings.get("offset.ari_updates", 60)
+    TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
+    timestamp_max_expiry = NOW + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
 
     """
     # The SQL we want (for now):
@@ -1096,7 +1100,8 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             cert.is_ari_supported__order IS True
         )
         AND
-        cert.timestamp_not_after > timely_date
+        cert.timestamp_not_after < datetime()
+        AND
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
@@ -1128,10 +1133,9 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
             ),
-            CertificateSigned.timestamp_not_after > timely_date,
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.is_(None),
-                latest_ari_checks.c.timestamp_retry_after < NOW,
+                latest_ari_checks.c.timestamp_retry_after >= timestamp_max_expiry,
             ),
         )
         .order_by(
@@ -1146,17 +1150,23 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
             "Running ARI Check for : %s [%s]"
             % (dbCertificateSigned.id, dbCertificateSigned.cert_serial)
         )
-        dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
-            ctx,
-            dbCertificateSigned=dbCertificateSigned,
-        )
-        ctx.pyramid_transaction_commit()
+        try:
+            dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
+                ctx,
+                dbCertificateSigned=dbCertificateSigned,
+            )
+            ctx.pyramid_transaction_commit()
+        except errors.AcmeAriCheckDeclined as exc:
+            print(exc)
 
     return True
 
 
 def _create_public_server(settings: Dict) -> StopableWSGIServer:
     """
+    This is used to create a public WSGI server
+    The public server DISABLES the admin routes
+
     def tearDown(self):
         if self._testapp_wsgi is not None:
             self._testapp_wsgi.shutdown()

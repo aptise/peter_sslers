@@ -440,7 +440,7 @@
                                     <tr>
                                         <th>Manual Check</th>
                                         <td>
-                                            % if CertificateSigned.is_ari_check_timely:
+                                            % if CertificateSigned.is_ari_check_timely(request.application_context):
                                                 <form
                                                     action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
                                                     method="POST"

@@ -51,6 +51,8 @@ class ApplicationSettings(dict):
             "nginx.status_path",
             "nginx.timeout",
             "nginx.userpass",
+            "offset.ari_updates",
+            "offset.cert_renewals",
             "redis.prime_style",
             "redis.timeout.cert"
             "redis.timeout.certcachain"
@@ -181,6 +183,14 @@ class ApplicationSettings(dict):
                     "`nginx.ca_bundle_pem=%s` does not exist" % _ca_bundle_pem
                 )
             self["nginx.ca_bundle_pem"] = _ca_bundle_pem
+
+        # offsets
+        self["offset.ari_updates"] = set_int_setting(
+            settings, "offset.ari_updates", default=60
+        )
+        self["offset.cert_renewals"] = set_int_setting(
+            settings, "offset.cert_renewals", default=360
+        )
 
         _precheck_acme_challenges = settings.get("precheck_acme_challenges")
         if _precheck_acme_challenges:
