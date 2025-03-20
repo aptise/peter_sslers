@@ -63,6 +63,7 @@ if TYPE_CHECKING:
     from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import RoutineExecution
     from ...model.objects import UniqueFQDNSet
     from ..context import ApiContext
     from ...model.utils import DomainsChallenged
@@ -1663,3 +1664,56 @@ def create__RenewalConfiguration(
     )
 
     return dbRenewalConfiguration
+
+
+def create__RoutineExecution(
+    ctx: "ApiContext",
+    routine_id: int,
+    timestamp_start: datetime.datetime,
+    timestamp_end: datetime.datetime,
+    count_records_success: int = 0,
+    count_records_fail: int = 0,
+    routine_execution_id__via: Optional[int] = None,
+) -> "RoutineExecution":
+    """
+    Sets params for AcmeOrders and Renewals
+
+    This must happen within the context other events
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param routine_id: (required) An id of `model_utils.Routine`
+    :param timestamp_start: (required)
+    :param timestamp_end: (required)
+    :param count_records_success: (required)
+    :param count_records_fail: (required)
+    :paran routine_execution_id__via: (optional) int
+
+    :returns :class:`model.objects.RoutineExecution`
+    """
+
+    if routine_id not in model_utils.Routine._mapping:
+        raise ValueError("unknown `routine_id`: %s" % routine_id)
+
+    dbRoutine = model_objects.RoutineExecution()
+    dbRoutine.routine_id = routine_id
+    dbRoutine.timestamp_start = timestamp_start
+    dbRoutine.timestamp_end = timestamp_end
+    dbRoutine.count_records_success = count_records_success
+    dbRoutine.count_records_fail = count_records_fail
+    dbRoutine.routine_execution_id__via = routine_execution_id__via
+
+    # maths!
+    count_records_processed = count_records_success + count_records_fail
+    dbRoutine.count_records_processed = count_records_processed
+
+    _duration = timestamp_end - timestamp_start
+    dbRoutine.duration_seconds = int(_duration.total_seconds())
+
+    average_speed = float(0)
+    if count_records_processed and dbRoutine.duration_seconds:
+        average_speed = count_records_processed / dbRoutine.duration_seconds
+    dbRoutine.average_speed = average_speed
+
+    ctx.dbSession.add(dbRoutine)
+    ctx.dbSession.flush(objects=[dbRoutine])
+    return dbRoutine

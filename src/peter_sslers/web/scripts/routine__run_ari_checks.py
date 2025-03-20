@@ -29,5 +29,5 @@ def main(argv=sys.argv):
     config_uri = argv[1]
     options = parse_vars(argv[2:])
     ctx = new_scripts_setup(config_uri, options=options)
-    lib_db.actions.routine__run_ari_checks(ctx)
+    dbRoutineExecution = lib_db.actions.routine__run_ari_checks(ctx)  # noqa: F841
     ctx.pyramid_transaction_commit()

@@ -158,6 +158,12 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domain-autocerts
                     </a></li>
+                <li><a href="${admin_prefix}/routine-executions"
+                       title="RoutineExecutions"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    routine-executions
+                    </a></li>
             </ul>
 
             <h3>Upstream Providers</h3>

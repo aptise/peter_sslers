@@ -38,12 +38,25 @@ class _Scheduled(TypedDict):
 
 
 # name : n-times-daily
+# 24: hourly
+# 12: every 2 hours
+# 8: every 3 hours
+# 6: every 4 hours
+
+# ARI/replaces is subscriber-antagonistic
+# The initial ISRG implementation uses a duration-padded window
+# 90day certs have about a 45 hour window to renew
+# short-lived certs only have a few hours to renew
+# in order to effectively use `replaces`, clients must poll repeatedly
+# IMPORTANT:  if this changes, update the version
 TASK_2_FREQUENCY = {
     "routine__run_ari_checks": 24,
     "routine__clear_old_ari_checks": 24,
-    "routine__order_missing": 4,
-    "routine__renew_expiring": 4,
+    "routine__order_missing": 8,
+    "routine__renew_expiring": 8,
+    "routine__reconcile_blocks": 8,
 }
+SCHEDULER_VERSION = 2
 
 
 class Schedule:
@@ -98,7 +111,7 @@ class Schedule:
         }
         _schedule: _Scheduled = {
             "offset": offset,
-            "version": 1,
+            "version": SCHEDULER_VERSION,
             "tasks": {},
         }
 
@@ -120,8 +133,11 @@ class Schedule:
         # now = datetime.datetime.now(datetime.timezone.utc)
         offset_h = self._schedule["offset"]["hour"]
         adjusted_hour = self.ctx.timestamp.hour + offset_h
+        if adjusted_hour >= 24:
+            adjusted_hour = adjusted_hour - 24
         tasks = []
         for _task, _hours in self._schedule["tasks"].items():
+            print(_task, _hours, adjusted_hour)
             if adjusted_hour in _hours:
                 tasks.append(_task)
         return tasks

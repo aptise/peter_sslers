@@ -75,6 +75,17 @@ def _certificate_parse_to_record(
     if _ari_endpoint:
         dbCertificateSigned.is_ari_supported__cert = True
 
+    try:
+        _duration = _cert_data["enddate"] - _cert_data["startdate"]
+        _duration_seconds = _duration.total_seconds()
+        # floor division (//) returns a float, so just do this
+        _duration_hours = int(_duration_seconds / 3600)
+    except Exception as exc:
+        log.critical(exc)
+        _duration_hours = 0
+
+    dbCertificateSigned.duration_hours = _duration_hours
+
     return dbCertificateSigned
 
 

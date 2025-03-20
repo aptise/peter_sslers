@@ -1,6 +1,7 @@
 # stdlib
 import base64
 import datetime
+import functools
 import json
 import logging
 import re
@@ -91,8 +92,33 @@ def ari_timestamp_to_python(timestamp: str) -> datetime.datetime:
     return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%Z")
 
 
+"""
+#  https://github.com/psf/requests/issues/2011
+class MyHTTPAdapter(requests.adapters.HTTPAdapter):
+    def __init__(self, timeout=None, *args, **kwargs):
+        self.timeout = timeout
+        super(MyHTTPAdapter, self).__init__(*args, **kwargs)
+
+    def send(self, *args, **kwargs):
+        kwargs['timeout'] = self.timeout
+        return super(MyHTTPAdapter, self).send(*args, **kwargs)
+
+
+sess = requests.Session()
+# sess.mount("http://", MyHTTPAdapter(timeout=10))
+# sess.mount("https://", MyHTTPAdapter(timeout=10))
+"""
+
+
 def new_BrowserSession() -> requests.Session:
     sess = requests.Session()
+    _connect_timeout_s: float = 1.0
+    _read_timeout_s: float = 6.0
+    _timeout = (_connect_timeout_s, _read_timeout_s)
+    for method in ("get", "options", "head", "post", "put", "patch", "delete"):
+        setattr(
+            sess, method, functools.partial(getattr(sess, method), timeout=_timeout)
+        )
     sess.headers.update({"User-Agent": USER_AGENT})
     return sess
 

@@ -1,22 +1,22 @@
 1.0.0.dev
     This is large rewrite and reorganization of concepts.
 
-    This application was originally built to toss "domains" at, and then generate
-    certificates for them. An exnternal process just queued domains onto a local
+    This application was originally built to "toss domains at", and then generate
+    certificates for them. An external service queued domains onto a local
     install of PeterSSLers, and then PeterSSLers would be responsible for the
-    initial procurement and segmenting of domains.  The external systems also
+    initial procurement and segmenting of Certificates.  The external system also
     requested the renewals of a cert, and later that ability was added onto this
     application.  This setup did not work well, as the business logic was
     increasingly handled on the external application and not maintained here.
 
     Trying to build "renewals" off of Certificates was also a bit of an awkward
-    design.  With a nod to Certbot, the primary object is now a
-    RenewalConfiguration, which is the nexus of an Account + Domains
+    design.  With a slight nod to Certbot, the primary object is now a
+    `RenewalConfiguration`, which is the nexus of an Account + Domains
     (including preferred challenges per domain) + and Certificate Preferences.
 
     This new model should handle future needs well; RenewalConfigurations can
-    eventually support backup domains and technologies; and they can be edited
-    indpendently of Certificates.
+    support backup Certificates with completely different technologies selected;
+    and they can be edited indpendently of Certificates.
 
     Under the new design:
 
@@ -25,8 +25,8 @@
     * "RenewalConfigurations" are a nexus of Account + Domains + Preferences
 
     For legacy concerns, the "/acme-order/new/freeform" interface still works -
-    however it will first create a renewal configuration and then create an
-    ACME Order.
+    however it will first create a RenewalConfiguration and then immeidately
+    attempt an ACME Order.
 
     Previous Flow:
         Create:
@@ -56,15 +56,16 @@
             did a first pass audit to remove
         * dbAcmeOrder_renewal_of - dropped
 
-
     Limited:
-        There is now only a single acme-dns server and it will function as the
-        global default.
+        There is now only a single acme-dns server and it will function as the 
+        global default.  Supporting multiple acme-dns servers is too confusing
+        and not currently worth pursuing.
 
     New Features:
         * UniquelyChallengedFQDNSet
             a concept of UniqueFQDNSet, wherein each domain is tied to an AcmeChallenge type
-        * Renewals now support single_use__reuse_1_year; a privatekey can be used for 1 year before rotation
+        * Renewals now support single_use__reuse_1_year;
+            a privatekey can be used for 1 year before rotation
         * AcmeAccount/new
             [x] Select EC or RSA for initial setup
         * EC Keys
@@ -111,8 +112,6 @@
                 dash.EXAMPLE.COM
                 www.EXAMPLE.COM
                 main.EXAMPLE.COM
-
-
 
     New commandline routines:
         periodic_tasks:
@@ -164,13 +163,14 @@
     Notifications
         a notification will be logged if the AcmeDirectory substantially changes
 
-
     New Bundled CAs
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
-
-    AcmeAccount can now have a "name"
-
+          The lack of a physical presence in the USA makes this a more secure
+          option than CAs with servers subject to the whims of problematic
+          governments.
+          
+    AcmeAccount can now have a "name", which is used on new Dropdown selects
 
     "Notes:"
         Added a "note" to:
@@ -180,12 +180,13 @@
             RenewalConfiguration new
             RenewalConfiguration new-config
             AcmeOrder new-freeform
+        Notes are intended to reconcile records across systems.
 
     Testing
         The test suite was overhauled
         unit tests-
-            now support database snapshots on sqlite
-            so expensive  core data does not need to be rebuilt for local tests.
+            now support database snapshots on sqlite,  so expensive core data
+            does not need to be rebuilt for local tests.
         py313 testing integrated, then removed due to compat issues
 
     Bugs Addressed
@@ -195,19 +196,20 @@
           `tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup`
           would leave the database with blocking auths.
 
+    UTC Timestamp Changes
         datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc)
+        all code and database is now tz aware
 
     Renewal Configuration: Lineages
-        added the lineages page to visualize these
+        added a lineages page to visualize these
 
     Certificates Signed:
         added route to show active duplicates
         added tool to deactivate duplicates
 
     CaCertificiatePreferences were moved into a new `CaCertificiatePreferencePolicy` concept.
-    by default a "global" policy is used.
-
-    in the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
+        By default a "global" policy is used.
+        In the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
 
     Data Changes
         Global Default and Global Backup were moved into a Global "SystemConfiguration"
@@ -222,12 +224,21 @@
         updated expiry check to only address ACTIVE Renewals and Certificates
         added tool to deactivate all duplicates
 
-
-    Feature
+    Export Feature
         write to disk on renewal
     
     ACME logging is now controlled by config options
     we can pre-flight check dns-01 now
+    
+    CertificateSigned now tracks 'duration_hours' as that may affect renewal logic
+    
+    Background Routines are timed and logged
+        The ARI replaces window can be extremly short:
+            90 day certs are about 45hours; potentially only 1 renewal 
+            short lived certs may be 2-4 hours
+        There is concern for hourly
+    
+        
 
 
 0.6.0

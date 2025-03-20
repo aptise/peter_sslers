@@ -2539,7 +2539,9 @@ def ari_check(
     if not dbCertificateSigned.is_ari_check_timely(ctx):
         if not force:
             _expiry = dbCertificateSigned.is_ari_check_timely_expiry(ctx)
-            raise errors.AcmeAriCheckDeclined("ARI Check Not Timely, %s" % _expiry)
+            raise errors.AcmeAriCheckDeclined(
+                "ARI Check Not Timely: %s" % _expiry.replace(microsecond=0).isoformat()
+            )
 
     ari_identifier: Optional[str] = None
     check_ari_support: bool = True

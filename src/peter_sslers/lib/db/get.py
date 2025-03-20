@@ -56,6 +56,7 @@ from ...model.objects import PrivateKey
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
+from ...model.objects import RoutineExecution
 from ...model.objects import SystemConfiguration
 from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
@@ -2616,6 +2617,7 @@ def get_CertificateSigneds_renew_now(
         # TODO: make this configurable
 
         # offsets
+        assert ctx.application_settings
         _minutes = ctx.application_settings.get("offset.cert_renewals", 60)
         TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
         # maths: add these times from the current timestamp
@@ -3696,6 +3698,28 @@ def get__RootStoreVersion__by_id(
         .first()
     )
     return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__RoutineExecution__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(RoutineExecution)
+    counted = q.count()
+    return counted
+
+
+def get__RoutineExecution__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[RoutineExecution]:
+    q = (
+        ctx.dbSession.query(RoutineExecution)
+        .order_by(RoutineExecution.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

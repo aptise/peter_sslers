@@ -1611,3 +1611,22 @@ class ReplacesType_Enum(Enum):
     AUTOMATIC = ReplacesType.AUTOMATIC
     MANUAL = ReplacesType.MANUAL
     RETRY = ReplacesType.RETRY
+
+
+class Routine(_mixin_mapping):
+    # these need to be tracked for performance
+    _mapping = {
+        1: "periodic",
+        2: "routine__run_ari_checks",
+        3: "routine__clear_old_ari_checks",
+        4: "routine__order_missing",
+        5: "routine__renew_expiring",
+        6: "routine__reconcile_blocks",
+    }
+
+    periodic = 1
+    routine__run_ari_checks = 2
+    routine__clear_old_ari_checks = 3
+    routine__order_missing = 4
+    routine__renew_expiring = 5
+    routine__reconcile_blocks = 6

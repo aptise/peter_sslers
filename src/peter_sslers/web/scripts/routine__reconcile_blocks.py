@@ -5,16 +5,11 @@ import os  # noqa: I100
 import sys
 
 # pypi
-from pyramid.paster import get_appsettings
 from pyramid.scripts.common import parse_vars
 
 # local
 from ...lib import db as lib_db
 from ...lib.utils import new_scripts_setup
-
-
-# from ...lib import db as lib_db
-# from ...lib.config_utils import ApplicationSettings
 
 # ==============================================================================
 
@@ -33,27 +28,6 @@ def main(argv=sys.argv):
         usage(argv)
     config_uri = argv[1]
     options = parse_vars(argv[2:])
-
-    settings = get_appsettings(config_uri, options=options)
-
     ctx = new_scripts_setup(config_uri, options=options)
-
-    # actually, we order the backups first
-    dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
-        ctx,
-        settings=settings,
-        DEBUG=False,
-    )
-    print("A")
-    print(dbRoutineExecution_1.as_json)
-
-    # then we renew the expiring
-    dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
-        ctx,
-        settings=settings,
-        DEBUG=False,
-    )
-    print("B")
-    print(dbRoutineExecution_2.as_json)
-
+    dbRoutineExecution = lib_db.actions.routine__reconcile_blocks(ctx)  # noqa: F841
     ctx.pyramid_transaction_commit()

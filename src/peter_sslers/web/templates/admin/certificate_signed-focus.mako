@@ -321,6 +321,10 @@
                         <td><timestamp>${CertificateSigned.timestamp_not_after}</timestamp></td>
                     </tr>
                     <tr>
+                        <th>duration_hours</th>
+                        <td><timestamp>${CertificateSigned.duration_hours}</timestamp></td>
+                    </tr>
+                    <tr>
                         <th>expires in days</th>
                         <td>
                             <span class="label label-${CertificateSigned.expiring_days_label}">
@@ -440,7 +444,7 @@
                                     <tr>
                                         <th>Manual Check</th>
                                         <td>
-                                            % if CertificateSigned.is_ari_check_timely(request.application_context):
+                                            % if CertificateSigned.is_ari_check_timely(request.api_context):
                                                 <form
                                                     action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
                                                     method="POST"

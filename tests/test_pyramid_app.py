@@ -7049,6 +7049,48 @@ class FunctionalTests_RootStoreVersion(AppTest):
         assert res.json["RootStoreVersion"]["id"] == focus_id
 
 
+class FunctionalTests_RoutineExecution(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_RoutineExecution
+    """
+
+    @routes_tested(
+        (
+            "admin:routine_executions",
+            "admin:routine_executions-paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions", status=200
+        )
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions/1", status=200
+        )
+
+    @routes_tested(
+        (
+            "admin:routine_executions|json",
+            "admin:routine_executions-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions.json", status=200
+        )
+        assert "RoutineExecutions" in res.json
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions/1.json", status=200
+        )
+        assert "RoutineExecutions" in res.json
+
+
 class FunctionalTests_SystemConfiguration(AppTest):
 
     @routes_tested(("admin:system_configurations",))
@@ -10433,6 +10475,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {},
         )
         assert res2.status_code == 200
+        pprint.pprint(res2.json)
         assert res2.json["result"] == "success"
         assert "AriCheck" in res2.json
 
@@ -11461,7 +11504,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
         )
-        assert _results_11 == (1, 0)  # Order Backup for RC1
+        assert _results_11.count_records_success == 1  # Order Backup for RC1
+        assert _results_11.count_records_fail == 0
 
         if SLEEP_FOR_EXPIRY:
             # sleep 5 seconds to expire certs
@@ -11551,7 +11595,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             create_public_server=lib_db_actions._create_public_server__fake,
             DEBUG=DEBUG,
         )
-        assert _results_11 == (1, 0)  # Order Backup for RC1
+        assert _results_11.count_records_success == 1  # Order Backup for RC1
+        assert _results_11.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
@@ -11625,7 +11670,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             create_public_server=lib_db_actions._create_public_server__fake,
             DEBUG=DEBUG,
         )
-        assert _results_21 == (2, 0)  # Order Backup+Primary for RC2
+        assert _results_21.count_records_success == 2  # Order Backup+Primary for RC2
+        assert _results_21.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()

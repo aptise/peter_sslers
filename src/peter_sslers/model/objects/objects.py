@@ -3094,6 +3094,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     cert_subject: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     cert_issuer: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    # track the hours, because this may affect ARI
+    duration_hours: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_deactivated: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -3442,7 +3444,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     def is_ari_check_timely(self, ctx: "ApiContext") -> bool:
         timestamp_max_expiry = self.is_ari_check_timely_expiry(ctx)
-        if self.timestamp_not_after <= timestamp_max_expiry:
+        if self.timestamp_not_after >= timestamp_max_expiry:
             return False
         return True
 
@@ -3450,6 +3452,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         # don't rely on ctx.timestamp, as it can be old
         NOW = datetime.datetime.now(datetime.timezone.utc)
         TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+        assert ctx.application_settings
         _minutes = ctx.application_settings.get("offset.ari_updates", 60)
         TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
 
@@ -3537,6 +3540,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "cert_issuer": self.cert_issuer,
             "cert_serial": self.cert_serial,
             "domains_as_list": self.domains_as_list,
+            "duration_hours": self.duration_hours,
             "fingerprint_sha1": self.fingerprint_sha1,
             "is_ari_supported": self.is_ari_supported,
             "is_active": True if self.is_active else False,
@@ -5136,6 +5140,47 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
         return rval
 
 
+class RoutineExecution(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "routine_execution"
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    routine_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # model_utils.Routine
+    timestamp_start: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    timestamp_end: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    count_records_processed: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    count_records_success: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    count_records_fail: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    duration_seconds: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    average_speed: Mapped[float] = mapped_column(sa.Float, nullable=False)
+    routine_execution_id__via: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("routine_execution.id"), nullable=True
+    )
+
+    @property
+    def routine(self) -> str:
+        return model_utils.Routine.as_string(self.routine_id)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "routine_id": self.routine_id,
+            "timestamp_start": self.timestamp_start_isoformat,
+            "timestamp_end": self.timestamp_end_isoformat,
+            "count_records_processed": self.count_records_processed,
+            "duration_seconds": self.duration_seconds,
+            "average_speed": self.average_speed,
+            "routine_execution_id__via": self.routine_execution_id__via,
+        }
+
+
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
     UniqueFQDNSets are used for two reasons:
@@ -5491,6 +5536,7 @@ __all__ = (
     "RootStore",
     "RootStoreVersion",
     "RootStoreVersion_2_CertificateCA",
+    "RoutineExecution",
     "UniquelyChallengedFQDNSet",
     "UniquelyChallengedFQDNSet2Domain",
     "UniqueFQDNSet",

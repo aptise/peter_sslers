@@ -18,6 +18,19 @@ Fix
             on-demand (object) should support WIDER attempt
             automatic (routine) should support narrower attempt
             failed ARI checks need to be handled and set for renewal
+            
+    Timing
+        need to time the number of automatic renewals
+        
+        
+    
+Feature
+    log each invocation:
+        start and end time
+        how many ari checks, avg time
+        how many orders, avg time
+    
+    use this to plan future runs
 
 
 acme-dns:

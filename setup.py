@@ -108,6 +108,7 @@ setup(
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
+      routine__reconcile_blocks = peter_sslers.web.scripts.routine__reconcile_blocks:main
       update_filepaths = peter_sslers.web.scripts.update_filepaths:main
       deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
       acme_dns_sync = peter_sslers.web.scripts.acme_dns_sync:main

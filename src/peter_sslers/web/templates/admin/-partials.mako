@@ -1396,6 +1396,53 @@
 </%def>
 
 
+<%def name="table_RoutineExecutions(routineExecutions)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>routine</th>
+                <th>timestamp_start</th>
+                <th>timestamp_end</th>
+                <th>count_records_processed</th>
+                <th>count_records_success</th>
+                <th>count_records_fail</th>
+                <th>duration_seconds</th>
+                <th>average_speed</th>
+                <th>routine_execution_id__via</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in routineExecutions:
+            <tr>
+                <td>
+                    <span class="label label-default">${i.id}</span>
+                </td>
+                <td>
+                    <span class="label label-default">${i.routine}</span>
+                </td>
+                <td><timestamp>${i.timestamp_start_isoformat}</timestamp></td>
+                <td><timestamp>${i.timestamp_end_isoformat}</timestamp></td>
+                <td><code>${i.count_records_processed}</code></td>
+                <td><code>${i.count_records_success}</code></td>
+                <td><code>${i.count_records_fail}</code></td>
+                <td><code>${i.duration_seconds}</code></td>
+                <td><code>${i.average_speed}</code></td>
+                <td>
+                    % if routine_execution_id__via:
+                        <span class="label label-default">${i.id}</span>
+                    % endif
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+    
+    
+
 
 <%def name="table_SystemConfigurations(data, perspective=None)">
     <table class="table table-striped table-condensed">

@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import RoutineExecution
     from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
@@ -1017,7 +1018,7 @@ def register_acme_servers(
     return True
 
 
-def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
+def routine__clear_old_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     """
     clear from the database outdated ARI checks.
     An ARI check is considered outdated once it has been replaced with a newer ARI check.
@@ -1025,7 +1026,10 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.now(datetime.timezone.utc)
+
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
     """
     # The SQL we want (for now):
@@ -1050,14 +1054,36 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> bool:
         .group_by(AriCheck.certificate_signed_id)
         .subquery()
     )
+
+    # note this is still a query
     latest_ari_ids = ctx.dbSession.query(latest_ari_checks.c.latest_ari_id)
+
+    # grab the count
+    count_old_checks = (
+        ctx.dbSession.query(AriCheck).filter(AriCheck.id.not_in(latest_ari_ids)).count()
+    )
+    count_records_success = count_old_checks
+
     stmt = sqlalchemy.delete(AriCheck).where(AriCheck.id.not_in(latest_ari_ids))
     result = ctx.dbSession.execute(stmt)
     ctx.pyramid_transaction_commit()
-    return True
+
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.routine__clear_old_ari_checks,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
+        count_records_success=count_records_success,
+        count_records_fail=0,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
 
 
-def routine__run_ari_checks(ctx: "ApiContext") -> bool:
+def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     """
     Run ARI checks for certificates that require one
     * no ARI check logged
@@ -1066,13 +1092,18 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
     # iterate over all the CertificateSigned - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
-    NOW = datetime.datetime.now(
-        datetime.timezone.utc
-    )  # don't rely on ctx.timestamp, as it can be old
+
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
+
     TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+    assert ctx.application_settings
     _minutes = ctx.application_settings.get("offset.ari_updates", 60)
     TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-    timestamp_max_expiry = NOW + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+    timestamp_max_expiry = (
+        TIMESTAMP_routine_start + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+    )
 
     """
     # The SQL we want (for now):
@@ -1145,6 +1176,8 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
         .all()
     )
 
+    count_records_success = 0
+    count_records_fail = 0
     for dbCertificateSigned, latest_ari_id in certs:
         log.debug(
             "Running ARI Check for : %s [%s]"
@@ -1155,11 +1188,28 @@ def routine__run_ari_checks(ctx: "ApiContext") -> bool:
                 ctx,
                 dbCertificateSigned=dbCertificateSigned,
             )
+            count_records_success += 1
             ctx.pyramid_transaction_commit()
         except errors.AcmeAriCheckDeclined as exc:
+            count_records_fail += 1
+            log.info(exc)
+        except Exception as exc:
+            count_records_fail += 1
+            log.critical(exc)
             print(exc)
 
-    return True
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.routine__run_ari_checks,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
+        count_records_success=count_records_success,
+        count_records_fail=count_records_fail,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
 
 
 def _create_public_server(settings: Dict) -> StopableWSGIServer:
@@ -1229,18 +1279,17 @@ def routine__order_missing(
     settings: Dict,
     create_public_server: Callable = _create_public_server,
     DEBUG: Optional[bool] = False,
-) -> Tuple[Optional[int], Optional[int]]:
+) -> "RoutineExecution":
     """
-    returns a tuple of:
-        (count_success, count_failures)
+    returns "RoutineExecution" which contains
+        (count_records_success, count_records_fail)
 
-    if no attempts are made:
-
-        returns a tuple of:
-            (None, None)
     """
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
-    RENEWAL_RUN: str = "OrderMissing[%s]" % ctx.timestamp
+    RENEWAL_RUN: str = "OrderMissing[%s]" % TIMESTAMP_routine_start
 
     q__backup = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
@@ -1323,103 +1372,208 @@ def routine__order_missing(
         pdb.set_trace()
         print("routine__order_missing")
 
-    if not dbRenewalConfigurations__backup and not dbRenewalConfigurations__primary:
-        return None, None
-
     count_renewals = 0
     count_failures = 0
-    wsgi_server = create_public_server(settings)
-    try:  # outer `try` block is to ensure we invoke `wsgi_server.shutdown()`
+    if dbRenewalConfigurations__backup or dbRenewalConfigurations__primary:
 
-        def _order_missing(
-            _dbRenewalConfiguration: "RenewalConfiguration",
-            replaces_certificate_type: model_utils.CertificateType_Enum,
-        ):
-            nonlocal count_renewals
-            nonlocal count_failures
+        wsgi_server = create_public_server(settings)
+        try:  # outer `try` block is to ensure we invoke `wsgi_server.shutdown()`
 
-            certificate_concept: str
-            if (
-                replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+            def _order_missing(
+                _dbRenewalConfiguration: "RenewalConfiguration",
+                replaces_certificate_type: model_utils.CertificateType_Enum,
             ):
-                certificate_concept = "backup"
-            elif (
-                replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
-            ):
-                certificate_concept = "primary"
-            else:
-                raise ValueError(
-                    "unsuppored `replaces_certificate_type`: %s"
-                    % replaces_certificate_type
-                )
+                nonlocal count_renewals
+                nonlocal count_failures
 
-            log.debug(
-                "No %s Certificate for: %s",
-                (certificate_concept, _dbRenewalConfiguration.id),
-            )
-            log.debug(
-                "Ordering a %s for RenewalConfiguration: %s",
-                (certificate_concept, _dbRenewalConfiguration.id),
-            )
-            try:
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                    ctx,
-                    dbRenewalConfiguration=_dbRenewalConfiguration,
-                    processing_strategy="process_single",
-                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                    note=RENEWAL_RUN,
-                    replaces=certificate_concept,
-                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                    replaces_certificate_type=replaces_certificate_type,
-                )
-                log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                log.debug(
-                    "Renewal Result: CertificateSigned: %s",
-                    dbAcmeOrderNew.certificate_signed_id,
-                )
-                if DEBUG:
-
-                    def _debug():
-                        print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                        print(
-                            "Renewal Result: CertificateSigned: %s",
-                            dbAcmeOrderNew.certificate_signed_id,
-                        )
-
-                    _debug()
-
-                if dbAcmeOrderNew.certificate_signed_id:
-                    count_renewals += 1
+                certificate_concept: str
+                if (
+                    replaces_certificate_type
+                    == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                ):
+                    certificate_concept = "backup"
+                elif (
+                    replaces_certificate_type
+                    == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                ):
+                    certificate_concept = "primary"
                 else:
+                    raise ValueError(
+                        "unsuppored `replaces_certificate_type`: %s"
+                        % replaces_certificate_type
+                    )
+
+                log.debug(
+                    "No %s Certificate for: %s",
+                    (certificate_concept, _dbRenewalConfiguration.id),
+                )
+                log.debug(
+                    "Ordering a %s for RenewalConfiguration: %s",
+                    (certificate_concept, _dbRenewalConfiguration.id),
+                )
+                try:
+                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                        ctx,
+                        dbRenewalConfiguration=_dbRenewalConfiguration,
+                        processing_strategy="process_single",
+                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                        note=RENEWAL_RUN,
+                        replaces=certificate_concept,
+                        replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                        replaces_certificate_type=replaces_certificate_type,
+                    )
+                    log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                    log.debug(
+                        "Renewal Result: CertificateSigned: %s",
+                        dbAcmeOrderNew.certificate_signed_id,
+                    )
+                    if DEBUG:
+
+                        def _debug():
+                            print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                            print(
+                                "Renewal Result: CertificateSigned: %s",
+                                dbAcmeOrderNew.certificate_signed_id,
+                            )
+
+                        _debug()
+
+                    if dbAcmeOrderNew.certificate_signed_id:
+                        count_renewals += 1
+                    else:
+                        count_failures += 1
+
+                except Exception as exc:
+                    log.critical(
+                        "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
+                        % (exc, _dbRenewalConfiguration.id)
+                    )
+                    # TODO: how should we handle this?
+                    # raise or catch and continue?
                     count_failures += 1
 
-            except Exception as exc:
-                log.critical(
-                    "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
-                    % (exc, _dbRenewalConfiguration.id)
+            for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
+                _order_missing(
+                    _dbRenewalConfiguration,
+                    model_utils.CertificateType_Enum.MANAGED_BACKUP,
                 )
-                # TODO: how should we handle this?
-                # raise or catch and continue?
-                raise
 
-        for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
-            _order_missing(
-                _dbRenewalConfiguration,
-                model_utils.CertificateType_Enum.MANAGED_BACKUP,
+            for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
+                _order_missing(
+                    _dbRenewalConfiguration,
+                    model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+                )
+
+        finally:
+            wsgi_server.shutdown()
+
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.routine__order_missing,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
+        count_records_success=count_renewals,
+        count_records_fail=count_failures,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
+
+
+def routine__reconcile_blocks(ctx: "ApiContext") -> "RoutineExecution":
+    """
+    Reconcile blocks
+
+    TODO: integrate some of this with:
+        route_name="admin:acme_orders:active:acme_server:sync",
+
+    """
+    # iterate over pending acme-orders, try to sync/etc
+
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
+
+    # FIRST, sync ALL active orders
+    #
+    # TODO: batch this with limits and offsets?
+    items_paged = lib_db.get.get__AcmeOrder__paginated(
+        ctx,
+        active_only=True,
+        limit=None,
+        offset=0,
+    )
+    _order_ids_pass = []
+    _order_ids_fail = []
+    for dbAcmeOrder in items_paged:
+        dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
+        log.debug("Syncing ACME Order %s" % (dbAcmeOrder.id,))
+        try:
+            dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
             )
-
-        for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
-            _order_missing(
-                _dbRenewalConfiguration,
-                model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+            _order_ids_pass.append(dbAcmeOrder.id)
+            ctx.pyramid_transaction_commit()
+        except Exception as exc:
+            _order_ids_fail.append(dbAcmeOrder.id)
+            log.critical(
+                "Exception when syncing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
             )
+            print(exc)
 
-    finally:
-        wsgi_server.shutdown()
+    # SECOND
+    # perhaps only do on `_order_ids_pass`
+    items_paged = lib_db.get.get__AcmeOrder__paginated(
+        ctx,
+        active_only=True,
+        limit=None,
+        offset=0,
+    )
+    for dbAcmeOrder in items_paged:
+        dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
+        if (not dbAcmeOrder.is_can_acme_process) and not (
+            dbAcmeOrder.is_can_acme_finalize
+        ):
+            continue
+        log.debug("Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,))
+        try:
+            while True:
+                if dbAcmeOrder.is_can_acme_process:
+                    dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__process(
+                        ctx,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
+                elif dbAcmeOrder.is_can_acme_finalize:
+                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+                        ctx,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
+                else:
+                    break
+            _order_ids_pass.append(dbAcmeOrder.id)
+            ctx.pyramid_transaction_commit()
+        except Exception as exc:
+            _order_ids_fail.append(dbAcmeOrder.id)
+            log.critical(
+                "Exception when continuing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
+            )
+            print(exc)
 
-    return count_renewals, count_failures
+    _order_ids_pass = list(set(_order_ids_pass))
+    _order_ids_fail = list(set(_order_ids_fail))
+
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.routine__reconcile_blocks,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
+        count_records_success=len(_order_ids_pass),
+        count_records_fail=len(_order_ids_fail),
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
 
 
 def routine__renew_expiring(
@@ -1429,18 +1583,17 @@ def routine__renew_expiring(
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
     DEBUG: Optional[bool] = False,
-) -> Tuple[Optional[int], Optional[int]]:
+) -> "RoutineExecution":
     """
-    returns a tuple of:
-        (count_success, count_failures)
+    returns "RoutineExecution" which contains
+        (count_records_success, count_records_fail)
 
-    if no attempts are made:
-
-        returns a tuple of:
-            (None, None)
     """
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
-    RENEWAL_RUN: str = "RenewExpiring[%s]" % ctx.timestamp
+    RENEWAL_RUN: str = "RenewExpiring[%s]" % TIMESTAMP_routine_start
 
     # `get_CertificateSigneds_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
@@ -1495,67 +1648,77 @@ def routine__renew_expiring(
         pdb.set_trace()
         print("routine__renew_expiring")
 
-    if not expiring_certs:
-        return None, None
-
     count_renewals = 0
     count_failures = 0
-    wsgi_server = create_public_server(settings)
-    try:
-        for dbCertificateSigned in expiring_certs:
-            if not dbCertificateSigned.acme_order:
-                log.debug("No RenewalConfiguration for: %s", dbCertificateSigned.id)
-                continue
-            log.debug(
-                "Renewing... : %s with RenewalConfiguration : %s",
-                (
-                    dbCertificateSigned.id,
-                    dbCertificateSigned.acme_order.renewal_configuration_id,
-                ),
-            )
-            try:
-                replaces_certificate_type = (
-                    model_utils.CertificateType.to_CertificateType_Enum(
-                        dbCertificateSigned.acme_order.certificate_type_id
-                    )
-                )
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                    ctx,
-                    dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                    processing_strategy="process_single",
-                    acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                    note=RENEWAL_RUN,
-                    replaces=dbCertificateSigned.ari_identifier,
-                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                    replaces_certificate_type=replaces_certificate_type,
-                )
-                log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+    if expiring_certs:
+
+        wsgi_server = create_public_server(settings)
+        try:
+            for dbCertificateSigned in expiring_certs:
+                if not dbCertificateSigned.acme_order:
+                    log.debug("No RenewalConfiguration for: %s", dbCertificateSigned.id)
+                    continue
                 log.debug(
-                    "Renewal Result: CertificateSigned: %s",
-                    dbAcmeOrderNew.certificate_signed_id,
+                    "Renewing... : %s with RenewalConfiguration : %s",
+                    (
+                        dbCertificateSigned.id,
+                        dbCertificateSigned.acme_order.renewal_configuration_id,
+                    ),
                 )
-                if DEBUG:
-
-                    def _debug():
-                        print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                        print(
-                            "Renewal Result: CertificateSigned: %s",
-                            dbAcmeOrderNew.certificate_signed_id,
+                try:
+                    replaces_certificate_type = (
+                        model_utils.CertificateType.to_CertificateType_Enum(
+                            dbCertificateSigned.acme_order.certificate_type_id
                         )
+                    )
+                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                        ctx,
+                        dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                        processing_strategy="process_single",
+                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                        note=RENEWAL_RUN,
+                        replaces=dbCertificateSigned.ari_identifier,
+                        replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                        replaces_certificate_type=replaces_certificate_type,
+                    )
+                    log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                    log.debug(
+                        "Renewal Result: CertificateSigned: %s",
+                        dbAcmeOrderNew.certificate_signed_id,
+                    )
+                    if DEBUG:
 
-                    _debug()
+                        def _debug():
+                            print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                            print(
+                                "Renewal Result: CertificateSigned: %s",
+                                dbAcmeOrderNew.certificate_signed_id,
+                            )
 
-                if dbAcmeOrderNew.certificate_signed_id:
-                    count_renewals += 1
-                else:
+                        _debug()
+
+                    if dbAcmeOrderNew.certificate_signed_id:
+                        count_renewals += 1
+                    else:
+                        count_failures += 1
+                    ctx.pyramid_transaction_commit()
+                except Exception as exc:
+                    log.critical("Exception %s when processing AcmeOrder" % exc)
+                    # TODO: How should these be handled?
+                    # should we raise to end the process, or catch this and continue?
                     count_failures += 1
-                ctx.pyramid_transaction_commit()
-            except Exception as exc:
-                log.critical("Exception %s when processing AcmeOrder" % exc)
-                # TODO: How should these be handled?
-                # should we raise to end the process, or catch this and continue?
-                raise
-    finally:
-        wsgi_server.shutdown()
+        finally:
+            wsgi_server.shutdown()
 
-    return count_renewals, count_failures
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.routine__renew_expiring,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
+        count_records_success=count_renewals,
+        count_records_fail=count_failures,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution

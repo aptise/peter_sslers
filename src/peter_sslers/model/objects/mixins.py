@@ -220,6 +220,7 @@ class _Mixin_Timestamps_Pretty(object):
     # will try to utilize them in sql operations
     if TYPE_CHECKING:
         timestamp_created: Mapped[datetime.datetime]
+        timestamp_end: Mapped[datetime.datetime]
         timestamp_event: Mapped[Optional[datetime.datetime]]
         timestamp_expires: Mapped[Optional[datetime.datetime]]
         timestamp_finalized: Mapped[Optional[datetime.datetime]]
@@ -230,12 +231,19 @@ class _Mixin_Timestamps_Pretty(object):
         timestamp_processed: Mapped[Optional[datetime.datetime]]
         timestamp_process_attempt: Mapped[Optional[datetime.datetime]]
         timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]]
+        timestamp_start: Mapped[datetime.datetime]
         timestamp_updated: Mapped[Optional[datetime.datetime]]
 
     @property
     def timestamp_created_isoformat(self) -> Optional[str]:
         if self.timestamp_created:
             return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_end_isoformat(self) -> Optional[str]:
+        if self.timestamp_end:
+            return self.timestamp_end.isoformat()
         return None
 
     @property
@@ -296,6 +304,12 @@ class _Mixin_Timestamps_Pretty(object):
     def timestamp_revoked_upstream_isoformat(self) -> Optional[str]:
         if self.timestamp_revoked_upstream:
             return self.timestamp_revoked_upstream.isoformat()
+        return None
+
+    @property
+    def timestamp_start_isoformat(self) -> Optional[str]:
+        if self.timestamp_start:
+            return self.timestamp_start.isoformat()
         return None
 
     @property

@@ -1236,6 +1236,14 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
+    # !!!: Routine Executions
+    config.add_route_7(
+        "admin:routine_executions",
+        "/routine-executions",
+        jsonify=True,
+        paginate=True,
+    )
+
     # !!!: SystemConfigurations
     config.add_route_7(
         "admin:system_configurations",
