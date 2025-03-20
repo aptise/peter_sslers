@@ -11521,7 +11521,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             ),
             count_expected_configurations=2,
         )
-        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_success == 2  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_fail == 0
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
@@ -11617,7 +11618,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             count_expected_configurations=2,
             DEBUG=DEBUG,
         )
-        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_success == 2  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
@@ -11690,7 +11692,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             count_expected_configurations=2,
             DEBUG=DEBUG,
         )
-        assert _results_22 == (2, 0)  # Renew Backup+Primary for RC2
+        assert _results_22.count_records_success == 2  # Renew Backup+Primary for RC2
+        assert _results_22.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()

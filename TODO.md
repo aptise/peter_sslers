@@ -19,20 +19,6 @@ Fix
             automatic (routine) should support narrower attempt
             failed ARI checks need to be handled and set for renewal
             
-    Timing
-        need to time the number of automatic renewals
-        
-        
-    
-Feature
-    log each invocation:
-        start and end time
-        how many ari checks, avg time
-        how many orders, avg time
-    
-    use this to plan future runs
-
-
 acme-dns:
     onboarding
 
@@ -40,6 +26,13 @@ acme-dns:
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
 
+
+    views:
+    
+        List ACME-DNS Records (if any)
+            Domain
+            RenewalConfiguration
+            AcmeOrder
 
 commandline tools:
     import acme-dns payload
