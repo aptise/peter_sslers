@@ -1,24 +1,17 @@
 from . import _disable_warnings  # noqa: F401
 
 # stdlib
-import os
+import os  # noqa: I100
 import sys
 
 # pypi
 from pyramid.paster import get_appsettings
-from pyramid.paster import setup_logging
 from pyramid.scripts.common import parse_vars
-import transaction
 
 # local
-from ..models import get_engine
-from ..models import get_session_factory
-from ..models import get_tm_session
 from ...lib import db as lib_db
-from ...lib.config_utils import ApplicationSettings
-from ...lib.utils import ApiContext
-from ...lib.utils import RequestCommandline
-from ...model.meta import Base
+from ...lib.utils import new_scripts_setup
+
 
 # from ...lib import db as lib_db
 # from ...lib.config_utils import ApplicationSettings
@@ -40,45 +33,27 @@ def main(argv=sys.argv):
         usage(argv)
     config_uri = argv[1]
     options = parse_vars(argv[2:])
-    setup_logging(config_uri)
 
     settings = get_appsettings(config_uri, options=options)
 
-    application_settings = ApplicationSettings(config_uri)
-    application_settings.from_settings_dict(settings)
-
-    engine = get_engine(settings)
-
-    Base.metadata.create_all(engine)
-    session_factory = get_session_factory(engine)
-
-    # application_settings = ApplicationSettings(config_uri)
-    # application_settings.from_settings_dict(settings)
-
-    # dbSession = session_factory()
-    dbSession = get_tm_session(None, session_factory, transaction.manager)
-
-    ctx = ApiContext(
-        dbSession=dbSession,
-        request=RequestCommandline(
-            dbSession, application_settings=application_settings
-        ),
-        config_uri=config_uri,
-        application_settings=application_settings,
-    )
+    ctx = new_scripts_setup(config_uri, options=options)
 
     # actually, we order the backups first
-    lib_db.actions.routine__order_missing(
+    dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
         ctx,
         settings=settings,
         DEBUG=False,
     )
+    print("A")
+    print(dbRoutineExecution_1.as_json)
 
     # then we renew the expiring
-    lib_db.actions.routine__renew_expiring(
+    dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
         ctx,
         settings=settings,
         DEBUG=False,
     )
+    print("B")
+    print(dbRoutineExecution_2.as_json)
 
-    exit()
+    ctx.pyramid_transaction_commit()

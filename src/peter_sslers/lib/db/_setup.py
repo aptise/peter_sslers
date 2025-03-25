@@ -20,7 +20,7 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 # ==============================================================================
 
@@ -260,7 +260,10 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
 
-    slot_id = 1
+    dbCertificateCAPreferencePolicy = db_create.create__CertificateCAPreferencePolicy(
+        ctx, "global"
+    )
+
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
         # cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
         # cert_enddate = datetime.datetime(*cert_payload[".enddate"])
@@ -275,10 +278,9 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         dbCertificateCA = certs_lookup[cert_id]
         dbPref = db_create.create__CertificateCAPreference(  # noqa: F841
             ctx,
+            dbCertificateCAPreferencePolicy=dbCertificateCAPreferencePolicy,
             dbCertificateCA=dbCertificateCA,
-            slot_id=slot_id,
         )
-        slot_id += 1  # increment the slot
 
     # !!!: DomainBlocklisted
     dbDomainBlocklisted = model_objects.DomainBlocklisted()
@@ -289,6 +291,42 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
             dbDomainBlocklisted,
         ]
     )
+
+    # !!!: SystemConfigurations
+    for _name in (
+        "global",
+        "autocert",
+        "certificate-if-needed",
+    ):
+        if not utils.validate_websafe_slug(_name):
+            raise ValueError("invalid name")
+        _name = utils.normalize_unique_text(_name)
+        dbSystemConfiguration = model_objects.SystemConfiguration()
+        dbSystemConfiguration.name = _name
+        dbSystemConfiguration.is_configured = False
+        dbSystemConfiguration.acme_account_id__primary = 0
+        dbSystemConfiguration.acme_account_id__backup = 0
+        dbSystemConfiguration.private_key_technology_id__primary = (
+            model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        )
+        dbSystemConfiguration.private_key_technology_id__backup = (
+            model_utils.KeyTechnology.ACCOUNT_DEFAULT
+        )
+        dbSystemConfiguration.private_key_cycle_id__primary = (
+            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        )
+        dbSystemConfiguration.private_key_cycle_id__backup = (
+            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+        )
+        dbSystemConfiguration.acme_profile__primary = "@"
+        dbSystemConfiguration.acme_profile__backup = "@"
+        ctx.dbSession.add(dbSystemConfiguration)
+        ctx.dbSession.flush(
+            objects=[
+                dbSystemConfiguration,
+            ]
+        )
+
     return True
 
 
@@ -306,12 +344,5 @@ def application_started(ctx: "ApiContext", application_settings: Dict) -> Litera
     Right now this remains as a hook, but no code is worth running here.
 
     """
-
-    # first handle the Default CertificateAuthority
-
-    # dbAcmeAccount = db_get.get__AcmeAccount__GlobalDefault(ctx)
-    # if dbAcmeAccount and not dbAcmeAccount.acme_server.is_default:
-    #    dbAcmeAccount.is_global_default = None
-    #    ctx.dbSession.flush()
 
     return True

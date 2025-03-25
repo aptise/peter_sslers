@@ -1,24 +1,106 @@
 URGENT
 =====
+
+Audit/Remove? OperationsEvent tracking
+Audit/Remove? CoverageAssuranceEvent tracking
+
+Feature
+    example client that monitors?
+    db logging : control via config
+        operations events
+
+Fix
+    ARI Checks
+        see:
+            errors.AcmeAriCheckDeclined
+        goals:
+            align timeliness of ari checks
+            on-demand (object) should support WIDER attempt
+            automatic (routine) should support narrower attempt
+            failed ARI checks need to be handled and set for renewal
+            
+acme-dns:
+    onboarding
+
+    audit credentials
+        waiting on
+            https://github.com/joohoi/acme-dns/pull/378
+
+
+    views:
     
-UX:
+        List ACME-DNS Records (if any)
+            Domain
+            RenewalConfiguration
+            AcmeOrder
+
+commandline tools:
+    import acme-dns payload
+    create enrollment-factory
+    create renewal config
+
+
+
+
+
+Audit
+    objects | certificate has some odd attributes that should be removed
+
+Tests:
+    AcmeAccounts:
+        These all work as intended, but unitests should ensure:
+            test to ensure a Default can't be set to the same server as Backup
+            test to ensure a Backup can't be set to the same server as Default
+            test to ensure 2 acme accounts don't have the same key
+            * test against active account key
+            * test against prior account key
+    AcmeOrder:
+        test with valid profile
+        test with invalid profile
+    Renewal Configuration
+        ensure acme_profile__backup and @ work
+        renewing an INACTIVE duplciate will still return the INACTIVE dupicate (works, just needs coverage)
+        toggle is_export_filesystem
+
+    EnrollmentFactory
+        improve testing
+            fail predictablly
+            "*.{DOMAIN}," - not allowed in HTTP-01; requires DNS setup
+        tests showing 'global' is prohibited as a factory name
+        test creating with vs without backups
+        check contents of templates post-create and post-edit
+        try invalid submission of _options_EnrollmentFactory_isExportFilesystem
+    
+    DNS-01 tests
+    
+    Not all routines are covered by tests
+    
+    
+
+ UX:
     do a quick overview of key objects
     reorganize
+    JSON endpoints:
+        generate pre-filled forms/objects
 
 * AcmeDNS
     dev docs
     tests
-    
-AUDIT:
 
-    acme_order_id__latest_attempt
-    acme_order_id__latest_success
-    acme_order__latest_attempt
-    acme_order__latest_success    
-    
 Streamline Onboarding
     set the first acme account and first acme server to be the defaults
         see: update_AcmeServer__activate_default
+
+CertificateCaPreferencePolicy
+    allow creating custom policies, and assigning to RC/EF
+
+SQLAlchemy
+    audit use of `secondary` again, as that pattern is fragile on some of our selects -- so they may need to be replaced with the aliased pattern.
+
+
+
+
+
 
 check to see if we correctly handle this:
     request with an invalid replaces
@@ -52,18 +134,20 @@ acme-account register
         Link: <https://example.com/acme/terms/2017-6-02>;rel="terms-of-service"
     External Account Binding
 
-Tests:
-    AcmeAccounts:
-        test to ensure a Default can't be set to the same server as Backup
-        test to ensure a Backup can't be set to the same server as Default
-        ensure 2 acme accounts don't have the same key
-    AcmeOrder:
-        test with valid profile
-        test with invalid profile
-    
 
-Not Urgent 
+
+Not Urgent
 ================
+
+AcmeAccount
+    max 10 can appear on dropdowns
+
+
+QueryString errors and encodings
+    redo urlify/unurlify/etc
+    redo querystring partial
+
+
 
 test to property handle:
     sync acme challenge against a 404 challenge
@@ -91,13 +175,13 @@ audit exception classes and usage
 * update API logging;
     [x] dedicated outlet
     [ ] formatting check
-    
+
 Test the scripts
 
 Audit
     private_key_reuse - make sure correct forms check for it
     tests don't seem to run ApplicationSettings.from_settings_dict ?
-    
+
 Tests
     selfsigned-1.example.com - disable authz/order
     split out functional under_pebble that are really integrated
@@ -105,7 +189,7 @@ Tests
         private_key_reuse on new/retry order
     /renewal_configuration.py
         key_technology_id might be wrong on new; should this be detectd via parsed?
-    
+
 Docs
     application design
     ValueError: ('Authorization status should be `deactivated`; instead it is `%s`', '*404*')
@@ -128,7 +212,7 @@ systems with large numbers of rows
 
 should this allow an option to attempt renewals
 
-  
+
 
 Application
 -----------
@@ -142,7 +226,7 @@ Application
       creation or allow it but message the subscriber.  if this is kept, we
       should redirect to "view" page on create with an error.
 
-    
+
 Questions:
 ----------
 * Should we ensure an AcmeAccountKey is unique (not used across servers)
@@ -251,7 +335,7 @@ Deferred
 	They are not necessarily written to RFC right now, but lax rules by parsers
 	just seem to work.
 
-ensure_chain_order 
+ensure_chain_order
 	The pure-python does not correctly ensure the chain order.
 	it just looks at the subject/issuer for matches
 
@@ -347,7 +431,7 @@ Rejected Tasks
 		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
 		- new set(s): [a.example.com,]
     Rejection
-    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"    
+    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"
 * Take into account the validity of existing LetsEncrypt authz and challenges when requesting certs.
     Rejection
     - The cached validity time may drastically change as short-life certs re introduced.

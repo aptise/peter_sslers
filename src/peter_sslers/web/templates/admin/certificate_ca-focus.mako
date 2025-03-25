@@ -119,12 +119,12 @@
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem.txt">cert.pem.txt (PEM)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem">cert.pem (PEM)</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem.txt">cert.pem.txt (PEM)</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.pem">cert.pem (PEM)</a>
 
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.cer">cert.cer (DER)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.crt">cert.crt (DER)</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.der">cert.der (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.cer">cert.cer (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.crt">cert.crt (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${CertificateCA.id}/cert.der">cert.der (DER)</a>
                         </td>
                     </tr>
                     <tr>

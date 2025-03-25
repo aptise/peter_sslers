@@ -4,12 +4,14 @@ from io import StringIO  # noqa: F401
 import json
 import logging
 import pdb  # noqa: F401
-import pprint
+import pprint  # noqa: F401
+import re
 import time
 from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import Union
 import unittest
 import zipfile
 
@@ -33,18 +35,21 @@ from . import _utils
 from ._utils import _ROUTES_TESTED
 from ._utils import AppTest
 from ._utils import AppTestWSGI
+from ._utils import auth_SystemConfiguration_accounts__api
 from ._utils import check_error_AcmeDnsServerError
+from ._utils import CustomizedTestCase
 from ._utils import db_freeze
 from ._utils import db_unfreeze
-from ._utils import do__AcmeServers_sync
+from ._utils import do__AcmeServers_sync__api
+from ._utils import ensure_SystemConfiguration__database
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
-from ._utils import make_one__AcmeAccount__pem
-from ._utils import make_one__AcmeAccount__random
-from ._utils import make_one__AcmeOrder
-from ._utils import make_one__AcmeOrder__random
-from ._utils import make_one__DomainBlocklisted
-from ._utils import make_one__RenewalConfiguration
+from ._utils import make_one__AcmeAccount__pem__api
+from ._utils import make_one__AcmeAccount__random__api
+from ._utils import make_one__AcmeOrder__api
+from ._utils import make_one__AcmeOrder__random__api
+from ._utils import make_one__DomainBlocklisted__database
+from ._utils import make_one__RenewalConfiguration__api
 from ._utils import OPENRESTY_PLUGIN_MINIMUM
 from ._utils import ResponseFailureOkay
 from ._utils import routes_tested
@@ -53,6 +58,7 @@ from ._utils import RUN_API_TESTS__EXTENDED
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
+from ._utils import setup_SystemConfiguration__api
 from ._utils import TEST_FILES
 from ._utils import under_pebble
 from ._utils import under_pebble_alt
@@ -122,11 +128,11 @@ log.setLevel(logging.CRITICAL)
 
 # ==============================================================================
 
+# if a buffer is used on the expiry, this must be true
+SLEEP_FOR_EXPIRY = False
 
-# =====
 
-
-def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
+def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     """
     This function is used to setup some of the testing data under pebble.
 
@@ -146,7 +152,7 @@ def setup_testing_data(testCase: unittest.TestCase) -> Literal[True]:
             print("setup_testing_data | creating new database records")
             _orders = []
             for i in range(0, 3):
-                dbAcmeOrder = make_one__AcmeOrder__random(testCase)
+                dbAcmeOrder = make_one__AcmeOrder__random__api(testCase)
                 _orders.append(dbAcmeOrder)
 
             # This is all to generate a valid ARI Check
@@ -345,11 +351,23 @@ class FunctionalTests_AcmeAccount(AppTest):
         self, not_acme_server_id: Optional[int] = None
     ) -> Tuple[model_objects.AcmeAccount, int]:
         # grab a Key
+        q_sub = (
+            self.ctx.dbSession.query(model_objects.AcmeAccount.id)
+            .join(
+                model_objects.SystemConfiguration,
+                sqlalchemy.or_(
+                    model_objects.SystemConfiguration.acme_account_id__backup
+                    == model_objects.AcmeAccount.id,
+                    model_objects.SystemConfiguration.acme_account_id__primary
+                    == model_objects.AcmeAccount.id,
+                ),
+            )
+            .subquery()
+        )
         q_focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
             .filter(model_objects.AcmeAccount.is_active.is_(True))
-            .filter(model_objects.AcmeAccount.is_global_default.is_not(True))
-            .filter(model_objects.AcmeAccount.is_global_backup.is_not(True))
+            .filter(model_objects.AcmeAccount.id.not_in(q_sub))
         )
         if not_acme_server_id:
             q_focus_item = q_focus_item.filter(
@@ -575,14 +593,17 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res.location.endswith("?result=error&error=post+required&operation=mark")
 
-        if focus_item.is_global_backup:
-            raise ValueError("this should not be the global backup")
-
-        if focus_item.is_global_default:
-            raise ValueError("this should not be the global default")
-
         if not focus_item.is_active:
             raise ValueError("this should be active")
+
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration
+        if focus_item.id == dbSystemConfiguration.acme_account_id__backup:
+            raise ValueError("this should not be the global backup")
+        if focus_item.id == dbSystemConfiguration.acme_account_id__primary:
+            raise ValueError("this should not be the global default")
 
         # fail making this active
         res = self.testapp.post(
@@ -608,15 +629,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
-
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark" % focus_id,
-            {"action": "global_default"},
-        )
-        assert res.status_code == 303
-        assert res.location.endswith(
-            "?result=success&operation=mark&action=global_default"
-        )
 
         # edit nothing
         res = self.testapp.get(
@@ -666,14 +678,17 @@ class FunctionalTests_AcmeAccount(AppTest):
             not_acme_server_id=focus_item.acme_server_id
         )
 
-        if focus_item.is_global_default:
-            raise ValueError("this should not be the global default")
-
-        if focus_item.is_global_backup:
-            raise ValueError("this should not be the global backup")
-
         if not focus_item.is_active:
             raise ValueError("this should be active")
+
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration is not None
+        if focus_item.id == dbSystemConfiguration.acme_account_id__backup:
+            raise ValueError("this should not be the global backup")
+        if focus_item.id == dbSystemConfiguration.acme_account_id__primary:
+            raise ValueError("this should not be the global default")
 
         # fail making this active
         res = self.testapp.post(
@@ -705,28 +720,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id
         assert res.json["AcmeAccount"]["is_active"] is True
-
-        # then global_default
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
-            {"action": "global_default"},
-        )
-        assert res.status_code == 200
-        assert "AcmeAccount" in res.json
-        assert res.json["AcmeAccount"]["id"] == focus_id
-        assert res.json["AcmeAccount"]["is_global_default"] is True
-
-        # trying to be global backup should fail
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/acme-account/%s/mark.json" % focus_id,
-            {"action": "global_backup"},
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Account is global default."
-        )
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-account/%s/edit.json" % focus_id, status=200
@@ -1574,7 +1567,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res2.status_code == 303
             assert RE_AcmeDnsServer_marked_active.match(res2.location)
 
-        def _edit_url(_item_id, _root_url, expect_failure_nochange=None):
+        def _edit_url_domain(_item_id, _api_url, _domain, expect_failure_nochange=None):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
@@ -1585,7 +1578,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert "form-edit" in res.forms
             form = res.forms["form-edit"]
-            form["root_url"] = _root_url
+            form["api_url"] = _api_url
+            form["domain"] = _domain
             res2 = form.submit()
 
             if expect_failure_nochange:
@@ -1686,14 +1680,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             _make_active(focus_id)
 
         # test: edit
-        url_og = focus_item.root_url
+        url_og = focus_item.api_url
+        domain_og = focus_item.domain
 
         # fail editing the url
-        _edit_url(focus_id, url_og, expect_failure_nochange=True)
+        _edit_url_domain(focus_id, url_og, domain_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(focus_id, url_og + "123")
-        _edit_url(focus_id, url_og)
+        _edit_url_domain(focus_id, url_og + "123", domain_og)
+        _edit_url_domain(focus_id, url_og, domain_og)
 
         # ensure domains
         _ensure_domains(focus_id)
@@ -1809,7 +1804,9 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert "AcmeDnsServer" in res4.json
             assert res4.json["AcmeDnsServer"]["is_active"] is True
 
-        def _edit_url(_item_id, _root_url, expect_failure_nochange=False):
+        def _edit_url_domain(
+            _item_id, _api_url, _domain, expect_failure_nochange=False
+        ):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
                 status=200,
@@ -1835,16 +1832,17 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             if not expect_failure_nochange:
                 res4 = self.testapp.post(
                     "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
-                    {"root_url": _root_url},
+                    {"api_url": _api_url, "domain": _domain},
                     status=200,
                 )
                 assert res4.json["result"] == "success"
                 assert "AcmeDnsServer" in res4.json
-                assert res4.json["AcmeDnsServer"]["root_url"] == _root_url
+                assert res4.json["AcmeDnsServer"]["api_url"] == _api_url
+                assert res4.json["AcmeDnsServer"]["domain"] == _domain
             else:
                 res4 = self.testapp.post(
                     "/.well-known/peter_sslers/acme-dns-server/%s/edit.json" % _item_id,
-                    {"root_url": _root_url},
+                    {"api_url": _api_url, "domain": _domain},
                     status=200,
                 )
                 assert res4.json["result"] == "error"
@@ -1990,14 +1988,15 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             _make_active(focus_id)
 
         # test: edit
-        url_og = focus_item.root_url
+        url_og = focus_item.api_url
+        domain_og = focus_item.domain
 
         # fail editing the url
-        _edit_url(focus_id, url_og, expect_failure_nochange=True)
+        _edit_url_domain(focus_id, url_og, domain_og, expect_failure_nochange=True)
 
         # make the url silly, then make it real
-        _edit_url(focus_id, url_og + "123")
-        _edit_url(focus_id, url_og)
+        _edit_url_domain(focus_id, url_og + "123", "www." + domain_og)
+        _edit_url_domain(focus_id, url_og, domain_og)
 
         # ensure_domains
         _ensure_domains(focus_id)
@@ -2062,7 +2061,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "/.well-known/peter_sslers/acme-dns-server/new", status=200
         )
         form = res.form
-        form["root_url"] = TEST_FILES["AcmeDnsServer"]["3"]["root_url"]
+        form["api_url"] = TEST_FILES["AcmeDnsServer"]["3"]["api_url"]
+        form["domain"] = TEST_FILES["AcmeDnsServer"]["3"]["domain"]
         res2 = form.submit()
 
         matched = RE_AcmeDnsServer_created.match(res2.location)
@@ -2103,7 +2103,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        _payload = {"root_url": TEST_FILES["AcmeDnsServer"]["4"]["root_url"]}
+        _payload = {
+            "api_url": TEST_FILES["AcmeDnsServer"]["4"]["api_url"],
+            "domain": TEST_FILES["AcmeDnsServer"]["4"]["domain"],
+        }
         res = self.testapp.post(
             "/.well-known/peter_sslers/acme-dns-server/new.json", _payload, status=200
         )
@@ -2179,7 +2182,12 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         )
         assert "AcmeDnsServerAccounts" in res.json
 
-    @routes_tested(("admin:acme_dns_server_account:focus",))
+    @routes_tested(
+        (
+            "admin:acme_dns_server_account:focus",
+            "admin:acme_dns_server_account:focus:audit",
+        )
+    )
     def test_focus_html(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2187,8 +2195,17 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
             "/.well-known/peter_sslers/acme-dns-server-account/%s" % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit" % focus_id,
+            status=200,
+        )
 
-    @routes_tested(("admin:acme_dns_server_account:focus|json",))
+    @routes_tested(
+        (
+            "admin:acme_dns_server_account:focus|json",
+            "admin:acme_dns_server_account:focus:audit|json",
+        )
+    )
     def test_focus_json(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2198,6 +2215,15 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         )
         assert "AcmeDnsServerAccount" in res.json
         assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit.json"
+            % focus_id,
+            status=200,
+        )
+        assert "AcmeDnsServerAccount" in res.json
+        assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
+        assert "audit" in res.json
 
 
 class FunctionalTests_AcmeEventLog(AppTest):
@@ -2625,9 +2651,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         res2 = form_check.submit()
         assert res2.status_code == 303
-        assert (
-            res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True"
+        assert res2.location.startswith(
+            "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True&changes-detected="
         )
 
         _action = form_mark.fields["action"][0].value
@@ -2677,7 +2702,6 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.post(
             "/.well-known/peter_sslers/acme-server/1/check-support.json"
         )
-
         assert "result" in res.json
         assert res.json["result"] == "success"
 
@@ -2869,6 +2893,631 @@ class FunctionalTests_AriCheck(AppTest):
         assert res.json["AriCheck"]["id"] == dbAriCheck.id
 
 
+class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+    """
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_preference_policys",
+            "admin:certificate_ca_preference_policys-paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policys", status=200
+        )
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policys/1", status=200
+        )
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_preference_policys|json",
+            "admin:certificate_ca_preference_policys-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # JSON root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policys.json",
+            status=200,
+        )
+        assert "CertificateCAPreferencePolicys" in res.json
+
+        # JSON paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policys/1.json",
+            status=200,
+        )
+        assert "CertificateCAPreferencePolicys" in res.json
+
+    @routes_tested(("admin:certificate_ca_preference_policy:focus",))
+    def test_focus_html(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+        )
+
+    @routes_tested(("admin:certificate_ca_preference_policy:focus|json",))
+    def test_focus_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            status=200,
+        )
+        assert "CertificateCAPreferencePolicy" in res.json
+
+    def _expected_preferences(self):
+        """this is shared by html and json"""
+        # when we initialize the application, the setup routine inserts some
+        # default CertificateCA preferences
+        # format: (slot_id, sha1[:8])
+        expected_preferences_initial = (
+            ("1", "DAC9024F"),  # trustid_root_x3
+            ("2", "BDB1B93C"),  # isrg_root_x2
+            ("3", "CABD2A79"),  # isrg_root_x1
+        )
+        # calculate the expected matrix after an alteration
+        # in this alteration, we swap the first and second items
+        _expected_preferences_altered = [i[1] for i in expected_preferences_initial]
+        _expected_preferences_altered.insert(0, _expected_preferences_altered.pop(1))
+        expected_preferences_altered = [
+            (str(idx + 1), i) for (idx, i) in enumerate(_expected_preferences_altered)
+        ]
+        return (expected_preferences_initial, expected_preferences_altered)
+
+    def _load__CertificateCAPreferencePolicy(self):
+        _dbCertificateCAPreferencePolicy = (
+            lib_db_get.get__CertificateCAPreferencePolicy__by_id(
+                self.ctx,
+                1,
+                eagerload_preferences=True,
+            )
+        )
+        return _dbCertificateCAPreferencePolicy
+
+    def _load__CertificateCA_unused(self):
+        dbCertificateCA_unused = (
+            self.ctx.dbSession.query(model_objects.CertificateCA)
+            .outerjoin(
+                model_objects.CertificateCAPreference,
+                model_objects.CertificateCA.id
+                == model_objects.CertificateCAPreference.certificate_ca_id,
+            )
+            .filter(model_objects.CertificateCAPreference.id.is_(None))
+            .all()
+        )
+        return dbCertificateCA_unused
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_preference_policy:focus",
+            "admin:certificate_ca_preference_policy:focus:add",
+            "admin:certificate_ca_preference_policy:focus:delete",
+            "admin:certificate_ca_preference_policy:focus:prioritize",
+        )
+    )
+    def test_manipulate_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+        """
+
+        (
+            expected_preferences_initial,
+            expected_preferences_altered,
+        ) = self._expected_preferences()
+
+        def _ensure_compliance_form(_res, _expected_preferences):
+            """
+            ensures the forms are present, expected and compliant
+            """
+            # load our database backed info
+            _dbCertificateCAPreferencePolicy = (
+                self._load__CertificateCAPreferencePolicy()
+            )
+            _dbCertificateCAPreferences = (
+                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            )
+            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+
+            _res_forms = _res.forms
+
+            for _idx, (_slot_id, _fingerpint_sha1_substr) in enumerate(
+                _expected_preferences
+            ):
+                # delete
+                assert "form-preferred-delete-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-delete-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                # prioritize_increase
+                assert "form-preferred-prioritize_increase-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-prioritize_increase-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                # prioritize_decrease
+                assert "form-preferred-prioritize_decrease-%s" % _slot_id in _res_forms
+                _form = _res_forms["form-preferred-prioritize_decrease-%s" % _slot_id]
+                _fields = dict(_form.submit_fields())
+                assert _fields["slot"] == _slot_id
+                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
+
+                assert _dbCertificateCAPreferences[_idx].slot_id == int(_slot_id)
+                assert _dbCertificateCAPreferences[
+                    _idx
+                ].certificate_ca.fingerprint_sha1.startswith(_fingerpint_sha1_substr)
+
+        # !!!: start the test
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+        )
+        _ensure_compliance_form(res, expected_preferences_initial)
+
+        # some failures are expected
+        res_forms = res.forms
+        # first item can not increase in priority
+        _form = res_forms["form-preferred-prioritize_increase-1"]
+        res2 = _form.submit()
+        assert res2.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be increased in priority.</span></div></div>"""
+            in res2.text
+        )
+        # last item can not decrease in priority
+        _form = res_forms["form-preferred-prioritize_decrease-3"]
+        res3 = _form.submit()
+        assert res3.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be decreased in priority.</span></div></div>"""
+            in res3.text
+        )
+
+        # some things should work in an expected manner!
+        # first, increase slot 2 to slot 1
+        # submit the form
+        _form = res_forms["form-preferred-prioritize_increase-2"]
+        res4 = _form.submit()
+        assert res4.status_code == 303
+        assert (
+            res4.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+        )
+        res5 = self.testapp.get(res4.location, status=200)
+        _ensure_compliance_form(res5, expected_preferences_altered)
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res5b = _form.submit()
+        assert res5b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res5b.text
+        )
+
+        # now, undo the above by decreasing slot 1 to slot 2
+        _form = res5.forms["form-preferred-prioritize_decrease-1"]
+        res6 = _form.submit()
+        assert res6.status_code == 303
+        assert (
+            res6.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+        )
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res6b = _form.submit()
+        assert res6b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res6b.text
+        )
+
+        # woohoo, now grab a new certificateCA to insert
+        dbCertificateCA_unused = self._load__CertificateCA_unused()
+        assert len(dbCertificateCA_unused) >= 1
+        dbCertificateCA_add = dbCertificateCA_unused[0]
+
+        # start from scratch
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+        )
+        forms = res.forms
+        assert "form-preferred-add" in res.forms
+
+        # add
+        form_add = res.forms["form-preferred-add"]
+        assert "fingerprint_sha1" in dict(form_add.submit_fields())
+        form_add["fingerprint_sha1"] = dbCertificateCA_add.fingerprint_sha1
+        res2 = form_add.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=add"
+        )
+
+        # ensure compliance
+        expected_preferences_added = list(expected_preferences_initial[:])
+        expected_preferences_added.append(
+            (
+                str(len(expected_preferences_added) + 1),
+                str(dbCertificateCA_add.fingerprint_sha1),
+            )
+        )
+        res3 = self.testapp.get(res2.location)
+        _ensure_compliance_form(res3, expected_preferences_added)
+
+        # delete
+        form_del = res3.forms["form-preferred-delete-4"]
+        _submit_fields = dict(form_del.submit_fields())
+        assert "fingerprint_sha1" in _submit_fields
+        assert (
+            _submit_fields["fingerprint_sha1"] == dbCertificateCA_add.fingerprint_sha1
+        )
+        res4 = form_del.submit()
+        assert res4.status_code == 303
+        assert (
+            res4.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=delete"
+        )
+
+        # delete again, we should fail!
+        res4b = form_del.submit()
+        assert res4b.status_code == 200
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
+            in res4b.text
+        )
+
+        # and lets make sure we're at the base option
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+        )
+        _ensure_compliance_form(res, expected_preferences_initial)
+
+        # TODO: test adding more than 10 items
+
+    @routes_tested(
+        (
+            "admin:certificate_ca_preference_policy:focus|json",
+            "admin:certificate_ca_preference_policy:focus:add|json",
+            "admin:certificate_ca_preference_policy:focus:delete|json",
+            "admin:certificate_ca_preference_policy:focus:prioritize|json",
+        )
+    )
+    def test_manipulate_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy.test_manipulate_json
+        """
+        (
+            expected_preferences_initial,
+            expected_preferences_altered,
+        ) = self._expected_preferences()
+
+        # for json tests, we need to map the substring fingerprints in the test to
+        # full size fingerprints for certain operations
+        _dbCertificateCA_all = self.ctx.dbSession.query(
+            model_objects.CertificateCA
+        ).all()
+        # sha1[:8] = (sha1, id)
+        fingerprints_mapping = {
+            i.fingerprint_sha1[:8]: (i.fingerprint_sha1, i.id)
+            for i in _dbCertificateCA_all
+        }
+
+        def _ensure_compliance_payload(_res, _expected_preferences):
+            """
+            ensures the forms are present, expected and compliant
+            """
+            # load our database backed info
+            _dbCertificateCAPreferencePolicy = (
+                self._load__CertificateCAPreferencePolicy()
+            )
+            _dbCertificateCAPreferences = (
+                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            )
+            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+
+            # check our payload
+            assert "CertificateCAPreferencePolicy" in res.json
+
+            # # res.json
+            # {'CertificateCAPreferencePolicy': {'id': 1, 'certificate_ca_preferences': [{'id': 1, 'slot_id': 1, 'certificate_ca_id': 1}, {'id': 2, 'slot_id': 2, 'certificate_ca_id': 4}, {'id': 3, 'slot_id': 3, 'certificate_ca_id': 2}], 'name': 'global'}}
+
+            # # _expected_preferences
+            # (('1', 'DAC9024F'), ('2', 'BDB1B93C'), ('3', 'CABD2A79'))
+
+            db_caCertId_2_certSha = {}
+            db_slotId_2_certSha = {}
+            json_caCertId_2_certSha = {}
+            json_slotId_2_certSha = {}
+
+            for _dbPref in _dbCertificateCAPreferences:
+                db_caCertId_2_certSha[_dbPref.certificate_ca_id] = (
+                    _dbPref.certificate_ca.fingerprint_sha1
+                )
+                db_slotId_2_certSha[_dbPref.slot_id] = (
+                    _dbPref.certificate_ca.fingerprint_sha1
+                )
+
+            for _jsonPref in _res.json["CertificateCAPreferencePolicy"][
+                "certificate_ca_preferences"
+            ]:
+                _cert_ca_id = _jsonPref["certificate_ca_id"]
+                _slot_id = _jsonPref["slot_id"]
+                json_caCertId_2_certSha[_cert_ca_id] = db_caCertId_2_certSha[
+                    _cert_ca_id
+                ]
+                json_slotId_2_certSha[_slot_id] = db_caCertId_2_certSha[_cert_ca_id]
+
+            for _slot_id, _sha1_8 in _expected_preferences:
+                _slot_id = int(_slot_id)
+                assert db_slotId_2_certSha[_slot_id].startswith(_sha1_8)
+                assert json_slotId_2_certSha[_slot_id].startswith(_sha1_8)
+
+        # !!!: start the test
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            status=200,
+        )
+        _ensure_compliance_payload(res, expected_preferences_initial)
+
+        # ensure GET/POST core functionality
+
+        # GET/POST prioritize
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            status=200,
+        )
+        assert "form_fields" in res.json
+        _expected_fields: Tuple[str, ...] = ("slot", "fingerprint_sha1", "priority")
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json"
+        )
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # GET/POST add
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            status=200,
+        )
+        assert "form_fields" in res.json
+        _expected_fields = ("fingerprint_sha1",)
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json"
+        )
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # GET/POST delete
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            status=200,
+        )
+        assert "form_fields" in res.json
+        _expected_fields = ("fingerprint_sha1", "slot")
+        assert len(res.json["form_fields"]) == len(_expected_fields)
+        for _field in _expected_fields:
+            assert _field in res.json["form_fields"]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json"
+        )
+        assert res.json["result"] == "error"
+        assert "Error_Main" in res.json["form_errors"]
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        # some failures are expected
+
+        # first item can not increase in priority
+        # but we MUST use full fingerprints in this context
+        _payload = {
+            "slot": "1",
+            "fingerprint_sha1": expected_preferences_initial[0][1],
+            "priority": "increase",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+        # trigger the expected error
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ][0]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. This item can not be increased in priority."
+        )
+
+        # last item can not decrease in priority
+        # but we MUST use full fingerprints in this context
+        _payload = {
+            "slot": "3",
+            "fingerprint_sha1": expected_preferences_initial[2][1],
+            "priority": "decrease",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+        # trigger the expected error
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ][0]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. This item can not be decreased in priority."
+        )
+
+        # some things should work in an expected manner!
+        # first, increase slot 2 to slot 1
+        # submit the form
+        _payload = {
+            "slot": "2",
+            "fingerprint_sha1": expected_preferences_initial[1][1],
+            "priority": "increase",
+        }
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ][0]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "prioritize"
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # now, undo the above by decreasing slot 1 to slot 2
+        _payload = {
+            "slot": "1",
+            "fingerprint_sha1": expected_preferences_initial[1][1],
+            "priority": "decrease",
+        }
+        _payload["fingerprint_sha1"] = fingerprints_mapping[
+            _payload["fingerprint_sha1"]
+        ][0]
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "prioritize"
+
+        # now, do this again.
+        # we should FAIL because it is stale
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # woohoo, now grab a new certificateCA to insert
+        dbCertificateCA_unused = self._load__CertificateCA_unused()
+        assert len(dbCertificateCA_unused) >= 1
+        dbCertificateCA_add = dbCertificateCA_unused[0]
+
+        # add
+        _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "add"
+
+        # ensure compliance
+        expected_preferences_added = list(expected_preferences_initial[:])
+        expected_preferences_added.append(
+            (
+                str(len(expected_preferences_added) + 1),
+                str(dbCertificateCA_add.fingerprint_sha1),
+            )
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            status=200,
+        )
+        _ensure_compliance_payload(res, expected_preferences_added)
+
+        # delete
+        _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "delete"
+
+        # delete again, we should fail!
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            _payload,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Can not operate on bad or stale data."
+        )
+
+        # and lets make sure we're at the base option
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            status=200,
+        )
+        _ensure_compliance_payload(res, expected_preferences_initial)
+
+        # TODO: test adding more than 10 items
+
+
 class FunctionalTests_CertificateCA(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA
@@ -3040,541 +3689,6 @@ class FunctionalTests_CertificateCA(AppTest):
         res3 = self.testapp.get(
             "/.well-known/peter_sslers/certificate-ca/%s" % obj_id, status=200
         )
-
-    def _expected_preferences(self):
-        """this is shared by html and json"""
-        # when we initialize the application, the setup routine inserts some
-        # default CertificateCA preferences
-        expected_preferences_initial = (
-            ("1", "DAC9024F"),  # trustid_root_x3
-            ("2", "BDB1B93C"),  # isrg_root_x2
-            ("3", "CABD2A79"),  # isrg_root_x1
-        )
-        # calculate the expected matrix after an alteration
-        # in this alteration, we swap the first and second items
-        _expected_preferences_altered = [i[1] for i in expected_preferences_initial]
-        _expected_preferences_altered.insert(0, _expected_preferences_altered.pop(1))
-        expected_preferences_altered = [
-            (str(idx + 1), i) for (idx, i) in enumerate(_expected_preferences_altered)
-        ]
-
-        return (expected_preferences_initial, expected_preferences_altered)
-
-    def _load__CertificateCAPreferences(self):
-        _dbCertificateCAPreferences = (
-            self.ctx.dbSession.query(model_objects.CertificateCAPreference)
-            .options(
-                sqlalchemy.orm.joinedload(
-                    model_objects.CertificateCAPreference.certificate_ca
-                )
-            )
-            .all()
-        )
-        return _dbCertificateCAPreferences
-
-    def _load__CertificateCA_unused(self):
-        dbCertificateCA_unused = (
-            self.ctx.dbSession.query(model_objects.CertificateCA)
-            .outerjoin(
-                model_objects.CertificateCAPreference,
-                model_objects.CertificateCA.id
-                == model_objects.CertificateCAPreference.certificate_ca_id,
-            )
-            .filter(model_objects.CertificateCAPreference.id.is_(None))
-            .all()
-        )
-        return dbCertificateCA_unused
-
-    @routes_tested(
-        (
-            "admin:certificate_cas:preferred",
-            "admin:certificate_cas:preferred:add",
-            "admin:certificate_cas:preferred:delete",
-            "admin:certificate_cas:preferred:prioritize",
-        )
-    )
-    def test_manipulate_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_manipulate_html
-        """
-
-        (
-            expected_preferences_initial,
-            expected_preferences_altered,
-        ) = self._expected_preferences()
-
-        def _ensure_compliance_form(_res, _expected_preferences):
-            """
-            ensures the forms are present, expected and compliant
-            """
-            # load our database backed info
-            _dbCertificateCAPreferences = self._load__CertificateCAPreferences()
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
-
-            _res_forms = _res.forms
-
-            for _idx, (_slot_id, _fingerpint_sha1_substr) in enumerate(
-                _expected_preferences
-            ):
-                # delete
-                assert "form-preferred-delete-%s" % _slot_id in _res_forms
-                _form = _res_forms["form-preferred-delete-%s" % _slot_id]
-                _fields = dict(_form.submit_fields())
-                assert _fields["slot"] == _slot_id
-                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
-
-                # prioritize_increase
-                assert "form-preferred-prioritize_increase-%s" % _slot_id in _res_forms
-                _form = _res_forms["form-preferred-prioritize_increase-%s" % _slot_id]
-                _fields = dict(_form.submit_fields())
-                assert _fields["slot"] == _slot_id
-                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
-
-                # prioritize_decrease
-                assert "form-preferred-prioritize_decrease-%s" % _slot_id in _res_forms
-                _form = _res_forms["form-preferred-prioritize_decrease-%s" % _slot_id]
-                _fields = dict(_form.submit_fields())
-                assert _fields["slot"] == _slot_id
-                assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
-
-                assert _dbCertificateCAPreferences[_idx].id == int(_slot_id)
-                assert _dbCertificateCAPreferences[
-                    _idx
-                ].certificate_ca.fingerprint_sha1.startswith(_fingerpint_sha1_substr)
-
-        # !!!: start the test
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
-        )
-        _ensure_compliance_form(res, expected_preferences_initial)
-
-        # some failures are expected
-        res_forms = res.forms
-        # first item can not increase in priority
-        _form = res_forms["form-preferred-prioritize_increase-1"]
-        res2 = _form.submit()
-        assert res2.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be increased in priority.</span></div></div>"""
-            in res2.text
-        )
-        # last item can not decrease in priority
-        _form = res_forms["form-preferred-prioritize_decrease-3"]
-        res3 = _form.submit()
-        assert res3.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be decreased in priority.</span></div></div>"""
-            in res3.text
-        )
-
-        # some things should work in an expected manner!
-        # first, increase slot 2 to slot 1
-        # submit the form
-        _form = res_forms["form-preferred-prioritize_increase-2"]
-        res4 = _form.submit()
-        assert res4.status_code == 303
-        assert (
-            res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=prioritize"
-        )
-        res5 = self.testapp.get(res4.location, status=200)
-        _ensure_compliance_form(res5, expected_preferences_altered)
-
-        # now, do this again.
-        # we should FAIL because it is stale
-        res5b = _form.submit()
-        assert res5b.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
-            in res5b.text
-        )
-
-        # now, undo the above by decreasing slot 1 to slot 2
-        _form = res5.forms["form-preferred-prioritize_decrease-1"]
-        res6 = _form.submit()
-        assert res6.status_code == 303
-        assert (
-            res6.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=prioritize"
-        )
-
-        # now, do this again.
-        # we should FAIL because it is stale
-        res6b = _form.submit()
-        assert res6b.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
-            in res6b.text
-        )
-
-        # woohoo, now grab a new certificateCA to insert
-        dbCertificateCA_unused = self._load__CertificateCA_unused()
-        assert len(dbCertificateCA_unused) >= 1
-        dbCertificateCA_add = dbCertificateCA_unused[0]
-
-        # start from scratch
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
-        )
-        forms = res.forms
-        assert "form-preferred-add" in res.forms
-
-        # add
-        form_add = res.forms["form-preferred-add"]
-        assert "fingerprint_sha1" in dict(form_add.submit_fields())
-        form_add["fingerprint_sha1"] = dbCertificateCA_add.fingerprint_sha1
-        res2 = form_add.submit()
-        assert res2.status_code == 303
-        assert (
-            res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=add"
-        )
-
-        # ensure compliance
-        expected_preferences_added = list(expected_preferences_initial[:])
-        expected_preferences_added.append(
-            (
-                str(len(expected_preferences_added) + 1),
-                str(dbCertificateCA_add.fingerprint_sha1),
-            )
-        )
-        res3 = self.testapp.get(res2.location)
-        _ensure_compliance_form(res3, expected_preferences_added)
-
-        # delete
-        form_del = res3.forms["form-preferred-delete-4"]
-        _submit_fields = dict(form_del.submit_fields())
-        assert "fingerprint_sha1" in _submit_fields
-        assert (
-            _submit_fields["fingerprint_sha1"] == dbCertificateCA_add.fingerprint_sha1
-        )
-        res4 = form_del.submit()
-        assert res4.status_code == 303
-        assert (
-            res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-cas/preferred?result=success&operation=delete"
-        )
-
-        # delete again, we should fail!
-        res4b = form_del.submit()
-        assert res4b.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. Can not operate on bad or stale data.</span></div></div>"""
-            in res4b.text
-        )
-
-        # and lets make sure we're at the base option
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred", status=200
-        )
-        _ensure_compliance_form(res, expected_preferences_initial)
-
-        # TODO: test adding more than 10 items
-
-    @routes_tested(
-        (
-            "admin:certificate_cas:preferred|json",
-            "admin:certificate_cas:preferred:add|json",
-            "admin:certificate_cas:preferred:delete|json",
-            "admin:certificate_cas:preferred:prioritize|json",
-        )
-    )
-    def test_manipulate_json(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_manipulate_json
-        """
-        (
-            expected_preferences_initial,
-            expected_preferences_altered,
-        ) = self._expected_preferences()
-
-        # for json tests, we need to map the substring fingerprints in the test to
-        # full size fingerprints for certain operations
-        _dbCertificateCA_all = self.ctx.dbSession.query(
-            model_objects.CertificateCA
-        ).all()
-        fingerprints_mapping = {
-            i.fingerprint_sha1[:8]: i.fingerprint_sha1 for i in _dbCertificateCA_all
-        }
-
-        def _ensure_compliance_payload(_res, _expected_preferences):
-            """
-            ensures the forms are present, expected and compliant
-            """
-            # load our database backed info
-            _dbCertificateCAPreferences = self._load__CertificateCAPreferences()
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
-
-            # check our payload
-            assert "CertificateCAs" in res.json
-            assert "PreferenceOrder" in res.json
-            for _idx, _slot_id in enumerate(
-                sorted(res.json["PreferenceOrder"].keys(), key=lambda x: int(x))
-            ):
-                _cert_ca_id = res.json["PreferenceOrder"][_slot_id]
-                assert _cert_ca_id in res.json["CertificateCAs"]
-                _fingerpint_sha1 = res.json["CertificateCAs"][_cert_ca_id][
-                    "fingerprint_sha1"
-                ]
-
-                assert _dbCertificateCAPreferences[_idx].id == int(_slot_id)
-                assert (
-                    _dbCertificateCAPreferences[_idx].certificate_ca.fingerprint_sha1
-                    == _fingerpint_sha1
-                )
-
-                # _expected_preferences = ((slot_id, fingerprint_sha1_substring), ...)
-                assert _fingerpint_sha1.startswith(_expected_preferences[_idx][1])
-
-        # !!!: start the test
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
-        )
-        _ensure_compliance_payload(res, expected_preferences_initial)
-
-        # ensure GET/POST core functionality
-
-        # GET/POST prioritize
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            status=200,
-        )
-        assert "form_fields" in res.json
-        _expected_fields: Tuple[str, ...] = ("slot", "fingerprint_sha1", "priority")
-        assert len(res.json["form_fields"]) == len(_expected_fields)
-        for _field in _expected_fields:
-            assert _field in res.json["form_fields"]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json"
-        )
-        assert res.json["result"] == "error"
-        assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
-
-        # GET/POST add
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred/add.json", status=200
-        )
-        assert "form_fields" in res.json
-        _expected_fields = ("fingerprint_sha1",)
-        assert len(res.json["form_fields"]) == len(_expected_fields)
-        for _field in _expected_fields:
-            assert _field in res.json["form_fields"]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/add.json"
-        )
-        assert res.json["result"] == "error"
-        assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
-
-        # GET/POST delete
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json",
-            status=200,
-        )
-        assert "form_fields" in res.json
-        _expected_fields = ("fingerprint_sha1", "slot")
-        assert len(res.json["form_fields"]) == len(_expected_fields)
-        for _field in _expected_fields:
-            assert _field in res.json["form_fields"]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json"
-        )
-        assert res.json["result"] == "error"
-        assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
-
-        # some failures are expected
-
-        # first item can not increase in priority
-        # but we MUST use full fingerprints in this context
-        _payload = {
-            "slot": "1",
-            "fingerprint_sha1": expected_preferences_initial[0][1],
-            "priority": "increase",
-        }
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Can not operate on bad or stale data."
-        )
-        # trigger the expected error
-        _payload["fingerprint_sha1"] = fingerprints_mapping[
-            _payload["fingerprint_sha1"]
-        ]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. This item can not be increased in priority."
-        )
-
-        # last item can not decrease in priority
-        # but we MUST use full fingerprints in this context
-        _payload = {
-            "slot": "3",
-            "fingerprint_sha1": expected_preferences_initial[2][1],
-            "priority": "decrease",
-        }
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Can not operate on bad or stale data."
-        )
-        # trigger the expected error
-        _payload["fingerprint_sha1"] = fingerprints_mapping[
-            _payload["fingerprint_sha1"]
-        ]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. This item can not be decreased in priority."
-        )
-
-        # some things should work in an expected manner!
-        # first, increase slot 2 to slot 1
-        # submit the form
-        _payload = {
-            "slot": "2",
-            "fingerprint_sha1": expected_preferences_initial[1][1],
-            "priority": "increase",
-        }
-        _payload["fingerprint_sha1"] = fingerprints_mapping[
-            _payload["fingerprint_sha1"]
-        ]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "prioritize"
-
-        # now, do this again.
-        # we should FAIL because it is stale
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Can not operate on bad or stale data."
-        )
-
-        # now, undo the above by decreasing slot 1 to slot 2
-        _payload = {
-            "slot": "1",
-            "fingerprint_sha1": expected_preferences_initial[1][1],
-            "priority": "decrease",
-        }
-        _payload["fingerprint_sha1"] = fingerprints_mapping[
-            _payload["fingerprint_sha1"]
-        ]
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "prioritize"
-
-        # now, do this again.
-        # we should FAIL because it is stale
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/prioritize.json",
-            _payload,
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Can not operate on bad or stale data."
-        )
-
-        # woohoo, now grab a new certificateCA to insert
-        dbCertificateCA_unused = self._load__CertificateCA_unused()
-        assert len(dbCertificateCA_unused) >= 1
-        dbCertificateCA_add = dbCertificateCA_unused[0]
-
-        # add
-        _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/add.json", _payload
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "add"
-
-        # ensure compliance
-        expected_preferences_added = list(expected_preferences_initial[:])
-        expected_preferences_added.append(
-            (
-                str(len(expected_preferences_added) + 1),
-                str(dbCertificateCA_add.fingerprint_sha1),
-            )
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
-        )
-        _ensure_compliance_payload(res, expected_preferences_added)
-
-        # delete
-        _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json", _payload
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert res.json["operation"] == "delete"
-
-        # delete again, we should fail!
-        res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-cas/preferred/delete.json", _payload
-        )
-        assert res.status_code == 200
-        assert res.json["result"] == "error"
-        assert "form_errors" in res.json
-        assert (
-            res.json["form_errors"]["Error_Main"]
-            == "There was an error with your form. Can not operate on bad or stale data."
-        )
-
-        # and lets make sure we're at the base option
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/preferred.json", status=200
-        )
-        _ensure_compliance_payload(res, expected_preferences_initial)
-
-        # TODO: test adding more than 10 items
 
 
 class FunctionalTests_CertificateCAChain(AppTest):
@@ -3913,6 +4027,8 @@ class FunctionalTests_CertificateSigned(AppTest):
             "admin:certificate_signeds:active_expired-paginated",
             "admin:certificate_signeds:inactive_unexpired",
             "admin:certificate_signeds:inactive_unexpired-paginated",
+            "admin:certificate_signeds:active_duplicates",
+            "admin:certificate_signeds:active_duplicates-paginated",
         )
     )
     def test_list_html(self):
@@ -3932,6 +4048,7 @@ class FunctionalTests_CertificateSigned(AppTest):
             "inactive",
             "active-expired",
             "inactive-unexpired",
+            "active-duplicates",  # same url patterns, but different view/mako/json
         ):
             res = self.testapp.get(
                 "/.well-known/peter_sslers/certificate-signeds/%s" % _type, status=200
@@ -3955,6 +4072,8 @@ class FunctionalTests_CertificateSigned(AppTest):
             "admin:certificate_signeds:active_expired-paginated|json",
             "admin:certificate_signeds:inactive_unexpired|json",
             "admin:certificate_signeds:inactive_unexpired-paginated|json",
+            "admin:certificate_signeds:active_duplicates|json",
+            "admin:certificate_signeds:active_duplicates-paginated|json",
         )
     )
     def test_list_json(self):
@@ -3986,6 +4105,19 @@ class FunctionalTests_CertificateSigned(AppTest):
                 status=200,
             )
             assert "CertificateSigneds" in res.json
+
+        # same url patterns, but different view/mako/json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/active-duplicates.json",
+            status=200,
+        )
+        assert "CertificateSignedsPairs" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/certificate-signeds/active-duplicates/1.json",
+            status=200,
+        )
+        assert "CertificateSignedsPairs" in res.json
 
     @routes_tested(
         (
@@ -5276,7 +5408,9 @@ class FunctionalTests_Domain(AppTest):
         assert "HTTP POST required" in res4.json["instructions"]  # already covered
         assert "valid_options" in res4.json
         assert "acme_dns_server_id" in res4.json["valid_options"]
-        assert 1 in res4.json["valid_options"]["acme_dns_server_id"]
+        assert (
+            1 in res4.json["valid_options"]["acme_dns_server_id"]
+        )  # "int in str" error indicates server issue
 
         res5 = self.testapp.post(
             "/.well-known/peter_sslers/domain/%s/acme-dns-server/new.json" % focus_id,
@@ -5492,7 +5626,7 @@ class FunctionalTests_DomainBlocklisted(AppTest):
         assert "account_key_option" in _form_fields
         form["account_key_option"].force_value("account_key_global_default")
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
@@ -5503,6 +5637,288 @@ class FunctionalTests_DomainBlocklisted(AppTest):
             "The following Domains are blocklisted: always-fail.example.com"
             in res2.text
         )
+
+
+class _MixinEnrollmentFactory:
+
+    def _makeOne__EnrollmentFactory(self) -> int:
+        _res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
+            status=200,
+        )
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": dbSystemConfiguration_global.acme_account_id__backup,
+            "acme_account_id__primary": dbSystemConfiguration_global.acme_account_id__primary,
+            "acme_profile__backup": "@",
+            "acme_profile__primary": "@",
+            "domain_template_dns01": "",
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "is_export_filesystem": "off",
+            "name": domain,
+            "note": note,
+            "private_key_cycle__backup": "account_default",
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__backup": "account_default",
+            "private_key_technology__primary": "account_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
+            form,
+        )
+        assert res.status_code == 200
+        pprint.pprint(res.json)
+        assert res.json["result"] == "success"
+        assert "EnrollmentFactory" in res.json
+        return res.json["EnrollmentFactory"]["id"]
+
+    def _ensureOne__EnrollmentFactory(self) -> int:
+        focusItem = self.ctx.dbSession.query(model_objects.EnrollmentFactory).first()
+        if not focusItem:
+            return self._makeOne__EnrollmentFactory()
+        return focusItem.id
+
+
+class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
+
+    @routes_tested(
+        (
+            "admin:enrollment_factorys",
+            "admin:enrollment_factorys-paginated",
+        )
+    )
+    def test_list_html(self):
+        self._ensureOne__EnrollmentFactory()
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/1", status=200
+        )
+
+    @routes_tested(
+        (
+            "admin:enrollment_factorys|json",
+            "admin:enrollment_factorys-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # json
+        self._ensureOne__EnrollmentFactory()
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/1.json", status=200
+        )
+        assert "EnrollmentFactorys" in res.json
+
+    @routes_tested(("admin:enrollment_factorys:new",))
+    def test_new_html(self):
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factorys/new", status=200
+        )
+        form = res.form
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form["acme_account_id__backup"] = (
+            dbSystemConfiguration_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"] = (
+            dbSystemConfiguration_global.acme_account_id__primary
+        )
+        form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
+        form["name"] = domain
+        form["note"] = note
+        form["is_export_filesystem"] = "off"
+        res2 = form.submit()
+
+        assert res2.status_code == 303
+        assert ".well-known/peter_sslers/enrollment-factory/" in res2.location
+
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @routes_tested(("admin:enrollment_factorys:new|json",))
+    def test_new_json(self):
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": dbSystemConfiguration_global.acme_account_id__backup,
+            "acme_account_id__primary": dbSystemConfiguration_global.acme_account_id__primary,
+            "acme_profile__backup": "@",
+            "acme_profile__primary": "@",
+            "domain_template_dns01": "",
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "is_export_filesystem": "off",
+            "name": domain,
+            "note": note,
+            "private_key_cycle__backup": "account_default",
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__backup": "account_default",
+            "private_key_technology__primary": "account_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factorys/new.json",
+            form,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "EnrollmentFactory" in res.json
+
+    @routes_tested(
+        (
+            "admin:enrollment_factory:focus",
+            "admin:enrollment_factory:focus:edit",
+            "admin:enrollment_factory:focus:certificate_signeds",
+            "admin:enrollment_factory:focus:certificate_signeds-paginated",
+            "admin:enrollment_factory:focus:renewal_configurations",
+            "admin:enrollment_factory:focus:renewal_configurations-paginated",
+        )
+    )
+    def test_manipulate_html(self):
+        self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit", status=200
+        )
+        form = res.form
+        domain = generate_random_domain()
+        form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
+        res2 = form.submit()
+
+        assert res2.status_code == 303
+        assert ".well-known/peter_sslers/enrollment-factory/" in res2.location
+
+        res3 = self.testapp.get(res2.location, status=200)
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations/1",
+            status=200,
+        )
+
+    @routes_tested(
+        (
+            "admin:enrollment_factory:focus|json",
+            "admin:enrollment_factory:focus:edit|json",
+            "admin:enrollment_factory:focus:certificate_signeds|json",
+            "admin:enrollment_factory:focus:certificate_signeds-paginated|json",
+            "admin:enrollment_factory:focus:renewal_configurations|json",
+            "admin:enrollment_factory:focus:renewal_configurations-paginated|json",
+        )
+    )
+    def test_manipulate_json(self):
+        self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1.json", status=200
+        )
+        assert "EnrollmentFactory" in res.json
+
+        res2 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit.json", status=200
+        )
+        assert "instructions" in res2.json
+
+        domain = generate_random_domain()
+        note = generate_random_domain()
+
+        form = {
+            "acme_account_id__backup": res.json["EnrollmentFactory"][
+                "acme_account_id__backup"
+            ],
+            "acme_account_id__primary": res.json["EnrollmentFactory"][
+                "acme_account_id__primary"
+            ],
+            "acme_profile__backup": res.json["EnrollmentFactory"][
+                "acme_profile__backup"
+            ],
+            "acme_profile__primary": res.json["EnrollmentFactory"][
+                "acme_profile__primary"
+            ],
+            "domain_template_dns01": res.json["EnrollmentFactory"][
+                "domain_template_dns01"
+            ],
+            "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
+            "name": res.json["EnrollmentFactory"]["name"],
+            "note": res.json["EnrollmentFactory"]["note"],
+            "is_export_filesystem": "off",
+            "private_key_cycle__backup": res.json["EnrollmentFactory"][
+                "private_key_cycle__backup"
+            ],
+            "private_key_cycle__primary": res.json["EnrollmentFactory"][
+                "private_key_cycle__primary"
+            ],
+            "private_key_technology__backup": res.json["EnrollmentFactory"][
+                "private_key_technology__backup"
+            ],
+            "private_key_technology__primary": res.json["EnrollmentFactory"][
+                "private_key_technology__primary"
+            ],
+        }
+        res3 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factory/1/edit.json", form
+        )
+        assert res3.status_code == 200
+        assert res3.json["result"] == "success"
+        assert "EnrollmentFactory" in res3.json
+
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds.json"
+        )
+        assert "CertificateSigneds" in res4.json
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/certificate-signeds.json"
+        )
+        assert "CertificateSigneds" in res4.json
+
+        res5 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
+        )
+        assert "RenewalConfigurations" in res5.json
+        res5 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
+        )
+        assert "RenewalConfigurations" in res5.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -5920,7 +6336,7 @@ class FunctionalTests_PrivateKey(AppTest):
         assert "HTTP POST required" in res.json["instructions"]
 
 
-class FunctionalTests_RenewalConfiguration(AppTest):
+class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration
     """
@@ -5944,15 +6360,15 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = account_key_global_default
-        form["private_key_cycle"] = "account_default"
-        form["key_technology"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
+        form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
 
         res2 = self.testapp.post(
@@ -6058,6 +6474,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             "admin:renewal_configuration:focus:acme_orders-paginated",
             "admin:renewal_configuration:focus:certificate_signeds",
             "admin:renewal_configuration:focus:certificate_signeds-paginated",
+            "admin:renewal_configuration:focus:lineages",
         )
     )
     def test_focus_html(self):
@@ -6085,6 +6502,10 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/lineages" % focus_id,
+            status=200,
+        )
 
     @routes_tested(
         (
@@ -6093,6 +6514,7 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             "admin:renewal_configuration:focus:acme_orders-paginated|json",
             "admin:renewal_configuration:focus:certificate_signeds|json",
             "admin:renewal_configuration:focus:certificate_signeds-paginated|json",
+            "admin:renewal_configuration:focus:lineages|json",
         )
     )
     def test_focus_json(self):
@@ -6135,6 +6557,12 @@ class FunctionalTests_RenewalConfiguration(AppTest):
             status=200,
         )
         assert "CertificateSigneds" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/%s/lineages.json"
+            % focus_id,
+            status=200,
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -6327,10 +6755,10 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form = {
             "account_key_option": "account_key_global_default",
             "account_key_global_default": res.json["valid_options"][
-                "AcmeAccount_GlobalDefault"
-            ]["AcmeAccountKey"]["key_pem_md5"],
-            "private_key_cycle": "account_default",
-            "key_technology": "account_default",
+                "SystemConfigurations"
+            ]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"],
+            "private_key_cycle__primary": "account_default",
+            "private_key_technology__primary": "account_default",
             "processing_strategy": "create_order",
             "domain_names_http01": ",".join(
                 [focus_item.domains_as_list[0], generate_random_domain(testCase=self)]
@@ -6363,8 +6791,8 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         form["account_key_option"].force_value("account_key_global_default")
         # this is rendered in the html
         # form["account_key_global_default"] =
-        form["private_key_cycle"].force_value("account_default")
-        form["key_technology"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
+        form["private_key_technology__primary"].force_value("account_default")
         form["domain_names_http01"] = generate_random_domain(testCase=self)
         form["note"] = note
 
@@ -6386,22 +6814,80 @@ class FunctionalTests_RenewalConfiguration(AppTest):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"][
-            "AcmeAccount_GlobalDefault"
-        ]["AcmeAccountKey"]["key_pem_md5"]
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         note = generate_random_domain(testCase=self)
 
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = account_key_global_default
-        form["private_key_cycle"] = "account_default"
-        form["key_technology"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
+        form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
         form["note"] = note
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/new.json",
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
+
+    @routes_tested(("admin:renewal_configuration:new_enrollment",))
+    def test_new_enrollment_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
+        """
+        eFactory_id = self._makeOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment?enrollment_factory_id=%s"
+            % eFactory_id,
+            status=200,
+        )
+
+        note = generate_random_domain(testCase=self)
+
+        form = res.form
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_RenewalConfiguration.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
+
+    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
+    def test_new_enrollment_json(self):
+        eFactory_id = self._makeOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
+            status=200,
+        )
+        assert "form_fields" in res.json
+
+        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
+        note = generate_random_domain(testCase=self)
+
+        form: Dict[str, Union[int, str]] = {}
+        form["enrollment_factory_id"] = eFactory_id
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
             form,
         )
         assert res2.json["result"] == "success"
@@ -6561,6 +7047,191 @@ class FunctionalTests_RootStoreVersion(AppTest):
         )
         assert "RootStoreVersion" in res.json
         assert res.json["RootStoreVersion"]["id"] == focus_id
+
+
+class FunctionalTests_RoutineExecution(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_RoutineExecution
+    """
+
+    @routes_tested(
+        (
+            "admin:routine_executions",
+            "admin:routine_executions-paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions", status=200
+        )
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions/1", status=200
+        )
+
+    @routes_tested(
+        (
+            "admin:routine_executions|json",
+            "admin:routine_executions-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions.json", status=200
+        )
+        assert "RoutineExecutions" in res.json
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/routine-executions/1.json", status=200
+        )
+        assert "RoutineExecutions" in res.json
+
+
+class FunctionalTests_SystemConfiguration(AppTest):
+
+    @routes_tested(("admin:system_configurations",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configurations", status=200
+        )
+
+    @routes_tested(("admin:system_configurations|json",))
+    def test_list_json(self):
+        # json
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configurations.json", status=200
+        )
+        assert "SystemConfigurations" in res.json
+
+    @routes_tested(
+        (
+            "admin:system_configuration:focus",
+            "admin:system_configuration:focus:edit",
+        )
+    )
+    def test_manipulate_html(self):
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1/edit", status=200
+        )
+
+        policy_name = "autocert"
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s" % policy_name,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s/edit" % policy_name,
+            status=200,
+        )
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        form = res.forms["form-system_configuration-edit"]
+        form["acme_account_id__backup"].force_value(
+            dbSystemConfiguration_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"].force_value(
+            dbSystemConfiguration_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"].force_value(
+            dbSystemConfiguration_global.acme_profile__backup
+        )
+        form["acme_profile__primary"].force_value(
+            dbSystemConfiguration_global.acme_profile__primary
+        )
+        form["private_key_cycle__backup"].force_value(
+            dbSystemConfiguration_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"].force_value(
+            dbSystemConfiguration_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"].force_value(
+            dbSystemConfiguration_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"].force_value(
+            dbSystemConfiguration_global.private_key_technology__primary
+        )
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+    @routes_tested(
+        (
+            "admin:system_configuration:focus|json",
+            "admin:system_configuration:focus:edit|json",
+        )
+    )
+    def test_manipulate_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1.json", status=200
+        )
+        assert "SystemConfiguration" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/1/edit.json", status=200
+        )
+        assert "instructions" in res.json
+
+        policy_name = "autocert"
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "form_fields" in res.json
+
+        # use the global as a tempalte
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        form: Dict[str, Union[int, str, None]] = {}
+        form["acme_account_id__backup"] = (
+            dbSystemConfiguration_global.acme_account_id__backup
+        )
+        form["acme_account_id__primary"] = (
+            dbSystemConfiguration_global.acme_account_id__primary
+        )
+        form["acme_profile__backup"] = dbSystemConfiguration_global.acme_profile__backup
+        form["acme_profile__primary"] = (
+            dbSystemConfiguration_global.acme_profile__primary
+        )
+        form["private_key_cycle__backup"] = (
+            dbSystemConfiguration_global.private_key_cycle__backup
+        )
+        form["private_key_cycle__primary"] = (
+            dbSystemConfiguration_global.private_key_cycle__primary
+        )
+        form["private_key_technology__backup"] = (
+            dbSystemConfiguration_global.private_key_technology__backup
+        )
+        form["private_key_technology__primary"] = (
+            dbSystemConfiguration_global.private_key_technology__primary
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/system-configuration/%s/edit.json" % policy_name,
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "SystemConfiguration" in res2.json
 
 
 class FunctionalTests_UniqueFQDNSet(AppTest):
@@ -7388,11 +8059,20 @@ class FunctionalTests_API(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_API
     """
 
-    @routes_tested(("admin:api", "admin:api:domain:autocert"))
+    @routes_tested(
+        (
+            "admin:api",
+            "admin:api:domain:autocert",
+            "admin:api:domain:certificate_if_needed",
+        )
+    )
     def test_passive(self):
         res = self.testapp.get("/.well-known/peter_sslers/api", status=200)
         res = self.testapp.get(
             "/.well-known/peter_sslers/api/domain/autocert", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
         )
 
     @routes_tested(
@@ -7868,7 +8548,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         return focus_item, focus_item.id
 
     def _make_one_AcmeAccount(self) -> Tuple[model_objects.AcmeAccount, int]:
-        focus_item, focus_item_id = make_one__AcmeAccount__random(self)
+        focus_item, focus_item_id = make_one__AcmeAccount__random__api(self)
         return (focus_item, focus_item_id)
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -8146,7 +8826,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         # we need two for this test
         assert len(_test_data["acme-order/new/freeform#1"]["domain_names_http01"]) == 2
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -8168,7 +8848,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
         )
@@ -8323,6 +9003,13 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
 
 class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
+    def test_a(self):
+        """
+        this exists just to ensure running the setup/teardown before other tests
+        this helps ensure parity between runs of single and multiple tests
+        """
+        pass
+
     @routes_tested(("admin:acme_order:new:freeform",))
     def _prep_AcmeOrder_html(
         self,
@@ -8344,7 +9031,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(self._domain_names_http01) == 2
         domain_names_http01 = ",".join(self._domain_names_http01)
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -8368,7 +9055,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"].force_value(processing_strategy)
         form["note"].force_value(note)
@@ -8693,7 +9380,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = res.forms["form-renewal_configuration-new_configuration"]
 
         # we can just change the `private_key_cycle`
-        form["private_key_cycle"].force_value("single_use")
+        form["private_key_cycle__primary"].force_value("single_use")
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
@@ -8758,7 +9445,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(_test_data["acme-order/new/freeform#2"]["domain_names_http01"]) == 2
 
         # the original test setup was for an interface that accepted account data
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#2"][
                 "account__contact"
@@ -8781,7 +9468,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
         form["private_key_option"].force_value("account_default")
-        form["private_key_cycle"].force_value("account_default")
+        form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -8985,6 +9672,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             assert "form-renewal_configuration-mark-inactive" in res.forms
         except:
             print(res.text)
+            raise
         form = res.forms["form-renewal_configuration-mark-inactive"]
         res = form.submit()
         assert res.status_code == 303
@@ -9120,7 +9808,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(self._domain_names_http01) == 2
         domain_names_http01 = ",".join(self._domain_names_http01)
 
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#1"][
                 "account__contact"
@@ -9140,7 +9828,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"] = processing_strategy
         form["note"] = note
@@ -9422,8 +10110,8 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = {
             "account_key_option": "account_key_reuse",
             "account_key_reuse": account_key,
-            "key_technology": "account_default",
-            "private_key_cycle": "single_use",
+            "private_key_technology__primary": "account_default",
+            "private_key_cycle__primary": "single_use",
             "domain_names_http01": renewal_configuration_1__domains,
         }
         res = self.testapp.post(
@@ -9493,7 +10181,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert len(_test_data["acme-order/new/freeform#2"]["domain_names_http01"]) == 2
 
         # the original test setup was for an interface that accepted account data
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact=_test_data["acme-order/new/freeform#2"][
                 "account__contact"
@@ -9513,7 +10201,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "single_use"
+        form["private_key_cycle__primary"] = "single_use"
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
         )
@@ -9787,6 +10475,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {},
         )
         assert res2.status_code == 200
+        pprint.pprint(res2.json)
         assert res2.json["result"] == "success"
         assert "AriCheck" in res2.json
 
@@ -10434,6 +11123,22 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert res.json["certificate_signed__latest_single"] is None
         assert res.json["certificate_signed__latest_multi"] is None
 
+        # Test 0 -- fail because the policy is not set up:
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-1.example.com"},
+            status=200,
+        )
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert "Error_Main" in res.json["form_errors"]
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. The `autocert` SystemConfiguration has not been configured"
+        )
+
+        setup_SystemConfiguration__api(self, "autocert")
+
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/autocert.json",
@@ -10461,7 +11166,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "AcmeOrder" not in res.json
 
         # Test 3 -- blocklist a domain, then try to autocert
-        dbDomainBlocklisted = make_one__DomainBlocklisted(
+        dbDomainBlocklisted = make_one__DomainBlocklisted__database(
             testCase=self,
             domain_name="test-domain-autocert-2.example.com",
         )
@@ -10615,19 +11320,19 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             lineage_2_certdata[_lineage_name] = (_cert_id, _ari_id)
 
         # prep with some orders of different lineage
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # same UniqueFQDNSet, different UniquelyChallengedFqdnSet
-        dbAcmeOrder_2 = make_one__AcmeOrder(
+        dbAcmeOrder_2 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
         # different domains
-        dbAcmeOrder_3 = make_one__AcmeOrder(
+        dbAcmeOrder_3 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="b.test-replaces.example.com",
             processing_strategy="process_single",
@@ -10721,15 +11426,15 @@ class IntegratedTests_Renewals(AppTestWSGI):
             Renew BOTH certs
         """
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-simple.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
@@ -10746,8 +11451,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         assert res2.status_code == 303
         assert res2.location.endswith("?result=success&operation=renewal+configuration")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         _results = lib_db_actions.routine__renew_expiring(
             self.ctx,
@@ -10776,20 +11482,21 @@ class IntegratedTests_Renewals(AppTestWSGI):
             Issue Backup
         """
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # actually, we order the backups first
         _results_11 = lib_db_actions.routine__order_missing(
@@ -10797,10 +11504,12 @@ class IntegratedTests_Renewals(AppTestWSGI):
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
         )
-        assert _results_11 == (1, 0)  # Order Backup for RC1
+        assert _results_11.count_records_success == 1  # Order Backup for RC1
+        assert _results_11.count_records_fail == 0
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # then we renew the expiring
         _results_12 = lib_db_actions.routine__renew_expiring(
@@ -10812,7 +11521,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             ),
             count_expected_configurations=2,
         )
-        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_success == 2  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_fail == 0
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
@@ -10839,15 +11549,15 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # # START - mimic `test_multi_pebble_renewal__realistic`
         # #
 
-        do__AcmeServers_sync(self)
+        do__AcmeServers_sync__api(self)
 
         # this will generate the primary cert
-        dbAcmeOrder_1 = make_one__AcmeOrder(
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
             domain_names_http01="test-multi-pebble-renewal-problematic.example.com",
             processing_strategy="process_single",
             account_key_option_backup="account_key_global_backup",
-            acme_profile="shortlived",
+            acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
 
@@ -10875,8 +11585,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             pdb.set_trace()
             _debug()
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # actually, we order the backups first
         _results_11 = lib_db_actions.routine__order_missing(
@@ -10885,14 +11596,16 @@ class IntegratedTests_Renewals(AppTestWSGI):
             create_public_server=lib_db_actions._create_public_server__fake,
             DEBUG=DEBUG,
         )
-        assert _results_11 == (1, 0)  # Order Backup for RC1
+        assert _results_11.count_records_success == 1  # Order Backup for RC1
+        assert _results_11.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
             print("just: routine__order_missing-1")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # then we renew the expiring
         _results_12 = lib_db_actions.routine__renew_expiring(
@@ -10905,7 +11618,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             count_expected_configurations=2,
             DEBUG=DEBUG,
         )
-        assert _results_12 == (2, 0)  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_success == 2  # Renew Primary/Backup for RC1
+        assert _results_12.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
@@ -10928,7 +11642,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             status=200,
         )
         form = res.forms["form-renewal_configuration-new_configuration"]
-        form["private_key_cycle"].force_value("single_use")
+        form["private_key_cycle__primary"].force_value("single_use")
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
@@ -10942,12 +11656,14 @@ class IntegratedTests_Renewals(AppTestWSGI):
         dbRenewalConfiguration_2 = lib_db_get.get__RenewalConfiguration__by_id(
             self.ctx, obj_id
         )
+        assert dbRenewalConfiguration_2
         assert dbRenewalConfiguration_2.is_active is True
 
         renewal_configuration_id__2 = dbRenewalConfiguration_2.id
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
 
         # order_missing MUST pick up the missing backup and missing Primary
         _results_21 = lib_db_actions.routine__order_missing(
@@ -10956,14 +11672,17 @@ class IntegratedTests_Renewals(AppTestWSGI):
             create_public_server=lib_db_actions._create_public_server__fake,
             DEBUG=DEBUG,
         )
-        assert _results_21 == (2, 0)  # Order Backup+Primary for RC2
+        assert _results_21.count_records_success == 2  # Order Backup+Primary for RC2
+        assert _results_21.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
             print("just: routine__order_missing-2")
 
-        # sleep 5 seconds to expire certs
-        time.sleep(5)
+        if SLEEP_FOR_EXPIRY:
+            # sleep 5 seconds to expire certs
+            time.sleep(5)
+
         # then we renew the expiring
         _results_22 = lib_db_actions.routine__renew_expiring(
             self.ctx,
@@ -10973,7 +11692,8 @@ class IntegratedTests_Renewals(AppTestWSGI):
             count_expected_configurations=2,
             DEBUG=DEBUG,
         )
-        assert _results_22 == (2, 0)  # Renew Backup+Primary for RC2
+        assert _results_22.count_records_success == 2  # Renew Backup+Primary for RC2
+        assert _results_22.count_records_fail == 0
 
         if DEBUG:
             pdb.set_trace()
@@ -10993,7 +11713,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # this tests a new order using every PrivateKey Option
 
         domain_names_http01 = "test-AcmeOrder-multiple-domains-1.example.com"
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__random(self)
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__random__api(self)
 
         def _update_AcmeAccount(acc__pkey_cycle: str, acc__pkey_technology: str):
             dbAcmeAccount.order_default_private_key_cycle_id = (
@@ -11104,7 +11824,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
                             )
                         )
 
-                        _dbRenewalConfiguration = make_one__RenewalConfiguration(
+                        _dbRenewalConfiguration = make_one__RenewalConfiguration__api(
                             self,
                             dbAcmeAccount=dbAcmeAccount,
                             domain_names_http01=domain_names_http01,
@@ -11235,14 +11955,14 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         """
         # Scenario A
         # step 1 - create the account
-        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount, acme_account_id) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
         )
 
         # step 1b - create the account AGAIN, this should work
-        (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount2, acme_account_id2) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
@@ -11253,7 +11973,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         # Scenario B
         # same key, different contact
         try:
-            (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem(
+            (dbAcmeAccount3, acme_account_id3) = make_one__AcmeAccount__pem__api(
                 self,
                 account__contact="dbAcmeAccount3@example.com",
                 pem_file_name="key_technology-rsa/AcmeAccountKey-3.pem",
@@ -11272,7 +11992,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         # Scenario C
         # different key, same contact
         try:
-            (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem(
+            (dbAcmeAccount4, acme_account_id4) = make_one__AcmeAccount__pem__api(
                 self,
                 account__contact="dbAcmeAccount@example.com",
                 pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
@@ -11314,7 +12034,7 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
 
         # Scenario E
         # alter the database, so db1 has db5s AcmeAccountKey and url
-        (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem(
+        (dbAcmeAccount5, acme_account_id5) = make_one__AcmeAccount__pem__api(
             self,
             account__contact="dbAcmeAccount5@example.com",
             pem_file_name="key_technology-rsa/AcmeAccountKey-4.pem",
@@ -11340,6 +12060,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
     python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer
     """
+
+    def test_a(self):
+        """
+        this exists just to ensure running the setup/teardown before other tests
+        this helps ensure parity between runs of single and multiple tests
+        """
+        pass
 
     def _calculate_stats(self):
         stats = {}
@@ -11446,7 +12173,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccountKey.key_pem_md5
         form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
         resp = requests.post(
@@ -11454,6 +12181,148 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             data=form,
         )
         return resp
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested(
+        (
+            "admin:acme_server:focus:acme_server_configurations-paginated",
+            "admin:acme_server:focus:acme_server_configurations",
+            "admin:notifications:all-paginated",
+            "admin:notifications:all",
+            "admin:notifications:all-paginated|json",
+            "admin:notifications:all|json",
+            "admin:notification:focus:mark|json",
+            "admin:notification:focus:mark",
+        )
+    )
+    def test_AcmeServer_Notifications(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeServer_Notifications
+        """
+
+        def acme_account_update(acme_account_id: int) -> bool:
+            # authenticating will auto-update the directory and create a notification
+            res = self.testapp.post(
+                "/.well-known/peter_sslers/acme-account/%s/acme-server/authenticate"
+                % acme_account_id,
+                {},
+            )
+            assert (
+                res.location
+                == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--authenticate&is_authenticated=True"""
+                % acme_account_id
+            )
+            return True
+
+        def _adjust_directory() -> bool:
+            dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+                self.ctx, "global"
+            )
+            assert dbSystemConfiguration
+            if not dbSystemConfiguration.acme_account_id__primary:
+                raise ValueError("dbSystemConfiguration not set up")
+            # grab these before losing session state
+            _acme_account_id__primary = dbSystemConfiguration.acme_account_id__primary
+            dbAcmeAccount = dbSystemConfiguration.acme_account__primary
+            dbAcmeServer = dbAcmeAccount.acme_server
+            if not dbAcmeServer.directory_latest:
+                raise ValueError("dbAcmeServer.directory_latest does not exist")
+            _directoryJson = json.loads(dbAcmeServer.directory_latest.directory)
+            if "peterSSLersTesting" not in _directoryJson:
+                _directoryJson["peterSSLersTesting"] = 0
+            _directoryJson["peterSSLersTesting"] += 1
+            dbAcmeServer.directory_latest.directory = json.dumps(_directoryJson)
+            self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
+            self.ctx.dbSession.commit()
+
+            acme_account_update(_acme_account_id__primary)
+
+            return True
+
+        # base everything off the dbSystemConfiguration
+        dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration
+        if not dbSystemConfiguration.acme_account_id__primary:
+            raise ValueError("dbSystemConfiguration not set up")
+        acme_account_id__primary = dbSystemConfiguration.acme_account_id__primary
+        acme_server_id__primary = (
+            dbSystemConfiguration.acme_account__primary.acme_server_id
+        )
+
+        # run this first to be safe
+        acme_account_update(acme_account_id__primary)
+
+        # this will adjust, then update
+        _adjust_directory()
+
+        res = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
+        res2 = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
+
+        assert res2.forms
+        form = res2.forms[0]
+
+        # make sure it's the mark|html
+        re_expected = re.compile(r"/\.well-known/peter_sslers/notification/\d+/mark")
+        assert re_expected.match(form.action)
+
+        # submit it
+        res3 = form.submit()
+        assert (
+            res3.location
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/notifications?result=success&operation=mark&action=dismiss"
+        )
+
+        # this will adjust, then update
+        _adjust_directory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notifications.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notifications/1.json", status=200
+        )
+        assert res.json["result"] == "success"
+        assert "Notifications" in res.json
+
+        _active_notification_id = None
+        for notification in res.json["Notifications"]:
+            if notification["is_active"]:
+                _active_notification_id = notification["id"]
+                break
+        assert _active_notification_id
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/notification/%s/mark.json"
+            % _active_notification_id,
+            status=200,
+        )
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/peter_sslers/notification/%s/mark.json"
+            % _active_notification_id,
+            {"action": "dismiss"},
+            status=200,
+        )
+
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "mark"
+        assert res.json["action"] == "dismiss"
+        assert res.json["Notification"]["is_active"] is False
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s/acme-server-configurations"
+            % acme_server_id__primary,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-server/%s/acme-server-configurations/1"
+            % acme_server_id__primary,
+            status=200,
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_strict
@@ -11723,61 +12592,165 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 self.ctx.pyramid_transaction_commit()
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
     @under_pebble_strict
-    @routes_tested(("admin:api:domain:certificate-if-needed",))
+    @routes_tested(("admin:api:domain:certificate_if_needed|json",))
     def test_domain_certificate_if_needed(self):
         """
-        python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+        python -m unittest \
+            tests.test_pyramid_app.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+        pytest -p no:logging \
+            tests/test_pyramid_app.py::IntegratedTests_AcmeServer::test_domain_certificate_if_needed
         """
+        dbSystemConfiguration_cin = ensure_SystemConfiguration__database(
+            self, "certificate-if-needed"
+        )
+        assert dbSystemConfiguration_cin.is_configured
+
+        if True:
+            # Try to replicate bug/flaky-test
+            dbSystemConfiguration_cin.acme_account__primary.acme_server.profiles = ""
+            if dbSystemConfiguration_cin.acme_account__backup:
+                dbSystemConfiguration_cin.acme_account__backup.acme_server.profiles = ""
+            self.ctx.pyramid_transaction_commit()
+            dbSystemConfiguration_cin = self.ctx.dbSession.merge(
+                dbSystemConfiguration_cin
+            )
+
+        DOMAIN_NAME__SINGLE = "test-domain-certificate-if-needed-1.example.com"
+        DOMAIN_NAME__MULTI = (
+            "test-domain-certificate-if-needed-1.example.com",
+            "test-domain-certificate-if-needed-2.example.com",
+        )
+        DOMAIN_NAME__FAIL = "fail-a-1.example.com"
+
+        # res1 - GET - instructions
         res = self.testapp.get(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
+            status=200,
         )
         assert "instructions" in res.json
-        assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
-        key_pem_md5 = res.json["valid_options"]["AcmeAccount_GlobalDefault"][
-            "AcmeAccountKey"
-        ]["key_pem_md5"]
+        assert "SystemConfigurations" in res.json["valid_options"]
+        assert res.json["valid_options"]["SystemConfigurations"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]
+        assert res.json["valid_options"]["SystemConfigurations"][
+            "certificate-if-needed"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]
 
+        # res2 - POST - instructions
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", {}, status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
+            {},
+            status=200,
         )
         assert "instructions" not in res2.json
         assert res2.json["result"] == "error"
 
+        # grab the key from `res1 - GET - instructions`
+        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
         # prep the form
-        form = {}
-        form["account_key_option"] = "account_key_global_default"
-        form["account_key_global_default"] = key_pem_md5
-        form["account__order_default_private_key_cycle"] = "account_daily"
-        form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        form: Dict[str, str] = {}
+        # primary
+        form["account_key_option__primary"] = "system_configuration_default"
+        form["private_key_cycle__primary"] = "system_configuration_default"
+        form["private_key_option__primary"] = "private_key_generate"
+        form["private_key_technology__primary"] = "system_configuration_default"
+        form["acme_profile__primary"] = "shortlived"
+        # backup
+        form["account_key_option__backup"] = "system_configuration_default"
+        form["private_key_cycle__backup"] = "system_configuration_default"
+        form["private_key_option__backup"] = "private_key_generate"
+        form["private_key_technology__backup"] = "system_configuration_default"
+        form["acme_profile__backup"] = "shortlived"
+        # shared
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res3 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res3.status_code == 200
-        assert res3.json["result"] == "success"
-        assert "domain_results" in res3.json
-        assert _domain_name in res3.json["domain_results"]
+
+        _did_authenticate = False
+        if res3.json["result"] == "error":
+            print("#" * 80)
+            print("#" * 80)
+            print("Pass 1 - Generate a single domain")
+            print("res3.json == ERROR")
+            pprint.pprint(res3.json)
+            print("#" * 80)
+            print("#" * 80)
+            if ("acme_profile__primary" in res3.json["form_errors"]) or (
+                "acme_profile__backup" in res3.json["form_errors"]
+            ):
+                print("\n\n\n\n\n")
+                print("AUTHENTICATING....")
+                _did_authenticate = auth_SystemConfiguration_accounts__api(
+                    self, dbSystemConfiguration_cin
+                )
+                print("did authenticate?", _did_authenticate)
+            else:
+                raise
+
+        # try this again...
+        res3b = self.testapp.post(
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
+        )
+        assert res3b.status_code == 200
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("_did_authenticate ?", _did_authenticate)
+        pprint.pprint(res3b.json)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        print("*" * 80)
+        assert res3b.json["result"] == "success"
+        assert "domain_results" in res3b.json
+        assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
         assert (
-            res3.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res3b.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "new"
         )
-        assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
+        if _did_authenticate:
+            # if we authenticated due to a failed form, we would have saved the dbDomain
+            assert (
+                res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+                == "existing"
+            )
+        else:
+            assert (
+                res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+                == "new"
+            )
+        assert (
+            res3b.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"]
+            is not None
+        )
 
         # Pass 2 - Try multiple domains
-        _domain_names = (
-            "test-domain-certificate-if-needed-1.example.com",
-            "test-domain-certificate-if-needed-2.example.com",
-        )
-        form["domain_name"] = ",".join(_domain_names)
+        form["domain_name"] = ",".join(DOMAIN_NAME__MULTI)
         res4 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res4.status_code == 200
         assert res4.json["result"] == "error"
@@ -11787,59 +12760,58 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         # Pass 3 - Try a failure domain
-        _domain_name = "fail-a-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__FAIL
         res5 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res5.status_code == 200
-        assert res5.json["result"] == "success"
-        assert (
-            res5.json["domain_results"][_domain_name]["certificate_signed.status"]
-            == "fail"
-        )
-        assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res5.json["domain_results"][_domain_name]["acme_order.id"] is not None
-        assert (
-            res5.json["domain_results"][_domain_name]["error"]
-            == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
+        assert res5.json["result"] == "error"
+        assert res5.json["form_errors"]["Error_Main"].startswith(
+            "There was an error with your form. An AcmeOrder was created but errored. The AcmeOrder id is: "
         )
 
         # Pass 4 - redo the first domain, again
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res6 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res6.status_code == 200
         assert res6.json["result"] == "success"
         assert "domain_results" in res6.json
-        assert _domain_name in res6.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res6.json["domain_results"]
         assert (
-            res6.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res6.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "exists"
         )
-        assert res6.json["domain_results"][_domain_name]["domain.status"] == "existing"
-        assert res6.json["domain_results"][_domain_name]["acme_order.id"] is None
+        assert (
+            res6.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+            == "existing"
+        )
+        assert res6.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is None
 
         # Pass 5 - do it again
         # originally this disabled the domain, but now we just do a duplicate
-
-        _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res7 = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res7.status_code == 200
         assert res7.json["result"] == "success"
         assert "domain_results" in res7.json
-        assert _domain_name in res7.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res7.json["domain_results"]
         assert (
-            res7.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res7.json["domain_results"][DOMAIN_NAME__SINGLE][
+                "certificate_signed.status"
+            ]
             == "exists"
         )
-        assert res7.json["domain_results"][_domain_name]["domain.status"] == "existing"
-        assert res7.json["domain_results"][_domain_name]["acme_order.id"] is None
+        assert (
+            res7.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"]
+            == "existing"
+        )
+        assert res7.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is None
 
     @unittest.skipUnless(RUN_REDIS_TESTS, "Not Running Against: redis")
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
@@ -11849,7 +12821,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         (
             # "admin:api:redis:prime",
             "admin:api:redis:prime|json",
-            "admin:api:domain:certificate-if-needed",  # used to prep
+            "admin:api:domain:certificate-if-needed|json",  # used to prep
             "admin:api:update_recents|json",  # used to prep
         )
     )
@@ -11858,41 +12830,65 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -munittest tests.test_pyramid_app.IntegratedTests_AcmeServer.test_redis
         """
 
+        dbSystemConfiguration_cin = ensure_SystemConfiguration__database(
+            self, "certificate-if-needed"
+        )
+        assert dbSystemConfiguration_cin.is_configured
+
+        auth_SystemConfiguration_accounts__api(
+            self,
+            dbSystemConfiguration_cin,
+            auth_only="primary",
+        )
+
+        DOMAIN_NAME__SINGLE = "test-redis-1.example.com"
+
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we have a cert
         # prep the form
         res = self.testapp.get(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", status=200
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json",
+            status=200,
         )
         assert "instructions" in res.json
-        assert "AcmeAccount_GlobalDefault" in res.json["valid_options"]
-        key_pem_md5 = res.json["valid_options"]["AcmeAccount_GlobalDefault"][
-            "AcmeAccountKey"
-        ]["key_pem_md5"]
+        assert "SystemConfigurations" in res.json["valid_options"]
+        assert "global" in res.json["valid_options"]["SystemConfigurations"]
+        assert res.json["valid_options"]["SystemConfigurations"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+        key_pem_md5 = res.json["valid_options"]["SystemConfigurations"]["global"][
+            "AcmeAccounts"
+        ]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
-        form = {}
-        form["account_key_option"] = "account_key_global_default"
-        form["account_key_global_default"] = key_pem_md5
-        form["account__order_default_private_key_cycle"] = "account_daily"
-        form["private_key_option"] = "account_default"
-        form["private_key_cycle"] = "account_default"
+        # prep the form
+        form: Dict[str, str] = {}
+        # primary
+        form["account_key_option__primary"] = "system_configuration_default"
+        form["private_key_cycle__primary"] = "system_configuration_default"
+        form["private_key_option__primary"] = "private_key_generate"
+        form["private_key_technology__primary"] = "system_configuration_default"
+        form["acme_profile__primary"] = "shortlived"
+        # backup
+        form["account_key_option__backup"] = "none"
+        # shared
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
-        _domain_name = "test-redis-1.example.com"
-        form["domain_name"] = _domain_name
+        form["domain_name"] = DOMAIN_NAME__SINGLE
         res = self.testapp.post(
-            "/.well-known/peter_sslers/api/domain/certificate-if-needed", form
+            "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "domain_results" in res.json
-        assert _domain_name in res.json["domain_results"]
+        assert DOMAIN_NAME__SINGLE in res.json["domain_results"]
         assert (
-            res.json["domain_results"][_domain_name]["certificate_signed.status"]
+            res.json["domain_results"][DOMAIN_NAME__SINGLE]["certificate_signed.status"]
             == "new"
         )
-        assert res.json["domain_results"][_domain_name]["domain.status"] == "new"
-        assert res.json["domain_results"][_domain_name]["acme_order.id"] is not None
+        assert res.json["domain_results"][DOMAIN_NAME__SINGLE]["domain.status"] == "new"
+        assert (
+            res.json["domain_results"][DOMAIN_NAME__SINGLE]["acme_order.id"] is not None
+        )
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents
@@ -11931,6 +12927,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 class CoverageAssurance_AuditTests(AppTest):
     """
     python -m unittest tests.test_pyramid_app.CoverageAssurance_AuditTests
+    pytest tests/test_pyramid_app.py::CoverageAssurance_AuditTests
     """
 
     def test_audit_route_coverage(self):

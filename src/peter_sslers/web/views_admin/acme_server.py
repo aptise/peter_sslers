@@ -156,6 +156,41 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:acme_server:focus:acme_server_configurations",
+        renderer="/admin/acme_server-focus-acme_server_configurations.mako",
+    )
+    @view_config(
+        route_name="admin:acme_server:focus:acme_server_configurations-paginated",
+        renderer="/admin/acme_server-focus-acme_server_configurations.mako",
+    )
+    def related_AcmeServerConfigurations(self):
+        dbAcmeServer = self._focus()
+        items_count = lib_db.get.get__AcmeServerConfiguration__by_AcmeServerId__count(
+            self.request.api_context,
+            dbAcmeServer.id,
+        )
+        url_template = "%s/acme-server-configurations/{0}" % self._focus_url
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__AcmeServerConfiguration__by_AcmeServerId__paginated(
+                self.request.api_context,
+                dbAcmeServer.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeServer": dbAcmeServer,
+            "AcmeServerConfigurations_count": items_count,
+            "AcmeServerConfigurations": items_paged,
+            "pager": pager,
+        }
+
     @view_config(route_name="admin:acme_server:focus:check_support", renderer=None)
     @view_config(
         route_name="admin:acme_server:focus:check_support|json", renderer="json"
@@ -189,7 +224,7 @@ class View_Focus(Handler):
 
     def _check_support__submit(self, dbAcmeServer):
         try:
-            result = lib_db.actions_acme.check_endpoint_support(
+            changed = lib_db.actions_acme.check_endpoint_support(
                 self.request.api_context,
                 dbAcmeServer,
             )
@@ -197,14 +232,16 @@ class View_Focus(Handler):
                 return {
                     "result": "success",
                     "operation": "check-support",
-                    "check-support": result,
+                    "check-support": True,
                     "AcmeServer": dbAcmeServer.as_json,
+                    "changes-detected": changed,
                 }
             url_result = (
-                "%s?result=success&operation=check-support&check-support=%s"
+                "%s?result=success&operation=check-support&check-support=%s&changes-detected=%s"
                 % (
                     self._focus_url,
-                    result,
+                    True,
+                    changed,
                 )
             )
         except Exception as exc:

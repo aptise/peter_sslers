@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeDnsServerAccount
     from ...model.objects import Domain
     from ...model.objects import RenewalConfiguration
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 
 # ==============================================================================
@@ -40,7 +40,7 @@ def ensure_domain_names_to_acmeDnsServer(
     dbAcmeDnsServer: "AcmeDnsServer",
     discovery_type: str,
 ) -> Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]:
-    acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.root_url)
+    acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.api_url)
     domainObjectsMap: TYPE_DomainName_2_DomainObject = {}
     accountObjectsMap: TYPE_DomainName_2_AcmeDnsServerAccount = {}
     for _domain_name in domain_names:

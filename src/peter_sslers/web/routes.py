@@ -19,6 +19,7 @@ def includeme(config: "Configurator") -> None:
     config.include("pyramid_route_7")
     config.add_route_7_kvpattern("id", r"\d+")
     config.add_route_7_kvpattern("page", r"\d+")
+    config.add_route_7_kvpattern("websafe_or_id", r"[\d\w\-]+")
 
     # public
     if enable_views_public:
@@ -317,6 +318,11 @@ def _admin_views(config: "Configurator") -> None:
         "/acme-dns-server-account/{@id}",
         jsonify=True,
     )
+    config.add_route_7(
+        "admin:acme_dns_server_account:focus:audit",
+        "/acme-dns-server-account/{@id}/audit",
+        jsonify=True,
+    )
 
     # !!!: AcmeEventLog
     config.add_route_7(
@@ -441,6 +447,11 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
+        "admin:acme_server:focus:acme_server_configurations",
+        "/acme-server/{@id}/acme-server-configurations",
+        paginate=True,
+    )
+    config.add_route_7(
         "admin:acme_server:focus:check_support",
         "/acme-server/{@id}/check-support",
         jsonify=True,
@@ -454,7 +465,9 @@ def _admin_views(config: "Configurator") -> None:
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
     config.add_route_7(
-        "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
+        "admin:api:domain:certificate_if_needed",
+        "/api/domain/certificate-if-needed",
+        jsonify=True,
     )
     config.add_route_7(
         "admin:api:domain:autocert",
@@ -540,27 +553,6 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_cas:preferred",
-        "/certificate-cas/preferred",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:add",
-        "/certificate-cas/preferred/add",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:delete",
-        "/certificate-cas/preferred/delete",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:certificate_cas:preferred:prioritize",
-        "/certificate-cas/preferred/prioritize",
-        jsonify=True,
-    )
-
-    config.add_route_7(
         "admin:certificate_ca:focus",
         "/certificate-ca/{@id}",
         jsonify=True,
@@ -617,6 +609,34 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_ca_chain:upload_chain",
         "/certificate-ca-chain/upload-chain",
+        jsonify=True,
+    )
+
+    # !!!: CertificateCAPreferencePolicys
+    config.add_route_7(
+        "admin:certificate_ca_preference_policys",
+        "/certificate-ca-preference-policys",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus",
+        "/certificate-ca-preference-policy/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:add",
+        "/certificate-ca-preference-policy/{@id}/add",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:delete",
+        "/certificate-ca-preference-policy/{@id}/delete",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:certificate_ca_preference_policy:focus:prioritize",
+        "/certificate-ca-preference-policy/{@id}/prioritize",
         jsonify=True,
     )
 
@@ -684,6 +704,12 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:certificate_signeds:inactive_unexpired",
         "/certificate-signeds/inactive-unexpired",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:certificate_signeds:active_duplicates",
+        "/certificate-signeds/active-duplicates",
         jsonify=True,
         paginate=True,
     )
@@ -981,6 +1007,55 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
+    # !!!: EnrollmentFactorys
+    config.add_route_7(
+        "admin:enrollment_factorys",
+        "/enrollment-factorys",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factorys:new",
+        "/enrollment-factorys/new",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factory:focus",
+        "/enrollment-factory/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factory:focus:edit",
+        "/enrollment-factory/{@id}/edit",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factory:focus:certificate_signeds",
+        "/enrollment-factory/{@id}/certificate-signeds",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:enrollment_factory:focus:renewal_configurations",
+        "/enrollment-factory/{@id}/renewal-configurations",
+        jsonify=True,
+        paginate=True,
+    )
+
+    # !!!: Operations & Sync Events
+    config.add_route_7(
+        "admin:notifications:all",
+        "/notifications",
+        paginate=True,
+        jsonify=True,
+    )
+    # -
+    config.add_route_7(
+        "admin:notification:focus:mark",
+        "/notification/{@id}/mark",
+        jsonify=True,
+    )
+
     # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -
@@ -1093,6 +1168,11 @@ def _admin_views(config: "Configurator") -> None:
         "/renewal-configuration/new",
         jsonify=True,
     )
+    config.add_route_7(
+        "admin:renewal_configuration:new_enrollment",
+        "/renewal-configuration/new-enrollment",
+        jsonify=True,
+    )
 
     config.add_route_7(
         "admin:renewal_configuration:focus",
@@ -1110,6 +1190,12 @@ def _admin_views(config: "Configurator") -> None:
         "/renewal-configuration/{@id}/certificate-signeds",
         jsonify=True,
         paginate=True,
+    )
+    config.add_route_7(
+        "admin:renewal_configuration:focus:lineages",
+        "/renewal-configuration/{@id}/lineages",
+        jsonify=True,
+        paginate=False,
     )
 
     config.add_route_7(
@@ -1147,6 +1233,31 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:root_store_version:focus",
         "/root-store-version/{@id}",
+        jsonify=True,
+    )
+
+    # !!!: Routine Executions
+    config.add_route_7(
+        "admin:routine_executions",
+        "/routine-executions",
+        jsonify=True,
+        paginate=True,
+    )
+
+    # !!!: SystemConfigurations
+    config.add_route_7(
+        "admin:system_configurations",
+        "/system-configurations",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:system_configuration:focus",
+        "/system-configuration/{@websafe_or_id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:system_configuration:focus:edit",
+        "/system-configuration/{@websafe_or_id}/edit",
         jsonify=True,
     )
 

@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li class="active">Focus [${Domain.id}]</li>
+        <li class="active">Focus [${Domain.id}-${Domain.domain_name}]</li>
     </ol>
 </%block>
 
@@ -85,7 +85,7 @@
                 </div>
             % endif
 
-            <table class="table table-condensed">
+            <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -105,6 +105,14 @@
                     <tr>
                         <th>domain_name</th>
                         <td><code>${Domain.domain_name}</code></td>
+                    </tr>
+                    <tr>
+                        <th>registered</th>
+                        <td><code>${Domain.registered}</code></td>
+                    </tr>
+                    <tr>
+                        <th>suffix</th>
+                        <td><code>${Domain.suffix}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
@@ -245,10 +253,32 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>CertificateSigneds ALL</th>
                         <td>
                             % if Domain.certificate_signeds__5:
                             ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
+                            % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds Single Primary</th>
+                        <td>
+                            % if Domain.certificate_signeds__single_primary_5:
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_primary_5, show_domains=True, show_expiring_days=True)}
+                            % else:
+                                No ACTIVE recents; inactive items will not appear on this view.
+                            % endif
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds Single Backup</th>
+                        <td>
+                            % if Domain.certificate_signeds__single_backup_5:
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_backup_5, show_domains=True, show_expiring_days=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif

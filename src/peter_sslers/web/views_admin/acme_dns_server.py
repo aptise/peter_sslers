@@ -129,7 +129,8 @@ class View_New(Handler):
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/acme-dns-server/new.json",
             "form_fields": {
-                "root_url": "The root url of the api",
+                "api_url": "The root url of the api",
+                "domain": "The domain DNS records point to",
             },
         }
     )
@@ -161,7 +162,9 @@ class View_New(Handler):
                 dbAcmeDnsServer,
                 _is_created,
             ) = lib_db.getcreate.getcreate__AcmeDnsServer(
-                self.request.api_context, root_url=formStash.results["root_url"]
+                self.request.api_context,
+                api_url=formStash.results["api_url"],
+                domain=formStash.results["domain"],
             )
 
             # in "basic" mode we only have a single server,
@@ -271,7 +274,7 @@ class View_Focus(Handler):
     def _check__submit(self, dbAcmeDnsServer):
         try:
             sess = new_BrowserSession()
-            resp = sess.get("%s/health" % dbAcmeDnsServer.root_url)
+            resp = sess.get("%s/health" % dbAcmeDnsServer.api_url)
             if resp.status_code != 200:
                 raise ValueError("invalid status_code: %s" % resp.status_code)
             if self.request.wants_json:
@@ -398,6 +401,7 @@ class View_Focus(Handler):
 
             try:
                 # this function checks the domain names match a simple regex
+                # domains will also be lowercase+strip
                 domain_names = cert_utils.utils.domains_from_string(
                     formStash.results["domain_names"]
                 )
@@ -586,6 +590,7 @@ class View_Focus(Handler):
             for test_domain in ("domain_name", "fulldomain"):
                 try:
                     # this function checks the domain names match a simple regex
+                    # domains will also be lowercase+strip
                     _domain_names = cert_utils.utils.domains_from_string(
                         formStash.results[test_domain]
                     )
@@ -801,11 +806,14 @@ class View_Focus_Manipulate(View_Focus):
             "GET": None,
             "examples": [
                 """curl """
-                """--form 'action=root_url' """
+                """--form 'action=api_url' """
                 """{ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
             ],
             "instructions": """curl {ADMIN_PREFIX}/acme-dns-server/{ID}/edit.json""",
-            "form_fields": {"root_url": "the url"},
+            "form_fields": {
+                "api_url": "the url",
+                "domain": "the domain",
+            },
         }
     )
     def edit(self):
@@ -843,14 +851,17 @@ class View_Focus_Manipulate(View_Focus):
             )
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["acme_dns_server.id"] = dbAcmeDnsServer.id
-            event_payload_dict["old.root_url"] = dbAcmeDnsServer.root_url
-            event_payload_dict["new.root_url"] = formStash.results["root_url"]
+            event_payload_dict["old.api_url"] = dbAcmeDnsServer.api_url
+            event_payload_dict["new.api_url"] = formStash.results["api_url"]
+            event_payload_dict["old.domain"] = dbAcmeDnsServer.domain
+            event_payload_dict["new.domain"] = formStash.results["domain"]
 
             try:
-                result = lib_db.update.update_AcmeDnsServer__root_url(
+                result = lib_db.update.update_AcmeDnsServer__api_url__domain(
                     self.request.api_context,
                     dbAcmeDnsServer,
-                    formStash.results["root_url"],
+                    api_url=formStash.results["api_url"],
+                    domain=formStash.results["domain"],
                 )
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

@@ -43,7 +43,7 @@
                             % for acme_account in results['AcmeAccount']['items']:
                                 <tr>
                                     <td>
-                                        <a  class="btn btn-xs btn-info"
+                                        <a  class="label label-info"
                                             href="${admin_prefix}/acme-account/${acme_account.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -81,7 +81,7 @@
                             % for key in results['PrivateKey']['items']:
                                 <tr>
                                     <td>
-                                        <a  class="btn btn-xs btn-info"
+                                        <a  class="label label-info"
                                             href="${admin_prefix}/private-key/${key.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -120,7 +120,7 @@
                             % for cert in results['CertificateSigned']['items']:
                                 <tr>
                                     <td>
-                                        <a  class="btn btn-xs btn-info"
+                                        <a  class="label label-info"
                                             href="${admin_prefix}/certificate-signed/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -160,7 +160,7 @@
                             % for cert in results['CertificateCA']['items']:
                                 <tr>
                                     <td>
-                                        <a  class="btn btn-xs btn-info"
+                                        <a  class="label label-info"
                                             href="${admin_prefix}/certificate-ca/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -190,7 +190,7 @@
                             % for csr in results['CertificateRequest']['items']:
                                 <tr>
                                     <td>
-                                        <a  class="btn btn-xs btn-info"
+                                        <a  class="label label-info"
                                             href="${admin_prefix}/certificate-request/${csr.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

@@ -240,6 +240,7 @@ jobs:
         export SSL_RUN_REDIS_TESTS=1
         export DEBUG_ACMEORDERS=1
         export DEBUG_DBFREEZE=1
+        export DEBUG_DBFREEZE_ARCHIVE=1
         export DEBUG_GITHUB_ENV=1
         export DEBUG_METRICS=1
         export DEBUG_PEBBLE_REDIS=1
@@ -247,6 +248,7 @@ jobs:
 
         export PATH=$GOPATH/bin:$PATH
         tox -e py -- ${{ matrix.pytest-args }}
+
 
 # These are only needed for debugging
 #

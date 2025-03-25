@@ -9,6 +9,7 @@ from pyramid.view import view_config
 from ..lib.docs import docify
 from ..lib.handler import Handler
 from ...lib import db as lib_db
+from ...lib import utils_dns
 from ...model.objects import AcmeDnsServerAccount
 
 # ==============================================================================
@@ -108,4 +109,48 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "AcmeDnsServerAccount": dbAcmeDnsServerAccount,
+        }
+
+    @view_config(
+        route_name="admin:acme_dns_server_account:focus:audit",
+        renderer="/admin/acme_dns_server_account-focus-audit.mako",
+    )
+    @view_config(
+        route_name="admin:acme_dns_server_account:focus:audit|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server-account/{ID}/audit.json",
+            "section": "acme-dns-server-account",
+            "about": """AcmeDnsServerAccount audit""",
+            "POST": None,
+            "GET": True,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server-account/1/audit.json",
+        }
+    )
+    def audit(self):
+        dbAcmeDnsServerAccount = self._focus(eagerload_web=True)
+
+        r_cname = utils_dns.get_records(dbAcmeDnsServerAccount.cname_source, "CNAME")
+        r_txt = utils_dns.get_records(dbAcmeDnsServerAccount.cname_source, "TXT")
+
+        rval = {
+            "cname_source": dbAcmeDnsServerAccount.cname_source,
+            "cname_target": dbAcmeDnsServerAccount.cname_target,
+            "resolved": {
+                "CNAME": r_cname,
+                "TXT": r_txt,
+            },
+        }
+
+        if self.request.wants_json:
+            return {
+                "result": "success",
+                "AcmeDnsServerAccount": dbAcmeDnsServerAccount.as_json,
+                "audit": rval,
+            }
+        return {
+            "project": "peter_sslers",
+            "AcmeDnsServerAccount": dbAcmeDnsServerAccount,
+            "AuditResults": rval,
         }

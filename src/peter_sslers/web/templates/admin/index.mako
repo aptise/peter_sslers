@@ -3,39 +3,19 @@
 
 
 <%block name="page_header_col">
-##    <h2>Admin Index</h2>
-
-    % if not AcmeAccount_GlobalDefault:
+    % if not SystemConfiguration_global.is_configured:
         <div class="alert alert-warning">
             <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
             <b>Setup Not Finished</b>
-            There is no Global Default AcmeAccount configured.
-            Any AcmeAccount for can be configured as the Global Default.
-            Browse AcmeAccounts at
+            The global SystemConfiguration has not been configured.
             <a  class="label label-info"
-                href="${admin_prefix}/acme-accounts"
+                href="${admin_prefix}/system-configurations"
             >
                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                AcmeAccounts
+                SystemConfigurations
             </a>
         </div>
     % endif
-    % if not AcmeAccount_GlobalBackup:
-        <div class="alert alert-warning">
-            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-            <b>Setup Not Finished</b>
-            There is no Global Backup AcmeAccount configured.
-            Any AcmeAccount for can be configured as the Global Backup.
-            Browse AcmeAccounts at
-            <a  class="label label-info"
-                href="${admin_prefix}/acme-accounts"
-            >
-                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                AcmeAccounts
-            </a>
-        </div>
-    % endif
-
 </%block>
 
 
@@ -55,11 +35,35 @@
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                 Settings</a>
+            <a  href="${admin_prefix}/system-configurations"
+                class="btn btn-xs btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                SystemConfigurations</a>
+            <a  href="${admin_prefix}/enrollment-factorys"
+                class="btn btn-xs btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                EnrollmentFactorys</a>
             <a href="${admin_prefix}/api"
                 class="btn btn-xs btn-warning"
             >
                 <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span>
                 api endpoints
+                </a>
+            <%
+                if Notifications_count:
+                    notifications_class = "danger"
+                    notifications_badge = '<span class="badge">%s</span>' % Notifications_count
+                else:
+                    notifications_class = "warning"
+                    notifications_badge = ''
+            %>
+            <a href="${admin_prefix}/notifications"
+                class="btn btn-xs btn-${notifications_class}"
+            >
+                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                notifications ${notifications_badge|n}
                 </a>
         </div>
     </div>
@@ -154,6 +158,12 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domain-autocerts
                     </a></li>
+                <li><a href="${admin_prefix}/routine-executions"
+                       title="RoutineExecutions"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    routine-executions
+                    </a></li>
             </ul>
 
             <h3>Upstream Providers</h3>
@@ -183,6 +193,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-ca-chains</a></li>
+                <li><a href="${admin_prefix}/certificate-ca-preference-policys"
+                       title="CertificateCAPreferencePolicys"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificate-ca-preference-policys</a></li>
             </ul>
 
 

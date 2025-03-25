@@ -399,6 +399,7 @@ class View_Focus(Handler):
             # validate the domain names - add:
             try:
                 # this function checks the domain names match a simple regex
+                # domains will also be lowercase+strip
                 domain_names_add = cert_utils.utils.domains_from_string(
                     domain_names_add
                 )
@@ -410,6 +411,7 @@ class View_Focus(Handler):
             # validate the domain names - del:
             try:
                 # this function checks the domain names match a simple regex
+                # domains will also be lowercase+strip
                 domain_names_del = cert_utils.utils.domains_from_string(
                     domain_names_del
                 )
@@ -544,6 +546,7 @@ class ViewNew(Handler):
             # Pass 1- Validate Input
             try:
                 # this function checks the domain names match a simple regex
+                # domains will also be lowercase+strip
                 domain_names = cert_utils.utils.domains_from_string(domain_names)
             except ValueError as exc:  # noqa: F841
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`

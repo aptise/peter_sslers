@@ -110,20 +110,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Renew?</th>
-                        <td>
-                            &nbsp;
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=${UniqueFQDNSet.id}"
-                                title="Queue a CertificateSigned"
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                DEPRECATED - MIGRATE TO RenewalConfiguration
-                                Queue a CertificateSigned
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
                         <th>Modify?</th>
                         <td>
                             &nbsp;

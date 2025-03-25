@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import re
-import ssl
 import time
 from typing import Any
 from typing import Callable
@@ -26,6 +25,7 @@ from urllib.request import urlopen
 import cert_utils
 from cert_utils.model import AccountKeyData
 import josepy
+import requests
 from requests.utils import parse_header_links
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
@@ -36,6 +36,7 @@ from . import acmedns as lib_acmedns
 from . import cas
 from . import errors
 from . import utils
+from . import utils_dns
 from .db import update as db_update
 from .utils import new_BrowserSession
 from .. import USER_AGENT
@@ -52,7 +53,7 @@ if TYPE_CHECKING:
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
     from .db.logger import AcmeLogger
-    from .utils import ApiContext
+    from .context import ApiContext
     from email.message import Message
     from http.client import HTTPMessage
     from requests import Response
@@ -119,6 +120,9 @@ def url_request(
     :param dict post_data: (optional) Data to POST to the url
     :param str err_msg: (optional) A custom error message
     :param int depth: (optional) An integer nothing the depth of this function being called
+    :param `model_objects.AcmeServer` dbAcmeServer: an AcmeServer, or compatible object,
+        with a function `local_ca_bundle(ctx)` that will return a CA Bundle filepath
+        if a custom CA bundle is needed
 
     returns (resp_data, status_code, headers)
     """
@@ -139,8 +143,13 @@ def url_request(
         if alt_bundle:
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
-        log_api.info("Making a request with alt_bundle: %s", alt_bundle)
-        resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
+            log_api.info("Making a request with alt_bundle: %s", alt_bundle)
+        log_api.info(url)
+        log_api.info(post_data)
+        log_api.info(headers)
+        resp = urlopen(
+            Request(url, data=post_data, headers=headers), context=context, timeout=10
+        )
         log_api.info(" RESPONSE-")
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
@@ -539,6 +548,9 @@ class AuthenticatedUser(object):
 
         if acme_directory is None:
             acme_directory = acme_directory_get(self.ctx, acmeAccount)
+            db_update.update_AcmeServer_directory(
+                ctx, acmeAccount.acme_server, acme_directory
+            )
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
@@ -785,7 +797,9 @@ class AuthenticatedUser(object):
             raise ValueError("directory does not support `newAccount`")
 
         # log the event to the db
-        self.acmeLogger.log_newAccount("v2", transaction_commit=True)
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_newAccount("v2", transaction_commit=True)
 
         # hit the acme api for the registration
         try:
@@ -1135,9 +1149,12 @@ class AuthenticatedUser(object):
             raise
         finally:
             # log the event to the db
-            dbEventLogged = self.acmeLogger.log_order_load(
-                "v2", dbAcmeOrder, transaction_commit=True
-            )
+            dbEventLogged = None
+            assert ctx.application_settings
+            if ctx.application_settings["log.acme"]:
+                dbEventLogged = self.acmeLogger.log_order_load(
+                    "v2", dbAcmeOrder, transaction_commit=True
+                )
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(
@@ -1258,9 +1275,12 @@ class AuthenticatedUser(object):
                 raise exc
 
         # log the event to the db
-        dbEventLogged = self.acmeLogger.log_newOrder(
-            "v2", dbUniqueFQDNSet, transaction_commit=True
-        )
+        dbEventLogged = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbEventLogged = self.acmeLogger.log_newOrder(
+                "v2", dbUniqueFQDNSet, transaction_commit=True
+            )
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(
@@ -1342,6 +1362,7 @@ class AuthenticatedUser(object):
             dbAcmeChallenge.token,
         )
 
+        # note: preflight / precheck : http01
         # check that the file is in place
         try:
             assert ctx.request
@@ -1353,41 +1374,39 @@ class AuthenticatedUser(object):
                     "precheck_acme_challenges[http-01] | ensuring the challenge is readable"
                 )
                 try:
-                    resp = urlopen(wellknown_url)
-                    resp_data = resp.read().decode("utf8").strip()
+                    resp = requests.get(wellknown_url)
+                    resp_data = resp.content.decode("utf-8").strip()
                     assert resp_data == keyauthorization
                 except (IOError, AssertionError):
-                    self.acmeLogger.log_challenge_error(
-                        "v2",
-                        dbAcmeChallenge,
-                        "precheck-1",
-                        transaction_commit=True,
-                    )
+                    if ctx.application_settings["log.acme"]:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeChallenge,
+                            "precheck-1",
+                            transaction_commit=True,
+                        )
                     raise errors.DomainVerificationError(
                         "Precheck Failure: Wrote keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
-                except ssl.CertificateError as exc:
-                    self.acmeLogger.log_challenge_error(
-                        "v2",
-                        dbAcmeChallenge,
-                        "precheck-2",
-                        transaction_commit=True,
-                    )
-                    if str(exc).startswith("hostname") and (
-                        "doesn't match" in str(exc)
-                    ):
-                        raise errors.DomainVerificationError(
-                            "Precheck Failure: Wrote keyauth challenge, but ssl can't "
-                            "view {0}. `{1}`".format(wellknown_url, str(exc))
-                        )
-                    raise
             else:
                 log.debug("no precheck configured for http-01")
         except (AssertionError, ValueError) as exc:
+            log.critical(
+                "precheck_acme_challenges[http-01] | FAILED (%s) %s"
+                % (wellknown_url, exc)
+            )
             raise errors.DomainVerificationError(
-                "couldn't download {0}: {1}".format(wellknown_url, exc)
+                "couldn't download `{0}`: {1}".format(wellknown_url, exc)
+            )
+        except Exception as exc:
+            log.critical(
+                "precheck_acme_challenges[http-01] | FAILED GENERIC (%s) %s"
+                % (wellknown_url, exc)
+            )
+            raise errors.DomainVerificationError(
+                "couldn't download `{0}`: {1}".format(wellknown_url, exc)
             )
 
     def _prepare_acme_challenge__dns01(
@@ -1427,11 +1446,16 @@ class AuthenticatedUser(object):
             raise ValueError("This should never happen!")
 
         dns_keyauthorization = create_dns01_keyauthorization(keyauthorization)
+        dns_record_prime = (
+            "_acme-challenge.%s." % dbAcmeAuthorization.domain.domain_name
+        )
+
+        expected_record_name = dbAcmeDnsServerAccount.pyacmedns_dict["fulldomain"]
 
         try:
             # initialize a client
             acmeDnsClient = lib_acmedns.new_client(
-                dbAcmeDnsServerAccount.acme_dns_server.root_url
+                dbAcmeDnsServerAccount.acme_dns_server.api_url
             )
 
             # update the acmedns server
@@ -1442,6 +1466,87 @@ class AuthenticatedUser(object):
         except Exception as exc:
             # ???: should be this `errors.AcmeDnsServerError`
             raise errors.DomainVerificationError(str(exc))
+
+        # note: preflight / precheck : dns-01
+        # check that the file is in place
+        try:
+            assert ctx.request
+            assert ctx.application_settings
+            if ctx.application_settings["precheck_acme_challenges"] and (
+                "dns-01" in ctx.application_settings["precheck_acme_challenges"]
+            ):
+                log.debug(
+                    "precheck_acme_challenges[dns-01] | ensuring the challenge is readable"
+                )
+                try:
+                    # check the first domain value
+                    # an easy mistake is a TXT not CNAME, so check that first
+                    record_txt = utils_dns.get_records(
+                        dns_record_prime, record_type="TXT"
+                    )
+                    if record_txt:
+                        raise errors.DomainVerificationError(
+                            "Found TXT record, not CNAME on `{0}`".format(
+                                dns_record_prime
+                            )
+                        )
+                    # check the CNAME
+                    record_cname = utils_dns.get_records(
+                        dns_record_prime, record_type="CNAME"
+                    )
+                    if not record_cname:
+                        raise errors.DomainVerificationError(
+                            "Did not find any CNAME on `{0}`".format(dns_record_prime)
+                        )
+                    found = False
+                    for _cname in record_cname:
+                        _candidate = _cname[:-1]
+                        if _candidate == expected_record_name:
+                            found = True
+                            break
+                    if not found:
+                        raise errors.DomainVerificationError(
+                            "Did not find valid CNAME on `{0}`".format(dns_record_prime)
+                        )
+                    # if we have a CNAME, check that acme-dns is updated correctly
+                    cnamed_txts = utils_dns.get_records(
+                        expected_record_name, record_type="TXT"
+                    )
+                    if not cnamed_txts:
+                        raise errors.DomainVerificationError(
+                            "Did not find any TXT on `{0}`".format(expected_record_name)
+                        )
+                    found = False
+                    for _txt in cnamed_txts:
+                        if _txt == dns_keyauthorization:
+                            found = True
+                            break
+                    if not found:
+                        raise errors.DomainVerificationError(
+                            "Did not find valid TXT on `{0}`".format(
+                                expected_record_name
+                            )
+                        )
+                except Exception:
+                    raise
+            else:
+                log.debug("no precheck configured for dns-01")
+        except (AssertionError, ValueError) as exc:
+            log.critical(
+                "precheck_acme_challenges[dns-01] | FAILED (%s) %s"
+                % (dns_record_prime, exc)
+            )
+            raise errors.DomainVerificationError(
+                "couldn't resolve {0}: {1}".format(dns_record_prime, exc)
+            )
+        except Exception as exc:
+            log.critical(
+                "precheck_acme_challenges[dns-01] | FAILED GENERIC (%s) %s"
+                % (dns_record_prime, exc)
+            )
+            raise errors.DomainVerificationError(
+                "couldn't resolve {0}: {1}".format(dns_record_prime, exc)
+            )
 
     def acme_order_process_authorizations(
         self,
@@ -1562,9 +1667,11 @@ class AuthenticatedUser(object):
         csr_der = cert_utils.convert_pem_to_der(csr_pem)
 
         # log this to the db
-        acmeLoggedEvent = self.acmeLogger.log_order_finalize(  # noqa: F841
-            "v2", transaction_commit=True
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            acmeLoggedEvent = self.acmeLogger.log_order_finalize(  # noqa: F841
+                "v2", transaction_commit=True
+            )
 
         payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
@@ -1742,13 +1849,15 @@ class AuthenticatedUser(object):
         log.info(") handle_authorization_payload")
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = (  # noqa: F841
-            self.acmeLogger.log_authorization_request(
-                "v2",
-                dbAcmeAuthorization=_dbAcmeAuthorization,
-                transaction_commit=True,
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (  # noqa: F841
+                self.acmeLogger.log_authorization_request(
+                    "v2",
+                    dbAcmeAuthorization=_dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
             )
-        )
 
         _response_domain = authorization_response["identifier"]["value"]
         if _dbAcmeAuthorization.domain.domain_name != _response_domain:
@@ -1900,11 +2009,16 @@ class AuthenticatedUser(object):
             authorization_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2",
-            dbAcmeAuthorization=dbAcmeAuthorization,
-            transaction_commit=True,
-        )  # log this to the db
+        dbAcmeEventLog_authorization_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (
+                self.acmeLogger.log_authorization_request(
+                    "v2",
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+            )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
@@ -1961,13 +2075,16 @@ class AuthenticatedUser(object):
             authorization_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_authorization_fetch = (
-            self.acmeLogger.log_authorization_deactivate(
-                "v2",
-                dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
-            )
-        )  # log this to the db
+        dbAcmeEventLog_authorization_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_authorization_fetch = (
+                self.acmeLogger.log_authorization_deactivate(
+                    "v2",
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+            )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
@@ -2006,11 +2123,14 @@ class AuthenticatedUser(object):
             challenge_response = new_response_404()
 
         # log the event
-        dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
-            "v2",
-            dbAcmeChallenge=dbAcmeChallenge,
-            transaction_commit=True,
-        )  # log this to the db
+        dbAcmeEventLog_challenge_fetch = None
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
+                "v2",
+                dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=True,
+            )  # log this to the db
 
         return (challenge_response, dbAcmeEventLog_challenge_fetch)
 
@@ -2056,11 +2176,13 @@ class AuthenticatedUser(object):
         # POSTing an empty `dict` will trigger the challenge
 
         # note that we are about to trigger the challenge:
-        self.acmeLogger.log_challenge_trigger(
-            "v2",
-            dbAcmeChallenge,
-            transaction_commit=True,
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_challenge_trigger(
+                "v2",
+                dbAcmeChallenge,
+                transaction_commit=True,
+            )
         try:
             (
                 challenge_response,
@@ -2170,11 +2292,13 @@ class AuthenticatedUser(object):
             )
 
             # log this
-            self.acmeLogger.log_challenge_pass(
-                "v2",
-                dbAcmeChallenge,
-                transaction_commit=True,
-            )
+            assert ctx.application_settings
+            if ctx.application_settings["log.acme"]:
+                self.acmeLogger.log_challenge_pass(
+                    "v2",
+                    dbAcmeChallenge,
+                    transaction_commit=True,
+                )
 
             # update the authorization
             update_AcmeAuthorization_status(
@@ -2208,12 +2332,14 @@ class AuthenticatedUser(object):
 
         # # the following elif condition is implied
         # elif authorization_response["status"] != "valid":
-        self.acmeLogger.log_challenge_error(
-            "v2",
-            dbAcmeChallenge,
-            "fail-2",
-            transaction_commit=True,
-        )
+        assert ctx.application_settings
+        if ctx.application_settings["log.acme"]:
+            self.acmeLogger.log_challenge_error(
+                "v2",
+                dbAcmeChallenge,
+                "fail-2",
+                transaction_commit=True,
+            )
 
         # update the challenge
         # 1. find the challenge
@@ -2296,7 +2422,7 @@ def sanitize_directory_object(directory: Dict) -> Dict:
     This unfortunately makes it harder to detect changes, such as new fields.
     We can, at least, monitor existing fields:
     """
-    _allowed_fields = [
+    _tracked_fields = [
         "keyChange",
         "meta",
         "newAccount",
@@ -2305,8 +2431,29 @@ def sanitize_directory_object(directory: Dict) -> Dict:
         "renewalInfo",
         "revokeCert",
     ]
-    d2 = {k: v for k, v in directory.items() if k in _allowed_fields}
+    d2 = {k: v for k, v in directory.items() if k in _tracked_fields}
     return d2
+
+
+def serialize_directory_object(directory: Dict) -> str:
+    directory_sanitized = sanitize_directory_object(directory)
+    directory_string = json.dumps(directory_sanitized, sort_keys=True)
+    return directory_string
+
+
+def parse_acme_directory(
+    directory: Dict[str, Union[str, Dict]]
+) -> Tuple[Optional[Dict], Optional[str]]:
+    """extracts relevant parts"""
+    meta: Optional[Dict] = None
+    profiles_str: Optional[str] = None
+    _meta = directory.get("meta")
+    if isinstance(_meta, dict):
+        meta = _meta
+        _profiles = _meta.get("profiles")
+        if _profiles:
+            profiles_str = ",".join(sorted(_profiles.keys()))
+    return meta, profiles_str
 
 
 def check_endpoint_for_meta(
@@ -2389,9 +2536,12 @@ def ari_check(
     """
     log.info("ari_check(%s", dbCertificateSigned)
 
-    if not dbCertificateSigned.is_ari_check_timely:
+    if not dbCertificateSigned.is_ari_check_timely(ctx):
         if not force:
-            raise errors.AcmeAriCheckDeclined("ARI Check Not Timely")
+            _expiry = dbCertificateSigned.is_ari_check_timely_expiry(ctx)
+            raise errors.AcmeAriCheckDeclined(
+                "ARI Check Not Timely: %s" % _expiry.replace(microsecond=0).isoformat()
+            )
 
     ari_identifier: Optional[str] = None
     check_ari_support: bool = True

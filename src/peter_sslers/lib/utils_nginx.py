@@ -16,7 +16,7 @@ from ..model import utils as model_utils
 
 
 if TYPE_CHECKING:
-    from .utils import ApiContext
+    from .context import ApiContext
     from ..model.objects import Domain
     from pyramid.request import Request
 
@@ -32,7 +32,7 @@ class NginxSession(object):
         """
         :param request: The current Pyramid `request` object
         """
-        sess = requests.Session()
+        sess = utils.new_BrowserSession()
         _auth = request.api_context.application_settings.get("nginx.userpass")
         if _auth:
             sess.auth = tuple(_auth.split(":"))  # type: ignore[assignment]

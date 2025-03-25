@@ -68,8 +68,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_SystemConfiguration_global()
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
         url_template = (
             "%s/acme-accounts/{0}"
@@ -88,26 +87,16 @@ class View_List(Handler):
                 "pagination": json_pagination(items_count, pager),
             }
             if pager._current == 1:
-                rval["globals"] = {
-                    "default": (
-                        self.dbAcmeAccount_GlobalDefault.as_json
-                        if self.dbAcmeAccount_GlobalDefault
-                        else {}
-                    ),
-                    "backup": (
-                        self.dbAcmeAccount_GlobalBackup.as_json
-                        if self.dbAcmeAccount_GlobalBackup
-                        else {}
-                    ),
-                }
+                rval["SystemConfiguration_global"] = (
+                    self.request.api_context.dbSystemConfiguration_global.as_json
+                )
             return rval
         return {
             "project": "peter_sslers",
             "AcmeAccounts_count": items_count,
             "AcmeAccounts": items_paged,
             "pager": pager,
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
         }
 
 
@@ -126,6 +115,7 @@ class View_New(Handler):
                 "curl "
                 "--form 'account__order_default_private_key_cycle=single_use' "
                 "--form 'account__order_default_private_key_technology=EC_P256' "
+                "--form 'account__order_default_acme_profile=tlsserver' "
                 "--form 'acme_server_id=1' "
                 "--form 'account_key_file_pem=@key.pem' "
                 "--form 'account__contact=a@example.com' "
@@ -147,6 +137,7 @@ class View_New(Handler):
                 "account__contact": "the contact's email address for the ACME Server",
                 "account__order_default_private_key_cycle": "what should orders default to?",
                 "account__order_default_private_key_technology": "what should orders default to?",
+                "account__order_default_acme_profile": "what acme profile to use?",
             },
             "notes": [
                 "You must submit ALL items from Group A or Group B",
@@ -168,13 +159,13 @@ class View_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        self._load_AcmeServers()
+        self.request.api_context._load_AcmeServers()
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/upload.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-upload.mako",
-            {"AcmeServers": self.dbAcmeServers},
+            {"AcmeServers": self.request.api_context.dbAcmeServers},
             self.request,
         )
 
@@ -194,14 +185,17 @@ class View_New(Handler):
                 "contact",
                 "order_default_private_key_cycle_id",
                 "order_default_private_key_technology_id",
+                "order_default_acme_profile",
             ):
                 assert _field in key_create_args
 
             # not required if uploading LE json fields
             acme_server_id = key_create_args.get("acme_server_id")
             if acme_server_id:
-                self._load_AcmeServers()
-                _acme_server_ids__all = [i.id for i in self.dbAcmeServers]
+                self.request.api_context._load_AcmeServers()
+                _acme_server_ids__all = [
+                    i.id for i in self.request.api_context.dbAcmeServers
+                ]
                 if acme_server_id not in _acme_server_ids__all:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
@@ -295,6 +289,7 @@ class View_New(Handler):
                 """--form 'account__private_key_technology=ECP256' """
                 """--form 'account__order_default_private_key_cycle=single_use' """
                 """--form 'account__order_default_private_key_technology=EC_P256' """
+                """--form 'account__order_default_acme_profile=tlsserver' """
                 """{ADMIN_PREFIX}/acme-account/new.json""",
             ],
             "form_fields": {
@@ -303,6 +298,7 @@ class View_New(Handler):
                 "account__private_key_technology": "what is the key technology preference for this account?",
                 "account__order_default_private_key_cycle": "what should orders default to?",
                 "account__order_default_private_key_technology": "what should orders default to?",
+                "account__order_default_acme_server": "default profile?",
             },
             "valid_options": {
                 "acme_server_id": "{RENDER_ON_REQUEST}",
@@ -324,13 +320,13 @@ class View_New(Handler):
         return self._new__print()
 
     def _new__print(self):
-        self._load_AcmeServers()
+        self.request.api_context._load_AcmeServers()
         if self.request.wants_json:
             return formatted_get_docs(self, "/acme-account/new.json")
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account-new.mako",
-            {"AcmeServers": self.dbAcmeServers},
+            {"AcmeServers": self.request.api_context.dbAcmeServers},
             self.request,
         )
 
@@ -342,10 +338,12 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            self._load_AcmeServers()
-            _acme_server_ids__all = [i.id for i in self.dbAcmeServers]
+            self.request.api_context._load_AcmeServers()
+            _acme_server_ids__all = [
+                i.id for i in self.request.api_context.dbAcmeServers
+            ]
             _acme_server_ids__enabled = [
-                i.id for i in self.dbAcmeServers if i.is_enabled
+                i.id for i in self.request.api_context.dbAcmeServers if i.is_enabled
             ]
 
             acme_server_id = formStash.results["acme_server_id"]
@@ -373,6 +371,7 @@ class View_New(Handler):
                 "private_key_technology_id",
                 "order_default_private_key_cycle_id",
                 "order_default_private_key_technology_id",
+                "order_default_acme_profile",
             ):
                 assert _field in key_create_args
 
@@ -1023,11 +1022,18 @@ class View_Focus_Manipulate(View_Focus):
                 "name": "A label for the account",
                 "account__order_default_private_key_cycle": "Default private key cycle for orders",
                 "account__order_default_private_key_technology": "Default private key technology for orders",
+                "account__order_default_acme_profile": "Default acme profile for orders",
             },
             "valid_options": {
-                "account__private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_private_key_technology,
-                "account__order_default_private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccount_order_default,
-                "account__order_default_private_key_technology": model_utils.KeyTechnology._options_AcmeAccount_order_default,
+                "account__private_key_technology": Form_AcmeAccount_edit.fields[
+                    "account__private_key_technology"
+                ].list,
+                "account__order_default_private_key_cycle": Form_AcmeAccount_edit.fields[
+                    "account__order_default_private_key_cycle"
+                ].list,
+                "account__order_default_private_key_technology": Form_AcmeAccount_edit.fields[
+                    "account__order_default_private_key_technology"
+                ].list,
             },
         }
     )
@@ -1072,6 +1078,7 @@ class View_Focus_Manipulate(View_Focus):
 
             # !!!: edit: private_key_technology
             name = formStash.results["name"] or None
+            name = utils.normalize_unique_text(name) if name else None
             if name != self.dbAcmeAccount.name:
                 try:
                     event_payload_dict["edit"]["old"]["name"] = self.dbAcmeAccount.name
@@ -1118,12 +1125,24 @@ class View_Focus_Manipulate(View_Focus):
             order_default_private_key_technology = formStash.results[
                 "account__order_default_private_key_technology"
             ]
+            order_default_acme_profile = formStash.results[
+                "account__order_default_acme_profile"
+            ]
+            if order_default_acme_profile == "":
+                order_default_acme_profile = None
             if (
-                order_default_private_key_cycle
-                != self.dbAcmeAccount.order_default_private_key_cycle
-            ) or (
-                order_default_private_key_technology
-                != self.dbAcmeAccount.order_default_private_key_technology
+                (
+                    order_default_private_key_cycle
+                    != self.dbAcmeAccount.order_default_private_key_cycle
+                )
+                or (
+                    order_default_private_key_technology
+                    != self.dbAcmeAccount.order_default_private_key_technology
+                )
+                or (
+                    order_default_acme_profile
+                    != self.dbAcmeAccount.order_default_acme_profile
+                )
             ):
                 if (
                     order_default_private_key_cycle
@@ -1135,7 +1154,7 @@ class View_Focus_Manipulate(View_Focus):
                     event_payload_dict["edit"]["new"][
                         "order_default_private_key_cycle"
                     ] = order_default_private_key_cycle
-                elif (
+                if (
                     order_default_private_key_technology
                     != self.dbAcmeAccount.order_default_private_key_technology
                 ):
@@ -1145,12 +1164,23 @@ class View_Focus_Manipulate(View_Focus):
                     event_payload_dict["edit"]["new"][
                         "order_default_private_key_technology"
                     ] = order_default_private_key_technology
+                if (
+                    order_default_acme_profile
+                    != self.dbAcmeAccount.order_default_acme_profile
+                ):
+                    event_payload_dict["edit"]["old"][
+                        "order_default_acme_profile"
+                    ] = self.dbAcmeAccount.order_default_acme_profile
+                    event_payload_dict["edit"]["new"][
+                        "order_default_acme_profile"
+                    ] = order_default_acme_profile
                 try:
                     event_status = lib_db.update.update_AcmeAccount__order_defaults(
                         self.request.api_context,
                         self.dbAcmeAccount,
                         order_default_private_key_cycle,
                         order_default_private_key_technology,
+                        order_default_acme_profile,
                     )
                     _edits.append(event_status)
                 except errors.InvalidTransition as exc:
@@ -1313,6 +1343,7 @@ class View_Focus_Manipulate(View_Focus):
                 "result": _result,
                 "message": _message,
             }
+
         return HTTPSeeOther(
             "%s?result=%s&operation=acme-server--authenticate&is_authenticated=%s"
             % (self._focus_url, _result, is_authenticated)
@@ -1407,6 +1438,7 @@ class View_Focus_Manipulate(View_Focus):
                 if "detail" in exc.args[1]:
                     _message = exc.args[1]["detail"]
         except Exception as exc:
+            raise
             log.critical(exc)
             _result = "error"
             _message = str(exc)
@@ -1442,7 +1474,7 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {
-                "action": ["global_default", "global_backup", "active", "inactive"]
+                "action": Form_AcmeAccount_mark.fields["action"].list,
             },
         }
     )
@@ -1496,29 +1528,19 @@ class View_Focus_Manipulate(View_Focus):
                         self.request.api_context, dbAcmeAccount
                     )
 
-                elif action == "global_default":
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_AcmeAccount__set_global_default(
-                        self.request.api_context, dbAcmeAccount
+                elif action == "is_render_in_selects":
+                    event_status = (
+                        lib_db.update.update_AcmeAccount__is_render_in_selects(
+                            self.request.api_context, dbAcmeAccount, "enable"
+                        )
                     )
-                    if alt_info:
-                        for k, v in alt_info["event_payload_dict"].items():
-                            event_payload_dict[k] = v
-                        event_alt = alt_info["event_alt"]
 
-                elif action == "global_backup":
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_AcmeAccount__set_global_backup(
-                        self.request.api_context, dbAcmeAccount
+                elif action == "no_render_in_selects":
+                    event_status = (
+                        lib_db.update.update_AcmeAccount__is_render_in_selects(
+                            self.request.api_context, dbAcmeAccount, "disable"
+                        )
                     )
-                    if alt_info:
-                        for k, v in alt_info["event_payload_dict"].items():
-                            event_payload_dict[k] = v
-                        event_alt = alt_info["event_alt"]
 
                 else:
                     raise errors.InvalidTransition("Invalid option")

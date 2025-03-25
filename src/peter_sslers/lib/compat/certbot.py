@@ -14,7 +14,7 @@ import josepy
 
 # local
 from ...lib import db as lib_db
-from ...lib.utils import ApiContext
+from ...lib.context import ApiContext
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeServer
 from ...model.utils import AcmeAccountKeySource

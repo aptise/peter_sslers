@@ -24,6 +24,7 @@ from .objects import CertificateSigned
 from .objects import CoverageAssuranceEvent
 from .objects import Domain
 from .objects import DomainAutocert
+from .objects import EnrollmentFactory
 from .objects import PrivateKey
 from .objects import RenewalConfiguration
 from .objects import UniqueFQDNSet
@@ -36,71 +37,82 @@ from .. import utils as model_utils
 # ==============================================================================
 
 
-# note: AcmeAccount.acme_authorizations__5
-AcmeAccount.acme_authorizations__5 = sa_orm_relationship(
+"""
+    AcmeAccount > AcmeAuthorization
+    Old : AcmeAccount > AcmeOrder > AcmeOrder2AcmeAuthorization AcmeAuthorization
+"""
+join_AcmeAuthorization_AcmeOrder = sa.join(
+    AcmeOrder2AcmeAuthorization,
     AcmeAuthorization,
-    primaryjoin="""AcmeAccount.id == AcmeOrder.acme_account_id""",
-    secondary=(
-        "join("
-        "AcmeOrder, "
-        "AcmeOrder2AcmeAuthorization, "
-        "AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id"
-        ")"
-    ),
-    secondaryjoin=(
+    AcmeAuthorization.id == AcmeOrder2AcmeAuthorization.acme_authorization_id,
+).join(AcmeOrder, AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id)
+AcmeAuthorization_via_AcmeOrder = sa.orm.aliased(
+    AcmeAuthorization, join_AcmeAuthorization_AcmeOrder, flat=True
+)
+AcmeAccount.acme_authorizations__5 = sa_orm_relationship(
+    AcmeAuthorization_via_AcmeOrder,
+    primaryjoin=(
         sa.and_(
-            AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
+            AcmeAccount.id
+            == join_AcmeAuthorization_AcmeOrder.c.acme_order_acme_account_id,
             AcmeAuthorization.id.in_(
                 sa.select((AcmeAuthorization.id))
-                .where(
-                    AcmeAuthorization.id
-                    == AcmeOrder2AcmeAuthorization.acme_authorization_id
+                .join(
+                    AcmeOrder2AcmeAuthorization,
+                    AcmeOrder2AcmeAuthorization.acme_authorization_id
+                    == AcmeAuthorization.id,
                 )
-                .where(AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id)
+                .join(
+                    AcmeOrder, AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
+                )
                 .where(AcmeOrder.acme_account_id == AcmeAccount.id)
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
     ),
     order_by=AcmeAuthorization.id.desc(),
-    uselist=True,
     viewonly=True,
 )
 
+
 # note: AcmeAccount.acme_authorizations_pending__5
+"""
+    AcmeAccount > AcmeAuthorization
+    Old : AcmeAccount > AcmeOrder > AcmeOrder2AcmeAuthorization AcmeAuthorization
+"""
 AcmeAccount.acme_authorizations_pending__5 = sa_orm_relationship(
-    AcmeAuthorization,
-    primaryjoin="""AcmeAccount.id == AcmeOrder.acme_account_id""",
-    secondary="""join(AcmeOrder,
-                      AcmeOrder2AcmeAuthorization,
-                      AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
-                      )""",
-    secondaryjoin=(
+    AcmeAuthorization_via_AcmeOrder,
+    primaryjoin=(
         sa.and_(
-            AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
+            AcmeAccount.id
+            == join_AcmeAuthorization_AcmeOrder.c.acme_order_acme_account_id,
             AcmeAuthorization.id.in_(
                 sa.select((AcmeAuthorization.id))
+                .join(
+                    AcmeOrder2AcmeAuthorization,
+                    AcmeOrder2AcmeAuthorization.acme_authorization_id
+                    == AcmeAuthorization.id,
+                )
+                .join(
+                    AcmeOrder, AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
+                )
                 .where(
                     AcmeAuthorization.acme_status_authorization_id.in_(
                         model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
                     )
                 )
-                .where(
-                    AcmeAuthorization.id
-                    == AcmeOrder2AcmeAuthorization.acme_authorization_id
-                )
-                .where(AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id)
                 .where(AcmeOrder.acme_account_id == AcmeAccount.id)
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
     ),
     order_by=AcmeAuthorization.id.desc(),
-    uselist=True,
     viewonly=True,
 )
 
@@ -116,6 +128,7 @@ AcmeAccount.acme_orders__5 = sa_orm_relationship(
                 .where(AcmeAccount.id == AcmeOrder.acme_account_id)
                 .order_by(AcmeOrder.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -125,6 +138,44 @@ AcmeAccount.acme_orders__5 = sa_orm_relationship(
 )
 
 
+# note: AcmeAccount.certificate_signeds__5
+"""
+    AcmeAccount > CertificateSigned
+    Old : AcmeAccount > AcmeOrder > CertificateSigned
+"""
+join_CertificateSigned_AcmeOrder = sa.join(
+    AcmeOrder,
+    CertificateSigned,
+    CertificateSigned.id == AcmeOrder.certificate_signed_id,
+)
+CertificateSigned_via_AcmeOrder = sa.orm.aliased(
+    CertificateSigned, join_CertificateSigned_AcmeOrder, flat=True
+)
+AcmeAccount.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned_via_AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccount.id
+            == join_CertificateSigned_AcmeOrder.c.acme_order_acme_account_id,
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .join(
+                    AcmeOrder, AcmeOrder.certificate_signed_id == CertificateSigned.id
+                )
+                .where(AcmeOrder.acme_account_id == AcmeAccount.id)
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateSigned.id.desc(),
+    viewonly=True,
+)
+
+
+# note: AcmeAccount.private_keys__owned__5
 AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
     PrivateKey,
     primaryjoin=(
@@ -135,6 +186,7 @@ AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
                 .where(AcmeAccount.id == PrivateKey.acme_account_id__owner)
                 .order_by(PrivateKey.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -144,44 +196,17 @@ AcmeAccount.private_keys__owned__5 = sa_orm_relationship(
 )
 
 
-# note: AcmeAccount.certificate_signeds__5
-AcmeAccount.certificate_signeds__5 = sa_orm_relationship(
-    CertificateSigned,
-    primaryjoin="AcmeAccount.id==AcmeOrder.acme_account_id",
-    secondary=(
-        """join(AcmeOrder,
-                CertificateSigned,
-                AcmeOrder.certificate_signed_id == CertificateSigned.id
-                )"""
-    ),
-    secondaryjoin=(
-        sa.and_(
-            CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
-            CertificateSigned.id.in_(
-                sa.select((CertificateSigned.id))
-                .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
-                .where(AcmeOrder.acme_account_id == AcmeAccount.id)
-                .order_by(CertificateSigned.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=CertificateSigned.id.desc(),
-    viewonly=True,
-)
-
-
-# note: AcmeAccount.renewal_configurations__5
-AcmeAccount.renewal_configurations__5 = sa_orm_relationship(
+# note: AcmeAccount.renewal_configurations__primary__5
+AcmeAccount.renewal_configurations__primary__5 = sa_orm_relationship(
     RenewalConfiguration,
     primaryjoin=(
         sa.and_(
-            AcmeAccount.id == RenewalConfiguration.acme_account_id,
+            AcmeAccount.id == RenewalConfiguration.acme_account_id__primary,
             RenewalConfiguration.id.in_(
                 sa.select((RenewalConfiguration.id))
-                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id)
+                .where(AcmeAccount.id == RenewalConfiguration.acme_account_id__primary)
                 .order_by(RenewalConfiguration.id.desc())
+                .distinct()
                 .limit(5)
                 .correlate()
             ),
@@ -203,6 +228,7 @@ AcmeAccount.renewal_configurations__backup__5 = sa_orm_relationship(
                 .where(AcmeAccount.id == RenewalConfiguration.acme_account_id__backup)
                 .order_by(RenewalConfiguration.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -551,19 +577,20 @@ Domain.acme_dns_server_accounts__5 = sa_orm_relationship(
 
 
 # note: Domain.acme_orders__5
-Domain.acme_orders__5 = sa_orm_relationship(
+join_AcmeOrder_UniqueFQDNSet2Domain = sa.join(
+    UniqueFQDNSet2Domain,
     AcmeOrder,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """join(UniqueFQDNSet2Domain,
-                AcmeOrder,
-                UniqueFQDNSet2Domain.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id
-                )"""
-    ),
-    secondaryjoin=(
+    AcmeOrder.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+)
+AcmeOrder_via_UniqueFQDNSet2Domain = sa.orm.aliased(
+    AcmeOrder, join_AcmeOrder_UniqueFQDNSet2Domain, flat=True
+)
+Domain.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            AcmeOrder.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            Domain.id
+            == join_AcmeOrder_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             AcmeOrder.id.in_(
                 sa.select((AcmeOrder.id))
                 .where(
@@ -603,19 +630,20 @@ Domain.domain_autocerts__5 = sa_orm_relationship(
 
 # note: Domain.certificate_requests__5
 # returns an object with a `certificate` on it
-Domain.certificate_requests__5 = sa_orm_relationship(
+join_CertificateRequest_UniqueFQDNSet2Domain = sa.join(
+    UniqueFQDNSet2Domain,
     CertificateRequest,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """join(UniqueFQDNSet2Domain,
-                CertificateRequest,
-                UniqueFQDNSet2Domain.unique_fqdn_set_id == CertificateRequest.unique_fqdn_set_id
-                )"""
-    ),
-    secondaryjoin=(
+    CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+)
+CertificateRequest_via_UniqueFQDNSet2Domain = sa.orm.aliased(
+    CertificateRequest, join_CertificateRequest_UniqueFQDNSet2Domain, flat=True
+)
+Domain.certificate_requests__5 = sa_orm_relationship(
+    CertificateRequest_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            CertificateRequest.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            Domain.id
+            == join_CertificateRequest_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             CertificateRequest.id.in_(
                 sa.select((CertificateRequest.id))
                 .where(
@@ -625,6 +653,7 @@ Domain.certificate_requests__5 = sa_orm_relationship(
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateRequest.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -635,19 +664,24 @@ Domain.certificate_requests__5 = sa_orm_relationship(
 
 
 # note: Domain.certificate_signeds__5
-Domain.certificate_signeds__5 = sa_orm_relationship(
+"""
+    Domain > CertificateSigned
+    Old : Domain > UniqueFQDNSet2Domain > CertificateSigned
+"""
+join_CertificateSigned_UniqueFQDNSet2Domain = sa.join(
+    UniqueFQDNSet2Domain,
     CertificateSigned,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """join(UniqueFQDNSet2Domain,
-                CertificateSigned,
-                UniqueFQDNSet2Domain.unique_fqdn_set_id == CertificateSigned.unique_fqdn_set_id
-                )"""
-    ),
-    secondaryjoin=(
+    CertificateSigned.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+)
+CertificateSigned_via_UniqueFQDNSet2Domain = sa.orm.aliased(
+    CertificateSigned, join_CertificateSigned_UniqueFQDNSet2Domain, flat=True
+)
+Domain.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            CertificateSigned.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            Domain.id
+            == join_CertificateSigned_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
@@ -658,6 +692,7 @@ Domain.certificate_signeds__5 = sa_orm_relationship(
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -674,39 +709,32 @@ Domain.certificate_signeds__5 = sa_orm_relationship(
     New : Domain > UniqueFQDNSet2Domain > AcmeOrder > CertificateSigned
 """
 Domain.certificate_signeds__single_primary_5 = sa_orm_relationship(
-    CertificateSigned,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """(
-        join(CertificateSigned, AcmeOrder,
-             CertificateSigned.id==AcmeOrder.certificate_signed_id
-             )
-        .join(
-            UniqueFQDNSet2Domain,
-            AcmeOrder.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id
-        )
-    )"""
-    ),
-    secondaryjoin=(
+    CertificateSigned_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            CertificateSigned.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
-            AcmeOrder.certificate_type_id
-            == model_utils.CertificateType.MANAGED_PRIMARY,
+            Domain.id
+            == join_CertificateSigned_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(
+                .join(
+                    AcmeOrder,
                     CertificateSigned.unique_fqdn_set_id
-                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                    == AcmeOrder.unique_fqdn_set_id,
                 )
-                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .join(
+                    UniqueFQDNSet2Domain,
+                    AcmeOrder.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+                )
                 .where(
                     AcmeOrder.certificate_type_id
                     == model_utils.CertificateType.MANAGED_PRIMARY
                 )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -723,38 +751,32 @@ Domain.certificate_signeds__single_primary_5 = sa_orm_relationship(
     New : Domain > UniqueFQDNSet2Domain > AcmeOrder > CertificateSigned
 """
 Domain.certificate_signeds__single_backup_5 = sa_orm_relationship(
-    CertificateSigned,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """(
-        join(CertificateSigned, AcmeOrder,
-             CertificateSigned.id==AcmeOrder.certificate_signed_id
-             )
-        .join(
-            UniqueFQDNSet2Domain,
-            AcmeOrder.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id
-        )
-    )"""
-    ),
-    secondaryjoin=(
+    CertificateSigned_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            CertificateSigned.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
-            AcmeOrder.certificate_type_id == model_utils.CertificateType.MANAGED_BACKUP,
+            Domain.id
+            == join_CertificateSigned_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             CertificateSigned.is_deactivated.is_not(True),
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(
+                .join(
+                    UniqueFQDNSet2Domain,
                     CertificateSigned.unique_fqdn_set_id
-                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
                 )
-                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .join(
+                    AcmeOrder,
+                    CertificateSigned.unique_fqdn_set_id
+                    == AcmeOrder.unique_fqdn_set_id,
+                )
                 .where(
                     AcmeOrder.certificate_type_id
                     == model_utils.CertificateType.MANAGED_BACKUP
                 )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
@@ -815,24 +837,20 @@ Domain.to_uniquely_challenged_fqdn_sets__5 = sa_orm_relationship(
     Domain > RenewalConfiguration
     New : Domain > UniqueFQDNSet2Domain > UniqueFQDNSet > RenewalConfiguration
 """
-Domain.renewal_configurations__5 = sa_orm_relationship(
+join_RenewalConfiguration_UniqueFQDNSet2Domain = sa.join(
+    UniqueFQDNSet2Domain,
     RenewalConfiguration,
-    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
-    secondary=(
-        """(
-        join(RenewalConfiguration, UniqueFQDNSet,
-             RenewalConfiguration.unique_fqdn_set_id==UniqueFQDNSet.id
-             )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id
-        )
-    )"""
-    ),
-    secondaryjoin=(
+    RenewalConfiguration.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+)
+RenewalConfiguration_via_UniqueFQDNSet2Domain = sa.orm.aliased(
+    RenewalConfiguration, join_RenewalConfiguration_UniqueFQDNSet2Domain, flat=True
+)
+Domain.renewal_configurations__5 = sa.orm.relationship(
+    RenewalConfiguration_via_UniqueFQDNSet2Domain,
+    primaryjoin=(
         sa.and_(
-            RenewalConfiguration.unique_fqdn_set_id
-            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            Domain.id
+            == join_RenewalConfiguration_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
             RenewalConfiguration.id.in_(
                 sa.select((RenewalConfiguration.id))
                 .where(
@@ -840,6 +858,82 @@ Domain.renewal_configurations__5 = sa_orm_relationship(
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(RenewalConfiguration.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=RenewalConfiguration.id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: EnrollmentFactory.certificate_signeds__5
+"""
+    EnrollmentFactory > CertificateSigned
+    Old : EnrollmentFactory > RenewalConfiguration > AcmeOrder > CertificateSigned
+"""
+join_CertificateSigned_RenewalConfiguration = sa.join(
+    CertificateSigned,
+    AcmeOrder,
+    CertificateSigned.id == AcmeOrder.certificate_signed_id,
+).join(
+    RenewalConfiguration,
+    AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+)
+CertificateSigned_via_RenewalConfiguration = sa.orm.aliased(
+    CertificateSigned, join_CertificateSigned_RenewalConfiguration, flat=True
+)
+EnrollmentFactory.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned_via_RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            EnrollmentFactory.id
+            == join_CertificateSigned_RenewalConfiguration.c.renewal_configuration_enrollment_factory_id__via,
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
+                .join(
+                    RenewalConfiguration,
+                    RenewalConfiguration.id == AcmeOrder.renewal_configuration_id,
+                )
+                .where(
+                    RenewalConfiguration.enrollment_factory_id__via
+                    == EnrollmentFactory.id
+                )
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateSigned.id.desc(),
+    viewonly=True,
+)
+
+
+# note: EnrollmentFactory.renewal_configurations__5
+"""
+    EnrollmentFactory > RenewalConfiguration
+"""
+EnrollmentFactory.renewal_configurations__5 = sa.orm.relationship(
+    RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            EnrollmentFactory.id == RenewalConfiguration.enrollment_factory_id__via,
+            RenewalConfiguration.id.in_(
+                sa.select((RenewalConfiguration.id))
+                .where(
+                    EnrollmentFactory.id
+                    == RenewalConfiguration.enrollment_factory_id__via
+                )
                 .order_by(RenewalConfiguration.id.desc())
                 .limit(5)
                 .correlate()
@@ -916,29 +1010,100 @@ RenewalConfiguration.acme_orders__5 = sa_orm_relationship(
 )
 
 # note: RenewalConfiguration.certificate_signeds__5
-RenewalConfiguration.certificate_signeds__5 = sa_orm_relationship(
+"""
+    RenewalConfiguration > CertificateSigned
+    Old : RenewalConfiguration > AcmeOrder > CertificateSigned
+"""
+join_CertificateSigned_AcmeOrder = sa.join(
+    AcmeOrder,
     CertificateSigned,
-    primaryjoin="RenewalConfiguration.id == AcmeOrder.renewal_configuration_id",
-    secondary=(
-        """join(AcmeOrder,
-                CertificateSigned,
-                AcmeOrder.certificate_signed_id == CertificateSigned.id
-                )"""
-    ),
-    secondaryjoin=(
+    CertificateSigned.id == AcmeOrder.certificate_signed_id,
+)
+CertificateSigned_via_AcmeOrder = sa.orm.aliased(
+    CertificateSigned, join_CertificateSigned_AcmeOrder, flat=True
+)
+RenewalConfiguration.certificate_signeds__5 = sa_orm_relationship(
+    CertificateSigned_via_AcmeOrder,
+    primaryjoin=(
         sa.and_(
-            CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
+            RenewalConfiguration.id
+            == join_CertificateSigned_AcmeOrder.c.acme_order_renewal_configuration_id,
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
                 .where(AcmeOrder.renewal_configuration_id == RenewalConfiguration.id)
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
     ),
-    order_by=AcmeOrder.id.desc(),
+    order_by=CertificateSigned.id.desc(),
+    viewonly=True,
+)
+
+
+# note: RenewalConfiguration.certificate_signeds__primary__5
+RenewalConfiguration.certificate_signeds__primary__5 = sa_orm_relationship(
+    CertificateSigned_via_AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            RenewalConfiguration.id
+            == join_CertificateSigned_AcmeOrder.c.acme_order_renewal_configuration_id,
+            join_CertificateSigned_AcmeOrder.c.acme_order_certificate_type_id
+            == model_utils.CertificateType.MANAGED_PRIMARY,
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
+                .where(AcmeOrder.renewal_configuration_id == RenewalConfiguration.id)
+                .where(
+                    AcmeOrder.certificate_type_id
+                    == model_utils.CertificateType.MANAGED_PRIMARY
+                )
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateSigned.id.desc(),
+    viewonly=True,
+)
+
+
+# note: RenewalConfiguration.certificate_signeds__backup__5
+RenewalConfiguration.certificate_signeds__backup__5 = sa_orm_relationship(
+    CertificateSigned_via_AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            RenewalConfiguration.id
+            == join_CertificateSigned_AcmeOrder.c.acme_order_renewal_configuration_id,
+            join_CertificateSigned_AcmeOrder.c.acme_order_certificate_type_id
+            == model_utils.CertificateType.MANAGED_BACKUP,
+            CertificateSigned.id.in_(
+                sa.select((CertificateSigned.id))
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
+                .where(AcmeOrder.renewal_configuration_id == RenewalConfiguration.id)
+                .where(
+                    AcmeOrder.certificate_type_id
+                    == model_utils.CertificateType.MANAGED_BACKUP
+                )
+                .order_by(CertificateSigned.id.desc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 
@@ -1081,32 +1246,33 @@ UniquelyChallengedFQDNSet.acme_orders__5 = sa_orm_relationship(
 )
 
 # note: UniquelyChallengedFQDNSet.certificate_signeds__5
+"""
+    UniquelyChallengedFQDNSet > CertificateSigned
+    Old : UniquelyChallengedFQDNSet > AcmeOrder > CertificateSigned
+"""
 UniquelyChallengedFQDNSet.certificate_signeds__5 = sa_orm_relationship(
-    CertificateSigned,
-    primaryjoin="UniquelyChallengedFQDNSet.id == AcmeOrder.uniquely_challenged_fqdn_set_id",
-    secondary=(
-        """join(AcmeOrder,
-                CertificateSigned,
-                AcmeOrder.certificate_signed_id == CertificateSigned.id
-                )"""
-    ),
-    secondaryjoin=(
+    CertificateSigned_via_AcmeOrder,
+    primaryjoin=(
         sa.and_(
-            CertificateSigned.id == sa.orm.foreign(AcmeOrder.certificate_signed_id),
+            UniquelyChallengedFQDNSet.id
+            == join_CertificateSigned_AcmeOrder.c.acme_order_uniquely_challenged_fqdn_set_id,
             CertificateSigned.id.in_(
                 sa.select((CertificateSigned.id))
-                .where(CertificateSigned.id == AcmeOrder.certificate_signed_id)
+                .join(
+                    AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id
+                )
                 .where(
                     AcmeOrder.uniquely_challenged_fqdn_set_id
                     == UniquelyChallengedFQDNSet.id
                 )
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
+                .distinct()
                 .correlate()
             ),
         )
     ),
-    order_by=AcmeOrder.id.desc(),
+    order_by=CertificateSigned.id.desc(),
     viewonly=True,
 )
 

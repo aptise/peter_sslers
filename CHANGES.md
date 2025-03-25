@@ -1,40 +1,40 @@
 1.0.0.dev
     This is large rewrite and reorganization of concepts.
-    
-    This application was originally built to toss "domains" at, and then generate
-    certificates for them. An exnternal process just queued domains onto a local
+
+    This application was originally built to "toss domains at", and then generate
+    certificates for them. An external service queued domains onto a local
     install of PeterSSLers, and then PeterSSLers would be responsible for the
-    initial procurement and segmenting of domains.  The external systems also
+    initial procurement and segmenting of Certificates.  The external system also
     requested the renewals of a cert, and later that ability was added onto this
-    application.  This setup did not work well, as the business logic was 
+    application.  This setup did not work well, as the business logic was
     increasingly handled on the external application and not maintained here.
-    
+
     Trying to build "renewals" off of Certificates was also a bit of an awkward
-    design.  With a nod to Certbot, the primary object is now a
-    RenewalConfiguration, which is the nexus of an Account + Domains
+    design.  With a slight nod to Certbot, the primary object is now a
+    `RenewalConfiguration`, which is the nexus of an Account + Domains
     (including preferred challenges per domain) + and Certificate Preferences.
-    
+
     This new model should handle future needs well; RenewalConfigurations can
-    eventually support backup domains and technologies; and they can be edited
-    indpendently of Certificates.
-    
+    support backup Certificates with completely different technologies selected;
+    and they can be edited indpendently of Certificates.
+
     Under the new design:
-    
+
     * Accounts have specfic default preferences
     * The defaults are used to seed "RenewalConfiguration" objects
     * "RenewalConfigurations" are a nexus of Account + Domains + Preferences
-    
+
     For legacy concerns, the "/acme-order/new/freeform" interface still works -
-    however it will first create a renewal configuration and then create an
-    ACME Order.
-    
+    however it will first create a RenewalConfiguration and then immeidately
+    attempt an ACME Order.
+
     Previous Flow:
         Create:
              an AcmeOrder
         A Certificate can be renewed:
             * quick
             * customized
-    
+
     New Flow:
         Create:
             an AcmeOrder will first create a RenewalConfiguration, or
@@ -48,7 +48,7 @@
         removed obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
             replaced by UniquelyChallengedFQDNSet
         removed configuration options; both deprecated in cert_utis and not needed:
-            openssl_path        
+            openssl_path
             openssl_path_conf
         removed support for PyOpenSSL/Tempfiles with cert_utils; only 100% Cryptography
         * `account__private_key_cycle`
@@ -56,15 +56,16 @@
             did a first pass audit to remove
         * dbAcmeOrder_renewal_of - dropped
 
-
     Limited:
         There is now only a single acme-dns server and it will function as the 
-        global default.
-    
+        global default.  Supporting multiple acme-dns servers is too confusing
+        and not currently worth pursuing.
+
     New Features:
         * UniquelyChallengedFQDNSet
             a concept of UniqueFQDNSet, wherein each domain is tied to an AcmeChallenge type
-        * Renewals now support single_use__reuse_1_year; a privatekey can be used for 1 year before rotation
+        * Renewals now support single_use__reuse_1_year;
+            a privatekey can be used for 1 year before rotation
         * AcmeAccount/new
             [x] Select EC or RSA for initial setup
         * EC Keys
@@ -94,8 +95,27 @@
             * adding new `single_use__reuse_1_year`
             * dropping _options_AcmeAccount_private_key_cycle
             * dropping account__private_key_cycle
+        * SystemConfiguration
+            Defaults for global, autocert and certificate-if-needed
+        * EnrollmentFactory
+            defaults for onboarding a pattern of domains;
+            i.e. define a template like:
+
+                {DOMAIN}
+                dash.{DOMAIN}
+                www.{DOMAIN}
+                main.{DOMAIN}
+
+            when invoked against an endpoint, autoexpand a single domain into:
+
+                EXAMPLE.COM
+                dash.EXAMPLE.COM
+                www.EXAMPLE.COM
+                main.EXAMPLE.COM
 
     New commandline routines:
+        periodic_tasks:
+            taskrunner for others
         routine__clear_old_ari_checks
             low-cost cronjob to check ari as necessary
         routine__run_ari_checks
@@ -109,9 +129,9 @@
             this will order certs under the following conditions:
                 managed certs that are expiring, based on ARI or notAfter
                 active renewal configurations that have not ordered a primary or backup
-            
+
     new QuickStart guide
-    
+
     reorganization of files:
     * the database files for peter_sslers and acme_dns are moved into a
       `/_data_` subdirectory.
@@ -136,12 +156,21 @@
         - testing edge cases on form submission
         - `contact` not required by application; better reporting of server error
 
+    AcmeOrdering
+        Ensure Poilcy is in Directory before ordering
+        Auto-update directory samples and profiles
+
+    Notifications
+        a notification will be logged if the AcmeDirectory substantially changes
+
     New Bundled CAs
         - BuyPass was added as an ACME CA
           BuyPass's Roots & Intermediates are physically located in Norway
-
-    AcmeAccount can now have a "name"
-
+          The lack of a physical presence in the USA makes this a more secure
+          option than CAs with servers subject to the whims of problematic
+          governments.
+          
+    AcmeAccount can now have a "name", which is used on new Dropdown selects
 
     "Notes:"
         Added a "note" to:
@@ -151,22 +180,66 @@
             RenewalConfiguration new
             RenewalConfiguration new-config
             AcmeOrder new-freeform
+        Notes are intended to reconcile records across systems.
 
     Testing
         The test suite was overhauled
         unit tests-
-            now support database snapshots on sqlite
-            so expensive  core data does not need to be rebuilt for local tests. 
+            now support database snapshots on sqlite,  so expensive core data
+            does not need to be rebuilt for local tests.
         py313 testing integrated, then removed due to compat issues
-        
+
     Bugs Addressed
-        * Processing an ACME order could randomly generate an error. 
+        * Processing an ACME order could randomly generate an error.
           This was due to a change on polling; fixed.
         * Unit tests were failing because
           `tests.test_pyramid_app.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup`
           would leave the database with blocking auths.
 
-        datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc) 
+    UTC Timestamp Changes
+        datetime.datetime.utcnow() > datetime.datetime.now(datetime.timezone.utc)
+        all code and database is now tz aware
+
+    Renewal Configuration: Lineages
+        added a lineages page to visualize these
+
+    Certificates Signed:
+        added route to show active duplicates
+        added tool to deactivate duplicates
+
+    CaCertificiatePreferences were moved into a new `CaCertificiatePreferencePolicy` concept.
+        By default a "global" policy is used.
+        In the future, EnrollmentFactories and RenewalConfigurations will be able to create and use their own
+
+    Data Changes
+        Global Default and Global Backup were moved into a Global "SystemConfiguration"
+
+    Bug - Fixed
+        Ordering a backup cert will deactivate the primary cert
+        Ordering a replacement should deactivate the replaces
+
+    Renewal Lineages
+        added the lineages page to visualize issues
+        updated expiry check to better do the timestamps; they were completely wrong
+        updated expiry check to only address ACTIVE Renewals and Certificates
+        added tool to deactivate all duplicates
+
+    Export Feature
+        write to disk on renewal
+    
+    ACME logging is now controlled by config options
+    we can pre-flight check dns-01 now
+    
+    CertificateSigned now tracks 'duration_hours' as that may affect renewal logic
+    
+    Background Routines are timed and logged
+        The ARI replaces window can be extremly short:
+            90 day certs are about 45hours; potentially only 1 renewal 
+            short lived certs may be 2-4 hours
+        There is concern for hourly
+    
+        
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)
@@ -179,7 +252,7 @@
 
 0.5.0-dev
     unreleased
-    
+
     This release will require lua-resty-peter_sslers v0.5.0
 
 	Testing:
@@ -370,7 +443,7 @@
     * dropped py3.5 tests; ensured tests on py3.9
     * split README into /docs; merged Oddities.md into that.
     + other fixes and improvements
-    
+
     - 2021/11/05
     * chain verification via openssl now uses `-purpose sslserver`
 
@@ -378,7 +451,7 @@
     * update port on fakeserver to be customizable
     * change test matrix to support py27
     * support openssl 3.0.x; some changes were needed
-    
+
     - 2023/01/06
     * fix comment typo in workflow file
     * pastedeploy 3.0 was yanked, removed workaround code

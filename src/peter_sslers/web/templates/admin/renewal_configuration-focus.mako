@@ -51,12 +51,16 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>label</th>
+                        <td><code>${RenewalConfiguration.label or ''}</code></td>
+                    </tr>
+                    <tr>
                         <th>timestamp_created</th>
                         <td><timestamp>${RenewalConfiguration.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>acme_profile</th>
-                        <td><code>${RenewalConfiguration.acme_profile or ''}</code></td>
+                        <th>acme_profile__primary</th>
+                        <td><code>${RenewalConfiguration.acme_profile__primary or ''}</code></td>
                     </tr>
                     <tr>
                         <th>acme_profile__backup</th>
@@ -71,9 +75,9 @@
                             % if not RenewalConfiguration.is_active:
                                 <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-active">
                                     <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-info" type="submit">
+                                    <button class="btn btn-xs btn-success" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        active
+                                        Activate
                                     </button>
                                 </form>
                             % else:
@@ -81,22 +85,22 @@
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        inactive
+                                        Deactivate
                                     </button>
                                 </form>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_cycle</th>
+                        <th>private_key_cycle__primary</th>
                         <td>
-                            <code>${RenewalConfiguration.private_key_cycle}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                            <code>${RenewalConfiguration.private_key_cycle__primary}</code>
+                            % if RenewalConfiguration.private_key_cycle__primary == "account_default":
                                 <span class="label label-default">
-                                    [${RenewalConfiguration.acme_account.order_default_private_key_cycle}]
+                                    [${RenewalConfiguration.private_key_cycle__primary__effective}]
                                 </span>
                             % endif
-                            % if RenewalConfiguration.private_key_cycle == "single_use__reuse_1_year" or RenewalConfiguration.private_key_cycle__effective == "single_use__reuse_1_year":
+                            % if RenewalConfiguration.private_key_cycle__primary == "single_use__reuse_1_year" or RenewalConfiguration.private_key_cycle__primary__effective == "single_use__reuse_1_year":
                                 % if RenewalConfiguration.private_key_reuse:
                                     <a  class="btn btn-xs btn-primary"
                                         href="${admin_prefix}/private-key/${RenewalConfiguration.private_key_reuse.id}"
@@ -114,46 +118,48 @@
                     </tr>
                     <tr>
                         <th>key_technology</th>
-                        <td><code>${RenewalConfiguration.key_technology}</code>
-                            % if RenewalConfiguration.private_key_cycle == "account_default":
+                        <td><code>${RenewalConfiguration.private_key_technology__primary}</code>
+                            % if RenewalConfiguration.private_key_technology__primary == "account_default":
                                 <span class="label label-default">
-                                    [${RenewalConfiguration.acme_account.order_default_private_key_technology}]
+                                    [${RenewalConfiguration.private_key_technology__primary__effective}]
                                 </span>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_account</th>
+                        <th>acme_account__primary</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id}"
+                            <a  class="label label-info"
+                                href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__primary}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccount-${RenewalConfiguration.acme_account_id}
-                                |
-                                ${RenewalConfiguration.acme_account.acme_server.directory}
+                                AcmeAccount-${RenewalConfiguration.acme_account_id__primary}
                             </a>
+                            <span class="label label-default">
+                                ${RenewalConfiguration.acme_account__primary.acme_server.name}
+                            </span>
                         </td>
                     </tr>
                     <tr>
                         <th>acme_account__backup</th>
                         <td>
                             % if RenewalConfiguration.acme_account_id__backup:
-                                <a  class="btn btn-xs btn-primary"
+                                <a  class="label label-info"
                                     href="${admin_prefix}/acme-account/${RenewalConfiguration.acme_account_id__backup}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${RenewalConfiguration.acme_account_id__backup}
-                                    |
-                                    ${RenewalConfiguration.acme_account__backup.acme_server.directory}
                                 </a>
+                                <span class="label label-default">
+                                    ${RenewalConfiguration.acme_account__backup.acme_server.name}
+                                </span>
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>unique_fqdn_set</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/unique-fqdn-set/${RenewalConfiguration.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -166,7 +172,7 @@
                     <tr>
                         <th>uniquely_challenged_fqdn_set</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
+                            <a  class="label label-info"
                                 href="${admin_prefix}/uniquely-challenged-fqdn-set/${RenewalConfiguration.uniquely_challenged_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -207,6 +213,60 @@
                         <td><code>${RenewalConfiguration.note or ''}</code>
                         </td>
                     </tr>
+                    <tr>
+                        <th>is_export_filesystem</th>
+                        <td><code>${RenewalConfiguration.is_export_filesystem}</code>
+                            % if not RenewalConfiguration.enrollment_factory_id__via:
+                                % if RenewalConfiguration.is_export_filesystem == "off":
+                                    <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-export_on">
+                                        <input type="hidden" name="action" value="is_export_filesystem-on"/>
+                                        <button class="btn btn-xs btn-success" type="submit">
+                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                            On
+                                        </button>
+                                    </form>
+                                % else:
+                                    <form action="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/mark" method="POST" style="display:inline;" id="form-renewal_configuration-mark-export_off">
+                                        <input type="hidden" name="action" value="is_export_filesystem-off"/>
+                                        <button class="btn btn-xs btn-danger" type="submit">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            Off
+                                        </button>
+                                    </form>
+                                % endif
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>enrollment_factory__via</th>
+                        <td>
+                            % if RenewalConfiguration.enrollment_factory_id__via:
+                            <a href="${admin_prefix}/enrollment-factory/${RenewalConfiguration.enrollment_factory_id__via}"
+                                title="EnrollmentFactory"
+                                class="label label-info"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                EnrollmentFactory-${RenewalConfiguration.enrollment_factory_id__via}
+                            </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>system_configuration__via</th>
+                        <td>
+                            % if RenewalConfiguration.system_configuration_id__via:
+                            <a href="${admin_prefix}/system-configuration/${RenewalConfiguration.system_configuration_id__via}"
+                                title="SystemConfiguration"
+                                class="label label-info"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                SystemConfiguration-${RenewalConfiguration.system_configuration_id__via}
+                            </a>
+                            % endif
+                        </tr>
+                    </tr>
+
                 </tbody>
                 <thead>
                     <tr>
@@ -222,9 +282,36 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>CertificateSigneds - ALL</th>
                         <td>
                             ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__5, perspective='RenewalConfiguration')}
+                            % if RenewalConfiguration.certificate_signeds__5:
+                                ${admin_partials.nav_pager("%s/renewal-configuration/%s/certificate-signeds" % (admin_prefix, RenewalConfiguration.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds - Primary</th>
+                        <td>
+                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__primary__5, perspective='RenewalConfiguration')}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateSigneds - Backup</th>
+                        <td>
+                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__backup__5, perspective='RenewalConfiguration')}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Certificate Lineages</th>
+                        <td>
+                            <a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/lineages"
+                                title="Lineages"
+                                class="label label-info"
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                Calculate Lineages
+                            </a>                            
                         </td>
                     </tr>
                 </tbody>

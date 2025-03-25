@@ -10,6 +10,7 @@ import sqlalchemy
 # local
 from ..lib import configuration_options
 from ..lib.handler import Handler
+from ...lib.db.get import get__Notification__count
 from ...model import objects as model_objects
 
 # ==============================================================================
@@ -25,12 +26,14 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
-        self._load_AcmeAccount_GlobalDefault()
-        self._load_AcmeAccount_GlobalBackup()
+        self.request.api_context._load_SystemConfiguration_global()
+        _active_notifications_count = get__Notification__count(
+            self.request.api_context, active_only=True
+        )
         return {
             "project": "peter_sslers",
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+            "Notifications_count": _active_notifications_count,
             "enable_redis": self.request.api_context.application_settings[
                 "enable_redis"
             ],
@@ -244,13 +247,15 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
-        self._load_AcmeAccount_GlobalBackup()
-        self._load_AcmeAccount_GlobalDefault()
+        self.request.api_context._load_SystemConfiguration_global()
+        self.request.api_context._load_SystemConfiguration_autocert()
+        self.request.api_context._load_SystemConfiguration_cin()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
-            "AcmeAccount_GlobalBackup": self.dbAcmeAccount_GlobalBackup,
-            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+            "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+            "SystemConfiguration_autocert": self.request.api_context.dbSystemConfiguration_autocert,
+            "SystemConfiguration_cin": self.request.api_context.dbSystemConfiguration_cin,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

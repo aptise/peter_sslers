@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 import sqlalchemy
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
@@ -18,6 +19,7 @@ from sqlalchemy.orm import subqueryload
 from typing_extensions import Literal
 
 # localapp
+from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeAccount_2_TermsOfService
@@ -33,10 +35,12 @@ from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
 from ...model.objects import AcmeServer
+from ...model.objects import AcmeServerConfiguration
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
 from ...model.objects import CertificateCAPreference
+from ...model.objects import CertificateCAPreferencePolicy
 from ...model.objects import CertificateRequest
 from ...model.objects import CertificateSigned
 from ...model.objects import CertificateSignedChain
@@ -44,12 +48,16 @@ from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
 from ...model.objects import DomainBlocklisted
+from ...model.objects import EnrollmentFactory
+from ...model.objects import Notification
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
+from ...model.objects import RoutineExecution
+from ...model.objects import SystemConfiguration
 from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
 from ...model.objects import UniquelyChallengedFQDNSet
@@ -57,7 +65,11 @@ from ...model.objects import UniquelyChallengedFQDNSet2Domain
 
 
 if TYPE_CHECKING:
-    from ..utils import ApiContext
+    from ..context import ApiContext
+
+# aliases used for some selects
+CertificateSigned_Alt = aliased(CertificateSigned)
+AcmeOrder_Alt = aliased(AcmeOrder)
 
 # ==============================================================================
 
@@ -154,11 +166,36 @@ def get__AcmeAccount__paginated(
     limit: Optional[int] = None,
     offset: int = 0,
     active_only: bool = False,
+    render_in_selects: bool = False,
+    render_in_selects_include: Optional[List[int]] = None,
 ) -> List[AcmeAccount]:
+    if render_in_selects:
+        limit = None
+        offset = 0
+        active_only = False
     query = ctx.dbSession.query(AcmeAccount)
     if active_only:
         query = query.filter(AcmeAccount.is_active.is_(True))
-    query = query.order_by(AcmeAccount.id.desc()).limit(limit).offset(offset)
+    if render_in_selects:
+        if render_in_selects_include:
+            query = query.filter(
+                sqlalchemy.or_(
+                    AcmeAccount.is_render_in_selects.is_(True),
+                    AcmeAccount.id.in_(render_in_selects_include),
+                )
+            )
+        else:
+            query = query.filter(AcmeAccount.is_render_in_selects.is_(True))
+
+    query = (
+        query.order_by(
+            AcmeAccount.is_render_in_selects.desc(),
+            AcmeAccount.is_active.desc(),
+            AcmeAccount.id.asc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
     dbAcmeAccounts = query.all()
     return dbAcmeAccounts
 
@@ -186,26 +223,6 @@ def get__AcmeAccount__by_pemMd5(
     if is_active:
         q = q.filter(AcmeAccount.is_active.is_(True))
         q = q.filter(AcmeAccountKey.is_active.is_(True))
-    item = q.first()
-    return item
-
-
-def get__AcmeAccount__GlobalDefault(
-    ctx: "ApiContext", active_only: Optional[bool] = None
-) -> Optional[AcmeAccount]:
-    q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_default.is_(True))
-    if active_only:
-        q = q.filter(AcmeAccount.is_active.is_(True))
-    item = q.first()
-    return item
-
-
-def get__AcmeAccount__GlobalBackup(
-    ctx: "ApiContext", active_only: Optional[bool] = None
-) -> Optional[AcmeAccount]:
-    q = ctx.dbSession.query(AcmeAccount).filter(AcmeAccount.is_global_backup.is_(True))
-    if active_only:
-        q = q.filter(AcmeAccount.is_active.is_(True))
     item = q.first()
     return item
 
@@ -872,10 +889,10 @@ def get__AcmeChallengeUnknownPoll__by_id(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeDnsServer__by_root_url(
-    ctx: "ApiContext", root_url: str
+def get__AcmeDnsServer__by_api_url(
+    ctx: "ApiContext", api_url: str
 ) -> Optional[AcmeDnsServer]:
-    q = ctx.dbSession.query(AcmeDnsServer).filter(AcmeDnsServer.root_url == root_url)
+    q = ctx.dbSession.query(AcmeDnsServer).filter(AcmeDnsServer.api_url == api_url)
     return q.first()
 
 
@@ -1346,6 +1363,32 @@ def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
     return items_paged
 
 
+def get__AcmeServerConfiguration__by_AcmeServerId__count(
+    ctx: "ApiContext",
+    acme_server_id: int,
+) -> int:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id
+    )
+    return query.count()
+
+
+def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeAccount]:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id
+    )
+    query = (
+        query.order_by(AcmeServerConfiguration.id.desc()).limit(limit).offset(offset)
+    )
+    dbAcmeServerConfigurations = query.all()
+    return dbAcmeServerConfigurations
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1653,6 +1696,60 @@ def get__CertificateCAChain__by_CertificateCAIdN__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__CertificateCAPreferencePolicy__by_name(
+    ctx: "ApiContext",
+    name: str,
+    eagerload_preferences: bool = False,
+) -> Optional[CertificateCAPreferencePolicy]:
+    name = lib_utils.normalize_unique_text(name)
+    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
+        CertificateCAPreferencePolicy.name == name
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
+        )
+    dbCertificateCAPreferencePolicy = q.first()
+    return dbCertificateCAPreferencePolicy
+
+
+def get__CertificateCAPreferencePolicy__by_id(
+    ctx: "ApiContext",
+    id_: int,
+    eagerload_preferences: bool = False,
+) -> Optional[CertificateCAPreferencePolicy]:
+    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
+        CertificateCAPreferencePolicy.id == id_
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
+        )
+    dbCertificateCAPreferencePolicy = q.first()
+    return dbCertificateCAPreferencePolicy
+
+
+def get__CertificateCAPreferencePolicy__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(CertificateCAPreferencePolicy).count()
+    return counted
+
+
+def get__CertificateCAPreferencePolicy__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[CertificateCAPreferencePolicy]:
+    items_paged = (
+        ctx.dbSession.query(CertificateCAPreferencePolicy)
+        .order_by(CertificateCAPreferencePolicy.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__CertificateRequest__count(ctx: "ApiContext") -> int:
     counted = ctx.dbSession.query(CertificateRequest).count()
     return counted
@@ -1934,12 +2031,19 @@ def get__CertificateSigned_replaces_candidates(
         model_utils.CertificateType_Enum.MANAGED_PRIMARY,
         model_utils.CertificateType_Enum.MANAGED_BACKUP,
     ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+    timestamp_min_expiry: Optional[datetime.datetime] = None,
 ) -> List[CertificateSigned]:
     """
     relevant fields:
         CertificateSigned.ari_identifier__replaced_by
         CertificateSigned.certificate_signed_id__replaced_by
     """
+    if not timestamp_min_expiry:
+        # how many days ago should we allow an attempted renewal?
+        TIMEDELTA_days = datetime.timedelta(days=10)
+        # maths: add these times from the current timestamp
+        timestamp_min_expiry = ctx.timestamp - TIMEDELTA_days
+
     if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
         if not dbRenewalConfiguration.acme_account_id__backup:
             return []
@@ -1962,14 +2066,14 @@ def get__CertificateSigned_replaces_candidates(
             CertificateSigned.ari_identifier__replaced_by.is_(None),
             CertificateSigned.ari_identifier.is_not(None),
             # !!!: Filter- the Cert needs to be timely
-            CertificateSigned.timestamp_not_after > ctx.timestamp,
+            CertificateSigned.timestamp_not_after > timestamp_min_expiry,
         )
     )
     if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:
         # !!!: Filter- lock down to the same AcmeServer
         q = q.filter(
             AcmeAccount.acme_server_id
-            == dbRenewalConfiguration.acme_account.acme_server_id,
+            == dbRenewalConfiguration.acme_account__primary.acme_server_id,
         )
     elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
         # !!!: Filter- lock down to the same AcmeServer
@@ -2208,6 +2312,54 @@ def get__CertificateSigned__by_DomainId__latest(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__CertificateSigned__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext", enrollment_factory_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__CertificateSigned__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateSigned]:
+    items_paged = (
+        ctx.dbSession.query(CertificateSigned)
+        .join(
+            AcmeOrder,
+            CertificateSigned.id == AcmeOrder.certificate_signed_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .order_by(CertificateSigned.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 def get__CertificateSigned__by_PrivateKeyId__count(
     ctx: "ApiContext", key_id: int
 ) -> int:
@@ -2398,6 +2550,60 @@ def get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _get_CertificateSigneds_duplicatePairs__core(
+    ctx: "ApiContext",
+):
+    q = (
+        ctx.dbSession.query(CertificateSigned, CertificateSigned_Alt)
+        .join(AcmeOrder, CertificateSigned.id == AcmeOrder.certificate_signed_id)
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .join(
+            AcmeOrder_Alt,
+            RenewalConfiguration.id == AcmeOrder_Alt.renewal_configuration_id,
+        )
+        .join(
+            CertificateSigned_Alt,
+            AcmeOrder_Alt.certificate_signed_id == CertificateSigned_Alt.id,
+        )
+        .filter(
+            AcmeOrder.id != AcmeOrder_Alt.id,
+            AcmeOrder.certificate_type_id == AcmeOrder_Alt.certificate_type_id,
+            CertificateSigned.is_active.is_(True),
+            CertificateSigned_Alt.is_active.is_(True),
+            CertificateSigned.id > CertificateSigned_Alt.id,
+        )
+    )
+    return q
+
+
+def get_CertificateSigneds_duplicatePairs__count(
+    ctx: "ApiContext",
+) -> int:
+    q = _get_CertificateSigneds_duplicatePairs__core(ctx)
+    return q.count()
+
+
+def get_CertificateSigneds_duplicatePairs__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Tuple[CertificateSigned, CertificateSigned]]:
+    q = _get_CertificateSigneds_duplicatePairs__core(ctx)
+    q = (
+        q.order_by(
+            CertificateSigned.id.desc(),
+            CertificateSigned_Alt.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    pairs = q.all()
+    return pairs
+
+
 def get_CertificateSigneds_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
@@ -2409,13 +2615,21 @@ def get_CertificateSigneds_renew_now(
         TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
         # runner interval; assume the next time we run this is in an houur
         # TODO: make this configurable
-        TIMEDELTA_runner_interval = datetime.timedelta(minutes=60)
-        # maths: subtract these times from the current timestamp
+
+        # offsets
+        assert ctx.application_settings
+        _minutes = ctx.application_settings.get("offset.cert_renewals", 60)
+        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
+        # maths: add these times from the current timestamp
         timestamp_max_expiry = (
-            ctx.timestamp - TIMEDELTA_clockdrift - TIMEDELTA_runner_interval
+            ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
         )
 
-    expiring_certs = (
+    # print("get_CertificateSigneds_renew_now(")
+    # print("\tctx.timestamp:", ctx.timestamp)
+    # print("\ttimestamp_max_expiry:", timestamp_max_expiry)
+
+    q = (
         ctx.dbSession.query(CertificateSigned)
         # joinpath 1: CertificateSigned>AriCheck
         .outerjoin(
@@ -2436,6 +2650,10 @@ def get_CertificateSigneds_renew_now(
             AcmeOrder.certificate_type_id.in_(
                 model_utils.CertificateType._options_AcmeOrder_id
             ),
+            # Do not renew deactivated certs
+            CertificateSigned.is_active.is_(True),
+            # Do not renew deactivated certs
+            RenewalConfiguration.is_active.is_(True),
             # this is the same info as `AcmeOrder.certificate_type_id`
             # the cert role might change though; the order role will never change
             # CertificateSigned.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
@@ -2444,13 +2662,14 @@ def get_CertificateSigneds_renew_now(
             # CertificateSigned.ari_identifier__replaced_by.is_(None),
             # again, ARI is not guaranteed - but it also might be in the future like pebble
             sqlalchemy.or_(
-                CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
-                AriCheck.suggested_window_end >= timestamp_max_expiry,
+                CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
+                AriCheck.suggested_window_end <= timestamp_max_expiry,
             ),
         )
-        .all()
     )
-
+    # print(q.statement.compile(ctx.dbSession.connection().engine))
+    # print(q.statement.compile())
+    expiring_certs = q.all()
     return expiring_certs
 
 
@@ -2637,7 +2856,9 @@ def _get__Domain__core(q, preload: bool = False, eagerload_web: bool = False):
         q = q.options(
             subqueryload(Domain.acme_orders__5),
             subqueryload(Domain.certificate_requests__5),
-            subqueryload(Domain.certificate_signeds__5),
+            # subqueryload(Domain.certificate_signeds__5),
+            # subqueryload(Domain.certificate_signeds__single_primary_5),
+            # subqueryload(Domain.certificate_signeds__single_backup_5),
         )
     return q
 
@@ -2882,6 +3103,98 @@ def get__DomainBlocklisted__paginated(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__EnrollmentFactory__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(EnrollmentFactory)
+    counted = q.count()
+    return counted
+
+
+def get__EnrollmentFactory__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[EnrollmentFactory]:
+    q = (
+        ctx.dbSession.query(EnrollmentFactory)
+        .order_by(
+            EnrollmentFactory.id.asc(),
+            EnrollmentFactory.name.asc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__EnrollmentFactory__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[EnrollmentFactory]:
+    q = ctx.dbSession.query(EnrollmentFactory).filter(EnrollmentFactory.id == id_)
+    item = q.first()
+    return item
+
+
+def get__EnrollmentFactory__by_name(
+    ctx: "ApiContext", name: str
+) -> Optional[EnrollmentFactory]:
+    if not name:
+        raise ValueError("`name` required")
+    # uniqueness on lower(name)
+    name = name.lower()
+    q = ctx.dbSession.query(EnrollmentFactory).filter(
+        sqlalchemy.func.lower(EnrollmentFactory.name) == name
+    )
+    item = q.first()
+    return item
+
+
+def get__EnrollmentFactorys__by_acmeAccountId(
+    ctx: "ApiContext", acme_account_id: int
+) -> List[EnrollmentFactory]:
+    q = ctx.dbSession.query(EnrollmentFactory).filter(
+        sqlalchemy.or_(
+            EnrollmentFactory.acme_account_id__primary == acme_account_id,
+            EnrollmentFactory.acme_account_id__backup == acme_account_id,
+        )
+    )
+    items = q.all()
+    return items
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__Notification__by_id(
+    ctx: "ApiContext", notification_id: int
+) -> Optional[Notification]:
+    q = ctx.dbSession.query(Notification).filter(Notification.id == notification_id)
+    item = q.first()
+    return item
+
+
+def get__Notification__count(ctx: "ApiContext", active_only=False) -> int:
+    q = ctx.dbSession.query(Notification)
+    if active_only:
+        q = q.filter(Notification.is_active.is_(True))
+    counted = q.count()
+    return counted
+
+
+def get__Notification__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[Notification]:
+    q = (
+        ctx.dbSession.query(Notification)
+        .order_by(
+            Notification.is_active.desc(),
+            Notification.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
 
 
 def get__OperationsObjectEvent__count(ctx: "ApiContext") -> int:
@@ -3186,7 +3499,7 @@ def get__RenewalConfiguration__paginated(
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration)
     if active_status in (True, False):
-        q = q.filter(RenewalConfiguration.is_active == active_status)
+        q = q.filter(RenewalConfiguration.is_active.is_(active_status))
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
@@ -3197,7 +3510,7 @@ def get__RenewalConfigurations__by_AcmeAccountId__count(
     acme_account_id: int,
 ) -> int:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.acme_account_id == acme_account_id
+        RenewalConfiguration.acme_account_id__primary == acme_account_id
     )
     counted = q.count()
     return counted
@@ -3210,7 +3523,7 @@ def get__RenewalConfigurations__by_AcmeAccountId__paginated(
     offset: int = 0,
 ) -> List[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(
-        RenewalConfiguration.acme_account_id == acme_account_id
+        RenewalConfiguration.acme_account_id__primary == acme_account_id
     )
     q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
@@ -3297,6 +3610,31 @@ def get__RenewalConfigurations__by_DomainId__paginated(
     return items_paged
 
 
+def get__RenewalConfiguration__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+) -> int:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RenewalConfiguration__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+    )
+    q = q.order_by(RenewalConfiguration.id.desc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
 def get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__count(
     ctx: "ApiContext",
     uniquely_challenged_fqdn_set_id: int,
@@ -3363,6 +3701,82 @@ def get__RootStoreVersion__by_id(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__RoutineExecution__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(RoutineExecution)
+    counted = q.count()
+    return counted
+
+
+def get__RoutineExecution__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[RoutineExecution]:
+    q = (
+        ctx.dbSession.query(RoutineExecution)
+        .order_by(RoutineExecution.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__SystemConfiguration__count(ctx: "ApiContext") -> int:
+    q = ctx.dbSession.query(SystemConfiguration)
+    counted = q.count()
+    return counted
+
+
+def get__SystemConfiguration__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[SystemConfiguration]:
+    q = (
+        ctx.dbSession.query(SystemConfiguration)
+        .order_by(
+            SystemConfiguration.name.asc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__SystemConfiguration__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(SystemConfiguration.id == id_)
+    item = q.first()
+    return item
+
+
+def get__SystemConfiguration__by_name(
+    ctx: "ApiContext", name: str
+) -> Optional[SystemConfiguration]:
+    if not name:
+        raise ValueError("`name` required")
+    q = ctx.dbSession.query(SystemConfiguration).filter(
+        SystemConfiguration.name == name
+    )
+    item = q.first()
+    return item
+
+
+def get__SystemConfigurations__by_acmeAccountId(
+    ctx: "ApiContext", acme_account_id: int
+) -> List[SystemConfiguration]:
+    q = ctx.dbSession.query(SystemConfiguration).filter(
+        sqlalchemy.or_(
+            SystemConfiguration.acme_account_id__primary == acme_account_id,
+            SystemConfiguration.acme_account_id__backup == acme_account_id,
+        )
+    )
+    items = q.all()
+    return items
 
 
 def get__TermsOfService__by_AcmeAccountId__count(

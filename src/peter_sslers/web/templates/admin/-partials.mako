@@ -23,11 +23,12 @@
             <tr>
                 <th>id</th>
                 <th><!-- active --></th>
-                <th><!-- global_backup | global_default --></th>
+                <th><!-- is_render_in_selects --></th>
+                <th><!-- SystemConfiguration info --></th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
-                <th>count certificate requests</th>
+                ## <th>count certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -37,12 +38,10 @@
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${account.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeAccount-${account.id}</a>
-                        
                         % if account.name:
                             <span class="label label-default">${account.name}</span>
                         % endif
-                        
-                        </td>
+                    </td>
                     <td>
                         % if account.is_active:
                             <span class="label label-success">active</span>
@@ -51,12 +50,12 @@
                         % endif
                     </td>
                     <td>
-                        % if account.is_global_backup:
-                            <span class="label label-success">global backup</span>
+                        % if account.is_render_in_selects:
+                            <span class="label label-success">Render in Select</span>
                         % endif
-                        % if account.is_global_default:
-                            <span class="label label-success">global default</span>
-                        % endif
+                    </td>                    
+                    <td>
+                        <!-- TODO: show SystemConfiguration Info -->
                     </td>
                     <td>
                         <a class="label label-info" href="${admin_prefix}/acme-server/${account.acme_server_id}">
@@ -67,7 +66,7 @@
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
-                    <td><span class="badge">${account.count_acme_orders or ''}</span></td>
+                    ## <td><span class="badge">${account.count_acme_orders or ''}</span></td>
                     <td><span class="badge">${account.count_certificate_signeds or ''}</span></td>
                 </tr>
             % endfor
@@ -417,44 +416,46 @@
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
+                <th>Focus</th>
+                <th>active</th>
                 % if perspective != "AcmeDnsServer":
                     <th>AcmeDnsServer</th>
                 % endif
                 % if perspective != "Domain":
                     <th>Domain</th>
                 % endif
-                <th>Focus</th>
-                <th>active</th>
             </tr>
         </thead>
         <tbody>
             % for a2d in AcmeDnsServerAccounts:
                 <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeDnsServerAccount-${a2d.id}
+                        </a>
+                    </td>
+                    <td>
+                        <code>${a2d.is_active}</code>
+                    </td>
                     % if perspective != "AcmeDnsServer":
                         <td>
                             <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeDnsServer-${a2d.acme_dns_server_id} | ${a2d.acme_dns_server.root_url}
+                                AcmeDnsServer-${a2d.acme_dns_server_id}
                             </a>
+                            <spa class="label label-default">${a2d.acme_dns_server.api_url}</span>
                         </td>
                     % endif
                     % if perspective != "Domain":
                         <td>
                             <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Domain-${a2d.domain_id} | ${a2d.domain.domain_name} 
+                                Domain-${a2d.domain_id}
                             </a>
+                            <spa class="label label-default">${a2d.domain.domain_name}</span>
                         </td>
                     % endif
-                    <td>
-                        <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            acme-dns Account Focus
-                        </a>
-                    </td>
-                    <td>
-                        <code>${a2d.is_active}</code>
-                    </td>
                 </tr>
             % endfor
         </tbody>
@@ -787,9 +788,9 @@
     %>
     <%
         cols = ("id",
-                "type"
+                "type",
                 "timestamp_created",
-                "certificate_request_source_id",
+                "AcmeOrder",
                 "unique_fqdn_set_id",
                )
         if perspective == 'AcmeAccount':
@@ -822,29 +823,42 @@
             % for certificate_request in certificate_requests:
                 <tr>
                     % for c in cols:
-                        <td>
-                            % if c == 'id':
+                        % if c == 'id':
+                            <td>
                                 <a  class="label label-info"
                                     href="${admin_prefix}/certificate-request/${certificate_request.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     CertificateRequest-${certificate_request.id}</a>
-                            % elif c == 'type':
+                            </td>
+                        % elif c == 'type':
+                            <td>
                                 <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                            % elif c == 'timestamp_created':
+                            </td>
+                        % elif c == 'timestamp_created':
+                            <td>
                                 <timestamp>${certificate_request.timestamp_created}</timestamp>
-                            % elif c == 'certificate_request_source_id':
-                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                            % elif c == 'unique_fqdn_set_id':
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                            </td>
+                        % elif c == 'AcmeOrder':
+                            <td>
+                                % if certificate_request.certificate_request_source_id == model_websafe.CertificateRequestSource.ACME_ORDER:
+                                    <a  class="label label-info"
+                                    href="${admin_prefix}/acme-order/${certificate_request.acme_orders[0].id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
-                            % endif
-                        </td>
-                        % if show_domains:
-                             <td><code>${certificate_request.domains_as_string}</code></td>
+                                    AcmeOrder-${certificate_request.acme_orders[0].id}</a>
+                                % endif
+                            </td>
+                        % elif c == 'unique_fqdn_set_id':
+                            <td>
+                                <a  class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
+                            </td>
                         % endif
                     % endfor
+                    % if show_domains:
+                         <td><code>${certificate_request.domains_as_string}</code></td>
+                    % endif
                 </tr>
             % endfor
         </tbody>
@@ -852,13 +866,18 @@
 </%def>
 
 
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False, show_replace=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th>active?</th>
-                <th>auto-renew?</th>
+                % if perspective != "RenewalConfiguration":
+                    <th>auto-renew?</th>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <th></th>
+                % endif
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
                 % if show_expiring_days:
@@ -886,7 +905,11 @@
                             ${'Active' if cert.is_active else 'inactive'}
                         </span>
                     % endif
+                    <span class="label label-default">
+                        ${cert.certificate_type}
+                    </span>
                 </td>
+                % if perspective != "RenewalConfiguration":
                 <td>
                     % if cert.acme_order:
                         <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
@@ -907,6 +930,19 @@
                         </span>
                     % endif
                 </td>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <td>
+                        % if cert.acme_order:
+                            % if cert.certificate_signed_id__replaces:
+                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % endif
+                            % if cert.certificate_signed_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % endif
+                    % endif
+                    </td>
+                % endif
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                 % if show_expiring_days:
@@ -1029,6 +1065,31 @@
                 </td>
             </tr>
         % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_EnrollmentFactorys(data, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for factory in data:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/enrollment-factory/${factory.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        EnrollmentFactory-${factory.id}</a>
+                    </td>
+                    <td>
+                        <span class="label label-default">${factory.name}</span>
+                    </td>
+                </tr>
+            % endfor
         </tbody>
     </table>
 </%def>
@@ -1195,7 +1256,7 @@
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
                 <th>count active certificates</th>
-                <th>count certificate requests</th>
+                ## <th>count certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -1221,7 +1282,7 @@
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                 <td><code>${key.key_pem_md5}</code></td>
                 <td><span class="badge">${key.count_active_certificates or ''}</span></td>
-                <td><span class="badge">${key.count_acme_orders or ''}</span></td>
+                ## <td><span class="badge">${key.count_acme_orders or ''}</span></td>
                 <td><span class="badge">${key.count_certificate_signeds or ''}</span></td>
             </tr>
         % endfor
@@ -1236,17 +1297,20 @@
     <%
         cols = ("id",
                 "timestamp_created",
-                "acme_account_id",
+                "acme_account_id__primary",
+                "acme_account_id__backup",
                 "unique_fqdn_set_id",
                 "uniquely_challenged_fqdn_set_id",
                )
         if perspective == 'RenewalConfiguration':
             cols = [c for c in cols]
         elif perspective == 'AcmeAccount':
-            cols = [c for c in cols if c != "acme_account_id"]
+            cols = [c for c in cols if c not in ("acme_account_id__primary", "acme_account_id__backup")]
         elif perspective == 'UniquelyChallengedFQDNSet':
             cols = [c for c in cols if c != "uniquely_challenged_fqdn_set_id"]
         elif perspective == 'Domain':
+            cols = [c for c in cols]
+        elif perspective == 'EnrollmentFactory':
             cols = [c for c in cols]
         else:
             raise ValueError("invalid `perspective`")
@@ -1271,10 +1335,15 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     RenewalConfiguration-${renewal_configuration.id}
                                 </a>
-                            % elif c == 'acme_account_id':
-                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id}">
+                            % elif c == 'acme_account_id__primary':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id__primary}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccount-${renewal_configuration.acme_account_id}
+                                    AcmeAccount-${renewal_configuration.acme_account_id__primary}
+                                </a>
+                            % elif c == 'acme_account_id__backup':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${renewal_configuration.acme_account_id__backup}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${renewal_configuration.acme_account_id__backup}
                                 </a>
                             % elif c == 'unique_fqdn_set_id':
                                 <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${renewal_configuration.unique_fqdn_set_id}">
@@ -1326,6 +1395,86 @@
     </table>
 </%def>
 
+
+<%def name="table_RoutineExecutions(routineExecutions)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>routine</th>
+                <th>timestamp_start</th>
+                <th>timestamp_end</th>
+                <th>count_records_processed</th>
+                <th>count_records_success</th>
+                <th>count_records_fail</th>
+                <th>duration_seconds</th>
+                <th>average_speed</th>
+                <th>routine_execution_id__via</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in routineExecutions:
+            <tr>
+                <td>
+                    <span class="label label-default">${i.id}</span>
+                </td>
+                <td>
+                    <span class="label label-default">${i.routine}</span>
+                </td>
+                <td><timestamp>${i.timestamp_start_isoformat}</timestamp></td>
+                <td><timestamp>${i.timestamp_end_isoformat}</timestamp></td>
+                <td><code>${i.count_records_processed}</code></td>
+                <td><code>${i.count_records_success}</code></td>
+                <td><code>${i.count_records_fail}</code></td>
+                <td><code>${i.duration_seconds}</code></td>
+                <td><code>${i.average_speed}</code></td>
+                <td>
+                    % if routine_execution_id__via:
+                        <span class="label label-default">${i.id}</span>
+                    % endif
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+    
+    
+
+
+<%def name="table_SystemConfigurations(data, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>configured?</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for policy in data:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/system-configuration/${policy.slug}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        SystemConfiguration-${policy.id}</a>
+                    </td>
+                    <td>
+                        <span class="label label-default">${policy.name}</span>
+                    </td>
+                    <td>
+                        % if policy.is_configured:
+                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
 
 
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
@@ -1536,7 +1685,63 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile=None)">
+<%def name="messaging_SystemConfiguration_global()">
+    % if not  SystemConfiguration_global.is_configured:
+    <div class="alert alert-warning">
+        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+        The global SystemConfiguration is not configured.
+        Please configure the policy to set the Global Default and Backup AcmeAccounts.
+        <a  class="label label-info"
+            href="${admin_prefix}/system-configuration/global"
+        >
+            <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+            SystemConfiguration-Global
+        </a>
+    </div>
+    % endif
+</%def>
+
+
+<%def name="formgroup__acme_profile(field_name='acme_profile')">
+    <div class="form-group">
+        <label for="${field_name}">ACME Profile</label>
+        <input
+            type="text"
+            class="form-control"
+            name="${field_name}"
+            value=""
+        />
+        <p class="help">
+            Leave this blank for no profile.
+            If you want to defer to the AcmeAccount, use the special name <code>@</code>.
+        </p>
+    </div>
+</%def>
+
+
+
+<%def name="formgroup__AcmeAccount_select(acmeAccounts=None, default=None, field_name='acme_account_id', allow_none=False)">
+    <div class="form-group">
+        <label for="${field_name}">ACME Account</label>
+        <select class="form-control" name="${field_name}">
+            % if allow_none:
+                <option value="0"${" selected" if (not default) else ""}>
+                    Not Configured
+                </option>
+            % endif
+            % for acc in acmeAccounts:
+                <option value="${acc.id}"${" selected" if (acc.id == default) else ""}>
+                    ${acc.displayable}
+                </option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
+
+
+<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbSystemConfiguration=None,)">
     <%
         checked = {
             "none": "",
@@ -1549,13 +1754,17 @@
             checked["account_key_global_default"] = 'checked="checked"'
         elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
+        if not dbSystemConfiguration:
+            dbSystemConfiguration = SystemConfiguration_global
+            
+        acmeAccount_GlobalDefault = SystemConfiguration_global.acme_account__primary
     %>
     <p>Select a Primary AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]}/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]|n}/>
                     <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
@@ -1577,42 +1786,41 @@
                 </p>
             </div>
         % endif
-        % if AcmeAccount_GlobalDefault:
+        % if acmeAccount_GlobalDefault:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]}/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]|n}/>
                     The Global Default AcmeAccount.
                 </label>
                 <p class="form-control-static">
                     <b>resource:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}"
+                                         href="${admin_prefix}/acme-account/${acmeAccount_GlobalDefault.id}"
                                      >
-                                         AcmeAccount-${AcmeAccount_GlobalDefault.id}
+                                         AcmeAccount-${acmeAccount_GlobalDefault.id}
                                      </a><br/>
                     <b>server:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalDefault.acme_server.id}"
+                                         href="${admin_prefix}/acme-server/${acmeAccount_GlobalDefault.acme_server.id}"
                                      >
-                                         AcmeServer-${AcmeAccount_GlobalDefault.acme_server.id}
-                                         |
-                                        ${AcmeAccount_GlobalDefault.acme_server.server}
-                                     </a><br/>
-                    <b>pem md5:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
-                    <b>known profiles:</b> <code>${AcmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_default" value="${AcmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
+                                         AcmeServer-${acmeAccount_GlobalDefault.acme_server.id}
+                                     </a>
+                                     <span class="label label-default">${acmeAccount_GlobalDefault.acme_server.name}</span>
+                                     <br/>
+                    <b>pem md5:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${acmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
+                    <input type="hidden" name="account_key_global_default" value="${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Default AcmeAccount configured.
-                Any Account can be configured as the Global Default.
-                Browse Accounts at
+                Any Account can be configured as the Global Default through the global SystemConfiguration
                 <a  class="label label-info"
-                    href="${admin_prefix}/acme-accounts"
+                    href="${admin_prefix}/system-configuration/global"
                 >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    AcmeAccounts
+                    <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                    SystemConfiguration-global
                 </a>
             </div>
         % endif
@@ -1635,11 +1843,15 @@
             </div>
         % endif
         % if support_profiles:
-            <label for="acme_profile">
+            <label for="acme_profile__primary">
                 [Optional] The name of an ACME Profile on the server
             </label>
+            <p class="help">
+                Leave this blank for no profile.
+                If you want to defer to the AcmeAccount, use the special name <code>@</code>.
+            </p>
             <div class="form-control-static">
-               <input class="form-control" name="acme_profile" id="acme_profile" type="text" value="${default_profile or ""}"/>
+               <input class="form-control" name="acme_profile__primary" id="acme_profile__primary" type="text" value="${default_profile or ""}"/>
             </div>
         % endif
     </div>
@@ -1647,7 +1859,7 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile=None)">
+<%def name="formgroup__AcmeAccount_selector__backup(dbAcmeAccountReuse=None, support_profiles=False, default_profile='', dbSystemConfiguration=None)">
     <%
         checked = {
             "none": "",
@@ -1663,19 +1875,25 @@
                 checked["none"] = 'checked="checked"'
         else:
             checked["none"] = 'checked="checked"'
+        
+        if not dbSystemConfiguration:
+            dbSystemConfiguration = SystemConfiguration_global
+        
+        acmeAccount_GlobalBackup = SystemConfiguration_global.acme_account__backup
+        
     %>
     <p>Select a Backup AcmeAccount with one of the following options</p>
     <div class="form-horizontal">
         <div class="radio">
             <label>
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]}/>
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]|n}/>
                 No Backup Certificate
             </label>
         </div>
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]}/>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]|n}/>
                     <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
@@ -1697,42 +1915,42 @@
                 </p>
             </div>
         % endif
-        % if AcmeAccount_GlobalBackup:
+        % if acmeAccount_GlobalBackup:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]}/>
+                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]|n}/>
                     The Global Backup AcmeAccount.
                 </label>
                 <p class="form-control-static">
                     <b>resource:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-account/${AcmeAccount_GlobalBackup.id}"
+                                         href="${admin_prefix}/acme-account/${acmeAccount_GlobalBackup.id}"
                                      >
-                                         AcmeAccount-${AcmeAccount_GlobalBackup.id}
-                                     </a><br/>
+                                         AcmeAccount-${acmeAccount_GlobalBackup.id}
+                                     </a>
+                                     <br/>
                     <b>server:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/acme-server/${AcmeAccount_GlobalBackup.acme_server.id}"
+                                         href="${admin_prefix}/acme-server/${acmeAccount_GlobalBackup.acme_server.id}"
                                      >
-                                         AcmeServer-${AcmeAccount_GlobalBackup.acme_server.id}
-                                         |
-                                        ${AcmeAccount_GlobalBackup.acme_server.server}
-                                     </a><br/>
-                    <b>pem md5:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${AcmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
-                    <b>known profiles:</b> <code>${AcmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_backup" value="${AcmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                                         AcmeServer-${acmeAccount_GlobalBackup.acme_server.id}
+                                     </a>
+                                     <span class="label label-default">${acmeAccount_GlobalBackup.acme_server.name}</span>
+                                     <br/>
+                    <b>pem md5:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
+                    <b>known profiles:</b> <code>${acmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
+                    <input type="hidden" name="account_key_global_backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Backup AcmeAccount configured.
-                Any Account can be configured as the Global Backup.
-                Browse Accounts at
+                The backup can be configured through the Global SystemConfiguration
                 <a  class="label label-info"
-                    href="${admin_prefix}/acme-accounts"
+                    href="${admin_prefix}/system-configuration/global"
                 >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    AcmeAccounts
+                    <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                    SystemConfiguration-global
                 </a>
             </div>
         % endif
@@ -1746,9 +1964,13 @@
             </div>
         </div>
         % if support_profiles:
-            <label for="acme_profile">
+            <label for="acme_profile__backup">
                 [Optional] The name of an ACME Profile on the server
             </label>
+            <p class="help">
+                Leave this blank for no profile.
+                If you want to defer to the AcmeAccount, use the special name <code>@</code>.
+            </p>
             <div class="form-control-static">
                <input class="form-control" name="acme_profile__backup" id="acme_profile__backup" type="text" value="${default_profile or ""}"/>
             </div>
@@ -1776,6 +1998,10 @@
                 <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
             % endfor
         </select>
+    </div>
+    <div class="form-group">
+        <label for="account__order_default_acme_profile">Orders: Default ACME Profile</label>
+        <input type="text" class="form-control" name="account__order_default_acme_profile" value=""/>
     </div>
 </%def>
 
@@ -1975,12 +2201,84 @@
 </%def>
 
 
-<%def name="formgroup__key_technology(default=None, options=None)">
+<%def name="formgroup__domain_templates(default_http01='', default_dns01='')">
+    <div class="form-group">
+        <p>
+            Creating a "RenewalConfiguration" via "EnrollmentFactory" will only 
+            require submitting a single Domain Name.  The DomainTemplates will be expanded with the following rules applied to the submitted Domain Name:
+            <ul>
+                <li><code>{DOMAIN}</code> will be replaced with the registered domain name.
+                    <ul>
+                        <li><code>`example.com` &raquo; `example.com`</code></li>                                     
+                    </ul>
+                </li>
+                <li><code>{NIAMOD}</code> will be replaced with a modified reverse syntax domain name.
+                    <ul>
+                        <li><code>`example.com` &raquo; `com.example`</code></li>                                     
+                        <li><code>`www.example.com` &raquo; `com.example.www`</code></li>                                     
+                        <li><code>`example.co.uk` &raquo; `co.uk.example`</code></li>                                     
+                        <li><code>`www.example.co.uk` &raquo; `co.uk.example.www`</code></li>                                     
+                    </ul>
+                </li>
+            </ul>
+            AT LEAST ONE of the templates MUST be submitted, and it MUST have one of the two commands above.
+        </p>
+        <label for="domain_template_http01">Domain Template - HTTP-01</label>
+        <textarea class="form-control" rows="4" name="domain_template_http01" id="domain_template_http01">${default_http01}</textarea>
+        <hr/>
+        <label for="domain_template_dns01">Domain Template - DNS-01</label>
+        <textarea class="form-control" rows="4" name="domain_template_dns01" id="domain_template_dns01">${default_dns01}</textarea>
+    </div>
+</%def>
+
+
+<%def name="formgroup__is_export_filesystem(default=None, support_enrollment_factory_default=False)">
+    <%
+        checked = {
+            "on": "",
+            "off": "",
+            "enrollment_factory_default": "",
+        }
+        if default == "on":
+            checked["on"] = 'checked="checked"'
+        elif default == "off":
+            checked["off"] = 'checked="checked"'
+        elif default =="enrollment_factory_default":
+            checked["enrollment_factory_default"] = 'checked="checked"'
+    
+    %>
+    <div class="form-group clearfix">
+        <label for="is_export_filesystem">Export Filesystem</label>
+        <div class="radio">
+            <label>
+                <input type="radio" name="is_export_filesystem" value="on" ${checked["on"]|n}/>
+                On
+            </label>
+        </div>
+        <div class="radio">
+            <label>
+                <input type="radio" name="is_export_filesystem" value="off" ${checked["off"]|n}/>
+                Off
+            </label>
+        </div>
+        % if support_enrollment_factory_default:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="is_export_filesystem" value="enrollment_factory_default" ${checked["enrollment_factory_default"]|n}/>
+                    Off
+                </label>
+            </div>
+        % endif
+    </div>
+</%def>
+
+
+<%def name="formgroup__key_technology(default=None, options=None, field_name='key_technology', label='')">
     <% default = default or model_websafe.KeyTechnology._DEFAULT %>
     <% options = options or model_websafe.KeyTechnology._options_all %>
     <div class="form-group">
-        <label for="key_technology">Key Technology</label>
-        <select class="form-control" name="key_technology">
+        <label for="${field_name}">Key Technology ${label}</label>
+        <select class="form-control" name="${field_name}">
             % for _option_text in options:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
@@ -1989,9 +2287,45 @@
 </%def>
 
 
-<%def name="formgroup__note()">
-    <label for="note">Note</label>
-    <textarea class="form-control" rows="4" name="note" id="note"></textarea>
+<%def name="formgroup__label(default='', context_enrollment_factory=False)">
+    <div class="form-group">
+        <label for="label">Label</label>
+        <input class="form-control" type="text" name="label" id="label" value="${default or ''}"/>
+        <p>
+            A label may only have the following characters: letters, numbers, dash, period, underscore.
+            Labels are only used when exporting certificate data.
+            % if context_enrollment_factory:
+                If used in the context of an Enrollment Factory, it supports the <code>{DOMAIN}</code> and <code>{NIAMOD}</code> macros.
+            % endif
+        </p>
+    </div>
+</%def>
+
+
+<%def name="formgroup__label_template(default='')">
+    <div class="form-group">
+        <label for="label_template">Label Template</label>
+        <input class="form-control" type="text" name="label_template" id="label_template" value="${default or ''}"/>
+        <p>
+            A `label template` is used to generate the label for a RenewalConfiguration.  It can use the <code>{DOMAIN}</code> and <code>{NIAMOD}</code> macros.
+        </p>
+    </div>
+</%def>
+
+
+<%def name="formgroup__name(default='')">
+    <div class="form-group">
+        <label for="name">Name</label>
+        <input class="form-control" type="text" name="name" id="name" value="${default or ''}"/>
+    </div>
+</%def>
+
+
+<%def name="formgroup__note(default='')">
+    <div class="form-group">
+        <label for="note">Note</label>
+        <textarea class="form-control" rows="4" name="note" id="note">${default or ''}</textarea>
+    </div>
 </%def>
 
 
@@ -2020,11 +2354,11 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle(default=None)">
+<%def name="formgroup__private_key_cycle(default=None, field_name='private_key_cycle', label='')">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
-        <select class="form-control" name="private_key_cycle">
+        <label for="${field_name}">Private Key Cycle - Renewals ${label}</label>
+        <select class="form-control" name="${field_name}">
             % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
@@ -2033,21 +2367,12 @@
 </%def>
 
 
-<%def name="formgroup__private_key_cycle(default=None)">
-    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
-    <div class="form-group">
-        <label for="private_key_cycle">Private Key Cycle</label>
-        <select class="form-control" name="private_key_cycle">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
-                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
-            % endfor
-        </select>
-    </div>
-</%def>
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None,)">
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None, concept=None)">
     <%
+        if concept not in ("primary", "backup"):
+            concept = "primary"
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",
@@ -2072,7 +2397,7 @@
         % if option_account_default:
             <div class="radio">
                 <label for="private_key_option-account_default">
-                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]}>
+                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]|n}>
                     Use the AcmeAccount&#39;s Default PrivateKey Settings
                 </label>
             </div>
@@ -2080,7 +2405,7 @@
         % if dbPrivateKeyReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]}/>
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]|n}/>
                     <input type="hidden" name="private_key_reuse" value="${dbPrivateKeyReuse.key_pem_md5}"/>
                     Select to renew with the same PrivateKey
                 </label>
@@ -2104,7 +2429,7 @@
         % if option_generate_new:
             <div class="radio">
                 <label for="private_key_option-private_key_generate">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]}>
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]|n}>
                     Generate a new Private Key
 
                     <select class="form-control" id="private_key_option-private_key_generate-select" name="private_key_generate">

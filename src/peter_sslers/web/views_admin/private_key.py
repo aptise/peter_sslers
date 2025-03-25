@@ -256,11 +256,7 @@ class View_Focus_Manipulate(View_Focus):
             ],
             "form_fields": {"action": "the intended action"},
             "valid_options": {
-                "action": [
-                    "compromised",
-                    "active",
-                    "inactive",
-                ]
+                "action": Form_PrivateKey_mark.fields["action"].list,
             },
         }
     )

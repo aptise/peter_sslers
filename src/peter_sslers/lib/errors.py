@@ -1,21 +1,47 @@
-from pyramid_formencode_classic import FormStash
+# stdlib
+from typing import Dict
+from typing import TYPE_CHECKING
+from urllib.parse import quote_plus
+from urllib.parse import unquote_plus
+
+if TYPE_CHECKING:
+    from pyramid_formencode_classic import FormStash
 
 # ==============================================================================
 
 
-def formstash_to_querystring(formStash: FormStash) -> str:
+def _querystring_safe(text: str) -> str:
+    text = quote_plus(text)
+    return text
+
+
+def formstash_to_querystring(formStash: "FormStash") -> str:
     err = []
-    for k, v in formStash.errors.items():
-        err.append(("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+"))
+    for k, v in list(formStash.errors.items()):
+        k = _querystring_safe(k)
+        v = _querystring_safe(v)
+        err.append("%s--%s" % (k, v))
     err = sorted(err)
     _err = "---".join(err)
     return _err
 
 
+def querystring_to_dict(querystring: str) -> Dict[str, str]:
+    formstash = {}
+    pairs = querystring.split("---")
+    for p in pairs:
+        k, v = p.split("--")
+        k = unquote_plus(k)
+        v = unquote_plus(v)
+        formstash[k] = v
+    return formstash
+
+
 class _UrlSafeException(Exception):
+
     @property
     def as_querystring(self) -> str:
-        return str(self).replace("\n", "+").replace(" ", "+")
+        return _querystring_safe(str(self))
 
 
 class GarfieldMinusGarfield(Exception):
@@ -191,7 +217,9 @@ class AcmeOrderCreatedError(AcmeOrderError):
     """
 
     def __str__(self):
-        return "An AcmeOrder-{0} was created but errored".format(self.args[0])
+        return "An AcmeOrder was created but errored. The AcmeOrder id is: {0}".format(
+            self.args[0].id
+        )
 
     @property
     def acme_order(self):

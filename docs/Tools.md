@@ -9,6 +9,43 @@ Some routines are accessible via commandline scripts:
 * `routine__clear_old_ari_checks {example_development.ini}` will clear from the database outdated ARI checks.  An ARI check is considered outdated once it has been replaced with a newer ARI check.
 
 
+* `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
+
+  * data will be written to a `certificates` subfolder of the `_data_` directory
+  * only certificates with an ACTIVE RenewalConfiguration will be written
+  * data will be organized into
+    * a `global` directory for certs without an EnrollmentFactory
+    * a directory of the EnrollmentFactory's unique name, if there is a factory
+  * the name of each director will be `rc-{id}`, wherein `id` is the numeric identifier for the RenewalConfiguration
+  * if the RenewalConfiguration has a unique label, a symlink will be created
+  * for each certificate, the directory will contain a `primary` and `backup` subdirectory
+  * within each subdirectory will be 4 files, like Certbot:
+    * `chain.pem`
+    * `fullchain.pem`
+    * `cert.pem`
+    * `pkey.pem`
+   * when Certificates are persisted to disk, they will be written to a working directory, that working directory will then replace the existing data directory
+
+For example, a directory structure might look like this:
+
+    _data_/certificates/global/rc-1/primary/cert.pem
+    _data_/certificates/global/rc-1/primary/chain.pem
+    _data_/certificates/global/rc-1/primary/fullchain.pem
+    _data_/certificates/global/rc-1/primary/pkey.pem
+    _data_/certificates/global/rc-1/backup/cert.pem
+    _data_/certificates/global/rc-1/backup/chain.pem
+    _data_/certificates/global/rc-1/backup/fullchain.pem
+    _data_/certificates/global/rc-1/backup/pkey.pem
+    _data_/certificates/factory_a/rc-2/primary/cert.pem
+    _data_/certificates/factory_a/rc-2/primary/chain.pem
+    _data_/certificates/factory_a/rc-2/primary/fullchain.pem
+    _data_/certificates/factory_a/rc-2/primary/pkey.pem
+    _data_/certificates/factory_a/rc-2/backup/cert.pem
+    _data_/certificates/factory_a/rc-2/backup/chain.pem
+    _data_/certificates/factory_a/rc-2/backup/fullchain.pem
+    _data_/certificates/factory_a/rc-2/backup/pkey.pem
+    _data_/certificates/factory_a/example.com >symlink> rc-2
+    
 
 ## `invoke` Script
 

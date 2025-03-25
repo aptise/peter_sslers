@@ -1,7 +1,8 @@
 # stdlib
 import datetime
-import json
 import logging
+import os
+import typing
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -16,7 +17,6 @@ from typing_extensions import Literal
 # localapp
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
-from .create import create__AcmeServerConfiguration
 from .create import create__AriCheck
 from .create import create__CertificateRequest
 from .create import create__CertificateSigned
@@ -45,12 +45,13 @@ from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .update import update_AcmeOrder_finalized
-from .update import update_AcmeServer_profiles
+from .update import update_AcmeServer_directory
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
 from ...lib import acme_v2
+from ...lib import exports
 from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -70,7 +71,7 @@ if TYPE_CHECKING:
     from ..acme_v2 import AcmeOrderRFC
     from ..acme_v2 import AuthenticatedUser
     from ..acme_v2 import AriCheckResult
-    from ..utils import ApiContext
+    from ..context import ApiContext
 
 
 # from .logger import _log_object_event
@@ -653,32 +654,15 @@ def check_endpoint_support(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
 ) -> bool:
-
+    # endpoints should automatically update now, but we can offer a manual
     resp = acme_v2.check_endpoint(
         ctx, dbAcmeServer.directory, dbAcmeServer=dbAcmeServer
     )
-    directory = acme_v2.sanitize_directory_object(resp.json())
-    directory_string = json.dumps(directory, sort_keys=True)
 
-    if not dbAcmeServer.directory_latest or (
-        directory_string != dbAcmeServer.directory_latest.directory
-    ):
-        directoryLatest = create__AcmeServerConfiguration(
-            ctx,
-            dbAcmeServer,
-            directory_string,
-        )
-
-    _meta = directory.get("meta")
-    if _meta:
-        _profiles = _meta.get("profiles")
-        if _profiles:
-            profiles = ",".join(sorted(_profiles.keys()))
-            if profiles != dbAcmeServer.profiles:
-                _result = update_AcmeServer_profiles(
-                    ctx, dbAcmeServer, profiles
-                )  # noqa: F841
-    return True
+    # note - the above `check` should autoupdate...
+    acme_directory = resp.json()
+    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
+    return changed
 
 
 def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
@@ -1892,11 +1876,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         dbAcmeOrder.private_key_strategy_id__final = (
             model_utils.PrivateKeyStrategy.from_string(private_key_strategy__final)
         )
-        ctx.dbSession.flush(
-            objects=[
-                dbAcmeOrder,
-            ]
-        )
+        ctx.dbSession.flush(objects=[dbAcmeOrder])
 
         private_key_pem = dbAcmeOrder.private_key.key_pem
 
@@ -2013,10 +1993,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
             certificate_type_id=dbAcmeOrder.certificate_type_id,
         )
 
-        # then update the renewal configuration with the order
-        dbAcmeOrder.renewal_configuration.acme_order_id__latest_success = dbAcmeOrder.id
-        ctx.pyramid_transaction_commit()
-
         # update the logger
         authenticatedUser.acmeLogger.log_CertificateProcured(
             "v2",
@@ -2024,6 +2000,72 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbCertificateRequest=dbAcmeOrder.certificate_request,
             transaction_commit=True,
         )
+
+        # nest in a try to fails don't break the procurement
+        try:
+            if dbAcmeOrder.renewal_configuration:
+                export = None
+                type_dir: str
+                rc_dir = "rc-%s" % dbAcmeOrder.renewal_configuration.id
+                rc_label = dbAcmeOrder.renewal_configuration.label or None
+
+                if (
+                    dbAcmeOrder.renewal_configuration.is_export_filesystem_id
+                    == model_utils.OptionsOnOff.ON
+                ):
+                    export = True
+                    type_dir = "global"
+
+                elif (
+                    dbAcmeOrder.renewal_configuration.is_export_filesystem_id
+                    == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT
+                ):
+                    if dbAcmeOrder.renewal_configuration.enrollment_factory__via:
+                        if (
+                            dbAcmeOrder.renewal_configuration.enrollment_factory__via.is_export_filesystem_id
+                            == model_utils.OptionsOnOff.ON
+                        ):
+                            export = True
+                            type_dir = (
+                                dbAcmeOrder.renewal_configuration.enrollment_factory__via.name
+                            )
+                if export:
+                    log.info("Writing Certificate to disk...")
+                    if (
+                        dbAcmeOrder.certificate_type_id
+                        == model_utils.CertificateType.MANAGED_PRIMARY
+                    ):
+                        subdir = "primary"
+                    elif (
+                        dbAcmeOrder.certificate_type_id
+                        == model_utils.CertificateType.MANAGED_BACKUP
+                    ):
+                        subdir = "backup"
+                    else:
+                        raise ValueError("unknown dir type")
+                    (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    type_path = os.path.join(EXPORTS_DIR, type_dir)
+                    rc_path = os.path.join(type_path, rc_dir)
+                    if not os.path.exists(rc_path):
+                        os.mkdir(rc_path)
+                    if rc_label:
+                        rc_label_path = os.path.join(type_path, rc_label)
+                        if not os.path.exists(rc_label_path):
+                            exports.relative_symlink(rc_path, rc_label_path)
+                    cert_path = os.path.join(rc_path, subdir)
+                    if not os.path.exists(cert_path):
+                        os.mkdir(cert_path)
+                    cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
+                    for fname, fcontents in cert_data.items():
+                        exports.write_pem(
+                            cert_path,
+                            fname,
+                            cert_data[fname],  # type:ignore[literal-required]
+                        )
+                        log.info("\t%s" % cert_path)
+        except Exception as exc:
+            log.critical("EXCEPTION: %s", exc)
+            pass
 
         # don't commit here, as that will trigger an error on object refresh
         return dbAcmeOrder
@@ -2361,6 +2403,9 @@ def do__AcmeV2_AcmeOrder__new(
     # re-use these related objects
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
 
+    # scoping
+    dbCertificateSigned_replaces_candidate: Optional["CertificateSigned"] = None
+
     if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrderType.RETRY):
         if (
             (not dbAcmeOrder_retry_of)
@@ -2404,6 +2449,11 @@ def do__AcmeV2_AcmeOrder__new(
                 #    "`replaces_type` requires a `replaces` when `MANUAL` or `RETRY`."
                 # )
                 account_selection = "primary"
+            else:
+                if replaces in ("primary", "backup"):
+                    if TYPE_CHECKING:
+                        replaces = typing.cast(Literal["primary", "backup"], replaces)
+                    account_selection = replaces
 
             if replaces_type == model_utils.ReplacesType_Enum.RETRY:
                 if not dbAcmeOrder_retry_of:
@@ -2414,6 +2464,7 @@ def do__AcmeV2_AcmeOrder__new(
                     raise ValueError(
                         "`replaces` differs from `dbAcmeOrder_retry_of.replaces__requested` on `RETRY`."
                     )
+
         elif replaces_type == model_utils.ReplacesType_Enum.AUTOMATIC:
             # note: Originally I prohibited this, but that makes little sense now
             # if replaces:
@@ -2472,20 +2523,6 @@ def do__AcmeV2_AcmeOrder__new(
         account_selection = "primary"
 
     #
-    #   Figure out the PrivateKeyCycle
-    #
-    key_technology = dbRenewalConfiguration.key_technology
-    key_technology_id = model_utils.KeyTechnology.from_string(key_technology)
-    key_technology__effective = dbRenewalConfiguration.key_technology__effective
-
-    private_key_cycle = dbRenewalConfiguration.private_key_cycle
-    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
-    private_key_cycle__effective = dbRenewalConfiguration.private_key_cycle__effective
-    private_key_cycle_id__effective = (
-        dbRenewalConfiguration.private_key_cycle_id__effective
-    )
-
-    #
     # Domains Check
     #
 
@@ -2534,99 +2571,6 @@ def do__AcmeV2_AcmeOrder__new(
             """
             raise errors.AcmeDuplicateChallengesExisting_PreAuthz(active_preauthzs)
 
-    # There are two contexts for a PrivateKey:
-    # Path A - Initial AcmeOrder creation, which creates the RC
-    #          Submit a specific PrivateKey alongside this request
-    # Path B - "Renewal" via "RenewalConfiguration"
-    #           There may not be a PrivateKey, so we need to figure it out
-
-    if dbPrivateKey and (dbPrivateKey.id != 0):
-        # ensure the PrivateKey is usable
-        # raise if the dbPrivateKey is specified
-        # if we compute the key, we can likely generate a replacement
-        if not dbPrivateKey.is_key_usable:
-            raise errors.InvalidRequest(
-                "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
-            )
-    else:
-        # if not specifying a private key, we need to discern it on the order
-        # creation, not later on, to avoid a race condition where an order starts
-        # expecting a certain set of defaults, but then completes with another
-        # set of account defaults
-        #
-        # we need to discern the for the renewal:
-        # * dbPrivateKey
-        #
-        # and possibly
-        # * private_key_deferred_id
-        # # * private_key_strategy_id__requested
-        #
-
-        # we have the following, but they may need adjustments...:
-        # `private_key_deferred_id`
-        # `private_key_strategy_id__requested`
-
-        # temp assign everything to the default key
-        if not dbPrivateKey:
-            dbPrivateKey = get__PrivateKey__by_id(ctx, 0)
-
-    # Scoping
-    private_key_deferred_id: int
-    private_key_strategy_id__requested: int
-
-    # !!!: determine the private_key_deferred_id
-    # * NOT_DEFERRED = 0
-    # * ACCOUNT_DEFAULT = 1  # Placeholder
-    # * ACCOUNT_ASSOCIATE = 2
-    # * GENERATE__RSA_2048 = 5
-    # * GENERATE__RSA_3072 = 6
-    # * GENERATE__RSA_4096 = 7
-    # * GENERATE__EC_P256 = 8
-    # * GENERATE__EC_P384 = 9
-
-    # !!!: determine the private_key_strategy_id__requested
-    # * SPECIFIED = 1
-    # * DEFERRED_GENERATE = 2
-    # * DEFERRED_ASSOCIATE = 3
-    # * BACKUP = 4
-    # * REUSED = 5
-
-    assert dbPrivateKey
-
-    if dbPrivateKey.id != 0:
-        # the key is specified
-        private_key_deferred_id = model_utils.PrivateKeyDeferred.NOT_DEFERRED
-        private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.SPECIFIED
-    else:
-        # the key must be determined...
-        # lets' try basing this on the private_key_cycle
-
-        # private_key_cycle vs private_key_cycle__effective
-        if private_key_cycle__effective == "account_default":
-            raise ValueError("Impossible")
-        elif private_key_cycle__effective in (
-            "account_daily",
-            "global_daily",
-            "account_weekly",
-            "global_weekly",
-            "single_use__reuse_1_year",
-        ):
-            private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE
-            )
-            private_key_deferred_id = model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
-        elif private_key_cycle__effective in ("single_use",):
-            private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.DEFERRED_GENERATE
-            )
-
-            # what are we generating?
-            private_key_deferred_id = (
-                model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
-                    dbRenewalConfiguration.key_technology_id__effective
-                )
-            )
-
     # if we're doing a retry, we might have already generated a key, so don't test this
     # if dbAcmeOrder_retry_of:
     #    # print(private_key_strategy_id__requested, dbAcmeOrder_retry_of.private_key_strategy_id__requested)
@@ -2653,9 +2597,11 @@ def do__AcmeV2_AcmeOrder__new(
                 replaces = None
             else:
                 # Test 1 - Does the `replaces` exist?
-                dbCertificateSigned_replaces_candidate = (
-                    get__CertificateSigned__by_ariIdentifier(ctx, replaces)
-                )
+                # this may have been previously queried...
+                if dbCertificateSigned_replaces_candidate is None:
+                    dbCertificateSigned_replaces_candidate = (
+                        get__CertificateSigned__by_ariIdentifier(ctx, replaces)
+                    )
                 if not dbCertificateSigned_replaces_candidate:
                     raise errors.FieldError(
                         "replaces", "could not find ARI identifier of `replaces`"
@@ -2676,7 +2622,7 @@ def do__AcmeV2_AcmeOrder__new(
                     # the AcmeAccount MUST match
                     if (
                         dbCertificateSigned_replaces_candidate.acme_order.acme_account_id
-                        == dbRenewalConfiguration.acme_account_id
+                        == dbRenewalConfiguration.acme_account_id__primary
                     ):
                         account_selection = "primary"
                     elif (
@@ -2773,15 +2719,246 @@ def do__AcmeV2_AcmeOrder__new(
             else:
                 raise ValueError("invalid logic")
 
+        #
+        #   Figure out the PrivateKeyCycle and PrivateKeyTechnology
+        #
+        private_key_cycle: str
+        private_key_cycle__effective: str
+        private_key_technology: str
+        private_key_technology__effective: str
+
+        if account_selection == "primary":
+            # !!!: primary:private_key_cycle
+            private_key_cycle = dbRenewalConfiguration.private_key_cycle__primary
+            assert (
+                dbRenewalConfiguration.private_key_cycle__primary__effective is not None
+            )
+            private_key_cycle__effective = (
+                dbRenewalConfiguration.private_key_cycle__primary__effective
+            )
+
+            # !!!: primary:private_key_technology
+            private_key_technology = (
+                dbRenewalConfiguration.private_key_technology__primary
+            )
+            assert (
+                dbRenewalConfiguration.private_key_technology__primary__effective
+                is not None
+            )
+            private_key_technology__effective = (
+                dbRenewalConfiguration.private_key_technology__primary__effective
+            )
+
+            # !!!: dereference-> primary:private_key_cycle
+            # note: system_configuration_default can return "account_default"
+            if private_key_cycle__effective == "system_configuration_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_cycle__primary
+                )
+            if private_key_cycle__effective == "account_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.acme_account__primary.order_default_private_key_cycle
+                )
+
+            # !!!: dereference-> primary:private_key_technology
+            # note: system_configuration_default can return "account_default"
+            if private_key_technology__effective == "system_configuration_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_technology__primary
+                )
+            if private_key_technology__effective == "account_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.acme_account__primary.order_default_private_key_technology
+                )
+
+        elif account_selection == "backup":
+            if not dbRenewalConfiguration.private_key_technology__backup:
+                raise ValueError("backup `private_key_technology` not configured ")
+            if not dbRenewalConfiguration.private_key_cycle__backup:
+                raise ValueError("backup `private_key_cycle__backup` not configured ")
+            # !!!: backup:private_key_cycle
+            private_key_cycle = dbRenewalConfiguration.private_key_cycle__backup
+            assert (
+                dbRenewalConfiguration.private_key_cycle__backup__effective is not None
+            )
+            private_key_cycle__effective = (
+                dbRenewalConfiguration.private_key_cycle__backup__effective
+            )
+            # !!!: backup:private_key_technology
+            private_key_technology = (
+                dbRenewalConfiguration.private_key_technology__backup
+            )
+            assert (
+                dbRenewalConfiguration.private_key_technology__backup__effective
+                is not None
+            )
+            private_key_technology__effective = (
+                dbRenewalConfiguration.private_key_technology__backup__effective
+            )
+
+            # !!!: dereference-> backup:private_key_cycle
+            # note: system_configuration_default can return "account_default"
+            if private_key_cycle__effective == "system_configuration_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_cycle__primary
+                )
+            if private_key_cycle__effective == "account_default":
+                private_key_cycle__effective = (
+                    dbRenewalConfiguration.acme_account__backup.order_default_private_key_cycle
+                )
+
+            # !!!: dereference-> backup:private_key_technology
+            # note: system_configuration_default can return "account_default"
+            if private_key_technology__effective == "system_configuration_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.system_configuration__via.private_key_technology__backup
+                )
+            if private_key_technology__effective == "account_default":
+                private_key_technology__effective = (
+                    dbRenewalConfiguration.acme_account__backup.order_default_private_key_technology
+                )
+
+        else:
+            raise ValueError("unknown `account_selection`: %s" % account_selection)
+
+        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle
+        )
+        private_key_cycle_id__effective = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__effective
+        )
+        private_key_technology_id = model_utils.KeyTechnology.from_string(
+            private_key_technology
+        )
+        private_key_technology_id__effective = model_utils.KeyTechnology.from_string(
+            private_key_technology__effective
+        )
+
+        assert private_key_cycle_id is not None
+        assert private_key_cycle_id__effective is not None
+        assert private_key_technology_id is not None
+        assert private_key_technology_id__effective is not None
+
+        #
+        # The following block MUST happen after determining the `account_selection`
+        # as we need to look into the correct account to determine the private
+        # key criteria
+
+        # There are two contexts for a PrivateKey:
+        # Path A - Initial AcmeOrder creation, which creates the RC
+        #          Submit a specific PrivateKey alongside this request
+        # Path B - "Renewal" via "RenewalConfiguration"
+        #           There may not be a PrivateKey, so we need to figure it out
+
+        if dbPrivateKey and (dbPrivateKey.id != 0):
+            # ensure the PrivateKey is usable
+            # raise if the dbPrivateKey is specified
+            # if we compute the key, we can likely generate a replacement
+            if not dbPrivateKey.is_key_usable:
+                raise errors.InvalidRequest(
+                    "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
+                )
+        else:
+            # if not specifying a private key, we need to discern it on the order
+            # creation, not later on, to avoid a race condition where an order starts
+            # expecting a certain set of defaults, but then completes with another
+            # set of account defaults
+            #
+            # we need to discern the for the renewal:
+            # * dbPrivateKey
+            #
+            # and possibly
+            # * private_key_deferred_id
+            # # * private_key_strategy_id__requested
+            #
+
+            # we have the following, but they may need adjustments...:
+            # `private_key_deferred_id`
+            # `private_key_strategy_id__requested`
+
+            # temp assign everything to the default key
+            if not dbPrivateKey:
+                dbPrivateKey = get__PrivateKey__by_id(ctx, 0)
+
+        # Scoping
+        private_key_deferred_id: int
+        private_key_strategy_id__requested: int
+
+        # !!!: determine the private_key_deferred_id
+        # * NOT_DEFERRED = 0
+        # * ACCOUNT_DEFAULT = 1  # Placeholder
+        # * ACCOUNT_ASSOCIATE = 2
+        # * GENERATE__RSA_2048 = 5
+        # * GENERATE__RSA_3072 = 6
+        # * GENERATE__RSA_4096 = 7
+        # * GENERATE__EC_P256 = 8
+        # * GENERATE__EC_P384 = 9
+
+        # !!!: determine the private_key_strategy_id__requested
+        # * SPECIFIED = 1
+        # * DEFERRED_GENERATE = 2
+        # * DEFERRED_ASSOCIATE = 3
+        # * BACKUP = 4
+        # * REUSED = 5
+
+        assert dbPrivateKey
+
+        if dbPrivateKey.id != 0:
+            # the key is specified
+            private_key_deferred_id = model_utils.PrivateKeyDeferred.NOT_DEFERRED
+            private_key_strategy_id__requested = (
+                model_utils.PrivateKeyStrategy.SPECIFIED
+            )
+        else:
+            # the key must be determined...
+            # lets' try basing this on the private_key_cycle
+
+            # private_key_cycle vs private_key_cycle__effective
+            if private_key_cycle__effective == "account_default":
+                raise ValueError(
+                    "Impossible: `account_default` must be calculated before order."
+                )
+            elif private_key_cycle__effective == "system_configuration_default":
+                raise ValueError(
+                    "Impossible: `system_configuration_default` must be calculated before order."
+                )
+            elif private_key_cycle__effective in (
+                "account_daily",
+                "global_daily",
+                "account_weekly",
+                "global_weekly",
+                "single_use__reuse_1_year",
+            ):
+                private_key_strategy_id__requested = (
+                    model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE
+                )
+                private_key_deferred_id = (
+                    model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
+                )
+            elif private_key_cycle__effective in ("single_use",):
+                private_key_strategy_id__requested = (
+                    model_utils.PrivateKeyStrategy.DEFERRED_GENERATE
+                )
+
+                # `private_key_technology_id__effective` was calculated above:
+                private_key_deferred_id = (
+                    model_utils.PrivateKeyDeferred.id_from_KeyTechnology_id(
+                        private_key_technology_id__effective
+                    )
+                )
+            else:
+                raise ValueError("unknown `private_key_cycle__effective`")
+
         profile: Optional[str] = None
         certificate_type_id: int
+        # TODO - how do system_configuration_default factor in to this?
         if account_selection == "primary":
-            dbAcmeAccount = dbRenewalConfiguration.acme_account
-            profile = dbRenewalConfiguration.acme_profile
+            dbAcmeAccount = dbRenewalConfiguration.acme_account__primary
+            profile = dbRenewalConfiguration.acme_profile__primary__effective
             certificate_type_id = model_utils.CertificateType.MANAGED_PRIMARY
         elif account_selection == "backup":
             dbAcmeAccount = dbRenewalConfiguration.acme_account__backup
-            profile = dbRenewalConfiguration.acme_profile__backup
+            profile = dbRenewalConfiguration.acme_profile__backup__effective
             certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
         else:
             # import pprint; pprint.pprint(locals())
@@ -2793,14 +2970,15 @@ def do__AcmeV2_AcmeOrder__new(
 
         authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
         if profile:
-            _meta = authenticatedUser.acme_directory.get("meta")
+            _meta, _profiles_str = acme_v2.parse_acme_directory(
+                authenticatedUser.acme_directory
+            )
             if _meta:
-                _profiles = _meta.get("profiles")
-                if not _profiles:
+                if not _profiles_str:
                     raise errors.FieldError(
                         "profile", "The AcmeServer no longer offers profiles"
                     )
-                if profile not in _profiles:
+                if profile not in _profiles_str.split(","):
                     raise errors.FieldError(
                         "profile",
                         "The AcmeServer no longer offers the selected profile",

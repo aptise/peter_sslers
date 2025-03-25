@@ -11,6 +11,7 @@ from typing import Union
 # pypi
 import cert_utils
 from dateutil import parser as dateutil_parser
+import sqlalchemy
 from typing_extensions import Literal
 
 # from typing_extensions import Required
@@ -25,6 +26,7 @@ from .validate import validate_domain_names
 from .. import errors
 from .. import utils
 from ... import lib
+from ...lib import utils as lib_utils
 from ...lib.db import get as _get  # noqa: F401
 from ...model import objects as model_objects
 from ...model import utils as model_utils
@@ -50,15 +52,20 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
     from ...model.objects import CertificateCAPreference
+    from ...model.objects import CertificateCAPreferencePolicy
     from ...model.objects import CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
+    from ...model.objects import EnrollmentFactory
+    from ...model.objects import Notification
+    from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import RoutineExecution
     from ...model.objects import UniqueFQDNSet
-    from ..utils import ApiContext
+    from ..context import ApiContext
     from ...model.utils import DomainsChallenged
 
     # from ...lib.acme_v2 import AcmeOrderRFC
@@ -99,10 +106,12 @@ def create__AcmeServer(
 
     assert ctx.timestamp
 
+    name = lib_utils.normalize_unique_text(name)
+
     # ok, try to build one...
     dbAcmeServer = model_objects.AcmeServer()
     dbAcmeServer.timestamp_created = ctx.timestamp
-    dbAcmeServer.name = name
+    dbAcmeServer.name = name  # unique
     dbAcmeServer.directory = directory
     dbAcmeServer.is_default = None  # legacy and unused
     dbAcmeServer.is_enabled = True  # legacy and unused
@@ -129,7 +138,7 @@ def create__AcmeServerConfiguration(
         if TYPE_CHECKING:
             assert directoryOld
         directoryOld.is_active = None
-
+        ctx.dbSession.flush(objects=[directoryOld])
     directoryLatest = model_objects.AcmeServerConfiguration()
     directoryLatest.acme_server_id = dbAcmeServer.id
     directoryLatest.timestamp_created = ctx.timestamp
@@ -138,13 +147,7 @@ def create__AcmeServerConfiguration(
 
     ctx.dbSession.add(directoryLatest)
     dbAcmeServer.directory_latest = directoryLatest
-    ctx.dbSession.flush(
-        objects=[
-            dbAcmeServer,
-            directoryLatest,
-        ]
-    )
-
+    ctx.dbSession.flush(objects=[dbAcmeServer])
     return directoryLatest
 
 
@@ -332,10 +335,6 @@ def create__AcmeOrder(
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
-
-    # then update the renewal configuration with the order
-    dbRenewalConfiguration.acme_order_id__latest_attempt = dbAcmeOrder.id
-    ctx.dbSession.flush(objects=[dbRenewalConfiguration])
 
     # and note the submission
     create__AcmeOrderSubmission(ctx, dbAcmeOrder)
@@ -665,8 +664,28 @@ def create__AriCheck(
     return dbAriCheck
 
 
+def create__CertificateCAPreferencePolicy(
+    ctx: "ApiContext",
+    name: str,
+) -> "CertificateCAPreferencePolicy":
+    """
+    Create a new CertificateCAPreference entry
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
+    :param slot_id: (optional) The id, if any. defaults to db managing the id
+    """
+    name = lib_utils.normalize_unique_text(name)
+    dbCertificateCAPreferencePolicy = model_objects.CertificateCAPreferencePolicy()
+    dbCertificateCAPreferencePolicy.name = name
+    ctx.dbSession.add(dbCertificateCAPreferencePolicy)
+    ctx.dbSession.flush(objects=[dbCertificateCAPreferencePolicy])
+    return dbCertificateCAPreferencePolicy
+
+
 def create__CertificateCAPreference(
     ctx: "ApiContext",
+    dbCertificateCAPreferencePolicy: "CertificateCAPreferencePolicy",
     dbCertificateCA: "CertificateCA",
     slot_id: Optional[int] = None,
 ) -> "CertificateCAPreference":
@@ -678,9 +697,21 @@ def create__CertificateCAPreference(
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     dbCertificateCAPreference = model_objects.CertificateCAPreference()
-    if slot_id:
-        dbCertificateCAPreference.id = slot_id
+    dbCertificateCAPreference.certificate_ca_preference_policy_id = (
+        dbCertificateCAPreferencePolicy.id
+    )
     dbCertificateCAPreference.certificate_ca_id = dbCertificateCA.id
+    if slot_id is None:
+        slot_id = (
+            ctx.dbSession.query(model_objects.CertificateCAPreference)
+            .filter(
+                model_objects.CertificateCAPreference.certificate_ca_preference_policy_id
+                == dbCertificateCAPreferencePolicy.id
+            )
+            .count()
+            + 1
+        )
+    dbCertificateCAPreference.slot_id = slot_id
     ctx.dbSession.add(dbCertificateCAPreference)
     ctx.dbSession.flush(objects=[dbCertificateCAPreference])
     return dbCertificateCAPreference
@@ -1048,6 +1079,7 @@ def create__CertificateSigned(
         dbAcmeOrder.certificate_signed__replaces.certificate_signed_id__replaced_by = (
             dbCertificateSigned.id
         )
+        dbAcmeOrder.certificate_signed__replaces.is_active = False
         ctx.dbSession.flush(objects=[dbAcmeOrder])
 
     dbCertificateSignedChain = model_objects.CertificateSignedChain()
@@ -1231,6 +1263,106 @@ def create__DomainAutocert(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def create__EnrollmentFactory(
+    ctx: "ApiContext",
+    name: str,
+    # Primary cert
+    dbAcmeAccount_primary: "AcmeAccount",
+    private_key_technology_id__primary: int,
+    private_key_cycle_id__primary: int,
+    acme_profile__primary: Optional[str] = None,
+    # Backup cert
+    dbAcmeAccount_backup: Optional["AcmeAccount"] = None,
+    private_key_technology_id__backup: Optional[int] = None,
+    private_key_cycle_id__backup: Optional[int] = None,
+    acme_profile__backup: Optional[str] = None,
+    # misc
+    note: Optional[str] = None,
+    domain_template_http01: Optional[str] = None,
+    domain_template_dns01: Optional[str] = None,
+    label_template: Optional[str] = None,
+    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
+) -> "EnrollmentFactory":
+    if not domain_template_http01 and not domain_template_dns01:
+        raise ValueError("at least one template is required")
+
+    if dbAcmeAccount_backup:
+        if dbAcmeAccount_primary.acme_server_id == dbAcmeAccount_backup.acme_server_id:
+            raise ValueError("Primary and Backup ACME servers must be different")
+
+    name = lib_utils.normalize_unique_text(name)
+    if name.startswith("rc-") or name.startswith("global"):
+        raise ValueError("`name` contains a reserved prefix or is a reserved word")
+
+    if (
+        is_export_filesystem_id
+        not in model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem_id
+    ):
+        raise ValueError("`is_export_filesystem_id` not valid for EnrollmentFactory")
+
+    dbEnrollmentFactory = model_objects.EnrollmentFactory()
+    dbEnrollmentFactory.name = name  # uniqueness on lower(name)
+    # p
+    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
+    dbEnrollmentFactory.private_key_technology_id__primary = (
+        private_key_technology_id__primary
+    )
+    dbEnrollmentFactory.private_key_cycle_id__primary = private_key_cycle_id__primary
+    dbEnrollmentFactory.acme_profile__primary = acme_profile__primary
+    # b
+    if dbAcmeAccount_backup:
+        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount_backup.id
+        dbEnrollmentFactory.private_key_technology_id__backup = (
+            private_key_technology_id__backup
+        )
+        dbEnrollmentFactory.private_key_cycle_id__backup = private_key_cycle_id__backup
+        dbEnrollmentFactory.acme_profile__backup = acme_profile__backup
+    # m
+    dbEnrollmentFactory.note = note
+    dbEnrollmentFactory.domain_template_http01 = domain_template_http01
+    dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
+    dbEnrollmentFactory.label_template = label_template
+    dbEnrollmentFactory.is_export_filesystem_id = is_export_filesystem_id
+
+    ctx.dbSession.add(dbEnrollmentFactory)
+    ctx.dbSession.flush(objects=[dbEnrollmentFactory])
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("EnrollmentFactory__insert")
+    )
+    event_payload_dict["enrollment_factory.id"] = dbEnrollmentFactory.id
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            "EnrollmentFactory__insert"
+        ),
+        dbEnrollmentFactory=dbEnrollmentFactory,
+    )
+
+    return dbEnrollmentFactory
+
+
+def create__Notification(
+    ctx: "ApiContext",
+    notification_type_id: int,
+    message: str,
+) -> "Notification":
+    dbNotification = model_objects.Notification()
+    dbNotification.notification_type_id = notification_type_id
+    dbNotification.timestamp_created = ctx.timestamp
+    dbNotification.is_active = True
+    dbNotification.message = message
+    ctx.dbSession.add(dbNotification)
+    ctx.dbSession.flush(objects=[dbNotification])
+    return dbNotification
+
+
 def create__PrivateKey(
     ctx: "ApiContext",
     private_key_source_id: int,
@@ -1281,14 +1413,23 @@ def create__PrivateKey(
 
 def create__RenewalConfiguration(
     ctx: "ApiContext",
-    dbAcmeAccount: "AcmeAccount",
-    private_key_cycle_id: int,
-    key_technology_id: int,
     domains_challenged: "DomainsChallenged",
+    # Primary cert
+    dbAcmeAccount__primary: "AcmeAccount",
+    private_key_technology_id__primary: int,
+    private_key_cycle_id__primary: int,
+    acme_profile__primary: Optional[str] = None,
+    # Backup cert
     dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
-    acme_profile: Optional[str] = None,
+    private_key_technology_id__backup: Optional[int] = None,
+    private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
+    # misc
     note: Optional[str] = None,
+    label: Optional[str] = None,
+    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
+    dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
+    dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
     """
     Sets params for AcmeOrders and Renewals
@@ -1296,37 +1437,64 @@ def create__RenewalConfiguration(
     This must happen within the context other events
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
-    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
-    :param key_technology_id: (required) Valid options are in :class:`model.utils.KeyTechnology`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
-    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
-    :param note: (optional) A string to be associated with this record
-    :param acme_profile: (optional) A string of the server's profile
+
+    :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
+    :param private_key_technology_id__primary: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id__primary: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param acme_profile__primary: (optional) A string of the server's profile
+
+    :param dbAcmeAccount__backup: (required) A :class:`model.objects.AcmeAccount` object
+    :param private_key_technology_id__backup: (required) Valid options are in :class:`model.utils.KeyTechnology`
+    :param private_key_cycle_id__backup: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param acme_profile__backup: (optional) A string of the server's profile
+
+    :param note: (optional) A string to be associated with this record
+    :param dbEnrollmentFactory: (optional) A :class:`model.objects.EnrollmentFactory` object
+    :param dbSystemConfiguration: (optional) A :class:`model.objects.SystemConfiguration` object
+    :param is_export_filesystem_id: (optional) A value from `is_export_filesystem_id`
+
     :returns :class:`model.objects.RenewalConfiguration`
     """
     if (
-        private_key_cycle_id
-        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
+        private_key_cycle_id__primary
+        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
     ):
+        # alt -- allowed for Sysconfig CIN/AutoCert
         raise ValueError(
-            "Unsupported `private_key_cycle_id`: %s" % private_key_cycle_id
+            "Unsupported `private_key_cycle_id__primary`: %s"
+            % private_key_cycle_id__primary
         )
     if (
-        key_technology_id
-        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id
+        private_key_technology_id__primary
+        not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id__alt
     ):
-        raise ValueError("Unsupported `key_technology_id`: %s" % key_technology_id)
-    if not dbAcmeAccount.is_active:
+        raise ValueError(
+            "Unsupported `private_key_technology_id__primary`: %s"
+            % private_key_technology_id__primary
+        )
+    if not dbAcmeAccount__primary.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
     if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
         raise ValueError("`dbAcmeAccount__backup` is not active")
 
-    if acme_profile:
-        if acme_profile not in dbAcmeAccount.acme_server.profiles_list:
-            raise errors.UnknownAcmeProfile_Local(
-                "acme_profile", acme_profile, dbAcmeAccount.acme_server.profiles_list
+    if acme_profile__primary:
+        if acme_profile__primary != "@":
+            # `@` is special label for "use account default"
+            if (
+                acme_profile__primary
+                not in dbAcmeAccount__primary.acme_server.profiles_list
+            ):
+                raise errors.UnknownAcmeProfile_Local(
+                    "acme_profile__primary",
+                    acme_profile__primary,
+                    dbAcmeAccount__primary.acme_server.profiles_list,
+                )
+
+    if dbAcmeAccount__backup:
+        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
+            raise ValueError(
+                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
             )
 
     if acme_profile__backup:
@@ -1335,14 +1503,28 @@ def create__RenewalConfiguration(
                 "must supply active `dbAcmeAccount__backup` if `acme_profile__backup`"
             )
         if acme_profile__backup not in dbAcmeAccount__backup.acme_server.profiles_list:
-            raise errors.UnknownAcmeProfile_Local(
-                "acme_profile__backup",
-                acme_profile__backup,
-                dbAcmeAccount__backup.acme_server.profiles_list,
+            # `@` is special label for "use account default"
+            if acme_profile__backup != "@":
+                # TODO: INVESTIGATE
+                # import pdb; pdb.set_trace()
+                raise errors.UnknownAcmeProfile_Local(
+                    "acme_profile__backup",
+                    acme_profile__backup,
+                    dbAcmeAccount__backup.acme_server.profiles_list,
+                )
+
+    if is_export_filesystem_id == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT:
+        if not dbEnrollmentFactory:
+            raise ValueError(
+                "`is_export_filesystem_id` option requires an Enrollment Factory"
             )
 
     assert ctx.timestamp
 
+    label = lib_utils.normalize_unique_text(label) if label else None
+    if label:
+        if label.startswith("rc-") or label.startswith("global"):
+            raise ValueError("`label` contains a reserved prefix or is a reserved word")
     # this may raise errors.AcmeDomainsBlocklisted
     _domain_names_all = domains_challenged.domains_as_list
     validate_domain_names(ctx, _domain_names_all)
@@ -1385,20 +1567,34 @@ def create__RenewalConfiguration(
     # i.e. does the backup ever matter
     # e.g. what if the primary/backup are just reversed?
     _filters = [
-        model_objects.RenewalConfiguration.acme_account_id == dbAcmeAccount.id,
         model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
         == dbUniquelyChallengedFQDNSet.id,
-        model_objects.RenewalConfiguration.private_key_cycle_id == private_key_cycle_id,
-        model_objects.RenewalConfiguration.key_technology_id == key_technology_id,
+        model_objects.RenewalConfiguration.acme_account_id__primary
+        == dbAcmeAccount__primary.id,
+        model_objects.RenewalConfiguration.private_key_cycle_id__primary
+        == private_key_cycle_id__primary,
+        model_objects.RenewalConfiguration.private_key_technology_id__primary
+        == private_key_technology_id__primary,
+        model_objects.RenewalConfiguration.acme_profile__primary
+        == acme_profile__primary,
     ]
     if dbAcmeAccount__backup:
-        _filters.append(
-            model_objects.RenewalConfiguration.acme_account_id__backup
-            == dbAcmeAccount__backup.id
+        _filters.extend(
+            [
+                model_objects.RenewalConfiguration.acme_account_id__backup
+                == dbAcmeAccount__backup.id,
+                model_objects.RenewalConfiguration.private_key_cycle_id__backup
+                == private_key_cycle_id__backup,
+                model_objects.RenewalConfiguration.private_key_technology_id__backup
+                == private_key_technology_id__backup,
+                model_objects.RenewalConfiguration.acme_profile__backup
+                == acme_profile__backup,
+            ]
         )
+
     existingRenewalConfiguration = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .filter(*_filters)
+        .filter(sqlalchemy.and_(*_filters))
         .first()
     )
     if existingRenewalConfiguration:
@@ -1416,18 +1612,40 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.operations_event_id__created = dbOperationsEvent.id
 
     # core elements
-    dbRenewalConfiguration.private_key_cycle_id = private_key_cycle_id
-    dbRenewalConfiguration.key_technology_id = key_technology_id
-    dbRenewalConfiguration.acme_account_id = dbAcmeAccount.id
-    if dbAcmeAccount__backup:
-        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
-        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id
     )
+
+    # primary cert
+    dbRenewalConfiguration.acme_account_id__primary = dbAcmeAccount__primary.id
+    dbRenewalConfiguration.private_key_cycle_id__primary = private_key_cycle_id__primary
+    dbRenewalConfiguration.private_key_technology_id__primary = (
+        private_key_technology_id__primary
+    )
+    dbRenewalConfiguration.acme_profile__primary = acme_profile__primary or None
+
+    # backup cert
+    if dbAcmeAccount__backup:
+        if TYPE_CHECKING:
+            assert private_key_cycle_id__backup is not None
+        dbRenewalConfiguration.acme_account_id__backup = dbAcmeAccount__backup.id
+        dbRenewalConfiguration.private_key_cycle_id__backup = (
+            private_key_cycle_id__backup
+        )
+        dbRenewalConfiguration.private_key_technology_id__backup = (
+            private_key_technology_id__backup
+        )
+        dbRenewalConfiguration.acme_profile__backup = acme_profile__backup or None
+
+    # bonus
     dbRenewalConfiguration.note = note or None
-    dbRenewalConfiguration.acme_profile = acme_profile or None
+    dbRenewalConfiguration.label = label or None
+    dbRenewalConfiguration.is_export_filesystem_id = is_export_filesystem_id
+    if dbEnrollmentFactory:
+        dbRenewalConfiguration.enrollment_factory_id__via = dbEnrollmentFactory.id
+    if dbSystemConfiguration:
+        dbRenewalConfiguration.system_configuration_id__via = dbSystemConfiguration.id
 
     ctx.dbSession.add(dbRenewalConfiguration)
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
@@ -1448,12 +1666,54 @@ def create__RenewalConfiguration(
     return dbRenewalConfiguration
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def create__RoutineExecution(
+    ctx: "ApiContext",
+    routine_id: int,
+    timestamp_start: datetime.datetime,
+    timestamp_end: datetime.datetime,
+    count_records_success: int = 0,
+    count_records_fail: int = 0,
+    routine_execution_id__via: Optional[int] = None,
+) -> "RoutineExecution":
+    """
+    Sets params for AcmeOrders and Renewals
 
+    This must happen within the context other events
 
-__all__ = (
-    "create__CertificateRequest",
-    "create__CertificateSigned",
-    "create__PrivateKey",
-    "create__RenewalConfiguration",
-)
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param routine_id: (required) An id of `model_utils.Routine`
+    :param timestamp_start: (required)
+    :param timestamp_end: (required)
+    :param count_records_success: (required)
+    :param count_records_fail: (required)
+    :paran routine_execution_id__via: (optional) int
+
+    :returns :class:`model.objects.RoutineExecution`
+    """
+
+    if routine_id not in model_utils.Routine._mapping:
+        raise ValueError("unknown `routine_id`: %s" % routine_id)
+
+    dbRoutine = model_objects.RoutineExecution()
+    dbRoutine.routine_id = routine_id
+    dbRoutine.timestamp_start = timestamp_start
+    dbRoutine.timestamp_end = timestamp_end
+    dbRoutine.count_records_success = count_records_success
+    dbRoutine.count_records_fail = count_records_fail
+    dbRoutine.routine_execution_id__via = routine_execution_id__via
+
+    # maths!
+    count_records_processed = count_records_success + count_records_fail
+    dbRoutine.count_records_processed = count_records_processed
+
+    _duration = timestamp_end - timestamp_start
+    dbRoutine.duration_seconds = int(_duration.total_seconds())
+
+    average_speed = float(0)
+    if count_records_processed and dbRoutine.duration_seconds:
+        average_speed = count_records_processed / dbRoutine.duration_seconds
+    dbRoutine.average_speed = average_speed
+
+    ctx.dbSession.add(dbRoutine)
+    ctx.dbSession.flush(objects=[dbRoutine])
+    return dbRoutine

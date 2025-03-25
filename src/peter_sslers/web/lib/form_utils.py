@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
-from pyramid_formencode_classic import FormStash
+from typing_extensions import Literal
 
 # local
 from . import formhandling
@@ -15,9 +15,11 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+    from pyramid_formencode_classic import FormStash
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
     from ...model.objects import PrivateKey
+    from ...model.objects import SystemConfiguration
 
 
 # ==============================================================================
@@ -51,7 +53,7 @@ class AcmeAccountUploadParser(object):
 
     # set in __init__
     getcreate_args: Dict
-    formStash: FormStash
+    formStash: "FormStash"
 
     # tracked
     acme_server_id: Optional[int] = None
@@ -62,10 +64,11 @@ class AcmeAccountUploadParser(object):
     private_key_technology_id: Optional[int] = None
     order_default_private_key_cycle_id: Optional[int] = None
     order_default_private_key_technology_id: Optional[int] = None
+    order_default_acme_profile: Optional[str] = None
 
     upload_type: Optional[str] = None  # pem OR letsencrypt
 
-    def __init__(self, formStash: FormStash):
+    def __init__(self, formStash: "FormStash"):
         self.formStash = formStash
         self.getcreate_args = {}
 
@@ -138,6 +141,10 @@ class AcmeAccountUploadParser(object):
             order_default_private_key_technology
         )
 
+        order_default_acme_profile = formStash.results.get(
+            "account__order_default_acme_profile", None
+        )
+
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
@@ -150,6 +157,9 @@ class AcmeAccountUploadParser(object):
         self.order_default_private_key_technology_id = getcreate_args[
             "order_default_private_key_technology_id"
         ] = order_default_private_key_technology_id
+        self.order_default_acme_profile = getcreate_args[
+            "order_default_acme_profile"
+        ] = order_default_acme_profile
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(
@@ -261,6 +271,10 @@ class AcmeAccountUploadParser(object):
             order_default_private_key_technology
         )
 
+        order_default_acme_profile = formStash.results.get(
+            "order_default_acme_profile", None
+        )
+
         getcreate_args = {}
         self.contact = getcreate_args["contact"] = contact
         self.private_key_technology_id = getcreate_args["private_key_technology_id"] = (
@@ -272,6 +286,9 @@ class AcmeAccountUploadParser(object):
         self.order_default_private_key_technology_id = getcreate_args[
             "order_default_private_key_technology_id"
         ] = order_default_private_key_technology_id
+        self.order_default_acme_profile = getcreate_args[
+            "order_default_acme_profile"
+        ] = order_default_acme_profile
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
@@ -315,13 +332,13 @@ class _PrivateKeyUploadParser(object):
 
     # overwritten in __init__
     getcreate_args: Dict
-    formStash: FormStash
+    formStash: "FormStash"
 
     # tracked
     private_key_pem: Optional[str] = None
     upload_type: Optional[str] = None  # pem
 
-    def __init__(self, formStash: FormStash):
+    def __init__(self, formStash: "FormStash"):
         self.formStash = formStash
         self.getcreate_args = {}
 
@@ -369,7 +386,7 @@ class _PrivateKeySelection(object):
         self.private_key_option = private_key_option
 
     @property
-    def key_technology_id(self) -> int:
+    def private_key_technology_id(self) -> int:
         if TYPE_CHECKING:
             # this will be set before this function is run
             assert self.private_key_generate
@@ -384,13 +401,30 @@ class _PrivateKeySelection(object):
             raise ValueError("Unsupported `private_key_option")
 
     @property
-    def key_technology(self) -> str:
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+    def private_key_technology(self) -> str:
+        return model_utils.KeyTechnology.as_string(self.private_key_technology_id)
+
+
+class _PrivateKeySelection_v2(object):
+    dbPrivateKey: Optional["PrivateKey"] = None
+    private_key_option: Literal["private_key_existing", "private_key_generate", "none"]
+    private_key_technology: str
+    private_key_technology__effective: Optional[
+        str
+    ]  # required for Primary; optional for Backup
+
+    def __init__(
+        self,
+        private_key_option: Literal[
+            "private_key_existing", "private_key_generate", "none"
+        ],
+    ):
+        self.private_key_option = private_key_option
 
 
 def parse_AcmeAccountSelection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     allow_none: Optional[bool] = None,
     require_contact: Optional[bool] = None,
     support_upload: Optional[bool] = None,
@@ -403,7 +437,6 @@ def parse_AcmeAccountSelection(
     """
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
-    is_global_default: Optional[bool] = None
 
     account_key_option = formStash.results["account_key_option"]
 
@@ -428,7 +461,6 @@ def parse_AcmeAccountSelection(
         if account_key_option == "account_key_global_default":
             acmeAccountSelection.selection = "global_default"
             account_key_pem_md5 = formStash.results["account_key_global_default"]
-            is_global_default = True
         elif account_key_option == "account_key_existing":
             acmeAccountSelection.selection = "existing"
             account_key_pem_md5 = formStash.results["account_key_existing"]
@@ -467,12 +499,27 @@ def parse_AcmeAccountSelection(
             )
         if TYPE_CHECKING:
             assert dbAcmeAccount is not None
-        if is_global_default and not dbAcmeAccount.is_global_default:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field=account_key_option,
-                message="The selected AcmeAccount is not the current default.",
-            )
+
+        # Ensure it is the Global Default
+        if account_key_option == "account_key_global_default":
+            request.api_context._load_SystemConfiguration_global()
+            if (
+                not request.api_context.dbSystemConfiguration_global
+                or not request.api_context.dbSystemConfiguration_global.is_configured
+            ):
+                formStash.fatal_field(
+                    field=account_key_option,
+                    message="There is no Global Default configured.",
+                )
+            if (
+                request.api_context.dbSystemConfiguration_global.acme_account_id__primary
+                != dbAcmeAccount.id
+            ):
+                formStash.fatal_field(
+                    field=account_key_option,
+                    message="The selected AcmeAccount is not the global default.",
+                )
+
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
         return acmeAccountSelection
     # `formStash.fatal_form()` will raise `FormInvalid()`
@@ -481,7 +528,7 @@ def parse_AcmeAccountSelection(
 
 def parse_AcmeAccountSelection_backup(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     allow_none: Optional[bool] = True,
 ) -> _AcmeAccountSelection:
     """
@@ -490,7 +537,6 @@ def parse_AcmeAccountSelection_backup(
     """
     account_key_pem_md5: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
-    is_global_backup: Optional[bool] = None
 
     account_key_option = formStash.results["account_key_option_backup"]
 
@@ -501,7 +547,6 @@ def parse_AcmeAccountSelection_backup(
         error_field = "account_key_global_backup"
         acmeAccountSelection.selection = "global_backup"
         account_key_pem_md5 = formStash.results["account_key_global_backup"]
-        is_global_backup = True
     elif account_key_option == "account_key_existing":
         error_field = "account_key_existing_backup"
         acmeAccountSelection.selection = "existing"
@@ -529,6 +574,7 @@ def parse_AcmeAccountSelection_backup(
         formStash.fatal_field(field=error_field, message="You did not provide a value")
     if TYPE_CHECKING:
         assert account_key_pem_md5 is not None
+
     dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
         request.api_context, account_key_pem_md5, is_active=True
     )
@@ -540,19 +586,235 @@ def parse_AcmeAccountSelection_backup(
         )
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
-    if is_global_backup and not dbAcmeAccount.is_global_backup:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-        formStash.fatal_field(
-            field=error_field,
-            message="The selected AcmeAccount is not the current default.",
-        )
+
+    if account_key_option == "account_key_global_backup":
+        # Ensure it is the Global Default
+        request.api_context._load_SystemConfiguration_global()
+        if (
+            not request.api_context.dbSystemConfiguration_global
+            or not request.api_context.dbSystemConfiguration_global.is_configured
+        ):
+            formStash.fatal_field(
+                field=account_key_option,
+                message="The Global Backup is not configured.",
+            )
+        if (
+            request.api_context.dbSystemConfiguration_global.acme_account_id__backup
+            != dbAcmeAccount.id
+        ):
+            formStash.fatal_field(
+                field=account_key_option,
+                message="The selected AcmeAccount is not the Global Backup.",
+            )
+
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
     return acmeAccountSelection
 
 
+def parse_AcmeAccountSelections_v2(
+    request: "Request",
+    formStash: "FormStash",
+    dbSystemConfiguration: "SystemConfiguration",
+) -> Tuple["AcmeAccount", Optional["AcmeAccount"]]:
+    dbAcmeAccount_primary: "AcmeAccount"
+    dbAcmeAccount_backup: Optional["AcmeAccount"] = None
+
+    # !!!: dbAcmeAccount_primary
+    if (
+        formStash.results["account_key_option__primary"]
+        == "system_configuration_default"
+    ):
+        dbAcmeAccount_primary = dbSystemConfiguration.acme_account__primary
+    elif formStash.results["account_key_option__primary"] == "account_key_existing":
+        account_key_pem_md5 = formStash.results["account_key_existing__primary"]
+        _candidate = lib_db.get.get__AcmeAccount__by_pemMd5(
+            request.api_context, account_key_pem_md5
+        )
+        if not _candidate:
+            formStash.fatal_field(
+                field="account_key_existing__primary",
+                message="The selected AcmeAccount is not enrolled in the system.",
+            )
+        elif not _candidate.is_active:
+            formStash.fatal_field(
+                field="account_key_existing__primary",
+                message="The selected AcmeAccount is not active.",
+            )
+        if TYPE_CHECKING:
+            assert _candidate
+        dbAcmeAccount_primary = _candidate
+    else:
+        formStash.fatal_field(
+            field="account_key_option__primary",
+            message="Invalid option.",
+        )
+
+    # !!!: dbAcmeAccount_backup
+    if (
+        formStash.results["account_key_option__backup"]
+        == "system_configuration_default"
+    ):
+        dbAcmeAccount_backup = dbSystemConfiguration.acme_account__backup
+    elif formStash.results["account_key_option__backup"] == "none":
+        # explicitly declared
+        dbAcmeAccount_backup = None
+    elif formStash.results["account_key_option__backup"] is None:
+        # not submitted
+        dbAcmeAccount_backup = None
+    elif formStash.results["account_key_option__backup"] == "account_key_existing":
+        account_key_pem_md5 = formStash.results["account_key_existing__backup"]
+        dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_pemMd5(
+            request.api_context, account_key_pem_md5
+        )
+        if not dbAcmeAccount_backup:
+            formStash.fatal_field(
+                field="account_key_option__backup",
+                message="The selected AcmeAccount is not enrolled in the system.",
+            )
+        elif not dbAcmeAccount_backup.is_active:
+            formStash.fatal_field(
+                field="account_key_option__backup",
+                message="The selected AcmeAccount is not active.",
+            )
+    else:
+        formStash.fatal_field(
+            field="account_key_option__backup",
+            message="Invalid option.",
+        )
+
+    return dbAcmeAccount_primary, dbAcmeAccount_backup
+
+
+def parse_PrivateKeySelections_v2(
+    request: "Request",
+    formStash: "FormStash",
+    dbSystemConfiguration: "SystemConfiguration",
+) -> Tuple[_PrivateKeySelection_v2, _PrivateKeySelection_v2]:
+
+    pkeySelection__primary = _PrivateKeySelection_v2(
+        formStash.results["private_key_option__primary"]
+    )
+    pkeySelection__backup = _PrivateKeySelection_v2(
+        formStash.results["private_key_option__backup"]
+    )
+
+    # !!!: primary
+    if formStash.results["private_key_option__primary"] == "private_key_existing":
+        private_key_pem_md5 = formStash.results["private_key_existing__primary"]
+        dbPrivateKey_primary = lib_db.get.get__PrivateKey__by_pemMd5(
+            request.api_context,
+            private_key_pem_md5,
+        )
+        if not dbPrivateKey_primary:
+            formStash.fatal_field(
+                field="private_key_existing__primary",
+                message="The selected PrivateKey is not enrolled in the system.",
+            )
+        elif not dbPrivateKey_primary.is_active:
+            formStash.fatal_field(
+                field="private_key_existing__primary",
+                message="The selected PrivateKey is not active.",
+            )
+        pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
+
+    elif formStash.results["private_key_option__primary"] == "private_key_generate":
+        dbPrivateKey_primary = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
+        if not dbPrivateKey_primary:
+            formStash.fatal_field(
+                field="private_key_option__primary",
+                message="Could not load the placeholder PrivateKey.",
+            )
+        pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
+
+        private_key_technology__primary = formStash.results[
+            "private_key_technology__primary"
+        ]
+        pkeySelection__primary.private_key_technology = private_key_technology__primary
+
+        # note, this will not show the account effectiveness
+        private_key_technology__effective_primary: str
+        if private_key_technology__primary == "system_configuration_default":
+            private_key_technology__effective_primary = (
+                dbSystemConfiguration.private_key_technology__primary
+            )
+        else:
+            private_key_technology__effective_primary = private_key_technology__primary
+        pkeySelection__primary.private_key_technology__effective = (
+            private_key_technology__effective_primary
+        )
+    else:
+        formStash.fatal_field(
+            field="private_key_option__primary",
+            message="Invalid option.",
+        )
+
+    # !!!: backup
+    if formStash.results["private_key_option__backup"] == "private_key_existing":
+        private_key_pem_md5 = formStash.results["private_key_existing__backup"]
+        dbPrivateKey_backup = lib_db.get.get__PrivateKey__by_pemMd5(
+            request.api_context,
+            private_key_pem_md5,
+        )
+        if not dbPrivateKey_backup:
+            formStash.fatal_field(
+                field="private_key_existing__backup",
+                message="The selected PrivateKey is not enrolled in the system.",
+            )
+        elif not dbPrivateKey_backup.is_active:
+            formStash.fatal_field(
+                field="private_key_existing__backup",
+                message="The selected PrivateKey is not active.",
+            )
+        pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
+
+    elif formStash.results["private_key_option__backup"] == "private_key_generate":
+        dbPrivateKey_backup = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
+        if not dbPrivateKey_backup:
+            formStash.fatal_field(
+                field="private_key_option__backup",
+                message="Could not load the placeholder PrivateKey.",
+            )
+        pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
+
+        private_key_technology__backup = formStash.results[
+            "private_key_technology__backup"
+        ]
+        pkeySelection__backup.private_key_technology = private_key_technology__backup
+
+        # note, this will not show the account effectiveness
+        private_key_technology__effective_backup: Optional[str]
+        if private_key_technology__backup == "system_configuration_default":
+            if not dbSystemConfiguration.private_key_technology__backup:
+                formStash.fatal_field(
+                    field="private_key_option__backup",
+                    message="SystemConfiguration not configured.",
+                )
+            private_key_technology__effective_backup = (
+                dbSystemConfiguration.private_key_technology__backup
+            )
+        else:
+            private_key_technology__effective_backup = private_key_technology__backup
+        pkeySelection__backup.private_key_technology__effective = (
+            private_key_technology__effective_backup
+        )
+    elif formStash.results["private_key_option__backup"] == "none":
+        # explicitly declare None
+        pass
+    elif formStash.results["private_key_option__backup"] is None:
+        # value not submitted
+        pass
+    else:
+        formStash.fatal_field(
+            field="private_key_option__backup",
+            message="Invalid option.",
+        )
+
+    return pkeySelection__primary, pkeySelection__backup
+
+
 def parse_PrivateKeySelection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     private_key_option: str,
     support_upload: Optional[bool] = None,
 ) -> _PrivateKeySelection:
@@ -590,10 +852,10 @@ def parse_PrivateKeySelection(
         privateKeySelection.PrivateKey = dbPrivateKey
         if private_key_option == "private_key_generate":
             privateKeySelection.selection = "generate"
-            key_technology_str = formStash.results[
+            private_key_technology_str = formStash.results[
                 "private_key_generate"
             ]  # this is a model_utils.KeyTechnology
-            privateKeySelection.private_key_generate = key_technology_str
+            privateKeySelection.private_key_generate = private_key_technology_str
 
         elif private_key_option == "account_default":
             privateKeySelection.selection = "account_default"
@@ -637,7 +899,7 @@ def parse_PrivateKeySelection(
 
 def form_key_selection(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     require_contact: Optional[bool] = None,
     support_upload_AcmeAccount: Optional[bool] = None,
     support_upload_PrivateKey: Optional[bool] = None,
@@ -710,7 +972,7 @@ def form_key_selection(
 
 def form_domains_challenge_typed(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     http01_only: bool = False,
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
 ) -> model_utils.DomainsChallenged:
@@ -723,6 +985,7 @@ def form_domains_challenge_typed(
             if submitted_:
                 # this function checks the domain names match a simple regex
                 # it will raise a `ValueError("invalid domain")` on the first invalid domain
+                # domains will also be lowercase+strip
                 submitted_ = cert_utils.utils.domains_from_string(submitted_)
                 if submitted_:
                     domain_names_all.extend(submitted_)
@@ -761,7 +1024,7 @@ def form_domains_challenge_typed(
                     if d[0] == "*":
                         # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
                         formStash.fatal_form(
-                            message="wildcards (*) must use `dns-01`.",
+                            message="wildcards (*) MUST use `dns-01`.",
                         )
 
         # see DOMAINS_CHALLENGED_FIELDS
@@ -782,12 +1045,16 @@ def form_domains_challenge_typed(
 
 def form_single_domain_challenge_typed(
     request: "Request",
-    formStash: FormStash,
+    formStash: "FormStash",
     challenge_type: str = "http-01",
 ) -> model_utils.DomainsChallenged:
+    """
+    Creates a `model_utils.DomainsChallenged` with only 1 domain from a form
+    """
     domains_challenged = model_utils.DomainsChallenged()
 
     # this function checks the domain names match a simple regex
+    # domains will also be lowercase+strip
     domain_names = cert_utils.utils.domains_from_string(
         formStash.results["domain_name"]
     )

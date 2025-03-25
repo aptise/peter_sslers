@@ -33,25 +33,42 @@
                 The `autocert` endpoint allows `nginx` to automatically provision a certificate as needed.
             </p>
             <p>
-                The endpoint ONLY responds to json requests.  GET will document, POST will submit.
+                The endpoint ONLY responds to json requests.  <code>GET</code> will document, <code>POST</code> will submit.
             </p>
 
-            % if not AcmeAccount_GlobalDefault:
+
+            % if not SystemConfiguration_autocert.is_configured:
                 <div class="alert alert-danger">
-                    <p>There is NO default AcmeAccount configured.</p>
-                    <p>You must select a default AcmeAccount to use autocert</p>
-                    <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
+                    <p>There `autocert` SystemConfiguration is NOT configured.</p>
                 </div>
-            % else:
-                <div class="alert alert-warning">
-                    The default AcmeAccount is:
-                    <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}" span class="label label-info">
-                        AcmeAccount-${AcmeAccount_GlobalDefault.id}
-                    </a>
-                    <code>${AcmeAccount_GlobalDefault.key_pem_sample}</code>
-                </p>
             % endif
 
+            <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th>SystemConfiguration</th>
+                        <th>Link</th>
+                        <th>Configured?</th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Autocert</th>
+                        <td>
+                            <a href="${admin_prefix}/system-configuration/${SystemConfiguration_autocert.slug}" class="label label-info">
+                                SystemConfiguration-${SystemConfiguration_autocert.slug}
+                            </a>
+                        </td>
+                        <td>
+                            % if SystemConfiguration_autocert.is_configured:
+                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
 
         </div>
     </div>
