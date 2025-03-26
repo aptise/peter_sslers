@@ -39,7 +39,7 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
 
     # load the db providers
-    dbAcmeServers = lib_db.get.get__AcmeServers__paginated(ctx)
+    dbAcmeServers = lib_db.get.get__AcmeServer__paginated(ctx)
     providersMapping: compat_certbot.TYPE_MAPPING_AcmeServer = {
         i.server: i for i in dbAcmeServers
     }

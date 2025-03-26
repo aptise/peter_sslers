@@ -326,11 +326,9 @@ def update_AcmeDnsServer__set_global_default(
     dbAcmeDnsServer: "AcmeDnsServer",
 ) -> Tuple[str, Dict]:
     if dbAcmeDnsServer.is_global_default:
-        # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
     if not dbAcmeDnsServer.is_active:
-        # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("This item must be active.")
 
     alt_info: Dict = {}
@@ -647,7 +645,6 @@ def update_CertificateCAPreferencePolicy_reprioritize(
         ctx.dbSession.flush(objects=[dbPref_other])
 
     else:
-        # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Invalid priority.")
 
     return True

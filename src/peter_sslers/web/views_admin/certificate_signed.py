@@ -542,7 +542,7 @@ class View_Search(Handler):
                 self.request, schema=Form_CertificateSigned_search, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             ari_identifier = formStash.results["ari_identifier"]
             serial = formStash.results["serial"]
@@ -632,7 +632,7 @@ class View_New(Handler):
                 self.request, schema=Form_Certificate_Upload__file, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             private_key_pem = formhandling.slurp_file_field(
                 formStash, "private_key_file_pem"
@@ -1472,7 +1472,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_CertificateSigned_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             action = formStash.results["action"]
             event_payload_dict = utils.new_event_payload_dict()
@@ -1533,7 +1533,6 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             if TYPE_CHECKING:

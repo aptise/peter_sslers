@@ -222,6 +222,7 @@ class View_Focus_Manipulate(View_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(  # noqa: F841
                 self.request.api_context,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -298,6 +299,7 @@ class View_Focus_Manipulate(View_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(  # noqa: F841
                 self.request.api_context,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {

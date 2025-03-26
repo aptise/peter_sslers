@@ -304,7 +304,7 @@ class ViewAdminApi_Domain(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
@@ -362,6 +362,7 @@ class ViewAdminApi_Domain(Handler):
                     note=note,
                     processing_strategy=processing_strategy,
                     dbSystemConfiguration=self.request.api_context.dbSystemConfiguration_cin,
+                    transaction_commit=True,
                 )
 
             except Exception as exc:
@@ -444,7 +445,7 @@ class ViewAdminApi_Domain(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             if (
                 not dbSystemConfiguration_autocert
@@ -466,7 +467,6 @@ class ViewAdminApi_Domain(Handler):
                             self.request.api_context, domains_
                         )
                     except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
-                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                         formStash.fatal_field(
                             field="domain_name",
                             message="This domain_name has been blocklisted",
@@ -516,7 +516,6 @@ class ViewAdminApi_Domain(Handler):
                     dbDomain.id,
                 )
                 if dbDomainAutocert:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="domain_name",
                         message="There is an active or recent autocert attempt for this domain",
@@ -580,6 +579,7 @@ class ViewAdminApi_Domain(Handler):
                     acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                    transaction_commit=True,
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]

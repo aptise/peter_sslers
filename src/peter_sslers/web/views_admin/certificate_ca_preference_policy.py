@@ -171,7 +171,6 @@ class View_Preferred(View_Focus):
                 break
 
         if not dbPreference or (dbPreference.slot_id != cert_slot):
-            # `formStash.fatal_form()` will raise `FormInvalid()`
             formStash.fatal_form("Can not operate on bad or stale data.")
 
         return dbPreference
@@ -216,7 +215,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # quick validation
             if (
@@ -234,13 +233,11 @@ class View_Preferred(View_Focus):
                     )
                 )
                 if not len(matching_certs):
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="fingerprint_sha1",
                         message="No matching CertificateCAs.",
                     )
                 elif len(matching_certs) > 1:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="fingerprint_sha1",
                         message="Too many matching CertificateCAs.",
@@ -251,7 +248,6 @@ class View_Preferred(View_Focus):
                     self.request.api_context, fingerprint_sha1=fingerprint_sha1
                 )
                 if not dbCertificateCA:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="fingerprint_sha1",
                         message="No matching CertificateCA.",
@@ -261,7 +257,6 @@ class View_Preferred(View_Focus):
                 dbPref
             ) in self.dbCertificateCAPreferencePolicy.certificate_ca_preferences:
                 if dbPref.certificate_ca_id == dbCertificateCA.id:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="fingerprint_sha1",
                         message="CertificateCA already in the list",
@@ -344,7 +339,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             dbPreference_active = self._get_active_selection(formStash)
 
@@ -427,7 +422,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             dbPreference_active = self._get_active_selection(formStash)
 
@@ -440,7 +435,6 @@ class View_Preferred(View_Focus):
                 )
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(exc.args[0])
 
             if self.request.wants_json:

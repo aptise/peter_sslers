@@ -16,7 +16,10 @@ def get_records(hostname, record_type: Literal["CNAME", "TXT"]) -> Optional[List
         resolved = dns.resolver.resolve(hostname, record_type)
         rval = []
         for rdata in resolved:
-            rval.append(rdata.target.to_text())
+            if hasattr(rdata, "target"):
+                rval.append(rdata.target.to_text())
+            else:
+                rval.append(rdata.to_text())
         return rval
     except dns.resolver.NoAnswer:
         return None

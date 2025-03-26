@@ -282,6 +282,7 @@ class View_Focus_Manipulate(View_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(  # noqa: F841
                 self.request.api_context,
                 dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -350,6 +351,7 @@ class View_Focus_Manipulate(View_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(  # noqa: F841
                 self.request.api_context,
                 dbAcmeAuthorization=dbAcmeAuthorization,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {

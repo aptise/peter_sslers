@@ -12588,6 +12588,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 lib_db_actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     self.ctx,
                     dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=True,
                 )
                 self.ctx.pyramid_transaction_commit()
 

@@ -26,6 +26,7 @@ from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
 
 if TYPE_CHECKING:
+    from pyramid.request import Request
     from pyramid_formencode_classic import FormStash
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
@@ -142,6 +143,205 @@ def validate_formstash_domain_templates(
             )
 
     return domain_template_http01, domain_template_dns01
+
+
+def submit__new(request: "Request") -> EnrollmentFactory:
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_EnrollmentFactory_edit_new,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash=formStash)
+
+    try:
+        dbAcmeAccount_primary: Optional["AcmeAccount"] = None
+        dbAcmeAccount_backup: Optional["AcmeAccount"] = None
+
+        # shared
+        name = formStash.results["name"]
+        note = formStash.results["note"]
+        private_key_cycle_id__backup: Optional[int]
+        private_key_technology_id__backup: Optional[int]
+        acme_profile__backup: Optional[str]
+        is_export_filesystem = formStash.results["is_export_filesystem"]
+        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+            is_export_filesystem
+        )
+
+        # these require some validation
+        existingEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_name(
+            request.api_context, name
+        )
+        if existingEnrollmentFactory:
+            formStash.fatal_field(
+                field="name",
+                message="An EnrollmentFactory already exists with this name.",
+            )
+
+        (domain_template_http01, domain_template_dns01) = (
+            validate_formstash_domain_templates(
+                formStash,
+                dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+            )
+        )
+
+        # PRIMARY config
+        acme_account_id__primary = formStash.results["acme_account_id__primary"]
+        dbAcmeAccount_primary = lib_db.get.get__AcmeAccount__by_id(
+            request.api_context, acme_account_id__primary
+        )
+        if not dbAcmeAccount_primary:
+            formStash.fatal_field(field="acme_account_id__primary", message="invalid")
+        if TYPE_CHECKING:
+            assert dbAcmeAccount_primary
+
+        private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
+        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__primary
+        )
+        private_key_technology__primary = formStash.results[
+            "private_key_technology__primary"
+        ]
+        private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+            private_key_technology__primary
+        )
+        acme_profile__primary = formStash.results["acme_profile__primary"] or None
+
+        # BACKUP config
+        acme_account_id__backup = formStash.results["acme_account_id__backup"]
+        if acme_account_id__backup:
+            dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_id(
+                request.api_context, acme_account_id__backup
+            )
+            if not dbAcmeAccount_backup:
+                formStash.fatal_field(
+                    field="acme_account_id__backup", message="invalid"
+                )
+        private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
+        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__backup
+        )
+        private_key_technology__backup = formStash.results[
+            "private_key_technology__backup"
+        ]
+        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+            private_key_technology__backup
+        )
+        acme_profile__backup = formStash.results["acme_profile__backup"] or None
+
+        if dbAcmeAccount_backup:
+            if (
+                dbAcmeAccount_primary.acme_server_id
+                == dbAcmeAccount_backup.acme_server_id
+            ):
+                formStash.fatal_form(
+                    message="Primary and Backup must be on different ACME servers"
+                )
+        else:
+            private_key_cycle_id__backup = None
+            private_key_technology_id__backup = None
+            acme_profile__backup = None
+
+        label_template = formStash.results["label_template"]
+        if label_template:
+            _valid, _err = validate_label_template(label_template)
+            if not _valid:
+                formStash.fatal_field(field="label_template", message=_err)
+
+        # make it
+
+        dbEnrollmentFactory = lib_db.create.create__EnrollmentFactory(
+            request.api_context,
+            name=name,
+            # Primary cert
+            dbAcmeAccount_primary=dbAcmeAccount_primary,
+            private_key_technology_id__primary=private_key_technology_id__primary,
+            private_key_cycle_id__primary=private_key_cycle_id__primary,
+            acme_profile__primary=acme_profile__primary,
+            # Backup cert
+            dbAcmeAccount_backup=dbAcmeAccount_backup,
+            private_key_technology_id__backup=private_key_technology_id__backup,
+            private_key_cycle_id__backup=private_key_cycle_id__backup,
+            acme_profile__backup=acme_profile__backup,
+            # misc
+            note=note,
+            domain_template_http01=domain_template_http01,
+            domain_template_dns01=domain_template_dns01,
+            label_template=label_template,
+            is_export_filesystem_id=is_export_filesystem_id,
+        )
+
+        return dbEnrollmentFactory
+
+    except formhandling.FormInvalid:
+        raise
+
+    except Exception as exc:
+        formStash.fatal_form(message="%s" % exc)
+
+
+def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> bool:
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_EnrollmentFactory_edit_new,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash=formStash)
+
+    # these require some validation
+    # nest outside of the try to minimize Exception catching
+    (domain_template_http01, domain_template_dns01) = (
+        validate_formstash_domain_templates(
+            formStash,
+            dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+        )
+    )
+    label_template = formStash.results["label_template"]
+    if label_template:
+        _valid, _err = validate_label_template(label_template)
+        if not _valid:
+            formStash.fatal_field(field="label_template", message=_err)
+
+    try:
+
+        is_export_filesystem = formStash.results["is_export_filesystem"]
+        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+            is_export_filesystem
+        )
+
+        result = lib_db.update.update_EnrollmentFactory(
+            request.api_context,
+            dbEnrollmentFactory,
+            name=formStash.results["name"],
+            # primary
+            acme_account_id__primary=formStash.results["acme_account_id__primary"],
+            private_key_cycle__primary=formStash.results["private_key_cycle__primary"],
+            private_key_technology__primary=formStash.results[
+                "private_key_technology__primary"
+            ],
+            acme_profile__primary=formStash.results["acme_profile__primary"],
+            # backup
+            acme_account_id__backup=formStash.results["acme_account_id__backup"],
+            private_key_cycle__backup=formStash.results["private_key_cycle__backup"],
+            private_key_technology__backup=formStash.results[
+                "private_key_technology__backup"
+            ],
+            acme_profile__backup=formStash.results["acme_profile__backup"],
+            is_export_filesystem_id=is_export_filesystem_id,
+            # misc
+            note=formStash.results["note"],
+            label_template=label_template,
+            domain_template_http01=domain_template_http01,
+            domain_template_dns01=domain_template_dns01,
+        )
+
+        return result
+    except Exception as exc:
+        formStash.fatal_form(message=str(exc))
 
 
 class View_List(Handler):
@@ -337,69 +537,7 @@ class View_Focus(Handler):
     def _edit__submit(self):
         assert self.dbEnrollmentFactory is not None
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_EnrollmentFactory_edit_new, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # these require some validation
-            # nest outside of the try to minimize Exception catching
-            (domain_template_http01, domain_template_dns01) = (
-                validate_formstash_domain_templates(
-                    formStash,
-                    dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-                )
-            )
-            label_template = formStash.results["label_template"]
-            if label_template:
-                _valid, _err = validate_label_template(label_template)
-                if not _valid:
-                    formStash.fatal_field(field="label_template", message=_err)
-
-            try:
-
-                is_export_filesystem = formStash.results["is_export_filesystem"]
-                is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
-                    is_export_filesystem
-                )
-
-                result = lib_db.update.update_EnrollmentFactory(
-                    self.request.api_context,
-                    self.dbEnrollmentFactory,
-                    name=formStash.results["name"],
-                    # primary
-                    acme_account_id__primary=formStash.results[
-                        "acme_account_id__primary"
-                    ],
-                    private_key_cycle__primary=formStash.results[
-                        "private_key_cycle__primary"
-                    ],
-                    private_key_technology__primary=formStash.results[
-                        "private_key_technology__primary"
-                    ],
-                    acme_profile__primary=formStash.results["acme_profile__primary"],
-                    # backup
-                    acme_account_id__backup=formStash.results[
-                        "acme_account_id__backup"
-                    ],
-                    private_key_cycle__backup=formStash.results[
-                        "private_key_cycle__backup"
-                    ],
-                    private_key_technology__backup=formStash.results[
-                        "private_key_technology__backup"
-                    ],
-                    acme_profile__backup=formStash.results["acme_profile__backup"],
-                    is_export_filesystem_id=is_export_filesystem_id,
-                    # misc
-                    note=formStash.results["note"],
-                    label_template=label_template,
-                    domain_template_http01=domain_template_http01,
-                    domain_template_dns01=domain_template_dns01,
-                )
-            except Exception as exc:
-                formStash.fatal_form(message=str(exc))
-
+            result = submit__edit(self.request, self.dbEnrollmentFactory)  # noqa: F841
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -413,9 +551,9 @@ class View_Focus(Handler):
                 )
             )
 
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)
 
     @view_config(
@@ -585,148 +723,8 @@ class View_New(Handler):
     def _new__submit(self):
         """ """
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_EnrollmentFactory_edit_new,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
 
-            try:
-                dbAcmeAccount_primary: Optional["AcmeAccount"] = None
-                dbAcmeAccount_backup: Optional["AcmeAccount"] = None
-
-                # shared
-                name = formStash.results["name"]
-                note = formStash.results["note"]
-                private_key_cycle_id__backup: Optional[int]
-                private_key_technology_id__backup: Optional[int]
-                acme_profile__backup: Optional[str]
-                is_export_filesystem = formStash.results["is_export_filesystem"]
-                is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
-                    is_export_filesystem
-                )
-
-                # these require some validation
-                existingEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_name(
-                    self.request.api_context, name
-                )
-                if existingEnrollmentFactory:
-                    formStash.fatal_field(
-                        field="name",
-                        message="An EnrollmentFactory already exists with this name.",
-                    )
-
-                (domain_template_http01, domain_template_dns01) = (
-                    validate_formstash_domain_templates(
-                        formStash,
-                        dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-                    )
-                )
-
-                # PRIMARY config
-                acme_account_id__primary = formStash.results["acme_account_id__primary"]
-                dbAcmeAccount_primary = lib_db.get.get__AcmeAccount__by_id(
-                    self.request.api_context, acme_account_id__primary
-                )
-                if not dbAcmeAccount_primary:
-                    formStash.fatal_field(
-                        field="acme_account_id__primary", message="invalid"
-                    )
-                if TYPE_CHECKING:
-                    assert dbAcmeAccount_primary
-
-                private_key_cycle__primary = formStash.results[
-                    "private_key_cycle__primary"
-                ]
-                private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
-                    private_key_cycle__primary
-                )
-                private_key_technology__primary = formStash.results[
-                    "private_key_technology__primary"
-                ]
-                private_key_technology_id__primary = (
-                    model_utils.KeyTechnology.from_string(
-                        private_key_technology__primary
-                    )
-                )
-                acme_profile__primary = (
-                    formStash.results["acme_profile__primary"] or None
-                )
-
-                # BACKUP config
-                acme_account_id__backup = formStash.results["acme_account_id__backup"]
-                if acme_account_id__backup:
-                    dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_id(
-                        self.request.api_context, acme_account_id__backup
-                    )
-                    if not dbAcmeAccount_backup:
-                        formStash.fatal_field(
-                            field="acme_account_id__backup", message="invalid"
-                        )
-                private_key_cycle__backup = formStash.results[
-                    "private_key_cycle__backup"
-                ]
-                private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-                    private_key_cycle__backup
-                )
-                private_key_technology__backup = formStash.results[
-                    "private_key_technology__backup"
-                ]
-                private_key_technology_id__backup = (
-                    model_utils.KeyTechnology.from_string(
-                        private_key_technology__backup
-                    )
-                )
-                acme_profile__backup = formStash.results["acme_profile__backup"] or None
-
-                if dbAcmeAccount_backup:
-                    if (
-                        dbAcmeAccount_primary.acme_server_id
-                        == dbAcmeAccount_backup.acme_server_id
-                    ):
-                        formStash.fatal_form(
-                            message="Primary and Backup must be on different ACME servers"
-                        )
-                else:
-                    private_key_cycle_id__backup = None
-                    private_key_technology_id__backup = None
-                    acme_profile__backup = None
-
-                label_template = formStash.results["label_template"]
-                if label_template:
-                    _valid, _err = validate_label_template(label_template)
-                    if not _valid:
-                        formStash.fatal_field(field="label_template", message=_err)
-
-                # make it
-
-                dbEnrollmentFactory = lib_db.create.create__EnrollmentFactory(
-                    self.request.api_context,
-                    name=name,
-                    # Primary cert
-                    dbAcmeAccount_primary=dbAcmeAccount_primary,
-                    private_key_technology_id__primary=private_key_technology_id__primary,
-                    private_key_cycle_id__primary=private_key_cycle_id__primary,
-                    acme_profile__primary=acme_profile__primary,
-                    # Backup cert
-                    dbAcmeAccount_backup=dbAcmeAccount_backup,
-                    private_key_technology_id__backup=private_key_technology_id__backup,
-                    private_key_cycle_id__backup=private_key_cycle_id__backup,
-                    acme_profile__backup=acme_profile__backup,
-                    # misc
-                    note=note,
-                    domain_template_http01=domain_template_http01,
-                    domain_template_dns01=domain_template_dns01,
-                    label_template=label_template,
-                    is_export_filesystem_id=is_export_filesystem_id,
-                )
-            except formhandling.FormInvalid as exc:  # noqa: F841
-                raise
-
-            except Exception as exc:
-                formStash.fatal_form(message="%s" % exc)
+            dbEnrollmentFactory = submit__new(self.request)
 
             if self.request.wants_json:
                 return {
@@ -741,7 +739,7 @@ class View_New(Handler):
                     dbEnrollmentFactory.id,
                 )
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)

@@ -203,11 +203,21 @@ def main(global_config, **settings):
         dbSession.close()
     dbEngine.dispose()  # toss the connection in-case of multi-processing
 
-    print(
-        "PeterSSLers will be serving on:   "
-        + config.registry.settings["admin_server"]
-        + config.registry.settings["application_settings"]["admin_prefix"]
-    )
+    if False:
+        print(
+            "PeterSSLers will be serving on:   "
+            + config.registry.settings["admin_server"]
+            + config.registry.settings["application_settings"]["admin_prefix"]
+        )
 
     # exit early
-    return config.make_wsgi_app()
+    app = config.make_wsgi_app()
+
+    # from pyramid.interfaces import IRequestFactory
+    # from pyramid.request import Request
+    # request_factory = app.registry.queryUtility(IRequestFactory, default=Request)
+    # request = request_factory.blank("/")
+    # request.registry = app.registry
+    # import pdb; pdb.set_trace()
+
+    return app

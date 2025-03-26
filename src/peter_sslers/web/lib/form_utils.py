@@ -16,6 +16,7 @@ from ...model import utils as model_utils
 if TYPE_CHECKING:
     from pyramid.request import Request
     from pyramid_formencode_classic import FormStash
+    from ...lib.context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
     from ...model.objects import PrivateKey
@@ -87,14 +88,12 @@ class AcmeAccountUploadParser(object):
 
         acme_server_id = formStash.results.get("acme_server_id", None)
         if acme_server_id is None:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="acme_server_id", message="No provider submitted."
             )
 
         contact = formStash.results.get("account__contact", None)
         if not contact and require_contact:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__contact",
                 message="`account__contact` is required.",
@@ -109,7 +108,6 @@ class AcmeAccountUploadParser(object):
                 private_key_technology
             )
         if not private_key_technology_id and require_technology:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__private_key_technology",
                 message="No PrivateKey technology submitted.",
@@ -119,7 +117,6 @@ class AcmeAccountUploadParser(object):
             "account__order_default_private_key_cycle", None
         )
         if order_default_private_key_cycle is None:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__order_default_private_key_cycle",
                 message="No PrivateKey cycle submitted for AcmeOrder defaults.",
@@ -132,7 +129,6 @@ class AcmeAccountUploadParser(object):
             "account__order_default_private_key_technology", None
         )
         if order_default_private_key_technology is None:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__order_default_private_key_technology",
                 message="No PrivateKey cycle submitted for AcmeOrder defaults.",
@@ -224,7 +220,6 @@ class AcmeAccountUploadParser(object):
 
         contact = formStash.results.get("account__contact")
         if not contact and require_contact:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__contact",
                 message="`account__contact` is required.",
@@ -239,7 +234,6 @@ class AcmeAccountUploadParser(object):
                 private_key_technology
             )
         if not private_key_technology_id and require_technology:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__private_key_technology",
                 message="No PrivateKey technology submitted.",
@@ -249,7 +243,6 @@ class AcmeAccountUploadParser(object):
             "account__order_default_private_key_cycle", None
         )
         if order_default_private_key_cycle is None:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__order_default_private_key_cycle",
                 message="No PrivateKey cycle submitted for AcmeOrder defaults.",
@@ -262,7 +255,6 @@ class AcmeAccountUploadParser(object):
             "account__order_default_private_key_technology", None
         )
         if order_default_private_key_technology is None:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field="account__order_default_private_key_technology",
                 message="No PrivateKey Technology submitted for AcmeOrder defaults.",
@@ -292,7 +284,6 @@ class AcmeAccountUploadParser(object):
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="acme_server_id", message="No provider submitted."
                 )
@@ -322,6 +313,55 @@ class AcmeAccountUploadParser(object):
                 )
 
         self.getcreate_args = decode_args(getcreate_args)
+
+    def validate_acme_server(
+        self,
+        ctx: "ApiContext",
+    ) -> int:
+        ctx._load_AcmeServers()
+        _acme_server_ids__all = [i.id for i in ctx.dbAcmeServers]
+        _acme_server_ids__enabled = [i.id for i in ctx.dbAcmeServers if i.is_enabled]
+
+        acme_server_id = self.formStash.results["acme_server_id"]
+        if acme_server_id not in _acme_server_ids__all:
+            self.formStash.fatal_field(
+                field="acme_server_id",
+                message="Invalid provider submitted.",
+            )
+
+        if acme_server_id not in _acme_server_ids__enabled:
+            self.formStash.fatal_field(
+                field="acme_server_id",
+                message="This provider is no longer enabled.",
+            )
+        return acme_server_id
+
+    def generate_create_args(self):
+        key_create_args = self.getcreate_args
+        for _field in (
+            "contact",
+            "acme_server_id",
+            "private_key_technology_id",
+            "order_default_private_key_cycle_id",
+            "order_default_private_key_technology_id",
+            "order_default_acme_profile",
+        ):
+            assert _field in key_create_args
+
+        # convert the args to cert_utils
+        _private_key_technology_id = key_create_args["private_key_technology_id"]
+        cu_new_args = model_utils.KeyTechnology.to_new_args(_private_key_technology_id)
+        key_pem = cert_utils.new_account_key(
+            key_technology_id=cu_new_args["key_technology_id"],
+            rsa_bits=cu_new_args.get("rsa_bits"),
+            ec_curve=cu_new_args.get("ec_curve"),
+        )
+        key_create_args["key_pem"] = key_pem
+        key_create_args["event_type"] = "AcmeAccount__create"
+        key_create_args["acme_account_key_source_id"] = (
+            model_utils.AcmeAccountKeySource.GENERATED
+        )
+        return key_create_args
 
 
 class _PrivateKeyUploadParser(object):
@@ -477,12 +517,10 @@ def parse_AcmeAccountSelection(
             account_key_pem_md5 = None
             return acmeAccountSelection
         else:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_form(
                 message="Invalid `account_key_option`",
             )
         if not account_key_pem_md5:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=account_key_option, message="You did not provide a value"
             )
@@ -492,7 +530,6 @@ def parse_AcmeAccountSelection(
             request.api_context, account_key_pem_md5, is_active=True
         )
         if not dbAcmeAccount:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=account_key_option,
                 message="The selected AcmeAccount is not enrolled in the system.",
@@ -564,13 +601,11 @@ def parse_AcmeAccountSelection_backup(
         account_key_pem_md5 = None
         return acmeAccountSelection
     else:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field="account_key_option_backup",
             message="Invalid selection.",
         )
     if not account_key_pem_md5:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(field=error_field, message="You did not provide a value")
     if TYPE_CHECKING:
         assert account_key_pem_md5 is not None
@@ -579,7 +614,6 @@ def parse_AcmeAccountSelection_backup(
         request.api_context, account_key_pem_md5, is_active=True
     )
     if not dbAcmeAccount:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field=error_field,
             message="The selected AcmeAccount is not enrolled in the system.",
@@ -878,7 +912,6 @@ def parse_PrivateKeySelection(
         formStash.fatal_form("Invalid `private_key_option`")
 
     if not private_key_pem_md5:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field=private_key_option, message="You did not provide a value"
         )
@@ -888,7 +921,6 @@ def parse_PrivateKeySelection(
         request.api_context, private_key_pem_md5, is_active=True
     )
     if not dbPrivateKey:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field=private_key_option,
             message="The selected PrivateKey is not enrolled in the system.",
@@ -1059,10 +1091,8 @@ def form_single_domain_challenge_typed(
         formStash.results["domain_name"]
     )
     if not domain_names:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(field="domain_name", message="Found no domain names")
     if len(domain_names) != 1:
-        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_field(
             field="domain_name",
             message="This endpoint currently supports only 1 domain name",

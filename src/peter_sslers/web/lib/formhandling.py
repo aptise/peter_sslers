@@ -10,6 +10,7 @@ from pyramid_formencode_classic.exceptions import FormFieldInvalid  # noqa: F401
 from pyramid_formencode_classic.exceptions import FormInvalid  # noqa: F401
 
 if TYPE_CHECKING:
+    from formencode import Schema
     from pyramid.request import Request
     from pyramid_formencode_classic import FormStash
 
@@ -69,7 +70,7 @@ def form_reprint(request: "Request", form_print_method: Callable, **kwargs):
     return pyramid_formencode_classic.form_reprint(request, form_print_method, **kwargs)
 
 
-def form_validate(request: "Request", **kwargs) -> Tuple:
+def form_validate(request: "Request", schema: "Schema", **kwargs) -> Tuple:
     """
     kwargs
         things of interest...
@@ -81,7 +82,9 @@ def form_validate(request: "Request", **kwargs) -> Tuple:
         kwargs["is_unicode_params"] = True
     if "error_main_text" not in kwargs:
         kwargs["error_main_text"] = "There was an error with your form."
-    (result, formStash) = pyramid_formencode_classic.form_validate(request, **kwargs)
+    (result, formStash) = pyramid_formencode_classic.form_validate(
+        request, schema, **kwargs
+    )
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS
     formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
     formStash.html_error_placeholder_form_template = (

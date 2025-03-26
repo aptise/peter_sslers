@@ -281,7 +281,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_PrivateKey_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             if dbPrivateKey.is_placeholder:
                 formStash.fatal_field(
@@ -327,7 +327,6 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             if TYPE_CHECKING:
@@ -405,7 +404,7 @@ class View_New(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             try:
 
@@ -480,7 +479,7 @@ class View_New(Handler):
                 self.request, schema=Form_PrivateKey_new__file, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             private_key_pem = formhandling.slurp_file_field(
                 formStash, "private_key_file_pem"

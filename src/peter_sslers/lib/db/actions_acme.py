@@ -130,8 +130,8 @@ def update_AcmeAuthorization_status(
     :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
         direct ACME Server sync?
     """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     _edited = False
     status_text = status_text.lower()
     if dbAcmeAuthorization.acme_status_authorization != status_text:
@@ -185,8 +185,8 @@ def update_AcmeChallenge_status(
     :param is_via_acme_sync: (optional) Boolean. Is this operation based off a
         direct ACME Server sync?
     """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     _edited = False
     status_text = status_text.lower()
     if dbAcmeChallenge.acme_status_challenge != status_text:
@@ -230,8 +230,8 @@ def updated_AcmeOrder_status(
     """
     # print("$$" * 40)
     # print("updated_AcmeOrder_status", dbAcmeOrder.id, acme_order_object.get("status"))
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
     _edited = False
     status_text = acme_order_object.get("status", "").lower()
@@ -306,8 +306,9 @@ def updated_AcmeOrder_ProcessingStatus(
     """
     # print("$$" * 40)
     # print("updated_AcmeOrder_ProcessingStatus", dbAcmeOrder.id, model_utils.Acme_Status_Order.as_string(acme_status_order_id))
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     _edited = False
     if acme_status_order_id is not None:
         if dbAcmeOrder.acme_status_order_id != acme_status_order_id:
@@ -399,8 +400,9 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
     :param transaction_commit: (required) Boolean. User must indicate they know
         this will commit, as 3rd party API can not be rolled back.
     """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     _challenges_expected = {
         _chall.challenge_url: _chall for _chall in dbAcmeAuthorization.acme_challenges
     }
@@ -460,8 +462,8 @@ def _AcmeV2_factory_AuthHandlers(
             "_AcmeV2_factory_AuthHandlers.handle_authorization_payload( %s",
             authorization_url,
         )
-        if transaction_commit is not True:
-            raise ValueError("must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
         if dbAcmeAuthorization is not None:
             if authorization_url != dbAcmeAuthorization.authorization_url:
@@ -505,6 +507,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     authenticatedUser,
     dbAcmeOrder: "AcmeOrder",
     acmeOrderRfcObject: "AcmeOrderRFC",
+    transaction_commit: Optional[bool] = None,
 ) -> Optional[bool]:
     """
     Consolidated AcmeOrder routine for processing multiple Authorizations
@@ -515,6 +518,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acmeRfcOrder: (required) a :class:`acme_v2.AcmeOrderRFC` instance
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
         ctx, authenticatedUser, dbAcmeOrder
     )
@@ -532,7 +538,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             if not _handled:
                 raise errors.InvalidRequest("Order Authorizations failed")
@@ -545,7 +551,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             ) = authenticatedUser.acme_order_load(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             updated_AcmeOrder_status(
                 ctx,
@@ -553,7 +559,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 acmeOrderRfcObject.rfc_object,
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
             assert ctx.request
@@ -566,6 +572,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                     ctx,
                     dbAcmeOrder=dbAcmeOrder,
                     authenticatedUser=authenticatedUser,
+                    transaction_commit=transaction_commit,
                 )
 
             raise errors.AcmeOrderFatal(
@@ -670,6 +677,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     dbAcmeAccount: "AcmeAccount",
     acme_authorization_ids: Iterable[int],
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> Dict:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -677,6 +685,8 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     # TODO: sync the AcmeAuthorization objects instead
     # TODO: sync the AcmeOrder objects instead
     if not dbAcmeAccount:
@@ -700,7 +710,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
             ) = authenticatedUser.acme_authorization_deactivate(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             results[dbAcmeAuthorization.id] = True
         except errors.AcmeServer404 as exc:
@@ -711,7 +721,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
             dbAcmeAuthorization,
             authorization_response["status"],
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         if authorization_response["status"] == "deactivated":
@@ -720,7 +730,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                 ctx,
                 dbAcmeAuthorization,
                 authorization_response,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
 
             """
@@ -735,7 +745,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                     _to_acme_order.acme_order,
                     acme_v2.new_response_invalid(),
                     timestamp=ctx.timestamp,
-                    transaction_commit=True,
+                    transaction_commit=transaction_commit,
                 )
     return results
 
@@ -744,6 +754,7 @@ def do__AcmeV2_AcmeAccount__authenticate(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     onlyReturnExisting: Optional[bool] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
     Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
@@ -752,6 +763,9 @@ def do__AcmeV2_AcmeAccount__authenticate(
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
     # unless `onlyReturnExisting` is True, this will
@@ -768,7 +782,11 @@ def do__AcmeV2_AcmeAccount__authenticate(
         log__OperationsEvent=log__OperationsEvent,
         func_account_updates=handle_AcmeAccount_Updates,
     )
-    authenticatedUser.authenticate(ctx, onlyReturnExisting=onlyReturnExisting)
+    authenticatedUser.authenticate(
+        ctx,
+        onlyReturnExisting=onlyReturnExisting,
+        transaction_commit=transaction_commit,
+    )
     handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
     return authenticatedUser
 
@@ -786,8 +804,8 @@ def do__AcmeV2_AcmeAccount__deactivate(
     :param transaction_commit: (required) Boolean. User must indicate they know
         this will commit, as 3rd party API can not be rolled back.
     """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -808,7 +826,9 @@ def do__AcmeV2_AcmeAccount__deactivate(
         func_account_updates=handle_AcmeAccount_Updates,
     )
     authenticatedUser.authenticate(ctx)
-    is_did_deactivate = authenticatedUser.deactivate(ctx, transaction_commit=True)
+    is_did_deactivate = authenticatedUser.deactivate(
+        ctx, transaction_commit=transaction_commit
+    )
     if is_did_deactivate:
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -830,8 +850,8 @@ def do__AcmeV2_AcmeAccount__key_change(
     :param transaction_commit: (required) Boolean. User must indicate they know
         this will commit, as 3rd party API can not be rolled back.
     """
-    if transaction_commit is not True:
-        raise ValueError("must invoke this knowing it will commit")
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
     assert ctx.timestamp
 
@@ -929,14 +949,9 @@ def do__AcmeV2_AcmeAccount__key_change(
     )
     authenticatedUser.authenticate(ctx)
     is_did_keychange = authenticatedUser.key_change(
-        ctx, dbAcmeAccountKey_new, transaction_commit=True
+        ctx, dbAcmeAccountKey_new, transaction_commit=transaction_commit
     )
-    if is_did_keychange:
-        if transaction_commit:
-            ctx.pyramid_transaction_commit()
-    else:
-        # perhaps we raise an error because thi failed?
-        pass
+    ctx.pyramid_transaction_commit()
 
     return authenticatedUser, is_did_keychange
 
@@ -944,6 +959,7 @@ def do__AcmeV2_AcmeAccount__key_change(
 def do__AcmeV2_AcmeAccount_register(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
+    transaction_commit: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
     Registers an AcmeAccount against the LetsEncrypt ACME Directory
@@ -951,6 +967,8 @@ def do__AcmeV2_AcmeAccount_register(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     try:
         # # this has been relaxed
         # if not dbAcmeAccount.contact:
@@ -980,6 +998,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     ctx: "ApiContext",
     dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -987,6 +1006,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
     # TODO: sync the AcmeOrder objects instead
+
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
@@ -1013,7 +1035,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
         ) = authenticatedUser.acme_authorization_deactivate(
             ctx,
             dbAcmeAuthorization=dbAcmeAuthorization,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
         _server_status = authorization_response["status"]
         if _server_status != "deactivated":
@@ -1026,7 +1048,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
             dbAcmeAuthorization,
             _server_status,
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
 
@@ -1043,7 +1065,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
             ctx,
             dbAcmeAuthorization,
             authorization_response,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         # the RFC requires an AcmeOrder transitions to "invalid" when an
@@ -1056,7 +1078,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
                 acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
         return True
     except errors.AcmeServer404 as exc:
@@ -1065,7 +1087,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
             dbAcmeAuthorization,
             "*404*",
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
         return False
@@ -1075,6 +1097,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     ctx: "ApiContext",
     dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1082,7 +1105,8 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
     # TODO: sync the AcmeOrder objects instead
-
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
     if not dbAcmeAuthorization.is_can_acme_server_sync:
@@ -1108,7 +1132,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
         ) = authenticatedUser.acme_authorization_load(
             ctx,
             dbAcmeAuthorization=dbAcmeAuthorization,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         # trigger this now, so we do not attempt to load the challenges
@@ -1125,7 +1149,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             ctx,
             dbAcmeAuthorization,
             authorization_response,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         # and it's possible we have new challenges
@@ -1152,7 +1176,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             dbAcmeAuthorization,
             "*404*",
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
         return False
 
@@ -1161,6 +1185,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     ctx: "ApiContext",
     dbAcmeChallenge: Optional["AcmeChallenge"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1170,6 +1195,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     # TODO: sync the Authorization objects instead
     # TODO: sync the AcmeOrder objects instead
 
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_sync:
@@ -1197,7 +1224,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
         ) = authenticatedUser.acme_challenge_load(
             ctx,
             dbAcmeChallenge=dbAcmeChallenge,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         # this only logs
@@ -1212,7 +1239,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
             dbAcmeChallenge,
             _server_status,
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         if _server_status == "invalid":
@@ -1228,7 +1255,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
                         dbAcmeChallenge.acme_authorization,
                         "invalid",
                         timestamp=ctx.timestamp,
-                        transaction_commit=True,
+                        transaction_commit=transaction_commit,
                         is_via_acme_sync=False,
                     )
                 # the RFC requires an AcmeOrder transitions to "invalid"
@@ -1240,7 +1267,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
                         acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
                         acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
                         timestamp=ctx.timestamp,
-                        transaction_commit=True,
+                        transaction_commit=transaction_commit,
                     )
     except errors.AcmeServer404 as exc:
         update_AcmeChallenge_status(
@@ -1248,7 +1275,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
             dbAcmeChallenge,
             "*404*",
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
     return True
@@ -1258,6 +1285,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     ctx: "ApiContext",
     dbAcmeChallenge: Optional["AcmeChallenge"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1268,6 +1296,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     """
     # TODO: sync the Authorization objects instead
     # TODO: sync the AcmeOrder objects instead
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_trigger:
@@ -1309,6 +1339,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=transaction_commit,
             )
 
             challenge_response = authenticatedUser.acme_challenge_trigger(
@@ -1316,7 +1347,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 dbAcmeChallenge=dbAcmeChallenge,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
 
             # this only logs
@@ -1332,7 +1363,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 dbAcmeChallenge,
                 challenge_response["status"],
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
 
             return True
@@ -1343,7 +1374,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 dbAcmeChallenge,
                 "*404*",
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
 
         except errors.AcmeAuthorizationFailure as exc:
@@ -1353,7 +1384,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 dbAcmeAuthorization,
                 "invalid",
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             # re-raise, so the Order can fail
             raise
@@ -1369,7 +1400,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                         _to_acme_order.acme_order,
                         acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_started,
                         timestamp=ctx.timestamp,
-                        transaction_commit=True,
+                        transaction_commit=transaction_commit,
                     )
 
     except errors.AcmeAuthorizationFailure as exc:
@@ -1384,7 +1415,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                     acme_status_order_id=model_utils.Acme_Status_Order.INVALID,
                     acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
                     timestamp=ctx.timestamp,
-                    transaction_commit=True,
+                    transaction_commit=transaction_commit,
                 )
 
     return True
@@ -1394,6 +1425,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1403,6 +1435,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     returns:
         dbAcmeOrder
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
@@ -1421,7 +1456,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
         ) = authenticatedUser.acme_order_load(
             ctx,
             dbAcmeOrder=dbAcmeOrder,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
         is_order_404 = False
 
@@ -1432,7 +1467,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             dbAcmeOrder,
             acmeOrderRfcObject.rfc_object,
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
         return dbAcmeOrder
@@ -1444,7 +1479,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             dbAcmeOrder,
             acme_v2.new_response_404(),
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
         # Do not reflect the 404 status on AcmeAuthoriztions, as the ACME
@@ -1456,6 +1491,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1464,6 +1500,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
 
     :returns:  The :class:`model.objects.AcmeOrder` originally passed in as `dbAcmeOrder`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
@@ -1486,7 +1525,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
         ) = authenticatedUser.acme_order_load(
             ctx,
             dbAcmeOrder=dbAcmeOrder,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
         is_order_404 = False
 
@@ -1496,7 +1535,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             dbAcmeOrder,
             acmeOrderRfcObject.rfc_object,
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
 
@@ -1507,7 +1546,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             dbAcmeOrder,
             acme_v2.new_response_404(),
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
         # just continue, as the internal orders are what we care about
@@ -1535,6 +1574,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
                 authenticatedUser=authenticatedUser,
+                transaction_commit=transaction_commit,
             )
         except Exception as exc:
             log.critical(
@@ -1550,12 +1590,16 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
@@ -1576,7 +1620,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
         ) = authenticatedUser.acme_order_load(
             ctx,
             dbAcmeOrder=dbAcmeOrder,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
         is_order_404 = False
     except errors.AcmeServer404 as exc:
@@ -1587,7 +1631,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             acme_v2.new_response_404(),
             is_processing_False=True,
             timestamp=ctx.timestamp,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             is_via_acme_sync=True,
         )
 
@@ -1599,21 +1643,21 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             ) = authenticatedUser.acme_authorization_deactivate(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             update_AcmeAuthorization_status(
                 ctx,
                 dbAcmeAuthorization,
                 authorization_response["status"],
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
             disable_missing_AcmeAuthorization_AcmeChallenges(
                 ctx,
                 dbAcmeAuthorization,
                 authorization_response,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
         except errors.AcmeServer404 as exc:
             authorization_response = acme_v2.new_response_404()
@@ -1622,7 +1666,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 dbAcmeAuthorization,
                 authorization_response["status"],
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
 
@@ -1637,7 +1681,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             ) = authenticatedUser.acme_order_load(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             # always invoke this, as it handles some cleanup routines
             return updated_AcmeOrder_status(
@@ -1647,7 +1691,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
                 is_processing_False=True,
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
         except Exception as exc:
@@ -1660,6 +1704,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
     ctx: "ApiContext",
     authenticatedUser: "AuthenticatedUser",
     dbAcmeOrder: "AcmeOrder",
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     `_do__AcmeV2_AcmeOrder__finalize` is invoked to actually finalize the order.
@@ -1674,6 +1719,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
     Finalizing an order means signing the CertificateSigningRequest.
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
 
     try:
         private_key_strategy__final: Optional[str] = None
@@ -1925,7 +1972,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=updated_AcmeOrder_status,
                 csr_pem=csr_pem,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
 
         except errors.AcmeServer404 as exc:
@@ -1934,7 +1981,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 dbAcmeOrder,
                 acme_v2.new_response_404(),
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
             raise
@@ -1998,7 +2045,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             "v2",
             dbCertificateSigned=dbCertificateSigned,
             dbCertificateRequest=dbAcmeOrder.certificate_request,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
         )
 
         # nest in a try to fails don't break the procurement
@@ -2078,6 +2125,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2086,6 +2134,9 @@ def do__AcmeV2_AcmeOrder__finalize(
 
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_finalize:
@@ -2102,6 +2153,7 @@ def do__AcmeV2_AcmeOrder__finalize(
         ctx,
         authenticatedUser=authenticatedUser,
         dbAcmeOrder=dbAcmeOrder,
+        transaction_commit=transaction_commit,
     )
 
     return dbAcmeOrder
@@ -2114,6 +2166,7 @@ def do__AcmeV2_AcmeOrder__process(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2124,6 +2177,9 @@ def do__AcmeV2_AcmeOrder__process(
 
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_process:
@@ -2166,7 +2222,7 @@ def do__AcmeV2_AcmeOrder__process(
                     dbAcmeAuthorization=dbAcmeAuthorization,
                     acme_challenge_type_id__preferred=None,
                     domains_challenged=domains_challenged,
-                    transaction_commit=True,
+                    transaction_commit=transaction_commit,
                 )
             else:
                 _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
@@ -2186,12 +2242,16 @@ def do__AcmeV2_AcmeOrder__process(
                     ctx,
                     dbAcmeChallenge=dbAcmeChallenge,
                     authenticatedUser=authenticatedUser,
+                    transaction_commit=transaction_commit,
                 )
         else:
             # no authorizations?
             # it's possible we did the last one?
             dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync(
-                ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                authenticatedUser=authenticatedUser,
+                transaction_commit=transaction_commit,
             )
             if dbAcmeOrder.acme_status_order == "pending":
                 raise errors.GarfieldMinusGarfield(
@@ -2202,6 +2262,7 @@ def do__AcmeV2_AcmeOrder__process(
                     ctx,
                     authenticatedUser=authenticatedUser,
                     dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=transaction_commit,
                 )
             else:
                 raise errors.GarfieldMinusGarfield("unsure how this happened")
@@ -2210,6 +2271,7 @@ def do__AcmeV2_AcmeOrder__process(
             ctx,
             authenticatedUser=authenticatedUser,
             dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=transaction_commit,
         )
     else:
         raise errors.GarfieldMinusGarfield("unsure how this happened")
@@ -2226,6 +2288,7 @@ def do__AcmeV2_AcmeOrder__process(
 def do__AcmeV2_AcmeOrder__download_certificate(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2233,6 +2296,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_server_download_certificate:
@@ -2321,7 +2386,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         "v2",
         dbCertificateSigned=dbCertificateSigned,
         dbCertificateRequest=dbAcmeOrder.certificate_request,
-        transaction_commit=True,
+        transaction_commit=transaction_commit,
     )
 
     # don't commit here, as that will trigger an error on object refresh
@@ -2354,6 +2419,7 @@ def do__AcmeV2_AcmeOrder__new(
     ] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2374,6 +2440,9 @@ def do__AcmeV2_AcmeOrder__new(
 
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
 
@@ -2988,7 +3057,7 @@ def do__AcmeV2_AcmeOrder__new(
             ctx,
             domain_names=domain_names,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
-            transaction_commit=True,
+            transaction_commit=transaction_commit,
             replaces=replaces,
             profile=profile,
         )
@@ -3027,7 +3096,7 @@ def do__AcmeV2_AcmeOrder__new(
                 private_key_cycle_id=private_key_cycle_id__effective,
                 private_key_strategy_id__requested=private_key_strategy_id__requested,
                 private_key_deferred_id=private_key_deferred_id,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,  # this is optional
                 # optionals
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
                 note=note,
@@ -3043,6 +3112,7 @@ def do__AcmeV2_AcmeOrder__new(
             dbAcmeOrderSubmission = create__AcmeOrderSubmission(
                 ctx,
                 dbAcmeOrder,
+                transaction_commit=transaction_commit,
             )
 
             # register the AcmeOrder into the logging utility
@@ -3055,7 +3125,7 @@ def do__AcmeV2_AcmeOrder__new(
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
                 timestamp=ctx.timestamp,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
             )
 
@@ -3069,6 +3139,7 @@ def do__AcmeV2_AcmeOrder__new(
             dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=transaction_commit,
             )
 
         if (
@@ -3083,6 +3154,7 @@ def do__AcmeV2_AcmeOrder__new(
                         ctx,
                         authenticatedUser=authenticatedUser,
                         dbAcmeOrder=dbAcmeOrder,
+                        transaction_commit=transaction_commit,
                     )
             return dbAcmeOrder
 
@@ -3101,6 +3173,7 @@ def do__AcmeV2_AcmeOrder__new(
                 ctx,
                 authenticatedUser=authenticatedUser,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=transaction_commit,
             )
             return dbAcmeOrder
 
@@ -3131,6 +3204,7 @@ def do__AcmeV2_AcmeOrder__new(
 def do__AcmeV2_AcmeOrder__retry(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
+    transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -3139,6 +3213,9 @@ def do__AcmeV2_AcmeOrder__retry(
 
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     dbOperationsEvent = log__OperationsEvent(
@@ -3164,6 +3241,7 @@ def do__AcmeV2_AcmeOrder__retry(
         dbAcmeOrder_retry_of=dbAcmeOrder,
         replaces=dbAcmeOrder.replaces,
         replaces_type=model_utils.ReplacesType_Enum.RETRY,
+        transaction_commit=transaction_commit,
     )
 
 

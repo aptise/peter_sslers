@@ -94,7 +94,10 @@ def main(argv=sys.argv):
     if "routine__reconcile_blocks" in tasks:
         print("routine__reconcile_blocks")
         dbRoutines["routine__reconcile_blocks"] = (
-            lib_db.actions.routine__reconcile_blocks(ctx)
+            lib_db.actions.routine__reconcile_blocks(
+                ctx,
+                transaction_commit=True,
+            )
         )
         ctx.pyramid_transaction_commit()
 
