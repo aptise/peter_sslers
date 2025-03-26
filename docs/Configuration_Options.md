@@ -30,13 +30,12 @@ These are documented at-length on the in-app settings page.
 * `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
 * `nginx.ca_bundle_pem` - path to a pem encoded list of root certificates used by the nginx server
 
-* `precheck_acme_challenges` - comma separated list of acme_challenges to precheck; e.g. 
+* `precheck_acme_challenges` - comma separated list of acme_challenges to precheck; e.g.
 
     precheck_acme_challenges = http-01
     precheck_acme_challenges = http-01, dns-01
-    
-    A precheck will keep a challenge from triggering, so it can be fixed within the same order.
 
+    A precheck will keep a challenge from triggering, so it can be fixed within the same order.
 
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests
   library

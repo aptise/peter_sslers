@@ -1,7 +1,7 @@
 * [Previous - README](https://github.com/aptise/peter_sslers/README.md)
 * [Installation](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
 
-If you want a quick testdrive, this quickstart should suffice.  
+If you want a quick testdrive, this quickstart should suffice.
 
 Otherwise, jump to the full Installation directions.
 
@@ -30,14 +30,14 @@ Then you can visit `http://127.0.0.1:7201/.well-known/peter_sslers`
 Note: you can invoke `import_certbot` with any path to a Certbot directory:
 
     import_certbot conf/example_development.ini dir=/path/to/etc/letsencrypt
-    
+
 
 # Initial Actions
 
 Upon visiting the main page for the first time:
 
     http://127.0.0.1:7201/.well-known/peter_sslers
-    
+
 You should be alerted that the Global "EnrollmentPolicy" has not yet been configured.
 
 ## Configuring an EnrollmentPolicy

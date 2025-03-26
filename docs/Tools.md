@@ -1,56 +1,25 @@
 # Tools
 
-## commandline routines
+The "/tools" directory contains scripts useful for Certificate operations.
+Currently this includes:
 
-Some routines are accessible via commandline scripts:
+* An `invoke` script for importing Certbot archives, and potentially other tasks.
+* A sample `fake_server.py` that will spin up a web server with routes which you can
+  test against. This will allow you to setup your proxy integration without running
+  peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
+* A `replace_domain.py` script that can be used to alter an `acme-dns` database
+  to support deterministically named DNS subdomains instead of the default randomized
+  guid subdomains.
 
-* `routine__run_ari_checks {example_development.ini}` will run necessary ARI checks
-
-* `routine__clear_old_ari_checks {example_development.ini}` will clear from the database outdated ARI checks.  An ARI check is considered outdated once it has been replaced with a newer ARI check.
-
-
-* `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
-
-  * data will be written to a `certificates` subfolder of the `_data_` directory
-  * only certificates with an ACTIVE RenewalConfiguration will be written
-  * data will be organized into
-    * a `global` directory for certs without an EnrollmentFactory
-    * a directory of the EnrollmentFactory's unique name, if there is a factory
-  * the name of each director will be `rc-{id}`, wherein `id` is the numeric identifier for the RenewalConfiguration
-  * if the RenewalConfiguration has a unique label, a symlink will be created
-  * for each certificate, the directory will contain a `primary` and `backup` subdirectory
-  * within each subdirectory will be 4 files, like Certbot:
-    * `chain.pem`
-    * `fullchain.pem`
-    * `cert.pem`
-    * `pkey.pem`
-   * when Certificates are persisted to disk, they will be written to a working directory, that working directory will then replace the existing data directory
-
-For example, a directory structure might look like this:
-
-    _data_/certificates/global/rc-1/primary/cert.pem
-    _data_/certificates/global/rc-1/primary/chain.pem
-    _data_/certificates/global/rc-1/primary/fullchain.pem
-    _data_/certificates/global/rc-1/primary/pkey.pem
-    _data_/certificates/global/rc-1/backup/cert.pem
-    _data_/certificates/global/rc-1/backup/chain.pem
-    _data_/certificates/global/rc-1/backup/fullchain.pem
-    _data_/certificates/global/rc-1/backup/pkey.pem
-    _data_/certificates/factory_a/rc-2/primary/cert.pem
-    _data_/certificates/factory_a/rc-2/primary/chain.pem
-    _data_/certificates/factory_a/rc-2/primary/fullchain.pem
-    _data_/certificates/factory_a/rc-2/primary/pkey.pem
-    _data_/certificates/factory_a/rc-2/backup/cert.pem
-    _data_/certificates/factory_a/rc-2/backup/chain.pem
-    _data_/certificates/factory_a/rc-2/backup/fullchain.pem
-    _data_/certificates/factory_a/rc-2/backup/pkey.pem
-    _data_/certificates/factory_a/example.com >symlink> rc-2
-    
 
 ## `invoke` Script
 
 There is an `invoke` script in the `tools` directory that can be used to automate
 certain tasks.
+
+The invoke scripts often duplicate, in an inferior manner, the Python scripts described
+in the Automation docs. The other Python scripts operate directly on the underlying
+database, while the invoke scripts use an HTTPS interface.
 
 Right now the invoke script offers:
 
