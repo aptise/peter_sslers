@@ -1468,6 +1468,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "admin:acme_dns_server:focus",
             "admin:acme_dns_server:focus:acme_dns_server_accounts",
             "admin:acme_dns_server:focus:acme_dns_server_accounts-paginated",
+            "admin:acme_dns_server:focus:acme_dns_server_accounts:all|csv",
         )
     )
     def test_focus_html(self):
@@ -1486,12 +1487,26 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/all.csv"
+            % focus_id,
+            status=303,
+        )
+        assert res.location.endswith("?result=error&error=post+required&operation=csv")
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/all.csv"
+            % focus_id
+        )
+        assert res2.status_code == 200
+        assert res2.headers["content-type"].startswith("text/csv")
 
     @routes_tested(
         (
             "admin:acme_dns_server:focus|json",
             "admin:acme_dns_server:focus:acme_dns_server_accounts|json",
             "admin:acme_dns_server:focus:acme_dns_server_accounts-paginated|json",
+            "admin:acme_dns_server:focus:acme_dns_server_accounts:all|json",
         )
     )
     def test_focus_json(self):
@@ -1520,6 +1535,22 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert "AcmeDnsServer" in res.json
         assert res.json["AcmeDnsServer"]["id"] == focus_id
         assert "AcmeDnsServerAccounts" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/all.json"
+            % focus_id,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-dns-server/%s/acme-dns-server-accounts/all.json"
+            % focus_id,
+        )
+        assert "AcmeDnsServer" in res2.json
+        assert "AcmeDnsServerAccounts" in res2.json
+        assert "AcmeDnsServerAccounts_count" in res2.json
+        assert "pagination" not in res2.json
 
     @routes_tested(
         (
@@ -2152,7 +2183,11 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         return focus_item, focus_item.id
 
     @routes_tested(
-        ("admin:acme_dns_server_accounts", "admin:acme_dns_server_accounts-paginated")
+        (
+            "admin:acme_dns_server_accounts",
+            "admin:acme_dns_server_accounts-paginated",
+            "admin:acme_dns_server_accounts:all|csv",
+        )
     )
     def test_list_html(self):
         # root
@@ -2163,6 +2198,18 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/acme-dns-server-accounts/1", status=200
         )
+        # csv
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-accounts/all.csv",
+            status=303,
+        )
+        assert res.location.endswith("?result=error&error=post+required&operation=csv")
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-dns-server-accounts/all.csv"
+        )
+        assert res2.status_code == 200
+        assert res2.headers["content-type"].startswith("text/csv")
 
     @routes_tested(
         (
@@ -2181,6 +2228,20 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
             "/.well-known/peter_sslers/acme-dns-server-accounts/1.json", status=200
         )
         assert "AcmeDnsServerAccounts" in res.json
+        # json all
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-accounts/all.json"
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-dns-server-accounts/all.json"
+        )
+        assert "AcmeDnsServerAccounts" in res2.json
+        assert "AcmeDnsServerAccounts_count" in res2.json
+        assert "pagination" not in res2.json
 
     @routes_tested(
         (
@@ -2221,9 +2282,17 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
             % focus_id,
             status=200,
         )
-        assert "AcmeDnsServerAccount" in res.json
-        assert res.json["AcmeDnsServerAccount"]["id"] == focus_item.id
-        assert "audit" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit.json"
+            % focus_id,
+            status=200,
+        )
+        assert "AcmeDnsServerAccount" in res2.json
+        assert res2.json["AcmeDnsServerAccount"]["id"] == focus_item.id
+        assert "audit" in res2.json
 
 
 class FunctionalTests_AcmeEventLog(AppTest):

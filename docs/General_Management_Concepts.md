@@ -168,7 +168,6 @@ in an "autocert" functionality to nginx:
   and this must use the HTTP-01 challenge.  Initiating an `autocert` will create
   a new RenewalConfiguration using the directives establised in the
   "autocert" EnrollmentPolicy.
-  
 
 While several webservers offer "autocert" functionality, PeterSSLers is different
 because our integration handles the "autocert" from a secondary service that multiple
@@ -179,7 +178,7 @@ webservers can interact with.
 
 PeterSSLers handles several types of CertificateRequests:
 
-1. (Preferred) The system will generate a CertificateRequest as part of the 
+1. (Preferred) The system will generate a CertificateRequest as part of the
    ordering process with the built-in ACME-v2 client.
 2. Legacy. An existing CertificateRequest (and Certificate) can be imported
    for tracking and relationship analysis.

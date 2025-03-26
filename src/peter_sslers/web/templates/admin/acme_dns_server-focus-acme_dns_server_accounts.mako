@@ -21,9 +21,24 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
+        <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/acme-dns-server-accounts/all.csv" method="POST">
+            <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                all.csv
+            </button>
+        </form>
+        <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/acme-dns-server-accounts/all.json" method="POST">
+            <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                all.json
+            </button>
+        </form>
+
+
         <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/acme-dns-server-accounts.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-            .json
+            paginated.json
+
         </a>
     </p>
 </%block>

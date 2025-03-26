@@ -1,13 +1,15 @@
 # Tools
 
-## commandline routines
+The "/tools" directory contains scripts useful for Certificate operations.
+Currently this includes:
 
-Some routines are accessible via commandline scripts:
-
-* `routine__run_ari_checks {example_development.ini}` will run necessary ARI checks
-
-* `routine__clear_old_ari_checks {example_development.ini}` will clear from the database outdated ARI checks.  An ARI check is considered outdated once it has been replaced with a newer ARI check.
-
+* An `invoke` script for importing Certbot archives, and potentially other tasks.
+* A sample `fake_server.py` that will spin up a web server with routes which you can
+  test against. This will allow you to setup your proxy integration without running
+  peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
+* A `replace_domain.py` script that can be used to alter an `acme-dns` database
+  to support deterministically named DNS subdomains instead of the default randomized
+  guid subdomains.
 
 * `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
 
@@ -51,6 +53,10 @@ For example, a directory structure might look like this:
 
 There is an `invoke` script in the `tools` directory that can be used to automate
 certain tasks.
+
+The invoke scripts often duplicate, in an inferior manner, the Python scripts described
+in the Automation docs. The other Python scripts operate directly on the underlying
+database, while the invoke scripts use an HTTPS interface.
 
 Right now the invoke script offers:
 

@@ -1,4 +1,6 @@
 # stdlib
+import csv
+import tempfile
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -10,6 +12,7 @@ import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
+from pyramid.response import Response
 from pyramid.view import view_config
 
 # local
@@ -34,6 +37,7 @@ if TYPE_CHECKING:
     from pyramid.request import Request
     from ...lib.db.associate import TYPE_DomainName_2_AcmeDnsServerAccount
     from ...lib.db.associate import TYPE_DomainName_2_DomainObject
+    from ...model.objects import AcmeDnsServerAccount
 
 # ==============================================================================
 
@@ -77,6 +81,27 @@ def submit__new(
                 request.api_context, dbAcmeDnsServer
             )
     return dbAcmeDnsServer, _is_created
+
+
+def csv_AcmeDnsServerAccounts(
+    items_paged: List["AcmeDnsServerAccount"],
+) -> tempfile.SpooledTemporaryFile:
+
+    fieldnames = ["id", "username", "password", "cname_source", "cname_target"]
+    tmpfile = tempfile.SpooledTemporaryFile(mode="w+t")
+    writer = csv.DictWriter(tmpfile, fieldnames=fieldnames)
+    writer.writeheader()
+    for dbAcmeDnsServerAccount in items_paged:
+        _row = {
+            "id": dbAcmeDnsServerAccount.id,
+            "username": dbAcmeDnsServerAccount.username,
+            "password": dbAcmeDnsServerAccount.password,
+            "cname_source": dbAcmeDnsServerAccount.cname_source,
+            "cname_target": dbAcmeDnsServerAccount.cname_target,
+        }
+        writer.writerow(_row)
+    tmpfile.seek(0)
+    return tmpfile
 
 
 def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccountsMap: List) -> Dict:
@@ -363,6 +388,76 @@ class View_Focus(Handler):
             "project": "peter_sslers",
             "AcmeDnsServer": dbAcmeDnsServer,
             "AcmeDnsServerAccounts": items_paged,
+            "AcmeDnsServerAccounts_count": items_count,
+        }
+
+    @view_config(
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts:all|csv"
+    )
+    def list_accounts_all_csv(self):
+        dbAcmeDnsServer = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            url_post_required = (
+                "%s?result=error&error=post+required&operation=csv" % self._focus_url
+            )
+            return HTTPSeeOther(url_post_required)
+        items_paged = (
+            lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
+                self.request.api_context, dbAcmeDnsServer.id
+            )
+        )
+        try:
+            # this is dirty
+            # 1- loading ALL items from the db, no windows or anything
+            # 2- csv needs a string file, so we write to a TEXT tempfile
+            # 3- Response `body_file` needs bytes, so we read that entire TEXT to submit as `body` which is the only way to handle strings
+            tmpfile = csv_AcmeDnsServerAccounts(items_paged)
+            response = Response(
+                content_type="text/csv", body=tmpfile.read(), status=200
+            )
+            response.headers["Content-Disposition"] = (
+                "attachment; filename= acme_dns_server-%s-accounts.csv"
+                % dbAcmeDnsServer.id
+            )
+            return response
+
+        except Exception as exc:  # noqa: F841
+            return HTTPSeeOther(
+                "%s/acme-dns-server-accounts?result=error&error=could+not+generate+csv"
+                % self._focus_url
+            )
+
+    @view_config(
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts:all|json",
+        renderer="json",
+    )
+    @docify(
+        {
+            "endpoint": "/acme-dns-server/{ID}/acme-dns-server-accounts/all.json",
+            "section": "acme-dns-server",
+            "about": """list AcmeDns Servers - accounts(s)""",
+            "POST": True,
+            "GET": None,
+            "example": "curl {ADMIN_PREFIX}/acme-dns-server/{ID}/acme-dns-server-accounts/all.json",
+        }
+    )
+    def list_accounts_all_json(self):
+        dbAcmeDnsServer = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            return formatted_get_docs(
+                self, "/acme-dns-server/{ID}/acme-dns-server-accounts/all.json"
+            )
+        items_count = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(
+            self.request.api_context, dbAcmeDnsServer.id
+        )
+        items_paged = (
+            lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
+                self.request.api_context, dbAcmeDnsServer.id
+            )
+        )
+        return {
+            "AcmeDnsServer": dbAcmeDnsServer.as_json,
+            "AcmeDnsServerAccounts": [s.as_json for s in items_paged],
             "AcmeDnsServerAccounts_count": items_count,
         }
 

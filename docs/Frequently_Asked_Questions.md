@@ -211,7 +211,7 @@ To accomodate that, bad grammar is used:
 
     acme-account > acme-accounts
     enrollment-factory > enrollment-factorys
-    
+
 Although this breaks language rules, the intent and meaning is clear and a larger
 English vocabulary is not needed to understand this.
 

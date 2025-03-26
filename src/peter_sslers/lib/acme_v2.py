@@ -1459,10 +1459,8 @@ class AuthenticatedUser(object):
             raise ValueError("This should never happen!")
 
         dns_keyauthorization = create_dns01_keyauthorization(keyauthorization)
-        dns_record_prime = (
-            "_acme-challenge.%s." % dbAcmeAuthorization.domain.domain_name
-        )
-
+        # "_acme-challenge.%s."
+        dns_record_prime = dbAcmeAuthorization.domain.acme_challenge_domain_name
         expected_record_name = dbAcmeDnsServerAccount.pyacmedns_dict["fulldomain"]
 
         try:

@@ -180,6 +180,40 @@
                             </a>
                             <br/>
                             <code>${RenewalConfiguration.uniquely_challenged_fqdn_set.domain_names}</code>
+
+
+                            % if RenewalConfiguration.uniquely_challenged_fqdn_set.to_domains__dns_01:
+                                <hr/>
+                                DNS-01 Domains
+                                
+                                <table class="table table-striped tabled-condensed">
+                                    <tr>
+                                        <th>domain</th>
+                                        <th>AcmeDNSServerAccounts</th>
+                                    </tr>
+                                    % for to_domain in RenewalConfiguration.uniquely_challenged_fqdn_set.to_domains__dns_01:
+                                        <tr>
+                                            <td>
+                                                <a
+                                                    href="${admin_prefix}/domain/${to_domain.domain.id}"
+                                                    class="label label-info">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    ${to_domain.domain.id}
+                                                </a>
+                                                <span class="label label-default">
+                                                    ${to_domain.domain.domain_name}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                ${admin_partials.table_AcmeDnsServerAccounts5_via_Domain(to_domain.domain)}
+                                            </td>
+                                        </tr>
+                                    % endfor
+                                </table>
+                            
+                            % endif
+
+
                         </td>
                     </tr>
 

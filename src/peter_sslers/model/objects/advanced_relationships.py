@@ -562,16 +562,16 @@ Domain.acme_dns_server_accounts__5 = sa_orm_relationship(
     primaryjoin=(
         sa.and_(
             Domain.id == AcmeDnsServerAccount.domain_id,
-            AcmeDnsServerAccount.timestamp_created.in_(
-                sa.select((AcmeDnsServerAccount.timestamp_created))
+            AcmeDnsServerAccount.id.in_(
+                sa.select((AcmeDnsServerAccount.id))
                 .where(AcmeDnsServerAccount.domain_id == Domain.id)
-                .order_by(AcmeDnsServerAccount.timestamp_created.desc())
+                .order_by(AcmeDnsServerAccount.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=AcmeDnsServerAccount.timestamp_created.desc(),
+    order_by=AcmeDnsServerAccount.id.desc(),
     viewonly=True,
 )
 

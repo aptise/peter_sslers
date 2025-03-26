@@ -32,26 +32,89 @@
     <div class="row">
         <div class="col-sm-9">
 
+            <h4>Integration Status</h4>
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th></th>
-                    <th>source</th>
+                    <th>errors?</th>
+                    <td>
+                        % if AuditResults["errors"]:
+                            <ul>
+                                % for err in AuditResults["errors"]:
+                                    <li><code>${err}</code></li>
+                                % endfor
+                            </ul>
+                        % endif
+                    </td>
+                </tr>
+            </table>
+
+            <h4>Authoritative DNS Status</h4>
+            <p>
+                A correct configuration will have a CNAME - not TXT - record that
+                points to the acme-dns server.
+            </p>
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>type</th>
+                    <th>dns entry</th>
+                    <th>dns type</th>
                     <th>expected</th>
                     <th>actual</th>
                 </tr>
                 <tr>
+                    <th>source</th>
+                    <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
                     <th>CNAME</th>
-                    <td><code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
-                    <td><code>${AuditResults["resolved"]["CNAME"] or ''}</code></td>
+                    <td><code>${AuditResults["server_global"]["source"]["CNAME"] or ''}</code></td>
                 </tr>
                 <tr>
+                    <th>source</th>
+                    <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
                     <th>TXT</th>
-                    <td><code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
+                    <td><code></code></td>
+                    <td><code>${AuditResults["server_global"]["source"]["TXT"] or ''}</code></td>
+                </tr>
+                <tr>
+                    <th>target</th>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
-                    <td><code>${AuditResults["resolved"]["TXT"] or ''}</code></td>
+                    <th>TXT</th>
+                    <td><code></code></td>
+                    <td><code>${AuditResults["server_global"]["target"]["TXT"] or ''}</code></td>
                 </tr>
             </table>
+
+
+            <h4>ACME-DNS Server Status</h4>
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>acme-dns credentials work?</th>
+                    <td>
+                        ${AuditResults["server_acme_dns"]["credentials_work"] or ''}
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme-dns credentials reset?</th>
+                    <td>
+                        ${AuditResults["server_acme_dns"]["credentials_reset"] or ''}
+                    </td>
+                </tr>
+                <tr>
+                    <th>TXT Records (pre)</th>
+                    <td>
+                        <code>${AuditResults["server_acme_dns"]["TXT"]["pre"] or ''}</code>
+                    </td>
+                </tr>
+                <tr>
+                    <th>TXT Records (reset)</th>
+                    <td>
+                        <code>${AuditResults["server_acme_dns"]["TXT"]["reset"] or ''}</code>
+                    </td>
+                </tr>
+            </table>
+
+            ## ${AuditResults}
+            
         </div>
     </div>
 </%block>

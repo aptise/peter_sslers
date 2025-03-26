@@ -72,7 +72,7 @@ Then, in a second terminal window, you have two options:
 
 ## Option A - Filesystem import (only local machine)
 
-The package installs a `import_certbot` script that will import an existing 
+The package installs a `import_certbot` script that will import an existing
 Certbot directory structure from the local machine.   You can invoke
 `import_certbot` with any path to a Certbot directory:
 

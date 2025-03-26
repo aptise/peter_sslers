@@ -40,11 +40,6 @@
             >
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                 SystemConfigurations</a>
-            <a  href="${admin_prefix}/enrollment-factorys"
-                class="btn btn-xs btn-warning"
-            >
-                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
-                EnrollmentFactorys</a>
             <a href="${admin_prefix}/api"
                 class="btn btn-xs btn-warning"
             >
@@ -72,29 +67,35 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/domains"
-                       title="Domains"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains</a></li>
+
                 <li><a href="${admin_prefix}/certificate-signeds"
                        title="CertificateSigneds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-signeds</a></li>
-                <li><a href="${admin_prefix}/renewal-configurations"
+                <li><a href="${admin_prefix}/domains"
+                       title="Domains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    renewal-configurations</a></li>
+                    domains</a></li>
                 <li><a href="${admin_prefix}/domains-blocklisted"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains-blocklisted</a></li>
+
+                <li><a  href="${admin_prefix}/enrollment-factorys"
+                    >
+                        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                        EnrollmentFactorys</a></li>
                 <li><a href="${admin_prefix}/private-keys"
                        title="PrivateKeys"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
+                <li><a href="${admin_prefix}/renewal-configurations"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    renewal-configurations</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="UniqueFQDNs"
                     >
@@ -104,6 +105,10 @@
 
             <h3>Recordkeeping - ACME Logs</h3>
             <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/acme-event-logs"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-event-logs</a></li>
                 <li><a href="${admin_prefix}/acme-challenge-polls"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -112,10 +117,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenge-unknown-polls</a></li>
-                <li><a href="${admin_prefix}/acme-event-logs"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-event-logs</a></li>
                 <li><a href="${admin_prefix}/ari-checks"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -172,7 +173,7 @@
                        title="Acme Servers"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-servers</a></li>
+                    ACME Servers</a></li>
                 <li><a href="${admin_prefix}/acme-dns-servers"
                        title="acme-dns Servers"
                     >

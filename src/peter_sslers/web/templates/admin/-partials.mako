@@ -424,6 +424,8 @@
                 % if perspective != "Domain":
                     <th>Domain</th>
                 % endif
+                <th>cname source</th>
+                <th>cname target</th>
             </tr>
         </thead>
         <tbody>
@@ -436,7 +438,11 @@
                         </a>
                     </td>
                     <td>
-                        <code>${a2d.is_active}</code>
+                        % if a2d.is_active:
+                            <span class="label label-success">active</span>
+                        % else:
+                            <span class="label label-danger">inactive</span>
+                        % endif
                     </td>
                     % if perspective != "AcmeDnsServer":
                         <td>
@@ -456,11 +462,54 @@
                             <spa class="label label-default">${a2d.domain.domain_name}</span>
                         </td>
                     % endif
+                    <td><code>${a2d.cname_source}</code></td>
+                    <td><code>${a2d.cname_target}</code></td>
                 </tr>
             % endfor
         </tbody>
     </table>
 </%def>
+
+<%def name="table_AcmeDnsServerAccounts5_via_Domain(Domain)">
+    ## In the future this should support multiple accounts
+    ## however, right now we only care about one single account
+    % if Domain.acme_dns_server_accounts__5:
+        <table class="table table-striped table-condensed">
+            <tr>
+                <th>id</th>
+                <th>cname source</th>
+                <th>cname target</th>
+            </tr>
+            % for acc in Domain.acme_dns_server_accounts__5:
+                <tr>
+                    <td>
+                        <a href="${admin_prefix}/domain/${Domain.id}/acme-dns-server-accounts"
+                         class="label label-info"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ${acc.id}
+                        </a>
+                    </td>
+                    <td><code>${acc.cname_source}</code></td>
+                    <td><code>${acc.cname_target}</code></td>
+                </tr>
+            % endfor
+        </table>
+        <a  class="btn btn-xs btn-primary"
+            href="${admin_prefix}/domain/${Domain.id}/acme-dns-server-accounts"
+        >
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            All AcmeDnsServerAccounts
+        </a>
+    % else:
+        <a  class="btn btn-xs btn-primary"
+            href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
+        >
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            AcmeDnsServers - New</a>
+    % endif
+</%def>
+
 
 
 <%def name="table_AcmeEventLogs(acme_event_logs, perspective=None)">
