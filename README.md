@@ -57,12 +57,11 @@ is companies that offer whitelabel services, such as: SAAS, PAAS, hosting user
 domains, and other infrastructure oriented systems.
 
 If you can use Certbot or another consumer friendly simple client to solve your
-needs, YOU ALMOST ABSOLUTELY WANT TO USE THAT CLIENT.
+needs, YOU ALMOST ABSOLUTELY WANT TO USE THAT CLIENT INSTEAD.
 
 Peter, as we fondly call this package, offers lightweight tools to centrally manage
 SSL Certificate data in a centralized SQL database of your choice. PostgreSQL is
-recommended; Sqlite is supported and the primary testing environment. A good-faith
-effort is made to get this to work on MySQL, but, well, sigh.
+recommended; sqlite3 is supported and the primary testing environment.
 
 Peter combines an integrated ACME V2 Client designed to primarily operate against
 the LetsEncrypt service, alongside tools designed to manage, deploy and troubleshoot
@@ -120,7 +119,7 @@ human-readable data in a terminal window. Don't want to do things manually? Ok -
 everything was built to be readable on commandline browsers... yes, this is
 actually developed-for and tested-with Lynx.  I sh*t you not, Lynx.
 
-Do you like book-keeping and logging?  Peter's ACME Client logs everything into
+Do you like book-keeping and logging?  Peter's ACME Client can log everything into
 SQL so you can easily find the answers to burning questions like:
 
 * What AcmeAuthorizations are still pending?
@@ -221,7 +220,8 @@ Peter SSLers is fully functional and deployed in production environments for:
 * Interrogating and syncing against ACME Servers
 * Queuing new Domains for Certificate Provisioning
 * Automatic Renewal
-
+* Backup Certificates
+* ARI Monitoring
 
 WARNING (Important)
 ===================
@@ -242,6 +242,9 @@ ACME2 Features
 | Deactivate Account | Yes |
 | Account Key Rollover | Yes |
 | Automatic Renewal Information | Yes |
+| EAB | No |
+
+EAB is not implemented due to the lack of need. This may one day change.
 
 
 The Components
@@ -315,49 +318,18 @@ Routines for cron:
   recommended by the periodic_tasks script.  The scheduler will figure out what to run
   on a given hour.
 
-* routine__automatic_orders
-  This will order certs under the following conditions:
-  * managed certs that are expiring, based on ARI or notAfter
-  * active renewal configurations that have not ordered a primary or backup
+  The crontab should be installed to run every hour on a set minute, said set minute
+  recommended by the periodic_tasks script.  The scheduler will figure out what
+  routines to run on a given hour.
 
-  If certs need to be ordered, a WSGI server running on :config.ini:`http_port.renewals`
-  will be spun up to answer AcmeChallenges in a subprocess. Whatever server is
-  listening to port80 should proxy to this server.
-  
-* routine__automatic_orders
-  low-cost cronjob to check ari as necessary
+  `periodic_tasks` is designed to run every core routine on an hourly basis.
 
-* routine__run_ari_checks
-  low-cost cronjob to check ari 
+  If alternate invocation strategies are required, there is a specific commandline
+  routine for each task which can be used instead.
 
-Scripts:
-
-* register_acme_servers can be used to :
-  * load additional CAs through a json file
-  * assign TrustedRoots to existing or new CAs
-  * export existing acme-server configurations, in a format that can
-    be imported by the same tool
-
-* import_certbot
-  * directly imports a local certbot directory (unlike `Tools` below, which use the API)
-
-* refresh_pebble_ca_certs
-  * dev tool to refresh the pebble certs when needed
-            
-
-"Tools"
-----------------------------------------
-
-The "/tools" directory contains scripts useful for Certificate operations.
-Currently this includes:
-
-* An `invoke` script for importing Certbot archives, and potentially other tasks.
-* A sample `fake_server.py` that will spin up a web server with routes which you can
-  test against. This will allow you to setup your proxy integration without running
-  peter_sslers itself. Responses include the header: `X-Peter-SSLers: fakeserver`.
-* A `replace_domain.py` script that can be used to alter an `acme-dns` database
-  to support deterministically named DNS subdomains instead of the default randomized
-  guid subdomains.
+Please read the
+[Automation Guide](https://github.com/aptise/peter_sslers/blob/main/docs/Automation.md)
+for more details and additional routines.
 
 ToDo
 =====
@@ -371,7 +343,7 @@ Getting Started
 Please read the
 [Full Installation Instructions](https://github.com/aptise/peter_sslers/blob/main/docs/Installation.md)
 
-There is also a 
+There is also a
 [QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
 
 The abridged version:

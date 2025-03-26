@@ -238,7 +238,25 @@
             short lived certs may be 2-4 hours
         There is concern for hourly
     
-        
+    acme-dns-server
+        now have an "all.json" to download everyting; post required
+        now have an "all.csv" to download everyting; post required
+
+    acme-dns-server-accounts
+        now have an "all.json" to download everyting; post required
+        now have an "all.csv" to download everyting; post required
+        now have an "audit", json and html, to audit setup
+
+    AcmeDNS
+        records are now available on these views/json objets:
+            Domain
+            RenewalConfiguration
+            UniquelyChallengedFqdnSet
+        records are not available on AcmeOrder
+            the UniquelyChallengedFqdnSet shows there is a dns-01 challenge;
+            based on that, a secondary request can be made via html/json
+     
+    CSV exports of acme_dns accounts
 
 
 0.6.0

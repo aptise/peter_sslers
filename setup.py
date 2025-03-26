@@ -22,10 +22,11 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
 
 requires = [
     "cert_utils>=1.0.0",  # formerly in this package, but migrated out
-    "cryptography>42.0.0",  # needed for certbot disk importing
+    "configobj",  # used to read Certbot files
+    "cryptography>42.0.0", 
     "dnspython",
     "formencode>=2.0.0",
-    "josepy",
+    "josepy>=2.0.0",
     "psutil>=4.4.0",  # for Python2/3 compat
     "packaging",
     "pyacmedns",  # not used by all, but it's small
@@ -111,7 +112,7 @@ setup(
       routine__reconcile_blocks = peter_sslers.web.scripts.routine__reconcile_blocks:main
       update_filepaths = peter_sslers.web.scripts.update_filepaths:main
       deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
-      acme_dns_sync = peter_sslers.web.scripts.acme_dns_sync:main
+      acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
       periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
       """,
 )

@@ -18,21 +18,14 @@ Fix
             on-demand (object) should support WIDER attempt
             automatic (routine) should support narrower attempt
             failed ARI checks need to be handled and set for renewal
-            
+
 acme-dns:
     onboarding
 
     audit credentials
+        we write a temporary value now, which is ugly
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
-
-
-    views:
-    
-        List ACME-DNS Records (if any)
-            Domain
-            RenewalConfiguration
-            AcmeOrder
 
 commandline tools:
     import acme-dns payload
@@ -70,12 +63,10 @@ Tests:
         test creating with vs without backups
         check contents of templates post-create and post-edit
         try invalid submission of _options_EnrollmentFactory_isExportFilesystem
-    
+
     DNS-01 tests
-    
+
     Not all routines are covered by tests
-    
-    
 
  UX:
     do a quick overview of key objects

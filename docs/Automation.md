@@ -11,7 +11,7 @@ An EnrollmentFactory defines the following for re-use,
 which can be quickly turned into a RenewalConfiguration.
 
     AcmeAccount(s) for Primary (and optionally backup) Certificate(s)
-    PrivateKey Technology 
+    PrivateKey Technology
     PrivateKey Cycling
     ACME profile
     Domain Template
@@ -24,13 +24,12 @@ The template will accept a single domain name, and then expand it as needed.
 
 For example, given the following template:
 
-
     {DOMAIN}, www.{DOMAIN}, mail.{DOMAIN}
-    
+
 It would become expended for `example.com` into:
 
     example.com, www.example.com, mail.example.com
-    
+
 An Enrollment Factory features separate templates for HTTP-01 and DNS-01 challenges
 
 By defining an Enrollment Factory, new clients/domains can be easily on-boarded
@@ -40,20 +39,32 @@ By defining an Enrollment Factory, new clients/domains can be easily on-boarded
 
 Several routines are designed for integration with cron scheduling:
 
-* routine__run_ari_checks 
+### periodic_tasks
+  This routine runs all the other routines on a schedule
+  * on first run:
+    * it generates a line to enter into your crontab, using an random minute
+    * a json file is created that lists which hours the other routines will be run
+  * on subsequent runs:
+    * the json file is loaded and tasks are dispatched
 
-This is low-overhead and can run hourly, if not multiple times per day.
+  The crontab should be installed to run every hour on a set minute, said set minute
+  recommended by the periodic_tasks script.  The scheduler will figure out what
+  routines to run on a given hour.
 
-This routine iterates all the enrolled certificates and polls them for ARI information.
+  `periodic_tasks` is designed to run every core routine on an hourly basis.
 
-The ARI information is used to hint at renewal time.
+  If alternate invocation strategies are required, there is a specific commandline
+  routine for each task which can be used instead.
 
-This routine does not require inbound traffic or firewall adjustment.
 
-
-* routine__automatic_orders 
+### routine__automatic_orders
 
 This has moderate overhead and should run at least once a day.
+
+This will order certs under the following conditions:
+
+* managed certs that are expiring, based on ARI or notAfter
+* active renewal configurations that have not ordered a primary or backup
 
 This routine may require inbound traffic and firewall adjustment.
 
@@ -65,7 +76,10 @@ to manual ordering or being picked up by this routine.
 
 2- Renews expiring certificates, based on ARI Data and the certificate's expiry
 
-This routine will spin up a public server on the port identified by `http_port.renewals` in the `.ini` configuration file.
+If certs need to be ordered, a public WSGI server running on
+:config.ini:`http_port.renewals` in the `.ini` configuration file will be
+started to answer AcmeChallenges in a subprocess. Whatever server is listening
+to port80 should proxy traffic to this server.
 
 This server WILL NOT expose the admin urls.
 
@@ -74,9 +88,111 @@ This sever WILL expose the following urls:
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
 
+Firewall adjustments may be needed
+
+### routine__clear_old_ari_checks
+
+This routine clears out old ari-checks stored on disk
+
+An ARI check is considered outdated once it has been replaced with a newer ARI check.
+
+### routine__reconcile_blocks
+
+Syncs and tries to complete any pending acme-orders that may be stuck
+
+### routine__run_ari_checks
+
+This is low-overhead and can run hourly, if not multiple times per day.
+
+This routine iterates all the enrolled certificates and polls them for ARI information.
+
+The ARI information is used to hint at renewal time.
+
+This routine does not require inbound traffic or firewall adjustment.
 
 
+### update_filepaths
 
+If an EnrolmentFactory or RenewalConfiguration is set to persist to disk, this
+will ensure the currently exported certificates are the most recent.
+
+* `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
+
+  * data will be written to a `certificates` subfolder of the `_data_` directory
+  * only certificates with an ACTIVE RenewalConfiguration will be written
+  * data will be organized into
+    * a `global` directory for certs without an EnrollmentFactory
+    * a directory of the EnrollmentFactory's unique name, if there is a factory
+  * the name of each director will be `rc-{id}`, wherein `id` is the numeric identifier for the RenewalConfiguration
+  * if the RenewalConfiguration has a unique label, a symlink will be created
+  * for each certificate, the directory will contain a `primary` and `backup` subdirectory
+  * within each subdirectory will be 4 files, like Certbot:
+    * `chain.pem`
+    * `fullchain.pem`
+    * `cert.pem`
+    * `pkey.pem`
+   * when Certificates are persisted to disk, they will be written to a working directory, that working directory will then replace the existing data directory
+
+For example, a directory structure might look like this:
+
+    _data_/certificates/global/rc-1/primary/cert.pem
+    _data_/certificates/global/rc-1/primary/chain.pem
+    _data_/certificates/global/rc-1/primary/fullchain.pem
+    _data_/certificates/global/rc-1/primary/pkey.pem
+    _data_/certificates/global/rc-1/backup/cert.pem
+    _data_/certificates/global/rc-1/backup/chain.pem
+    _data_/certificates/global/rc-1/backup/fullchain.pem
+    _data_/certificates/global/rc-1/backup/pkey.pem
+    _data_/certificates/factory_a/rc-2/primary/cert.pem
+    _data_/certificates/factory_a/rc-2/primary/chain.pem
+    _data_/certificates/factory_a/rc-2/primary/fullchain.pem
+    _data_/certificates/factory_a/rc-2/primary/pkey.pem
+    _data_/certificates/factory_a/rc-2/backup/cert.pem
+    _data_/certificates/factory_a/rc-2/backup/chain.pem
+    _data_/certificates/factory_a/rc-2/backup/fullchain.pem
+    _data_/certificates/factory_a/rc-2/backup/pkey.pem
+    _data_/certificates/factory_a/example.com >symlink> rc-2
+
+
+## Scripts
+
+### acme_dns_audit
+    audit acme-dns accounts
+    checks credentials and cnames
+    generates a CSV for you to handle
+
+
+### deactivate_duplicate_certificates
+
+It is possible to have multiple certificates due to imports and how renewals work.
+
+For example, failing to renew with "replaces" or choosing no candidates for "replaces"
+will create a new "lineage".  A Lineage in PeterSSLers starts with an original
+certificate procurement and continues as that certificate is replaced.
+
+This script will automatically disable all duplicates, aka extraneous lineages.
+
+These can also be disabled manually through the admin interface.
+
+
+### import_certbot
+  * directly imports a local certbot directory (unlike `Tools` below, which use the API)
+
+### initializedb
+    initial setup script
+
+### refresh_pebble_ca_certs
+  * dev tool to refresh the pebble certs when needed
+
+
+### register_acme_servers
+can be used to :
+  * load additional CAs through a json file
+  * assign TrustedRoots to existing or new CAs
+  * export existing acme-server configurations, in a format that can
+    be imported by the same tool
+  * Update the SSL Root Stores for an acme server (i.e. the root that secures
+    your connection to the CA, not the root the CA's issued certs chain to)
 
 
 ## Routes Designed for JSON Automation
