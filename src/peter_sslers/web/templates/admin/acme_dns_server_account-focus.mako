@@ -19,11 +19,12 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/audit" class="btn btn-sm btn-primary">
-            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-            audit
-        </a>
-
+        <form action="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/audit" method="POST">
+            <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
+                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                audit
+            </button>
+        </form>
         <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
@@ -74,7 +75,13 @@
 
                 <tr>
                     <th>is_active</th>
-                    <td>${AcmeDnsServerAccount.is_active}</td>
+                    <td>
+                        % if AcmeDnsServerAccount.is_active:
+                            <span class="label label-success">active</span>
+                        % else:
+                            <span class="label label-danger">inactive</span>
+                        % endif
+                    </td>
                 </tr>
                 <tr>
                     <th>username</th>
@@ -105,7 +112,7 @@
                 <table class="table table-striped table-condensed">
                     <tr>
                         <td>source</td>
-                        <td> <code>_acme-challenge.${AcmeDnsServerAccount.domain.domain_name}</code></td>
+                        <td><code>${AcmeDnsServerAccount.domain.acme_challenge_domain_name}</code></td>
                     </tr>
                     <tr>
                         <td>destination</td>

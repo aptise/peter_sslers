@@ -82,6 +82,46 @@
                                 UniqueFQDNSet-${UniquelyChallengedFQDNSet.unique_fqdn_set_id}
                             </a>
                         </td>
+
+                    <tr>
+                        <th>Domains</th>
+                        <td>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th>Domain</th>
+                                    <th>Challenge Type</th>
+                                    <th>Integrations?</th>
+                                </tr>
+                                % for to_domain in UniquelyChallengedFQDNSet.to_domains:
+                                    <tr>
+                                        <td>
+                                            <a href="${admin_prefix}/domain/${to_domain.domain_id}"
+                                             class="label label-info"
+                                            >
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                Domain-${to_domain.domain_id}
+                                            </a>
+                                            <code>${to_domain.domain.domain_name}</code>
+                                        </td>
+                                        <td>
+                                            <span class="label label-default">
+                                                ${to_domain.acme_challenge_type}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            % if to_domain.acme_challenge_type == "dns-01":
+                                            ${admin_partials.table_AcmeDnsServerAccounts5_via_Domain(to_domain.domain)}
+                                            % endif
+                                        </td>
+                                    </tr>
+                                % endfor
+                            </table>
+                        </td>
+                    </tr>
+
+
+
+
                     </tr>
                 </tbody>
                 <thead>

@@ -300,6 +300,14 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
     config.add_route_7(
+        "admin:acme_dns_server:focus:acme_dns_server_accounts:all|csv",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts/all.csv",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:acme_dns_server_accounts:all|json",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts/all.json",
+    )
+    config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
         "/acme-dns-server/{@id}/acme-dns-server-accounts",
         jsonify=True,
@@ -307,6 +315,14 @@ def _admin_views(config: "Configurator") -> None:
     )
 
     # !!!: AcmeDnsServer Accounts
+    config.add_route_7(
+        "admin:acme_dns_server_accounts:all|csv",
+        "/acme-dns-server-accounts/all.csv",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server_accounts:all|json",
+        "/acme-dns-server-accounts/all.json",
+    )
     config.add_route_7(
         "admin:acme_dns_server_accounts",
         "/acme-dns-server-accounts",

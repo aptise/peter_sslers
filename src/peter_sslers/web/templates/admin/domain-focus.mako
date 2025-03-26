@@ -150,23 +150,9 @@
                         </tr>
                     % endif
                     <tr>
-                        <th>AcmeDnsConfiguration</th>
+                        <th>AcmeDnsConfigurations</th>
                         <td>
-                            ## In the future this should support multiple accounts
-                            ## however, right now we only care about one single account
-                            % if Domain.acme_dns_server_accounts__5:
-                                <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-server-accounts"
-                                >
-                                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                                    AcmeDnsServerAccounts - Existing</a>
-                            % else:
-                                <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
-                                >
-                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    AcmeDnsServers - New</a>
-                            % endif
+                            ${admin_partials.table_AcmeDnsServerAccounts5_via_Domain(Domain)}
                         </td>
                     </tr>
                     <tr>

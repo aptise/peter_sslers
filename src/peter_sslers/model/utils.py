@@ -1051,6 +1051,12 @@ class DomainsChallenged(dict):
         _domains_challenged["http-01"] = domains_list
         return _domains_challenged
 
+    @classmethod
+    def new_dns01(cls, domains_list: List[str]) -> "DomainsChallenged":
+        _domains_challenged = DomainsChallenged()
+        _domains_challenged["dns-01"] = domains_list
+        return _domains_challenged
+
     def ENSURE_DEFAULT_HTTP01(self):
         # default challenge type is http-01
         if self.DEFAULT != "http-01":

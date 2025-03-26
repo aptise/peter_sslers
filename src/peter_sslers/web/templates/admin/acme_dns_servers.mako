@@ -52,8 +52,20 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeDnsServer-${item.id}</a>
                             </td>
-                            <td><code>${item.is_active}</td>
-                            <td><code>${item.is_global_default}</td>
+                            <td>
+                                % if item.is_active:
+                                    <span class="label label-success">active</span>
+                                % else:
+                                    <span class="label label-danger">inactivelt</span>
+                                % endif
+                            </td>
+                            <td>
+                                % if item.is_global_default:
+                                    <span class="label label-success">global default</span>
+                                % else:
+                                    <span class="label label-warning">not global default</span>
+                                % endif
+                            </td>
                             <td><code>${item.api_url}</td>
                         </tr>
                     % endfor

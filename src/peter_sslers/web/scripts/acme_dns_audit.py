@@ -23,12 +23,10 @@ from ...lib.utils import new_scripts_setup
 
 class AccountAudit(TypedDict):
     id: int
-    status: bool
     domain_name: str
     cname_source: str
     cname_target: str
-    actual_cname: Optional[List[str]]
-    actual_txt: Optional[List[str]]
+    errors: Optional[List[str]]
 
 
 def usage(argv):
@@ -49,8 +47,10 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
 
     audits = []
-    acmeDnsAccounts = lib_db.get.get__AcmeDnsServerAccount__paginated(ctx)
-    for acc in acmeDnsAccounts:
+    acmeDnsServerAccounts = lib_db.get.get__AcmeDnsServerAccount__paginated(ctx)
+    """
+    # v1
+    for acc in acmeDnsServerAccounts:
         r_cname = utils_dns.get_records(acc.cname_source, "CNAME")
         r_txt = utils_dns.get_records(acc.cname_source, "TXT")
         _status = True if r_cname == acc.cname_target else False
@@ -65,6 +65,19 @@ def main(argv=sys.argv):
                 "actual_txt": r_txt,
             }
             audits.append(_audit)
+    """
+    # v2
+    for dbAcmeDnsServerAccount in acmeDnsServerAccounts:
+        print("auditing:", dbAcmeDnsServerAccount.id)
+        _audit = utils_dns.audit_AcmeDnsSererAccount(ctx, dbAcmeDnsServerAccount)
+        _row: AccountAudit = {
+            "id": dbAcmeDnsServerAccount.id,
+            "domain_name": dbAcmeDnsServerAccount.domain.domain_name,
+            "cname_source": dbAcmeDnsServerAccount.cname_source,
+            "cname_target": dbAcmeDnsServerAccount.cname_target,
+            "errors": _audit["errors"],
+        }
+        audits.append(_row)
 
     if audits:
         with open("acme_dns_audit.csv", "w", newline="") as csvfile:

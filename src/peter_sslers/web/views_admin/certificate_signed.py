@@ -36,7 +36,10 @@ from ...model.objects import CertificateSigned
 # ==============================================================================
 
 
-def archive_zipfile(dbCertificateSigned, certificate_ca_chain_id=None):
+def archive_zipfile(
+    dbCertificateSigned: CertificateSigned,
+    certificate_ca_chain_id: Optional[int] = None,
+) -> tempfile.SpooledTemporaryFile:
     if certificate_ca_chain_id is None:
         certificate_ca_chain_id = dbCertificateSigned.certificate_ca_chain_id__preferred
 

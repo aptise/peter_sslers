@@ -1385,11 +1385,13 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def cname_source(self) -> str:
-        return "_acme-challenge.%s" % self.domain.domain_name
+        #  note: the cname source should end with a .
+        return self.domain.acme_challenge_domain_name
 
     @property
     def cname_target(self) -> str:
-        return "%s.%s" % (self.subdomain, self.acme_dns_server.domain)
+        #  note: the cname target should end with a .
+        return "%s.%s." % (self.subdomain, self.acme_dns_server.domain)
 
     @property
     def as_json(self) -> Dict:
@@ -3824,6 +3826,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def acme_challenge_domain_name(self) -> str:
+        # note: the cname source should end with a .
+        return "_acme-challenge.%s." % self.domain_name
+
     @property
     def has_active_certificates(self) -> bool:
         return (
@@ -3840,6 +3846,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         payload = {
             "id": self.id,
             # - -
+            "acme_challenge_domain_name": self.acme_challenge_domain_name,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
             "certificate_signeds__single_primary_5": [],
@@ -3882,6 +3889,20 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 for i in self.certificate_signeds__single_backup_5
             ]
         return payload
+
+    @property
+    def as_json__acme_dns_server_accounts_5(self) -> Dict:
+        """
+        show minimal info here
+        """
+        rval = {}
+        for acc in self.acme_dns_server_accounts__5:
+            rval[acc.id] = {
+                "id": acc.id,
+                "cname_source": acc.cname_source,
+                "cname_target": acc.cname_target,
+            }
+        return rval
 
     def as_json_config(self, id_only=False):
         """
@@ -4874,6 +4895,9 @@ class RenewalConfiguration(
                 i.as_json_replaces_candidate
                 for i in self.certificate_signeds__backup__5
             ],
+            "AcmeChallenge_hints": {
+                "dns-01": self.uniquely_challenged_fqdn_set.as_json__dns01,
+            },
             # - -
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
@@ -4894,6 +4918,7 @@ class RenewalConfiguration(
             "private_key_technology__backup": self.private_key_technology__backup,
             "private_key_technology__backup__effective": self.private_key_technology__backup__effective,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
         }
 
 
@@ -5369,6 +5394,26 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="UniquelyChallengedFQDNSet.id==UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id",
         back_populates="uniquely_challenged_fqdn_set",
     )
+    to_domains__dns_01 = sa_orm_relationship(
+        "UniquelyChallengedFQDNSet2Domain",
+        primaryjoin=(
+            "and_("
+            "UniquelyChallengedFQDNSet.id==UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,"
+            "UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id==%s"
+            ")" % model_utils.AcmeChallengeType.dns_01
+        ),
+        viewonly=True,
+    )
+    to_domains__http_01 = sa_orm_relationship(
+        "UniquelyChallengedFQDNSet2Domain",
+        primaryjoin=(
+            "and_("
+            "UniquelyChallengedFQDNSet.id==UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,"
+            "UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id==%s"
+            ")" % model_utils.AcmeChallengeType.http_01
+        ),
+        viewonly=True,
+    )
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="UniquelyChallengedFQDNSet.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -5441,7 +5486,22 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
             "domain_challenges_serialized": self.domain_challenges_serialized,
             "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            # - -
+            "as_json__dns01": self.as_json__dns01,
         }
+
+    @property
+    def as_json__dns01(self) -> Dict:
+        rval = {}
+        for to_domain in self.to_domains:
+            if to_domain.acme_challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+                rval[to_domain.domain.domain_name] = {
+                    "id": to_domain.domain.id,
+                    "domain_name": to_domain.domain.domain_name,
+                    "acme_dns_server_accounts_5": to_domain.domain.as_json__acme_dns_server_accounts_5,
+                }
+
+        return rval
 
 
 class UniquelyChallengedFQDNSet2Domain(Base):
