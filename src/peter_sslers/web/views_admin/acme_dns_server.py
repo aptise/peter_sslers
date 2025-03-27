@@ -4,6 +4,7 @@ import tempfile
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
@@ -33,11 +34,53 @@ from ...model import utils as model_utils
 from ...model.objects import AcmeDnsServer
 
 if TYPE_CHECKING:
+    from pyramid.request import Request
     from ...lib.db.associate import TYPE_DomainName_2_AcmeDnsServerAccount
     from ...lib.db.associate import TYPE_DomainName_2_DomainObject
     from ...model.objects import AcmeDnsServerAccount
 
 # ==============================================================================
+
+
+def submit__new(
+    request: "Request",
+    count_servers: Optional[int] = None,
+) -> Tuple[AcmeDnsServer, bool]:
+    if count_servers is None:
+        _mode = request.api_context.application_settings["acme_dns_support"]
+        if _mode != "experimental":
+            count_servers = lib_db.get.get__AcmeDnsServer__count(request.api_context)
+            if count_servers >= 1:
+                raise ValueError("Only one acme-dns Server can be supported")
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_AcmeDnsServer_new,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash=formStash)
+
+    (
+        dbAcmeDnsServer,
+        _is_created,
+    ) = lib_db.getcreate.getcreate__AcmeDnsServer(
+        request.api_context,
+        api_url=formStash.results["api_url"],
+        domain=formStash.results["domain"],
+    )
+
+    # in "basic" mode we only have a single server,
+    # so it should be the default
+    if request.api_context.application_settings["acme_dns_support"] == "basic":
+        if count_servers == 0:
+            (
+                event_status,
+                alt_info,
+            ) = lib_db.update.update_AcmeDnsServer__set_global_default(
+                request.api_context, dbAcmeDnsServer
+            )
+    return dbAcmeDnsServer, _is_created
 
 
 def csv_AcmeDnsServerAccounts(
@@ -177,34 +220,9 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeDnsServer_new, validate_get=False
+            (dbAcmeDnsServer, _is_created) = submit__new(
+                self.request, count_servers=self._count_servers
             )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            (
-                dbAcmeDnsServer,
-                _is_created,
-            ) = lib_db.getcreate.getcreate__AcmeDnsServer(
-                self.request.api_context,
-                api_url=formStash.results["api_url"],
-                domain=formStash.results["domain"],
-            )
-
-            # in "basic" mode we only have a single server,
-            # so it should be the default
-            if (
-                self.request.api_context.application_settings["acme_dns_support"]
-                == "basic"
-            ):
-                if self._count_servers == 0:
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_AcmeDnsServer__set_global_default(
-                        self.request.api_context, dbAcmeDnsServer
-                    )
 
             if self.request.wants_json:
                 return {
@@ -221,9 +239,9 @@ class View_New(Handler):
                 )
             )
 
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
 
 
@@ -501,18 +519,15 @@ class View_Focus(Handler):
                     formStash.results["domain_names"]
                 )
             except ValueError as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names", message="invalid domain names detected"
                 )
             if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names",
                     message="invalid or no valid domain names detected",
                 )
             if len(domain_names) > 100:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names",
                     message="More than 100 domain names. There is a max of 100 domains per certificate.",
@@ -690,18 +705,15 @@ class View_Focus(Handler):
                         formStash.results[test_domain]
                     )
                 except ValueError as exc:  # noqa: F841
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain, message="invalid domain names detected"
                     )
                 if not _domain_names:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="invalid or no valid domain names detected",
                     )
                 if len(_domain_names) != 1:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field=test_domain,
                         message="Only 1 domain accepted here.",

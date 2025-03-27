@@ -139,7 +139,7 @@ def get__AcmeServer__by_server(ctx: "ApiContext", server: str) -> Optional[AcmeS
     return query.first()
 
 
-def get__AcmeServers__paginated(
+def get__AcmeServer__paginated(
     ctx: "ApiContext",
     limit: Optional[int] = None,
     offset: int = 0,

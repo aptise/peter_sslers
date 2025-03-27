@@ -327,6 +327,7 @@ class RequestCommandline(object):
 
 def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":
     from .context import ApiContext
+    from pyramid.paster import get_app
     from pyramid.paster import get_appsettings
     from pyramid.paster import setup_logging
 
@@ -348,6 +349,7 @@ def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiCo
     """
 
     setup_logging(config_uri)
+    app = get_app(config_uri, options=options)
     settings = get_appsettings(config_uri, options=options)
 
     engine = get_engine(settings)
@@ -369,6 +371,7 @@ def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiCo
             application_settings=application_settings,
         ),
         config_uri=config_uri,
+        app=app,
         application_settings=application_settings,
     )
     assert ctx.request

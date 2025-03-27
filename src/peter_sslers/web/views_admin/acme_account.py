@@ -2,6 +2,7 @@
 import logging
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
 
@@ -33,12 +34,119 @@ from ...lib import utils
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
 
 # ==============================================================================
 
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+
+
+def submit__new_auth(request: "Request") -> Tuple[AcmeAccount, bool]:
+    """
+    note: this function will commit the transaction on success
+    """
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_AcmeAccount_new__auth,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash=formStash)
+
+    parser = AcmeAccountUploadParser(formStash)
+    parser.require_new(require_contact=None)
+    acme_server_id = parser.validate_acme_server(request.api_context)  # noqa; F841
+    key_create_args = parser.generate_create_args()
+
+    dbAcmeAccount = None
+    _dbAcmeAccount = None
+    try:
+        (
+            _dbAcmeAccount,
+            _is_created,
+        ) = lib_db.getcreate.getcreate__AcmeAccount(
+            request.api_context, **key_create_args
+        )
+
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        authenticatedUser = (  # noqa: F841
+            lib_db.actions_acme.do__AcmeV2_AcmeAccount_register(
+                request.api_context, _dbAcmeAccount, transaction_commit=True
+            )
+        )
+        # copy this over to signify a total success
+        dbAcmeAccount = _dbAcmeAccount
+
+    except errors.ConflictingObject as exc:
+        # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
+        #
+        # this happens via `getcreate__AcmeAccount`
+        # * args[0] = tuple(conflicting_object, error_message_string)
+        # _dbAcmeAccountDuplicate = exc.args[0][0]
+        formStash.fatal_field(
+            field="account__contact",
+            message=exc.args[0][1],
+        )
+
+    except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+        formStash.fatal_field(
+            field="Error_Main",
+            message="AcmeDuplicateAccount condition was detected.",
+        )
+        ## this happens via `do__AcmeV2_AcmeAccount_register`
+        ## args[0] MUST be the duplicate AcmeAccount
+        # _dbAcmeAccountDuplicate = exc.args[0]
+        ## the 'Duplicate' account was the earlier account and therefore
+        ## it is our merge Target
+        # if TYPE_CHECKING:
+        #    assert _dbAcmeAccount is not None
+        # lib_db.update.update_AcmeAccount_from_new_duplicate(
+        #    request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
+        # )
+        # dbAcmeAccount = _dbAcmeAccountDuplicate
+
+    except errors.AcmeServerError as exc:
+        # (status_code, resp_data, url) = exc
+        request.tm.abort()
+        if _dbAcmeAccount and not dbAcmeAccount:
+            # we've created an AcmeAccount locally but not on the server
+            # right now, this will persist to the DB ( which causes issues)
+            # unless we raise an exception or set an error
+            message = "Can not validate on upstream ACME Server."
+            if exc.args[0] == 400:
+                if isinstance(exc.args[1], dict):
+                    if (
+                        exc.args[1].get("type")
+                        == "urn:ietf:params:acme:error:unsupportedContact"
+                    ):
+                        message += " Server says `urn:ietf:params:acme:error:unsupportedContact`"
+                        _detail = exc.args[1].get("detail")
+                        if _detail:
+                            message += " " + _detail
+                        if message[-1] != ".":
+                            message += "."
+            formStash.set_error(
+                field=formStash.error_main_key,
+                message=message,
+                message_prepend=True,
+            )
+        else:
+            formStash.set_error(
+                field=formStash.error_main_key,
+                message=str(exc.args[1]),
+                message_prepend=True,
+            )
+        raise formhandling.FormInvalid(formStash=formStash)
+
+    if TYPE_CHECKING:
+        assert dbAcmeAccount is not None
+
+    return (dbAcmeAccount, _is_created)
 
 
 class View_List(Handler):
@@ -175,7 +283,7 @@ class View_New(Handler):
                 self.request, schema=Form_AcmeAccount_new__upload, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             parser = AcmeAccountUploadParser(formStash)
             parser.require_upload(require_contact=None, require_technology=False)
@@ -197,7 +305,6 @@ class View_New(Handler):
                     i.id for i in self.request.api_context.dbAcmeServers
                 ]
                 if acme_server_id not in _acme_server_ids__all:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="acme_server_id",
                         message="Invalid provider submitted.",
@@ -221,7 +328,9 @@ class View_New(Handler):
                 # failing will raise an exception
                 authenticatedUser = (  # noqa: F841
                     lib_db.actions_acme.do__AcmeV2_AcmeAccount_register(
-                        self.request.api_context, _dbAcmeAccount
+                        self.request.api_context,
+                        _dbAcmeAccount,
+                        transaction_commit=True,
                     )
                 )
 
@@ -234,13 +343,11 @@ class View_New(Handler):
                 # this happens via `getcreate__AcmeAccount`
                 # * args[0] = tuple(conflicting_object, error_message_string)
                 # _dbAcmeAccountDuplicate = exc.args[0][0]
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="Error_Main",
                     message=exc.args[0][1],
                 )
             except errors.AcmeDuplicateAccount as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="Error_Main",
                     message="AcmeDuplicateAccount condition was detected.",
@@ -332,116 +439,7 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeAccount_new__auth, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            self.request.api_context._load_AcmeServers()
-            _acme_server_ids__all = [
-                i.id for i in self.request.api_context.dbAcmeServers
-            ]
-            _acme_server_ids__enabled = [
-                i.id for i in self.request.api_context.dbAcmeServers if i.is_enabled
-            ]
-
-            acme_server_id = formStash.results["acme_server_id"]
-            if acme_server_id not in _acme_server_ids__all:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="acme_server_id",
-                    message="Invalid provider submitted.",
-                )
-
-            if acme_server_id not in _acme_server_ids__enabled:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="acme_server_id",
-                    message="This provider is no longer enabled.",
-                )
-
-            parser = AcmeAccountUploadParser(formStash)
-            parser.require_new(require_contact=None)
-
-            key_create_args = parser.getcreate_args
-            for _field in (
-                "contact",
-                "acme_server_id",
-                "private_key_technology_id",
-                "order_default_private_key_cycle_id",
-                "order_default_private_key_technology_id",
-                "order_default_acme_profile",
-            ):
-                assert _field in key_create_args
-
-            # convert the args to cert_utils
-            _private_key_technology_id = key_create_args["private_key_technology_id"]
-            cu_new_args = model_utils.KeyTechnology.to_new_args(
-                _private_key_technology_id
-            )
-            key_pem = cert_utils.new_account_key(
-                key_technology_id=cu_new_args["key_technology_id"],
-                rsa_bits=cu_new_args.get("rsa_bits"),
-                ec_curve=cu_new_args.get("ec_curve"),
-            )
-            key_create_args["key_pem"] = key_pem
-            key_create_args["event_type"] = "AcmeAccount__create"
-            key_create_args["acme_account_key_source_id"] = (
-                model_utils.AcmeAccountKeySource.GENERATED
-            )
-            dbAcmeAccount = None
-            _dbAcmeAccount = None
-            try:
-                (
-                    _dbAcmeAccount,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccount(
-                    self.request.api_context, **key_create_args
-                )
-
-                # result is either: `new-account` or `existing-account`
-                # failing will raise an exception
-                authenticatedUser = (  # noqa: F841
-                    lib_db.actions_acme.do__AcmeV2_AcmeAccount_register(
-                        self.request.api_context, _dbAcmeAccount
-                    )
-                )
-                # copy this over to signify a total success
-                dbAcmeAccount = _dbAcmeAccount
-
-            except errors.ConflictingObject as exc:
-                # ConflictingObject: args[0] = tuple(conflicting_object, error_message_string)
-                #
-                # this happens via `getcreate__AcmeAccount`
-                # * args[0] = tuple(conflicting_object, error_message_string)
-                # _dbAcmeAccountDuplicate = exc.args[0][0]
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="account__contact",
-                    message=exc.args[0][1],
-                )
-
-            except errors.AcmeDuplicateAccount as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="Error_Main",
-                    message="AcmeDuplicateAccount condition was detected.",
-                )
-                ## this happens via `do__AcmeV2_AcmeAccount_register`
-                ## args[0] MUST be the duplicate AcmeAccount
-                # _dbAcmeAccountDuplicate = exc.args[0]
-                ## the 'Duplicate' account was the earlier account and therefore
-                ## it is our merge Target
-                # if TYPE_CHECKING:
-                #    assert _dbAcmeAccount is not None
-                # lib_db.update.update_AcmeAccount_from_new_duplicate(
-                #    self.request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
-                # )
-                # dbAcmeAccount = _dbAcmeAccountDuplicate
-
-            if TYPE_CHECKING:
-                assert dbAcmeAccount is not None
+            (dbAcmeAccount, _is_created) = submit__new_auth(self.request)
 
             if self.request.wants_json:
                 return {
@@ -459,44 +457,9 @@ class View_New(Handler):
                 )
             )
 
-        except errors.AcmeServerError as exc:
-            # (status_code, resp_data, url) = exc
-            self.request.tm.abort()
-            if _dbAcmeAccount and not dbAcmeAccount:
-                # we've created an AcmeAccount locally but not on the server
-                # right now, this will persist to the DB ( which causes issues)
-                # unless we raise an exception or set an error
-                message = "Can not validate on upstream ACME Server."
-                if exc.args[0] == 400:
-                    if isinstance(exc.args[1], dict):
-                        if (
-                            exc.args[1].get("type")
-                            == "urn:ietf:params:acme:error:unsupportedContact"
-                        ):
-                            message += " Server says `urn:ietf:params:acme:error:unsupportedContact`"
-                            _detail = exc.args[1].get("detail")
-                            if _detail:
-                                message += " " + _detail
-                            if message[-1] != ".":
-                                message += "."
-                formStash.set_error(
-                    field=formStash.error_main_key,
-                    message=message,
-                    message_prepend=True,
-                )
-            else:
-                formStash.set_error(
-                    field=formStash.error_main_key,
-                    message=str(exc.args[1]),
-                    message_prepend=True,
-                )
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            return formhandling.form_reprint(self.request, self._new__print)
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
 
 
@@ -1311,7 +1274,10 @@ class View_Focus_Manipulate(View_Focus):
         try:
             authenticatedUser = (  # noqa: F841
                 lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
-                    self.request.api_context, dbAcmeAccount, onlyReturnExisting=False
+                    self.request.api_context,
+                    dbAcmeAccount,
+                    onlyReturnExisting=False,
+                    transaction_commit=True,
                 )
             )
             _result = "success"
@@ -1414,7 +1380,10 @@ class View_Focus_Manipulate(View_Focus):
         try:
             checkedUser = (  # noqa: F841
                 lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
-                    self.request.api_context, dbAcmeAccount, onlyReturnExisting=True
+                    self.request.api_context,
+                    dbAcmeAccount,
+                    onlyReturnExisting=True,
+                    transaction_commit=True,
                 )
             )
             _result = "success"
@@ -1682,6 +1651,7 @@ class View_Focus_Manipulate(View_Focus):
                     self.request.api_context,
                     dbAcmeAccount=dbAcmeAccount,
                     acme_authorization_ids=formStash.results["acme_authorization_id"],
+                    transaction_commit=True,
                 )
                 if self.request.wants_json:
                     return {

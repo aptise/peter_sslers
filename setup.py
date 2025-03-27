@@ -31,12 +31,13 @@ requires = [
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic>=0.5.1",
+    "pyramid_formencode_classic>=0.7.0",
     "pyramid_mako",
     "pyramid_route_7>=0.5.3",
     "pyramid_tm",
     "pyramid>=2",
     "python-dateutil",
+    "redis",
     "requests",
     "SQLAlchemy>2",
     "tldextract",
@@ -51,7 +52,6 @@ tests_require = [
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",
-    "redis",
     "types-invoke",
     "types-urllib3",
     "urllib3",
@@ -68,8 +68,6 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
@@ -114,5 +112,6 @@ setup(
       deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
       acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
       periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
+      ssl_manage = peter_sslers.web.scripts.ssl_manage:main
       """,
 )

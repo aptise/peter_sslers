@@ -620,6 +620,7 @@ def api_domains__certificate_if_needed(
     note: Optional[str],
     processing_strategy: str,
     dbSystemConfiguration: "SystemConfiguration",
+    transaction_commit: Optional[bool] = None,
 ) -> Dict:
     """
     Adds Domains if needed
@@ -657,6 +658,10 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     # validate this first!
     # dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
     if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:
@@ -841,6 +846,7 @@ def api_domains__certificate_if_needed(
                     acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey__primary,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                    transaction_commit=True,
                 )
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
@@ -1421,6 +1427,7 @@ def routine__order_missing(
                         replaces=certificate_concept,
                         replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                         replaces_certificate_type=replaces_certificate_type,
+                        transaction_commit=True,
                     )
                     log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                     log.debug(
@@ -1481,7 +1488,10 @@ def routine__order_missing(
     return dbRoutineExecution
 
 
-def routine__reconcile_blocks(ctx: "ApiContext") -> "RoutineExecution":
+def routine__reconcile_blocks(
+    ctx: "ApiContext",
+    transaction_commit: Optional[bool] = None,
+) -> "RoutineExecution":
     """
     Reconcile blocks
 
@@ -1511,6 +1521,7 @@ def routine__reconcile_blocks(ctx: "ApiContext") -> "RoutineExecution":
             dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=transaction_commit,
             )
             _order_ids_pass.append(dbAcmeOrder.id)
             ctx.pyramid_transaction_commit()
@@ -1542,11 +1553,13 @@ def routine__reconcile_blocks(ctx: "ApiContext") -> "RoutineExecution":
                     dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__process(
                         ctx,
                         dbAcmeOrder=dbAcmeOrder,
+                        transaction_commit=True,
                     )
                 elif dbAcmeOrder.is_can_acme_finalize:
                     dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
                         ctx,
                         dbAcmeOrder=dbAcmeOrder,
+                        transaction_commit=transaction_commit,
                     )
                 else:
                     break
@@ -1680,6 +1693,7 @@ def routine__renew_expiring(
                         replaces=dbCertificateSigned.ari_identifier,
                         replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                         replaces_certificate_type=replaces_certificate_type,
+                        transaction_commit=True,
                     )
                     log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                     log.debug(

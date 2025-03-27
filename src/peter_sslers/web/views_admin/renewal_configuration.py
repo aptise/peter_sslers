@@ -584,7 +584,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
@@ -603,6 +603,7 @@ class View_Focus_New(View_Focus):
                     replaces=replaces,
                     replaces_type=model_utils.ReplacesType_Enum.MANUAL,
                     replaces_certificate_type=replaces_certificate_type,
+                    transaction_commit=True,
                 )
             except errors.FieldError as exc:
                 raise formStash.fatal_field(
@@ -770,7 +771,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -1059,7 +1060,7 @@ class View_Focus_Manipulate(View_Focus):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -1095,7 +1096,6 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             if TYPE_CHECKING:
@@ -1264,7 +1264,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -1583,7 +1583,7 @@ class View_New_Enrollment(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # this ensures only one domain
             # we'll pretend it's http-01, though that is irreleveant
@@ -1598,7 +1598,6 @@ class View_New_Enrollment(Handler):
                             self.request.api_context, domains_
                         )
                     except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
-                        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                         formStash.fatal_field(
                             field="domain_name",
                             message="This domain_name has been blocklisted",
@@ -1671,7 +1670,6 @@ class View_New_Enrollment(Handler):
                 if ds:
                     for d in ds:
                         if d[0] == "*":
-                            # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
                             formStash.fatal_form(
                                 message="wildcards (*) MUST use `dns-01`.",
                             )

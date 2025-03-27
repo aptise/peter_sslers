@@ -519,7 +519,7 @@ def getcreate__AcmeAuthorization(
     authorization_payload: Dict,
     authenticatedUser: "AuthenticatedUser",
     dbAcmeOrder: "AcmeOrder",
-    transaction_commit: Optional[bool] = None,
+    transaction_commit: Optional[bool] = None,  # this is Optional
     is_via_new_order: Optional[bool] = None,
 ) -> Tuple["AcmeAuthorization", bool]:
     """
@@ -603,7 +603,7 @@ def process__AcmeAuthorization_payload(
     authenticatedUser: "AuthenticatedUser",
     dbAcmeAuthorization: "AcmeAuthorization",
     dbAcmeOrder: "AcmeOrder",
-    transaction_commit: Optional[bool] = None,
+    transaction_commit: Optional[bool] = None,  # this is Optional
 ) -> Literal[True]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance

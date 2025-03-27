@@ -318,10 +318,11 @@ Routines for cron:
   recommended by the periodic_tasks script.  The scheduler will figure out what to run
   on a given hour.
 
-  The crontab should be installed to run every hour on a set minute, said set minute
-  recommended by the periodic_tasks script.  The scheduler will figure out what
-  routines to run on a given hour.
-
+  If certs need to be ordered, a WSGI server running on :config.ini:`http_port.renewals`
+  will be spun up to answer AcmeChallenges in a subprocess. Whatever server is
+  listening to port80 should proxy to this server.  This server only responds to
+  public URLs.
+  
   `periodic_tasks` is designed to run every core routine on an hourly basis.
 
   If alternate invocation strategies are required, there is a specific commandline
@@ -348,19 +349,19 @@ There is also a
 
 The abridged version:
 
-'''
+```
 mkdir certificate_admin
 cd certificate_admin
 virtualenv peter_sslers-venv
 source peter_sslers-venv/bin/activate
 git clone https://github.com/aptise/peter_sslers.git
 cd peter_sslers
-$VENV/bin/python setup.py develop
+$VENV/bin/pip3 install -e .
 vi conf/example_development.ini
 $VENV/bin/initialize_peter_sslers_db conf/example_development.ini
 $VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
 $VENV/bin/pserve conf/example_development.ini
-'''
+```
 
 
 Full Documentation

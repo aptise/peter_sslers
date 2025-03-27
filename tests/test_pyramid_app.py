@@ -2215,6 +2215,7 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
         (
             "admin:acme_dns_server_accounts|json",
             "admin:acme_dns_server_accounts-paginated|json",
+            "admin:acme_dns_server_accounts:all|json",
         )
     )
     def test_list_json(self):
@@ -2257,6 +2258,14 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
             status=200,
         )
         res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-dns-server-account/%s/audit" % focus_id,
+            status=303,
+        )
+        assert res.location.endswith(
+            "/acme-dns-server-account/%s?result=error&error=post+required&operation=audit"
+            % focus_id
+        )
+        res = self.testapp.post(
             "/.well-known/peter_sslers/acme-dns-server-account/%s/audit" % focus_id,
             status=200,
         )
@@ -5379,7 +5388,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s" % focus_id, status=200
         )
-        assert """<th>AcmeDnsConfiguration</th>""" in res.text
+        assert """<th>AcmeDnsConfigurations</th>""" in res.text
         assert (
             """/.well-known/peter_sslers/domain/%s/acme-dns-server/new""" % focus_id
         ) in res.text
@@ -5403,9 +5412,9 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get(
             "/.well-known/peter_sslers/domain/%s" % focus_id, status=200
         )
-        assert """AcmeDnsServerAccounts - Existing""" in res.text
+        assert """AcmeDnsConfigurations""" in res.text
         assert (
-            """href="/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts"""
+            'href="/.well-known/peter_sslers/domain/%s/acme-dns-server-accounts"'
             % focus_id
         ) in res.text
 
@@ -12657,6 +12666,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 lib_db_actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     self.ctx,
                     dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=True,
                 )
                 self.ctx.pyramid_transaction_commit()
 

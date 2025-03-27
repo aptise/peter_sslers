@@ -285,7 +285,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             if action != "resolution":
                 # formvalidation should ensure this already
@@ -307,7 +307,6 @@ class View_Focus(Handler):
                     self.request.api_context, dbCoverageAssuranceEvent, resolution
                 )
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbCoverageAssuranceEvent])

@@ -168,12 +168,12 @@ def create__AcmeOrder(
     private_key_cycle_id: int,
     private_key_strategy_id__requested: int,
     private_key_deferred_id: int,
-    transaction_commit: Literal[True],
     # optionals
     note: Optional[str] = None,
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     dbCertificateRequest: Optional["CertificateRequest"] = None,
+    transaction_commit: Optional[bool] = None,  # this is Optional
 ) -> "AcmeOrder":
     """
     Create a new ACME Order

@@ -384,7 +384,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # localize form values
             domain_names_add = formStash.results["domain_names_add"]
@@ -404,7 +404,6 @@ class View_Focus(Handler):
                     domain_names_add
                 )
             except ValueError as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names_add", message="invalid domain names detected"
                 )
@@ -416,7 +415,6 @@ class View_Focus(Handler):
                     domain_names_del
                 )
             except ValueError as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names_del", message="invalid domain names detected"
                 )
@@ -538,7 +536,7 @@ class ViewNew(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # localize form values
             domain_names = formStash.results["domain_names"]
@@ -549,7 +547,6 @@ class ViewNew(Handler):
                 # domains will also be lowercase+strip
                 domain_names = cert_utils.utils.domains_from_string(domain_names)
             except ValueError as exc:  # noqa: F841
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names", message="invalid domain names detected"
                 )
@@ -557,12 +554,10 @@ class ViewNew(Handler):
             # Pass 2- Aggregate Input
             # okay, and then again...
             if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names", message="no valid domain names submitted"
                 )
             if len(domain_names) > 100:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="domain_names", message="more than 100 domain names submitted"
                 )

@@ -286,7 +286,7 @@ class View_Search(Handler):
                 self.request, schema=Form_Domain_search, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domain_name = formStash.results["domain"]
             dbDomain = lib_db.get.get__Domain__by_name(
@@ -355,7 +355,7 @@ class View_New(Handler):
                 self.request, schema=Form_Domain_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
@@ -1353,21 +1353,19 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # validate the AcmeDnsServer
             dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
                 self.request.api_context, formStash.results["acme_dns_server_id"]
             )
             if not dbAcmeDnsServer:
-                # `formStash.fatal_field()` will raise `FormInvalid()`
                 formStash.fatal_field(
                     field="acme_dns_server_id", message="Invalid AcmeDnsServer."
                 )
             if TYPE_CHECKING:
                 assert dbAcmeDnsServer is not None
             if not dbAcmeDnsServer.is_active:
-                # `formStash.fatal_field()` will raise `FormInvalid()`
                 formStash.fatal_field(
                     field="acme_dns_server_id", message="Inactive AcmeDnsServer."
                 )

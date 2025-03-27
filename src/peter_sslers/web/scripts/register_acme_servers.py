@@ -128,7 +128,7 @@ def main(argv=sys.argv):
         ctx = new_scripts_setup(config_uri, options=None)
 
         exportServers = []
-        dbServers = lib_db.get.get__AcmeServers__paginated(ctx, limit=None, offset=0)
+        dbServers = lib_db.get.get__AcmeServer__paginated(ctx, limit=None, offset=0)
         for _dbserver in dbServers:
             _exportServer = AcmeServerInput(
                 name=_dbserver.name,

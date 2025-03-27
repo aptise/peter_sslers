@@ -136,7 +136,7 @@ class View_Focus_Manipulate(View_Focus):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             action = formStash.results["action"]
             try:
@@ -149,7 +149,6 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbNotification])

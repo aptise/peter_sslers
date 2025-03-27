@@ -29,5 +29,7 @@ def main(argv=sys.argv):
     config_uri = argv[1]
     options = parse_vars(argv[2:])
     ctx = new_scripts_setup(config_uri, options=options)
-    dbRoutineExecution = lib_db.actions.routine__reconcile_blocks(ctx)  # noqa: F841
+    dbRoutineExecution = lib_db.actions.routine__reconcile_blocks(  # noqa: F841
+        ctx, transaction_commit=True
+    )
     ctx.pyramid_transaction_commit()

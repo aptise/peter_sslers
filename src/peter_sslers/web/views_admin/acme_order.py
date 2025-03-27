@@ -247,6 +247,7 @@ class View_List(Handler):
                     lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                         self.request.api_context,
                         dbAcmeOrder=dbAcmeOrder,
+                        transaction_commit=True,
                     )
                 )
                 self.request.api_context.pyramid_transaction_commit()
@@ -478,6 +479,7 @@ class View_Focus_Manipulate(View_Focus):
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -548,11 +550,13 @@ class View_Focus_Manipulate(View_Focus):
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             # sync the AcmeOrder just to be safe
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -624,16 +628,19 @@ class View_Focus_Manipulate(View_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             # then sync the authz
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             # then sync the AcmeOrder
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
 
             # deactivate any authz potentials
@@ -708,6 +715,7 @@ class View_Focus_Manipulate(View_Focus):
                 lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
                     self.request.api_context,
                     dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=True,
                 )
             )
             if self.request.wants_json:
@@ -770,6 +778,7 @@ class View_Focus_Manipulate(View_Focus):
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -842,6 +851,7 @@ class View_Focus_Manipulate(View_Focus):
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
                 self.request.api_context,
                 dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
             )
             if self.request.wants_json:
                 return {
@@ -984,6 +994,7 @@ class View_Focus_Manipulate(View_Focus):
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
                     self.request.api_context,
                     dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=True,
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -1152,7 +1163,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -1336,6 +1347,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
                         note=note,
                         dbPrivateKey=privateKeySelection.PrivateKey,
+                        transaction_commit=True,
                     )
 
                 except Exception as exc:

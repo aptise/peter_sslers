@@ -14,6 +14,7 @@ from .errors import InvalidRequest
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+    from paste.deploy.config import PrefixMiddleware
     from sqlalchemy.orm.session import Session
     from .config_utils import ApplicationSettings
     from ..model.objects import AcmeServer
@@ -44,6 +45,7 @@ class ApiContext(object):
     request: Optional["Request"] = None
     config_uri: Optional[str] = None
     application_settings: Optional["ApplicationSettings"] = None
+    app: Optional["PrefixMiddleware"] = None
 
     def __init__(
         self,
@@ -53,6 +55,7 @@ class ApiContext(object):
         timestamp: Optional[datetime.datetime] = None,
         config_uri: Optional[str] = None,
         application_settings: Optional["ApplicationSettings"] = None,
+        app: Optional["PrefixMiddleware"] = None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent
@@ -63,6 +66,7 @@ class ApiContext(object):
         self.timestamp = timestamp
         self.config_uri = config_uri
         self.application_settings = application_settings
+        self.app = app
 
     @property
     def transaction_manager(self) -> "transaction.manager":
@@ -74,6 +78,7 @@ class ApiContext(object):
     def pyramid_transaction_commit(self) -> None:
         """this method does some ugly stuff to commit the pyramid transaction"""
         # mark_changed is oblivious to the `keep_session` we created the session with
+        # raise ValueError("COMMIT")
         mark_changed(self.dbSession, keep_session=True)
         self.transaction_manager.commit()
         self.transaction_manager.begin()
@@ -171,7 +176,7 @@ class ApiContext(object):
         Loads the options for :class:`model.objects.AcmeServer` into the view's :attr:`.dbAcmeServers`.
         """
         if self.dbAcmeServers is None or force:
-            self.dbAcmeServers = lib_db.get.get__AcmeServers__paginated(
+            self.dbAcmeServers = lib_db.get.get__AcmeServer__paginated(
                 self, is_enabled=True
             )
         return self.dbAcmeServers

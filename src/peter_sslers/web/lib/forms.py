@@ -594,11 +594,13 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     acme_account_id__backup = Int(not_empty=False, if_missing=None)
     private_key_cycle__backup = OneOf(
         model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
     private_key_technology__backup = OneOf(
         model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
-        not_empty=True,
+        not_empty=False,
+        if_missing=None,
     )
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64

@@ -1,6 +1,18 @@
 URGENT
 =====
 
+Audit:
+    AcknowledgeTransactionCommitRequired
+    TransactionCommitRequired
+    transaction_commit
+    
+    These concepts need to be split into the following:
+        transaction_commit: instructs the def to commit the transaction
+        acknowlege_transaction_commits: the def will commit the transaction; the caller must acknowledge this
+    
+    
+    
+
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 

@@ -702,6 +702,7 @@ class AuthenticatedUser(object):
         ctx: "ApiContext",
         contact: Optional[str] = None,
         onlyReturnExisting: Optional[bool] = None,
+        transaction_commit: Optional[bool] = None,
     ) -> bool:
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -793,13 +794,18 @@ class AuthenticatedUser(object):
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
 
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
+
         if "newAccount" not in self.acme_directory:
             raise ValueError("directory does not support `newAccount`")
 
         # log the event to the db
         assert ctx.application_settings
         if ctx.application_settings["log.acme"]:
-            self.acmeLogger.log_newAccount("v2", transaction_commit=True)
+            self.acmeLogger.log_newAccount("v2", transaction_commit=transaction_commit)
 
         # hit the acme api for the registration
         try:
@@ -929,9 +935,10 @@ class AuthenticatedUser(object):
         https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
         """
         log_api.info("acme_v2.AuthenticatedUser.deactivate(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
@@ -1029,9 +1036,10 @@ class AuthenticatedUser(object):
 
         """
         log.info("acme_v2.AuthenticatedUser.key_change(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
@@ -1129,9 +1137,10 @@ class AuthenticatedUser(object):
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_load(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeOrder.order_url:
             raise ValueError("the order does not have a `order_url`")
@@ -1153,7 +1162,7 @@ class AuthenticatedUser(object):
             assert ctx.application_settings
             if ctx.application_settings["log.acme"]:
                 dbEventLogged = self.acmeLogger.log_order_load(
-                    "v2", dbAcmeOrder, transaction_commit=True
+                    "v2", dbAcmeOrder, transaction_commit=transaction_commit
                 )
 
         # this is just a convenience wrapper for our order object
@@ -1186,9 +1195,10 @@ class AuthenticatedUser(object):
             acmeOrderRfcObject, dbEventLogged
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_new(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         # the payload can have a dict or strings
         payload_order: AcmeOrderPayload = {
@@ -1279,7 +1289,7 @@ class AuthenticatedUser(object):
         assert ctx.application_settings
         if ctx.application_settings["log.acme"]:
             dbEventLogged = self.acmeLogger.log_newOrder(
-                "v2", dbUniqueFQDNSet, transaction_commit=True
+                "v2", dbUniqueFQDNSet, transaction_commit=transaction_commit
             )
 
         # this is just a convenience wrapper for our order object
@@ -1296,6 +1306,7 @@ class AuthenticatedUser(object):
         ctx: "ApiContext",
         dbAcmeAuthorization: "AcmeAuthorization",
         dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
     ) -> bool:
         """
         This is a core routine to "prepare" an ACME Challenge for processing.
@@ -1307,17 +1318,24 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
+
         if dbAcmeChallenge.acme_challenge_type == "http-01":
             self._prepare_acme_challenge__http01(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=transaction_commit,
             )
         elif dbAcmeChallenge.acme_challenge_type == "dns-01":
             self._prepare_acme_challenge__dns01(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=transaction_commit,
             )
         # elif dbAcmeChallenge.acme_challenge_type == "tls-alpn-01":
         #    # TODO: tls-alpn-01
@@ -1332,6 +1350,7 @@ class AuthenticatedUser(object):
         ctx: "ApiContext",
         dbAcmeAuthorization: "AcmeAuthorization",
         dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
     ) -> None:
         """
         In the current design of PeterSSLers, no additional setup is
@@ -1347,6 +1366,10 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
         # acme_challenge_response
         assert dbAcmeChallenge.token
         keyauthorization = create_challenge_keyauthorization(
@@ -1414,6 +1437,7 @@ class AuthenticatedUser(object):
         ctx: "ApiContext",
         dbAcmeAuthorization: "AcmeAuthorization",
         dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
     ) -> None:
         """
         Prepares a DNS-01 ACME Challenge by updating the acme-dns server for
@@ -1423,6 +1447,11 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
+
         # TODO: test the integration
         if lib_acmedns.pyacmedns is None:
             raise ValueError("`pyacmedns` is not installed")
@@ -1572,9 +1601,8 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_process_authorizations(")
         if not transaction_commit:
-            # !!!: if this were not True, then we can't invoke items with `transaction_commit=True` below
-            raise ValueError(
-                "`acme_order_process_authorizations()` must persist to the database."
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
             )
 
         _order_status = acmeOrderRfcObject.rfc_object["status"]
@@ -1649,9 +1677,10 @@ class AuthenticatedUser(object):
         # get the new certificate
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
-        if transaction_commit is not True:
-            # required for the `update_order_status`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `update_order_status` callable"
+            )
 
         if update_order_status is None:
             raise ValueError(
@@ -1802,6 +1831,11 @@ class AuthenticatedUser(object):
         If the challenge fails, we raise a `errors.DomainVerificationError`.
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
+
         if all((acme_challenge_type_id__preferred, domains_challenged)) or not any(
             (acme_challenge_type_id__preferred, domains_challenged)
         ):
@@ -1956,13 +1990,14 @@ class AuthenticatedUser(object):
                 ctx,
                 dbAcmeAuthorization=_dbAcmeAuthorization,
                 dbAcmeChallenge=dbAcmeChallenge,
+                transaction_commit=transaction_commit,
             )
             self.acme_challenge_trigger(
                 ctx,
                 dbAcmeChallenge=dbAcmeChallenge,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
-                transaction_commit=True,
+                transaction_commit=transaction_commit,
             )
             return True
         return None
@@ -1980,9 +2015,10 @@ class AuthenticatedUser(object):
             :class:`model.objects.AcmeAuthorization` instance
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_load(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeAuthorization.authorization_url:
             raise ValueError(
@@ -2044,9 +2080,10 @@ class AuthenticatedUser(object):
 
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_deactivate(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeAuthorization.authorization_url:
             raise ValueError(
@@ -2098,9 +2135,10 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_load(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeChallenge.challenge_url:
             raise ValueError("the challenge does not have a `challenge_url`")
@@ -2156,9 +2194,10 @@ class AuthenticatedUser(object):
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
+        if not transaction_commit:
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         assert dbAcmeChallenge.acme_challenge_type
         assert dbAcmeChallenge.challenge_url

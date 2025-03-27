@@ -292,6 +292,26 @@ class AcmeAriCheckDeclined(AcmeAriCheckError):
     pass
 
 
+class AcknowledgeTransactionCommitRequired(Exception):
+    """raise when a function REQUIRE a transaction commit.
+
+    Some functions MUST commit to the database because they interacted with
+    external systems.
+    """
+
+    pass
+
+
+class TransactionCommitRequired(Exception):
+    """raise when a function REQUIRE a transaction commit.
+
+    Some functions MUST commit to the database because they interacted with
+    external systems.
+    """
+
+    pass
+
+
 class DomainVerificationError(AcmeError):
     pass
 

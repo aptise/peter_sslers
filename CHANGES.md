@@ -258,6 +258,8 @@
      
     CSV exports of acme_dns accounts
 
+    Python 3.9+ only (josepy2.0 requirement)
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

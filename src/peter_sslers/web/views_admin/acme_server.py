@@ -43,7 +43,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        items_paged = lib_db.get.get__AcmeServers__paginated(self.request.api_context)
+        items_paged = lib_db.get.get__AcmeServer__paginated(self.request.api_context)
         if self.request.wants_json:
             _keys = {k.id: k.as_json for k in items_paged}
             return {
@@ -306,7 +306,7 @@ class View_Focus(Handler):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string("AcmeServer__mark")
@@ -339,7 +339,6 @@ class View_Focus(Handler):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             if TYPE_CHECKING:

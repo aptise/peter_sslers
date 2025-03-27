@@ -3826,6 +3826,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @property
     def acme_challenge_domain_name(self) -> str:
         # note: the cname source should end with a .
         return "_acme-challenge.%s." % self.domain_name
