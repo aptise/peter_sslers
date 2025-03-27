@@ -78,7 +78,7 @@ class ApiContext(object):
     def pyramid_transaction_commit(self) -> None:
         """this method does some ugly stuff to commit the pyramid transaction"""
         # mark_changed is oblivious to the `keep_session` we created the session with
-        raise ValueError("COMMIT")
+        # raise ValueError("COMMIT")
         mark_changed(self.dbSession, keep_session=True)
         self.transaction_manager.commit()
         self.transaction_manager.begin()

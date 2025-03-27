@@ -795,7 +795,9 @@ class AuthenticatedUser(object):
             raise ValueError("`acme_directory` is required")
 
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         if "newAccount" not in self.acme_directory:
             raise ValueError("directory does not support `newAccount`")
@@ -934,7 +936,9 @@ class AuthenticatedUser(object):
         """
         log_api.info("acme_v2.AuthenticatedUser.deactivate(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
@@ -1033,7 +1037,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.key_change(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
@@ -1132,7 +1138,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_load(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeOrder.order_url:
             raise ValueError("the order does not have a `order_url`")
@@ -1188,7 +1196,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_new(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         # the payload can have a dict or strings
         payload_order: AcmeOrderPayload = {
@@ -1309,7 +1319,9 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         if dbAcmeChallenge.acme_challenge_type == "http-01":
             self._prepare_acme_challenge__http01(
@@ -1355,7 +1367,9 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
         # acme_challenge_response
         assert dbAcmeChallenge.token
         keyauthorization = create_challenge_keyauthorization(
@@ -1434,7 +1448,9 @@ class AuthenticatedUser(object):
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         # TODO: test the integration
         if lib_acmedns.pyacmedns is None:
@@ -1585,7 +1601,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_order_process_authorizations(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         _order_status = acmeOrderRfcObject.rfc_object["status"]
         if _order_status != "pending":
@@ -1814,7 +1832,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         if all((acme_challenge_type_id__preferred, domains_challenged)) or not any(
             (acme_challenge_type_id__preferred, domains_challenged)
@@ -1996,7 +2016,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_load(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeAuthorization.authorization_url:
             raise ValueError(
@@ -2059,7 +2081,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_deactivate(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeAuthorization.authorization_url:
             raise ValueError(
@@ -2112,7 +2136,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_load(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         if not dbAcmeChallenge.challenge_url:
             raise ValueError("the challenge does not have a `challenge_url`")
@@ -2169,7 +2195,9 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("required for the `AcmeLogger`")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "required for the `AcmeLogger`"
+            )
 
         assert dbAcmeChallenge.acme_challenge_type
         assert dbAcmeChallenge.challenge_url

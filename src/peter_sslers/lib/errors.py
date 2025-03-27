@@ -301,6 +301,7 @@ class AcknowledgeTransactionCommitRequired(Exception):
 
     pass
 
+
 class TransactionCommitRequired(Exception):
     """raise when a function REQUIRE a transaction commit.
 

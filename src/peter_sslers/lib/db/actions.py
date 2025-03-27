@@ -659,7 +659,9 @@ def api_domains__certificate_if_needed(
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     # validate this first!
     # dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
     if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:

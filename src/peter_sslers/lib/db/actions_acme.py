@@ -90,6 +90,7 @@ TEST_CERTIFICATE_CHAIN = True
 def new_Authenticated_user(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
+    transaction_commit: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
     helper function to authenticate the user
@@ -98,6 +99,11 @@ def new_Authenticated_user(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
+
     account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
     # register the account / ensure that it is registered
@@ -107,6 +113,7 @@ def new_Authenticated_user(
     authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
         ctx,
         dbAcmeAccount,
+        transaction_commit=transaction_commit,
     )
     return authenticatedUser
 
@@ -131,7 +138,9 @@ def update_AcmeAuthorization_status(
         direct ACME Server sync?
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     _edited = False
     status_text = status_text.lower()
     if dbAcmeAuthorization.acme_status_authorization != status_text:
@@ -186,7 +195,9 @@ def update_AcmeChallenge_status(
         direct ACME Server sync?
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     _edited = False
     status_text = status_text.lower()
     if dbAcmeChallenge.acme_status_challenge != status_text:
@@ -231,7 +242,9 @@ def updated_AcmeOrder_status(
     # print("$$" * 40)
     # print("updated_AcmeOrder_status", dbAcmeOrder.id, acme_order_object.get("status"))
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     _edited = False
     status_text = acme_order_object.get("status", "").lower()
@@ -307,7 +320,9 @@ def updated_AcmeOrder_ProcessingStatus(
     # print("$$" * 40)
     # print("updated_AcmeOrder_ProcessingStatus", dbAcmeOrder.id, model_utils.Acme_Status_Order.as_string(acme_status_order_id))
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     _edited = False
     if acme_status_order_id is not None:
@@ -401,7 +416,9 @@ def disable_missing_AcmeAuthorization_AcmeChallenges(
         this will commit, as 3rd party API can not be rolled back.
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     _challenges_expected = {
         _chall.challenge_url: _chall for _chall in dbAcmeAuthorization.acme_challenges
@@ -463,7 +480,9 @@ def _AcmeV2_factory_AuthHandlers(
             authorization_url,
         )
         if not transaction_commit:
-            raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+            raise errors.AcknowledgeTransactionCommitRequired(
+                "MUST persist external system data."
+            )
 
         if dbAcmeAuthorization is not None:
             if authorization_url != dbAcmeAuthorization.authorization_url:
@@ -519,7 +538,9 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     :param acmeRfcOrder: (required) a :class:`acme_v2.AcmeOrderRFC` instance
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
         ctx, authenticatedUser, dbAcmeOrder
@@ -686,14 +707,18 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     # TODO: sync the AcmeAuthorization objects instead
     # TODO: sync the AcmeOrder objects instead
     if not dbAcmeAccount:
         raise errors.InvalidRequest("Must submit `dbAcmeAccount`")
 
     if authenticatedUser is None:
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     dbAcmeAuthorizations = get__AcmeAuthorizations__by_ids(
         ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
@@ -764,7 +789,9 @@ def do__AcmeV2_AcmeAccount__authenticate(
     :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
@@ -805,7 +832,9 @@ def do__AcmeV2_AcmeAccount__deactivate(
         this will commit, as 3rd party API can not be rolled back.
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -825,13 +854,11 @@ def do__AcmeV2_AcmeAccount__deactivate(
         log__OperationsEvent=log__OperationsEvent,
         func_account_updates=handle_AcmeAccount_Updates,
     )
-    authenticatedUser.authenticate(ctx)
+    authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_deactivate = authenticatedUser.deactivate(
         ctx, transaction_commit=transaction_commit
     )
-    if is_did_deactivate:
-        if transaction_commit:
-            ctx.pyramid_transaction_commit()
+    ctx.pyramid_transaction_commit()
     return authenticatedUser
 
 
@@ -851,7 +878,9 @@ def do__AcmeV2_AcmeAccount__key_change(
         this will commit, as 3rd party API can not be rolled back.
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     assert ctx.timestamp
 
@@ -947,7 +976,7 @@ def do__AcmeV2_AcmeAccount__key_change(
         log__OperationsEvent=log__OperationsEvent,
         func_account_updates=handle_AcmeAccount_Updates,
     )
-    authenticatedUser.authenticate(ctx)
+    authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_keychange = authenticatedUser.key_change(
         ctx, dbAcmeAccountKey_new, transaction_commit=transaction_commit
     )
@@ -968,7 +997,9 @@ def do__AcmeV2_AcmeAccount_register(
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     try:
         # # this has been relaxed
         # if not dbAcmeAccount.contact:
@@ -987,7 +1018,9 @@ def do__AcmeV2_AcmeAccount_register(
             log__OperationsEvent=log__OperationsEvent,
             func_account_updates=handle_AcmeAccount_Updates,
         )
-        authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
+        authenticatedUser.authenticate(
+            ctx, contact=dbAcmeAccount.contact, transaction_commit=transaction_commit
+        )
         handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
         return authenticatedUser
     except Exception as exc:  # noqa: F841
@@ -1008,7 +1041,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     # TODO: sync the AcmeOrder objects instead
 
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
@@ -1023,7 +1058,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
@@ -1106,7 +1143,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     """
     # TODO: sync the AcmeOrder objects instead
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     if not dbAcmeAuthorization:
         raise ValueError("Must submit `dbAcmeAuthorization`")
     if not dbAcmeAuthorization.is_can_acme_server_sync:
@@ -1121,7 +1160,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
         if authenticatedUser is None:
             dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
-            authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+            authenticatedUser = new_Authenticated_user(
+                ctx, dbAcmeAccount, transaction_commit=transaction_commit
+            )
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
@@ -1196,7 +1237,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     # TODO: sync the AcmeOrder objects instead
 
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_sync:
@@ -1212,7 +1255,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrderCreated.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
@@ -1297,7 +1342,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     # TODO: sync the Authorization objects instead
     # TODO: sync the AcmeOrder objects instead
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_trigger:
@@ -1329,7 +1376,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         if authenticatedUser is None:
             # the associated AcmeOrders should all have the same AcmeAccount
             dbAcmeAccount = dbAcmeOrderCreated.acme_account
-            authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+            authenticatedUser = new_Authenticated_user(
+                ctx, dbAcmeAccount, transaction_commit=transaction_commit
+            )
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
@@ -1436,14 +1485,18 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
         dbAcmeOrder
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -1501,14 +1554,18 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     :returns:  The :class:`model.objects.AcmeOrder` originally passed in as `dbAcmeOrder`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -1598,14 +1655,18 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -1720,7 +1781,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     try:
         private_key_strategy__final: Optional[str] = None
@@ -2135,7 +2198,9 @@ def do__AcmeV2_AcmeOrder__finalize(
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -2144,7 +2209,9 @@ def do__AcmeV2_AcmeOrder__finalize(
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -2178,7 +2245,9 @@ def do__AcmeV2_AcmeOrder__process(
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -2187,7 +2256,9 @@ def do__AcmeV2_AcmeOrder__process(
 
     if authenticatedUser is None:
         dbAcmeAccount = dbAcmeOrder.acme_account
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -2297,7 +2368,9 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     if not dbAcmeOrder.is_can_acme_server_download_certificate:
@@ -2307,7 +2380,9 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     assert dbAcmeOrder.certificate_url
 
     dbAcmeAccount = dbAcmeOrder.acme_account
-    authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+    authenticatedUser = new_Authenticated_user(
+        ctx, dbAcmeAccount, transaction_commit=transaction_commit
+    )
 
     # register the AcmeOrder into the logging utility
     authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -2441,7 +2516,9 @@ def do__AcmeV2_AcmeOrder__new(
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
@@ -3037,7 +3114,9 @@ def do__AcmeV2_AcmeOrder__new(
         if not dbAcmeAccount:
             raise ValueError("Invalid account_selection")
 
-        authenticatedUser = new_Authenticated_user(ctx, dbAcmeAccount)
+        authenticatedUser = new_Authenticated_user(
+            ctx, dbAcmeAccount, transaction_commit=transaction_commit
+        )
         if profile:
             _meta, _profiles_str = acme_v2.parse_acme_directory(
                 authenticatedUser.acme_directory
@@ -3112,7 +3191,6 @@ def do__AcmeV2_AcmeOrder__new(
             dbAcmeOrderSubmission = create__AcmeOrderSubmission(
                 ctx,
                 dbAcmeOrder,
-                transaction_commit=transaction_commit,
             )
 
             # register the AcmeOrder into the logging utility
@@ -3164,7 +3242,11 @@ def do__AcmeV2_AcmeOrder__new(
         ):
             # handle the order towards finalized?
             _task_finalize_order = _AcmeV2_AcmeOrder__process_authorizations(
-                ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
+                ctx,
+                authenticatedUser,
+                dbAcmeOrder,
+                acmeOrderRfcObject,
+                transaction_commit=transaction_commit,
             )
             if not _task_finalize_order:
                 return dbAcmeOrder
@@ -3214,7 +3296,9 @@ def do__AcmeV2_AcmeOrder__retry(
     :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired("MUST persist external system data.")
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
 
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
