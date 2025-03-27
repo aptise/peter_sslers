@@ -180,7 +180,7 @@ def main(global_config, **settings):
     config.scan(".views")  # shared views, currently just exception handling
 
     # after the models are included, setup the AcmeServer
-    dbEngine = models.get_engine(settings)
+    dbEngine = models.get_engine(config.registry.settings)
     dbSession = None
     with transaction.manager:
         session_factory = models.get_session_factory(dbEngine)
