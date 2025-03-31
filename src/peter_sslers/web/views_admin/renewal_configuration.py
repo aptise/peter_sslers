@@ -736,9 +736,6 @@ class View_Focus_New(View_Focus):
         """
         This is basically forking the configuration
         """
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new_configuration__submit()
         return self._new_configuration__print()
@@ -1231,9 +1228,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         }
     )
     def new(self):
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new__submit()
         return self._new__print()
@@ -1534,8 +1528,6 @@ class View_New_Enrollment(Handler):
         }
     )
     def new_enrollment(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_SystemConfiguration_global()
         try:
             _enrollment_factory_id = int(
                 self.request.params.get("enrollment_factory_id")

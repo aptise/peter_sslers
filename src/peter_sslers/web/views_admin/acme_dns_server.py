@@ -14,6 +14,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.response import Response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import formhandling
@@ -45,7 +46,10 @@ if TYPE_CHECKING:
 def submit__new(
     request: "Request",
     count_servers: Optional[int] = None,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[AcmeDnsServer, bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     if count_servers is None:
         _mode = request.api_context.application_settings["acme_dns_support"]
         if _mode != "experimental":
@@ -80,6 +84,8 @@ def submit__new(
             ) = lib_db.update.update_AcmeDnsServer__set_global_default(
                 request.api_context, dbAcmeDnsServer
             )
+
+    request.api_context.pyramid_transaction_commit()
     return dbAcmeDnsServer, _is_created
 
 
@@ -221,7 +227,9 @@ class View_New(Handler):
     def _new__submit(self):
         try:
             (dbAcmeDnsServer, _is_created) = submit__new(
-                self.request, count_servers=self._count_servers
+                self.request,
+                count_servers=self._count_servers,
+                acknowledge_transaction_commits=True,
             )
 
             if self.request.wants_json:
@@ -510,7 +518,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             try:
                 # this function checks the domain names match a simple regex
@@ -694,7 +702,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
@@ -818,7 +826,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -857,7 +865,6 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
             if TYPE_CHECKING:
@@ -951,7 +958,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash=formStash)
 
             event_type_id = model_utils.OperationsEventType.from_string(
                 "AcmeDnsServer__edit"
@@ -971,7 +978,6 @@ class View_Focus_Manipulate(View_Focus):
                     domain=formStash.results["domain"],
                 )
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeDnsServer])

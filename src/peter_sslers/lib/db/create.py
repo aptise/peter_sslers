@@ -12,7 +12,6 @@ from typing import Union
 import cert_utils
 from dateutil import parser as dateutil_parser
 import sqlalchemy
-from typing_extensions import Literal
 
 # from typing_extensions import Required
 # from typing_extensions import TypedDict

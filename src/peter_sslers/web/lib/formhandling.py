@@ -12,6 +12,7 @@ from pyramid_formencode_classic.exceptions import FormInvalid  # noqa: F401
 if TYPE_CHECKING:
     from formencode import Schema
     from pyramid.request import Request
+    from pyramid.response import Response
     from pyramid_formencode_classic import FormStash
 
 # ==============================================================================
@@ -34,7 +35,7 @@ def formatter_error(error: str) -> str:
     ) + "\n"
 
 
-def form_reprint(request: "Request", form_print_method: Callable, **kwargs):
+def form_reprint(request: "Request", form_print_method: Callable, **kwargs) -> "Response":
     """
     overwrite the `pyramid_formencode_classic` version
 
@@ -70,7 +71,7 @@ def form_reprint(request: "Request", form_print_method: Callable, **kwargs):
     return pyramid_formencode_classic.form_reprint(request, form_print_method, **kwargs)
 
 
-def form_validate(request: "Request", schema: "Schema", **kwargs) -> Tuple:
+def form_validate(request: "Request", schema: "Schema", **kwargs) -> Tuple[bool, "FormStash"]:
     """
     kwargs
         things of interest...

@@ -26,7 +26,6 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin", renderer="/admin/index.mako")
     def index(self):
-        self.request.api_context._load_SystemConfiguration_global()
         _active_notifications_count = get__Notification__count(
             self.request.api_context, active_only=True
         )
@@ -247,9 +246,6 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_SystemConfiguration_autocert()
-        self.request.api_context._load_SystemConfiguration_cin()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,

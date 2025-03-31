@@ -5,6 +5,7 @@ from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
+from pyramid.decorator import reify
 import transaction
 from zope.sqlalchemy import mark_changed
 
@@ -92,52 +93,28 @@ class ApiContext(object):
 
     # -----
 
-    # Official SystemConfigurations
-    dbSystemConfiguration_autocert: Optional["SystemConfiguration"] = None
-    dbSystemConfiguration_cin: Optional["SystemConfiguration"] = None
-    dbSystemConfiguration_global: Optional["SystemConfiguration"] = None
-    dbAcmeServers: Optional[List["AcmeServer"]] = None
-    dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None
-
-    # -----
-
-    def _load_SystemConfiguration_autocert(
-        self, force: bool = False
-    ) -> Optional["SystemConfiguration"]:
+    @reify
+    def dbSystemConfiguration_autocert(self) -> Optional["SystemConfiguration"]:
         """
         Loads the autocert :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_autocert`.
         """
-        if not self.dbSystemConfiguration_autocert or force:
-            self.dbSystemConfiguration_autocert = (
-                lib_db.get.get__SystemConfiguration__by_name(self, "autocert")
-            )
-        return self.dbSystemConfiguration_autocert
+        return lib_db.get.get__SystemConfiguration__by_name(self, "autocert")
 
-    def _load_SystemConfiguration_cin(
-        self, force: bool = False
-    ) -> Optional["SystemConfiguration"]:
+    @reify
+    def dbSystemConfiguration_cin(self) -> Optional["SystemConfiguration"]:
         """
         Loads the certificate-if-needed :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_cin`.
         """
-        if not self.dbSystemConfiguration_cin or force:
-            self.dbSystemConfiguration_cin = (
-                lib_db.get.get__SystemConfiguration__by_name(
-                    self, "certificate-if-needed"
-                )
-            )
-        return self.dbSystemConfiguration_cin
+        return lib_db.get.get__SystemConfiguration__by_name(
+            self, "certificate-if-needed"
+        )
 
-    def _load_SystemConfiguration_global(
-        self, force: bool = False
-    ) -> Optional["SystemConfiguration"]:
+    @reify
+    def dbSystemConfiguration_global(self) -> Optional["SystemConfiguration"]:
         """
         Loads the global :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_global`.
         """
-        if not self.dbSystemConfiguration_global or force:
-            self.dbSystemConfiguration_global = (
-                lib_db.get.get__SystemConfiguration__by_name(self, "global")
-            )
-        return self.dbSystemConfiguration_global
+        return lib_db.get.get__SystemConfiguration__by_name(self, "global")
 
     # -----
 
@@ -157,26 +134,16 @@ class ApiContext(object):
         if not self.application_settings["enable_redis"]:
             raise InvalidRequest("redis is not enabled")
 
-    def _load_AcmeDnsServer_GlobalDefault(
-        self, force: bool = False
-    ) -> Optional["AcmeDnsServer"]:
+    @reify
+    def dbAcmeDnsServer_GlobalDefault(self) -> Optional["AcmeDnsServer"]:
         """
         Loads the default :class:`model.objects.AcmeDnsServer` into the view's :attr:`.dbAcmeDnsServer_GlobalDefault`.
         """
-        if not self.dbAcmeDnsServer_GlobalDefault or force:
-            self.dbAcmeDnsServer_GlobalDefault = (
-                lib_db.get.get__AcmeDnsServer__GlobalDefault(
-                    self,
-                )
-            )
-        return self.dbAcmeDnsServer_GlobalDefault
+        return lib_db.get.get__AcmeDnsServer__GlobalDefault(self)
 
-    def _load_AcmeServers(self, force: bool = False) -> Optional[List["AcmeServer"]]:
+    @reify
+    def dbAcmeServers(self) -> Optional[List["AcmeServer"]]:
         """
         Loads the options for :class:`model.objects.AcmeServer` into the view's :attr:`.dbAcmeServers`.
         """
-        if self.dbAcmeServers is None or force:
-            self.dbAcmeServers = lib_db.get.get__AcmeServer__paginated(
-                self, is_enabled=True
-            )
-        return self.dbAcmeServers
+        return lib_db.get.get__AcmeServer__paginated(self, is_enabled=True)

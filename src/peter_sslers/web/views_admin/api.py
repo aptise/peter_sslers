@@ -190,7 +190,6 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-certificate_if_needed.mako",
     )
     def certificate_if_needed_html(self):
-        self.request.api_context._load_SystemConfiguration_cin()
         return {
             "project": "peter_sslers",
             "SystemConfiguration_cin": self.request.api_context.dbSystemConfiguration_cin,
@@ -284,8 +283,6 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def certificate_if_needed(self):
-        self.request.api_context._load_SystemConfiguration_cin()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._certificate_if_needed__submit()
         return self._certificate_if_needed__print()
@@ -383,7 +380,6 @@ class ViewAdminApi_Domain(Handler):
         renderer="/admin/api-domain-autocert.mako",
     )
     def autocert_html(self):
-        self.request.api_context._load_SystemConfiguration_autocert()
         return {
             "project": "peter_sslers",
             "SystemConfiguration_autocert": self.request.api_context.dbSystemConfiguration_autocert,
@@ -418,7 +414,6 @@ class ViewAdminApi_Domain(Handler):
         }
     )
     def autocert(self):
-        self.request.api_context._load_SystemConfiguration_autocert()
         if self.request.method == "POST":
             return self._autocert__submit()
         return self._autocert__print()

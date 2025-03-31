@@ -11806,7 +11806,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
         #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(rc__pkey_cycle)
         #    dbRenewalConfiguration.private_key_technology_id = model_utils.KeyTechnology.from_string(rc__pkey_technology)
-        #    self.ctx.dbSession.commit()
+        #    self.ctx.pyramid_transaction_commit()
 
         def _new_AcmeOrder(
             dbRenewalConfiguration: model_objects.RenewalConfiguration,
@@ -12312,7 +12312,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _directoryJson["peterSSLersTesting"] += 1
             dbAcmeServer.directory_latest.directory = json.dumps(_directoryJson)
             self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
-            self.ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
 
             acme_account_update(_acme_account_id__primary)
 

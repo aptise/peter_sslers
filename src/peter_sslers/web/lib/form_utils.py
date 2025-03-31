@@ -202,7 +202,6 @@ class AcmeAccountUploadParser(object):
                     passes.append(idx)
 
         if (len(passes) != 1) or failures:
-            # `formStash.fatal_form()` will raise `FormInvalid()`
             formStash.fatal_form(
                 "You must upload `account_key_file_pem` or all of (`account_key_file_le_meta`, `account_key_file_le_pkey`, `account_key_file_le_reg`)."
             )
@@ -318,7 +317,6 @@ class AcmeAccountUploadParser(object):
         self,
         ctx: "ApiContext",
     ) -> int:
-        ctx._load_AcmeServers()
         _acme_server_ids__all = [i.id for i in ctx.dbAcmeServers]
         _acme_server_ids__enabled = [i.id for i in ctx.dbAcmeServers if i.is_enabled]
 
@@ -484,7 +482,6 @@ def parse_AcmeAccountSelection(
     acmeAccountSelection = _AcmeAccountSelection()
     if account_key_option == "account_key_file":
         if not support_upload:
-            # `formStash.fatal_form()` will raise `FormInvalid()`
             formStash.fatal_form("This form does not support AccountKey Uploads")
         # this will handle form validation and raise errors.
         parser = AcmeAccountUploadParser(formStash)
@@ -509,7 +506,6 @@ def parse_AcmeAccountSelection(
             account_key_pem_md5 = formStash.results["account_key_reuse"]
         elif account_key_option == "none":
             if not allow_none:
-                # `formStash.fatal_form()` will raise `FormInvalid()`
                 formStash.fatal_form("This form requires an AcmeAccount selection.")
             # note the lowercase "none"; this is an explicit "no item" selection
             # only certain routes allow this
@@ -539,7 +535,6 @@ def parse_AcmeAccountSelection(
 
         # Ensure it is the Global Default
         if account_key_option == "account_key_global_default":
-            request.api_context._load_SystemConfiguration_global()
             if (
                 not request.api_context.dbSystemConfiguration_global
                 or not request.api_context.dbSystemConfiguration_global.is_configured
@@ -559,7 +554,6 @@ def parse_AcmeAccountSelection(
 
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
         return acmeAccountSelection
-    # `formStash.fatal_form()` will raise `FormInvalid()`
     formStash.fatal_form("There was an error validating your form.")
 
 
@@ -623,7 +617,6 @@ def parse_AcmeAccountSelection_backup(
 
     if account_key_option == "account_key_global_backup":
         # Ensure it is the Global Default
-        request.api_context._load_SystemConfiguration_global()
         if (
             not request.api_context.dbSystemConfiguration_global
             or not request.api_context.dbSystemConfiguration_global.is_configured
@@ -859,7 +852,6 @@ def parse_PrivateKeySelection(
     privateKeySelection = _PrivateKeySelection(private_key_option)
     if private_key_option == "private_key_file":
         if not support_upload:
-            # `formStash.fatal_form()` will raise `FormInvalid()`
             formStash.fatal_form("This form does not support PrivateKey Uploads")
 
         # this will handle form validation and raise errors.
@@ -908,7 +900,6 @@ def parse_PrivateKeySelection(
         private_key_pem_md5 = formStash.results["private_key_reuse"]
 
     else:
-        # `formStash.fatal_form()` will raise `FormInvalid()`
         formStash.fatal_form("Invalid `private_key_option`")
 
     if not private_key_pem_md5:
@@ -1025,13 +1016,11 @@ def form_domains_challenge_typed(
 
         # 2: ensure there are domains
         if not domain_names_all:
-            # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_form(message="no domain names submitted")
 
         # 3: ensure there is no overlap
         domain_names_all_set = set(domain_names_all)
         if len(domain_names_all) != len(domain_names_all_set):
-            # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_form(
                 message="a domain name can only be associated to one challenge type",
             )
@@ -1042,7 +1031,6 @@ def form_domains_challenge_typed(
                 if k == "http-01":
                     continue
                 if v:
-                    # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_form(
                         message="only http-01 domains are accepted by this form",
                     )
@@ -1054,7 +1042,6 @@ def form_domains_challenge_typed(
             if ds:
                 for d in ds:
                     if d[0] == "*":
-                        # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
                         formStash.fatal_form(
                             message="wildcards (*) MUST use `dns-01`.",
                         )
@@ -1069,7 +1056,6 @@ def form_domains_challenge_typed(
 
     except ValueError as exc:  # noqa: F841
         raise
-        # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
         formStash.fatal_form(message="invalid domain names detected")
 
     return domains_challenged

@@ -1128,9 +1128,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         }
     )
     def new_freeform(self):
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new_freeform__submit()
         return self._new_freeform__print()

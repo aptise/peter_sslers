@@ -11,6 +11,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import formhandling
@@ -21,6 +22,7 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
@@ -145,7 +147,12 @@ def validate_formstash_domain_templates(
     return domain_template_http01, domain_template_dns01
 
 
-def submit__new(request: "Request") -> EnrollmentFactory:
+def submit__new(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> EnrollmentFactory:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
 
     (result, formStash) = formhandling.form_validate(
         request,
@@ -282,7 +289,13 @@ def submit__new(request: "Request") -> EnrollmentFactory:
         formStash.fatal_form(message="%s" % exc)
 
 
-def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> bool:
+def submit__edit(
+    request: "Request",
+    dbEnrollmentFactory: EnrollmentFactory,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> bool:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
 
     (result, formStash) = formhandling.form_validate(
         request,
@@ -500,7 +513,6 @@ class View_Focus(Handler):
         }
     )
     def edit(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         dbEnrollmentFactory = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._edit__submit()
@@ -537,7 +549,11 @@ class View_Focus(Handler):
     def _edit__submit(self):
         assert self.dbEnrollmentFactory is not None
         try:
-            result = submit__edit(self.request, self.dbEnrollmentFactory)  # noqa: F841
+            result = submit__edit(  # noqa: F841
+                self.request,
+                self.dbEnrollmentFactory,
+                acknowledge_transaction_commits=True,
+            )
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -698,7 +714,6 @@ class View_New(Handler):
         }
     )
     def new(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
@@ -724,7 +739,9 @@ class View_New(Handler):
         """ """
         try:
 
-            dbEnrollmentFactory = submit__new(self.request)
+            dbEnrollmentFactory = submit__new(
+                self.request, acknowledge_transaction_commits=True
+            )
 
             if self.request.wants_json:
                 return {
