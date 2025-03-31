@@ -510,8 +510,6 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            if lib_acmedns.pyacmedns is None:
-                raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_ensure_domains,
@@ -519,7 +517,8 @@ class View_Focus(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid(formStash=formStash)
-
+            if lib_acmedns.pyacmedns is None:
+                formStash.fatal_form(error_main="`pyacmedns` is not installed")
             try:
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
@@ -528,17 +527,18 @@ class View_Focus(Handler):
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
+                    field="domain_names",
+                    error_field="invalid domain names detected",
                 )
             if not domain_names:
                 formStash.fatal_field(
                     field="domain_names",
-                    message="invalid or no valid domain names detected",
+                    error_field="invalid or no valid domain names detected",
                 )
             if len(domain_names) > 100:
                 formStash.fatal_field(
                     field="domain_names",
-                    message="More than 100 domain names. There is a max of 100 domains per certificate.",
+                    error_field="More than 100 domain names. There is a max of 100 domains per certificate.",
                 )
 
             # Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]
@@ -558,7 +558,7 @@ class View_Focus(Handler):
             except errors.AcmeDnsServerError as exc:  # noqa: F841
                 # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server.",
+                    error_main="Error communicating with the acme-dns server.",
                 )
 
             if self.request.wants_json:
@@ -694,8 +694,6 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            if lib_acmedns.pyacmedns is None:
-                raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_import_domain,
@@ -703,7 +701,8 @@ class View_Focus(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid(formStash=formStash)
-
+            if lib_acmedns.pyacmedns is None:
+                raise formStash.fatal_form(error_main="`pyacmedns` is not installed")
             # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
                 try:
@@ -714,17 +713,18 @@ class View_Focus(Handler):
                     )
                 except ValueError as exc:  # noqa: F841
                     formStash.fatal_field(
-                        field=test_domain, message="invalid domain names detected"
+                        field=test_domain,
+                        error_field="invalid domain names detected",
                     )
                 if not _domain_names:
                     formStash.fatal_field(
                         field=test_domain,
-                        message="invalid or no valid domain names detected",
+                        error_field="invalid or no valid domain names detected",
                     )
                 if len(_domain_names) != 1:
                     formStash.fatal_field(
                         field=test_domain,
-                        message="Only 1 domain accepted here.",
+                        error_field="Only 1 domain accepted here.",
                     )
             # grab our domain
             domain_name = formStash.results["domain_name"]
@@ -865,7 +865,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None

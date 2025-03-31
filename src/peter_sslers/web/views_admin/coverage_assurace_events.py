@@ -307,7 +307,7 @@ class View_Focus(Handler):
                     self.request.api_context, dbCoverageAssuranceEvent, resolution
                 )
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbCoverageAssuranceEvent])
 

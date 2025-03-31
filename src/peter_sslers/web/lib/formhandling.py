@@ -35,7 +35,9 @@ def formatter_error(error: str) -> str:
     ) + "\n"
 
 
-def form_reprint(request: "Request", form_print_method: Callable, **kwargs) -> "Response":
+def form_reprint(
+    request: "Request", form_print_method: Callable, **kwargs
+) -> "Response":
     """
     overwrite the `pyramid_formencode_classic` version
 
@@ -71,7 +73,9 @@ def form_reprint(request: "Request", form_print_method: Callable, **kwargs) -> "
     return pyramid_formencode_classic.form_reprint(request, form_print_method, **kwargs)
 
 
-def form_validate(request: "Request", schema: "Schema", **kwargs) -> Tuple[bool, "FormStash"]:
+def form_validate(
+    request: "Request", schema: "Schema", **kwargs
+) -> Tuple[bool, "FormStash"]:
     """
     kwargs
         things of interest...

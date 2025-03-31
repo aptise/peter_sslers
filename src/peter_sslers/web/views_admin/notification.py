@@ -149,7 +149,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbNotification])
 

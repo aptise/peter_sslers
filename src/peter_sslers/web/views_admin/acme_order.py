@@ -1371,7 +1371,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                             )
 
                     formStash.fatal_form(
-                        message="%s" % exc,
+                        error_main="%s" % exc,
                     )
 
                 if self.request.wants_json:
@@ -1391,21 +1391,21 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 )
 
             except (errors.ConflictingObject,) as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except (
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDuplicateChallenges as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
                 # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
+                    error_main="Error communicating with the acme-dns server."
                 )
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
@@ -1413,7 +1413,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     "This appears to be a duplicate of RenewalConfiguration: `%s`."
                     % exc.args[0].id
                 )
-                formStash.fatal_form(message=message)
+                formStash.fatal_form(error_main=message)
             except (
                 errors.AcmeError,
                 errors.InvalidRequest,
@@ -1433,7 +1433,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],
-                    message="Unknown acme_profile (%s); not one of: %s."
+                    error_field="Unknown acme_profile (%s); not one of: %s."
                     % (exc.args[2], exc.args[2]),
                 )
 

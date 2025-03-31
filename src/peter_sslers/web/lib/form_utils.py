@@ -89,14 +89,14 @@ class AcmeAccountUploadParser(object):
         acme_server_id = formStash.results.get("acme_server_id", None)
         if acme_server_id is None:
             formStash.fatal_field(
-                field="acme_server_id", message="No provider submitted."
+                field="acme_server_id", error_field="No provider submitted."
             )
 
         contact = formStash.results.get("account__contact", None)
         if not contact and require_contact:
             formStash.fatal_field(
                 field="account__contact",
-                message="`account__contact` is required.",
+                error_field="`account__contact` is required.",
             )
 
         private_key_technology_id = None
@@ -110,7 +110,7 @@ class AcmeAccountUploadParser(object):
         if not private_key_technology_id and require_technology:
             formStash.fatal_field(
                 field="account__private_key_technology",
-                message="No PrivateKey technology submitted.",
+                error_field="No PrivateKey technology submitted.",
             )
 
         order_default_private_key_cycle = formStash.results.get(
@@ -119,7 +119,7 @@ class AcmeAccountUploadParser(object):
         if order_default_private_key_cycle is None:
             formStash.fatal_field(
                 field="account__order_default_private_key_cycle",
-                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
+                error_field="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
         order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             order_default_private_key_cycle
@@ -131,7 +131,7 @@ class AcmeAccountUploadParser(object):
         if order_default_private_key_technology is None:
             formStash.fatal_field(
                 field="account__order_default_private_key_technology",
-                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
+                error_field="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
         order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
             order_default_private_key_technology
@@ -221,7 +221,7 @@ class AcmeAccountUploadParser(object):
         if not contact and require_contact:
             formStash.fatal_field(
                 field="account__contact",
-                message="`account__contact` is required.",
+                error_field="`account__contact` is required.",
             )
 
         private_key_technology_id = None
@@ -235,7 +235,7 @@ class AcmeAccountUploadParser(object):
         if not private_key_technology_id and require_technology:
             formStash.fatal_field(
                 field="account__private_key_technology",
-                message="No PrivateKey technology submitted.",
+                error_field="No PrivateKey technology submitted.",
             )
 
         order_default_private_key_cycle = formStash.results.get(
@@ -244,7 +244,7 @@ class AcmeAccountUploadParser(object):
         if order_default_private_key_cycle is None:
             formStash.fatal_field(
                 field="account__order_default_private_key_cycle",
-                message="No PrivateKey cycle submitted for AcmeOrder defaults.",
+                error_field="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
         order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             order_default_private_key_cycle
@@ -256,7 +256,7 @@ class AcmeAccountUploadParser(object):
         if order_default_private_key_technology is None:
             formStash.fatal_field(
                 field="account__order_default_private_key_technology",
-                message="No PrivateKey Technology submitted for AcmeOrder defaults.",
+                error_field="No PrivateKey Technology submitted for AcmeOrder defaults.",
             )
         order_default_private_key_technology_id = model_utils.KeyTechnology.from_string(
             order_default_private_key_technology
@@ -284,7 +284,8 @@ class AcmeAccountUploadParser(object):
         if formStash.results["account_key_file_pem"] is not None:
             if acme_server_id is None:
                 formStash.fatal_field(
-                    field="acme_server_id", message="No provider submitted."
+                    field="acme_server_id",
+                    error_field="No provider submitted.",
                 )
             self.upload_type = "pem"
             self.acme_server_id = getcreate_args["acme_server_id"] = acme_server_id
@@ -308,7 +309,7 @@ class AcmeAccountUploadParser(object):
             if contact is not None:
                 formStash.fatal_field(
                     field="account__contact",
-                    message="`account__contact` must not be submitted with LE data.",
+                    error_field="`account__contact` must not be submitted with LE data.",
                 )
 
         self.getcreate_args = decode_args(getcreate_args)
@@ -324,13 +325,13 @@ class AcmeAccountUploadParser(object):
         if acme_server_id not in _acme_server_ids__all:
             self.formStash.fatal_field(
                 field="acme_server_id",
-                message="Invalid provider submitted.",
+                error_field="Invalid provider submitted.",
             )
 
         if acme_server_id not in _acme_server_ids__enabled:
             self.formStash.fatal_field(
                 field="acme_server_id",
-                message="This provider is no longer enabled.",
+                error_field="This provider is no longer enabled.",
             )
         return acme_server_id
 
@@ -514,11 +515,12 @@ def parse_AcmeAccountSelection(
             return acmeAccountSelection
         else:
             formStash.fatal_form(
-                message="Invalid `account_key_option`",
+                error_main="Invalid `account_key_option`",
             )
         if not account_key_pem_md5:
             formStash.fatal_field(
-                field=account_key_option, message="You did not provide a value"
+                field=account_key_option,
+                error_field="You did not provide a value",
             )
         if TYPE_CHECKING:
             assert account_key_pem_md5 is not None
@@ -528,7 +530,7 @@ def parse_AcmeAccountSelection(
         if not dbAcmeAccount:
             formStash.fatal_field(
                 field=account_key_option,
-                message="The selected AcmeAccount is not enrolled in the system.",
+                error_field="The selected AcmeAccount is not enrolled in the system.",
             )
         if TYPE_CHECKING:
             assert dbAcmeAccount is not None
@@ -541,7 +543,7 @@ def parse_AcmeAccountSelection(
             ):
                 formStash.fatal_field(
                     field=account_key_option,
-                    message="There is no Global Default configured.",
+                    error_field="There is no Global Default configured.",
                 )
             if (
                 request.api_context.dbSystemConfiguration_global.acme_account_id__primary
@@ -549,7 +551,7 @@ def parse_AcmeAccountSelection(
             ):
                 formStash.fatal_field(
                     field=account_key_option,
-                    message="The selected AcmeAccount is not the global default.",
+                    error_field="The selected AcmeAccount is not the global default.",
                 )
 
         acmeAccountSelection.AcmeAccount = dbAcmeAccount
@@ -597,10 +599,13 @@ def parse_AcmeAccountSelection_backup(
     else:
         formStash.fatal_field(
             field="account_key_option_backup",
-            message="Invalid selection.",
+            error_field="Invalid selection.",
         )
     if not account_key_pem_md5:
-        formStash.fatal_field(field=error_field, message="You did not provide a value")
+        formStash.fatal_field(
+            field=error_field,
+            error_field="You did not provide a value",
+        )
     if TYPE_CHECKING:
         assert account_key_pem_md5 is not None
 
@@ -610,7 +615,7 @@ def parse_AcmeAccountSelection_backup(
     if not dbAcmeAccount:
         formStash.fatal_field(
             field=error_field,
-            message="The selected AcmeAccount is not enrolled in the system.",
+            error_field="The selected AcmeAccount is not enrolled in the system.",
         )
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
@@ -623,7 +628,7 @@ def parse_AcmeAccountSelection_backup(
         ):
             formStash.fatal_field(
                 field=account_key_option,
-                message="The Global Backup is not configured.",
+                error_field="The Global Backup is not configured.",
             )
         if (
             request.api_context.dbSystemConfiguration_global.acme_account_id__backup
@@ -631,7 +636,7 @@ def parse_AcmeAccountSelection_backup(
         ):
             formStash.fatal_field(
                 field=account_key_option,
-                message="The selected AcmeAccount is not the Global Backup.",
+                error_field="The selected AcmeAccount is not the Global Backup.",
             )
 
     acmeAccountSelection.AcmeAccount = dbAcmeAccount
@@ -660,12 +665,12 @@ def parse_AcmeAccountSelections_v2(
         if not _candidate:
             formStash.fatal_field(
                 field="account_key_existing__primary",
-                message="The selected AcmeAccount is not enrolled in the system.",
+                error_field="The selected AcmeAccount is not enrolled in the system.",
             )
         elif not _candidate.is_active:
             formStash.fatal_field(
                 field="account_key_existing__primary",
-                message="The selected AcmeAccount is not active.",
+                error_field="The selected AcmeAccount is not active.",
             )
         if TYPE_CHECKING:
             assert _candidate
@@ -673,7 +678,7 @@ def parse_AcmeAccountSelections_v2(
     else:
         formStash.fatal_field(
             field="account_key_option__primary",
-            message="Invalid option.",
+            error_field="Invalid option.",
         )
 
     # !!!: dbAcmeAccount_backup
@@ -696,17 +701,17 @@ def parse_AcmeAccountSelections_v2(
         if not dbAcmeAccount_backup:
             formStash.fatal_field(
                 field="account_key_option__backup",
-                message="The selected AcmeAccount is not enrolled in the system.",
+                error_field="The selected AcmeAccount is not enrolled in the system.",
             )
         elif not dbAcmeAccount_backup.is_active:
             formStash.fatal_field(
                 field="account_key_option__backup",
-                message="The selected AcmeAccount is not active.",
+                error_field="The selected AcmeAccount is not active.",
             )
     else:
         formStash.fatal_field(
             field="account_key_option__backup",
-            message="Invalid option.",
+            error_field="Invalid option.",
         )
 
     return dbAcmeAccount_primary, dbAcmeAccount_backup
@@ -735,12 +740,12 @@ def parse_PrivateKeySelections_v2(
         if not dbPrivateKey_primary:
             formStash.fatal_field(
                 field="private_key_existing__primary",
-                message="The selected PrivateKey is not enrolled in the system.",
+                error_field="The selected PrivateKey is not enrolled in the system.",
             )
         elif not dbPrivateKey_primary.is_active:
             formStash.fatal_field(
                 field="private_key_existing__primary",
-                message="The selected PrivateKey is not active.",
+                error_field="The selected PrivateKey is not active.",
             )
         pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
 
@@ -749,7 +754,7 @@ def parse_PrivateKeySelections_v2(
         if not dbPrivateKey_primary:
             formStash.fatal_field(
                 field="private_key_option__primary",
-                message="Could not load the placeholder PrivateKey.",
+                error_field="Could not load the placeholder PrivateKey.",
             )
         pkeySelection__primary.dbPrivateKey = dbPrivateKey_primary
 
@@ -772,7 +777,7 @@ def parse_PrivateKeySelections_v2(
     else:
         formStash.fatal_field(
             field="private_key_option__primary",
-            message="Invalid option.",
+            error_field="Invalid option.",
         )
 
     # !!!: backup
@@ -785,12 +790,12 @@ def parse_PrivateKeySelections_v2(
         if not dbPrivateKey_backup:
             formStash.fatal_field(
                 field="private_key_existing__backup",
-                message="The selected PrivateKey is not enrolled in the system.",
+                error_field="The selected PrivateKey is not enrolled in the system.",
             )
         elif not dbPrivateKey_backup.is_active:
             formStash.fatal_field(
                 field="private_key_existing__backup",
-                message="The selected PrivateKey is not active.",
+                error_field="The selected PrivateKey is not active.",
             )
         pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
 
@@ -799,7 +804,7 @@ def parse_PrivateKeySelections_v2(
         if not dbPrivateKey_backup:
             formStash.fatal_field(
                 field="private_key_option__backup",
-                message="Could not load the placeholder PrivateKey.",
+                error_field="Could not load the placeholder PrivateKey.",
             )
         pkeySelection__backup.dbPrivateKey = dbPrivateKey_backup
 
@@ -814,7 +819,7 @@ def parse_PrivateKeySelections_v2(
             if not dbSystemConfiguration.private_key_technology__backup:
                 formStash.fatal_field(
                     field="private_key_option__backup",
-                    message="SystemConfiguration not configured.",
+                    error_field="SystemConfiguration not configured.",
                 )
             private_key_technology__effective_backup = (
                 dbSystemConfiguration.private_key_technology__backup
@@ -833,7 +838,7 @@ def parse_PrivateKeySelections_v2(
     else:
         formStash.fatal_field(
             field="private_key_option__backup",
-            message="Invalid option.",
+            error_field="Invalid option.",
         )
 
     return pkeySelection__primary, pkeySelection__backup
@@ -873,7 +878,7 @@ def parse_PrivateKeySelection(
         if not dbPrivateKey:
             formStash.fatal_field(
                 field=private_key_option,
-                message="Could not load the placeholder PrivateKey.",
+                error_field="Could not load the placeholder PrivateKey.",
             )
         privateKeySelection.PrivateKey = dbPrivateKey
         if private_key_option == "private_key_generate":
@@ -904,7 +909,8 @@ def parse_PrivateKeySelection(
 
     if not private_key_pem_md5:
         formStash.fatal_field(
-            field=private_key_option, message="You did not provide a value"
+            field=private_key_option,
+            error_field="You did not provide a value",
         )
     if TYPE_CHECKING:
         assert private_key_pem_md5 is not None
@@ -914,7 +920,7 @@ def parse_PrivateKeySelection(
     if not dbPrivateKey:
         formStash.fatal_field(
             field=private_key_option,
-            message="The selected PrivateKey is not enrolled in the system.",
+            error_field="The selected PrivateKey is not enrolled in the system.",
         )
     privateKeySelection.PrivateKey = dbPrivateKey
     return privateKeySelection
@@ -983,7 +989,7 @@ def form_key_selection(
         if not dbPrivateKey:
             formStash.fatal_field(
                 field="private_key_option",
-                message="Could not load the placeholder PrivateKey for autogeneration.",
+                error_field="Could not load the placeholder PrivateKey for autogeneration.",
             )
         privateKeySelection.PrivateKey = dbPrivateKey
 
@@ -1016,13 +1022,13 @@ def form_domains_challenge_typed(
 
         # 2: ensure there are domains
         if not domain_names_all:
-            formStash.fatal_form(message="no domain names submitted")
+            formStash.fatal_form(error_main="no domain names submitted")
 
         # 3: ensure there is no overlap
         domain_names_all_set = set(domain_names_all)
         if len(domain_names_all) != len(domain_names_all_set):
             formStash.fatal_form(
-                message="a domain name can only be associated to one challenge type",
+                error_main="a domain name can only be associated to one challenge type",
             )
 
         # 4: maybe we only want http01 domains submitted?
@@ -1032,7 +1038,7 @@ def form_domains_challenge_typed(
                     continue
                 if v:
                     formStash.fatal_form(
-                        message="only http-01 domains are accepted by this form",
+                        error_main="only http-01 domains are accepted by this form",
                     )
 
         # ensure wildcards are only in dns-01
@@ -1043,7 +1049,7 @@ def form_domains_challenge_typed(
                 for d in ds:
                     if d[0] == "*":
                         formStash.fatal_form(
-                            message="wildcards (*) MUST use `dns-01`.",
+                            error_main="wildcards (*) MUST use `dns-01`.",
                         )
 
         # see DOMAINS_CHALLENGED_FIELDS
@@ -1051,12 +1057,12 @@ def form_domains_challenge_typed(
             if not dbAcmeDnsServer_GlobalDefault:
                 formStash.fatal_field(
                     field="domain_names_dns01",
-                    message="The global acme-dns server is not configured.",
+                    error_field="The global acme-dns server is not configured.",
                 )
 
     except ValueError as exc:  # noqa: F841
         raise
-        formStash.fatal_form(message="invalid domain names detected")
+        formStash.fatal_form(error_main="invalid domain names detected")
 
     return domains_challenged
 
@@ -1077,11 +1083,14 @@ def form_single_domain_challenge_typed(
         formStash.results["domain_name"]
     )
     if not domain_names:
-        formStash.fatal_field(field="domain_name", message="Found no domain names")
+        formStash.fatal_field(
+            field="domain_name",
+            error_field="Found no domain names",
+        )
     if len(domain_names) != 1:
         formStash.fatal_field(
             field="domain_name",
-            message="This endpoint currently supports only 1 domain name",
+            error_field="This endpoint currently supports only 1 domain name",
         )
 
     domains_challenged[challenge_type] = domain_names

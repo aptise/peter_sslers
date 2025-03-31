@@ -235,12 +235,12 @@ class View_Preferred(View_Focus):
                 if not len(matching_certs):
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        message="No matching CertificateCAs.",
+                        error_field="No matching CertificateCAs.",
                     )
                 elif len(matching_certs) > 1:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        message="Too many matching CertificateCAs.",
+                        error_field="Too many matching CertificateCAs.",
                     )
                 dbCertificateCA = matching_certs[0]
             else:
@@ -250,7 +250,7 @@ class View_Preferred(View_Focus):
                 if not dbCertificateCA:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        message="No matching CertificateCA.",
+                        error_field="No matching CertificateCA.",
                     )
 
             for (
@@ -259,7 +259,7 @@ class View_Preferred(View_Focus):
                 if dbPref.certificate_ca_id == dbCertificateCA.id:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        message="CertificateCA already in the list",
+                        error_field="CertificateCA already in the list",
                     )
 
             dbPreferencePolicy = lib_db.get.get__CertificateCAPreferencePolicy__by_id(
@@ -267,7 +267,7 @@ class View_Preferred(View_Focus):
                 self.dbCertificateCAPreferencePolicy.id,
             )
             if not dbPreferencePolicy:
-                formStash.fatal_form(message="could not load global policy")
+                formStash.fatal_form(error_main="could not load global policy")
             if TYPE_CHECKING:
                 assert dbPreferencePolicy is not None
 

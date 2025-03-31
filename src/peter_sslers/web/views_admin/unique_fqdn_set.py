@@ -392,7 +392,7 @@ class View_Focus(Handler):
 
             # ensure domain names are submitted
             if not domain_names_add and not domain_names_del:
-                formStash.fatal_form(message="no domain names submitted")
+                formStash.fatal_form(error_main="no domain names submitted")
 
             # Pass 1- Validate Input
             # validate the domain names - add:
@@ -404,7 +404,8 @@ class View_Focus(Handler):
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
-                    field="domain_names_add", message="invalid domain names detected"
+                    field="domain_names_add",
+                    error_field="invalid domain names detected",
                 )
             # validate the domain names - del:
             try:
@@ -415,20 +416,21 @@ class View_Focus(Handler):
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
-                    field="domain_names_del", message="invalid domain names detected"
+                    field="domain_names_del",
+                    error_field="invalid domain names detected",
                 )
 
             # Pass 2- Aggregate Input
             # okay, and then again...
             if not domain_names_add and not domain_names_del:
-                formStash.fatal_form(message="no valid domain names submitted")
+                formStash.fatal_form(error_main="no valid domain names submitted")
 
             # any overlap?
             domain_names_add = set(domain_names_add)
             domain_names_del = set(domain_names_del)
             if not domain_names_add.isdisjoint(domain_names_del):
                 formStash.fatal_form(
-                    message="Identical domain names submitted for add and delete operations",
+                    error_main="Identical domain names submitted for add and delete operations",
                 )
 
             # calculate the validity of the new UniqueFQDNSet
@@ -439,16 +441,16 @@ class View_Focus(Handler):
             proposed_domains = list(_proposed_domains)
             if len(proposed_domains) > 100:
                 formStash.fatal_form(
-                    message="The proposed set contains more than 100 domain names. "
+                    error_main="The proposed set contains more than 100 domain names. "
                     "There is a max of 100 domains per certificate.",
                 )
             elif len(proposed_domains) < 1:
                 formStash.fatal_form(
-                    message="The proposed set contains less than 1 domain name.",
+                    error_main="The proposed set contains less than 1 domain name.",
                 )
             if set(existing_domains) == set(proposed_domains):
                 formStash.fatal_form(
-                    message="The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet.",
+                    error_main="The proposed UniqueFQDNSet is identical to the existing UniqueFQDNSet.",
                 )
 
             # okay, try to add it
@@ -542,18 +544,21 @@ class ViewNew(Handler):
                 domain_names = cert_utils.utils.domains_from_string(domain_names)
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
+                    field="domain_names",
+                    error_field="invalid domain names detected",
                 )
 
             # Pass 2- Aggregate Input
             # okay, and then again...
             if not domain_names:
                 formStash.fatal_field(
-                    field="domain_names", message="no valid domain names submitted"
+                    field="domain_names",
+                    error_field="no valid domain names submitted",
                 )
             if len(domain_names) > 100:
                 formStash.fatal_field(
-                    field="domain_names", message="more than 100 domain names submitted"
+                    field="domain_names",
+                    error_field="more than 100 domain names submitted",
                 )
 
             # okay, try to add it

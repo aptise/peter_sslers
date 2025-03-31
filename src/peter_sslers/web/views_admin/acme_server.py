@@ -339,7 +339,7 @@ class View_Focus(Handler):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None

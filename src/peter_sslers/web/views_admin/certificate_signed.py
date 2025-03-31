@@ -1536,7 +1536,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert isinstance(event_status, str)

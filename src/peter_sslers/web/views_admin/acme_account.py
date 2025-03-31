@@ -96,13 +96,13 @@ def submit__new_auth(
         # _dbAcmeAccountDuplicate = exc.args[0][0]
         formStash.fatal_field(
             field="account__contact",
-            message=exc.args[0][1],
+            error_field=exc.args[0][1],
         )
 
     except errors.AcmeDuplicateAccount as exc:  # noqa: F841
         formStash.fatal_field(
             field="Error_Main",
-            message="AcmeDuplicateAccount condition was detected.",
+            error_field="AcmeDuplicateAccount condition was detected.",
         )
         ## this happens via `do__AcmeV2_AcmeAccount_register`
         ## args[0] MUST be the duplicate AcmeAccount
@@ -139,13 +139,11 @@ def submit__new_auth(
             formStash.set_error(
                 field=formStash.error_main_key,
                 message=message,
-                message_prepend=True,
             )
         else:
             formStash.set_error(
                 field=formStash.error_main_key,
                 message=str(exc.args[1]),
-                message_prepend=True,
             )
         raise formhandling.FormInvalid(formStash=formStash)
 
@@ -310,7 +308,7 @@ class View_New(Handler):
                 if acme_server_id not in _acme_server_ids__all:
                     formStash.fatal_field(
                         field="acme_server_id",
-                        message="Invalid provider submitted.",
+                        error_field="Invalid provider submitted.",
                     )
 
             key_create_args["event_type"] = "AcmeAccount__insert"
@@ -348,12 +346,12 @@ class View_New(Handler):
                 # _dbAcmeAccountDuplicate = exc.args[0][0]
                 formStash.fatal_field(
                     field="Error_Main",
-                    message=exc.args[0][1],
+                    error_field=exc.args[0][1],
                 )
             except errors.AcmeDuplicateAccount as exc:  # noqa: F841
                 formStash.fatal_field(
                     field="Error_Main",
-                    message="AcmeDuplicateAccount condition was detected.",
+                    error_field="AcmeDuplicateAccount condition was detected.",
                 )
 
             if TYPE_CHECKING:
@@ -1058,7 +1056,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
                     _edits.append(event_status)
                 except errors.InvalidTransition as exc:
-                    formStash.fatal_form(message=exc.args[0])
+                    formStash.fatal_form(error_main=exc.args[0])
 
             # !!!: edit: private_key_technology
             private_key_technology = formStash.results[
@@ -1081,7 +1079,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
                     _edits.append(event_status)
                 except errors.InvalidTransition as exc:
-                    formStash.fatal_form(message=exc.args[0])
+                    formStash.fatal_form(error_main=exc.args[0])
 
             # !!!: edit: order_default_private_key_cycle
             # !!!: edit: order_default_private_key_technology
@@ -1150,10 +1148,10 @@ class View_Focus_Manipulate(View_Focus):
                     )
                     _edits.append(event_status)
                 except errors.InvalidTransition as exc:
-                    formStash.fatal_form(message=exc.args[0])
+                    formStash.fatal_form(error_main=exc.args[0])
 
             if not len(_edits):
-                formStash.fatal_form(message="No edits submitted.")
+                formStash.fatal_form(error_main="No edits submitted.")
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
@@ -1516,7 +1514,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None
@@ -1664,7 +1662,7 @@ class View_Focus_Manipulate(View_Focus):
                     % (self._focus_url,)
                 )
             except Exception as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -1751,7 +1749,7 @@ class View_Focus_Manipulate(View_Focus):
                     if _key_pem != dbAcmeAccount.acme_account_key.key_pem:
                         formStash.fatal_field(
                             field="key_pem",
-                            message="This does not match the active account key",
+                            error_field="This does not match the active account key",
                         )
                 try:
                     results = lib_db.actions_acme.do__AcmeV2_AcmeAccount__deactivate(  # noqa: F841
@@ -1762,7 +1760,7 @@ class View_Focus_Manipulate(View_Focus):
                 except errors.AcmeServerError as exc:
                     # (status_code, resp_data, url) = exc
                     if self._handle_potentially_deactivated(exc):
-                        formStash.fatal_form(message=str(exc.args[1]))
+                        formStash.fatal_form(error_main=str(exc.args[1]))
                     raise
                 if self.request.wants_json:
                     return {
@@ -1777,7 +1775,7 @@ class View_Focus_Manipulate(View_Focus):
             except formhandling.FormInvalid:
                 raise
             except Exception as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -1862,7 +1860,7 @@ class View_Focus_Manipulate(View_Focus):
                     if _key_pem_old != dbAcmeAccount.acme_account_key.key_pem:
                         formStash.fatal_field(
                             field="key_pem_existing",
-                            message="This does not match the active account key",
+                            error_field="This does not match the active account key",
                         )
                 is_did_keychange: bool = False
                 try:
@@ -1876,7 +1874,7 @@ class View_Focus_Manipulate(View_Focus):
                     )
                 except errors.ConflictingObject as exc:
                     # args[0] = tuple(conflicting_object, error_message_string)
-                    formStash.fatal_form(message=str(exc.args[0][1]))
+                    formStash.fatal_form(error_main=str(exc.args[0][1]))
 
                 if self.request.wants_json:
                     if not is_did_keychange:
@@ -1901,7 +1899,7 @@ class View_Focus_Manipulate(View_Focus):
             except formhandling.FormInvalid:
                 raise
             except Exception as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}

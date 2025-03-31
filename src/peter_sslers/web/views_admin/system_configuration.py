@@ -232,7 +232,7 @@ class View_Focus(Handler):
                     ],  # undocumented
                 )
             except Exception as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             if self.request.wants_json:
                 return {
@@ -290,7 +290,7 @@ class View_Focus(Handler):
                     ],  # undocumented
                 )
             except Exception as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             if self.request.wants_json:
                 return {

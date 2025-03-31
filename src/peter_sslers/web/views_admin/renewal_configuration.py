@@ -608,7 +608,7 @@ class View_Focus_New(View_Focus):
             except errors.FieldError as exc:
                 raise formStash.fatal_field(
                     field=exc.args[0],
-                    message=exc.args[1],
+                    error_field=exc.args[1],
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -626,7 +626,7 @@ class View_Focus_New(View_Focus):
                 )
             except Exception as exc:
                 raise formStash.fatal_form(
-                    message="%s" % exc,
+                    error_main="%s" % exc,
                 )
             if self.request.wants_json:
                 return {
@@ -796,7 +796,8 @@ class View_Focus_New(View_Focus):
                 label = utils.normalize_unique_text(label)
                 if not utils.validate_label(label):
                     formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
+                        field="label",
+                        error_field="the `label` is not compliant",
                     )
 
             # PRIMARY cert
@@ -945,24 +946,24 @@ class View_Focus_New(View_Focus):
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
                 message = (
                     "This appears to be a duplicate of RenewalConfiguration: `%s`."
                     % exc.args[0].id
                 )
-                formStash.fatal_form(message=message)
+                formStash.fatal_form(error_main=message)
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
                 # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
+                    error_main="Error communicating with the acme-dns server."
                 )
 
             except (
@@ -985,7 +986,7 @@ class View_Focus_New(View_Focus):
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],
-                    message="Unknown acme_profile (%s); not one of: %s."
+                    error_field="Unknown acme_profile (%s); not one of: %s."
                     % (exc.args[1], exc.args[2]),
                 )
 
@@ -1093,7 +1094,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None
@@ -1286,7 +1287,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 label = utils.normalize_unique_text(label)
                 if not utils.validate_label(label):
                     formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
+                        field="label", error_field="the `label` is not compliant"
                     )
 
             # PRIMARY cert
@@ -1432,24 +1433,24 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
                 message = (
                     "This appears to be a duplicate of RenewalConfiguration: `%s`."
                     % exc.args[0].id
                 )
-                formStash.fatal_form(message=message)
+                formStash.fatal_form(error_main=message)
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
                 # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
+                    error_main="Error communicating with the acme-dns server."
                 )
 
             except (
@@ -1472,7 +1473,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],
-                    message="Unknown acme_profile (%s); not one of: %s."
+                    error_field="Unknown acme_profile (%s); not one of: %s."
                     % (exc.args[1], exc.args[2]),
                 )
 
@@ -1592,7 +1593,7 @@ class View_New_Enrollment(Handler):
                     except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
                         formStash.fatal_field(
                             field="domain_name",
-                            message="This domain_name has been blocklisted",
+                            error_field="This domain_name has been blocklisted",
                         )
 
             domain_name = domains_challenged["http-01"][0]
@@ -1644,15 +1645,16 @@ class View_New_Enrollment(Handler):
             # 2: ensure there are domains
             if not domain_names_all:
                 formStash.fatal_field(
-                    field="domain_name", message="did not expand template into domains"
+                    field="domain_name",
+                    error_field="did not expand template into domains",
                 )
 
             # 3: ensure there is no overlap
             domain_names_all_set = set(domain_names_all)
             if len(domain_names_all) != len(domain_names_all_set):
-                formStash.fatal_form(
+                formStash.fatal_field(
                     field="domain_name",
-                    message="a domain name can only be associated to one challenge type",
+                    error_field="a domain name can only be associated to one challenge type",
                 )
 
             # ensure wildcards are only in dns-01
@@ -1663,7 +1665,7 @@ class View_New_Enrollment(Handler):
                     for d in ds:
                         if d[0] == "*":
                             formStash.fatal_form(
-                                message="wildcards (*) MUST use `dns-01`.",
+                                error_main="wildcards (*) MUST use `dns-01`.",
                             )
 
             # see DOMAINS_CHALLENGED_FIELDS
@@ -1671,7 +1673,7 @@ class View_New_Enrollment(Handler):
                 if not self.request.api_context.dbAcmeDnsServer_GlobalDefault:
                     formStash.fatal_field(
                         field="domain_names_dns01",
-                        message="The global acme-dns server is not configured.",
+                        error_field="The global acme-dns server is not configured.",
                     )
 
             #
@@ -1687,7 +1689,8 @@ class View_New_Enrollment(Handler):
                 label = utils.normalize_unique_text(label)
                 if not utils.validate_label(label):
                     formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
+                        field="label",
+                        error_field="the `label` is not compliant",
                     )
 
             is_duplicate_renewal: bool

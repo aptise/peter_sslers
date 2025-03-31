@@ -365,8 +365,11 @@ class ViewAdminApi_Domain(Handler):
             except Exception as exc:
                 if isinstance(exc, errors.UnknownAcmeProfile_Local):
                     _message = "`%s` not in `%s`" % (exc.args[1], exc.args[2])
-                    formStash.fatal_field(field=exc.args[0], message=_message)
-                formStash.fatal_form(message="%s" % exc)
+                    formStash.fatal_field(
+                        field=exc.args[0],
+                        error_field=_message,
+                    )
+                formStash.fatal_form(error_main="%s" % exc)
             return {"result": "success", "domain_results": api_results}
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
@@ -464,7 +467,7 @@ class ViewAdminApi_Domain(Handler):
                     except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
                         formStash.fatal_field(
                             field="domain_name",
-                            message="This domain_name has been blocklisted",
+                            error_field="This domain_name has been blocklisted",
                         )
 
             domain_name = domains_challenged["http-01"][0]
@@ -513,7 +516,7 @@ class ViewAdminApi_Domain(Handler):
                 if dbDomainAutocert:
                     formStash.fatal_field(
                         field="domain_name",
-                        message="There is an active or recent autocert attempt for this domain",
+                        error_field="There is an active or recent autocert attempt for this domain",
                     )
 
             dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
@@ -522,7 +525,7 @@ class ViewAdminApi_Domain(Handler):
             if not dbPrivateKey:
                 formStash.fatal_field(
                     field="PrivateKey",
-                    message="Could not load the placeholder PrivateKey.",
+                    error_field="Could not load the placeholder PrivateKey.",
                 )
 
             try:
@@ -641,7 +644,7 @@ class ViewAdminApi_Domain(Handler):
                 log.critical("autocert - order exception")
                 log.critical(exc)
                 formStash.fatal_form(
-                    message="%s" % exc,
+                    error_main="%s" % exc,
                 )
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
