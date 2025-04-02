@@ -24,6 +24,7 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils as lib_utils
+from ...lib.utils import displayable_exception
 from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
 
@@ -230,17 +231,19 @@ def submit__new(
                     error_field="invalid",
                 )
         private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle__backup
-        )
+        if private_key_cycle__backup:
+            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle__backup
+            )
         private_key_technology__backup = formStash.results[
             "private_key_technology__backup"
         ]
-        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
-            private_key_technology__backup
-        )
-        acme_profile__backup = formStash.results["acme_profile__backup"] or None
+        if private_key_cycle__backup:
+            private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+                private_key_technology__backup
+            )
 
+        acme_profile__backup = formStash.results["acme_profile__backup"] or None
         if dbAcmeAccount_backup:
             if (
                 dbAcmeAccount_primary.acme_server_id
@@ -283,13 +286,14 @@ def submit__new(
             is_export_filesystem_id=is_export_filesystem_id,
         )
 
+        request.api_context.pyramid_transaction_commit()
         return dbEnrollmentFactory
 
     except formhandling.FormInvalid:
         raise
 
     except Exception as exc:
-        formStash.fatal_form(error_main="%s" % exc)
+        formStash.fatal_form(error_main=displayable_exception(exc))
 
 
 def submit__edit(
@@ -357,7 +361,7 @@ def submit__edit(
 
         return result
     except Exception as exc:
-        formStash.fatal_form(error_main=str(exc))
+        formStash.fatal_form(error_main=displayable_exception(exc))
 
 
 class View_List(Handler):

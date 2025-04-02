@@ -89,6 +89,17 @@ def submit__new(
     return dbAcmeDnsServer, _is_created
 
 
+def submit__check(
+    request: "Request",
+    dbAcmeDnsServer: AcmeDnsServer,
+) -> bool:
+    sess = new_BrowserSession()
+    resp = sess.get("%s/health" % dbAcmeDnsServer.api_url)
+    if resp.status_code != 200:
+        raise ValueError("invalid status_code: %s" % resp.status_code)
+    return True
+
+
 def csv_AcmeDnsServerAccounts(
     items_paged: List["AcmeDnsServerAccount"],
 ) -> tempfile.SpooledTemporaryFile:
@@ -324,10 +335,7 @@ class View_Focus(Handler):
 
     def _check__submit(self, dbAcmeDnsServer):
         try:
-            sess = new_BrowserSession()
-            resp = sess.get("%s/health" % dbAcmeDnsServer.api_url)
-            if resp.status_code != 200:
-                raise ValueError("invalid status_code: %s" % resp.status_code)
+            result = submit__check(self.request, dbAcmeDnsServer)  # noqa: F841
             if self.request.wants_json:
                 return {"result": "success", "health": True}
             url_success = "%s?result=success&operation=check" % (self._focus_url,)
