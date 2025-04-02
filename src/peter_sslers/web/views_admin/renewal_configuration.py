@@ -584,7 +584,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
@@ -768,7 +768,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -1058,7 +1058,7 @@ class View_Focus_Manipulate(View_Focus):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -1259,7 +1259,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -1576,7 +1576,7 @@ class View_New_Enrollment(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # this ensures only one domain
             # we'll pretend it's http-01, though that is irreleveant

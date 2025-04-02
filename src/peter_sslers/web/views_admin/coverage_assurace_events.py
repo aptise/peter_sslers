@@ -285,7 +285,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             if action != "resolution":
                 # formvalidation should ensure this already

@@ -1160,7 +1160,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,

@@ -160,7 +160,7 @@ def submit__new(
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     try:
         dbAcmeAccount_primary: Optional["AcmeAccount"] = None
@@ -306,7 +306,7 @@ def submit__edit(
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     # these require some validation
     # nest outside of the try to minimize Exception catching

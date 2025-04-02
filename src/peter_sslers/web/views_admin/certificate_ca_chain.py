@@ -208,7 +208,7 @@ class View_New(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if not isinstance(chain_pem, str):

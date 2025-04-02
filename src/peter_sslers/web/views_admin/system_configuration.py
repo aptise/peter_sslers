@@ -209,7 +209,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             try:
                 result = lib_db.update.update_SystemConfiguration(
@@ -259,7 +259,7 @@ class View_Focus(Handler):
                 self.request, schema=Form_SystemConfiguration_edit, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             try:
                 result = lib_db.update.update_SystemConfiguration(

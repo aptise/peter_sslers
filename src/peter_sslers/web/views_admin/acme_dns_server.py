@@ -63,7 +63,7 @@ def submit__new(
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     (
         dbAcmeDnsServer,
@@ -516,7 +516,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
             if lib_acmedns.pyacmedns is None:
                 formStash.fatal_form(error_main="`pyacmedns` is not installed")
             try:
@@ -700,7 +700,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
             if lib_acmedns.pyacmedns is None:
                 raise formStash.fatal_form(error_main="`pyacmedns` is not installed")
             # ensure we have these domain!
@@ -826,7 +826,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -958,7 +958,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             event_type_id = model_utils.OperationsEventType.from_string(
                 "AcmeDnsServer__edit"

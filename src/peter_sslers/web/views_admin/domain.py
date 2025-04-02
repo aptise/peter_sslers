@@ -286,7 +286,7 @@ class View_Search(Handler):
                 self.request, schema=Form_Domain_search, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domain_name = formStash.results["domain"]
             dbDomain = lib_db.get.get__Domain__by_name(
@@ -355,7 +355,7 @@ class View_New(Handler):
                 self.request, schema=Form_Domain_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
@@ -1353,7 +1353,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # validate the AcmeDnsServer
             dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(

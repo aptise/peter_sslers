@@ -384,7 +384,7 @@ class View_Focus(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # localize form values
             domain_names_add = formStash.results["domain_names_add"]
@@ -532,7 +532,7 @@ class ViewNew(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # localize form values
             domain_names = formStash.results["domain_names"]

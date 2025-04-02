@@ -61,7 +61,7 @@ def submit__new_auth(
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     parser = AcmeAccountUploadParser(formStash)
     parser.require_new(require_contact=None)
@@ -145,7 +145,7 @@ def submit__new_auth(
                 field=formStash.error_main_key,
                 message=str(exc.args[1]),
             )
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
@@ -285,7 +285,7 @@ class View_New(Handler):
                 self.request, schema=Form_AcmeAccount_new__upload, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             parser = AcmeAccountUploadParser(formStash)
             parser.require_upload(require_contact=None, require_technology=False)
@@ -1026,7 +1026,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeAccount_edit, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             event_type = model_utils.OperationsEventType.from_string(
                 "AcmeAccount__edit"
@@ -1472,7 +1472,7 @@ class View_Focus_Manipulate(View_Focus):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -1637,7 +1637,7 @@ class View_Focus_Manipulate(View_Focus):
                     validate_get=False,
                 )
                 if not result:
-                    raise formhandling.FormInvalid(formStash=formStash)
+                    raise formhandling.FormInvalid(formStash)
 
                 if not formStash.results["acme_authorization_id"]:
                     formStash.fatal_form(
@@ -1740,7 +1740,7 @@ class View_Focus_Manipulate(View_Focus):
                     validate_get=False,
                 )
                 if not result:
-                    raise formhandling.FormInvalid(formStash=formStash)
+                    raise formhandling.FormInvalid(formStash)
 
                 # `key_pem` can match the full or md5
                 _key_pem = formStash.results["key_pem"]
@@ -1851,7 +1851,7 @@ class View_Focus_Manipulate(View_Focus):
                     validate_get=False,
                 )
                 if not result:
-                    raise formhandling.FormInvalid(formStash=formStash)
+                    raise formhandling.FormInvalid(formStash)
 
                 # `key_pem` can match the full or md5
                 _key_pem_old = formStash.results["key_pem_existing"]

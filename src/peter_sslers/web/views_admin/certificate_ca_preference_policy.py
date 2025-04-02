@@ -215,7 +215,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # quick validation
             if (
@@ -339,7 +339,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             dbPreference_active = self._get_active_selection(formStash)
 
@@ -422,7 +422,7 @@ class View_Preferred(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             dbPreference_active = self._get_active_selection(formStash)
 
