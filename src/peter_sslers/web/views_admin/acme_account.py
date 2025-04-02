@@ -100,9 +100,8 @@ def submit__new_auth(
         )
 
     except errors.AcmeDuplicateAccount as exc:  # noqa: F841
-        formStash.fatal_field(
-            field="Error_Main",
-            error_field="AcmeDuplicateAccount condition was detected.",
+        formStash.fatal_form(
+            error_main="AcmeDuplicateAccount condition was detected.",
         )
         ## this happens via `do__AcmeV2_AcmeAccount_register`
         ## args[0] MUST be the duplicate AcmeAccount
@@ -344,14 +343,12 @@ class View_New(Handler):
                 # this happens via `getcreate__AcmeAccount`
                 # * args[0] = tuple(conflicting_object, error_message_string)
                 # _dbAcmeAccountDuplicate = exc.args[0][0]
-                formStash.fatal_field(
-                    field="Error_Main",
-                    error_field=exc.args[0][1],
+                formStash.fatal_form(
+                    error_main=exc.args[0][1],
                 )
             except errors.AcmeDuplicateAccount as exc:  # noqa: F841
-                formStash.fatal_field(
-                    field="Error_Main",
-                    error_field="AcmeDuplicateAccount condition was detected.",
+                formStash.fatal_form(
+                    error_main="AcmeDuplicateAccount condition was detected.",
                 )
 
             if TYPE_CHECKING:
