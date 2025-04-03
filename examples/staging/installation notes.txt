@@ -1,0 +1,48 @@
+
+
+
+initialize_peter_sslers_db conf/example_development.ini
+mkdir _data_
+touch _data_/nginx_ca_bundle.pem
+
+ssl_manage conf/example_development.ini acme-account list
+ssl_manage conf/example_development.ini acme-server list
+
+ssl_manage conf/example_development.ini acme-account new help=1
+ssl_manage conf/example_development.ini acme-account new acme_server_id=1 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="b@2xlp.com"
+
+ssl_manage conf/example_development.ini enrollment-factory list
+ssl_manage conf/example_development.ini enrollment-factory new help=1
+ssl_manage conf/example_development.ini enrollment-factory new acme_account_id__primary=4 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
+
+# there should be an error like this:
+#  'domain_template_dns01': 'The global acme-dns server is not configured.'}
+# we need to set up acme-dns!
+
+ssl_manage conf/example_development.ini acme-dns-server list
+ssl_manage conf/example_development.ini acme-dns-server new help=1
+ssl_manage conf/example_development.ini acme-dns-server new api_url="http://127.0.0.1:8011" domain="auth.2xlp.com"
+ssl_manage conf/example_development.ini acme-dns-server list
+ssl_manage conf/example_development.ini acme-dns-server check id=1
+
+ssl_manage conf/example_development.ini enrollment-factory new acme_account_id__primary=4 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
+ssl_manage conf/example_development.ini enrollment-factory list
+
+ssl_manage conf/example_development.ini renewal-configuration list
+ssl_manage conf/example_development.ini renewal-configuration new-enrollment help=1
+
+ssl_manage conf/example_development.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="a.peter-sslers.testing.opensource.aptise.com"
+ssl_manage conf/example_development.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
+ssl_manage conf/example_development.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="c.peter-sslers.testing.opensource.aptise.com"
+ssl_manage conf/example_development.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
+
+acme_dns_audit conf/example_development.ini format=json
+
+# export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
+
+python tools/acme_dns_audit-process_cloudflare.py acme_dns_audit-accounts.json
+
+
+
+
+
