@@ -9,7 +9,8 @@
 
     cd peter_sslers
     cd examples/staging
-    python _generate.py
+    python _cloudflare_a_records.py
+    python _generate_openresty.py
 
     cd /var/www/sites
     sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
@@ -26,7 +27,18 @@
 
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
 
+## test nginx
 
+    sudo openresty -t
+
+## restart nginx
+
+    ps aux | grep openresty
+    kill -HUP ##PID##
+    
+## check page
+
+    https://peter-sslers.testing.opensource.aptise.com/
 
 
 

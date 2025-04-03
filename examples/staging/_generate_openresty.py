@@ -9,25 +9,31 @@ import os
 
 DOMAIN_CONF__CONTENTS = """\
 server {
-    listen       80;
+    listen  80;
     server_name  dns-01.%(letter)s.peter-sslers.testing.opensource.aptise.com;
-    include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/acme-public.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/acme-public.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example.conf;
+    return 301 https://$host$request_uri;
 }
 server {
-    listen       80;
+    listen  80;
     server_name  http-01.%(letter)s.peter-sslers.testing.opensource.aptise.com;
-    include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/acme-public.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/acme-public.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example.conf;
+    return 301 https://$host$request_uri;
 }
 server {
     listen  443;
     server_name  dns-01.%(letter)s.peter-sslers.testing.opensource.aptise.com ssl;
-    include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
+    include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
     root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/%(letter)s/dns-01;
 }
 server {
     listen  443;
     server_name  http-01.%(letter)s.peter-sslers.testing.opensource.aptise.com ssl;
-    include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
+    include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
     root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/%(letter)s/http-01;
 }
 """
