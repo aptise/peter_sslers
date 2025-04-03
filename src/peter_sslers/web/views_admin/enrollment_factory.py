@@ -11,6 +11,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import formhandling
@@ -21,7 +22,9 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import utils as lib_utils
+from ...lib.utils import displayable_exception
 from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
 
@@ -84,16 +87,16 @@ def validate_formstash_domain_templates(
     if domain_template_http01:
         domain_template_http01, _err = validate_domains_template(domain_template_http01)
         if not domain_template_http01:
-            formStash.fatal_field(field="domain_template_http01", message=_err)
+            formStash.fatal_field(field="domain_template_http01", error_field=_err)
     domain_template_dns01 = formStash.results["domain_template_dns01"]
     if domain_template_dns01:
         domain_template_dns01, _err = validate_domains_template(domain_template_dns01)
         if not domain_template_dns01:
-            formStash.fatal_field(field="domain_template_dns01", message=_err)
+            formStash.fatal_field(field="domain_template_dns01", error_field=_err)
     if not any((domain_template_http01, domain_template_dns01)):
         _error = "Domains HTTP-01 or DNS-01 MUST be specified"
-        formStash.fatal_field(field="domain_template_http01", message=_error)
-        formStash.fatal_field(field="domain_template_dns01", message=_error)
+        formStash.fatal_field(field="domain_template_http01", error_field=_error)
+        formStash.fatal_field(field="domain_template_dns01", error_field=_error)
 
     # now we test these...
     domains_challenged = model_utils.DomainsChallenged()
@@ -118,12 +121,12 @@ def validate_formstash_domain_templates(
             domains_challenged["http-01"] = domain_names
     # 2: ensure there are domains
     if not domain_names_all:
-        formStash.fatal_form(message="templates did not expand to domains")
+        formStash.fatal_form(error_main="templates did not expand to domains")
     # 3: ensure there is no overlap
     domain_names_all_set = set(domain_names_all)
     if len(domain_names_all) != len(domain_names_all_set):
         formStash.fatal_form(
-            message="a domain name can only be associated to one challenge type",
+            error_main="a domain name can only be associated to one challenge type",
         )
 
     for chall, ds in domains_challenged.items():
@@ -133,19 +136,24 @@ def validate_formstash_domain_templates(
             for d in ds:
                 if d[0] == "*":
                     formStash.fatal_form(
-                        message="wildcards (*) MUST use `dns-01`.",
+                        error_main="wildcards (*) MUST use `dns-01`.",
                     )
     if domains_challenged["dns-01"]:
         if not dbAcmeDnsServer_GlobalDefault:
             formStash.fatal_field(
                 field="domain_template_dns01",
-                message="The global acme-dns server is not configured.",
+                error_field="The global acme-dns server is not configured.",
             )
 
     return domain_template_http01, domain_template_dns01
 
 
-def submit__new(request: "Request") -> EnrollmentFactory:
+def submit__new(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> EnrollmentFactory:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
 
     (result, formStash) = formhandling.form_validate(
         request,
@@ -153,7 +161,7 @@ def submit__new(request: "Request") -> EnrollmentFactory:
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     try:
         dbAcmeAccount_primary: Optional["AcmeAccount"] = None
@@ -177,7 +185,7 @@ def submit__new(request: "Request") -> EnrollmentFactory:
         if existingEnrollmentFactory:
             formStash.fatal_field(
                 field="name",
-                message="An EnrollmentFactory already exists with this name.",
+                error_field="An EnrollmentFactory already exists with this name.",
             )
 
         (domain_template_http01, domain_template_dns01) = (
@@ -193,7 +201,9 @@ def submit__new(request: "Request") -> EnrollmentFactory:
             request.api_context, acme_account_id__primary
         )
         if not dbAcmeAccount_primary:
-            formStash.fatal_field(field="acme_account_id__primary", message="invalid")
+            formStash.fatal_field(
+                field="acme_account_id__primary", error_field="invalid"
+            )
         if TYPE_CHECKING:
             assert dbAcmeAccount_primary
 
@@ -217,27 +227,30 @@ def submit__new(request: "Request") -> EnrollmentFactory:
             )
             if not dbAcmeAccount_backup:
                 formStash.fatal_field(
-                    field="acme_account_id__backup", message="invalid"
+                    field="acme_account_id__backup",
+                    error_field="invalid",
                 )
         private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle__backup
-        )
+        if private_key_cycle__backup:
+            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle__backup
+            )
         private_key_technology__backup = formStash.results[
             "private_key_technology__backup"
         ]
-        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
-            private_key_technology__backup
-        )
-        acme_profile__backup = formStash.results["acme_profile__backup"] or None
+        if private_key_cycle__backup:
+            private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+                private_key_technology__backup
+            )
 
+        acme_profile__backup = formStash.results["acme_profile__backup"] or None
         if dbAcmeAccount_backup:
             if (
                 dbAcmeAccount_primary.acme_server_id
                 == dbAcmeAccount_backup.acme_server_id
             ):
                 formStash.fatal_form(
-                    message="Primary and Backup must be on different ACME servers"
+                    error_main="Primary and Backup must be on different ACME servers"
                 )
         else:
             private_key_cycle_id__backup = None
@@ -248,7 +261,7 @@ def submit__new(request: "Request") -> EnrollmentFactory:
         if label_template:
             _valid, _err = validate_label_template(label_template)
             if not _valid:
-                formStash.fatal_field(field="label_template", message=_err)
+                formStash.fatal_field(field="label_template", error_field=_err)
 
         # make it
 
@@ -273,16 +286,23 @@ def submit__new(request: "Request") -> EnrollmentFactory:
             is_export_filesystem_id=is_export_filesystem_id,
         )
 
+        request.api_context.pyramid_transaction_commit()
         return dbEnrollmentFactory
 
     except formhandling.FormInvalid:
         raise
 
     except Exception as exc:
-        formStash.fatal_form(message="%s" % exc)
+        formStash.fatal_form(error_main=displayable_exception(exc))
 
 
-def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> bool:
+def submit__edit(
+    request: "Request",
+    dbEnrollmentFactory: EnrollmentFactory,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> bool:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
 
     (result, formStash) = formhandling.form_validate(
         request,
@@ -290,7 +310,7 @@ def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> 
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     # these require some validation
     # nest outside of the try to minimize Exception catching
@@ -304,7 +324,7 @@ def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> 
     if label_template:
         _valid, _err = validate_label_template(label_template)
         if not _valid:
-            formStash.fatal_field(field="label_template", message=_err)
+            formStash.fatal_field(field="label_template", error_field=_err)
 
     try:
 
@@ -341,7 +361,7 @@ def submit__edit(request: "Request", dbEnrollmentFactory: EnrollmentFactory) -> 
 
         return result
     except Exception as exc:
-        formStash.fatal_form(message=str(exc))
+        formStash.fatal_form(error_main=displayable_exception(exc))
 
 
 class View_List(Handler):
@@ -500,7 +520,6 @@ class View_Focus(Handler):
         }
     )
     def edit(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         dbEnrollmentFactory = self._focus()  # noqa: F841
         if self.request.method == "POST":
             return self._edit__submit()
@@ -537,7 +556,11 @@ class View_Focus(Handler):
     def _edit__submit(self):
         assert self.dbEnrollmentFactory is not None
         try:
-            result = submit__edit(self.request, self.dbEnrollmentFactory)  # noqa: F841
+            result = submit__edit(  # noqa: F841
+                self.request,
+                self.dbEnrollmentFactory,
+                acknowledge_transaction_commits=True,
+            )
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -698,7 +721,6 @@ class View_New(Handler):
         }
     )
     def new(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
         # quick setup, we need a bunch of options for dropdowns...
         self.dbAcmeAccounts_all = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context,
@@ -724,7 +746,9 @@ class View_New(Handler):
         """ """
         try:
 
-            dbEnrollmentFactory = submit__new(self.request)
+            dbEnrollmentFactory = submit__new(
+                self.request, acknowledge_transaction_commits=True
+            )
 
             if self.request.wants_json:
                 return {

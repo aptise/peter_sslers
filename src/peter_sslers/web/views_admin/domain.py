@@ -286,7 +286,7 @@ class View_Search(Handler):
                 self.request, schema=Form_Domain_search, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domain_name = formStash.results["domain"]
             dbDomain = lib_db.get.get__Domain__by_name(
@@ -355,7 +355,7 @@ class View_New(Handler):
                 self.request, schema=Form_Domain_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
@@ -1353,7 +1353,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             # validate the AcmeDnsServer
             dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
@@ -1361,13 +1361,15 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             )
             if not dbAcmeDnsServer:
                 formStash.fatal_field(
-                    field="acme_dns_server_id", message="Invalid AcmeDnsServer."
+                    field="acme_dns_server_id",
+                    error_field="Invalid AcmeDnsServer.",
                 )
             if TYPE_CHECKING:
                 assert dbAcmeDnsServer is not None
             if not dbAcmeDnsServer.is_active:
                 formStash.fatal_field(
-                    field="acme_dns_server_id", message="Inactive AcmeDnsServer."
+                    field="acme_dns_server_id",
+                    error_field="Inactive AcmeDnsServer.",
                 )
 
             # In order to keep things simple, enforce two restrictions:
@@ -1386,7 +1388,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             if dbAcmeDnsServerAccount:
                 formStash.fatal_field(
                     field="acme_dns_server_id",
-                    message="Existing record for this AcmeDnsServer.",
+                    error_field="Existing record for this AcmeDnsServer.",
                 )
 
             # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
@@ -1396,7 +1398,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             if dbAcmeDnsServerAccount:
                 formStash.fatal_field(
                     field="acme_dns_server_id",
-                    message="Existing record for this Domain on another AcmeDnsServer.",
+                    error_field="Existing record for this Domain on another AcmeDnsServer.",
                 )
 
             # wonderful! now we need to "register" against acme-dns
@@ -1407,7 +1409,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
             except Exception as exc:  # noqa: F841
                 # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
+                    error_main="Error communicating with the acme-dns server."
                 )
 
             dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(

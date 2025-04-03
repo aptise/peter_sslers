@@ -1534,7 +1534,7 @@ def getcreate__UniqueFQDNSet__by_domains(
     ctx: "ApiContext",
     domain_names: List[str],
     discovery_type: Optional[str] = None,
-    allow_blocklisted_domains: Optional[bool] = False,
+    allow_blocklisted_domains: bool = False,
 ) -> Tuple["UniqueFQDNSet", bool]:
     """
     getcreate wrapping unique fqdn
@@ -1545,7 +1545,7 @@ def getcreate__UniqueFQDNSet__by_domains(
     :param allow_blocklisted_domains: boolean, default `False`. If `True`, disables check against domains blocklist
 
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
-    :raises: `errors.AcmeDomainsBlocklisted`
+    :raises: `errors.AcmeDomainsBlocklisted`, `errors.AcmeDomainsInvalid`
     """
     # we should have cleaned this up before submitting, but just be safe!
     domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -1553,10 +1553,11 @@ def getcreate__UniqueFQDNSet__by_domains(
     if not domain_names:
         raise ValueError("no domain names!")
 
-    if not allow_blocklisted_domains:
-        # ensure they are not blocklisted:
-        # this may raise errors.AcmeDomainsBlocklisted
-        validate_domain_names(ctx, domain_names)
+    # ensure they are not blocklisted:
+    # this may raise errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid
+    validate_domain_names(
+        ctx, domain_names, allow_blocklisted_domains=allow_blocklisted_domains
+    )
 
     # ensure the domains are registered into our system
     domain_objects = {

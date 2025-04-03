@@ -14,6 +14,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.response import Response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import formhandling
@@ -45,7 +46,10 @@ if TYPE_CHECKING:
 def submit__new(
     request: "Request",
     count_servers: Optional[int] = None,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[AcmeDnsServer, bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     if count_servers is None:
         _mode = request.api_context.application_settings["acme_dns_support"]
         if _mode != "experimental":
@@ -59,7 +63,7 @@ def submit__new(
         validate_get=False,
     )
     if not result:
-        raise formhandling.FormInvalid(formStash=formStash)
+        raise formhandling.FormInvalid(formStash)
 
     (
         dbAcmeDnsServer,
@@ -80,7 +84,20 @@ def submit__new(
             ) = lib_db.update.update_AcmeDnsServer__set_global_default(
                 request.api_context, dbAcmeDnsServer
             )
+
+    request.api_context.pyramid_transaction_commit()
     return dbAcmeDnsServer, _is_created
+
+
+def submit__check(
+    request: "Request",
+    dbAcmeDnsServer: AcmeDnsServer,
+) -> bool:
+    sess = new_BrowserSession()
+    resp = sess.get("%s/health" % dbAcmeDnsServer.api_url)
+    if resp.status_code != 200:
+        raise ValueError("invalid status_code: %s" % resp.status_code)
+    return True
 
 
 def csv_AcmeDnsServerAccounts(
@@ -221,7 +238,9 @@ class View_New(Handler):
     def _new__submit(self):
         try:
             (dbAcmeDnsServer, _is_created) = submit__new(
-                self.request, count_servers=self._count_servers
+                self.request,
+                count_servers=self._count_servers,
+                acknowledge_transaction_commits=True,
             )
 
             if self.request.wants_json:
@@ -316,10 +335,7 @@ class View_Focus(Handler):
 
     def _check__submit(self, dbAcmeDnsServer):
         try:
-            sess = new_BrowserSession()
-            resp = sess.get("%s/health" % dbAcmeDnsServer.api_url)
-            if resp.status_code != 200:
-                raise ValueError("invalid status_code: %s" % resp.status_code)
+            result = submit__check(self.request, dbAcmeDnsServer)  # noqa: F841
             if self.request.wants_json:
                 return {"result": "success", "health": True}
             url_success = "%s?result=success&operation=check" % (self._focus_url,)
@@ -502,16 +518,15 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            if lib_acmedns.pyacmedns is None:
-                raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_ensure_domains,
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
-
+                raise formhandling.FormInvalid(formStash)
+            if lib_acmedns.pyacmedns is None:
+                formStash.fatal_form(error_main="`pyacmedns` is not installed")
             try:
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
@@ -520,17 +535,18 @@ class View_Focus(Handler):
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
+                    field="domain_names",
+                    error_field="invalid domain names detected",
                 )
             if not domain_names:
                 formStash.fatal_field(
                     field="domain_names",
-                    message="invalid or no valid domain names detected",
+                    error_field="invalid or no valid domain names detected",
                 )
             if len(domain_names) > 100:
                 formStash.fatal_field(
                     field="domain_names",
-                    message="More than 100 domain names. There is a max of 100 domains per certificate.",
+                    error_field="More than 100 domain names. There is a max of 100 domains per certificate.",
                 )
 
             # Tuple[TYPE_DomainName_2_DomainObject, TYPE_DomainName_2_AcmeDnsServerAccount]
@@ -548,9 +564,8 @@ class View_Focus(Handler):
                     )
                 )
             except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server.",
+                    error_main="Error communicating with the acme-dns server.",
                 )
 
             if self.request.wants_json:
@@ -686,16 +701,15 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            if lib_acmedns.pyacmedns is None:
-                raise formhandling.FormInvalid("`pyacmedns` is not installed")
             (result, formStash) = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_import_domain,
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid()
-
+                raise formhandling.FormInvalid(formStash)
+            if lib_acmedns.pyacmedns is None:
+                raise formStash.fatal_form(error_main="`pyacmedns` is not installed")
             # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
                 try:
@@ -706,17 +720,18 @@ class View_Focus(Handler):
                     )
                 except ValueError as exc:  # noqa: F841
                     formStash.fatal_field(
-                        field=test_domain, message="invalid domain names detected"
+                        field=test_domain,
+                        error_field="invalid domain names detected",
                     )
                 if not _domain_names:
                     formStash.fatal_field(
                         field=test_domain,
-                        message="invalid or no valid domain names detected",
+                        error_field="invalid or no valid domain names detected",
                     )
                 if len(_domain_names) != 1:
                     formStash.fatal_field(
                         field=test_domain,
-                        message="Only 1 domain accepted here.",
+                        error_field="Only 1 domain accepted here.",
                     )
             # grab our domain
             domain_name = formStash.results["domain_name"]
@@ -818,7 +833,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -857,8 +872,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None
@@ -951,7 +965,7 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash)
 
             event_type_id = model_utils.OperationsEventType.from_string(
                 "AcmeDnsServer__edit"
@@ -971,7 +985,6 @@ class View_Focus_Manipulate(View_Focus):
                     domain=formStash.results["domain"],
                 )
             except errors.InvalidTransition as exc:
-                # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeDnsServer])

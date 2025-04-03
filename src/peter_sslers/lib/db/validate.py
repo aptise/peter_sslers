@@ -3,6 +3,9 @@ import logging
 from typing import Iterable
 from typing import TYPE_CHECKING
 
+# pypi
+import tldextract
+
 # localapp
 from .get import get__AcmeDnsServerAccount__by_DomainId
 from .get import get__Domain__by_name
@@ -22,16 +25,26 @@ log = logging.getLogger(__name__)
 def validate_domain_names(
     ctx: "ApiContext",
     domain_names: Iterable[str],
+    allow_blocklisted_domains: bool = False,
 ) -> bool:
-    # check for blocklists here
+    # check for invalid and blocklists here
     # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-    _blocklisted_domain_names = []
+    _invalid_domain_names = []
     for _domain_name in domain_names:
-        _dbDomainBlocklisted = get__DomainBlocklisted__by_name(ctx, _domain_name)
-        if _dbDomainBlocklisted:
-            _blocklisted_domain_names.append(_domain_name)
-    if _blocklisted_domain_names:
-        raise errors.AcmeDomainsBlocklisted(_blocklisted_domain_names)
+        if not tldextract.extract(_domain_name).suffix:
+            _invalid_domain_names.append(_domain_name)
+    if _invalid_domain_names:
+        raise errors.AcmeDomainsInvalid(_invalid_domain_names)
+
+    if not allow_blocklisted_domains:
+        _blocklisted_domain_names = []
+        for _domain_name in domain_names:
+            _dbDomainBlocklisted = get__DomainBlocklisted__by_name(ctx, _domain_name)
+            if _dbDomainBlocklisted:
+                _blocklisted_domain_names.append(_domain_name)
+        if _blocklisted_domain_names:
+            raise errors.AcmeDomainsBlocklisted(_blocklisted_domain_names)
+
     return True
 
 

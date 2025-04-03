@@ -3754,6 +3754,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @property
+    def registered_domain(self):
+        return "%s.%s" % (self.registered, self.suffix)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     acme_authorizations = sa_orm_relationship(
         "AcmeAuthorization",
         primaryjoin="Domain.id==AcmeAuthorization.domain_id",

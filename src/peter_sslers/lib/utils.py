@@ -378,3 +378,10 @@ def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiCo
     ctx.request.api_context = ctx
 
     return ctx
+
+
+def displayable_exception(exc: Exception) -> str:
+    _error = "%s" % exc
+    if _error in ("", "None"):
+        _error = "%s=%s" % (exc.__class__, _error)
+    return _error

@@ -735,7 +735,10 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert "form_errors" in res2.json
         assert isinstance(res2.json["form_errors"], dict)
         assert len(res2.json["form_errors"]) == 1
-        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         # edit nothing
         form["name"] = focus_item.name or ""
@@ -1758,7 +1761,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res3.json["result"] == "error"
             assert "form_errors" in res3.json
-            assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res3.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             res4 = self.testapp.post(
                 "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
@@ -1791,7 +1797,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res3.json["result"] == "error"
             assert "form_errors" in res3.json
-            assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res3.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             res4 = self.testapp.post(
                 "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
@@ -1824,7 +1833,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res3.json["result"] == "error"
             assert "form_errors" in res3.json
-            assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res3.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             res4 = self.testapp.post(
                 "/.well-known/peter_sslers/acme-dns-server/%s/mark.json" % _item_id,
@@ -1858,7 +1870,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res3.json["result"] == "error"
             assert "form_errors" in res3.json
-            assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res3.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             if not expect_failure_nochange:
                 res4 = self.testapp.post(
@@ -1902,7 +1917,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res.json["result"] == "error"
             assert "form_errors" in res.json
-            assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             _payload = {
                 "domain_names": TEST_FILES["Domains"]["AcmeDnsServer"]["1"][
@@ -1950,7 +1968,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             )
             assert res.json["result"] == "error"
             assert "form_errors" in res.json
-            assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+            assert (
+                res.json["form_errors"]["Error_Main"]
+                == "There was an error with your form. Nothing submitted."
+            )
 
             res = self.testapp.post(
                 "/.well-known/peter_sslers/acme-dns-server/%s/import-domain.json"
@@ -2132,7 +2153,10 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         _payload = {
             "api_url": TEST_FILES["AcmeDnsServer"]["4"]["api_url"],
@@ -3364,7 +3388,10 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         # GET/POST add
         res = self.testapp.get(
@@ -3381,7 +3408,10 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         # GET/POST delete
         res = self.testapp.get(
@@ -3398,7 +3428,10 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         # some failures are expected
 
@@ -4848,7 +4881,10 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         )
         assert res3.json["result"] == "error"
         assert "form_errors" in res3.json
-        assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res3.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         _payload = {"action": "resolution", "resolution": resolution}
         res4 = self.testapp.post(
@@ -5455,7 +5491,10 @@ class FunctionalTests_Domain(AppTest):
         )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         _payload = {
             "domain_name": TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"][
@@ -5497,7 +5536,10 @@ class FunctionalTests_Domain(AppTest):
         )
         assert res5.json["result"] == "error"
         assert "form_errors" in res5.json
-        assert res5.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res5.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         _payload = {
             "acme_dns_server_id": 1,
@@ -8496,7 +8538,10 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "form_errors" in res2.json
         assert isinstance(res2.json["form_errors"], dict)
         assert len(res2.json["form_errors"]) == 1
-        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         form = {
             "acme_server_id": 1,
@@ -8787,7 +8832,10 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             form,
         )
         assert res2.json["result"] == "error"
-        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         form["key_pem"] = "foo"
         res3 = self.testapp.post(
@@ -8864,7 +8912,10 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
             form,
         )
         assert res2.json["result"] == "error"
-        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
 
         form["key_pem_existing"] = "foo"
         res3 = self.testapp.post(
@@ -11196,7 +11247,10 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "result" in res.json
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
-        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Nothing submitted."
+        )
         assert res.json["Domain"] is None
         assert res.json["certificate_signed__latest_single"] is None
         assert res.json["certificate_signed__latest_multi"] is None
@@ -11806,7 +11860,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
         #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(rc__pkey_cycle)
         #    dbRenewalConfiguration.private_key_technology_id = model_utils.KeyTechnology.from_string(rc__pkey_technology)
-        #    self.ctx.dbSession.commit()
+        #    self.ctx.pyramid_transaction_commit()
 
         def _new_AcmeOrder(
             dbRenewalConfiguration: model_objects.RenewalConfiguration,
@@ -12312,7 +12366,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _directoryJson["peterSSLersTesting"] += 1
             dbAcmeServer.directory_latest.directory = json.dumps(_directoryJson)
             self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
-            self.ctx.dbSession.commit()
+            self.ctx.pyramid_transaction_commit()
 
             acme_account_update(_acme_account_id__primary)
 

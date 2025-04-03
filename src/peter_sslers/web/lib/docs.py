@@ -137,7 +137,7 @@ def formatted_get_docs(view_instance, endpoint):
 
                 # !!! Required- global
                 dbSystemConfiguration_global = (
-                    view_instance.request.api_context._load_SystemConfiguration_global()
+                    view_instance.request.api_context.dbSystemConfiguration_global
                 )
                 if dbSystemConfiguration_global:
                     docs["valid_options"]["SystemConfigurations"][

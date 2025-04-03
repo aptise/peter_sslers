@@ -413,7 +413,7 @@ class View_New(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             cert_pem = formhandling.slurp_file_field(formStash, "cert_file")
             if not isinstance(cert_pem, str):

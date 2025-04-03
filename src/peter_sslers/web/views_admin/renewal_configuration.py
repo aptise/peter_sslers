@@ -1,6 +1,7 @@
 # stdlib
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # from typing import Dict
@@ -11,6 +12,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import form_utils as form_utils
@@ -33,10 +35,402 @@ from ...model.objects import AcmeOrder
 from ...model.objects import RenewalConfiguration
 
 if TYPE_CHECKING:
+    from pyramid_formencode_classic import FormStash
+    from pyramid.request import Request
     from ...model.objects import CertificateSigned
     from ...model.objects import EnrollmentFactory
+    from ...model.utils import DomainsChallenged
 
 # ==============================================================================
+
+
+def prep__domains_challenged__dns01(
+    request: "Request",
+    formStash: "FormStash",
+    domains_challenged: "DomainsChallenged",
+) -> List[str]:
+    domains_all = []
+    # check for blocklists here
+    # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
+    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+    for challenge_, domains_ in domains_challenged.items():
+        if domains_:
+            lib_db.validate.validate_domain_names(request.api_context, domains_)
+            if challenge_ == "dns-01":
+                # check to ensure the domains are configured for dns-01
+                # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                try:
+                    lib_db.validate.ensure_domains_dns01(request.api_context, domains_)
+                except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
+                    # in "experimental" mode, we may want to use specific
+                    # acme-dns servers and not the global one
+                    if (
+                        request.api_context.application_settings["acme_dns_support"]
+                        == "experimental"
+                    ):
+                        raise
+                    # in "basic" mode we can just associate these to the global option
+                    if not request.api_context.dbAcmeDnsServer_GlobalDefault:
+                        formStash.fatal_field(
+                            "domain_names_dns01",
+                            "No global acme-dns server configured.",
+                        )
+                    if TYPE_CHECKING:
+                        assert (
+                            request.api_context.dbAcmeDnsServer_GlobalDefault
+                            is not None
+                        )
+                    # exc.args[0] will be the listing of domains
+                    (domainObjects, adnsAccountObjects) = (
+                        lib_db.associate.ensure_domain_names_to_acmeDnsServer(
+                            request.api_context,
+                            exc.args[0],
+                            request.api_context.dbAcmeDnsServer_GlobalDefault,
+                            discovery_type="via renewal_configuration.new",
+                        )
+                    )
+            domains_all.extend(domains_)
+    return domains_all
+
+
+def submit__new(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[RenewalConfiguration, bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_RenewalConfig_new,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    domains_challenged = form_utils.form_domains_challenge_typed(
+        request,
+        formStash,
+        dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+    )
+
+    acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
+        request,
+        formStash,
+        require_contact=False,
+        support_upload=False,
+    )
+    assert acmeAccountSelection.AcmeAccount is not None
+
+    acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
+        request,
+        formStash,
+    )
+
+    # shared
+    note = formStash.results["note"]
+    label = formStash.results["label"]
+    if label:
+        label = utils.normalize_unique_text(label)
+        if not utils.validate_label(label):
+            formStash.fatal_field(
+                field="label", error_field="the `label` is not compliant"
+            )
+
+    # PRIMARY cert
+    private_key_technology__primary = formStash.results[
+        "private_key_technology__primary"
+    ]
+    private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
+        private_key_technology__primary
+    )
+    private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    acme_profile__primary = formStash.results["acme_profile__primary"]
+
+    # BACKUP cert
+    private_key_technology__backup = formStash.results["private_key_technology__backup"]
+    private_key_technology_id__backup = None
+    if private_key_technology__backup:
+        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+            private_key_technology__backup
+        )
+    private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
+    private_key_cycle_id__backup = None
+    if private_key_cycle__backup:
+        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__backup
+        )
+    acme_profile__backup = formStash.results["acme_profile__backup"]
+
+    is_export_filesystem = formStash.results["is_export_filesystem"]
+    is_export_filesystem_id = model_utils.OptionsOnOff.from_string(is_export_filesystem)
+
+    if not acmeAccountSelection_backup.AcmeAccount:
+        private_key_cycle_id__backup = None
+        private_key_technology_id__backup = None
+        acme_profile__backup = None
+
+    try:
+        domains_all = prep__domains_challenged__dns01(  # noqa: F841
+            request,
+            formStash=formStash,
+            domains_challenged=domains_challenged,
+        )
+
+        # create the configuration
+        # this will create:
+        # * model_utils.RenewableConfig
+        # * model_utils.UniquelyChallengedFQDNSet2Domain
+        # * model_utils.UniqueFQDNSet
+        is_duplicate_renewal = False
+        try:
+            dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                request.api_context,
+                domains_challenged=domains_challenged,
+                # PRIMARY cert
+                dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
+                private_key_technology_id__primary=private_key_technology_id__primary,
+                private_key_cycle_id__primary=private_key_cycle_id__primary,
+                acme_profile__primary=acme_profile__primary,
+                # BACKUP cert
+                dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
+                private_key_technology_id__backup=private_key_technology_id__backup,
+                private_key_cycle_id__backup=private_key_cycle_id__backup,
+                acme_profile__backup=acme_profile__backup,
+                # misc
+                note=note,
+                label=label,
+                is_export_filesystem_id=is_export_filesystem_id,
+            )
+        except errors.DuplicateRenewalConfiguration as exc:
+            is_duplicate_renewal = True
+            # we could raise exc to abort, but this is likely preferred
+            dbRenewalConfiguration = exc.args[0]
+
+        return dbRenewalConfiguration, is_duplicate_renewal
+
+    except (
+        errors.AcmeDomainsInvalid,
+        errors.AcmeDomainsBlocklisted,
+        errors.AcmeDomainsRequireConfigurationAcmeDNS,
+    ) as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except (errors.DuplicateRenewalConfiguration,) as exc:
+        message = (
+            "This appears to be a duplicate of RenewalConfiguration: `%s`."
+            % exc.args[0].id
+        )
+        formStash.fatal_form(error_main=message)
+
+    except errors.AcmeDuplicateChallenges as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except errors.AcmeDnsServerError as exc:  # noqa: F841
+        formStash.fatal_form(error_main="Error communicating with the acme-dns server.")
+
+    except (
+        errors.AcmeError,
+        errors.InvalidRequest,
+    ) as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except errors.UnknownAcmeProfile_Local as exc:
+        # exc.args: var(matches field), submitted, allowed
+        formStash.fatal_field(
+            field=exc.args[0],
+            error_field="Unknown acme_profile (%s); not one of: %s."
+            % (exc.args[1], exc.args[2]),
+        )
+
+
+def submit__new_enrollment(
+    request: "Request",
+    dbEnrollmentFactory: "EnrollmentFactory",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[RenewalConfiguration, bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+    assert dbEnrollmentFactory
+
+    dbRenewalConfiguration: "RenewalConfiguration"
+    is_duplicate_renewal: bool
+
+    try:
+        (result, formStash) = formhandling.form_validate(
+            request,
+            schema=Form_RenewalConfig_new_enrollment,
+            validate_get=False,
+        )
+        if not result:
+            raise formhandling.FormInvalid(formStash)
+
+        # note: step 1 - analyze the "submitted" domain
+        # this ensures only one domain
+        # we'll pretend it's http-01, though that is irreleveant
+        domains_challenged = form_utils.form_single_domain_challenge_typed(
+            request, formStash, challenge_type="http-01"
+        )
+        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+        for challenge_, domains_ in domains_challenged.items():
+            if domains_:
+                try:
+                    lib_db.validate.validate_domain_names(request.api_context, domains_)
+                except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
+                    formStash.fatal_field(
+                        field="domain_name",
+                        error_field="This domain_name has been blocklisted",
+                    )
+                except errors.AcmeDomainsInvalid as exc:  # noqa: F841
+                    formStash.fatal_field(
+                        field="domain_name",
+                        error_field="This domain_name is invalid",
+                    )
+
+        domain_name = domains_challenged["http-01"][0]
+        reverse_domain_name = utils.reverse_domain_name(domain_name)
+
+        # does the domain exist?
+        # we should check to see if it does and has certs
+        dbDomain = lib_db.get.get__Domain__by_name(
+            request.api_context,
+            domain_name,
+        )
+        if not dbDomain:
+            # we need to start with a domain name
+            (dbDomain, _is_created) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                request.api_context,
+                domain_name,
+                discovery_type="enrollment-factory",
+            )
+            request.api_context.pyramid_transaction_commit()
+
+        domains_challenged = model_utils.DomainsChallenged()
+        domain_names_all = []
+
+        if dbEnrollmentFactory.domain_template_dns01:
+            templated_domains = dbEnrollmentFactory.domain_template_dns01.replace(
+                "{DOMAIN}", domain_name
+            ).replace("{NIAMOD}", reverse_domain_name)
+            # domains will also be lowercase+strip
+            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            domain_names_all.extend(submitted_)
+            domains_challenged["dns-01"] = submitted_
+
+        if dbEnrollmentFactory.domain_template_http01:
+            templated_domains = dbEnrollmentFactory.domain_template_http01.replace(
+                "{DOMAIN}", domain_name
+            ).replace("{NIAMOD}", reverse_domain_name)
+            # domains will also be lowercase+strip
+            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            domain_names_all.extend(submitted_)
+            domains_challenged["http-01"] = submitted_
+
+        # 2: ensure there are domains
+        if not domain_names_all:
+            formStash.fatal_field(
+                field="domain_name",
+                error_field="did not expand template into domains",
+            )
+
+        # 3: ensure there is no overlap
+        domain_names_all_set = set(domain_names_all)
+        if len(domain_names_all) != len(domain_names_all_set):
+            formStash.fatal_field(
+                field="domain_name",
+                error_field="a domain name can only be associated to one challenge type",
+            )
+
+        # ensure wildcards are only in dns-01
+        for chall, ds in domains_challenged.items():
+            if chall == "dns-01":
+                continue
+            if ds:
+                for d in ds:
+                    if d[0] == "*":
+                        formStash.fatal_form(
+                            error_main="wildcards (*) MUST use `dns-01`.",
+                        )
+
+        # see DOMAINS_CHALLENGED_FIELDS
+        if domains_challenged["dns-01"]:
+            if not request.api_context.dbAcmeDnsServer_GlobalDefault:
+                formStash.fatal_field(
+                    field="domain_names_dns01",
+                    error_field="The global acme-dns server is not configured.",
+                )
+
+        # note: step 2 - analyze the "templated" domains
+        #
+
+        domains_all = prep__domains_challenged__dns01(  # noqa: F841
+            request,
+            formStash=formStash,
+            domains_challenged=domains_challenged,
+        )
+
+        #
+        # DONE AND VALIDATED
+        #
+
+        note = formStash.results["note"]
+        label = formStash.results["label"]
+        if label:
+            label = utils.apply_domain_template(label, domain_name, reverse_domain_name)
+            label = utils.normalize_unique_text(label)
+            if not utils.validate_label(label):
+                formStash.fatal_field(
+                    field="label",
+                    error_field="the `label` is not compliant",
+                )
+
+        try:
+            dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                request.api_context,
+                domains_challenged=domains_challenged,
+                # PRIMARY cert
+                dbAcmeAccount__primary=dbEnrollmentFactory.acme_account__primary,
+                private_key_cycle_id__primary=dbEnrollmentFactory.private_key_cycle_id__primary,
+                private_key_technology_id__primary=dbEnrollmentFactory.private_key_technology_id__primary,
+                acme_profile__primary=dbEnrollmentFactory.acme_profile__primary,
+                # BACKUP cert
+                dbAcmeAccount__backup=dbEnrollmentFactory.acme_account__backup,
+                private_key_cycle_id__backup=(
+                    dbEnrollmentFactory.private_key_cycle_id__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                private_key_technology_id__backup=(
+                    dbEnrollmentFactory.private_key_technology_id__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                acme_profile__backup=(
+                    dbEnrollmentFactory.acme_profile__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                # misc
+                note=note,
+                label=label,
+                dbEnrollmentFactory=dbEnrollmentFactory,
+            )
+            is_duplicate_renewal = False  # noqa: F841
+
+            request.api_context.pyramid_transaction_commit()
+
+        except errors.DuplicateRenewalConfiguration as exc:
+            is_duplicate_renewal = True  # noqa: F841
+            # we could raise exc to abort, but this is likely preferred
+            dbRenewalConfiguration = exc.args[0]
+
+    except Exception:
+        raise
+
+    return (dbRenewalConfiguration, is_duplicate_renewal)
 
 
 class View_List(Handler):
@@ -584,7 +978,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             note = formStash.results["note"]
             processing_strategy = formStash.results["processing_strategy"]
@@ -608,7 +1002,7 @@ class View_Focus_New(View_Focus):
             except errors.FieldError as exc:
                 raise formStash.fatal_field(
                     field=exc.args[0],
-                    message=exc.args[1],
+                    error_field=exc.args[1],
                 )
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -626,7 +1020,7 @@ class View_Focus_New(View_Focus):
                 )
             except Exception as exc:
                 raise formStash.fatal_form(
-                    message="%s" % exc,
+                    error_main="%s" % exc,
                 )
             if self.request.wants_json:
                 return {
@@ -736,9 +1130,6 @@ class View_Focus_New(View_Focus):
         """
         This is basically forking the configuration
         """
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new_configuration__submit()
         return self._new_configuration__print()
@@ -771,7 +1162,7 @@ class View_Focus_New(View_Focus):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             domains_challenged = form_utils.form_domains_challenge_typed(
                 self.request,
@@ -799,7 +1190,8 @@ class View_Focus_New(View_Focus):
                 label = utils.normalize_unique_text(label)
                 if not utils.validate_label(label):
                     formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
+                        field="label",
+                        error_field="the `label` is not compliant",
                     )
 
             # PRIMARY cert
@@ -843,7 +1235,7 @@ class View_Focus_New(View_Focus):
                 domains_all = []
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeDomainsBlocklisted
+                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
                 for challenge_, domains_ in domains_challenged.items():
                     if domains_:
                         lib_db.validate.validate_domain_names(
@@ -945,27 +1337,27 @@ class View_Focus_New(View_Focus):
                 )
 
             except (
+                errors.AcmeDomainsInvalid,
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except (errors.DuplicateRenewalConfiguration,) as exc:
                 message = (
                     "This appears to be a duplicate of RenewalConfiguration: `%s`."
                     % exc.args[0].id
                 )
-                formStash.fatal_form(message=message)
+                formStash.fatal_form(error_main=message)
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
+                    error_main="Error communicating with the acme-dns server."
                 )
 
             except (
@@ -984,11 +1376,10 @@ class View_Focus_New(View_Focus):
                 )
 
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],
-                    message="Unknown acme_profile (%s); not one of: %s."
+                    error_field="Unknown acme_profile (%s); not one of: %s."
                     % (exc.args[1], exc.args[2]),
                 )
 
@@ -1060,7 +1451,7 @@ class View_Focus_Manipulate(View_Focus):
                 # validate_post=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
@@ -1096,7 +1487,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None
@@ -1231,9 +1622,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         }
     )
     def new(self):
-        self.request.api_context._load_SystemConfiguration_global()
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_AcmeServers()
         if self.request.method == "POST":
             return self._new__submit()
         return self._new__print()
@@ -1258,243 +1646,40 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
     def _new__submit(self):
         """ """
         try:
-            (result, formStash) = formhandling.form_validate(
+            (dbRenewalConfiguration, is_duplicate_renewal) = submit__new(
                 self.request,
-                schema=Form_RenewalConfig_new,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
-
-            domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request,
-                formStash,
-                dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
+                acknowledge_transaction_commits=True,
             )
 
-            acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
-                self.request,
-                formStash,
-                require_contact=False,
-                support_upload=False,
-            )
-            assert acmeAccountSelection.AcmeAccount is not None
-
-            acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
-                self.request,
-                formStash,
-            )
-
-            # shared
-            note = formStash.results["note"]
-            label = formStash.results["label"]
-            if label:
-                label = utils.normalize_unique_text(label)
-                if not utils.validate_label(label):
-                    formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
-                    )
-
-            # PRIMARY cert
-            private_key_technology__primary = formStash.results[
-                "private_key_technology__primary"
-            ]
-            private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
-                private_key_technology__primary
-            )
-            private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-            private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
-                private_key_cycle__primary
-            )
-            acme_profile__primary = formStash.results["acme_profile__primary"]
-
-            # BACKUP cert
-            private_key_technology__backup = formStash.results[
-                "private_key_technology__backup"
-            ]
-            private_key_technology_id__backup = None
-            if private_key_technology__backup:
-                private_key_technology_id__backup = (
-                    model_utils.KeyTechnology.from_string(
-                        private_key_technology__backup
-                    )
-                )
-            private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
-            private_key_cycle_id__backup = None
-            if private_key_cycle__backup:
-                private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-                    private_key_cycle__backup
-                )
-            acme_profile__backup = formStash.results["acme_profile__backup"]
-
-            is_export_filesystem = formStash.results["is_export_filesystem"]
-            is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
-                is_export_filesystem
-            )
-
-            if not acmeAccountSelection_backup.AcmeAccount:
-                private_key_cycle_id__backup = None
-                private_key_technology_id__backup = None
-                acme_profile__backup = None
-
-            try:
-                domains_all = []
-                # check for blocklists here
-                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeDomainsBlocklisted
-                for challenge_, domains_ in domains_challenged.items():
-                    if domains_:
-                        lib_db.validate.validate_domain_names(
-                            self.request.api_context, domains_
-                        )
-                        if challenge_ == "dns-01":
-                            # check to ensure the domains are configured for dns-01
-                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
-                            try:
-                                lib_db.validate.ensure_domains_dns01(
-                                    self.request.api_context, domains_
-                                )
-                            except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
-                                # in "experimental" mode, we may want to use specific
-                                # acme-dns servers and not the global one
-                                if (
-                                    self.request.api_context.application_settings[
-                                        "acme_dns_support"
-                                    ]
-                                    == "experimental"
-                                ):
-                                    raise
-                                # in "basic" mode we can just associate these to the global option
-                                if (
-                                    not self.request.api_context.dbAcmeDnsServer_GlobalDefault
-                                ):
-                                    formStash.fatal_field(
-                                        "domain_names_dns01",
-                                        "No global acme-dns server configured.",
-                                    )
-                                if TYPE_CHECKING:
-                                    assert (
-                                        self.request.api_context.dbAcmeDnsServer_GlobalDefault
-                                        is not None
-                                    )
-                                # exc.args[0] will be the listing of domains
-                                (domainObjects, adnsAccountObjects) = (
-                                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
-                                        self.request.api_context,
-                                        exc.args[0],
-                                        self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-                                        discovery_type="via renewal_configuration.new",
-                                    )
-                                )
-                        domains_all.extend(domains_)
-
-                # create the configuration
-                # this will create:
-                # * model_utils.RenewableConfig
-                # * model_utils.UniquelyChallengedFQDNSet2Domain
-                # * model_utils.UniqueFQDNSet
-                is_duplicate_renewal = None
-                try:
-                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                        self.request.api_context,
-                        domains_challenged=domains_challenged,
-                        # PRIMARY cert
-                        dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
-                        private_key_technology_id__primary=private_key_technology_id__primary,
-                        private_key_cycle_id__primary=private_key_cycle_id__primary,
-                        acme_profile__primary=acme_profile__primary,
-                        # BACKUP cert
-                        dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
-                        private_key_technology_id__backup=private_key_technology_id__backup,
-                        private_key_cycle_id__backup=private_key_cycle_id__backup,
-                        acme_profile__backup=acme_profile__backup,
-                        # misc
-                        note=note,
-                        label=label,
-                        is_export_filesystem_id=is_export_filesystem_id,
-                    )
-                except errors.DuplicateRenewalConfiguration as exc:
-                    is_duplicate_renewal = True
-                    # we could raise exc to abort, but this is likely preferred
-                    dbRenewalConfiguration = exc.args[0]
-
-                if self.request.wants_json:
-                    return {
-                        "result": "success",
-                        "RenewalConfiguration": dbRenewalConfiguration.as_json,
-                        "is_duplicate_renewal": is_duplicate_renewal,
-                    }
-
-                return HTTPSeeOther(
-                    "%s/renewal-configuration/%s%s"
-                    % (
-                        self.request.api_context.application_settings["admin_prefix"],
-                        dbRenewalConfiguration.id,
-                        "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
-                    )
-                )
-
-            except (
-                errors.AcmeDomainsBlocklisted,
-                errors.AcmeDomainsRequireConfigurationAcmeDNS,
-            ) as exc:
-                formStash.fatal_form(message=str(exc))
-
-            except (errors.DuplicateRenewalConfiguration,) as exc:
-                message = (
-                    "This appears to be a duplicate of RenewalConfiguration: `%s`."
-                    % exc.args[0].id
-                )
-                formStash.fatal_form(message=message)
-
-            except errors.AcmeDuplicateChallenges as exc:
-                if self.request.wants_json:
-                    return {"result": "error", "error": str(exc)}
-                formStash.fatal_form(message=str(exc))
-
-            except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
-                formStash.fatal_form(
-                    message="Error communicating with the acme-dns server."
-                )
-
-            except (
-                errors.AcmeError,
-                errors.InvalidRequest,
-            ) as exc:
-                if self.request.wants_json:
-                    return {"result": "error", "error": str(exc)}
-
-                return HTTPSeeOther(
-                    "%s/renewal-configurations/all?result=error&error=%s&operation=new+freeform"
-                    % (
-                        self.request.api_context.application_settings["admin_prefix"],
-                        exc.as_querystring,
-                    )
-                )
-
-            except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
-                # raises a `FormInvalid`
-                # exc.args: var(matches field), submitted, allowed
-                formStash.fatal_field(
-                    field=exc.args[0],
-                    message="Unknown acme_profile (%s); not one of: %s."
-                    % (exc.args[1], exc.args[2]),
-                )
-
-            except Exception as exc:  # noqa: F841
-                raise
-                # note: allow this on testing
-                # raise
-                return HTTPSeeOther(
-                    "%s/renewal-configurations/all?result=error&operation=new-freeform"
-                    % self.request.api_context.application_settings["admin_prefix"]
-                )
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {
+                    "result": "success",
+                    "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                    "is_duplicate_renewal": is_duplicate_renewal,
+                }
+
+            return HTTPSeeOther(
+                "%s/renewal-configuration/%s%s"
+                % (
+                    self.request.api_context.application_settings["admin_prefix"],
+                    dbRenewalConfiguration.id,
+                    "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
+
+        except Exception as exc:  # noqa: F841
+            raise
+            # note: allow this on testing
+            # raise
+            return HTTPSeeOther(
+                "%s/renewal-configurations/all?result=error&operation=new-freeform"
+                % self.request.api_context.application_settings["admin_prefix"]
+            )
 
 
 class View_New_Enrollment(Handler):
@@ -1534,8 +1719,6 @@ class View_New_Enrollment(Handler):
         }
     )
     def new_enrollment(self):
-        self.request.api_context._load_AcmeDnsServer_GlobalDefault()
-        self.request.api_context._load_SystemConfiguration_global()
         try:
             _enrollment_factory_id = int(
                 self.request.params.get("enrollment_factory_id")
@@ -1577,164 +1760,13 @@ class View_New_Enrollment(Handler):
     def _new_enrollment__submit(self):
         """ """
         try:
-            (result, formStash) = formhandling.form_validate(
+            if TYPE_CHECKING:
+                assert self.dbEnrollmentFactory
+            (dbRenewalConfiguration, is_duplicate_renewal) = submit__new_enrollment(
                 self.request,
-                schema=Form_RenewalConfig_new_enrollment,
-                validate_get=False,
+                dbEnrollmentFactory=self.dbEnrollmentFactory,
+                acknowledge_transaction_commits=True,
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
-
-            # this ensures only one domain
-            # we'll pretend it's http-01, though that is irreleveant
-            domains_challenged = form_utils.form_single_domain_challenge_typed(
-                self.request, formStash, challenge_type="http-01"
-            )
-            # validate it, which may raise `peter_sslers.lib.errors.AcmeDomainsBlocklisted`
-            for challenge_, domains_ in domains_challenged.items():
-                if domains_:
-                    try:
-                        lib_db.validate.validate_domain_names(
-                            self.request.api_context, domains_
-                        )
-                    except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
-                        formStash.fatal_field(
-                            field="domain_name",
-                            message="This domain_name has been blocklisted",
-                        )
-
-            domain_name = domains_challenged["http-01"][0]
-            reverse_domain_name = utils.reverse_domain_name(domain_name)
-
-            # does the domain exist?
-            # we should check to see if it does and has certs
-            dbDomain = lib_db.get.get__Domain__by_name(
-                self.request.api_context,
-                domain_name,
-            )
-            if not dbDomain:
-                # we need to start with a domain name
-                (dbDomain, _is_created) = (
-                    lib_db.getcreate.getcreate__Domain__by_domainName(
-                        self.request.api_context,
-                        domain_name,
-                        discovery_type="enrollment-factory",
-                    )
-                )
-                self.request.api_context.pyramid_transaction_commit()
-
-            domains_challenged = model_utils.DomainsChallenged()
-            domain_names_all = []
-
-            assert self.dbEnrollmentFactory
-            if self.dbEnrollmentFactory.domain_template_dns01:
-                templated_domains = (
-                    self.dbEnrollmentFactory.domain_template_dns01.replace(
-                        "{DOMAIN}", domain_name
-                    ).replace("{NIAMOD}", reverse_domain_name)
-                )
-                # domains will also be lowercase+strip
-                submitted_ = cert_utils.utils.domains_from_string(templated_domains)
-                domain_names_all.extend(submitted_)
-                domains_challenged["dns-01"] = submitted_
-
-            if self.dbEnrollmentFactory.domain_template_http01:
-                templated_domains = (
-                    self.dbEnrollmentFactory.domain_template_http01.replace(
-                        "{DOMAIN}", domain_name
-                    ).replace("{NIAMOD}", reverse_domain_name)
-                )
-                # domains will also be lowercase+strip
-                submitted_ = cert_utils.utils.domains_from_string(templated_domains)
-                domain_names_all.extend(submitted_)
-                domains_challenged["http-01"] = submitted_
-
-            # 2: ensure there are domains
-            if not domain_names_all:
-                formStash.fatal_field(
-                    field="domain_name", message="did not expand template into domains"
-                )
-
-            # 3: ensure there is no overlap
-            domain_names_all_set = set(domain_names_all)
-            if len(domain_names_all) != len(domain_names_all_set):
-                formStash.fatal_form(
-                    field="domain_name",
-                    message="a domain name can only be associated to one challenge type",
-                )
-
-            # ensure wildcards are only in dns-01
-            for chall, ds in domains_challenged.items():
-                if chall == "dns-01":
-                    continue
-                if ds:
-                    for d in ds:
-                        if d[0] == "*":
-                            formStash.fatal_form(
-                                message="wildcards (*) MUST use `dns-01`.",
-                            )
-
-            # see DOMAINS_CHALLENGED_FIELDS
-            if domains_challenged["dns-01"]:
-                if not self.request.api_context.dbAcmeDnsServer_GlobalDefault:
-                    formStash.fatal_field(
-                        field="domain_names_dns01",
-                        message="The global acme-dns server is not configured.",
-                    )
-
-            #
-            # DONE AND VALIDATED
-            #
-
-            note = formStash.results["note"]
-            label = formStash.results["label"]
-            if label:
-                label = utils.apply_domain_template(
-                    label, domain_name, reverse_domain_name
-                )
-                label = utils.normalize_unique_text(label)
-                if not utils.validate_label(label):
-                    formStash.fatal_field(
-                        field="label", message="the `label` is not compliant"
-                    )
-
-            is_duplicate_renewal: bool
-            try:
-                dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                    self.request.api_context,
-                    domains_challenged=domains_challenged,
-                    # PRIMARY cert
-                    dbAcmeAccount__primary=self.dbEnrollmentFactory.acme_account__primary,
-                    private_key_cycle_id__primary=self.dbEnrollmentFactory.private_key_cycle_id__primary,
-                    private_key_technology_id__primary=self.dbEnrollmentFactory.private_key_technology_id__primary,
-                    acme_profile__primary=self.dbEnrollmentFactory.acme_profile__primary,
-                    # BACKUP cert
-                    dbAcmeAccount__backup=self.dbEnrollmentFactory.acme_account__backup,
-                    private_key_cycle_id__backup=(
-                        self.dbEnrollmentFactory.private_key_cycle_id__backup
-                        if self.dbEnrollmentFactory.acme_account__backup
-                        else None
-                    ),
-                    private_key_technology_id__backup=(
-                        self.dbEnrollmentFactory.private_key_technology_id__backup
-                        if self.dbEnrollmentFactory.acme_account__backup
-                        else None
-                    ),
-                    acme_profile__backup=(
-                        self.dbEnrollmentFactory.acme_profile__backup
-                        if self.dbEnrollmentFactory.acme_account__backup
-                        else None
-                    ),
-                    # misc
-                    note=note,
-                    label=label,
-                    dbEnrollmentFactory=self.dbEnrollmentFactory,
-                )
-                is_duplicate_renewal = False  # noqa: F841
-            except errors.DuplicateRenewalConfiguration as exc:
-                is_duplicate_renewal = True  # noqa: F841
-                # we could raise exc to abort, but this is likely preferred
-                dbRenewalConfiguration = exc.args[0]
 
             if self.request.wants_json:
                 return {
@@ -1754,5 +1786,5 @@ class View_New_Enrollment(Handler):
 
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_enrollment__print)

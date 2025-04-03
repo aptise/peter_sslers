@@ -281,12 +281,12 @@ class View_Focus_Manipulate(View_Focus):
                 self.request, schema=Form_PrivateKey_mark, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             if dbPrivateKey.is_placeholder:
                 formStash.fatal_field(
                     field="action",
-                    message="The Placeholder PrivateKey can not be marked",
+                    error_field="The Placeholder PrivateKey can not be marked",
                 )
 
             action = formStash.results["action"]
@@ -327,7 +327,7 @@ class View_Focus_Manipulate(View_Focus):
                     raise errors.InvalidTransition("Invalid option")
 
             except errors.InvalidTransition as exc:
-                formStash.fatal_form(message=exc.args[0])
+                formStash.fatal_form(error_main=exc.args[0])
 
             if TYPE_CHECKING:
                 assert event_status is not None
@@ -404,7 +404,7 @@ class View_New(Handler):
                 validate_get=False,
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             try:
 
@@ -479,7 +479,7 @@ class View_New(Handler):
                 self.request, schema=Form_PrivateKey_new__file, validate_get=False
             )
             if not result:
-                raise formhandling.FormInvalid(formStash=formStash)
+                raise formhandling.FormInvalid(formStash)
 
             private_key_pem = formhandling.slurp_file_field(
                 formStash, "private_key_file_pem"

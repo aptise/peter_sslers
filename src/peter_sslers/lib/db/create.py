@@ -12,7 +12,6 @@ from typing import Union
 import cert_utils
 from dateutil import parser as dateutil_parser
 import sqlalchemy
-from typing_extensions import Literal
 
 # from typing_extensions import Required
 # from typing_extensions import TypedDict
@@ -266,13 +265,13 @@ def create__AcmeOrder(
     if not domains_challenged:
         raise ValueError("domains_challenged is required")
     _domain_names_all = domains_challenged.domains_as_list
-    # this may raise errors.AcmeDomainsBlocklisted
+    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
     validate_domain_names(ctx, _domain_names_all)
 
     # we already test for this on submission, but be safe!
     _dns01_domain_names = domains_challenged["dns-01"]
     if _dns01_domain_names:
-        # this may raise errors.AcmeDomainsBlocklisted
+        # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
         ensure_domains_dns01(ctx, _dns01_domain_names)
 
     # acme_status_order_id = model_utils.Acme_Status_Order.ID_DEFAULT
@@ -1525,7 +1524,7 @@ def create__RenewalConfiguration(
     if label:
         if label.startswith("rc-") or label.startswith("global"):
             raise ValueError("`label` contains a reserved prefix or is a reserved word")
-    # this may raise errors.AcmeDomainsBlocklisted
+    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
     _domain_names_all = domains_challenged.domains_as_list
     validate_domain_names(ctx, _domain_names_all)
 

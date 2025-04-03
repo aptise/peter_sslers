@@ -31,7 +31,7 @@ requires = [
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic>=0.7.0",
+    "pyramid_formencode_classic>=0.9.3,<1.0",
     "pyramid_mako",
     "pyramid_route_7>=0.5.3",
     "pyramid_tm",
@@ -47,6 +47,7 @@ requires = [
 ]
 tests_require = [
     "certbot",
+    "cloudflare<3",
     "pre-commit",
     # "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",

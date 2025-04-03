@@ -98,7 +98,7 @@ def includeme(config: "Configurator") -> None:
     Activate this setup using ``config.include('peter_sslers.models')``.
 
     """
-    settings = config.get_settings()
+    settings = config.get_settings()  # self.registry.settings
 
     # use pyramid_tm to hook the transaction lifecycle to the request
     config.include("pyramid_tm")
