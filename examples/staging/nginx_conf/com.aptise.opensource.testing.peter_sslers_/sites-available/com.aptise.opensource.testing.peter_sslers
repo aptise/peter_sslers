@@ -8,5 +8,5 @@ server {
     listen  443;
     server_name  peter-sslers.testing.opensource.aptise.com ssl;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
-    root  /var/www/sites/CliquedInDeploy-svn_tag-current_production/www/com.aptise.opensource.testing.peter_sslers;
+    root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/_www;
 }

@@ -1,10 +1,30 @@
+# SSH onto your server
 
-cd examples/staging
-python _generate.py
+# Install PeterSSLers
 
-cd /var/www/sites
-sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
-ls -alh com.aptise.opensource.testing.peter_sslers
+    git clone git@github.com:aptise/peter_sslers.git
+    source peter_sslers-venv/bin/activate
+
+# Generate the Staging Example
+
+    cd peter_sslers
+    cd examples/staging
+    python _generate.py
+
+    cd /var/www/sites
+    sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
+    ls -alh com.aptise.opensource.testing.peter_sslers
+
+    cd /etc/openresty
+    sudo ln -s ~/peter_sslers/examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_ .
+
+## Edit Nginx conf
+
+    vi nginx.conf
+
+### Add the following line
+
+    include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
 
 
 

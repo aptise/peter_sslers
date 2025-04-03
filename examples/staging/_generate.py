@@ -73,8 +73,6 @@ LETTER_FRAGMENT__ACTIVE = """\
         </li>
     </ul>"""
 
-if not os.path.exists("www"):
-    os.mkdir("www")
 
 for letter in "abcdefghijklmnopqrstuvwxyz":
     templating_args = {"letter": letter, }
