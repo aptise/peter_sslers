@@ -88,6 +88,39 @@ def ensure_domain_names_to_acmeDnsServer(
     return (domainObjectsMap, accountObjectsMap)
 
 
+def ensure_Domain_to_AcmeDnsServer(
+    ctx: "ApiContext",
+    dbDomain: "Domain",
+    dbAcmeDnsServer: "AcmeDnsServer",
+    discovery_type: str,
+) -> "AcmeDnsServerAccount":
+    acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.api_url)
+    dbAcmeDnsServerAccount = get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+        ctx,
+        acme_dns_server_id=dbAcmeDnsServer.id,
+        domain_id=dbDomain.id,
+    )
+    if not dbAcmeDnsServerAccount:
+        try:
+            account = acmeDnsClient.register_account(None)  # arg = allowlist ips
+        except Exception as exc:  # noqa: F841
+            log.critical("Error communicating with acme-dns")
+            log.critical(exc)
+            raise AcmeDnsServerError("error registering an account with AcmeDns", exc)
+        dbAcmeDnsServerAccount = create__AcmeDnsServerAccount(
+            ctx,
+            dbAcmeDnsServer=dbAcmeDnsServer,
+            dbDomain=dbDomain,
+            username=account["username"],
+            password=account["password"],
+            fulldomain=account["fulldomain"],
+            subdomain=account["subdomain"],
+            allowfrom=account["allowfrom"],
+        )
+
+    return dbAcmeDnsServerAccount
+
+
 def check_competing_orders_RenewalConfiguration(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",

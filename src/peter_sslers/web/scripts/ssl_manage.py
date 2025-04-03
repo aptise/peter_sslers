@@ -3,6 +3,8 @@ import os
 import pprint
 import sys
 from typing import Callable
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.paster import get_app
@@ -23,6 +25,9 @@ from ..views_admin import renewal_configuration as v_renewal_configuration
 from ...lib import db as lib_db  # noqa: F401
 
 # from ..lib.forms import Form_EnrollmentFactory_edit_new
+
+if TYPE_CHECKING:
+    from ...model.objects import AcmeDnsServer
 
 # ==============================================================================
 
@@ -116,6 +121,7 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
+            _dbAcmeDnsServer: Optional["AcmeDnsServer"]
             if subcommand == "list":
                 print("acme-dns Servers:")
                 _list_items(lib_db.get.get__AcmeDnsServer__paginated)
@@ -145,6 +151,7 @@ def main(argv=sys.argv):
                 )
                 if not _dbAcmeDnsServer:
                     print("invalid `AcmeDnsServer`")
+                    exit()
                 _result = v_acme_dns_server.submit__check(  # noqa: F841
                     request,
                     dbAcmeDnsServer=_dbAcmeDnsServer,

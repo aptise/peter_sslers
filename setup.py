@@ -47,6 +47,7 @@ requires = [
 ]
 tests_require = [
     "certbot",
+    "cloudflare<3",
     "pre-commit",
     # "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",

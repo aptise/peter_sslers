@@ -1241,7 +1241,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 domains_all = []
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeDomainsBlocklisted
+                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
                 for challenge_, domains_ in domains_challenged.items():
                     if domains_:
                         lib_db.validate.validate_domain_names(
@@ -1323,7 +1323,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
 
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeDomainsBlocklisted
+                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
                 for challenge_, domains_ in domains_challenged.items():
                     if domains_:
                         # # already validated in the first loop above
@@ -1394,6 +1394,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 formStash.fatal_form(error_main=str(exc))
 
             except (
+                errors.AcmeDomainsInvalid,
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
@@ -1403,7 +1404,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 formStash.fatal_form(
                     error_main="Error communicating with the acme-dns server."
                 )
@@ -1429,7 +1429,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     )
                 )
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],

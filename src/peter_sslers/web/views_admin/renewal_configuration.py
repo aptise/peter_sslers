@@ -52,7 +52,7 @@ def prep__domains_challenged__dns01(
     domains_all = []
     # check for blocklists here
     # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-    # this may raise errors.AcmeDomainsBlocklisted
+    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
     for challenge_, domains_ in domains_challenged.items():
         if domains_:
             lib_db.validate.validate_domain_names(request.api_context, domains_)
@@ -213,6 +213,7 @@ def submit__new(
         return dbRenewalConfiguration, is_duplicate_renewal
 
     except (
+        errors.AcmeDomainsInvalid,
         errors.AcmeDomainsBlocklisted,
         errors.AcmeDomainsRequireConfigurationAcmeDNS,
     ) as exc:
@@ -229,7 +230,6 @@ def submit__new(
         formStash.fatal_form(error_main=str(exc))
 
     except errors.AcmeDnsServerError as exc:  # noqa: F841
-        # raises a `FormInvalid`
         formStash.fatal_form(error_main="Error communicating with the acme-dns server.")
 
     except (
@@ -239,7 +239,6 @@ def submit__new(
         formStash.fatal_form(error_main=str(exc))
 
     except errors.UnknownAcmeProfile_Local as exc:
-        # raises a `FormInvalid`
         # exc.args: var(matches field), submitted, allowed
         formStash.fatal_field(
             field=exc.args[0],
@@ -275,7 +274,7 @@ def submit__new_enrollment(
         domains_challenged = form_utils.form_single_domain_challenge_typed(
             request, formStash, challenge_type="http-01"
         )
-        # validate it, which may raise `peter_sslers.lib.errors.AcmeDomainsBlocklisted`
+        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
         for challenge_, domains_ in domains_challenged.items():
             if domains_:
                 try:
@@ -284,6 +283,11 @@ def submit__new_enrollment(
                     formStash.fatal_field(
                         field="domain_name",
                         error_field="This domain_name has been blocklisted",
+                    )
+                except errors.AcmeDomainsInvalid as exc:  # noqa: F841
+                    formStash.fatal_field(
+                        field="domain_name",
+                        error_field="This domain_name is invalid",
                     )
 
         domain_name = domains_challenged["http-01"][0]
@@ -1231,7 +1235,7 @@ class View_Focus_New(View_Focus):
                 domains_all = []
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeDomainsBlocklisted
+                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
                 for challenge_, domains_ in domains_challenged.items():
                     if domains_:
                         lib_db.validate.validate_domain_names(
@@ -1333,6 +1337,7 @@ class View_Focus_New(View_Focus):
                 )
 
             except (
+                errors.AcmeDomainsInvalid,
                 errors.AcmeDomainsBlocklisted,
                 errors.AcmeDomainsRequireConfigurationAcmeDNS,
             ) as exc:
@@ -1351,7 +1356,6 @@ class View_Focus_New(View_Focus):
                 formStash.fatal_form(error_main=str(exc))
 
             except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 formStash.fatal_form(
                     error_main="Error communicating with the acme-dns server."
                 )
@@ -1372,7 +1376,6 @@ class View_Focus_New(View_Focus):
                 )
 
             except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 # exc.args: var(matches field), submitted, allowed
                 formStash.fatal_field(
                     field=exc.args[0],

@@ -457,7 +457,7 @@ class ViewAdminApi_Domain(Handler):
             domains_challenged = form_utils.form_single_domain_challenge_typed(
                 self.request, formStash, challenge_type="http-01"
             )
-            # validate it, which may raise `peter_sslers.lib.errors.AcmeDomainsBlocklisted`
+            # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
             for challenge_, domains_ in domains_challenged.items():
                 if domains_:
                     try:
@@ -468,6 +468,11 @@ class ViewAdminApi_Domain(Handler):
                         formStash.fatal_field(
                             field="domain_name",
                             error_field="This domain_name has been blocklisted",
+                        )
+                    except errors.AcmeDomainsInvalid as exc:  # noqa: F841
+                        formStash.fatal_field(
+                            field="domain_name",
+                            error_field="This domain_name is not valid",
                         )
 
             domain_name = domains_challenged["http-01"][0]

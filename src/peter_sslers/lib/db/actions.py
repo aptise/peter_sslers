@@ -960,6 +960,69 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     return True
 
 
+def acme_dns__ensure_accounts(
+    ctx: "ApiContext",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[int, int]:
+    """Checks `Domain`s that need acme-dns accounts. Creates accounts if needed.
+
+    Returns a tuple of (accounts_existing:int, accounts_new:int)
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    accounts_existing = 0
+    accounts_new = 0
+
+    results = (
+        ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .join(
+            model_objects.UniquelyChallengedFQDNSet2Domain,
+            model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
+            == model_objects.UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
+        )
+        .join(
+            model_objects.Domain,
+            model_objects.UniquelyChallengedFQDNSet2Domain.domain_id
+            == model_objects.Domain.id,
+        )
+        .join(
+            model_objects.AcmeDnsServerAccount,
+            model_objects.Domain.id == model_objects.AcmeDnsServerAccount.domain_id,
+            isouter=True,
+        )
+        .filter(
+            model_objects.UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id
+            == model_utils.AcmeChallengeType.dns_01,
+        )
+        .all()
+    )
+    for rc in results:
+        for to_domain in rc.uniquely_challenged_fqdn_set.to_domains__dns_01:
+            if False:
+                print("===")
+                print(to_domain.domain.domain_name)
+                print(to_domain.domain.acme_dns_server_account__active)
+            if to_domain.domain.acme_dns_server_account__active:
+                accounts_existing += 1
+            else:
+                print(
+                    "ensure_Domain_to_AcmeDnsServer: %s" % to_domain.domain.domain_name
+                )
+                _dbAcmeDnsServerAccount = (
+                    lib_db.associate.ensure_Domain_to_AcmeDnsServer(
+                        ctx,
+                        to_domain.domain,
+                        ctx.dbAcmeDnsServer_GlobalDefault,
+                        discovery_type="via acme_dns_server._ensure_domains__submit",
+                    )
+                )
+                accounts_new += 1
+                ctx.pyramid_transaction_commit()
+
+    return accounts_existing, accounts_new
+
+
 def register_acme_servers(
     ctx: "ApiContext",
     acme_servers: List[AcmeServerInput],

@@ -564,7 +564,6 @@ class View_Focus(Handler):
                     )
                 )
             except errors.AcmeDnsServerError as exc:  # noqa: F841
-                # raises a `FormInvalid`
                 formStash.fatal_form(
                     error_main="Error communicating with the acme-dns server.",
                 )
