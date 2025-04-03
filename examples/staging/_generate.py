@@ -32,7 +32,7 @@ server {
 }
 """
 
-DOMAIN_CONF__FILEPATH = "nginx_conf/com.aptise.opensource.testing.peter_sslers_/com.aptise.opensource.testing.peter_sslers.%(letter)s"
+DOMAIN_CONF__FILEPATH = "nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing.peter_sslers.%(letter)s"
 
 DOMAIN_WWW__DIRPATH = "www/com.aptise.opensource.testing.peter_sslers.%(letter)s.%(challenge)s"
 

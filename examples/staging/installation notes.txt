@@ -1,4 +1,13 @@
 
+cd examples/staging
+python _generate.py
+
+cd /var/www/sites
+sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
+ls -alh com.aptise.opensource.testing.peter_sslers
+
+
+
 
 
 initialize_peter_sslers_db conf/example_development.ini
