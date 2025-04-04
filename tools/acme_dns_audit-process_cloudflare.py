@@ -7,10 +7,10 @@ This script requires::
     pip install --upgrade "cloudflare<3"
     export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
 """
+
 import json
 import sys
 from typing import Dict
-from typing import Optional
 from typing import Union
 
 # pip install --upgrade "cloudflare<3"
@@ -22,7 +22,7 @@ from typing_extensions import Literal
 filename = "acme_dns_audit-process_cloudflare.py"
 if len(sys.argv) == 2:
     filename = sys.argv[1]
-    
+
 audit_results = json.loads(open(filename, "r").read())
 
 CF_ZONES: Dict[str, Union[str, Literal[-1]]] = {}
@@ -66,18 +66,25 @@ for result in audit_results:
             continue
 
         _domain = result["cname_source"]
+        _domain = _domain if _domain[-1] != "." else _domain[:-1]
+        if _domain[-1] == ".":
+            _domain = _domain[:-1]
         try:
+            _cname_target = result["cname_target"]
+            _cname_target = (
+                _cname_target if _cname_target[-1] != "." else _cname_target[:-1]
+            )
             _record_target = {
                 "name": _domain,
                 "type": "CNAME",
-                "content": result["cname_target"],
+                "content": _cname_target,
                 "proxied": False,
             }
             _api_result = cf.zones.dns_records.get(zone_id, params={"name": _domain})
             _write: bool = True
             if _api_result["result"]:
                 if (_api_result["result"][0]["type"] == "CNAME") and (
-                    _api_result["result"][0]["content"] == result["cname_target"]
+                    _api_result["result"][0]["content"] == _cname_target
                 ):
                     print("records match?!?", _domain)
                     _write = False
@@ -91,9 +98,6 @@ for result in audit_results:
                 assert _api_result3["result"]
                 assert _api_result3["result"]["name"] == _domain
                 assert _api_result3["result"]["type"] == "CNAME"
-                assert _api_result3["result"]["content"] == _record_target
-        except Exception as exc:
-            print(exc)
+                assert _api_result3["result"]["content"] == _cname_target
+        except Exception as exc:  # noqa: F841
             raise
-
-
