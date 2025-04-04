@@ -4928,6 +4928,23 @@ class RenewalConfiguration(
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
         }
 
+    @property
+    def as_json_docs(self) -> Dict:
+        rval = self.as_json
+        rval["AcmeAccounts"] = {
+            "primary": (
+                self.acme_account__primary.as_json_minimal
+                if self.acme_account__primary
+                else None
+            ),
+            "backup": (
+                self.acme_account__backup.as_json_minimal
+                if self.acme_account__backup
+                else None
+            ),
+        }
+        return rval
+
 
 # ==============================================================================
 

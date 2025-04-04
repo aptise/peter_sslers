@@ -23,6 +23,7 @@ from ..views_admin import acme_dns_server as v_acme_dns_server
 from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
 from ...lib import db as lib_db  # noqa: F401
+from ...model import objects as model_objects
 
 # from ..lib.forms import Form_EnrollmentFactory_edit_new
 
@@ -91,10 +92,17 @@ def main(argv=sys.argv):
         assert request == _request
 
         # generic functions
-        def _list_items(f_paginated: Callable):
+        def _list_items(f_paginated: Callable, is_extended=True):
             dbItems = f_paginated(request.api_context)
             for _dbItem in dbItems:
                 print("-----")
+                if is_extended:
+                    if isinstance(_dbItem, model_objects.EnrollmentFactory):
+                        pprint.pprint(_dbItem.as_json_docs)
+                        continue
+                    elif isinstance(_dbItem, model_objects.RenewalConfiguration):
+                        pprint.pprint(_dbItem.as_json_docs)
+                        continue
                 pprint.pprint(_dbItem.as_json)
 
         # !!!: distpatch[acme-account]
@@ -171,11 +179,9 @@ def main(argv=sys.argv):
                 _list_items(lib_db.get.get__EnrollmentFactory__paginated)
             elif subcommand == "new":
                 try:
-                    _dbEnrollmentFactory = (
-                        v_enrollment_factory.submit__new(
-                            request,
-                            acknowledge_transaction_commits=True,
-                        )
+                    _dbEnrollmentFactory = v_enrollment_factory.submit__new(
+                        request,
+                        acknowledge_transaction_commits=True,
                     )
                     print(_dbEnrollmentFactory.as_json_docs)
                     exit()
