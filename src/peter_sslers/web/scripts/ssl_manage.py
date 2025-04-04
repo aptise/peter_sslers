@@ -240,7 +240,7 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
-            dbRenewalConfiguration: 'RenewalConfiguration'
+            dbRenewalConfiguration: "RenewalConfiguration"
 
             # !!!: list
             if subcommand == "list":
