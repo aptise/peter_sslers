@@ -28,7 +28,10 @@ from ...model import objects as model_objects
 # from ..lib.forms import Form_EnrollmentFactory_edit_new
 
 if TYPE_CHECKING:
+    from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
+    from ...model.objects import EnrollmentFactory
+    from ...model.objects import RenewalConfiguration
 
 # ==============================================================================
 
@@ -36,6 +39,7 @@ COMMANDS = {
     "acme-account": {
         "list",
         "new",
+        "authenticate",
     },
     "acme-dns-server": {
         "list",
@@ -107,9 +111,12 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[acme-account]
         if command == "acme-account":
+            _dbAcmeAccount: Optional["AcmeAccount"]
+            # !!!: list
             if subcommand == "list":
                 print("ACME Accounts:")
                 _list_items(lib_db.get.get__AcmeAccount__paginated)
+            # !!!: new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeAccount_new__auth.fields)
@@ -126,13 +133,47 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit()
+            # !!!: authenticate
+            elif subcommand in (
+                "authenticate",
+                "check",
+            ):
+                if "help" in options:
+                    print('%s id="{INT}' % subcommand)
+                    exit()
+                id_ = options["id"]
+                _dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
+                    request.api_context, id_
+                )
+                if not _dbAcmeAccount:
+                    print("invalid `AcmeAccount`")
+                    exit()
+                if subcommand == "authenticate":
+                    _result, _err = v_acme_account.submit__authenticate(
+                        request,
+                        dbAcmeAccount=_dbAcmeAccount,
+                        acknowledge_transaction_commits=True,
+                    )
+                elif subcommand == "check":
+                    _result, _err = v_acme_account.submit__check(
+                        request,
+                        dbAcmeAccount=_dbAcmeAccount,
+                        acknowledge_transaction_commits=True,
+                    )
+                if _result:
+                    print("successful %s" % subcommand)
+                    exit()
+                print("error", _err)
+                exit()
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
             _dbAcmeDnsServer: Optional["AcmeDnsServer"]
+            # !!!: list
             if subcommand == "list":
                 print("acme-dns Servers:")
                 _list_items(lib_db.get.get__AcmeDnsServer__paginated)
+            # !!!: new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeDnsServer_new.fields)
@@ -149,6 +190,7 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit()
+            # !!!: check
             elif subcommand == "check":
                 if "help" in options:
                     print('check id="{INT}')
@@ -168,15 +210,20 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[acme-server]
         elif command == "acme-server":
+            # !!!: list
             if subcommand == "list":
                 print("ACME Servers:")
                 _list_items(lib_db.get.get__AcmeServer__paginated)
 
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
+            _dbEnrollmentFactory: Optional["EnrollmentFactory"]
+
+            # !!!: list
             if subcommand == "list":
                 print("Enrollment Factories:")
                 _list_items(lib_db.get.get__EnrollmentFactory__paginated)
+            # !!!: new
             elif subcommand == "new":
                 try:
                     _dbEnrollmentFactory = v_enrollment_factory.submit__new(
@@ -192,9 +239,13 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
+            dbRenewalConfiguration: 'RenewalConfiguration'
+
+            # !!!: list
             if subcommand == "list":
                 print("Renewal Configurations:")
                 _list_items(lib_db.get.get__RenewalConfiguration__paginated)
+            # !!!: new-enrollment
             elif subcommand == "new-enrollment":
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfig_new_enrollment.fields)
@@ -205,6 +256,7 @@ def main(argv=sys.argv):
                 )
                 if not _dbEnrollmentFactory:
                     print("invalid `EnrollmentFactory`")
+                    exit()
                 try:
                     _dbRenewalConfiguration, _is_duplicate = (
                         v_renewal_configuration.submit__new_enrollment(
