@@ -40,6 +40,7 @@ COMMANDS = {
         "list",
         "new",
         "authenticate",
+        "check",
     },
     "acme-dns-server": {
         "list",
