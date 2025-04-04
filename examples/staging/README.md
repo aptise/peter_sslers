@@ -14,7 +14,14 @@ You might prefer:
 # Generate the Staging Example
 
     cd examples/staging
+
+Set up A records for test domains:
+
+    export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
     python _cloudflare_a_records.py
+
+Generate nginx config files:
+
     python _generate_openresty.py
 
     cd /var/www/sites
@@ -55,14 +62,14 @@ You might prefer:
 
 # copy and edit the conf
 
-ensure there are no debug routes, etc on
+ensure there are no enabled debug routes / etc
 
     cp conf/example_development.ini conf/staging.ini
     vi conf/staging.ini
     
     initialize_peter_sslers_db conf/staging.ini
 
-## create an account
+## Create an ACME Account
 
 List the accounts: none!
 
@@ -72,9 +79,9 @@ List the CAs - we want STAGING
 
     ssl_manage conf/staging.ini acme-server list
 
-Create an account with: LetsEncrypt Staging
+### Create an account with: LetsEncrypt Staging
 
-acme_server_id = 4; letsencrypt staging
+According to the above, `acme_server_id = 4; letsencrypt staging`
 
     ssl_manage conf/staging.ini acme-account new help=1
     ssl_manage conf/staging.ini acme-account new acme_server_id=4 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
@@ -83,9 +90,9 @@ acme_server_id = 4; letsencrypt staging
     ssl_manage conf/staging.ini acme-account authenticate id=5
     
 
-Create an account with: BuyPass Staging
+### Create an account with: BuyPass Staging
 
-acme_server_id = 6; buypass staging
+According to the above, `acme_server_id = 6; buypass staging`
 
     ssl_manage conf/staging.ini acme-account new help=1
     ssl_manage conf/staging.ini acme-account new acme_server_id=6 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
@@ -94,17 +101,25 @@ The above shows a success message, but double-check and note the account_id's
 
     ssl_manage conf/staging.ini acme-account list
 
-Create the Enrollment factory, with acme_account_id__primary = 1; this will fail
+## Create an Enrollment Factory
+
+### Expect a fail on a first attempt
+
+Create the Enrollment factory, with acme_account_id__primary = 1;
+
+This should fail::
 
     ssl_manage conf/staging.ini enrollment-factory list
     ssl_manage conf/staging.ini enrollment-factory new help=1
-    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
+    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="dns-http-example" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
 
-there should be an error like this:
+There should be an error like this:
 
     #  'domain_template_dns01': 'The global acme-dns server is not configured.'}
 
-# we need to set up acme-dns!
+### prerequisite: Set Up ACME-DNS
+
+we need to set up acme-dns!
 
     ssl_manage conf/staging.ini acme-dns-server list
     ssl_manage conf/staging.ini acme-dns-server new help=1
@@ -112,33 +127,75 @@ there should be an error like this:
     ssl_manage conf/staging.ini acme-dns-server list
     ssl_manage conf/staging.ini acme-dns-server check id=1
 
+
+### Expect success on the second attempt
+
 Create the Enrollment factory, with acme_account_id__primary = 1; acme_account_id__backup = 2; 
 
-    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256 acme_account_id_backup=2 private_key_cycle__backup=account_weekly private_key_technology__backup=EC_P256
+    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="dns-http-example" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256 acme_account_id_backup=2 private_key_cycle__backup=account_weekly private_key_technology__backup=EC_P256
     ssl_manage conf/staging.ini enrollment-factory list
+
+
+## Create RenewalConfigurations
+
+RenewalConfigurations drive automatic orders
 
     ssl_manage conf/staging.ini renewal-configuration list
     ssl_manage conf/staging.ini renewal-configuration new-enrollment help=1
 
+By selected `new-enrollment`, instead of `new`, we can leverage most options from the
+EnrollmentFactory
+
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="a.peter-sslers.testing.opensource.aptise.com"
+
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
+
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="c.peter-sslers.testing.opensource.aptise.com"
+
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
 
+
+## Audit ACME-DNS and Cloudflare
+
+### Run acme_dns_audit
+
+The `acme_dns_audit` tool does two things:
+
+1- It ensures every domain that needs a DNS-01 challenge has a acme-dns account
+
+2- It checks the DNS records for every domain to ensure the CNAME target and source are set correctly
+
+By default it outputs to CSV, but it can also output to JSON
+
+First, generate a report in JSON
+
     acme_dns_audit conf/staging.ini format=json
+    
+We expect this to fail miserably, because no domains have been configured in DNS yet
 
-    # export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
+Our test domains are managed by cloudflare, so we can use another tool to set this up::
 
+    export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
     python tools/acme_dns_audit-process_cloudflare.py acme_dns_audit-accounts.json
 
+The above tool will just parse the output file, and appropriately manage the DNS entries.
 
+## Check the example domains
 
+Run a testserver to ensure the proxies work right:
 
+    python tools/automatic_testserver.py conf/staging.py
 
+and check a domain
 
+    curl http://http-01.a.peter-sslers.testing.opensource.aptise.com/.well-known/public/whoami
+    
+should generate:
 
+    http-01.a.peter-sslers.testing.opensource.aptise.com
+    
 
-curl http://http-01.a.peter-sslers.testing.opensource.aptise.com/.well-known/whoami
+## now all that is done, grab our certs::
 
-
+    routine__automatic_orders conf/staging.ini
 

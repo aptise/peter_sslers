@@ -376,6 +376,9 @@ def submit__new_enrollment(
         # DONE AND VALIDATED
         #
 
+        is_export_filesystem = formStash.results["is_export_filesystem"]
+        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(is_export_filesystem)
+
         note = formStash.results["note"]
         label = formStash.results["label"]
         if label:
@@ -416,6 +419,7 @@ def submit__new_enrollment(
                 # misc
                 note=note,
                 label=label,
+                is_export_filesystem_id = is_export_filesystem_id,
                 dbEnrollmentFactory=dbEnrollmentFactory,
             )
             is_duplicate_renewal = False  # noqa: F841
