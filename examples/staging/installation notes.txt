@@ -136,5 +136,9 @@ Create the Enrollment factory, with acme_account_id__primary = 1; acme_account_i
 
 
 
-REMOVE
-enable_acme_flow
+
+
+curl http://http-01.a.peter-sslers.testing.opensource.aptise.com/.well-known/whoami
+
+
+
