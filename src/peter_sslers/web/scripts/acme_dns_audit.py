@@ -53,7 +53,7 @@ def main(argv=sys.argv):
         ctx,
         acknowledge_transaction_commits=True,
     )
-    print("acme_dns__ensure_accounts", results)
+    print("acme_dns__ensure_accounts(existing, new) ==", results)
 
     audits = []
     acmeDnsServerAccounts = lib_db.get.get__AcmeDnsServerAccount__paginated(ctx)
@@ -77,7 +77,11 @@ def main(argv=sys.argv):
     """
     # v2
     for dbAcmeDnsServerAccount in acmeDnsServerAccounts:
-        print("auditing:", dbAcmeDnsServerAccount.id)
+        print(
+            "auditing:",
+            dbAcmeDnsServerAccount.id,
+            dbAcmeDnsServerAccount.domain.domain_name,
+        )
         _audit = utils_dns.audit_AcmeDnsSererAccount(ctx, dbAcmeDnsServerAccount)
         _row: AccountAudit = {
             "id": dbAcmeDnsServerAccount.id,

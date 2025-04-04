@@ -28,8 +28,9 @@ You might prefer:
 
     vi nginx.conf
 
-### Add the following line
+### Add the following lines to the `http {}` section
 
+    server_names_hash_bucket_size 128;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
 
 ## test nginx
@@ -111,7 +112,9 @@ there should be an error like this:
     ssl_manage conf/staging.ini acme-dns-server list
     ssl_manage conf/staging.ini acme-dns-server check id=1
 
-    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
+Create the Enrollment factory, with acme_account_id__primary = 1; acme_account_id__backup = 2; 
+
+    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="Example Configuration" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256 acme_account_id_backup=2 private_key_cycle__backup=account_weekly private_key_technology__backup=EC_P256
     ssl_manage conf/staging.ini enrollment-factory list
 
     ssl_manage conf/staging.ini renewal-configuration list

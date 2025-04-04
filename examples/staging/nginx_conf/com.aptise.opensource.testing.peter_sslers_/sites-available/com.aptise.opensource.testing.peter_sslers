@@ -19,5 +19,6 @@ server {
         auth_basic  "PeterSSLers Admin";
         auth_basic_user_file  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/peter_sslers-testing.htpasswd;
 
+    }
 }
 

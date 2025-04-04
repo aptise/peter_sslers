@@ -44,7 +44,7 @@ def main(argv=sys.argv):
         settings=settings,
         DEBUG=False,
     )
-    print("A")
+    print("routine__order_missing()")
     print(dbRoutineExecution_1.as_json)
 
     # then we renew the expiring
@@ -53,7 +53,7 @@ def main(argv=sys.argv):
         settings=settings,
         DEBUG=False,
     )
-    print("B")
+    print("routine__renew_expiring()")
     print(dbRoutineExecution_2.as_json)
 
     ctx.pyramid_transaction_commit()
