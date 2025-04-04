@@ -171,14 +171,13 @@ def main(argv=sys.argv):
                 _list_items(lib_db.get.get__EnrollmentFactory__paginated)
             elif subcommand == "new":
                 try:
-                    _dbEnrollmentFactory, _is_duplicate = (
+                    _dbEnrollmentFactory = (
                         v_enrollment_factory.submit__new(
                             request,
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbEnrollmentFactory.as_json)
+                    print(_dbEnrollmentFactory.as_json_docs)
                     exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
