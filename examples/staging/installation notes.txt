@@ -78,20 +78,18 @@ acme_server_id = 4; letsencrypt staging
     ssl_manage conf/staging.ini acme-account new help=1
     ssl_manage conf/staging.ini acme-account new acme_server_id=4 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
     
-    ssl_manage conf/example_development.ini acme-account list   
-    ssl_manage conf/example_development.ini acme-account authenticate id=5
+    ssl_manage conf/staging.ini acme-account list   
+    ssl_manage conf/staging.ini acme-account authenticate id=5
     
 
 Create an account with: BuyPass Staging
 
 acme_server_id = 6; buypass staging
+
     ssl_manage conf/staging.ini acme-account new help=1
     ssl_manage conf/staging.ini acme-account new acme_server_id=6 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
 
-
-
-
-The above shows a success message, but double-check and note the account_id
+The above shows a success message, but double-check and note the account_id's
 
     ssl_manage conf/staging.ini acme-account list
 

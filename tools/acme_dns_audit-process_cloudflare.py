@@ -65,7 +65,7 @@ for result in audit_results:
             print("bypassing %s; not on Cloudflare" % registered_domain)
             continue
 
-        _domain = result["domain_name"]
+        _domain = result["cname_source"]
         try:
             _record_target = {
                 "name": _domain,
