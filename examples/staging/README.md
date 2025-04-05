@@ -40,6 +40,17 @@ Generate nginx config files:
     server_names_hash_bucket_size 128;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
 
+## disable SSL here, because we don't have a cert yet
+
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
+    vi com.aptise.opensource.testing.peter_sslers
+    
+it should read:
+
+    # ssl_certificate /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem;
+    # ssl_certificate_key /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/pkey.pem;
+
+
 ## test nginx
 
     sudo openresty -t
@@ -100,6 +111,58 @@ According to the above, `acme_server_id = 6; buypass staging`
 The above shows a success message, but double-check and note the account_id's
 
     ssl_manage conf/staging.ini acme-account list
+
+## Grab a Cert for our installation
+
+Create a renewal configuration...
+
+    ssl_manage conf/staging.ini renewal-configuration new
+    ssl_manage conf/staging.ini renewal-configuration new help=1
+    ssl_manage conf/staging.ini renewal-configuration new \
+        domain_names_http01="peter-sslers.testing.opensource.aptise.com" \
+        is_export_filesystem="on" \
+        label="peter-sslers.testing.opensource.aptise.com" \
+        account_key_option=account_key_existing \
+        account_key_option_backup=account_key_existing \
+        account_key_existing="34a37f676e8c0c0ade24b8b8720d46ad" \
+        account_key_existing_backup="4b4673ca1da2eb3f635fd9e751c205c2" \
+        private_key_cycle__primary="account_default" \
+        private_key_cycle__backup="account_default" \
+        private_key_technology__primary="account_default" \
+        private_key_technology__backup="account_default" \
+
+Spin up a server to generate the certs
+
+    routine__automatic_orders conf/staging.ini
+
+Check it::
+
+    ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com
+    ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com/primary
+    ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com/backup
+
+
+Install it...
+
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_
+    mkdir certificates
+    cd certificates
+    sudo ln -s ~/peter_sslers/_data_/certificates/global/peter-sslers.testing.opensource.aptise.com .
+
+now uncomment out the ssl info
+
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
+    vi com.aptise.opensource.testing.peter_sslers
+    
+it should read:
+
+    ssl_certificate /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem;
+    ssl_certificate_key /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/pkey.pem;
+
+    
+
+
+
 
 ## Create an Enrollment Factory
 

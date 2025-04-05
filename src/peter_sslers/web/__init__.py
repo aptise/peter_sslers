@@ -107,7 +107,8 @@ def main(global_config, **settings):
         _server_settings = _config_loader.get_settings("server:main")
         _host = _server_settings.get("host")
         _port = _server_settings.get("port")
-        _admin_server = "http://%s:%s" % (_host, _port)
+        _scheme = _server_settings.get("scheme", "http")
+        _admin_server = "%s://%s:%s" % (_scheme, _host, _port)
         if _admin_server != config.registry.settings["admin_server"]:
             print("* ====================================================== *")
             print("Updating `admin_server` setting:")
