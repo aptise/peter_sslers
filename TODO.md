@@ -1,6 +1,9 @@
 URGENT
 =====
 
+RenewalConfiguraiton.label
+    needs unique constaints
+
 Audit:
     AcknowledgeTransactionCommitRequired
     TransactionCommitRequired

@@ -13,7 +13,6 @@ These are documented at-length on the in-app settings page.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
-* `enable_acme_flow` - boolean, should we enable the ACME-flow tool?
 
 * `redis.url` - URL of `Redis` (includes port)
 * `redis.prime_style` - MUST be "1" or "2"; see `Redis` Prime section below.

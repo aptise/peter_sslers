@@ -8751,7 +8751,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&message="""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True"""
             % focus_id
         )
 
@@ -8775,7 +8775,6 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "AcmeAccount" in res.json
         assert res.json["is_checked"] is True
         assert res.json["result"] == "success"
-        assert res.json["message"] is None
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble

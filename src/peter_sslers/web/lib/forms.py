@@ -794,7 +794,7 @@ class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
     is_export_filesystem = OneOf(
         model_utils.OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem,
         not_empty=False,
-        if_missing="off",
+        if_missing="enrollment_factory_default",
     )
 
 

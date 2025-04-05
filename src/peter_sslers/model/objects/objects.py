@@ -4040,6 +4040,17 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
 
 class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
 
+    __table_args__ = (
+        sa.CheckConstraint(
+            "("
+            "(acme_account_id__backup IS NOT NULL AND private_key_technology_id__backup IS NOT NULL AND private_key_cycle_id__backup IS NOT NULL)"
+            " OR "
+            "(acme_account_id__backup IS NULL AND private_key_technology_id__backup IS NULL AND private_key_cycle_id__backup IS NULL)"
+            ")",
+            name="check_ef_backup_account",
+        ),
+    )
+
     __tablename__ = "enrollment_factory"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
@@ -4715,6 +4726,17 @@ class RenewalConfiguration(
     This will be the basis for our renewables
     """
 
+    __table_args__ = (
+        sa.CheckConstraint(
+            "("
+            "(acme_account_id__backup IS NOT NULL AND private_key_technology_id__backup IS NOT NULL AND private_key_cycle_id__backup IS NOT NULL)"
+            " OR "
+            "(acme_account_id__backup IS NULL AND private_key_technology_id__backup IS NULL AND private_key_cycle_id__backup IS NULL)"
+            ")",
+            name="check_rc_backup_account",
+        ),
+    )
+
     __tablename__ = "renewal_configuration"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -4927,6 +4949,23 @@ class RenewalConfiguration(
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
         }
+
+    @property
+    def as_json_docs(self) -> Dict:
+        rval = self.as_json
+        rval["AcmeAccounts"] = {
+            "primary": (
+                self.acme_account__primary.as_json_minimal
+                if self.acme_account__primary
+                else None
+            ),
+            "backup": (
+                self.acme_account__backup.as_json_minimal
+                if self.acme_account__backup
+                else None
+            ),
+        }
+        return rval
 
 
 # ==============================================================================
