@@ -5,7 +5,7 @@ server {
 }
 
 server {
-    listen  443;
+    listen  443 ssl;
     server_name  peter-sslers.testing.opensource.aptise.com ssl;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
     root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/_www;
