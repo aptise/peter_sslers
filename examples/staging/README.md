@@ -194,8 +194,27 @@ should generate:
 
     http-01.a.peter-sslers.testing.opensource.aptise.com
     
-
 ## now all that is done, grab our certs::
 
+this will order primary and backup
+
     routine__automatic_orders conf/staging.ini
+
+list the certs
+
+    ls -alh _data_/certificates
+
+if you are missing some certs...
+
+try running it again:
+
+    routine__automatic_orders conf/staging.ini
+
+if you notice a message like 
+
+    Exception `There is an existing active `AcmeOrder
+
+Try to reconcile blocks:
+    
+    routine__reconcile_blocks conf/staging.ini
 

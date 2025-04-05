@@ -17,6 +17,7 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_RenewalConfig_new
 from ..lib.forms import Form_RenewalConfig_new_enrollment
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
@@ -57,6 +58,7 @@ COMMANDS = {
     "renewal-configuration": {
         "list",
         "new-enrollment",
+        "new",
     },
 }
 
@@ -240,12 +242,31 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
-            dbRenewalConfiguration: "RenewalConfiguration"
+            _dbRenewalConfiguration: "RenewalConfiguration"
 
             # !!!: list
             if subcommand == "list":
                 print("Renewal Configurations:")
                 _list_items(lib_db.get.get__RenewalConfiguration__paginated)
+            # !!!: new-enrollment
+            elif subcommand == "new":
+                if "help" in options:
+                    pprint.pprint(Form_RenewalConfig_new.fields)
+                    exit()
+                try:
+                    _dbRenewalConfiguration, _is_duplicate = (
+                        v_renewal_configuration.submit__new(
+                            request,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    print(_dbRenewalConfiguration.as_json)
+                    exit()
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    pprint.pprint(exc.formStash.errors)
+                    exit()
             # !!!: new-enrollment
             elif subcommand == "new-enrollment":
                 if "help" in options:
