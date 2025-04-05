@@ -204,6 +204,9 @@ def submit__new(
                 label=label,
                 is_export_filesystem_id=is_export_filesystem_id,
             )
+
+            request.api_context.pyramid_transaction_commit()
+
         except errors.DuplicateRenewalConfiguration as exc:
             is_duplicate_renewal = True
             # we could raise exc to abort, but this is likely preferred
