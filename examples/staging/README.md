@@ -159,7 +159,15 @@ it should read:
     ssl_certificate /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem;
     ssl_certificate_key /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/pkey.pem;
 
-    
+test and restart nginx
+
+    sudo openresty -t
+    ps aux | grep openresty
+    kill -HUP ##PID##
+
+# visit the site    
+
+https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers    
 
 
 
