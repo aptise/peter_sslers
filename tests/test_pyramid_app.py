@@ -2749,7 +2749,10 @@ class FunctionalTests_AcmeServer(AppTest):
 
         res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
         form_check = res.forms["form-check_support"]
-        form_mark = res.forms["form-mark"]
+        form_mark_is_unlimited_pending_authz = res.forms[
+            "form-mark-is_unlimited_pending_authz"
+        ]
+        form_mark_is_retry_challenges = res.forms["form-mark-is_retry_challenges"]
 
         res2 = form_check.submit()
         assert res2.status_code == 303
@@ -2757,14 +2760,32 @@ class FunctionalTests_AcmeServer(AppTest):
             "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True&changes-detected="
         )
 
-        _action = form_mark.fields["action"][0].value
-        res3 = form_mark.submit()
-        assert res3.status_code == 303
-        assert (
-            res3.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
-            % _action
-        )
+        for mark_form_name in (
+            "form-mark-is_unlimited_pending_authz",
+            "form-mark-is_retry_challenges",
+        ):
+            # toggle CHANGE
+            res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
+            form_mark = res.forms[mark_form_name]
+            _action = form_mark.fields["action"][0].value
+            res3 = form_mark.submit()
+            assert res3.status_code == 303
+            assert (
+                res3.location
+                == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
+                % _action
+            )
+            # toggle RESET
+            res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
+            form_mark = res.forms[mark_form_name]
+            _action = form_mark.fields["action"][0].value
+            res3 = form_mark.submit()
+            assert res3.status_code == 303
+            assert (
+                res3.location
+                == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
+                % _action
+            )
 
     @routes_tested(
         (
@@ -2822,23 +2843,40 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/peter_sslers/acme-server/1.json", status=200
         )
 
-        if res_focus.json["AcmeServer"]["is_unlimited_pending_authz"]:
+        for mark_section in (
+            "is_unlimited_pending_authz",
+            "is_retry_challenges",
+        ):
+            if res_focus.json["AcmeServer"][mark_section]:
+                toggle_change = "%s-false" % mark_section
+                expected_change = False
+                toggle_reset = "%s-true" % mark_section
+                expected_reset = True
+            else:
+                toggle_change = "%s-true" % mark_section
+                expected_change = True
+                toggle_reset = "%s-false" % mark_section
+                expected_reset = False
+
+            # change
             res = self.testapp.post(
                 "/.well-known/peter_sslers/acme-server/1/mark.json",
-                {"action": "is_unlimited_pending_authz-false"},
+                {"action": toggle_change},
             )
             assert res.status_code == 200
-            expected = False
-        else:
+            assert res.json["result"] == "success"
+            assert "AcmeServer" in res.json
+            assert res.json["AcmeServer"][mark_section] == expected_change
+
+            # reset
             res = self.testapp.post(
                 "/.well-known/peter_sslers/acme-server/1/mark.json",
-                {"action": "is_unlimited_pending_authz-true"},
+                {"action": toggle_reset},
             )
-            expected = True
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert "AcmeServer" in res.json
-        assert res.json["AcmeServer"]["is_unlimited_pending_authz"] == expected
+            assert res.status_code == 200
+            assert res.json["result"] == "success"
+            assert "AcmeServer" in res.json
+            assert res.json["AcmeServer"][mark_section] == expected_reset
 
     def test_post_required_html(self):
         # !!!: test `POST required` `acme-server/{ID}/check-support`

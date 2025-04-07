@@ -36,6 +36,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
+        "is_retry_challenges": False,
     },
     {
         "name": "pebble-alt",
@@ -43,6 +44,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test-alt/certs/pebble.minica.pem",
+        "is_retry_challenges": False,
     },
     {
         "name": "letsencrypt-v2",
@@ -50,6 +52,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
+        "is_retry_challenges": False,
     },
     {
         "name": "letsencrypt-v2-staging",
@@ -57,6 +60,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
+        "is_retry_challenges": False,
     },
     {
         "name": "buypass",
@@ -64,6 +68,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
+        "is_retry_challenges": True,
     },
     {
         "name": "buypass-testing",
@@ -71,6 +76,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
         "protocol": "acme-v2",
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
+        "is_retry_challenges": True,
     },
 ]
 

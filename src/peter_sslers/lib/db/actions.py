@@ -1061,6 +1061,7 @@ def register_acme_servers(
             dbObject.is_supports_ari__version = item.get(
                 "is_supports_ari__version", None
             )
+            dbObject.is_retry_challenges = item.get("is_retry_challenges", None)
             dbObject.server = server
             dbObject.server_ca_cert_bundle = server_ca_cert_bundle
             ctx.dbSession.add(dbObject)

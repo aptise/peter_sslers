@@ -107,6 +107,7 @@ def main(argv=sys.argv):
                 directory=_server["directory"],
                 protocol=_server["protocol"],
                 is_supports_ari__version=_server.get("is_supports_ari__version"),
+                is_retry_challenges=_server.get("is_retry_challenges"),
                 filepath_ca_cert_bundle=_server.get("filepath_ca_cert_bundle"),
                 ca_cert_bundle=_server.get("ca_cert_bundle"),
             )

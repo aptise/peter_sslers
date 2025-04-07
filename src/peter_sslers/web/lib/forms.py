@@ -400,6 +400,8 @@ class Form_AcmeServer_mark(_Form_Schema_Base):
         (
             "is_unlimited_pending_authz-true",
             "is_unlimited_pending_authz-false",
+            "is_retry_challenges-true",
+            "is_retry_challenges-false",
         ),
         not_empty=True,
     )

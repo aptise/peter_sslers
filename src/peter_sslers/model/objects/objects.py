@@ -2209,6 +2209,10 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     is_unlimited_pending_authz: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
+    # LetsEncrypt fails challenges; buypass/zerossl support retry
+    is_retry_challenges: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
     is_enabled: Mapped[Optional[bool]] = mapped_column(  # legacy; unused
         sa.Boolean, nullable=False, default=True
     )
@@ -2309,6 +2313,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             # "is_enabled": self.is_enabled or False,    # legacy; unused
             "is_supports_ari__version": self.is_supports_ari__version,
             "is_unlimited_pending_authz": self.is_unlimited_pending_authz,
+            "is_retry_challenges": self.is_retry_challenges,
             "name": self.name,
             "profiles": self.profiles_list,
             "protocol": self.protocol,
