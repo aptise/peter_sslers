@@ -736,7 +736,12 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             self.acme_status_authorization
             not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER
         ):
-            return False
+            if not self.acme_order_created.acme_server.is_retry_challenges or (
+                self.acme_order_created.acme_server.is_retry_challenges
+                and self.acme_status_authorization
+                not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER_RETRIES
+            ):
+                return False
         #
         # we only support `acme_challenge_http_01`
         #
@@ -1062,7 +1067,15 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             self.acme_status_challenge
             not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER
         ):
-            return False
+            if (
+                not self.acme_authorization.acme_order_created.acme_server.is_retry_challenges
+                or (
+                    self.acme_authorization.acme_order_created.acme_server.is_retry_challenges
+                    and self.acme_status_challenge
+                    not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER_RETRIES
+                )
+            ):
+                return False
         if self.acme_challenge_type == "http-01":
             return True
         elif self.acme_challenge_type == "dns-01":

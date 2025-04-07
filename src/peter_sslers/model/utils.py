@@ -489,6 +489,7 @@ class Acme_Status_Authorization(_Acme_Status_All):
     IDS_POSSIBLY_PENDING: List[int]  # define after declaring the class
     OPTIONS_X_UPDATE = ("*404*",)
     OPTIONS_TRIGGER = ("pending",)
+    OPTIONS_TRIGGER_RETRIES = ("pending", "processing")
 
     _mapping = {
         0: "*discovered*",
@@ -528,6 +529,8 @@ class Acme_Status_Challenge(_Acme_Status_All):
     OPTIONS_PROCESSING = ("processing",)
     OPTIONS_INACTIVE = ("valid", "invalid", "*404*", "*410*")
     OPTIONS_TRIGGER = ("pending",)
+    OPTIONS_TRIGGER_RETRIES = ("pending", "processing")
+
     _mapping = {
         0: "*discovered*",
         1: "pending",
