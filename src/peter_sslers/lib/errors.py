@@ -172,6 +172,10 @@ class AcmeServerError(AcmeError):
     pass
 
 
+class AcmePollingTooLong(AcmeServerError):
+    pass
+
+
 class AcmeServer404(AcmeServerError):
     pass
 

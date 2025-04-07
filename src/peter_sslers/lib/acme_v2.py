@@ -127,10 +127,10 @@ def url_request(
     returns (resp_data, status_code, headers)
     """
     log_api.info("acme_v2.url_request(")
-    log_api.info(" REQUEST-")
-    log_api.info("  url       > %s", url)
-    log_api.info("  post_data > %s", post_data)
-    log_api.info("  depth     > %s", depth)
+    log_api.debug(" REQUEST-")
+    log_api.debug("  url       > %s", url)
+    log_api.debug("  post_data > %s", post_data)
+    log_api.debug("  depth     > %s", depth)
     if depth > MAX_DEPTH:
         raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
     context = None
@@ -144,21 +144,18 @@ def url_request(
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
-        log_api.info(url)
-        log_api.info(post_data)
-        log_api.info(headers)
         resp = urlopen(
             Request(url, data=post_data, headers=headers), context=context, timeout=10
         )
-        log_api.info(" RESPONSE-")
+        log_api.debug(" RESPONSE-")
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),
             resp.headers,
         )
-        log_api.info("  status_code < %s", status_code)
-        log_api.info("  resp_data   < %s", resp_data)
-        log_api.info("  headers     < %s", headers)
+        log_api.debug("  status_code < %s", status_code)
+        log_api.debug("  resp_data   < %s", resp_data)
+        log_api.debug("  headers     < %s", headers)
     except IOError as exc:
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
         status_code, headers = getattr(exc, "code", None), {}
@@ -654,15 +651,18 @@ class AuthenticatedUser(object):
         The response data is a dict
         """
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
-        _result, _t0 = None, time.time()
+        _result = None
+        _t0 = time.time()
         while (_result is None) or (_result["status"] in _pending_statuses):
             log.debug(") polling...")
-            assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
-            time.sleep(0 if _result is None else 2)
+            time.sleep(1 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
                 _url,
                 payload=None,
             )
+            if (time.time() - _t0) > 30:
+                log.critical("polling too long")
+                raise errors.AcmePollingTooLong()
         return _result
 
     def update_contact(
