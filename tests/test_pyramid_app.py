@@ -11569,6 +11569,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
+
         # different domains
         dbAcmeOrder_3 = make_one__AcmeOrder__api(
             self,
@@ -11584,7 +11585,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 1- FAIL replace an unknown `replaces`
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces="fake.ari",
             _expected_result="FAIL",
         )
@@ -11592,7 +11593,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 2- PASS replace a cert from the same renewal configuration
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
@@ -11601,7 +11602,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 3- FAIL replace a replaced certificate
         # the replacement was just consumed in test 3
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
@@ -11610,7 +11611,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 4- PASS replace a cert from a different config with the same fqdn set
         # dbAcmeOrder_2 has the same fqdns, but a different config due to the dns challenges
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_2.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
@@ -11618,7 +11619,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 5- FAIL replace a cert from a different renewal with a different fqdn set
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_3.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
@@ -11627,7 +11628,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 6- PASS replace an imported cert with the same fqdn set
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="PASS",
         )
@@ -11636,7 +11637,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 7- FAIL replace an imported cert with a different fqdn set
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_3,
+            dbAcmeOrder_3,  # [b.test-replaces.example.com]
             _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="FAIL",
         )

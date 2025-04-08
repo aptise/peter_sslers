@@ -2730,7 +2730,6 @@ def do__AcmeV2_AcmeOrder__new(
     dbAcmeOrder: Optional["AcmeOrder"] = None
     dbCertificateSigned: Optional["CertificateSigned"] = None
     try:
-
         # check here, because we don't want to create a server order with invalid options
         if replaces:
             # VALIDATE the `replaces` candidate
