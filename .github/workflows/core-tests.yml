@@ -227,6 +227,7 @@ jobs:
       # if these expire, the tests fail!
       run: |
         cd /home/runner/work/peter_sslers/peter_sslers/tests/test_data/pebble-certs/privkey1
+        pip install cert_utils
         python regenerate.py generate_certs
 
     - name: Test with tox/pytest
