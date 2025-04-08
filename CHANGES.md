@@ -271,9 +271,11 @@
         create renewal config
 
     AcmeOrder & RenewalConfiguration
-        allow acme_accont_id instead of account_key
+        allow acme_account_id instead of account_key
     
     Added `regenerate.py` script for some test data, and invoke it in github workflow.
+    
+    Added tests to ensure AcmeOrder can be created with different kinds of inputs
 
 
 

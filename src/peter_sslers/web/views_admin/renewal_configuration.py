@@ -167,7 +167,18 @@ def submit__new(
         )
     acme_profile__backup = formStash.results["acme_profile__backup"]
 
-    if not acmeAccountSelection_backup.AcmeAccount:
+    if acmeAccountSelection_backup.AcmeAccount:
+        if not formStash.results["private_key_cycle__backup"]:
+            formStash.fatal_field(
+                field="private_key_cycle__backup",
+                error_field="Required for Backup Accounts",
+            )
+        if not formStash.results["private_key_technology__backup"]:
+            formStash.fatal_field(
+                field="private_key_technology__backup",
+                error_field="Required for Backup Accounts",
+            )
+    else:
         private_key_cycle_id__backup = None
         private_key_technology_id__backup = None
         acme_profile__backup = None
@@ -1564,6 +1575,7 @@ class View_New(Handler):
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "acme_account_id": "local id of AcmeAccount. Must/Only submit if `account_key_option==acme_account_id`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__primary": "what kind of keys to use?",
                 "acme_profile_primary": """The name of an ACME Profile on the ACME Server.
@@ -1573,6 +1585,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
                 "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
                 "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
+                "acme_account_id_backup": "local id of AcmeAccount. Must/Only submit if `account_key_option_backup==acme_account_id`",
                 "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__backup": "what kind of keys to use?",
                 "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
@@ -1587,12 +1600,14 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     "account_key_global_default",
                     "account_key_existing",
                     "acme_profile_primary",
+                    "acme_account_id",
                 ],
                 [
                     "account_key_option_backup",
                     "account_key_global_backup",
                     "account_key_existing_backup",
                     "acme_profile_backup",
+                    "acme_account_id_backup",
                 ],
             ],
             "valid_options": {

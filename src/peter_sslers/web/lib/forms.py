@@ -377,6 +377,7 @@ class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
     )
 
     chained_validators = [
+        # these are bonded
         RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
         RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
     ]
