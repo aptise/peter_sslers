@@ -1942,7 +1942,16 @@
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing" id="account_key_existing-pem_md5" type="text"/>
+               <input class="form-control" name="account_key_existing" id="account_key_option-account_key_existing" type="text"/>
+            </div>
+        </div>
+        <div class="radio">
+            <label for="account_key_option-account_key_id">
+                <input type="radio" name="account_key_option" id="account_key_option-account_key_id" value="account_key_id"/>
+                The internal ID of an AcmeAccountKey enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="account_key_id" id="account_key_existing-account_key_id" type="text"/>
             </div>
         </div>
         % if support_upload:
@@ -2072,7 +2081,17 @@
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing_backup" id="account_key_existing_backup-pem_md5" type="text"/>
+               <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
+            </div>
+        </div>
+
+        <div class="radio">
+            <label for="account_key_option_backup-account_key_id_backup">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_id_backup" value="account_key_id_backup"/>
+                The internal ID of an AcmeAccountKey enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="account_key_id_backup" id="account_key_option_backup-account_key_id_backup" type="text"/>
             </div>
         </div>
         % if support_profiles:

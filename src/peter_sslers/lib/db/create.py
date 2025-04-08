@@ -486,6 +486,11 @@ def create__AcmeChallenge(
     if acme_challenge_type_id not in model_utils.AcmeChallengeType._mapping:
         raise ValueError("invalid `acme_challenge_type_id`")
 
+    if not challenge_url:
+        raise ValueError("`challenge_url` is required")
+    if not token:
+        raise ValueError("`token` is required")
+
     _competing_challenges = None
     assert ctx.application_settings
     assert ctx.request

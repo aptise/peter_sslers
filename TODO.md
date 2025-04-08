@@ -10,10 +10,6 @@ Audit:
         transaction_commit: instructs the def to commit the transaction
         acknowlege_transaction_commits: the def will commit the transaction; the caller must acknowledge this
     
-AcmeOrder & RenewalConfiguration
-    allow acme_accont_id instead of account_key
-    
-
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 

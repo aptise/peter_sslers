@@ -741,10 +741,13 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             self.acme_status_authorization
             not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER
         ):
-            if not self.acme_order_created.acme_server.is_retry_challenges or (
-                self.acme_order_created.acme_server.is_retry_challenges
-                and self.acme_status_authorization
-                not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER_RETRIES
+            if (
+                not self.acme_order_created.acme_account.acme_server.is_retry_challenges
+                or (
+                    self.acme_order_created.acme_account.acme_server.is_retry_challenges
+                    and self.acme_status_authorization
+                    not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER_RETRIES
+                )
             ):
                 return False
         #
@@ -1078,9 +1081,9 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER
         ):
             if (
-                not self.acme_authorization.acme_order_created.acme_server.is_retry_challenges
+                not self.acme_authorization.acme_order_created.acme_account.acme_server.is_retry_challenges
                 or (
-                    self.acme_authorization.acme_order_created.acme_server.is_retry_challenges
+                    self.acme_authorization.acme_order_created.acme_account.acme_server.is_retry_challenges
                     and self.acme_status_challenge
                     not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER_RETRIES
                 )

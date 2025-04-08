@@ -2403,7 +2403,7 @@ class FunctionalTests_AcmePollingError(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @routes_tested(("admin:acme_polling_error", "admin:acme_polling_error-paginated"))
+    @routes_tested(("admin:acme_polling_errors", "admin:acme_polling_errors-paginated"))
     def test_list_html(self):
         # root
         res = self.testapp.get(
@@ -2415,7 +2415,7 @@ class FunctionalTests_AcmePollingError(AppTest):
         )
 
     @routes_tested(
-        ("admin:acme_polling_error|json", "admin:acme_polling_error-paginated|json")
+        ("admin:acme_polling_errors|json", "admin:acme_polling_errors-paginated|json")
     )
     def test_list_json(self):
         # json root

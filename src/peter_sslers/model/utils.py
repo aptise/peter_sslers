@@ -729,12 +729,14 @@ class AcmeAccountKeyOption(object):
     options_basic = (
         "account_key_global_default",
         "account_key_existing",
+        "account_key_id",
     )
 
     options_basic_backup = (
         "none",
         "account_key_global_backup",
         "account_key_existing",
+        "account_key_id",
     )
 
     options_streamlined = (
@@ -751,6 +753,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_default",
         "account_key_existing",
         "account_key_reuse",
+        "account_key_id",
     )
 
     options_basic_backup_reuse = (
@@ -758,6 +761,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_backup",
         "account_key_existing",
         "account_key_reuse",
+        "account_key_id",
     )
 
 
