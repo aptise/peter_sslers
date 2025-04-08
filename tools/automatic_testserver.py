@@ -1,6 +1,7 @@
 """
 this script spins up the actual testserver used by the automatic systems
 """
+
 from peter_sslers.lib.db.actions import _create_public_server
 from pyramid.paster import get_appsettings
 
@@ -18,4 +19,3 @@ try:
         pass
 finally:
     wsgi_server.shutdown()
-

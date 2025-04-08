@@ -34,6 +34,7 @@ from ...model.objects import AcmeDnsServerAccount
 from ...model.objects import AcmeEventLog
 from ...model.objects import AcmeOrder
 from ...model.objects import AcmeOrder2AcmeAuthorization
+from ...model.objects import AcmePollingError
 from ...model.objects import AcmeServer
 from ...model.objects import AcmeServerConfiguration
 from ...model.objects import AriCheck
@@ -1361,6 +1362,37 @@ def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmePollingError__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(AcmePollingError).count()
+    return counted
+
+
+def get__AcmePollingError__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[AcmePollingError]:
+    query = (
+        ctx.dbSession.query(AcmePollingError)
+        .order_by(AcmePollingError.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmePollingErrors = query.all()
+    return dbAcmePollingErrors
+
+
+def get__AcmePollingError__by_id(
+    ctx: "ApiContext", id_: int
+) -> Optional[AcmePollingError]:
+    item = ctx.dbSession.query(AcmePollingError).get(id_)
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def get__AcmeServerConfiguration__by_AcmeServerId__count(
@@ -3476,6 +3508,18 @@ def get__RenewalConfiguration__by_id(
     id_: int,
 ) -> Optional[RenewalConfiguration]:
     q = ctx.dbSession.query(RenewalConfiguration).filter(RenewalConfiguration.id == id_)
+    item = q.first()
+    return item
+
+
+def get__RenewalConfiguration__by_label(
+    ctx: "ApiContext",
+    label: str,
+) -> Optional[RenewalConfiguration]:
+    label = lib_utils.normalize_unique_text(label)
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        sqlalchemy.func.lower(RenewalConfiguration.label) == label
+    )
     item = q.first()
     return item
 

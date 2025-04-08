@@ -353,6 +353,19 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
+    # !!!: AcmePollingError
+    config.add_route_7(
+        "admin:acme_polling_errors",
+        "/acme-polling-errors",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:acme_polling_error:focus",
+        "/acme-polling-error/{@id}",
+        jsonify=True,
+    )
+
     # !!!: AcmeOrder
     config.add_route_7(
         "admin:acme_orders",

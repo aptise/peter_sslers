@@ -66,7 +66,9 @@ for result in audit_results:
             continue
 
         _cname_source = result["cname_source"]
-        _cname_source = _cname_source if _cname_source[-1] != "." else _cname_source[:-1]
+        _cname_source = (
+            _cname_source if _cname_source[-1] != "." else _cname_source[:-1]
+        )
         if _cname_source[-1] == ".":
             _cname_source = _cname_source[:-1]
         try:
@@ -80,7 +82,9 @@ for result in audit_results:
                 "content": _cname_target,
                 "proxied": False,
             }
-            _api_result = cf.zones.dns_records.get(zone_id, params={"name": _cname_source})
+            _api_result = cf.zones.dns_records.get(
+                zone_id, params={"name": _cname_source}
+            )
             _write: bool = True
             if _api_result["result"]:
                 if (_api_result["result"][0]["type"] == "CNAME") and (

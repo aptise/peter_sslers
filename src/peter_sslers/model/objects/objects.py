@@ -659,6 +659,11 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
     )
+    acme_polling_errors = sa_orm_relationship(
+        "AcmePollingError",
+        primaryjoin="AcmeAuthorization.id==AcmePollingError.acme_authorization_id",
+        back_populates="acme_authorization",
+    )
     # this is only used to easily grab an AcmeAccount
     acme_order_created = sa_orm_relationship(
         "AcmeOrder",
@@ -951,7 +956,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 
     # our challenge will either be from:
     # 1) an `AcmeOrder`->`AcmeAuthorization`
-    acme_authorization_id: Mapped[Optional[int]] = mapped_column(
+    acme_authorization_id: Mapped[int] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_authorization.id"),
         nullable=False,
@@ -972,7 +977,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     )  # Acme_Status_Challenge
 
     # this is on the acme server
-    challenge_url: Mapped[Optional[str]] = mapped_column(
+    challenge_url: Mapped[str] = mapped_column(
         sa.Unicode(255), nullable=False, unique=True
     )
 
@@ -983,7 +988,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=True
     )
 
-    token: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=False)
+    token: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http_01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization: Mapped[Optional[str]] = mapped_column(
@@ -1010,6 +1015,11 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         "AcmeChallengePoll",
         primaryjoin="AcmeChallenge.id==AcmeChallengePoll.acme_challenge_id",
         uselist=True,
+        back_populates="acme_challenge",
+    )
+    acme_polling_errors = sa_orm_relationship(
+        "AcmePollingError",
+        primaryjoin="AcmeChallenge.id==AcmePollingError.acme_challenge_id",
         back_populates="acme_challenge",
     )
     domain = sa_orm_relationship(
@@ -1692,9 +1702,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=False
     )
-    private_key_deferred_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, nullable=False
-    )
+    private_key_deferred_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     replaces__requested: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
@@ -1726,6 +1734,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_authorization_potentials = sa_orm_relationship(
         "AcmeAuthorizationPotential",
         primaryjoin="AcmeOrder.id==AcmeAuthorizationPotential.acme_order_id",
+        back_populates="acme_order",
+    )
+    acme_polling_errors = sa_orm_relationship(
+        "AcmePollingError",
+        primaryjoin="AcmeOrder.id==AcmePollingError.acme_order_id",
         back_populates="acme_order",
     )
     acme_order_submissions = sa_orm_relationship(
@@ -2185,6 +2198,96 @@ class AcmeOrder2AcmeAuthorization(Base):
 # ==============================================================================
 
 
+class AcmePollingError(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "acme_polling_error"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(acme_order_id IS NOT NULL OR acme_challenge_id IS NOT NULL)",
+            name="check_acme_polling_error",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    acme_polling_error_endpoint_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        default=None,
+    )
+    timestamp_validated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        TZDateTime(timezone=True), nullable=True, default=None
+    )
+    subproblems_len: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        default=None,
+    )
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("acme_order.id"),
+        nullable=True,
+    )
+    acme_authorization_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("acme_authorization.id"),
+        nullable=True,
+    )
+    acme_challenge_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("acme_challenge.id"),
+        nullable=True,
+    )
+    response: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmePollingError.acme_order_id==AcmeOrder.id",
+        uselist=False,
+        back_populates="acme_polling_errors",
+    )
+    acme_authorization = sa_orm_relationship(
+        "AcmeAuthorization",
+        primaryjoin="AcmePollingError.acme_authorization_id==AcmeAuthorization.id",
+        uselist=False,
+        back_populates="acme_polling_errors",
+    )
+    acme_challenge = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin=("AcmePollingError.acme_challenge_id==AcmeChallenge.id"),
+        uselist=False,
+        back_populates="acme_polling_errors",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def acme_polling_error_endpoint(self) -> Optional[str]:
+        return model_utils.AcmePollingErrorEndpoint.as_string(
+            self.acme_polling_error_endpoint_id
+        )
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            # - - -
+            "timestamp_created": self.timestamp_created_isoformat,
+            "acme_polling_error_endpoint": self.acme_polling_error_endpoint,
+            "timestamp_validated": self.timestamp_validated_isoformat,
+            "subproblems_len": self.subproblems_len,
+            "acme_order_id": self.acme_order_id,
+            "acme_authorization_id": self.acme_authorization_id,
+            "acme_challenge_id": self.acme_challenge_id,
+            "response": self.response,
+        }
+
+
 class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     """
     Represents an AcmeServer
@@ -2226,7 +2329,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     is_retry_challenges: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )
-    is_enabled: Mapped[Optional[bool]] = mapped_column(  # legacy; unused
+    is_enabled: Mapped[bool] = mapped_column(  # legacy; unused
         sa.Boolean, nullable=False, default=True
     )
     protocol: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
@@ -2411,7 +2514,7 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     )
 
     # originally intended to track success of the check
-    ari_check_status: Mapped[Optional[bool]] = mapped_column(
+    ari_check_status: Mapped[bool] = mapped_column(
         sa.Boolean,
         nullable=False,
     )  # True: Success; False Failure
@@ -4762,7 +4865,9 @@ class RenewalConfiguration(
     )
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
 
-    label: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    label: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
+    )
 
     # this should always be true; maybe one day it will be a toggle
     is_save_alternate_chains: Mapped[bool] = mapped_column(
@@ -5636,6 +5741,7 @@ __all__ = (
     "AcmeOrder",
     "AcmeOrderSubmission",
     "AcmeOrder2AcmeAuthorization",
+    "AcmePollingError",
     "AriCheck",
     "CertificateCA",
     "CertificateCAChain",

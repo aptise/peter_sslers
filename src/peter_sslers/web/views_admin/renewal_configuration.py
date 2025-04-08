@@ -1012,6 +1012,8 @@ class View_Focus_New(View_Focus):
                     field=exc.args[0],
                     error_field=exc.args[1],
                 )
+            except errors.DuplicateAcmeOrder as exc:
+                raise formStash.fatal_form(error_main=exc.args[0])
             except errors.AcmeOrderCreatedError as exc:
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
                 dbAcmeOrderNew = exc.acme_order

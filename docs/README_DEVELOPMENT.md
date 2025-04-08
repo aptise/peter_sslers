@@ -303,3 +303,15 @@ If a CA has a non-public root, for example a Private CA or testing CA, TLS suppo
 is achieved by setting a `server_ca_cert_bundle` value on the database record.
 
 This can be provided in the initial configuration, or adjusted via commandline tools.
+
+
+## Useful Tests
+
+order one cert and process it at once, through acme-order/new-freeform
+
+    pytest tests/test_pyramid_app.py::IntegratedTests_AcmeServer_AcmeOrder::test_AcmeOrder_process_single_html
+    
+    
+    
+        
+

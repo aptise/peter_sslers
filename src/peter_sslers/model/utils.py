@@ -921,6 +921,20 @@ AcmeServerInput = TypedDict(
 )
 
 
+class AcmePollingErrorEndpoint(_mixin_mapping):
+    """
+    How was the AcmePollingError generated - which endpoint?
+    """
+
+    ACME_CHALLENGE_TRIGGER = 1
+    ACME_ORDER_FINALIZE = 2
+
+    _mapping = {
+        1: "acme_challenge_trigger",
+        2: "acme_order_finalize",
+    }
+
+
 class CertificateRequestSource(_mixin_mapping):
     """
     How was the CertificateRequest generated?

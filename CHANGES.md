@@ -260,6 +260,18 @@
 
     Python 3.9+ only (josepy2.0 requirement)
 
+    RenewalConfiguration.label
+        is a unique constaint and checked on create
+
+    Fixed Error on "average speed" for routines; math was wrong
+
+    commandline tools:
+        import acme-dns payload
+        create enrollment-factory
+        create renewal config
+
+
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

@@ -723,6 +723,69 @@
 </%def>
 
 
+<%def name="table_AcmePollingErrors(acme_polling_errors, perspective=None)">
+    <%
+        cols = ("id",
+                "timestamp_created",
+                "timestamp_validated",
+                "acme_polling_error_endpoint",
+                "subproblems_len",
+                "acme_order_id",
+                "acme_authorization_id",
+                "acme_challenge_id",
+               )
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for acme_polling_error in acme_polling_errors:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/acme-polling-error/${acme_polling_error.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmePollingError-${acme_polling_error.id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${acme_polling_error.timestamp_created or ''}</timestamp>
+                            % elif c == 'timestamp_validated':
+                                <timestamp>${acme_polling_error.timestamp_validated or ''}</timestamp>
+                            % elif c == 'acme_polling_error_endpoint':
+                                <code>${acme_polling_error.acme_polling_error_endpoint or ''}</code>
+                            % elif c == 'subproblems_len':
+                                <code>${acme_polling_error.subproblems_len or ''}</code>
+                            % elif c == 'acme_order_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_order_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acme_polling_error.acme_order_id}
+                                </a>
+                            % elif c == 'acme_authorization_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_authorization_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorization-${acme_polling_error.acme_authorization_id}
+                                </a>
+                            % elif c == 'acme_order_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_challenge_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeChallenge-${acme_polling_error.acme_challenge_id}
+                                </a>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AriChecks(ari_checks, perspective=None)">
     <%
         cols = ("id",

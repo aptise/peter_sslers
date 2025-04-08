@@ -378,7 +378,7 @@ def _audit_AcmeChallenge_against_server_response(
 
     # pretty much everything should match up
     # audit all fields EXCEPT status
-    _mismatch = {}  # key = field; value=(expected, received)
+    _mismatch: Dict = {}  # key = field; value=(expected, received)
     if dbAcmeChallenge.challenge_url != challenge_response["url"]:
         _mismatch["url"] = (dbAcmeChallenge.challenge_url, challenge_response["url"])
     if dbAcmeChallenge.token != challenge_response["token"]:
@@ -2531,9 +2531,10 @@ def do__AcmeV2_AcmeOrder__new(
         ctx, dbRenewalConfiguration.id
     )
     if _dbExistingOrder:
+        log.critical("DuplicateAcmeOrder")
         log.critical(_dbExistingOrder.as_json)
-        raise ValueError(
-            "There is an existing active `AcmeOrder`. %s" % _dbExistingOrder.as_json
+        raise errors.DuplicateAcmeOrder(
+            "There is an existing active `AcmeOrder`: `%s`." % _dbExistingOrder.id
         )
 
     dbOperationsEvent = log__OperationsEvent(

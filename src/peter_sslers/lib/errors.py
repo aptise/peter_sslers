@@ -324,6 +324,10 @@ class DisplayableError(_UrlSafeException):
     pass
 
 
+class DuplicateAcmeOrder(Exception):
+    pass
+
+
 class DuplicateRenewalConfiguration(Exception):
     pass
 

@@ -2902,6 +2902,14 @@ class AppTest(AppTestCore):
                     )
 
                     self.ctx.pyramid_transaction_commit()
+
+                    _dbAcmePolling_error = db.create.create__AcmePollingError(
+                        self.ctx,
+                        acme_polling_error_endpoint_id=model_utils.AcmePollingErrorEndpoint.ACME_ORDER_FINALIZE,
+                        acme_order_id=_dbAcmeOrder.id,
+                    )
+                    self.ctx.pyramid_transaction_commit()
+
                     db_freeze(self.ctx.dbSession, "AppTest")
 
                 except Exception as exc:

@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeOrderSubmission
+    from ...model.objects import AcmePollingError
     from ...model.objects import AcmeServer
     from ...model.objects import AcmeServerConfiguration
     from ...model.objects import AriCheck
@@ -77,6 +78,41 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
+
+
+def create__AcmePollingError(
+    ctx: "ApiContext",
+    acme_polling_error_endpoint_id: int,
+    acme_order_id: Optional[int] = None,
+    acme_authorization_id: Optional[int] = None,
+    acme_challenge_id: Optional[int] = None,
+    timestamp_validated: Optional[datetime.datetime] = None,
+    subproblems_len: Optional[int] = None,
+    response: Optional[str] = None,
+) -> "AcmePollingError":
+    """
+    :returns :class:`model.objects.    from ...model.objects import AcmeServer
+    """
+    if (
+        acme_polling_error_endpoint_id
+        not in model_utils.AcmePollingErrorEndpoint._mapping
+    ):
+        raise ValueError(
+            "unknown acme_polling_error_endpoint_id: `%s`"
+            % acme_polling_error_endpoint_id
+        )
+    dbPollingError = model_objects.AcmePollingError()
+    dbPollingError.timestamp_created = ctx.timestamp
+    dbPollingError.acme_polling_error_endpoint_id = acme_polling_error_endpoint_id
+    dbPollingError.acme_order_id = acme_order_id
+    dbPollingError.acme_authorization_id = acme_authorization_id
+    dbPollingError.acme_challenge_id = acme_challenge_id
+    dbPollingError.timestamp_validated = timestamp_validated
+    dbPollingError.subproblems_len = subproblems_len
+    dbPollingError.response = response
+    ctx.dbSession.add(dbPollingError)
+    ctx.dbSession.flush(objects=[dbPollingError])
+    return dbPollingError
 
 
 def create__AcmeServer(
@@ -1523,7 +1559,13 @@ def create__RenewalConfiguration(
     label = lib_utils.normalize_unique_text(label) if label else None
     if label:
         if label.startswith("rc-") or label.startswith("global"):
-            raise ValueError("`label` contains a reserved prefix or is a reserved word")
+            raise ValueError(
+                "`label` '%s' contains a reserved prefix or is a reserved word" % label
+            )
+        _conflicting = _get.get__RenewalConfiguration__by_label(ctx, label)
+        if _conflicting:
+            raise ValueError("`label` '%s' already in use" % label)
+
     # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
     _domain_names_all = domains_challenged.domains_as_list
     validate_domain_names(ctx, _domain_names_all)
@@ -1710,7 +1752,7 @@ def create__RoutineExecution(
 
     average_speed = float(0)
     if count_records_processed and dbRoutine.duration_seconds:
-        average_speed = count_records_processed / dbRoutine.duration_seconds
+        average_speed = dbRoutine.duration_seconds / count_records_processed
     dbRoutine.average_speed = average_speed
 
     ctx.dbSession.add(dbRoutine)

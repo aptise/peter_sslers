@@ -1,9 +1,6 @@
 URGENT
 =====
 
-RenewalConfiguraiton.label
-    needs unique constaints
-
 Audit:
     AcknowledgeTransactionCommitRequired
     TransactionCommitRequired
@@ -13,7 +10,8 @@ Audit:
         transaction_commit: instructs the def to commit the transaction
         acknowlege_transaction_commits: the def will commit the transaction; the caller must acknowledge this
     
-    
+AcmeOrder & RenewalConfiguration
+    allow acme_accont_id instead of account_key
     
 
 Audit/Remove? OperationsEvent tracking
@@ -36,20 +34,10 @@ Fix
 
 acme-dns:
     onboarding
-
     audit credentials
         we write a temporary value now, which is ugly
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
-
-commandline tools:
-    import acme-dns payload
-    create enrollment-factory
-    create renewal config
-
-
-
-
 
 Audit
     objects | certificate has some odd attributes that should be removed

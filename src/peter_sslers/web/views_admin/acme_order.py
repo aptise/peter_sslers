@@ -1347,6 +1347,9 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                         transaction_commit=True,
                     )
 
+                except errors.DuplicateAcmeOrder as exc:
+                    raise formStash.fatal_form(error_main=exc.args[0])
+
                 except Exception as exc:
                     # unpack a `errors.AcmeOrderCreatedError` to local vars
                     if isinstance(exc, errors.AcmeOrderCreatedError):
@@ -1389,7 +1392,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                         "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                     )
                 )
-
             except (errors.ConflictingObject,) as exc:
                 formStash.fatal_form(error_main=str(exc))
 
@@ -1418,6 +1420,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 errors.AcmeError,
                 errors.InvalidRequest,
             ) as exc:
+
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
 

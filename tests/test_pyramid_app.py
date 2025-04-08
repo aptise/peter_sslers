@@ -2392,6 +2392,75 @@ class FunctionalTests_AcmeEventLog(AppTest):
         assert res.json["AcmeEventLog"]["id"] == focus_id
 
 
+class FunctionalTests_AcmePollingError(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_AcmePollingError
+    """
+
+    def _get_one(self):
+        # grab an event
+        focus_item = self.ctx.dbSession.query(model_objects.AcmePollingError).first()
+        assert focus_item is not None
+        return focus_item, focus_item.id
+
+    @routes_tested(("admin:acme_polling_error", "admin:acme_polling_error-paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors", status=200
+        )
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors/1", status=200
+        )
+
+    @routes_tested(
+        ("admin:acme_polling_error|json", "admin:acme_polling_error-paginated|json")
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors.json", status=200
+        )
+        assert "AcmePollingErrors" in res.json
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors/1.json", status=200
+        )
+        assert "AcmePollingErrors" in res.json
+
+    @routes_tested(("admin:acme_polling_error:focus"))
+    def test_focus_html(self):
+        """
+        AcmePollingError entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-error/%s" % focus_id, status=200
+        )
+
+    @routes_tested(("admin:acme_polling_error:focus|json"))
+    def test_focus_json(self):
+        """
+        AcmePollingError entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-error/%s.json" % focus_id,
+            status=200,
+        )
+        assert "AcmePollingError" in res.json
+        assert res.json["AcmePollingError"]["id"] == focus_id
+
+
 class FunctionalTests_AcmeOrder(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder
