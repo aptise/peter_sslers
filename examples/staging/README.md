@@ -103,6 +103,9 @@ You might prefer:
 
     server_names_hash_bucket_size 128;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
+    
+If you have a `server_names_hash_bucket_size` directive already, it should be increased to at least this amount; it may need to be increased more depending on the number of domains you already host.
+
 
 ## ensure there is no SSL here, because we don't have a cert yet!
 
@@ -122,7 +125,12 @@ the script should have detected that and NOT generated a 443 block
     
 ## check page
 
-    https://peter-sslers.testing.opensource.aptise.com/
+This should show some links to github
+
+    http://peter-sslers.testing.opensource.aptise.com
+
+This should not serve anything
+
     https://peter-sslers.testing.opensource.aptise.com/
 
 ## initialize peter_sslers
@@ -209,17 +217,26 @@ Install it...
     cd certificates
     sudo ln -s ~/peter_sslers/_data_/certificates/global/peter-sslers.testing.opensource.aptise.com .
 
-now uncomment out the ssl info
+Regenerate the openresty files::
+
+    cd ~/peter_sslers/examples/staging
+    python _generate_openresty.py
+
+Check to ensure https is on::
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
-    vi com.aptise.opensource.testing.peter_sslers
+    more com.aptise.opensource.testing.peter_sslers
     
-it should read:
+There should now be a second 443 sever block!
 
-    ssl_certificate /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem;
-    ssl_certificate_key /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/pkey.pem;
+After confirming that, generate a user/pass
 
-test and restart nginx
+    sudo htpasswd -c /etc/openresty/credentials/peter_sslers-testing.htpasswd -u USERNAME
+    
+    
+
+
+# test and restart nginx
 
     sudo openresty -t
     ps aux | grep openresty
@@ -227,7 +244,9 @@ test and restart nginx
 
 # visit the site    
 
-https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers    
+    https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers    
+
+There should now be a HTTP-auth box
 
 
 
