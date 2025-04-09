@@ -1,0 +1,19 @@
+<html>
+<head><title>%(letter)s - %(challenge)s</title></head>
+<body>
+    <!--
+    
+    WARNING
+    This file is managed by `_generate_openresty.py` and may be overwritten.
+    
+    -->
+    <h1>%(letter)s - %(challenge)s</h1>
+    <ul>
+        <li><a href="https://dns-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">dns-01.%(letter)s</a></li>
+        <li><a href="https://http-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">http-01.%(letter)s</a></li>
+    </ul>
+
+    <h1>All Domains</h1>
+    %(ALL_DOMAINS__HTML)s
+</body>
+</html>

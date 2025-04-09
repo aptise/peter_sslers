@@ -41,7 +41,7 @@ requires = [
     "redis",
     "requests",
     "SQLAlchemy>2",
-    "tldextract",
+    "tldextract>=5.2.0",
     "typing_extensions",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3

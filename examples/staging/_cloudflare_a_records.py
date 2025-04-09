@@ -1,4 +1,34 @@
+"""
+This script was written to generate the initial A records in Cloudflare for the
+following domains:
+
+    testing.opensource.aptise.com
+    peter-sslers.testing.opensource.aptise.com
+    (dns-01|http-01).[a-z].peter-sslers.testing.opensource.aptise.com
+
+
+This script requires cloudflare python library version 2.x
+
+    pip install --upgrade "cloudflare<3"
+
+You MUST export the following
+
+    export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
+    export ROOT_DOMAIN="{YOUR_DOMAIN}"
+    export CLOUDFLARE_ZONE_ID="{YOUR_ZONE_ID}"
+
+e.g.
+
+    export CLOUDFLARE_API_TOKEN="12345"
+    export ROOT_DOMAIN="aptise.com"
+    export CLOUDFLARE_ZONE_ID="abcd"
+    export CLOUDFLARE_TARGET_IP="127.0.0.1"
+
+
+"""
+
 # stdlib
+import os
 from typing import Dict
 from typing import List
 
@@ -7,11 +37,20 @@ from typing import List
 import CloudFlare
 
 
+ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN")
+CLOUDFLARE_ZONE_ID = os.environ.get("CLOUDFLARE_ZONE_ID")
+CLOUDFLARE_TARGET_IP = os.environ.get("CLOUDFLARE_TARGET_IP")
+
+if not all((ROOT_DOMAIN, CLOUDFLARE_ZONE_ID, CLOUDFLARE_TARGET_IP)):
+    raise ValueError("required ENV vars not found")
+
+
 # ==============================================================================
 
 
 def ensure_test_zones(
     cf: CloudFlare.CloudFlare,  # must be RAW
+    root_domain: str,
     zone_id: str,
     server_ipv4: str,
 ):
@@ -31,14 +70,15 @@ def ensure_test_zones(
             next_page = 0
 
     domains_a = [
-        "testing.opensource.aptise.com",
-        "peter-sslers.testing.opensource.aptise.com",
+        "testing.opensource.%s" % root_domain,
+        "peter-sslers.testing.opensource.%s" % root_domain,
     ]
     for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower():
         for chall in ("dns-01", "http-01"):
-            _domain = "%s.%s.peter-sslers.testing.opensource.aptise.com" % (
+            _domain = "%s.%s.peter-sslers.testing.opensource.%s" % (
                 chall,
                 letter,
+                root_domain,
             )
             domains_a.append(_domain)
     for _domain in domains_a:
@@ -77,9 +117,13 @@ def ensure_test_zones(
 
 
 if __name__ == "__main__":
+    assert ROOT_DOMAIN
+    assert CLOUDFLARE_TARGET_IP
+    assert CLOUDFLARE_ZONE_ID
     cf = CloudFlare.CloudFlare(raw=True)
     ensure_test_zones(
         cf,
-        zone_id="bda33f76b42c14e41ddb6494cc871ab6",  # aptise.com
-        server_ipv4="66.228.44.231",  # linode ip
+        root_domain=ROOT_DOMAIN,
+        zone_id=CLOUDFLARE_ZONE_ID,
+        server_ipv4=CLOUDFLARE_TARGET_IP,
     )

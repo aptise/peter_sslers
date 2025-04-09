@@ -1,8 +1,11 @@
 # Before we begin
 
+This advanced tutorial is how the staging system was created.
 
+It requires the following:
 
-
+* root access
+* an acme-dns server
 
 SSH onto your server!
 
@@ -29,10 +32,14 @@ You might prefer:
 Set up A records for test domains:
 
     export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
+    export ROOT_DOMAIN="aptise.com"
+    export CLOUDFLARE_ZONE_ID="{ZONE_ID FOR aptise.com}"
+    export CLOUDFLARE_TARGET_IP="{your ip}"
     python _cloudflare_a_records.py
 
 Generate nginx config files:
 
+    export ROOT_DOMAIN=aptise.com
     python _generate_openresty.py
 
     cd /var/www/sites
@@ -316,3 +323,7 @@ Now, upgrade the certificates...
 ## check page
 
     https://http-01.a.peter-sslers.testing.opensource.aptise.com/
+
+
+/var/www/sites/com.aptise.opensource.testing.peter_sslers/a/http-01/index.html
+
