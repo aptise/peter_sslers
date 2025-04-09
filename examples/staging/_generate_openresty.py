@@ -31,7 +31,7 @@ server {
     server_name  dns-01.%(letter)s.peter-sslers.testing.opensource.aptise.com;
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
-    root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/%(letter)s/dns-01;
+    root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/com.aptise.opensource.testing.peter_sslers.%(letter)s.dns-01;
     %(ssl_files)s
 }
 server {
@@ -39,7 +39,7 @@ server {
     server_name  http-01.%(letter)s.peter-sslers.testing.opensource.aptise.com;
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
-    root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/%(letter)s/http-01;
+    root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/com.aptise.opensource.testing.peter_sslers.%(letter)s.http-01;
     %(ssl_files)s
 }
 """

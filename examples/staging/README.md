@@ -313,3 +313,6 @@ Now, upgrade the certificates...
     kill -HUP ##PID##
     
 
+## check page
+
+    https://http-01.a.peter-sslers.testing.opensource.aptise.com/
