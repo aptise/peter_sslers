@@ -1,7 +1,6 @@
 # stdlib
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 # pypi
 # pip install --upgrade "cloudflare<3"
@@ -72,9 +71,9 @@ def ensure_test_zones(
             "proxied": False,
         }
         _api_result_2 = cf.zones.dns_records.post(zone_id, data=_record)
-        assert _api_result["result"]["name"] == _domain
-        assert _api_result["result"]["type"] == "A"
-        assert _api_result["result"]["content"] == server_ipv4
+        assert _api_result_2["result"]["name"] == _domain
+        assert _api_result_2["result"]["type"] == "A"
+        assert _api_result_2["result"]["content"] == server_ipv4
 
 
 if __name__ == "__main__":

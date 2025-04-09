@@ -1,8 +1,14 @@
 """
-This script generates the example staging structure.
+This script generates most of the example staging structure.
+
+If the expected Certificates are present on the filesystem,
+it will generate
 """
 
 import os
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # ==============================================================================
 
@@ -32,7 +38,7 @@ server {
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
     root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/com.aptise.opensource.testing.peter_sslers.%(letter)s.dns-01;
-    %(ssl_files)s
+    %(ssl_files_primary)s
 }
 server {
     listen  443 ssl;
@@ -40,7 +46,7 @@ server {
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/ssl.conf;
     include  /etc/openresty/com.aptise.opensource.testing.peter_sslers_/_macros/logging-example-https.conf;
     root  /var/www/sites/com.aptise.opensource.testing.peter_sslers/com.aptise.opensource.testing.peter_sslers.%(letter)s.http-01;
-    %(ssl_files)s
+    %(ssl_files_backup)s
 }
 """
 
@@ -91,23 +97,48 @@ LETTER_FRAGMENT__ACTIVE = """\
 for letter in "abcdefghijklmnopqrstuvwxyz":
     templating_args = {
         "letter": letter,
-        "ssl_files": "",
+        "ssl_files_primary": "",
+        "ssl_files_backup": "",
+        "certs_dir": "/etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates",
     }
-    ssl_certificate = (
-        "/etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/chall_prefix-%(letter)s.peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem"
-        % templating_args
-    )
-    ssl_certificate_key = (
-        "/etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/chall_prefix-%(letter)s.peter-sslers.testing.opensource.aptise.com/primary/pkey.pem"
-        % templating_args
-    )
 
-    if os.path.exists(ssl_certificate) and os.path.exists(ssl_certificate_key):
-        templating_args["ssl_certificate"] = ssl_certificate
-        templating_args["ssl_certificate_key"] = ssl_certificate_key
-        templating_args["ssl_files"] = (
-            "ssl_certificate  %(ssl_certificate)s;\n    ssl_certificate_key  %(ssl_certificate_key)s;"
-            % templating_args
+    ssl_certs: Dict[str, Optional[str]] = {
+        "primary": None,
+        "primary_key": None,
+        "backup": None,
+        "backup_key": None,
+    }
+
+    ssl_certs["primary"] = (
+        "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem"
+        % templating_args
+    )
+    if TYPE_CHECKING:
+        assert ssl_certs["primary"]
+    ssl_certs["backup"] = ssl_certs["primary"].replace("primary", "backup")
+
+    ssl_certs["primary_key"] = (
+        "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.aptise.com/primary/pkey.pem"
+        % templating_args
+    )
+    if TYPE_CHECKING:
+        assert ssl_certs["primary_key"]
+    ssl_certs["backup_key"] = ssl_certs["primary_key"].replace("primary", "backup")
+
+    for k, v in list(ssl_certs.items()):
+        assert v is not None
+        if not os.path.exists(v):
+            ssl_certs[k] = None
+
+    if ssl_certs["primary"] and ssl_certs["primary_key"]:
+        templating_args["ssl_files_primary"] = (
+            "ssl_certificate  %(primary)s;\n    ssl_certificate_key  %(primary_key)s;"
+            % ssl_certs
+        )
+    if ssl_certs["backup"] and ssl_certs["backup_key"]:
+        templating_args["ssl_files_backup"] = (
+            "ssl_certificate  %(backup)s;\n    ssl_certificate_key  %(backup_key)s;"
+            % ssl_certs
         )
 
     domain_conf__file = DOMAIN_CONF__FILEPATH % templating_args
