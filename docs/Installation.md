@@ -1,7 +1,7 @@
 * [Previous - QuickStart](https://github.com/aptise/peter_sslers/blob/main/docs/QuickStart.md)
 * [Next - Configuration Options](https://github.com/aptise/peter_sslers/blob/main/docs/Configuration_Options.md)
 
-# Installation
+# Basic Installation
 
 This is pretty much ready to go for development use.
 Production use requires some tweaking by design.
@@ -110,3 +110,6 @@ The first `invoke` command will import existing LetsEncrypt live Certificates
 The second `invoke` command will import all existing LetsEncrypt issued Certificates
 The third `invoke` command will import existing LetsEncrypt accounts
 
+# Advanced example
+
+Check out the [examples/staging](https://github.com/aptise/peter_sslers/blob/main/examples/staging) directoy and the [README.md Instrunctions](https://github.com/aptise/peter_sslers/blob/main/examples/staging/README.md), for a walkthrough of an advanced setup.

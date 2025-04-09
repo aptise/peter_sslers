@@ -1,7 +1,18 @@
-# SSH onto your server
+# Before we begin
+
+
+
+
+
+SSH onto your server!
+
 
 # Install PeterSSLers
 
+    pip install --upgrade pip
+    pip install --upgrade virtualenv
+
+    virtualenv peter_sslers-venv
     source peter_sslers-venv/bin/activate
     git clone git@github.com:aptise/peter_sslers.git
     cd peter_sslers
@@ -288,4 +299,17 @@ if you notice a message like
 Try to reconcile blocks:
     
     routine__reconcile_blocks conf/staging.ini
+
+
+Now, upgrade the certificates...
+
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/
+    sudo ln -s ~/peter_sslers/_data_/certificates/dns-http-example/chall_prefix-* .
+
+    cd ~/peter_sslers/examples/staging
+    python _generate_openresty.py
+    sudo openresty -t
+    ps aux | grep openresty
+    kill -HUP ##PID##
+    
 
