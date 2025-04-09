@@ -2770,6 +2770,9 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
     @routes_tested("admin:acme_order:new:freeform|json")
     def test_new_json(self):
         """
@@ -2864,6 +2867,9 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
     @routes_tested("admin:acme_order:new:freeform")
     def test_new_html(self):
         """
