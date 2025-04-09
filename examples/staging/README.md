@@ -6,17 +6,56 @@ It requires the following:
 
 * root access
 * an acme-dns server
+* python3.9 or newer
 
-SSH onto your server!
+If you have an older Python on Ubuntu, it will take under 3 minutes to sideload
+a compatible release in our next step
 
+## Upgrading to a Compatible Python on ubuntu
+
+SSH Onto your server.
+
+Installing Python3.10:
+
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt update
+    sudo apt-get install python3.10
+    sudo apt-get install python3.10-dev
+    sudo apt-get install python3.10-distutils
+    sudo apt-get install python3.10-venv
+    
+    
+This will install python3.10 into `/usr/bin/python3.10`
+
+Confirm this with::
+
+    $ which python3.10
+    # /usr/bin/python3.10
+
+Now install pip::
+
+    sudo /usr/bin/python3.10 -m ensurepip --upgrade
+
+And confirm we have it::
+
+    $ which pip3.10
+    # /usr/local/bin/pip3.10
 
 # Install PeterSSLers
 
-    pip install --upgrade pip
-    pip install --upgrade virtualenv
+Install the core Python dependencies for generic deployments...
 
-    virtualenv peter_sslers-venv
-    source peter_sslers-venv/bin/activate
+We expect to sideload python, so it's best to explicitly invoke the pip3.x variant.
+
+For this example, we're using Python 3.10 ::
+
+    sudo pip3.10 install --upgrade pip
+    sudo pip3.10 install --upgrade virtualenv
+
+Create a new virtualenv, clone and install `peter_sslers`
+
+    virtualenv -p 3.10 peter_sslers-virtualenv-3.10
+    source peter_sslers-virtualenv-3.10/bin/activate
     git clone git@github.com:aptise/peter_sslers.git
     cd peter_sslers
     pip install -e .
@@ -29,15 +68,19 @@ You might prefer:
 
     cd examples/staging
 
-Set up A records for test domains:
+## Set up A records for test domains:
 
     export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
     export ROOT_DOMAIN="aptise.com"
     export CLOUDFLARE_ZONE_ID="{ZONE_ID FOR aptise.com}"
     export CLOUDFLARE_TARGET_IP="{your ip}"
+    
+    pip install --upgrade "cloudflare<3"
+    pip install --upgrade "tldextract>=5.2"
+    
     python _cloudflare_a_records.py
 
-Generate nginx config files:
+## Generate nginx config files, part 1
 
     export ROOT_DOMAIN=aptise.com
     python _generate_openresty.py
@@ -45,9 +88,12 @@ Generate nginx config files:
     cd /var/www/sites
     sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
     ls -alh com.aptise.opensource.testing.peter_sslers
+    ls -alh com.aptise.opensource.testing.peter_sslers/
 
     cd /etc/openresty
     sudo ln -s ~/peter_sslers/examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_ .
+    ls -alh com.aptise.opensource.testing.peter_sslers_
+    ls -alh com.aptise.opensource.testing.peter_sslers_/
 
 ## Edit Nginx conf
 
@@ -58,17 +104,13 @@ Generate nginx config files:
     server_names_hash_bucket_size 128;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
 
-## disable SSL here, because we don't have a cert yet
+## ensure there is no SSL here, because we don't have a cert yet!
+
+the script should have detected that and NOT generated a 443 block
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
     vi com.aptise.opensource.testing.peter_sslers
     
-it should read:
-
-    # ssl_certificate /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/fullchain.pem;
-    # ssl_certificate_key /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.aptise.com/primary/pkey.pem;
-
-
 ## test nginx
 
     sudo openresty -t
