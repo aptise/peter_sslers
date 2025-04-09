@@ -260,6 +260,25 @@
 
     Python 3.9+ only (josepy2.0 requirement)
 
+    RenewalConfiguration.label
+        is a unique constaint and checked on create
+
+    Fixed Error on "average speed" for routines; math was wrong
+
+    commandline tools:
+        import acme-dns payload
+        create enrollment-factory
+        create renewal config
+
+    AcmeOrder & RenewalConfiguration
+        allow acme_account_id instead of account_key
+    
+    Added `regenerate.py` script for some test data, and invoke it in github workflow.
+    
+    Added tests to ensure AcmeOrder can be created with different kinds of inputs
+
+
+
 
 0.6.0
     py3.7+ only (sqlalchemy requirement)

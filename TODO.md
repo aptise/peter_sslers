@@ -1,6 +1,10 @@
 URGENT
 =====
 
+Tests to create with an account_id
+
+
+
 Audit:
     AcknowledgeTransactionCommitRequired
     TransactionCommitRequired
@@ -10,9 +14,6 @@ Audit:
         transaction_commit: instructs the def to commit the transaction
         acknowlege_transaction_commits: the def will commit the transaction; the caller must acknowledge this
     
-    
-    
-
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
@@ -33,20 +34,10 @@ Fix
 
 acme-dns:
     onboarding
-
     audit credentials
         we write a temporary value now, which is ugly
         waiting on
             https://github.com/joohoi/acme-dns/pull/378
-
-commandline tools:
-    import acme-dns payload
-    create enrollment-factory
-    create renewal config
-
-
-
-
 
 Audit
     objects | certificate has some odd attributes that should be removed

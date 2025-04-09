@@ -723,6 +723,69 @@
 </%def>
 
 
+<%def name="table_AcmePollingErrors(acme_polling_errors, perspective=None)">
+    <%
+        cols = ("id",
+                "timestamp_created",
+                "timestamp_validated",
+                "acme_polling_error_endpoint",
+                "subproblems_len",
+                "acme_order_id",
+                "acme_authorization_id",
+                "acme_challenge_id",
+               )
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for acme_polling_error in acme_polling_errors:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/acme-polling-error/${acme_polling_error.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmePollingError-${acme_polling_error.id}
+                                </a>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${acme_polling_error.timestamp_created or ''}</timestamp>
+                            % elif c == 'timestamp_validated':
+                                <timestamp>${acme_polling_error.timestamp_validated or ''}</timestamp>
+                            % elif c == 'acme_polling_error_endpoint':
+                                <code>${acme_polling_error.acme_polling_error_endpoint or ''}</code>
+                            % elif c == 'subproblems_len':
+                                <code>${acme_polling_error.subproblems_len or ''}</code>
+                            % elif c == 'acme_order_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_order_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acme_polling_error.acme_order_id}
+                                </a>
+                            % elif c == 'acme_authorization_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_authorization_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorization-${acme_polling_error.acme_authorization_id}
+                                </a>
+                            % elif c == 'acme_order_id':
+                                <a href="${admin_prefix}/acme-order/${acme_polling_error.acme_challenge_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeChallenge-${acme_polling_error.acme_challenge_id}
+                                </a>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AriChecks(ari_checks, perspective=None)">
     <%
         cols = ("id",
@@ -1879,7 +1942,16 @@
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing" id="account_key_existing-pem_md5" type="text"/>
+               <input class="form-control" name="account_key_existing" id="account_key_option-account_key_existing" type="text"/>
+            </div>
+        </div>
+        <div class="radio">
+            <label for="account_key_option-acme_account_id">
+                <input type="radio" name="account_key_option" id="account_key_option-acme_account_id" value="acme_account_id"/>
+                The internal ID of an ACME Account enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_id" id="account_key_existing-acme_account_id" type="text"/>
             </div>
         </div>
         % if support_upload:
@@ -2009,7 +2081,17 @@
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing_backup" id="account_key_existing_backup-pem_md5" type="text"/>
+               <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
+            </div>
+        </div>
+
+        <div class="radio">
+            <label for="account_key_option_backup-acme_account_id_backup">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_id_backup" value="acme_account_id_backup"/>
+                The internal ID of an ACME Account enrolled in the system.
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_id_backup" id="account_key_option_backup-acme_account_id_backup" type="text"/>
             </div>
         </div>
         % if support_profiles:

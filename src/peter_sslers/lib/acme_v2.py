@@ -1,6 +1,7 @@
 # stdlib
 # import base64
 # import binascii
+import datetime
 import hashlib
 import json
 import logging
@@ -37,7 +38,9 @@ from . import cas
 from . import errors
 from . import utils
 from . import utils_dns
+from .db import create as db_create
 from .db import update as db_update
+from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
 from .. import USER_AGENT
 from ..model import utils as model_utils
@@ -64,16 +67,17 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 log_api = logging.getLogger("acme_api")
-log_api.setLevel(logging.INFO)
+log_api.setLevel(logging.DEBUG)
 
 # ------------------------------------------------------------------------------
 
 
 MAX_DEPTH = 150
 DEBUG_HEADERS = False
+SECONDS_POLLING_TIMEOUT = 45
 
 
 class AriCheckResult(TypedDict):
@@ -127,10 +131,10 @@ def url_request(
     returns (resp_data, status_code, headers)
     """
     log_api.info("acme_v2.url_request(")
-    log_api.info(" REQUEST-")
-    log_api.info("  url       > %s", url)
-    log_api.info("  post_data > %s", post_data)
-    log_api.info("  depth     > %s", depth)
+    log_api.debug(" REQUEST-")
+    log_api.debug("  url       > %s", url)
+    log_api.debug("  post_data > %s", post_data)
+    log_api.debug("  depth     > %s", depth)
     if depth > MAX_DEPTH:
         raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
     context = None
@@ -144,21 +148,18 @@ def url_request(
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
-        log_api.info(url)
-        log_api.info(post_data)
-        log_api.info(headers)
         resp = urlopen(
             Request(url, data=post_data, headers=headers), context=context, timeout=10
         )
-        log_api.info(" RESPONSE-")
+        log_api.debug(" RESPONSE-")
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),
             resp.headers,
         )
-        log_api.info("  status_code < %s", status_code)
-        log_api.info("  resp_data   < %s", resp_data)
-        log_api.info("  headers     < %s", headers)
+        log_api.debug("  status_code < %s", status_code)
+        log_api.debug("  resp_data   < %s", resp_data)
+        log_api.debug("  headers     < %s", headers)
     except IOError as exc:
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
         status_code, headers = getattr(exc, "code", None), {}
@@ -654,15 +655,19 @@ class AuthenticatedUser(object):
         The response data is a dict
         """
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
-        _result, _t0 = None, time.time()
+        _result = None
+        _t0 = time.time()
         while (_result is None) or (_result["status"] in _pending_statuses):
             log.debug(") polling...")
-            assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
-            time.sleep(0 if _result is None else 2)
+            time.sleep(1 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
                 _url,
                 payload=None,
             )
+            _tdelta = time.time() - _t0
+            if _tdelta > SECONDS_POLLING_TIMEOUT:
+                log.critical("polling too long")
+                raise errors.AcmePollingTooLong(_tdelta, _result)  # args[0] = tDelta
         return _result
 
     def update_contact(
@@ -1724,9 +1729,24 @@ class AuthenticatedUser(object):
         url_order_status = dbAcmeOrder.order_url
 
         log.info(") acme_order_finalize | checking order {0}".format("order"))
-        acme_order_finalized = self._poll_until_not(
-            url_order_status, ["pending", "processing"], "Error checking order status"
-        )
+        try:
+            acme_order_finalized = self._poll_until_not(
+                url_order_status,
+                ["pending", "processing"],
+                "Error checking order status",
+            )
+        except errors.AcmePollingTooLong as exc:
+            log.debug(exc)
+            _tdelta, _result = exc.args
+            dbPollingError = db_create.create__AcmePollingError(  # noqa: F841
+                ctx,
+                acme_polling_error_endpoint_id=model_utils.AcmePollingErrorEndpoint.ACME_ORDER_FINALIZE,
+                acme_order_id=dbAcmeOrder.id,
+                response=_result,
+            )
+            ctx.pyramid_transaction_commit()
+            raise
+
         if acme_order_finalized["status"] != "valid":
             raise errors.AcmeCommunicationError(
                 "Order failed: {0}".format(acme_order_finalized)
@@ -2313,13 +2333,38 @@ class AuthenticatedUser(object):
         If we poll the Authorization instead of the Challenge, we won't have to
         issue a second query for the Authorization data.
         """
-        authorization_response = self._poll_until_not(
-            dbAcmeChallenge.acme_authorization.authorization_url,
-            ["pending", "processing"],
-            "checking challenge status for {0}".format(
-                dbAcmeChallenge.acme_authorization.domain.domain_name
-            ),
-        )
+
+        try:
+            authorization_response = self._poll_until_not(
+                dbAcmeChallenge.acme_authorization.authorization_url,
+                ["pending", "processing"],
+                "checking challenge status for {0}".format(
+                    dbAcmeChallenge.acme_authorization.domain.domain_name
+                ),
+            )
+        except errors.AcmePollingTooLong as exc:
+            _tdelta, _result = exc.args
+            for _chall in _result["challenges"]:
+                if "error" in _chall:
+                    timestamp_validated: Optional[datetime.datetime] = None
+                    _validated = _chall.get("validated")
+                    if _validated:
+                        timestamp_validated = ari_timestamp_to_python(_validated)
+                    subproblems_len = 0
+                    if "subproblems" in _chall["error"]:
+                        subproblems_len = len(_chall["error"]["subproblems"])
+                    dbPollingError = db_create.create__AcmePollingError(  # noqa: F841
+                        ctx,
+                        acme_polling_error_endpoint_id=model_utils.AcmePollingErrorEndpoint.ACME_CHALLENGE_TRIGGER,
+                        acme_order_id=dbAcmeAuthorization.acme_order_id__created,
+                        acme_authorization_id=dbAcmeAuthorization.id,
+                        acme_challenge_id=dbAcmeChallenge.id,
+                        timestamp_validated=timestamp_validated,
+                        subproblems_len=subproblems_len,
+                        response=_result,
+                    )
+                    ctx.pyramid_transaction_commit()
+            raise
 
         if authorization_response["status"] == "valid":
             log.info(

@@ -2392,6 +2392,75 @@ class FunctionalTests_AcmeEventLog(AppTest):
         assert res.json["AcmeEventLog"]["id"] == focus_id
 
 
+class FunctionalTests_AcmePollingError(AppTest):
+    """
+    python -m unittest tests.test_pyramid_app.FunctionalTests_AcmePollingError
+    """
+
+    def _get_one(self):
+        # grab an event
+        focus_item = self.ctx.dbSession.query(model_objects.AcmePollingError).first()
+        assert focus_item is not None
+        return focus_item, focus_item.id
+
+    @routes_tested(("admin:acme_polling_errors", "admin:acme_polling_errors-paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors", status=200
+        )
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors/1", status=200
+        )
+
+    @routes_tested(
+        ("admin:acme_polling_errors|json", "admin:acme_polling_errors-paginated|json")
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors.json", status=200
+        )
+        assert "AcmePollingErrors" in res.json
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-errors/1.json", status=200
+        )
+        assert "AcmePollingErrors" in res.json
+
+    @routes_tested(("admin:acme_polling_error:focus"))
+    def test_focus_html(self):
+        """
+        AcmePollingError entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-error/%s" % focus_id, status=200
+        )
+
+    @routes_tested(("admin:acme_polling_error:focus|json"))
+    def test_focus_json(self):
+        """
+        AcmePollingError entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/acme-polling-error/%s.json" % focus_id,
+            status=200,
+        )
+        assert "AcmePollingError" in res.json
+        assert res.json["AcmePollingError"]["id"] == focus_id
+
+
 class FunctionalTests_AcmeOrder(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder
@@ -2701,6 +2770,198 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
+    @routes_tested("admin:acme_order:new:freeform|json")
+    def test_new_json(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder.test_new_json
+
+        This only tests creating the AcmeOrder, not processing it
+        """
+
+        def _make_one_base(
+            domain_names_http01: str,
+            account_key_option: str,
+            account_key_option_value: str,
+            account_key_option_backup: str,
+            account_key_option_backup_value: str,
+            processing_strategy: Literal["create_order"],
+        ) -> model_objects.AcmeOrder:
+            """use the json api!"""
+
+            _backup_translate = {
+                "account_key_global_backup": "account_key_global_backup",
+                "account_key_existing": "account_key_existing_backup",
+                "acme_account_id": "acme_account_id_backup",
+            }
+            _backup_field = _backup_translate[account_key_option_backup]
+
+            form = {}
+            form["account_key_option"] = account_key_option
+            form[account_key_option] = account_key_option_value
+            form["account_key_option_backup"] = account_key_option_backup
+            form[_backup_field] = account_key_option_backup_value
+
+            form["private_key_option"] = "account_default"
+            form["private_key_cycle__primary"] = "account_default"
+            form["private_key_cycle__backup"] = "account_default"
+
+            form["acme_profile__primary"] = "@"
+            form["acme_profile__backup"] = "@"
+
+            form["private_key_technology__backup"] = "account_default"
+
+            form["domain_names_http01"] = domain_names_http01
+            form["processing_strategy"] = processing_strategy
+
+            res2 = self.testapp.post(
+                "/.well-known/peter_sslers/acme-order/new/freeform.json", form
+            )
+            assert res2.status_code == 200
+            assert res2.json["result"] == "success"
+            assert "AcmeOrder" in res2.json
+            obj_id = res2.json["AcmeOrder"]["id"]
+
+            dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+            assert dbAcmeOrder
+            return dbAcmeOrder
+
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        # note: via account_key_global_default
+        domain_names_1 = generate_random_domain(testCase=self)
+        dbAcmeOrder1 = _make_one_base(
+            domain_names_http01=domain_names_1,
+            account_key_option="account_key_global_default",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option_backup="account_key_global_backup",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            processing_strategy="create_order",
+        )
+
+        # note: via account_key_existing.pem_md5
+        domain_names_2 = generate_random_domain(testCase=self)
+        dbAcmeOrder2 = _make_one_base(
+            domain_names_http01=domain_names_2,
+            account_key_option="account_key_existing",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option_backup="account_key_existing",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            processing_strategy="create_order",
+        )
+
+        # note: via account_key_existing.pem_md5
+        domain_names_3 = generate_random_domain(testCase=self)
+        dbAcmeOrder3 = _make_one_base(
+            domain_names_http01=domain_names_3,
+            account_key_option="acme_account_id",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
+            account_key_option_backup="acme_account_id",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble_alt
+    @under_pebble
+    @routes_tested("admin:acme_order:new:freeform")
+    def test_new_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder.test_new_html
+
+        This only tests creating the AcmeOrder, not processing it
+        """
+
+        # note: _make_one_base
+        def _make_one_base(
+            domain_names_http01: str,
+            account_key_option: str,
+            account_key_option_value: str,
+            account_key_option_backup: str,
+            account_key_option_backup_value: str,
+            processing_strategy: Literal["create_order"],
+        ) -> model_objects.AcmeOrder:
+            """use the json api!"""
+            res = self.testapp.get(
+                "/.well-known/peter_sslers/acme-order/new/freeform", status=200
+            )
+
+            _backup_translate = {
+                "account_key_global_backup": "account_key_global_backup",
+                "account_key_existing": "account_key_existing_backup",
+                "acme_account_id": "acme_account_id_backup",
+            }
+            _backup_field = _backup_translate[account_key_option_backup]
+
+            form = res.form
+            _form_fields = form.fields.keys()
+            form["account_key_option"].force_value(account_key_option)
+            form[account_key_option].force_value(account_key_option_value)
+            form["account_key_option_backup"].force_value(account_key_option_backup)
+            form[_backup_field].force_value(account_key_option_backup_value)
+            form["private_key_option"].force_value("account_default")
+            form["private_key_cycle__primary"].force_value("account_default")
+            form["domain_names_http01"] = domain_names_http01
+            form["acme_profile__primary"] = "@"
+            form["acme_profile__backup"] = "@"
+            form["processing_strategy"].force_value(processing_strategy)
+            res2 = form.submit()
+            assert res2.status_code == 303
+
+            matched = RE_AcmeOrder.match(res2.location)
+            assert matched
+            obj_id = matched.groups()[0]
+
+            dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+            assert dbAcmeOrder
+            return dbAcmeOrder
+
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        # note: via account_key_global_default
+        domain_names_1 = generate_random_domain(testCase=self)
+
+        dbAcmeOrder1 = _make_one_base(
+            domain_names_http01=domain_names_1,
+            account_key_option="account_key_global_default",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option_backup="account_key_global_backup",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            processing_strategy="create_order",
+        )
+
+        # note: via account_key_existing.pem_md5
+        domain_names_2 = generate_random_domain(testCase=self)
+        dbAcmeOrder2 = _make_one_base(
+            domain_names_http01=domain_names_2,
+            account_key_option="account_key_existing",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option_backup="account_key_existing",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            processing_strategy="create_order",
+        )
+
+        # note: via account_key_existing.pem_md5
+        domain_names_3 = generate_random_domain(testCase=self)
+        dbAcmeOrder3 = _make_one_base(
+            domain_names_http01=domain_names_3,
+            account_key_option="acme_account_id",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
+            account_key_option_backup="acme_account_id",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
 
 class FunctionalTests_AcmeServer(AppTest):
     """
@@ -2749,7 +3010,10 @@ class FunctionalTests_AcmeServer(AppTest):
 
         res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
         form_check = res.forms["form-check_support"]
-        form_mark = res.forms["form-mark"]
+        form_mark_is_unlimited_pending_authz = res.forms[
+            "form-mark-is_unlimited_pending_authz"
+        ]
+        form_mark_is_retry_challenges = res.forms["form-mark-is_retry_challenges"]
 
         res2 = form_check.submit()
         assert res2.status_code == 303
@@ -2757,14 +3021,32 @@ class FunctionalTests_AcmeServer(AppTest):
             "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=check-support&check-support=True&changes-detected="
         )
 
-        _action = form_mark.fields["action"][0].value
-        res3 = form_mark.submit()
-        assert res3.status_code == 303
-        assert (
-            res3.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
-            % _action
-        )
+        for mark_form_name in (
+            "form-mark-is_unlimited_pending_authz",
+            "form-mark-is_retry_challenges",
+        ):
+            # toggle CHANGE
+            res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
+            form_mark = res.forms[mark_form_name]
+            _action = form_mark.fields["action"][0].value
+            res3 = form_mark.submit()
+            assert res3.status_code == 303
+            assert (
+                res3.location
+                == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
+                % _action
+            )
+            # toggle RESET
+            res = self.testapp.get("/.well-known/peter_sslers/acme-server/1")
+            form_mark = res.forms[mark_form_name]
+            _action = form_mark.fields["action"][0].value
+            res3 = form_mark.submit()
+            assert res3.status_code == 303
+            assert (
+                res3.location
+                == "http://peter-sslers.example.com/.well-known/peter_sslers/acme-server/1?result=success&operation=mark&action=%s"
+                % _action
+            )
 
     @routes_tested(
         (
@@ -2822,23 +3104,40 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/peter_sslers/acme-server/1.json", status=200
         )
 
-        if res_focus.json["AcmeServer"]["is_unlimited_pending_authz"]:
+        for mark_section in (
+            "is_unlimited_pending_authz",
+            "is_retry_challenges",
+        ):
+            if res_focus.json["AcmeServer"][mark_section]:
+                toggle_change = "%s-false" % mark_section
+                expected_change = False
+                toggle_reset = "%s-true" % mark_section
+                expected_reset = True
+            else:
+                toggle_change = "%s-true" % mark_section
+                expected_change = True
+                toggle_reset = "%s-false" % mark_section
+                expected_reset = False
+
+            # change
             res = self.testapp.post(
                 "/.well-known/peter_sslers/acme-server/1/mark.json",
-                {"action": "is_unlimited_pending_authz-false"},
+                {"action": toggle_change},
             )
             assert res.status_code == 200
-            expected = False
-        else:
+            assert res.json["result"] == "success"
+            assert "AcmeServer" in res.json
+            assert res.json["AcmeServer"][mark_section] == expected_change
+
+            # reset
             res = self.testapp.post(
                 "/.well-known/peter_sslers/acme-server/1/mark.json",
-                {"action": "is_unlimited_pending_authz-true"},
+                {"action": toggle_reset},
             )
-            expected = True
-        assert res.status_code == 200
-        assert res.json["result"] == "success"
-        assert "AcmeServer" in res.json
-        assert res.json["AcmeServer"]["is_unlimited_pending_authz"] == expected
+            assert res.status_code == 200
+            assert res.json["result"] == "success"
+            assert "AcmeServer" in res.json
+            assert res.json["AcmeServer"][mark_section] == expected_reset
 
     def test_post_required_html(self):
         # !!!: test `POST required` `acme-server/{ID}/check-support`
@@ -8751,7 +9050,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True&message="""
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/acme-account/%s?result=success&operation=acme-server--check&is_checked=True"""
             % focus_id
         )
 
@@ -8775,7 +9074,6 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "AcmeAccount" in res.json
         assert res.json["is_checked"] is True
         assert res.json["result"] == "success"
-        assert res.json["message"] is None
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -11463,6 +11761,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             domain_names_http01="a.test-replaces.example.com",
             processing_strategy="process_single",
         )
+
         # different domains
         dbAcmeOrder_3 = make_one__AcmeOrder__api(
             self,
@@ -11478,7 +11777,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 1- FAIL replace an unknown `replaces`
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces="fake.ari",
             _expected_result="FAIL",
         )
@@ -11486,7 +11785,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 2- PASS replace a cert from the same renewal configuration
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
@@ -11495,7 +11794,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 3- FAIL replace a replaced certificate
         # the replacement was just consumed in test 3
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
@@ -11504,7 +11803,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 4- PASS replace a cert from a different config with the same fqdn set
         # dbAcmeOrder_2 has the same fqdns, but a different config due to the dns challenges
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_2.certificate_signed.ari_identifier,
             _expected_result="PASS",
         )
@@ -11512,7 +11811,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # note: TestCase 5- FAIL replace a cert from a different renewal with a different fqdn set
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=dbAcmeOrder_3.certificate_signed.ari_identifier,
             _expected_result="FAIL",
         )
@@ -11521,7 +11820,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 6- PASS replace an imported cert with the same fqdn set
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_1,
+            dbAcmeOrder_1,  # [a.test-replaces.example.com]
             _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="PASS",
         )
@@ -11530,7 +11829,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # note: TestCase 7- FAIL replace an imported cert with a different fqdn set
         # uploaded_pebble_cert_data a tuple: (certificate_id, ari_identifier)
         _result = _make_one__AcmeOrder_Renewal(
-            dbAcmeOrder_3,
+            dbAcmeOrder_3,  # [b.test-replaces.example.com]
             _replaces=lineage_2_certdata["a.test-replaces.example.com"][1],
             _expected_result="FAIL",
         )

@@ -152,6 +152,81 @@ def submit__new_auth(
     return (dbAcmeAccount, _is_created)
 
 
+def submit__authenticate(
+    request: "Request",
+    dbAcmeAccount: "AcmeAccount",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[bool, Optional[str]]:
+    # returns (success, error_message)
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    try:
+        if not dbAcmeAccount.is_can_authenticate:
+            return False, "This AcmeAccount can not Authenticate"
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        authenticatedUser = (  # noqa: F841
+            lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
+                request.api_context,
+                dbAcmeAccount,
+                onlyReturnExisting=False,
+                transaction_commit=True,
+            )
+        )
+        return True, None
+    except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+        return False, "AcmeDuplicateAccount detected"
+    except errors.AcmeServerError as exc:
+        # (status_code, resp_data, url) = exc
+        log.critical(exc)
+        return False, "AcmeServerError"
+    except Exception as exc:
+        log.critical(exc)
+        return False, "General Error"
+
+
+def submit__check(
+    request: "Request",
+    dbAcmeAccount: "AcmeAccount",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[bool, Optional[str]]:
+    # returns (success, error_message)
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    try:
+        if not dbAcmeAccount.is_can_authenticate:
+            return False, "This AcmeAccount can not Check"
+        # result is either: `existing-account` or ERROR
+        # failing will raise an exception
+        # passing in `onlyReturnExisting` will log the "check"
+        checkedUser = (  # noqa: F841
+            lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
+                request.api_context,
+                dbAcmeAccount,
+                onlyReturnExisting=True,
+                transaction_commit=True,
+            )
+        )
+        return True, None
+    except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+        return False, "AcmeDuplicateAccount detected"
+    except errors.AcmeServerError as exc:
+        # (status_code, resp_data, url) = exc
+        log.critical(exc)
+        # only catch this if `onlyReturnExisting` and there is an DNE error
+        if (exc.args[0] == 400) and (
+            exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
+        ):
+            if "detail" in exc.args[1]:
+                return False, exc.args[1]["detail"]
+        return False, "AcmeServerError"
+    except Exception as exc:
+        log.critical(exc)
+        return False, "General Error"
+
+
 class View_List(Handler):
     @view_config(route_name="admin:acme_accounts", renderer="/admin/acme_accounts.mako")
     @view_config(
@@ -1262,53 +1337,35 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus__authenticate__submit(self):
         dbAcmeAccount = self._focus()  # noqa: F841
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        _result: Optional[str] = None
-        _message: Optional[str] = None
-        is_authenticated: bool = False
-        try:
-            authenticatedUser = (  # noqa: F841
-                lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
-                    self.request.api_context,
-                    dbAcmeAccount,
-                    onlyReturnExisting=False,
-                    transaction_commit=True,
-                )
-            )
-            _result = "success"
-            is_authenticated = True
-        except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+        _result, _err = submit__authenticate(
+            self.request,
+            dbAcmeAccount=dbAcmeAccount,
+            acknowledge_transaction_commits=True,
+        )
+        if _result:
             if self.request.wants_json:
                 return {
-                    "result": "error",
-                    "error": "AcmeDuplicateAccount detected",
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                    "is_authenticated": True,
+                    "result": "success",
                 }
             return HTTPSeeOther(
-                "%s?result=error&operation=acme-server--authenticate&error=AcmeDuplicateAccount+detected"
-                % self._focus_url
+                "%s?result=success&operation=acme-server--authenticate&is_authenticated=True"
+                % (self._focus_url,)
             )
-        except errors.AcmeServerError as exc:
-            # (status_code, resp_data, url) = exc
-            log.critical(exc)
-            _result = "error"
-            _message = "AcmeServerError"
-        except Exception as exc:
-            log.critical(exc)
-            _result = "error"
-            _message = str(exc)
-
         if self.request.wants_json:
             return {
                 "AcmeAccount": dbAcmeAccount.as_json,
-                "is_authenticated": is_authenticated,
-                "result": _result,
-                "message": _message,
+                "is_authenticated": False,
+                "result": "success",
+                "error": _err,
             }
-
+        # the only url-unsafe text in the errors are ascii-space chars
+        if TYPE_CHECKING:
+            assert _err
         return HTTPSeeOther(
-            "%s?result=%s&operation=acme-server--authenticate&is_authenticated=%s"
-            % (self._focus_url, _result, is_authenticated)
+            "%s?result=error&operation=acme-server--authenticate&error=%s"
+            % (self._focus_url, quote_plus(_err))
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1343,6 +1400,7 @@ class View_Focus_Manipulate(View_Focus):
             error_message = "This AcmeAccount can not Check"
             if self.request.wants_json:
                 return {
+                    "result": "error",
                     "error": error_message,
                 }
             url_error = "%s?result=error&error=%s&operation=acme-server--check" % (
@@ -1366,58 +1424,34 @@ class View_Focus_Manipulate(View_Focus):
 
     def _focus__check__submit(self):
         dbAcmeAccount = self._focus()  # noqa: F841
-        # result is either: `existing-account` or ERROR
-        # failing will raise an exception
-        # passing in `onlyReturnExisting` will log the "check"
-        _result: Optional[str] = None
-        _message: Optional[str] = None
-        is_checked: bool = False
-        # outer try block is
-        try:
-            checkedUser = (  # noqa: F841
-                lib_db.actions_acme.do__AcmeV2_AcmeAccount__authenticate(
-                    self.request.api_context,
-                    dbAcmeAccount,
-                    onlyReturnExisting=True,
-                    transaction_commit=True,
-                )
-            )
-            _result = "success"
-            is_checked = True
-        except errors.AcmeDuplicateAccount as exc:  # noqa: F841
+        _result, _err = submit__check(
+            self.request,
+            dbAcmeAccount=dbAcmeAccount,
+            acknowledge_transaction_commits=True,
+        )
+        if _result:
             if self.request.wants_json:
-                return {"result": "error", "error": "AcmeDuplicateAccount detected"}
+                return {
+                    "AcmeAccount": dbAcmeAccount.as_json,
+                    "is_checked": True,
+                    "result": "success",
+                }
             return HTTPSeeOther(
-                "%s?result=error&operation=acme-server--check&error=AcmeDuplicateAccount+detected"
-                % self._focus_url
+                "%s?result=success&operation=acme-server--check&is_checked=True"
+                % (self._focus_url,)
             )
-        except errors.AcmeServerError as exc:
-            # (status_code, resp_data, url) = exc
-            log.critical(exc)
-            _result = "error"
-            _message = "AcmeServerError"
-            # only catch this if `onlyReturnExisting` and there is an DNE error
-            if (exc.args[0] == 400) and (
-                exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
-            ):
-                if "detail" in exc.args[1]:
-                    _message = exc.args[1]["detail"]
-        except Exception as exc:
-            raise
-            log.critical(exc)
-            _result = "error"
-            _message = str(exc)
         if self.request.wants_json:
             return {
                 "AcmeAccount": dbAcmeAccount.as_json,
-                "is_checked": is_checked,
-                "result": _result,
-                "message": _message,
+                "is_checked": False,
+                "result": "success",
+                "error": _err,
             }
-        _message = quote_plus(_message) if _message else ""
+        if TYPE_CHECKING:
+            assert _err
         return HTTPSeeOther(
-            "%s?result=%s&operation=acme-server--check&is_checked=%s&message=%s"
-            % (self._focus_url, _result, is_checked, _message)
+            "%s?result=error&operation=acme-server--check&error=%s"
+            % (self._focus_url, quote_plus(_err))
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

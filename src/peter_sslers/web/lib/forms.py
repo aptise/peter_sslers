@@ -135,36 +135,6 @@ class _form_AcmeAccount_PrivateKey_extended:
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
-class _form_AcmeAccount_PrivateKey_core(_Form_Schema_Base):
-    """
-    this is a mix of two forms, because FormEncode doesn't support multiple class inheritance
-
-    Base for:
-        Form_AcmeOrder_new_freeform
-
-    """
-
-    account_key_option = OneOf(
-        model_utils.AcmeAccountKeyOption.options_basic,
-        not_empty=True,
-    )
-    account_key_global_default = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
-    private_key_option = OneOf(
-        model_utils.PrivateKeyOption.options_basic,
-        not_empty=True,
-    )
-    private_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    private_key_generate = OneOf(
-        model_utils.KeyTechnology._options_Generate,
-        not_empty=False,
-        if_missing=None,
-    )
-
-
 class Form_AcmeAccount_edit(_Form_Schema_Base):
     # this is the `private_key_technology` of the AcmeAccount
     account__private_key_technology = OneOf(
@@ -331,13 +301,29 @@ class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
     allowfrom = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 
-class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
+class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
 
-    # redefine this
     account_key_option = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic,
         not_empty=True,
     )
+    account_key_global_default = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_account_id = Int(not_empty=False, if_missing=None)
+
+    private_key_option = OneOf(
+        model_utils.PrivateKeyOption.options_basic,
+        not_empty=True,
+    )
+    private_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    private_key_generate = OneOf(
+        model_utils.KeyTechnology._options_Generate,
+        not_empty=False,
+        if_missing=None,
+    )
+
     # inherited:
     # account_key_global_default = UnicodeString(not_empty=False, if_missing=None, strip=True)
     # account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -353,6 +339,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     account_key_existing_backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
+    acme_account_id_backup = Int(not_empty=False, if_missing=None)
 
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -390,6 +377,7 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     )
 
     chained_validators = [
+        # these are bonded
         RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
         RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
     ]
@@ -400,6 +388,8 @@ class Form_AcmeServer_mark(_Form_Schema_Base):
         (
             "is_unlimited_pending_authz-true",
             "is_unlimited_pending_authz-false",
+            "is_retry_challenges-true",
+            "is_retry_challenges-false",
         ),
         not_empty=True,
     )
@@ -702,6 +692,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
         not_empty=False, if_missing=None, strip=True
     )
     account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_account_id = Int(not_empty=False, if_missing=None)
 
     account_key_option_backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup,
@@ -714,6 +705,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     account_key_existing_backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
+    acme_account_id_backup = Int(not_empty=False, if_missing=None)
 
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -766,6 +758,7 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    acme_account_id = Int(not_empty=False, if_missing=None)
 
     account_key_option_backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup_reuse,
@@ -775,6 +768,7 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     account_key_reuse_backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
+    acme_account_id_backup = Int(not_empty=False, if_missing=None)
 
     acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -794,7 +788,7 @@ class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
     is_export_filesystem = OneOf(
         model_utils.OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem,
         not_empty=False,
-        if_missing="off",
+        if_missing="enrollment_factory_default",
     )
 
 

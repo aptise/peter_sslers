@@ -233,6 +233,7 @@ class _Mixin_Timestamps_Pretty(object):
         timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]]
         timestamp_start: Mapped[datetime.datetime]
         timestamp_updated: Mapped[Optional[datetime.datetime]]
+        timestamp_validated: Mapped[Optional[datetime.datetime]]
 
     @property
     def timestamp_created_isoformat(self) -> Optional[str]:
@@ -316,6 +317,12 @@ class _Mixin_Timestamps_Pretty(object):
     def timestamp_updated_isoformat(self) -> Optional[str]:
         if self.timestamp_updated:
             return self.timestamp_updated.isoformat()
+        return None
+
+    @property
+    def timestamp_validated_isoformat(self) -> Optional[str]:
+        if self.timestamp_validated:
+            return self.timestamp_validated.isoformat()
         return None
 
 

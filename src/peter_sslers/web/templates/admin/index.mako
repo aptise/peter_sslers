@@ -147,6 +147,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orders</a></li>
+                <li><a href="${admin_prefix}/acme-polling-errors"
+                       title="ACME Polling Errors"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-polling-errors</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="CertificateRequests"
                     >

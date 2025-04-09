@@ -334,7 +334,19 @@ class View_Focus(Handler):
                             is_unlimited_pending_authz=False,
                         )
                     )
+                elif action == "is_retry_challenges-true":
+                    event_status = lib_db.update.update_AcmeServer__is_retry_challenges(
+                        self.request.api_context,
+                        dbAcmeServer,
+                        is_retry_challenges=True,
+                    )
 
+                elif action == "is_retry_challenges-false":
+                    event_status = lib_db.update.update_AcmeServer__is_retry_challenges(
+                        self.request.api_context,
+                        dbAcmeServer,
+                        is_retry_challenges=False,
+                    )
                 else:
                     raise errors.InvalidTransition("Invalid option")
 

@@ -298,6 +298,8 @@ class _OperationsUnified(_mixin_mapping):
         1102: "AcmeServer__mark__is_enabled",
         1103: "AcmeServer__mark__is_unlimited_authz_true",
         1104: "AcmeServer__mark__is_unlimited_authz_false",
+        1105: "AcmeServer__mark__is_retry_challenges_true",
+        1106: "AcmeServer__mark__is_retry_challenges_false",
         1300: "AcmeDnsServer__insert",
         1301: "AcmeDnsServer__mark",
         1302: "AcmeDnsServer__mark__active",
@@ -487,6 +489,7 @@ class Acme_Status_Authorization(_Acme_Status_All):
     IDS_POSSIBLY_PENDING: List[int]  # define after declaring the class
     OPTIONS_X_UPDATE = ("*404*",)
     OPTIONS_TRIGGER = ("pending",)
+    OPTIONS_TRIGGER_RETRIES = ("pending", "processing")
 
     _mapping = {
         0: "*discovered*",
@@ -526,6 +529,8 @@ class Acme_Status_Challenge(_Acme_Status_All):
     OPTIONS_PROCESSING = ("processing",)
     OPTIONS_INACTIVE = ("valid", "invalid", "*404*", "*410*")
     OPTIONS_TRIGGER = ("pending",)
+    OPTIONS_TRIGGER_RETRIES = ("pending", "processing")
+
     _mapping = {
         0: "*discovered*",
         1: "pending",
@@ -724,12 +729,14 @@ class AcmeAccountKeyOption(object):
     options_basic = (
         "account_key_global_default",
         "account_key_existing",
+        "acme_account_id",
     )
 
     options_basic_backup = (
         "none",
         "account_key_global_backup",
         "account_key_existing",
+        "acme_account_id",
     )
 
     options_streamlined = (
@@ -746,6 +753,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_default",
         "account_key_existing",
         "account_key_reuse",
+        "acme_account_id",
     )
 
     options_basic_backup_reuse = (
@@ -753,6 +761,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_backup",
         "account_key_existing",
         "account_key_reuse",
+        "acme_account_id",
     )
 
 
@@ -908,11 +917,26 @@ AcmeServerInput = TypedDict(
         # "is_default": Optional[bool],
         "is_supports_ari__version": Optional[str],
         "is_unlimited_pending_authz": Optional[bool],
+        "is_retry_challenges": Optional[bool],
         "filepath_ca_cert_bundle": Optional[str],
         "ca_cert_bundle": Optional[str],
     },
     total=False,
 )
+
+
+class AcmePollingErrorEndpoint(_mixin_mapping):
+    """
+    How was the AcmePollingError generated - which endpoint?
+    """
+
+    ACME_CHALLENGE_TRIGGER = 1
+    ACME_ORDER_FINALIZE = 2
+
+    _mapping = {
+        1: "acme_challenge_trigger",
+        2: "acme_order_finalize",
+    }
 
 
 class CertificateRequestSource(_mixin_mapping):

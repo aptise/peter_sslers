@@ -172,6 +172,10 @@ class AcmeServerError(AcmeError):
     pass
 
 
+class AcmePollingTooLong(AcmeServerError):
+    pass
+
+
 class AcmeServer404(AcmeServerError):
     pass
 
@@ -317,6 +321,10 @@ class DomainVerificationError(AcmeError):
 
 
 class DisplayableError(_UrlSafeException):
+    pass
+
+
+class DuplicateAcmeOrder(Exception):
     pass
 
 

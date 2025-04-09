@@ -455,6 +455,29 @@ def update_AcmeOrder_finalized(
     return True
 
 
+def update_AcmeServer__is_retry_challenges(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    is_retry_challenges: bool = True,
+):
+    if is_retry_challenges:
+        if dbAcmeServer.is_retry_challenges:
+            raise errors.InvalidTransition(
+                "Already Configured: is_retry_challenges==True"
+            )
+        dbAcmeServer.is_retry_challenges = True
+        event_status = "AcmeServer__mark__is_retry_challenges_true"
+    else:
+        if not dbAcmeServer.is_retry_challenges:
+            raise errors.InvalidTransition(
+                "Already Configured: is_retry_challenges==False"
+            )
+        dbAcmeServer.is_retry_challenges = False
+        event_status = "AcmeServer__mark__is_retry_challenges_false"
+    ctx.dbSession.flush([dbAcmeServer])
+    return event_status
+
+
 def update_AcmeServer__is_unlimited_pending_authz(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",

@@ -879,7 +879,7 @@ def api_domains__certificate_if_needed(
                     _logger_args["dbAcmeOrder"] = dbAcmeOrder
                     _result["acme_order.id"] = dbAcmeOrder.id
 
-                if isinstance(exc, errors.AcmeError):
+                elif isinstance(exc, errors.AcmeError):
                     _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
                     _result["certificate_signed.status"] = "fail"
                     _logger_args["event_status_id"] = (
@@ -887,6 +887,10 @@ def api_domains__certificate_if_needed(
                             "ApiDomains__certificate_if_needed__certificate_new_fail"
                         )
                     )
+                elif isinstance(exc, errors.DuplicateAcmeOrder):
+                    _result["error"] = "Could not process AcmeOrder, %s" % exc.args[0]
+                    _result["certificate_signed.status"] = "fail"
+
                 raise
 
         # log domain event
@@ -1061,6 +1065,7 @@ def register_acme_servers(
             dbObject.is_supports_ari__version = item.get(
                 "is_supports_ari__version", None
             )
+            dbObject.is_retry_challenges = item.get("is_retry_challenges", None)
             dbObject.server = server
             dbObject.server_ca_cert_bundle = server_ca_cert_bundle
             ctx.dbSession.add(dbObject)
