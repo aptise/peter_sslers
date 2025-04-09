@@ -106,7 +106,7 @@ for letter in "abcdefghijklmnopqrstuvwxyz":
         templating_args["ssl_certificate"] = ssl_certificate
         templating_args["ssl_certificate_key"] = ssl_certificate_key
         templating_args["ssl_files"] = (
-            "    ssl_certificate =  %(ssl_certificate)s;\n    ssl_certificate_key =  %(ssl_certificate_key)s;"
+            "ssl_certificate =  %(ssl_certificate)s;\n    ssl_certificate_key =  %(ssl_certificate_key)s;"
             % templating_args
         )
 
