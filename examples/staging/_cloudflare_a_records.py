@@ -44,8 +44,8 @@ CLOUDFLARE_TARGET_IP = os.environ.get("CLOUDFLARE_TARGET_IP")
 if not all((ROOT_DOMAIN, CLOUDFLARE_ZONE_ID, CLOUDFLARE_TARGET_IP)):
     raise ValueError("required ENV vars not found")
 
-# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower():
-SUPPORTED_LETTERS = "ABCDEFG".lower():
+# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
+SUPPORTED_LETTERS = "ABCDEFG".lower()
 
 # ==============================================================================
 

@@ -36,8 +36,8 @@ if not all((ROOT_DOMAIN,)):
 assert ROOT_DOMAIN
 ROOT_DOMAIN_REVERSED = tldextract.extract(ROOT_DOMAIN).reverse_domain_name
 
-# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower():
-SUPPORTED_LETTERS = "ABCDEFG".lower():
+# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
+SUPPORTED_LETTERS = "ABCDEFG".lower()
 
 # ==============================================================================
 
