@@ -99,8 +99,8 @@ def get_acme_dns_record(
             # acme-dns should have only one record
             # it's technically possible to have many
             # but our system is locking that down
-            if len(rval) > 1:
-                raise ValueError("received more than 1 TXT record from server")
+            if len(rval) > 2:
+                raise ValueError("received more than 2 TXT records from server")
             return rval[0]
         return None
     except dns.resolver.NoAnswer:
@@ -251,10 +251,8 @@ def audit_AcmeDnsSererAccount(
             "Exception in audit_AcmeDnsSererAccount(id=%s)" % dbAcmeDnsServerAccount.id
         )
         log.info(exc)
+        _errors.append("acme-dns server: %s" % exc)
         credentials_work = False
-        import pdb
-
-        pdb.set_trace()
     finally:
         if r_server_target__pre:
             acmeDnsClient.update_txt_record(
