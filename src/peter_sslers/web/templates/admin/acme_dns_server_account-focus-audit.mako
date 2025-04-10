@@ -59,10 +59,14 @@
                 </tr>
                 <tr>
                     <th>
-                        % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["chained"]["TXT"]:
-                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                        % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["chained"]["TXT"]:
-                            <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % if AuditResults["server_global"]["chained"]["TXT"]:
+                            % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["chained"]["TXT"]:
+                                <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["chained"]["TXT"]:
+                                <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
                         % else:
                             <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
                         % endif
@@ -91,10 +95,14 @@
                 </tr>
                 <tr>
                     <th>
-                        % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["source"]["CNAME"]:
-                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                        % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["source"]["CNAME"]:
-                            <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % if AuditResults["server_global"]["source"]["CNAME"]:
+                            % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["source"]["CNAME"]:
+                                <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["source"]["CNAME"]:
+                                <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
                         % else:
                             <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
                         % endif
