@@ -48,7 +48,7 @@
                 </tr>
             </table>
 
-            <h4>Generic DNS Status</h4>
+            <h4>Chained DNS Status</h4>
             <table class="table table-striped table-condensed">
                 <tr>
                     <th></th>
@@ -60,10 +60,8 @@
                 <tr>
                     <th>
                         % if AuditResults["server_global"]["chained"]["TXT"]:
-                            % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["chained"]["TXT"]:
+                            % if AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["chained"]["TXT"]:
                                 <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                            % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["chained"]["TXT"]:
-                                <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
                             % endif
@@ -92,14 +90,13 @@
                     <th>dns type</th>
                     <th>expected</th>
                     <th>actual</th>
+                    <th>note</th>
                 </tr>
                 <tr>
                     <th>
                         % if AuditResults["server_global"]["source"]["CNAME"]:
-                            % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["source"]["CNAME"]:
+                            % if AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["source"]["CNAME"]:
                                 <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                            % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["source"]["CNAME"]:
-                                <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                             % else:
                                 <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
                             % endif
@@ -112,10 +109,12 @@
                     <th>CNAME</th>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
                     <td><code>${AuditResults["server_global"]["source"]["CNAME"] or ''}</code></td>
+                    <td><em>acme-dns integration expects a CNAME; DNS RFCs require at-most 1 CNAME record.</em></td>
                 </tr>
                 <tr>
                     <th>
                         % if not AuditResults["server_global"]["source"]["TXT"]:
+                            ## there should be NO result here
                             <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                         % else:
                             <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
@@ -124,12 +123,14 @@
                     <th>source</th>
                     <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
                     <th>TXT</th>
-                    <td><code></code></td>
+                    <td><code>*nothing*</code></td>
                     <td><code>${AuditResults["server_global"]["source"]["TXT"] or ''}</code></td>
+                    <td><em>acme-dns integration expects a CNAME, not TXT.</em></td>
                 </tr>
                 <tr>
                     <th>
-                        % if not AuditResults["server_global"]["target"]["TXT"]:
+                        % if AuditResults["server_global"]["target"]["TXT"]:
+                            ## The value does not matter, just the data
                             <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                         % else:
                             <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
@@ -138,8 +139,9 @@
                     <th>target</th>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
                     <th>TXT</th>
-                    <td><code></code></td>
+                    <td><code>*anything*</code></td>
                     <td><code>${AuditResults["server_global"]["target"]["TXT"] or ''}</code></td>
+                    <td><em>The audit does not check the value of this record, as it changes during authorization; only the presence is tested.</em></td>
                 </tr>
             </table>
 
@@ -149,13 +151,21 @@
                 <tr>
                     <th>acme-dns credentials work?</th>
                     <td>
-                        ${AuditResults["server_acme_dns"]["credentials_work"] or ''}
+                        % if AuditResults["server_acme_dns"]["credentials_work"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> True</span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> False</span>
+                        % endif
                     </td>
                 </tr>
                 <tr>
                     <th>acme-dns credentials reset?</th>
                     <td>
-                        ${AuditResults["server_acme_dns"]["credentials_reset"] or ''}
+                        % if AuditResults["server_acme_dns"]["credentials_reset"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> True</span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> False</span>
+                        % endif
                     </td>
                 </tr>
                 <tr>

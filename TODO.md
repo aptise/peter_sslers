@@ -1,27 +1,30 @@
 URGENT
 =====
 
-check cloudflare for texts; run acme-dns-audit
-
-
 
 Audit:
-    AcknowledgeTransactionCommitRequired
-    TransactionCommitRequired
-    transaction_commit
-    
-    These concepts need to be split into the following:
-        transaction_commit: instructs the def to commit the transaction
-        acknowlege_transaction_commits: the def will commit the transaction; the caller must acknowledge this
+    Concepts:
+        AcknowledgeTransactionCommitRequired
+        TransactionCommitRequired
+        transaction_commit
+    Explanation:    
+        These concepts need to be split into the following:
+            transaction_commit: 
+                instructs the def to commit the transaction
+            acknowlege_transaction_commits:
+                the def will commit the transaction; the caller must acknowledge this
+
+
     
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
-Feature
-    example client that monitors?
-    db logging : control via config
+Feature?
+    * example client that monitors certs on disk.
+    * db logging : control via config
         operations events
-
+    * use a md5hash of the acme account url as an account identifier; likely better than acme_account_key
+    
 Fix
     ARI Checks
         see:

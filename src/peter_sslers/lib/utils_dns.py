@@ -154,74 +154,70 @@ def audit_AcmeDnsSererAccount(
 ) -> AcmeDnsAudit:
 
     _errors = []
-    
-    r_global_source_cname: Union[List[str], str, None]
-    r_global_target_txt: Union[List[str], str, None]
-    r_global_chained_txt: Union[List[str], str, None]
 
     # is authoritative dns set up correctly?
-    r_global_source_cname = get_records(dbAcmeDnsServerAccount.cname_source, "CNAME")
+    r_global_source_cname = get_records(
+        dbAcmeDnsServerAccount.cname_source, "CNAME", allow_chaining=False
+    )
     if not r_global_source_cname:
-        _errors.append("cname_source: Expected exactly 1 CNAME (RFC); found 0")
+        _errors.append("cname_source: No Records. Expected exactly 1 CNAME; found `0`.")
     else:
+        # DNS RFC only allows ONE CNAME
         if len(r_global_source_cname) > 1:
             if dbAcmeDnsServerAccount.cname_target in r_global_source_cname:
                 _errors.append(
-                    "cname_source: Extra Records. Expected exactly 1 CNAME (RFC); found %s; %s"
+                    "cname_source: Record Found, but Extra Records. Expected exactly 1 CNAME; found `%s`: %s."
                     % (len(r_global_source_cname), r_global_source_cname)
                 )
             else:
                 _errors.append(
-                    "cname_source: FATAL, No Matches. Expected exactly 1 CNAME (RFC); found %s; %s"
+                    "cname_source: Record Missing, and Extra Records. Expected exactly 1 CNAME; found `%s`: %s."
                     % (len(r_global_source_cname), r_global_source_cname)
                 )
         else:
-            # coerce to a string
-            r_global_source_cname = r_global_source_cname[0]
-            if r_global_source_cname != dbAcmeDnsServerAccount.cname_target:
+            if r_global_source_cname[0] != dbAcmeDnsServerAccount.cname_target:
                 _errors.append(
-                    "cname_source: Expected CNAME `%s` to point to `%s`; found %s"
+                    "cname_source: Expected CNAME `%s` to point to `%s`; found %s."
                     % (
                         dbAcmeDnsServerAccount.cname_source,
                         dbAcmeDnsServerAccount.cname_target,
-                        r_global_source_cname,
+                        r_global_source_cname[0],
                     )
                 )
 
-    r_global_source_txt = get_records(dbAcmeDnsServerAccount.cname_source, "TXT")
+    r_global_source_txt = get_records(
+        dbAcmeDnsServerAccount.cname_source, "TXT", allow_chaining=False
+    )
     if r_global_source_txt:
         _errors.append(
-            "cname_source: Expected exactly 0 TXT; found %s; should this be a CNAME? %s"
+            "cname_source: Expected exactly 0 TXT; expected CNAME instead; found `%s`: %s."
             % (len(r_global_source_txt), r_global_source_txt)
         )
 
     # is the server set up correctly?
-    r_global_target_txt = get_records(dbAcmeDnsServerAccount.cname_target, "TXT")
+    r_global_target_txt = get_records(
+        dbAcmeDnsServerAccount.cname_target, "TXT", allow_chaining=False
+    )
     if r_global_target_txt is None:
-        _errors.append("cname_target: Expected exactly 1 TXT; found `None`")
-    elif len(r_global_target_txt) > 1:
-        _errors.append(
-            "cname_target: Expected exactly 1 TXT; found %s; %s"
-            % (len(r_global_target_txt), r_global_target_txt)
-        )
+        _errors.append("cname_target: Expected 1-2 TXT; found `0`.")
     else:
-        # coerce to a string
-        r_global_target_txt = r_global_target_txt[0]
+        if len(r_global_target_txt) > 2:
+            _errors.append(
+                "cname_target: Expected 1-2 TXT in acme-dns; acme-dns supports at most 2 records; found `%s`: %s."
+                % (len(r_global_target_txt), r_global_target_txt)
+            )
 
     # chained TXT
     r_global_chained_txt = get_records(
         dbAcmeDnsServerAccount.cname_source, "TXT", allow_chaining=True
     )
     if r_global_chained_txt is None:
-        _errors.append("chained_txt: Expected exactly 1 TXT; found `None`")
-    elif len(r_global_chained_txt) > 1:
+        _errors.append("chained_txt: Expected 1-2 TXT; found `0`.")
+    elif len(r_global_chained_txt) > 2:
         _errors.append(
-            "chained_txt: Expected exactly 1 TXT; found %s; %s"
+            "chained_txt: Expected 1-2 TXT in acme-dns; acme-dns supports at most 2 records; found `%s`; %s."
             % (len(r_global_chained_txt), r_global_chained_txt)
         )
-    else:
-        # coerce to a string
-        r_global_chained_txt = r_global_chained_txt[0]
 
     #
     # here we just test that we have an account setup and it works
@@ -251,8 +247,14 @@ def audit_AcmeDnsSererAccount(
         if _test_entry == r_server_target__post:
             credentials_work = True
     except Exception as exc:
+        log.info(
+            "Exception in audit_AcmeDnsSererAccount(id=%s)" % dbAcmeDnsServerAccount.id
+        )
         log.info(exc)
         credentials_work = False
+        import pdb
+
+        pdb.set_trace()
     finally:
         if r_server_target__pre:
             acmeDnsClient.update_txt_record(

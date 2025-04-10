@@ -2,20 +2,37 @@
 
 This advanced tutorial is how the staging system was created.
 
-It requires the following:
+    https://http-01.a.peter-sslers.testing.opensource.aptise.com/
+    https://dns-01.a.peter-sslers.testing.opensource.aptise.com/
+
+Note that each subdomain uses a different certificate, from a different CA,
+however each certificate covers both domains::
+
+    echo | openssl s_client -showcerts -servername dns-01.a.peter-sslers.testing.opensource.aptise.com -connect dns-01.a.peter-sslers.testing.opensource.aptise.com:443 2>/dev/null | openssl x509 -inform pem -noout -text
+
+    echo | openssl s_client -showcerts -servername http-01.a.peter-sslers.testing.opensource.aptise.com -connect http-01.a.peter-sslers.testing.opensource.aptise.com:443 2>/dev/null | openssl x509 -inform pem -noout -text
+
+
+This Advanced Tutorial requires the following::
 
 * root access
 * an acme-dns server
 * python3.9 or newer
 
 If you have an older Python on Ubuntu, it will take under 3 minutes to sideload
-a compatible release in our next step
+a compatible release in our next step.
 
-## Upgrading to a Compatible Python on ubuntu
+`jq` is also recommended; If you have Ubuntu::
 
-SSH Onto your server.
+    sudo apt-get install jq
 
-Installing Python3.10:
+## Optional:: Upgrading to a Compatible Python on Ubuntu
+
+As of this writing, peter_sslers is supported and tested on Python3.9 through 3.13. 
+
+This example is only using Python3.10 as an example.
+
+Installing Python3.10::
 
     sudo add-apt-repository ppa:deadsnakes/ppa
     sudo apt update
@@ -23,8 +40,7 @@ Installing Python3.10:
     sudo apt-get install python3.10-dev
     sudo apt-get install python3.10-distutils
     sudo apt-get install python3.10-venv
-    
-    
+
 This will install python3.10 into `/usr/bin/python3.10`
 
 Confirm this with::
@@ -45,14 +61,20 @@ And confirm we have it::
 
 Install the core Python dependencies for generic deployments...
 
-We expect to sideload python, so it's best to explicitly invoke the pip3.x variant.
+We expect to be using a sideloaded python, so we explicitly invoke the pip3.x variant.
 
-For this example, we're using Python 3.10 ::
+For this example, we're using Python 3.10::
 
     sudo pip3.10 install --upgrade pip
     sudo pip3.10 install --upgrade virtualenv
 
-Create a new virtualenv, clone and install `peter_sslers`
+Create a new virtualenv, clone and install `peter_sslers`.
+
+Note the `-p 3.10` command to virtualenv.  Previously, the virtualenv executable was versioned and
+multiple sideloaded versions could coexist.  Several years ago, this was changed to a system where
+a single executable uses a platform argument to version the environment.
+
+Also note the virtualenv created has the version in it as well::
 
     virtualenv -p 3.10 peter_sslers-virtualenv-3.10
     source peter_sslers-virtualenv-3.10/bin/activate
@@ -60,101 +82,166 @@ Create a new virtualenv, clone and install `peter_sslers`
     cd peter_sslers
     pip install -e .
     
-You might prefer:
+You might prefer installing some extra packages with::
 
     pip install -e .[testing]
 
-# Generate the Staging Example
+# Generate the Staging Example - Server Setup
+
+Switch to this directory::
 
     cd examples/staging
 
-## Set up A records for test domains:
+## Set up A records for test domains
 
+In this example, the Cloudflare API is used to generate the core DNS records.
+
+The script used to generate this is included, `_cloudflare_a_records.py`
+
+You will need the following info:
+
+* A Cloudflare API token
+* The zoneid for a domain on Cloudflare
+
+Export some Environment variables::
+
+    export ROOT_DOMAIN="{Your Domain, e.g. aptise.com}"
     export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
-    export ROOT_DOMAIN="aptise.com"
     export CLOUDFLARE_ZONE_ID="{ZONE_ID FOR aptise.com}"
     export CLOUDFLARE_TARGET_IP="{your ip}"
-    
+
+peter_sslers does not install the Cloudflare library, so that must be installed.
+All other dependencies should be installed by peter_sslers already.
+
     pip install --upgrade "cloudflare<3"
-    pip install --upgrade "tldextract>=5.2"
-    
+
+Running the following script will generate the necessary A records for your DNS;
+CNAME and TXT records will be handled later.
+
     python _cloudflare_a_records.py
 
 ## Generate nginx config files, part 1
 
+A second script, `_generate_openresty.py`, is used to generate the following files:
+
+* OpenResty/Nginx configuration files
+* Index.html files to serve
+
+This script will be invoked multiple times; the contents of the files it generates
+are controlled by the progress in the tutorial::
+
     export ROOT_DOMAIN=aptise.com
     python _generate_openresty.py
+
+Create symlinks for the files to serve::
 
     cd /var/www/sites
     sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
     ls -alh com.aptise.opensource.testing.peter_sslers
     ls -alh com.aptise.opensource.testing.peter_sslers/
 
+Create symlinks for the nginx configuration files::
+
     cd /etc/openresty
     sudo ln -s ~/peter_sslers/examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_ .
     ls -alh com.aptise.opensource.testing.peter_sslers_
     ls -alh com.aptise.opensource.testing.peter_sslers_/
 
+The templates for the generated files are in the `_templates/` directory.
+They will reference includes in the `nginx_conf/com.aptise.opensource.testing.peter_sslers_/_macros` directory.
+
+Of particular interest is the `acme-public.conf` file.  An excerpt is below:
+
+    location  /.well-known/public/whoami  {
+        proxy_set_header  X-Real-IP  $remote_addr;
+        proxy_set_header  X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto  $scheme;
+        proxy_set_header  Host  $host;
+        proxy_pass  http://127.0.0.1:7201;
+        error_page  502 = @fallback_7202;
+    }
+
+This location block is specifying that our main server - the web interface - will be running on port 7201, and that OpenResty encounters a 502 HTTP error (Bad Gateway), to use `@fallback_7202` as our error block.  Also in that file we see::
+
+    location @fallback_7202 {
+        proxy_pass  http://127.0.0.1:7202;
+    }
+
+The combination of the two location blocks means that OpenResty will proxy_pass to port 7202 when it can not proxy_pass to port 7201.  This allows us to run background tasks on port 7202 that can answer HTTP-01 authorization challenges when we are not running a web interface.
+
+
 ## Edit Nginx conf
 
     vi nginx.conf
 
-### Add the following lines to the `http {}` section
+### Ensure the following lines to the `http {}` section
 
     server_names_hash_bucket_size 128;
     include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
     
 If you have a `server_names_hash_bucket_size` directive already, it should be increased to at least this amount; it may need to be increased more depending on the number of domains you already host.
 
-
 ## ensure there is no SSL here, because we don't have a cert yet!
 
-the script should have detected that and NOT generated a 443 block
+The `_generate_openresty.py` script should have detected this situation, and NOT generated any 443 blocks.
+
+You can ensure that with::
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
-    vi com.aptise.opensource.testing.peter_sslers
+    more com.aptise.opensource.testing.peter_sslers
     
 ## test nginx
+
+Now that some files are on disk, test nginx to ensure it's okay::
 
     sudo openresty -t
 
 ## restart nginx
 
+Assuming things pass, restart nginx:: 
+
     ps aux | grep openresty
     kill -HUP ##PID##
     
-## check page
+## Check page: Admin Interface
 
-This should show some links to github
+This URL should show some links to github::
 
     http://peter-sslers.testing.opensource.aptise.com
 
-This should not serve anything
+This URL should not serve anything, as we're not running a server now::
 
     https://peter-sslers.testing.opensource.aptise.com/
 
-## initialize peter_sslers
+# Generate the Staging Example - PeterSSLers
+
+## initialize peter_sslers environment
 
     cd ~/peter_sslers
     mkdir _data_
     touch _data_/nginx_ca_bundle.pem
 
-# copy and edit the conf
+## copy and edit the config file.
 
-ensure there are no enabled debug routes / etc
+Ensure there are no enabled debug routes / etc
 
-    cp conf/example_development.ini conf/staging.ini
+    cp conf/example_staging.ini conf/staging.ini
     vi conf/staging.ini
+    
+## initialize the database
+
+This script sets up the database structure ::
+
     
     initialize_peter_sslers_db conf/staging.ini
 
 ## Create an ACME Account
 
-List the accounts: none!
+List the accounts; expect none ::
 
     ssl_manage conf/staging.ini acme-account list
 
-List the CAs - we want STAGING
+List the CAs - we want STAGING::
 
     ssl_manage conf/staging.ini acme-server list
 
@@ -168,7 +255,6 @@ According to the above, `acme_server_id = 4; letsencrypt staging`
     ssl_manage conf/staging.ini acme-account list   
     ssl_manage conf/staging.ini acme-account authenticate id=5
     
-
 ### Create an account with: BuyPass Staging
 
 According to the above, `acme_server_id = 6; buypass staging`
@@ -180,9 +266,24 @@ The above shows a success message, but double-check and note the account_id's
 
     ssl_manage conf/staging.ini acme-account list
 
-## Grab a Cert for our installation
+## Obtain a Cert for our installation: a RenewalConfiguration
 
-Create a renewal configuration...
+A RenewalConfiguration is the concept/object used to create an AcmeOrder and manage
+the renewal process.  Each RenewalConfiguration sets the parameters for obtaining 
+an initial Certificate and renewing it over time:
+
+* Which domain name(s) to use?
+* Which authorization(s) to use?
+* Which ACME Account(s) to use?
+* What types of PrimaryKey(s) should be used?
+* How should PrivateKey(s) be recyled?
+* Which ACME profiles to use?
+* etc, etc, etc
+
+### Create a RenewalConfiguration
+
+We're going to create our first RenewalConfiguration for the Domain we will host
+the web tool on, `peter-sslers.testing.opensource.aptise.com` ::
 
     ssl_manage conf/staging.ini renewal-configuration new
     ssl_manage conf/staging.ini renewal-configuration new help=1
@@ -192,108 +293,231 @@ Create a renewal configuration...
         label="peter-sslers.testing.opensource.aptise.com" \
         account_key_option=account_key_existing \
         account_key_option_backup=account_key_existing \
-        account_key_existing="34a37f676e8c0c0ade24b8b8720d46ad" \
-        account_key_existing_backup="4b4673ca1da2eb3f635fd9e751c205c2" \
+        account_key_existing="{{PEM MD5 of Primary Key}}" \
+        account_key_existing_backup="{{PEM MD5 OF Backup Key}}" \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
         private_key_technology__primary="account_default" \
-        private_key_technology__backup="account_default" \
+        private_key_technology__backup="account_default"
 
-Spin up a server to generate the certs
+A few things to note in the above:
+
+* `domain_names_http01` - a comma separated list of domain names to authenticate with the `HTTP-01` challenge
+* `is_export_filesystem` - we want to persist these certificates to disk, in addition to the database storage
+* `label` this will be a unique name to identify our certificates with on disk
+* `account_key_option=account_key_existing` this specifies the account_key will be provided with the md5 value of the PEM encoded key in the `account_key_existing` argument; the numeric id of the Acme Account could also be used with `account_key_option=acme_accout_id` alongside `acme_account_id={ID}`.  using the key_pem can be beneficial because that id is tied to the ACME server , whiel the `acme_account_id` is local to this particular installation.
+* many of the options can be set to `account_default`, allowing global changes to be made as needed.
+
+### Get a Certificate
+
+Creating a RenewalConfiguration does not obtain a certificate, it just tells PeterSSLers that you
+want it to automatically manage a Certificate for you.
+
+On the Web Interface you can create an AcmeOrder from a RenewalConfiguration.  We are not running the 
+web interface yet, so we will rely on invoking a script that can be run as a background process by cron.
+
+Start the background process script to generate the certs; this will spin up a server on port 7202, which can answer the HTTP-01 challenges::
 
     routine__automatic_orders conf/staging.ini
 
-Check it::
+You should see some ACME logging, and a message that the certificates have been successfully obtained.
+
+Now check for the certificates::
 
     ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com
     ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com/primary
     ls  ./_data_/certificates/global/peter-sslers.testing.opensource.aptise.com/backup
 
+Why are these certificates placed there?
 
-Install it...
+* `_data_/` is the general storage directory
+* `.../certificates` is where all on-disk certificates are maintained
+* `.../global` is where all "global" certificates are placed.  This is considered a "global" certificate because we did not use an EnrollmentFactory (explained shortly)
+* `.../peter-sslers.testing.opensource.aptise.com` is the unique "label" we specified above.
+* `.../primary` and `.../backup` are the two Certificate types
+
+### Install the certificate
+
+For this installation, we will create a `certificates` directory in our dedicated openresty directory, and symlink the certificates into it
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_
     mkdir certificates
     cd certificates
     sudo ln -s ~/peter_sslers/_data_/certificates/global/peter-sslers.testing.opensource.aptise.com .
 
-Regenerate the openresty files::
+## Deploy the sites!
+
+Now that there are Certificates procured, we want to regenerate the openresty files::
 
     cd ~/peter_sslers/examples/staging
     python _generate_openresty.py
 
-Check to ensure https is on::
+Look at the generated files, and check to ensure there are HTTPS blocks::
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
     more com.aptise.opensource.testing.peter_sslers
     
 There should now be a second 443 sever block!
 
-After confirming that, generate a user/pass
+After confirming that, generate a user/pass so you can lock-down the web interface::
 
     sudo htpasswd -c /etc/openresty/credentials/peter_sslers-testing.htpasswd -u USERNAME
     
-# test and restart nginx
+Test and restart nginx, to ensure the files are compliant::
 
     sudo openresty -t
     ps aux | grep openresty
     kill -HUP ##PID##
 
-# visit the site    
+And now, visit the site ::
 
     https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers    
 
 There should now be a HTTP-auth box.
 
-If you success with credentials, you should see a `502 Bad Gateway` response.
+If you succesd with credentials, you should see a `502 Bad Gateway` response.
 
+This is expected, because no server is running.  That will be our last step.
 
-## Create an Enrollment Factory
+## Create an EnrollmentFactory
+
+An EnrollmentFactory is the object/concept used to streamline and automate onboarding of RenewalConfigurations.
+
+If you're using this system, you almost certainly have a lot of domains and are generating the same types of certificates all the time.  For example, every `example.com` in your system probably correlates to needing a certificate that covers `example.com, www.example.com, mail.example.com, webmail.example.com` or something similar.
+
+An EnrollmentFactory lets us define a template for generating these repetitive RenewalConfigurations.
+
+In this staging example, we want to manage these domains:
+
+    http-01.a.peter-sslers.testing.opensource.aptise.com
+    dns-01.a.peter-sslers.testing.opensource.aptise.com
+    http-01.b.peter-sslers.testing.opensource.aptise.com
+    dns-01.b.peter-sslers.testing.opensource.aptise.com
+    http-01.c.peter-sslers.testing.opensource.aptise.com
+    dns-01.c.peter-sslers.testing.opensource.aptise.com
+    http-01.d.peter-sslers.testing.opensource.aptise.com
+    dns-01.d.peter-sslers.testing.opensource.aptise.com
+    ...
+
+To automate this, we will create an EnrollmentFactory that uses these two templates::
+
+    domain_template_dns01="dns-01.{DOMAIN}"
+    domain_template_http01="http-01.{DOMAIN}"
 
 ### Expect a fail on a first attempt
 
-Create the Enrollment factory, with acme_account_id__primary = 1;
+We expect a fail, so create the Enrollment factory, with acme_account_id__primary = 1;
+
+When we really make an EnrollmentFactory, it will utilize a backup account as well
 
 This should fail::
 
     ssl_manage conf/staging.ini enrollment-factory list
     ssl_manage conf/staging.ini enrollment-factory new help=1
-    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="dns-http-example" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256
+    ssl_manage conf/staging.ini enrollment-factory new \
+        acme_account_id__primary=1 \
+        domain_template_dns01="dns-01.{DOMAIN}" \
+        domain_template_http01="http-01.{DOMAIN}" \
+        is_export_filesystem=on \
+        label_template="chall_prefix-{DOMAIN}" \
+        name="dns-http-example" \
+        private_key_cycle__primary=account_weekly \
+        private_key_technology__primary=EC_P256
 
 There should be an error like this:
 
     #  'domain_template_dns01': 'The global acme-dns server is not configured.'}
+    
+Why?  Utilizing acme-dns requires us to register an acme-dns server with the system.  Let's do that.
 
 ### prerequisite: Set Up ACME-DNS
 
-we need to set up acme-dns!
+acme-dns is an API driven DNS server that was designed to securely authenticate DNS-01 challenges.
+
+DNS-01 challenges are ONLY supported by PeterSSLers through acme-dns.
+
+The code and instructions to set up are available here: https://github.com/joohoi/acme-dns
+
+An overview is available from the EFF here: https://www.eff.org/deeplinks/2018/02/technical-deep-dive-securing-automation-acme-dns-challenge-validation
+
+Generally speaking::
+
+* Subscribers generate a unique set of credentials and a unique subdomain for every full-qualified-domain-name they intend to authenticate with a DNS-01 challenge
+* Subscribers CNAME their primary `_acme-challenge.example.com` DNS records onto the unique acme-dns subdomain
+* ACME clients use the credentials to manipulate the CNAME target record, not the CNAME itself.  This means compromised credentials can only affect the acme-dns TXT records - which only exist for the purpose of completing the DNS-01 challenge - and have no effect on the primary DNS system.
+
+The best-practice for using DNS-01 challenges is to either::
+
+* Delegate the challenge to a secondary DNS service via CNAME, or
+* Utilize a primary DNS service with a locked-down API token that can only alter _acme-challenge records
+
+Very few systems offer granular controls over API tokens, and those that do can be burdensome or overly complicated.  Utilizing acme-dns is the best solution for DNS-01 challenges, and is the only target DNS-01 platform for this project.
+
+Setting up acme-dns is straightforward and fully covered by that project's documentation.
+
+
+### register the acme-dns server into PeterSSLers
+
+We need to set up acme-dns !
 
     ssl_manage conf/staging.ini acme-dns-server list
     ssl_manage conf/staging.ini acme-dns-server new help=1
-    ssl_manage conf/staging.ini acme-dns-server new api_url="http://127.0.0.1:8011" domain="acme-dns.aptise.com"
+    ssl_manage conf/staging.ini acme-dns-server new api_url="http://acme-dns.aptise.com:8011" domain="acme-dns.aptise.com"
     ssl_manage conf/staging.ini acme-dns-server list
     ssl_manage conf/staging.ini acme-dns-server check id=1
 
-
-### Expect success on the second attempt
-
-Create the Enrollment factory, with acme_account_id__primary = 1; acme_account_id__backup = 2; 
-
-    ssl_manage conf/staging.ini enrollment-factory new acme_account_id__primary=1 domain_template_dns01="dns-01.{DOMAIN}" domain_template_http01="http-01.{DOMAIN}" is_export_filesystem=on label_template="chall_prefix-{DOMAIN}" name="dns-http-example" private_key_cycle__primary=account_weekly private_key_technology__primary=EC_P256 acme_account_id_backup=2 private_key_cycle__backup=account_weekly private_key_technology__backup=EC_P256
-    ssl_manage conf/staging.ini enrollment-factory list
+Note the `api_url` and `domain` are different args.  This is because the API can be http or https, and run on any port.  The domain is used without a port though, as it is part of the target DNS records.
 
 
-## Create RenewalConfigurations
+### EnrollmentFactory part 2, Expect success on the second attempt
 
-RenewalConfigurations drive automatic orders
+Now that we have acme-dns set up, create the Enrollment factory, with acme_account_id__primary = 1; acme_account_id__backup = 2; 
+
+    ssl_manage conf/staging.ini enrollment-factory new \
+        acme_account_id__primary=1 \
+        domain_template_dns01="dns-01.{DOMAIN}" \
+        domain_template_http01="http-01.{DOMAIN}" \
+        is_export_filesystem=on \
+        label_template="chall_prefix-{DOMAIN}" \
+        name="dns-http-example" \
+        private_key_cycle__primary=account_weekly \
+        private_key_technology__primary=EC_P256 \
+        acme_account_id_backup=2 \
+        private_key_cycle__backup=account_weekly \
+        private_key_technology__backup=EC_P256
+
+This should pass.  Confirm the DB storage with::
+
+   ssl_manage conf/staging.ini enrollment-factory list
+
+
+## Create RenewalConfigurations from the EnrollmentFactory
+
+As explained above, RenewalConfigurations drive automatic orders.
 
     ssl_manage conf/staging.ini renewal-configuration list
     ssl_manage conf/staging.ini renewal-configuration new-enrollment help=1
 
-By selected `new-enrollment`, instead of `new`, we can leverage most options from the
-EnrollmentFactory
+By selecting `new-enrollment`, instead of `new`, we can leverage most options from the
+EnrollmentFactory::
 
-    ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="a.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage conf/staging.ini renewal-configuration new-enrollment \
+        enrollment_factory_id=1 \
+        domain_name="a.peter-sslers.testing.opensource.aptise.com" \
+        label="chall_prefix-{DOMAIN}" \
+        is_export_filesystem=enrollment_factory_default
+
+The above should be sel-explanatory.  We are using the `1` EnrollmentFactory created above and applying it to the domain name `a.peter-sslers.testing.opensource.aptise.com` 
+
+This will create a RenewalConfiguration for:
+
+    http-01.a.peter-sslers.testing.opensource.aptise.com
+    dns-01.a.peter-sslers.testing.opensource.aptise.com
+    
+While the web interface will pre-fill the `label` and `is_export_filesystem` fields, the commandline inteface does not (yet).
+
+Let's quickly create several more RenewalConfigurations for b, c and d ::
+
 
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
 
@@ -301,24 +525,29 @@ EnrollmentFactory
 
     ssl_manage conf/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
 
+Again, this will only create a RenewalConfiguration - we need to do the initial setup of the delegated `_acme-dns` records before obtaining certificates.  This could be done by registering the domains with the PeterSSLers BEFORE creating a RenewalConfiguration as well; this tutorial is simply doing things in this order.
 
 ## Audit ACME-DNS and Cloudflare
 
 ### Run acme_dns_audit
 
-The `acme_dns_audit` tool does two things:
+A commandline `acme_dns_audit` tool does two things:
 
-1- It ensures every domain that needs a DNS-01 challenge has a acme-dns account
+1- It ensures every domain that needs a DNS-01 challenge has an acme-dns account
 
 2- It checks the DNS records for every domain to ensure the CNAME target and source are set correctly
 
-By default it outputs to CSV, but it can also output to JSON
+By default it outputs the report to CSV, which is ideal for manual audits, but it can also output to JSON.
 
-First, generate a report in JSON
+First, generate a report in JSON::
 
     acme_dns_audit conf/staging.ini format=json
     
-We expect this to fail miserably, because no domains have been configured in DNS yet
+Reading this is easiest with jq, but anything can be used:
+
+    jq . acme_dns_audit-accounts.json
+    
+We expect this to fail miserably, because no domains have been configured in DNS yet.
 
 Our test domains are managed by cloudflare, so we can use another tool to set this up::
 
@@ -327,18 +556,23 @@ Our test domains are managed by cloudflare, so we can use another tool to set th
 
 The above tool will just parse the output file, and appropriately manage the DNS entries.
 
+The `acme_dns_audit-process_cloudflare.py` script is supported as an example utility, but not bundled into the main system as people may use other primary DNS platforms.
 
-## Check the example domains
+Run the audit script again, and look for no errors.
 
-Run a testserver to ensure the proxies work right:
+## Ensure the example domains are configured correctly
+
+You can run a testserver to ensure the proxies work right::
 
     python tools/automatic_testserver.py conf/staging.py
 
-and check a domain
+That script just spins up a server with the same endpoints that our actual servers will use.
+
+And check a domain::
 
     curl http://http-01.a.peter-sslers.testing.opensource.aptise.com/.well-known/public/whoami
     
-that should generate the following text:
+That should show the following text::
 
     http-01.a.peter-sslers.testing.opensource.aptise.com
     
@@ -368,7 +602,7 @@ Try to run the "reconcile blocks" tool.  This iterates stuck orders::
 
 ## Install the certificates...
 
-First, link the Certificates to our openresty installation::
+First, link the Certificates on-disk to our openresty installation::
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/
     sudo ln -s ~/peter_sslers/_data_/certificates/dns-http-example/chall_prefix-* .
@@ -382,7 +616,8 @@ and upgrade the various websites::
     sudo openresty -t
     ps aux | grep openresty
     kill -HUP ##PID##
-    
+
+If you look at the nginx configuration files, there will now be HTTPS blocks.
 
 ## check page
 
@@ -396,3 +631,25 @@ should redirect to::
     
 which shows the letter you are on, and allows you to toggle between domains
 
+## Now, check out the web management tool
+
+You can spin up the web management tool with this command:
+
+    pserve conf/staging.ini
+    
+and visit it on the following url::    
+
+    https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers/
+
+You will need to use the user/pass you created above.
+
+Only a small subset of information and commands are available on the web interface.
+
+As this interface intentionally exposes private keys, this tutorial "locked down" the 
+installation behind HTTPS and HTTP AUTH and is not covering how to daemonize the process.
+
+Experienced dev/ops and network administrators should understand how to properly ensure the web interface is not publicly available and is only visible within a LAN.  
+
+## TODO 
+
+    crontab for scheduler

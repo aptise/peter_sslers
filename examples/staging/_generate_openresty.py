@@ -36,6 +36,9 @@ if not all((ROOT_DOMAIN,)):
 assert ROOT_DOMAIN
 ROOT_DOMAIN_REVERSED = tldextract.extract(ROOT_DOMAIN).reverse_domain_name
 
+# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower():
+SUPPORTED_LETTERS = "ABCDEFG".lower():
+
 # ==============================================================================
 
 with open("_templates/domain_admin-80.conf", "r") as fh:
@@ -110,7 +113,7 @@ with open(domain_conf__file, "w") as fh:
 
 
 # note: Microsite Configuration (challenge/letter; public)
-for letter in "abcdefghijklmnopqrstuvwxyz":
+for letter in SUPPORTED_LETTERS:
     templating_args = {
         "letter": letter,
         "ssl_files_primary": "",
@@ -184,7 +187,7 @@ for letter in "abcdefghijklmnopqrstuvwxyz":
             os.mkdir(domain_www__dirpath)
 
         _fragments = []
-        for _letter in "abcdefghijklmnopqrstuvwxyz":
+        for _letter in SUPPORTED_LETTERS:
             _letter_args = {
                 "letter": _letter,
                 "root_domain": ROOT_DOMAIN,
