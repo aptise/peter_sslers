@@ -1,7 +1,7 @@
 URGENT
 =====
 
-Tests to create with an account_id
+check cloudflare for texts; run acme-dns-audit
 
 
 

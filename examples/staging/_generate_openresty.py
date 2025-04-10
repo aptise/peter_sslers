@@ -131,8 +131,7 @@ for letter in "abcdefghijklmnopqrstuvwxyz":
     }
 
     ssl_certs["primary"] = (
-        "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
-        % templating_args
+        "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem" % templating_args
     )
     if TYPE_CHECKING:
         assert ssl_certs["primary"]

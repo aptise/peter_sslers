@@ -48,6 +48,33 @@
                 </tr>
             </table>
 
+            <h4>Generic DNS Status</h4>
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th></th>
+                    <th>type</th>
+                    <th>dns entry</th>
+                    <th>expected</th>
+                    <th>actual</th>
+                </tr>
+                <tr>
+                    <th>
+                        % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["chained"]["TXT"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["chained"]["TXT"]:
+                            <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </th>
+                    <td>TXT</td>
+                    <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
+                    <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
+                    <td><code>${AuditResults["server_global"]["chained"]["TXT"] or ''}</code></td>
+                </tr>
+            </table>
+
+
             <h4>Authoritative DNS Status</h4>
             <p>
                 A correct configuration will have a CNAME - not TXT - record that
@@ -55,6 +82,7 @@
             </p>
             <table class="table table-striped table-condensed">
                 <tr>
+                    <th></th>
                     <th>type</th>
                     <th>dns entry</th>
                     <th>dns type</th>
@@ -62,6 +90,15 @@
                     <th>actual</th>
                 </tr>
                 <tr>
+                    <th>
+                        % if AcmeDnsServerAccount.cname_target == AuditResults["server_global"]["source"]["CNAME"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % elif AcmeDnsServerAccount.cname_target in AuditResults["server_global"]["source"]["CNAME"]:
+                            <span class="label label-warning"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </th>
                     <th>source</th>
                     <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
                     <th>CNAME</th>
@@ -69,6 +106,13 @@
                     <td><code>${AuditResults["server_global"]["source"]["CNAME"] or ''}</code></td>
                 </tr>
                 <tr>
+                    <th>
+                        % if not AuditResults["server_global"]["source"]["TXT"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </th>
                     <th>source</th>
                     <td><code>${AcmeDnsServerAccount.cname_source}</code></td>
                     <th>TXT</th>
@@ -76,6 +120,13 @@
                     <td><code>${AuditResults["server_global"]["source"]["TXT"] or ''}</code></td>
                 </tr>
                 <tr>
+                    <th>
+                        % if not AuditResults["server_global"]["target"]["TXT"]:
+                            <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                        % else:
+                            <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                        % endif
+                    </th>
                     <th>target</th>
                     <td><code>${AcmeDnsServerAccount.cname_target}</code></td>
                     <th>TXT</th>

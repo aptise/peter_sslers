@@ -233,9 +233,6 @@ After confirming that, generate a user/pass
 
     sudo htpasswd -c /etc/openresty/credentials/peter_sslers-testing.htpasswd -u USERNAME
     
-    
-
-
 # test and restart nginx
 
     sudo openresty -t
@@ -246,9 +243,9 @@ After confirming that, generate a user/pass
 
     https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers    
 
-There should now be a HTTP-auth box
+There should now be a HTTP-auth box.
 
-
+If you success with credentials, you should see a `502 Bad Gateway` response.
 
 
 ## Create an Enrollment Factory
@@ -330,6 +327,7 @@ Our test domains are managed by cloudflare, so we can use another tool to set th
 
 The above tool will just parse the output file, and appropriately manage the DNS entries.
 
+
 ## Check the example domains
 
 Run a testserver to ensure the proxies work right:
@@ -340,39 +338,44 @@ and check a domain
 
     curl http://http-01.a.peter-sslers.testing.opensource.aptise.com/.well-known/public/whoami
     
-should generate:
+that should generate the following text:
 
     http-01.a.peter-sslers.testing.opensource.aptise.com
     
-## now all that is done, grab our certs::
+## now all that is done, run a routine to provision Certificates from the CA::
 
-this will order primary and backup
+this will order both the primary and backup Certificates::
 
     routine__automatic_orders conf/staging.ini
 
-list the certs
+Now list the certs::
 
     ls -alh _data_/certificates
 
-if you are missing some certs...
+## if you are missing some certs...
 
 try running it again:
 
     routine__automatic_orders conf/staging.ini
 
-if you notice a message like 
+if you notice a message like the following in the JSON responses...
 
     Exception `There is an existing active `AcmeOrder
 
-Try to reconcile blocks:
+Try to run the "reconcile blocks" tool.  This iterates stuck orders::
     
     routine__reconcile_blocks conf/staging.ini
 
+## Install the certificates...
 
-Now, upgrade the certificates...
+First, link the Certificates to our openresty installation::
 
     cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/certificates/
     sudo ln -s ~/peter_sslers/_data_/certificates/dns-http-example/chall_prefix-* .
+    ls -alh .
+
+Next, run the `_generate_openresty` script again; it will detect the certificates
+and upgrade the various websites::
 
     cd ~/peter_sslers/examples/staging
     python _generate_openresty.py
@@ -383,8 +386,13 @@ Now, upgrade the certificates...
 
 ## check page
 
+requesting::
+
+    http://http-01.a.peter-sslers.testing.opensource.aptise.com/
+
+should redirect to::
+
     https://http-01.a.peter-sslers.testing.opensource.aptise.com/
-
-
-/var/www/sites/com.aptise.opensource.testing.peter_sslers/a/http-01/index.html
+    
+which shows the letter you are on, and allows you to toggle between domains
 

@@ -31,11 +31,16 @@ log.setLevel(logging.INFO)
 def get_records(
     hostname: str,
     record_type: Literal["CNAME", "TXT", "A"],
+    allow_chaining: bool = False,
 ) -> Optional[List[str]]:
+    """Fetches DNS records."""
     if record_type not in ("CNAME", "TXT", "A"):
         raise ValueError("invalid record_type")
     try:
         resolved = dns.resolver.resolve(hostname, record_type)
+        if resolved.canonical_name != resolved.qname:
+            if not allow_chaining:
+                return None
         rval = []
         for rdata in resolved:
             # cname has `target` attribute but it seems unnecessary
@@ -65,9 +70,10 @@ def get_records(
 def get_acme_dns_record(
     dbAcmeDnsServer: "AcmeDnsServer",
     hostname: str,
+    allow_chaining: bool = False,
 ) -> Optional[str]:
 
-    acme_dns_server_ips = get_records(dbAcmeDnsServer.domain, "A")
+    acme_dns_server_ips = get_records(dbAcmeDnsServer.domain, "A", allow_chaining=True)
     if not acme_dns_server_ips:
         raise ValueError("Could not resolve acme-dns server")
     if len(acme_dns_server_ips) > 1:
@@ -78,8 +84,12 @@ def get_acme_dns_record(
     try:
         res = dns.resolver.Resolver(configure=False)
         res.nameservers = [acme_dns_server_ip]
+        resolved = res.resolve(hostname, "TXT")
+        if not allow_chaining:
+            if resolved.canonical_name != resolved.qname:
+                return None
         rval = []
-        for rr in res.resolve(hostname, "TXT"):
+        for rr in resolved:
             if TYPE_CHECKING:
                 rr = cast("TXT", rr)
             for _txt in rr.strings:
@@ -121,6 +131,7 @@ class _AcmeDnsAudit_Server_AcmeDns_TXT(TypedDict):
 class _AcmeDnsAudit_Server_Global(TypedDict):
     source: _Dict_CNAME_TXT
     target: _Dict_TXT
+    chained: _Dict_TXT
 
 
 class _AcmeDnsAudit_Server_AcmeDns(TypedDict):
@@ -143,6 +154,10 @@ def audit_AcmeDnsSererAccount(
 ) -> AcmeDnsAudit:
 
     _errors = []
+    
+    r_global_source_cname: Union[List[str], str, None]
+    r_global_target_txt: Union[List[str], str, None]
+    r_global_chained_txt: Union[List[str], str, None]
 
     # is authoritative dns set up correctly?
     r_global_source_cname = get_records(dbAcmeDnsServerAccount.cname_source, "CNAME")
@@ -150,11 +165,19 @@ def audit_AcmeDnsSererAccount(
         _errors.append("cname_source: Expected exactly 1 CNAME (RFC); found 0")
     else:
         if len(r_global_source_cname) > 1:
-            _errors.append(
-                "cname_source: Expected exactly 1 CNAME (RFC); found %s; %s"
-                % (len(r_global_source_cname), r_global_source_cname)
-            )
+            if dbAcmeDnsServerAccount.cname_target in r_global_source_cname:
+                _errors.append(
+                    "cname_source: Extra Records. Expected exactly 1 CNAME (RFC); found %s; %s"
+                    % (len(r_global_source_cname), r_global_source_cname)
+                )
+            else:
+                _errors.append(
+                    "cname_source: FATAL, No Matches. Expected exactly 1 CNAME (RFC); found %s; %s"
+                    % (len(r_global_source_cname), r_global_source_cname)
+                )
         else:
+            # coerce to a string
+            r_global_source_cname = r_global_source_cname[0]
             if r_global_source_cname != dbAcmeDnsServerAccount.cname_target:
                 _errors.append(
                     "cname_source: Expected CNAME `%s` to point to `%s`; found %s"
@@ -181,6 +204,24 @@ def audit_AcmeDnsSererAccount(
             "cname_target: Expected exactly 1 TXT; found %s; %s"
             % (len(r_global_target_txt), r_global_target_txt)
         )
+    else:
+        # coerce to a string
+        r_global_target_txt = r_global_target_txt[0]
+
+    # chained TXT
+    r_global_chained_txt = get_records(
+        dbAcmeDnsServerAccount.cname_source, "TXT", allow_chaining=True
+    )
+    if r_global_chained_txt is None:
+        _errors.append("chained_txt: Expected exactly 1 TXT; found `None`")
+    elif len(r_global_chained_txt) > 1:
+        _errors.append(
+            "chained_txt: Expected exactly 1 TXT; found %s; %s"
+            % (len(r_global_chained_txt), r_global_chained_txt)
+        )
+    else:
+        # coerce to a string
+        r_global_chained_txt = r_global_chained_txt[0]
 
     #
     # here we just test that we have an account setup and it works
@@ -236,6 +277,9 @@ def audit_AcmeDnsSererAccount(
             "source": {
                 "CNAME": r_global_source_cname,
                 "TXT": r_global_source_txt,
+            },
+            "chained": {
+                "TXT": r_global_chained_txt,
             },
             "target": {
                 "TXT": r_global_target_txt,
