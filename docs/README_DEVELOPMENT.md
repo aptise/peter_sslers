@@ -69,8 +69,7 @@ this will require you to install `go`.
 > 1. Set up Go [from binaries](https://golang.org/doc/install) or [from source](https://go.dev/doc/install/source) and your `$GOPATH`
 > 2. `git clone https://github.com/letsencrypt/pebble/`
 > 3. `cd pebble`
-> 4. `go install ./cmd/pebble
-`
+> 4. `go install ./cmd/pebble`
 
 As a precaution, copy the pebble config file. On the root project directory:
 

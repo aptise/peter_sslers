@@ -356,9 +356,9 @@ def update_AcmeDnsServer__api_url__domain(
     if (dbAcmeDnsServer.api_url == api_url) and (dbAcmeDnsServer.domain == domain):
         raise errors.InvalidTransition("No change")
     dbAcmeDnsServerAlt = get__AcmeDnsServer__by_api_url(ctx, api_url)
-    if dbAcmeDnsServerAlt:
+    if dbAcmeDnsServerAlt and (dbAcmeDnsServerAlt.id != dbAcmeDnsServer.id):
         raise errors.InvalidTransition(
-            "Another acme-dns Server is enrolled with this same root url."
+            "Another acme-dns Server is enrolled with this same API URL."
         )
     dbAcmeDnsServer.api_url = api_url
     dbAcmeDnsServer.domain = domain
