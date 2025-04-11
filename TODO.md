@@ -1,6 +1,9 @@
 URGENT
 =====
 
+urllib3 has a breaking change in 2.4.0
+    # see https://github.com/urllib3/urllib3/issues/3571
+
 
 Audit:
     Concepts:

@@ -145,6 +145,7 @@ def url_request(
             "User-Agent": USER_AGENT,
         }
         if alt_bundle:
+            # see https://github.com/urllib3/urllib3/issues/3571
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
