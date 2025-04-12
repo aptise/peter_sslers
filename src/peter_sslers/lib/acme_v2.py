@@ -555,7 +555,7 @@ class AuthenticatedUser(object):
         if acme_directory is None:
             self.acme_directory = acme_directory_get(self.ctx, acmeAccount)
             db_update.update_AcmeServer_directory(
-                ctx, acmeAccount.acme_server, acme_directory
+                ctx, acmeAccount.acme_server, self.acme_directory
             )
             if func_acmeAccount_directory_updates:
                 func_acmeAccount_directory_updates(
